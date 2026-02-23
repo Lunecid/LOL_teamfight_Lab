@@ -712,6 +712,29 @@ def _extract_objective_building_ts(events: List[dict]) -> Tuple[np.ndarray, np.n
     )
 
 
+def _extract_ace_ts(events: List[dict]) -> np.ndarray:
+    """Extract CHAMPION_SPECIAL_KILL ACE timestamps (sorted unique)."""
+    ts: List[int] = []
+    for ev in events or []:
+        if not isinstance(ev, dict):
+            continue
+        et = str(ev.get("type", ev.get("eventType", ""))).upper()
+        if et != "CHAMPION_SPECIAL_KILL":
+            continue
+        kt = str(ev.get("killType", "")).upper()
+        if "ACE" not in kt:
+            continue
+        try:
+            t = int(ev.get("timestamp", ev.get("ts", -1)) or -1)
+        except Exception:
+            t = -1
+        if t >= 0:
+            ts.append(int(t))
+    if not ts:
+        return np.empty((0,), dtype=np.int64)
+    return np.asarray(sorted(set(ts)), dtype=np.int64)
+
+
 def _first_kill_in_window(kill_ts: np.ndarray, t0: int, t1_exclusive: int) -> Optional[int]:
     """Return first kill in half-open window [t0, t1_exclusive)."""
     if kill_ts.size == 0:
@@ -720,6 +743,67 @@ def _first_kill_in_window(kill_ts: np.ndarray, t0: int, t1_exclusive: int) -> Op
     if i < kill_ts.size and int(kill_ts[i]) < t1_exclusive:
         return int(kill_ts[i])
     return None
+
+
+def _truncate_fights_at_ace(
+    fights: List[dict],
+    ace_ts: np.ndarray,
+    *,
+    horizon_ms: int,
+    diag: Optional[Dict[str, Any]] = None,
+) -> None:
+    """If ACE occurs in a fight window, clamp fight end to that ACE timestamp."""
+    ace_cnt = int(ace_ts.size) if isinstance(ace_ts, np.ndarray) else 0
+    clipped = 0
+
+    if fights and ace_cnt > 0:
+        for f in fights:
+            try:
+                t0 = int(f.get("engage_ts", -1))
+            except Exception:
+                t0 = -1
+            if t0 < 0:
+                continue
+
+            t1 = int(_label_end_ts(f, int(horizon_ms)))
+            if t1 <= t0:
+                continue
+
+            i = int(np.searchsorted(ace_ts, t0, side="left"))
+            if i >= ace_ts.size:
+                continue
+            ace_t = int(ace_ts[i])
+            if ace_t >= t1:
+                continue
+
+            # label window is [engage, end), so use ace_t + 1 to include same-ms events.
+            new_end = int(max(t0 + 1, ace_t + 1))
+            if new_end >= t1:
+                continue
+
+            f["horizon_end_ts"] = int(new_end)
+            f["det_end_by_ace"] = 1
+            f["det_ace_ts"] = int(ace_t)
+
+            subs = f.get("sub_segments", None)
+            if isinstance(subs, list) and subs:
+                kept_subs = []
+                for s in subs:
+                    try:
+                        st = int(s.get("engage_ts", -1))
+                    except Exception:
+                        st = -1
+                    if st < 0 or st <= ace_t:
+                        kept_subs.append(s)
+                if len(kept_subs) != len(subs):
+                    f["sub_segments"] = kept_subs
+                    f["n_segments"] = int(1 + len(kept_subs))
+
+            clipped += 1
+
+    if diag is not None:
+        diag["ace_events"] = int(ace_cnt)
+        diag["ace_end_truncated"] = int(diag.get("ace_end_truncated", 0) or 0) + int(clipped)
 
 
 # ============================================================================
@@ -1449,6 +1533,8 @@ def detect_fights_engage_v2(cache: Dict[str, Any], tm: Dict[int, int], config: O
         "continuous_merged": 0,
         "continuous_clusters": 0,
         "continuous_different_location": 0,
+        "ace_events": 0,
+        "ace_end_truncated": 0,
         # [P0 FIX] post-merge enforcement stats
         "postmerge_conflicts": 0,
         "postmerge_removed": 0,
@@ -1605,6 +1691,7 @@ def detect_fights_engage_v2(cache: Dict[str, Any], tm: Dict[int, int], config: O
         if kill_events
         else np.empty((0,), dtype=np.int64)
     )
+    ace_ts = _extract_ace_ts(events)
     summ_spell_ts = _extract_summoner_spell_ts(events)
     dmg_idx = NODE_IDX.get("ds_totalDamageDoneToChampions", None)
 
@@ -1851,6 +1938,14 @@ def detect_fights_engage_v2(cache: Dict[str, Any], tm: Dict[int, int], config: O
             fights.append(f)
             last_ts = int(f["engage_ts"])
 
+    # If ACE occurs in the label horizon, end fight at ACE timestamp.
+    _truncate_fights_at_ace(
+        fights,
+        ace_ts,
+        horizon_ms=int(horizon_ms),
+        diag=diag,
+    )
+
     # ------------------------------------------------------------------
     # [P0 FIX] continuous merge ON/OFF와 무관하게 최종 fights에 대해:
     #   - fight_min_gap_ms 강제
@@ -1916,6 +2011,8 @@ def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Op
         "continuous_merged": 0,
         "continuous_clusters": 0,
         "continuous_different_location": 0,
+        "ace_events": 0,
+        "ace_end_truncated": 0,
         "postmerge_conflicts": 0,
         "postmerge_removed": 0,
         "postmerge_replaced": 0,
@@ -2039,6 +2136,7 @@ def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Op
         if kill_events
         else np.empty((0,), dtype=np.int64)
     )
+    ace_ts = _extract_ace_ts(events)
     summ_spell_ts = _extract_summoner_spell_ts(events)
     objective_ts, building_ts = _extract_objective_building_ts(events)
     dmg_idx = NODE_IDX.get("ds_totalDamageDoneToChampions", None)
@@ -2316,6 +2414,14 @@ def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Op
                 continue
             fights.append(f)
             last_ts = int(f["engage_ts"])
+
+    # If ACE occurs in the label horizon, end fight at ACE timestamp.
+    _truncate_fights_at_ace(
+        fights,
+        ace_ts,
+        horizon_ms=int(horizon_ms),
+        diag=diag,
+    )
 
     fights = enforce_postmerge_spacing_and_nonoverlap(
         fights,

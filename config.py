@@ -136,11 +136,18 @@ F_NODE: int = len(NODE_FEATURE_NAMES)
 # -------------------------------------------------------------------
 EVENT_FEATURE_NAMES: List[str] = [
     "kills_t100", "kills_t200", "bounty_t100", "bounty_t200",
+    "shutdown_kill_t100", "shutdown_kill_t200",
+    "killstreak_t100", "killstreak_t200",
+    "multikill_t100", "multikill_t200",
+    "ace_t100", "ace_t200",
     "dragon_t100", "dragon_t200", "baron_t100", "baron_t200",
     "herald_t100", "herald_t200", "atakhan_t100", "atakhan_t200",
     "horde_t100", "horde_t200", "tower_t100", "tower_t200",
     "inhib_t100", "inhib_t200", "plate_t100", "plate_t200",
+    "obj_bounty_t100", "obj_bounty_t200",
     "ward_placed_t100", "ward_placed_t200", "ward_kill_t100", "ward_kill_t200",
+    "control_ward_placed_t100", "control_ward_placed_t200",
+    "control_ward_kill_t100", "control_ward_kill_t200",
     "item_pur_t100", "item_pur_t200", "item_sold_t100", "item_sold_t200",
     "item_undo_t100", "item_undo_t200",
 ]

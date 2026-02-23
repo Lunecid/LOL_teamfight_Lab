@@ -901,8 +901,20 @@ def aggregate_events(events_or_pack: Any, tm: Dict[int, int], s_ms: int, e_ms: i
                 if k in EVENT_IDX:
                     ev[EVENT_IDX[k]] += 1.0
                 b = f"bounty_t{tid}"
+                shutdown = safe_float(e.get("shutdownBounty", 0.0))
                 if b in EVENT_IDX:
-                    ev[EVENT_IDX[b]] += safe_float(e.get("bounty", 0.0)) + safe_float(e.get("shutdownBounty", 0.0))
+                    ev[EVENT_IDX[b]] += safe_float(e.get("bounty", 0.0)) + shutdown
+
+                if shutdown > 0.0:
+                    ks = f"shutdown_kill_t{tid}"
+                    if ks in EVENT_IDX:
+                        ev[EVENT_IDX[ks]] += 1.0
+
+                streak = max(0.0, safe_float(e.get("killStreakLength", 0.0)))
+                if streak > 0.0:
+                    kk = f"killstreak_t{tid}"
+                    if kk in EVENT_IDX:
+                        ev[EVENT_IDX[kk]] += streak
 
         elif et == "ELITE_MONSTER_KILL":
             mt = str(e.get("monsterType", "")).upper()
@@ -918,6 +930,9 @@ def aggregate_events(events_or_pack: Any, tm: Dict[int, int], s_ms: int, e_ms: i
                 k = f"{tag}_t{tid}"
                 if k in EVENT_IDX:
                     ev[EVENT_IDX[k]] += 1.0
+                kb = f"obj_bounty_t{tid}"
+                if kb in EVENT_IDX:
+                    ev[EVENT_IDX[kb]] += max(0.0, safe_float(e.get("bounty", 0.0)))
 
         elif et == "BUILDING_KILL":
             bt = str(e.get("buildingType", "")).upper()
@@ -933,6 +948,9 @@ def aggregate_events(events_or_pack: Any, tm: Dict[int, int], s_ms: int, e_ms: i
                 k = f"inhib_t{tid}"
                 if k in EVENT_IDX:
                     ev[EVENT_IDX[k]] += 1.0
+            kb = f"obj_bounty_t{tid}"
+            if kb in EVENT_IDX:
+                ev[EVENT_IDX[kb]] += max(0.0, safe_float(e.get("bounty", 0.0)))
 
         elif et == "TURRET_PLATE_DESTROYED":
             victim_team = int(e.get("teamId", 0) or 0)
@@ -942,6 +960,23 @@ def aggregate_events(events_or_pack: Any, tm: Dict[int, int], s_ms: int, e_ms: i
             k = f"plate_t{tid}"
             if k in EVENT_IDX:
                 ev[EVENT_IDX[k]] += 1.0
+            kb = f"obj_bounty_t{tid}"
+            if kb in EVENT_IDX:
+                ev[EVENT_IDX[kb]] += max(0.0, safe_float(e.get("bounty", 0.0)))
+
+        elif et == "CHAMPION_SPECIAL_KILL":
+            tid = tm.get(int(e.get("killerId", 0) or 0), 0)
+            if tid in (100, 200):
+                kt = str(e.get("killType", "")).upper()
+                if "MULTI" in kt:
+                    km = f"multikill_t{tid}"
+                    if km in EVENT_IDX:
+                        mk = max(1.0, safe_float(e.get("multiKillLength", 1.0)))
+                        ev[EVENT_IDX[km]] += mk
+                if "ACE" in kt:
+                    ka = f"ace_t{tid}"
+                    if ka in EVENT_IDX:
+                        ev[EVENT_IDX[ka]] += 1.0
 
         elif et in ("WARD_PLACED", "WARD_KILL"):
             pid = int(e.get("creatorId", 0) or e.get("killerId", 0) or 0)
@@ -950,6 +985,12 @@ def aggregate_events(events_or_pack: Any, tm: Dict[int, int], s_ms: int, e_ms: i
                 k = ("ward_placed_t" if et == "WARD_PLACED" else "ward_kill_t") + str(tid)
                 if k in EVENT_IDX:
                     ev[EVENT_IDX[k]] += 1.0
+                wt = str(e.get("wardType", "")).upper()
+                is_control = ("CONTROL" in wt)
+                if is_control:
+                    kc = ("control_ward_placed_t" if et == "WARD_PLACED" else "control_ward_kill_t") + str(tid)
+                    if kc in EVENT_IDX:
+                        ev[EVENT_IDX[kc]] += 1.0
 
         elif et in ("ITEM_PURCHASED", "ITEM_SOLD", "ITEM_DESTROYED", "ITEM_UNDO"):
             pid = int(e.get("participantId", 0) or 0)
