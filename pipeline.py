@@ -912,7 +912,9 @@ def _prev_snapshot_idx(ts: np.ndarray, ref_ms: int, *, strict_before: bool = Tru
         return -1
     side = "left" if strict_before else "right"
     idx = int(np.searchsorted(ts, int(ref_ms), side=side) - 1)
-    return int(np.clip(idx, 0, len(ts) - 1))
+    if idx < 0:
+        return -1
+    return int(min(idx, len(ts) - 1))
 
 
 def global_from_prev_snapshot(cache: Dict[str, Any], ref_ms: int, *, strict_before: bool = True) -> Tuple[np.ndarray, int]:

@@ -2118,6 +2118,8 @@ def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Op
         "rejected_startctx": 0,
         "rejected_nokill": 0,
         "rejected_nosignal": 0,
+        "rejected_noward_signal": 0,
+        "rejected_nocombat_signal": 0,
         "rejected_alive": 0,
         "rejected_engaged": 0,
         "rejected_lcc": 0,
