@@ -4,7 +4,7 @@ import logging
 import math
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, TypedDict
+from typing import Any, Callable, Dict, List, Optional, Tuple, TypedDict
 
 import numpy as np
 
@@ -712,6 +712,58 @@ def _extract_objective_building_ts(events: List[dict]) -> Tuple[np.ndarray, np.n
     )
 
 
+def _extract_ward_signal_ts(events: List[dict], tm: Dict[int, int]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Extract ward-kill ts and ward-activity ts per team (100/200)."""
+    ward_kill_ts: List[int] = []
+    ward_t100_ts: List[int] = []
+    ward_t200_ts: List[int] = []
+
+    def _team_of_pid(pid: int) -> int:
+        pid = int(pid or 0)
+        tid = int(tm.get(pid, 0) or 0) if isinstance(tm, dict) else 0
+        if tid in (100, 200):
+            return tid
+        if 1 <= pid <= 5:
+            return 100
+        if 6 <= pid <= 10:
+            return 200
+        return 0
+
+    for ev in events or []:
+        if not isinstance(ev, dict):
+            continue
+        et = str(ev.get("type", ev.get("eventType", ""))).upper()
+        if et not in ("WARD_KILL", "WARD_PLACED"):
+            continue
+        try:
+            t = int(ev.get("timestamp", ev.get("ts", -1)) or -1)
+        except Exception:
+            t = -1
+        if t < 0:
+            continue
+
+        if et == "WARD_KILL":
+            ward_kill_ts.append(int(t))
+            pid = int(ev.get("killerId", 0) or ev.get("creatorId", 0) or 0)
+        else:
+            pid = int(ev.get("creatorId", 0) or ev.get("participantId", 0) or 0)
+
+        tid = _team_of_pid(pid)
+        if tid == 100:
+            ward_t100_ts.append(int(t))
+        elif tid == 200:
+            ward_t200_ts.append(int(t))
+
+    ward_kill_ts.sort()
+    ward_t100_ts.sort()
+    ward_t200_ts.sort()
+    return (
+        np.asarray(ward_kill_ts, dtype=np.int64) if ward_kill_ts else np.empty((0,), dtype=np.int64),
+        np.asarray(ward_t100_ts, dtype=np.int64) if ward_t100_ts else np.empty((0,), dtype=np.int64),
+        np.asarray(ward_t200_ts, dtype=np.int64) if ward_t200_ts else np.empty((0,), dtype=np.int64),
+    )
+
+
 def _extract_ace_ts(events: List[dict]) -> np.ndarray:
     """Extract CHAMPION_SPECIAL_KILL ACE timestamps (sorted unique)."""
     ts: List[int] = []
@@ -743,6 +795,55 @@ def _first_kill_in_window(kill_ts: np.ndarray, t0: int, t1_exclusive: int) -> Op
     if i < kill_ts.size and int(kill_ts[i]) < t1_exclusive:
         return int(kill_ts[i])
     return None
+
+
+def _latest_ts_before(ts_sorted: np.ndarray, t_exclusive: int) -> Optional[int]:
+    """Return latest timestamp < t_exclusive from sorted np array."""
+    if not isinstance(ts_sorted, np.ndarray) or ts_sorted.size == 0:
+        return None
+    i = int(np.searchsorted(ts_sorted, int(t_exclusive), side="left")) - 1
+    if i < 0:
+        return None
+    return int(ts_sorted[i])
+
+
+def _ensure_start_before_recent_kill(
+    *,
+    engage_ts_val: int,
+    ref_ts_exclusive: int,
+    kill_ts: np.ndarray,
+    t_min_ms: int,
+    pre_ms: int,
+    max_gap_ms: int,
+    earliest_signal_before: Optional[Callable[[int, int], Optional[int]]] = None,
+) -> Tuple[int, bool]:
+    """If a recent prior kill exists and engage is not before it, shift engage before that kill."""
+    prev_kill = _latest_ts_before(kill_ts, int(ref_ts_exclusive))
+    if prev_kill is None:
+        return int(engage_ts_val), False
+
+    if int(max_gap_ms) > 0 and (int(ref_ts_exclusive) - int(prev_kill)) > int(max_gap_ms):
+        return int(engage_ts_val), False
+
+    if int(engage_ts_val) < int(prev_kill):
+        return int(engage_ts_val), False
+
+    new_start = int(engage_ts_val)
+    if callable(earliest_signal_before):
+        try:
+            sig = earliest_signal_before(int(prev_kill), int(max_gap_ms))
+        except Exception:
+            sig = None
+        if sig is not None and int(sig) < int(prev_kill):
+            new_start = int(min(new_start, int(sig)))
+
+    if new_start >= int(prev_kill):
+        back_ms = max(1, int(pre_ms))
+        new_start = int(min(new_start, max(int(t_min_ms), int(prev_kill) - back_ms)))
+    if new_start >= int(prev_kill):
+        new_start = int(max(int(t_min_ms), int(prev_kill) - 1))
+
+    return int(new_start), (int(new_start) != int(engage_ts_val))
 
 
 def _truncate_fights_at_ace(
@@ -1520,6 +1621,8 @@ def detect_fights_engage_v2(cache: Dict[str, Any], tm: Dict[int, int], config: O
         "rejected_startctx": 0,
         "rejected_nokill": 0,
         "rejected_nosignal": 0,
+        "rejected_noward_signal": 0,
+        "rejected_nocombat_signal": 0,
         "rejected_alive": 0,
         "rejected_engaged": 0,
         "rejected_lcc": 0,
@@ -1535,6 +1638,7 @@ def detect_fights_engage_v2(cache: Dict[str, Any], tm: Dict[int, int], config: O
         "continuous_different_location": 0,
         "ace_events": 0,
         "ace_end_truncated": 0,
+        "start_shifted_before_kill": 0,
         # [P0 FIX] post-merge enforcement stats
         "postmerge_conflicts": 0,
         "postmerge_removed": 0,
@@ -1706,6 +1810,9 @@ def detect_fights_engage_v2(cache: Dict[str, Any], tm: Dict[int, int], config: O
     diag["validation_rule"] = str(config.fight_validation_rule)
     diag["min_damage_norm_in_horizon"] = float(config.min_damage_norm_in_horizon)
     diag["min_summoner_spells_in_horizon"] = int(config.min_summoner_spells_in_horizon)
+    kill_pre_ms = int(getattr(cfg, "EVENT_KILL_PRE_MS", 10000)) if cfg is not None else 10000
+    late_kill_guard_ms = int(max(2 * int(step_ms), int(getattr(cfg, "EVENT_BURST_WINDOW_MS", 15000)))) if cfg is not None else int(max(2 * int(step_ms), 15000))
+    diag["late_kill_guard_ms"] = int(late_kill_guard_ms)
 
     def _damage_norm_signal(engage_ts_val: int, horizon_end_ts: int) -> float:
         if dmg_idx is None:
@@ -1813,6 +1920,19 @@ def detect_fights_engage_v2(cache: Dict[str, Any], tm: Dict[int, int], config: O
                     engage_ts_val = bt_ts
                     backtracked = True
                     backtrack_reliable = bool(bt_ok)
+
+        shifted_start, shifted = _ensure_start_before_recent_kill(
+            engage_ts_val=int(engage_ts_val),
+            ref_ts_exclusive=int(engage_ts_val),
+            kill_ts=kill_ts,
+            t_min_ms=int(t_min_ms),
+            pre_ms=int(kill_pre_ms),
+            max_gap_ms=int(late_kill_guard_ms),
+            earliest_signal_before=None,
+        )
+        if shifted:
+            engage_ts_val = int(shifted_start)
+            diag["start_shifted_before_kill"] = int(diag.get("start_shifted_before_kill", 0) or 0) + 1
 
         # context/horizon guard
         if engage_ts_val - ctx_ms < t_min_ms:
@@ -2013,6 +2133,7 @@ def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Op
         "continuous_different_location": 0,
         "ace_events": 0,
         "ace_end_truncated": 0,
+        "start_shifted_before_kill": 0,
         "postmerge_conflicts": 0,
         "postmerge_removed": 0,
         "postmerge_replaced": 0,
@@ -2098,8 +2219,12 @@ def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Op
     if not is_norm:
         is_norm, scale_factor = detect_coordinate_scale(xy)
 
+    # Structural guard defaults aligned to project rule:
+    # at least 2 per team in contact and compact component (<= 4000).
     R = float(config.standoff_radius)
     cluster_max_diam = float(config.cluster_max_diameter)
+    if cluster_max_diam <= 0:
+        cluster_max_diam = 4000.0
     continuous_merge_radius = float(config.continuous_fight_merge_radius)
     if is_norm:
         R /= scale_factor
@@ -2139,6 +2264,7 @@ def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Op
     ace_ts = _extract_ace_ts(events)
     summ_spell_ts = _extract_summoner_spell_ts(events)
     objective_ts, building_ts = _extract_objective_building_ts(events)
+    ward_kill_ts, ward_t100_ts, ward_t200_ts = _extract_ward_signal_ts(events, tm)
     dmg_idx = NODE_IDX.get("ds_totalDamageDoneToChampions", None)
 
     damage_ts = np.empty((0,), dtype=np.int64)
@@ -2156,14 +2282,36 @@ def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Op
     except Exception:
         damage_ts = np.empty((0,), dtype=np.int64)
 
-    if kill_ts.size + summ_spell_ts.size + objective_ts.size + building_ts.size + damage_ts.size == 0:
+    if (
+        kill_ts.size
+        + summ_spell_ts.size
+        + objective_ts.size
+        + building_ts.size
+        + damage_ts.size
+        + ward_kill_ts.size
+        + ward_t100_ts.size
+        + ward_t200_ts.size
+    ) == 0:
         _pack_diagnostics()
         cache["fight_detect_diag"] = diag
         return fights
 
     all_ts = np.unique(
         np.concatenate(
-            [x for x in (kill_ts, summ_spell_ts, objective_ts, building_ts, damage_ts) if isinstance(x, np.ndarray) and x.size > 0]
+            [
+                x
+                for x in (
+                    kill_ts,
+                    summ_spell_ts,
+                    objective_ts,
+                    building_ts,
+                    damage_ts,
+                    ward_kill_ts,
+                    ward_t100_ts,
+                    ward_t200_ts,
+                )
+                if isinstance(x, np.ndarray) and x.size > 0
+            ]
         )
     )
     diag["candidates"] = int(all_ts.size)
@@ -2185,9 +2333,9 @@ def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Op
     w_dmg = float(getattr(cfg, "EVENT_WEIGHT_DAMAGE", 1.0)) if cfg is not None else 1.0
     dmg_min = float(getattr(cfg, "MIN_DAMAGE_NORM_IN_HORIZON", 0.02)) if cfg is not None else 0.02
     spell_min = int(getattr(cfg, "MIN_SUMMONER_SPELLS_IN_HORIZON", 1)) if cfg is not None else 1
-    req_engaged = int(max(0, int(config.require_engaged_per_team)))
-    req_lcc_total = int(max(0, int(config.require_lcc_total)))
-    req_lcc_per_team = int(max(0, int(config.require_lcc_per_team)))
+    req_engaged = int(max(2, int(config.require_engaged_per_team)))
+    req_lcc_total = int(max(4, int(config.require_lcc_total)))
+    req_lcc_per_team = int(max(2, int(config.require_lcc_per_team)))
     kill_ts_set = set(int(x) for x in kill_ts.tolist()) if kill_ts.size > 0 else set()
 
     diag["event_window_ms"] = int(event_window_ms)
@@ -2232,7 +2380,16 @@ def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Op
         if t0 >= anchor_ts:
             return None
         earliest: Optional[int] = None
-        for arr in (kill_ts, summ_spell_ts, objective_ts, building_ts, damage_ts):
+        for arr in (
+            kill_ts,
+            summ_spell_ts,
+            objective_ts,
+            building_ts,
+            damage_ts,
+            ward_kill_ts,
+            ward_t100_ts,
+            ward_t200_ts,
+        ):
             if arr.size == 0:
                 continue
             i = int(np.searchsorted(arr, t0, side="left"))
@@ -2257,6 +2414,19 @@ def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Op
         if is_kill_anchor and engage_ts_val >= anchor_ts:
             engage_ts_val = int(max(t_min_ms, anchor_ts - 1))
 
+        shifted_start, shifted = _ensure_start_before_recent_kill(
+            engage_ts_val=int(engage_ts_val),
+            ref_ts_exclusive=int(anchor_ts),
+            kill_ts=kill_ts,
+            t_min_ms=int(t_min_ms),
+            pre_ms=int(kill_pre_ms),
+            max_gap_ms=int(max(event_window_ms, kill_pre_ms)),
+            earliest_signal_before=_earliest_signal_before,
+        )
+        if shifted:
+            engage_ts_val = int(shifted_start)
+            diag["start_shifted_before_kill"] = int(diag.get("start_shifted_before_kill", 0) or 0) + 1
+
         if engage_ts_val - ctx_ms < t_min_ms:
             diag["rejected_startctx"] += 1
             continue
@@ -2274,7 +2444,11 @@ def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Op
         spell_cnt = int(_count_events_in_window(summ_spell_ts, t0, t1))
         obj_cnt = int(_count_events_in_window(objective_ts, t0, t1))
         build_cnt = int(_count_events_in_window(building_ts, t0, t1))
-        evt_cnt = int(kill_cnt + spell_cnt + obj_cnt + build_cnt)
+        ward_kill_cnt = int(_count_events_in_window(ward_kill_ts, t0, t1))
+        ward_b_cnt = int(_count_events_in_window(ward_t100_ts, t0, t1))
+        ward_r_cnt = int(_count_events_in_window(ward_t200_ts, t0, t1))
+        ward_both_teams = bool((ward_b_cnt > 0) and (ward_r_cnt > 0))
+        evt_cnt = int(kill_cnt + spell_cnt + obj_cnt + build_cnt + ward_kill_cnt)
         dmg_norm = float(_damage_norm_prewindow(t0, t1))
 
         score = float(
@@ -2285,11 +2459,19 @@ def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Op
             + w_dmg * dmg_norm
         )
 
-        signal_ok = bool(
+        score_ok = bool(
             (score >= event_score_thr)
             and ((evt_cnt >= event_min_events) or (dmg_norm >= dmg_min) or (spell_cnt >= spell_min))
         )
+        ward_signal_ok = bool((ward_kill_cnt >= 1) or ward_both_teams)
+        combat_signal_ok = bool((dmg_norm >= dmg_min) or ((obj_cnt + build_cnt) >= 1))
+        signal_ok = bool(ward_signal_ok and combat_signal_ok)
+
         if not signal_ok:
+            if not ward_signal_ok:
+                diag["rejected_noward_signal"] += 1
+            if not combat_signal_ok:
+                diag["rejected_nocombat_signal"] += 1
             diag["rejected_nosignal"] += 1
             continue
 
@@ -2358,11 +2540,15 @@ def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Op
                     "det_damage_norm": float(dmg_norm),
                     "det_summoner_spells": int(spell_cnt),
                     "det_signal_ok": 1,
+                    "det_score_ok": int(score_ok),
                     "det_event_score": float(score),
                     "det_event_count": int(evt_cnt),
                     "det_kill_count_window": int(kill_cnt),
                     "det_objective_count_window": int(obj_cnt),
                     "det_building_count_window": int(build_cnt),
+                    "det_ward_kill_count_window": int(ward_kill_cnt),
+                    "det_ward_both_teams_window": int(ward_both_teams),
+                    "det_combat_signal_ok": int(combat_signal_ok),
                     "det_event_anchor_ts": int(anchor_ts),
                     "det_event_anchor_is_kill": int(is_kill_anchor),
                     "det_event_start_shift_ms": int(max(0, anchor_ts - engage_ts_val)),

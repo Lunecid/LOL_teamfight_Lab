@@ -862,6 +862,27 @@ def interpolate_node_global(cache: Dict[str, Any], q_ms: int) -> Tuple[np.ndarra
     return node.astype(np.float32), glob.astype(np.float32)
 
 
+def _prev_snapshot_idx(ts: np.ndarray, ref_ms: int, *, strict_before: bool = True) -> int:
+    """Index of nearest previous timestamp in ts for ref_ms."""
+    if ts is None or len(ts) == 0:
+        return -1
+    side = "left" if strict_before else "right"
+    idx = int(np.searchsorted(ts, int(ref_ms), side=side) - 1)
+    return int(np.clip(idx, 0, len(ts) - 1))
+
+
+def global_from_prev_snapshot(cache: Dict[str, Any], ref_ms: int, *, strict_before: bool = True) -> Tuple[np.ndarray, int]:
+    """Return global feature vector from nearest previous available timestamp."""
+    ts = cache["minute_ts"]
+    gm = cache["global_minute"]
+    if ts is None or len(ts) == 0 or gm is None or len(gm) == 0:
+        return np.zeros((F_GLOBAL,), dtype=np.float32), -1
+    idx = _prev_snapshot_idx(ts, int(ref_ms), strict_before=bool(strict_before))
+    if idx < 0:
+        return np.zeros((F_GLOBAL,), dtype=np.float32), -1
+    return gm[int(idx)].astype(np.float32, copy=True), int(ts[int(idx)])
+
+
 def aggregate_events(events_or_pack: Any, tm: Dict[int, int], s_ms: int, e_ms: int) -> Tuple[np.ndarray, np.ndarray]:
     """
     Fast aggregation with event indexing:
@@ -1531,6 +1552,7 @@ def build_ms_sequence(
         return None
 
     glob_seq, node_seq, ev_seq, item_seq = [], [], [], []
+    glob_snap_ts_seq: List[int] = []
 
     for i in range(L):
         b0 = start_ms + i * bin_ms
@@ -1538,6 +1560,13 @@ def build_ms_sequence(
         q = b0 + bin_ms // 2
 
         node_i, glob_i = interpolate_node_global(cache, q)
+        # Enforce "previous global snapshot" for input globals:
+        # use nearest available timestamp strictly before the reference ms.
+        g_ref_ms = int(q)
+        if engage_ts is not None and engage_ts >= 0:
+            g_ref_ms = min(int(g_ref_ms), int(label_start_ms) - 1)
+        glob_i, g_ts = global_from_prev_snapshot(cache, g_ref_ms, strict_before=True)
+        glob_snap_ts_seq.append(int(g_ts))
         ev_i, it_i = aggregate_events(cache, tm, b0, b1)
 
         node_seq.append(node_i)
@@ -1594,6 +1623,7 @@ def build_ms_sequence(
         "prediction_gap_ms": int(prediction_gap_ms),
         "label_start_ts": int(y_s),
         "label_end_ts": int(y_e),
+        "global_snap_last_ts": int(glob_snap_ts_seq[-1]) if glob_snap_ts_seq else -1,
         "game_duration_min": float(max(1.0, (int(cache["minute_ts"][-1]) - int(cache["minute_ts"][0])) / 60000.0)),
     }
 
