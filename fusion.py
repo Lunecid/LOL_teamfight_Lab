@@ -114,15 +114,15 @@ def stack_simple(
     log_fp: Optional[Path] = None,
     seed: int = 0,
     meta_method: str = "logreg",
-    fit_on: str = "val",
+    fit_on: str = "train",
     y_tr_map: Optional[Dict[str, int]] = None,
     y_va_map: Optional[Dict[str, int]] = None,
     y_te_map: Optional[Dict[str, int]] = None,
 ) -> StackingResult:
     """Fit meta learner on one split, evaluate on TRAIN/VAL/TEST.
 
-    - `fit_on="val"`: fit on VAL (legacy simple mode).
-    - `fit_on="train"`: fit on TRAIN, evaluate on VAL/TEST (selection-safe for search).
+    - `fit_on="train"`: fit on TRAIN, evaluate on VAL/TEST (selection-safe).
+    - `fit_on="val"`: fit on VAL (legacy mode; can inflate VAL).
     - We report TRAIN metrics by *applying* the fitted meta model to TRAIN.
       This resolves the previous issue where greedy tried to read train AUC but
       stack_simple did not compute it.
@@ -374,7 +374,9 @@ def stack_oof_meta(
     else:
         met_oof = {}
 
-    # final meta fit on train+val
+    # Final meta evaluation policy:
+    #   - VAL metric: fit on TRAIN only (unbiased wrt VAL)
+    #   - TEST metric: fit on TRAIN+VAL (deployment-like)
     Xtr_full, ytr_full, _ = aligned_xy_from_maps(tr_refs, y_tr_map, base_maps_tr)
     Xva, yva, _ = aligned_xy_from_maps(va_refs, y_va_map, base_maps_va)
     Xte, yte, keys_te = aligned_xy_from_maps(te_refs, y_te_map, base_maps_te)
@@ -386,19 +388,29 @@ def stack_oof_meta(
     Xva = _sanitize_meta_X(Xva) if Xva.size else Xva
     Xte = _sanitize_meta_X(Xte) if Xte.size else Xte
 
-    Xfit = np.concatenate([Xtr_full, Xva], axis=0) if Xva.size else Xtr_full
-    yfit = np.concatenate([ytr_full, yva], axis=0) if Xva.size else ytr_full
-
+    # (A) VAL-safe model (train-only)
     try:
         if meta_method != "logreg":
             raise ValueError(f"unsupported meta_method={meta_method} (only logreg supported here)")
-        clf = _fit_logreg(Xfit, yfit, seed=seed)
+        clf_val = _fit_logreg(Xtr_full, ytr_full, seed=seed)
     except Exception as e:
-        write_log(f"[FUSION-OOF] final meta fit failed: {e}", log_fp)
+        write_log(f"[FUSION-OOF] val-model fit failed: {e}", log_fp)
         return StackingResult(ok=False, meta_method=meta_method, base_names=base_names, metrics={}, out_dir=str(out_dir))
 
-    p_va = _predict_proba(clf, Xva) if Xva.size else np.array([])
-    p_te = _predict_proba(clf, Xte) if Xte.size else np.array([])
+    p_va = _predict_proba(clf_val, Xva) if Xva.size else np.array([])
+
+    # (B) final model for TEST (train+val)
+    Xfit_te = np.concatenate([Xtr_full, Xva], axis=0) if Xva.size else Xtr_full
+    yfit_te = np.concatenate([ytr_full, yva], axis=0) if Xva.size else ytr_full
+    try:
+        if meta_method != "logreg":
+            raise ValueError(f"unsupported meta_method={meta_method} (only logreg supported here)")
+        clf_te = _fit_logreg(Xfit_te, yfit_te, seed=seed)
+    except Exception as e:
+        write_log(f"[FUSION-OOF] test-model fit failed: {e}", log_fp)
+        return StackingResult(ok=False, meta_method=meta_method, base_names=base_names, metrics={}, out_dir=str(out_dir))
+
+    p_te = _predict_proba(clf_te, Xte) if Xte.size else np.array([])
 
     met_va = metrics_from_probs(yva, p_va, threshold=0.5) if Xva.size else {}
     met_te = metrics_from_probs(yte, p_te, threshold=0.5) if Xte.size else {}
@@ -415,6 +427,7 @@ def stack_oof_meta(
         "ok": True,
         "mode": "oof_meta",
         "meta_method": meta_method,
+        "fit_policy": {"val": "train_only", "test": "train_plus_val"},
         "base_names": base_names,
         "metrics": {"train_oof": met_oof, "val": met_va, "test": met_te},
         "n": {"train_oof": len(keys), "val": int(Xva.shape[0]), "test": int(Xte.shape[0])},
@@ -748,6 +761,7 @@ def refit_meta_trainval_predict_test(
             log_fp=log_fp,
             seed=seed,
             meta_method=meta_method,
+            fit_on="val",
             # (Ã¬ÂÂ´ Ã­Å’Å’Ã¬ÂÂ¼Ã¬â€”ÂÃ¬â€žÅ“ stack_simpleÃ¬â€”Â y_map Ã¬ÂºÂÃ¬â€¹Å“ Ã¬ËœÂµÃ¬â€¦ËœÃ¬Ââ€ž Ã¬Â¶â€ÃªÂ°â‚¬Ã­â€¢Å“ Ã¬Æ’ÂÃ­Æ’Å“Ã«ÂÂ¼Ã«Â©Â´ Ã¬â€¢â€žÃ«Å¾ËœÃ«Ââ€ž ÃªÂ°â„¢Ã¬ÂÂ´ Ã«â€žÂ£Ã¬â€“Â´Ã«Ââ€ž Ã«ÂÂ¨)
             # y_va_map=y_va_map,
             # y_te_map=y_te_map,

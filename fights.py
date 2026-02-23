@@ -178,6 +178,9 @@ class FightDetectorConfig:
     kill_anchor_cooldown_sec: int = 30
     # Fight validity check: require at least one kill in [engage_ts, engage_ts + horizon).
     verify_kill_in_horizon: bool = True
+    fight_validation_rule: str = "kill_or_signal"
+    min_damage_norm_in_horizon: float = 0.02
+    min_summoner_spells_in_horizon: int = 1
     use_backtrack: bool = True
     # [P3-BT] 60s â†’ 30s: reduces noise, Phase 1 already covers long-range signals
     backtrack_max_ms: int = 30000
@@ -224,6 +227,11 @@ class FightDetectorConfig:
             errors.append(
                 f"backtrack_min_ms ({self.backtrack_min_ms}) must be <= backtrack_max_ms ({self.backtrack_max_ms})"
             )
+        valid_rules = {"kill_only", "signal_only", "kill_or_signal", "kill_and_signal"}
+        if str(self.fight_validation_rule).lower() not in valid_rules:
+            errors.append(
+                f"fight_validation_rule must be one of {sorted(valid_rules)}, got {self.fight_validation_rule!r}"
+            )
         # Project rule: fight start-point must not be kill-anchored.
         # Keep other config knobs intact by forcing this one off instead of failing whole config load.
         if self.use_kill_anchor:
@@ -265,6 +273,9 @@ class FightDetectorConfig:
             kill_anchor_pre_sec=int(getattr(cfg_obj, "KILL_ANCHOR_PRE_SEC", 15)),
             kill_anchor_cooldown_sec=int(getattr(cfg_obj, "KILL_ANCHOR_COOLDOWN_SEC", 30)),
             verify_kill_in_horizon=bool(getattr(cfg_obj, "VERIFY_KILL_IN_HORIZON", True)),
+            fight_validation_rule=str(getattr(cfg_obj, "FIGHT_VALIDATION_RULE", "kill_or_signal")).lower(),
+            min_damage_norm_in_horizon=float(getattr(cfg_obj, "MIN_DAMAGE_NORM_IN_HORIZON", 0.02)),
+            min_summoner_spells_in_horizon=int(getattr(cfg_obj, "MIN_SUMMONER_SPELLS_IN_HORIZON", 1)),
             use_backtrack=bool(getattr(cfg_obj, "USE_BACKTRACK", True)),
             backtrack_max_ms=int(getattr(cfg_obj, "BACKTRACK_MAX_MS", 30000)),
             backtrack_min_ms=int(getattr(cfg_obj, "BACKTRACK_MIN_MS", 10000)),
@@ -623,6 +634,26 @@ def _extract_kill_events(events: List[dict]) -> List[dict]:
                     pass
     kills.sort(key=lambda x: x["timestamp"])
     return kills
+
+
+def _extract_summoner_spell_ts(events: List[dict]) -> np.ndarray:
+    ts: List[int] = []
+    for ev in events or []:
+        if not isinstance(ev, dict):
+            continue
+        et = str(ev.get("type", ev.get("eventType", ""))).upper()
+        if et not in ("SUMMONER_SPELL_USED", "SUMMONER_SPELL_CAST"):
+            continue
+        try:
+            t = int(ev.get("timestamp", ev.get("ts", -1)) or -1)
+        except Exception:
+            t = -1
+        if t >= 0:
+            ts.append(int(t))
+    if not ts:
+        return np.empty((0,), dtype=np.int64)
+    ts.sort()
+    return np.asarray(ts, dtype=np.int64)
 
 
 def _first_kill_in_window(kill_ts: np.ndarray, t0: int, t1_exclusive: int) -> Optional[int]:
@@ -1272,6 +1303,7 @@ def detect_fights_engage_v2(cache: Dict[str, Any], tm: Dict[int, int], config: O
         "rejected_horizon": 0,
         "rejected_startctx": 0,
         "rejected_nokill": 0,
+        "rejected_nosignal": 0,
         "rejected_alive": 0,
         "rejected_engaged": 0,
         "rejected_lcc": 0,
@@ -1279,6 +1311,7 @@ def detect_fights_engage_v2(cache: Dict[str, Any], tm: Dict[int, int], config: O
         "rejected_max_duration": 0,
         "rejected_negative_gap": 0,
         "accepted_by_anchor": 0,
+        "accepted_by_signal": 0,
         "backtracked": 0,
         "backtrack_unreliable": 0,
         "continuous_merged": 0,
@@ -1439,6 +1472,8 @@ def detect_fights_engage_v2(cache: Dict[str, Any], tm: Dict[int, int], config: O
         if kill_events
         else np.empty((0,), dtype=np.int64)
     )
+    summ_spell_ts = _extract_summoner_spell_ts(events)
+    dmg_idx = NODE_IDX.get("ds_totalDamageDoneToChampions", None)
 
     # 앵커 생성
     anchors = build_anchors_from_events(events)
@@ -1448,6 +1483,27 @@ def detect_fights_engage_v2(cache: Dict[str, Any], tm: Dict[int, int], config: O
     t_max_ms = int(minute_ts[-1])
     ctx_ms = int(config.fight_context_min) * 60000
     alive_idx = NODE_IDX.get("alive", None)
+    diag["validation_rule"] = str(config.fight_validation_rule)
+    diag["min_damage_norm_in_horizon"] = float(config.min_damage_norm_in_horizon)
+    diag["min_summoner_spells_in_horizon"] = int(config.min_summoner_spells_in_horizon)
+
+    def _damage_norm_signal(engage_ts_val: int, horizon_end_ts: int) -> float:
+        if dmg_idx is None:
+            return 0.0
+        try:
+            i0 = _map_ts_to_minute_idx(minute_ts, int(engage_ts_val))
+            i1 = _map_ts_to_minute_idx(minute_ts, int(horizon_end_ts))
+            if i1 <= i0:
+                return 0.0
+            nm = cache.get("node_minute", None)
+            if not isinstance(nm, np.ndarray) or nm.ndim != 3:
+                return 0.0
+            d0 = nm[i0, :, int(dmg_idx)].astype(np.float32)
+            d1 = nm[i1, :, int(dmg_idx)].astype(np.float32)
+            dd = np.maximum(d1 - d0, 0.0)
+            return float(dd.sum())
+        except Exception:
+            return 0.0
 
     def _passes_cluster_guards(engage_ts_val: int) -> bool:
         if (
@@ -1516,6 +1572,28 @@ def detect_fights_engage_v2(cache: Dict[str, Any], tm: Dict[int, int], config: O
         backtracked: bool = False,
         backtrack_reliable: bool = True,
     ):
+        # Optional engage backtracking:
+        # keep engage-driven detection, but if a kill exists in the candidate horizon,
+        # allow moving start point earlier based on proximity continuity.
+        if bool(config.use_backtrack) and not backtracked:
+            fk_for_backtrack = _first_kill_in_window(kill_ts, engage_ts_val, engage_ts_val + horizon_ms)
+            if fk_for_backtrack is not None:
+                bt_ts, bt_ok = backtrack_engage_ts(
+                    dists=dists,
+                    dense_ts=dense_ts,
+                    prox_pairs=prox_pairs,
+                    kill_ts=int(fk_for_backtrack),
+                    R=float(R),
+                    min_pairs=int(config.backtrack_min_pairs),
+                    max_lookback_ms=int(config.backtrack_max_ms),
+                    min_lookback_ms=int(config.backtrack_min_ms),
+                )
+                bt_ts = int(bt_ts)
+                if bt_ts < int(engage_ts_val):
+                    engage_ts_val = bt_ts
+                    backtracked = True
+                    backtrack_reliable = bool(bt_ok)
+
         # context/horizon guard
         if engage_ts_val - ctx_ms < t_min_ms:
             diag["rejected_startctx"] += 1
@@ -1527,9 +1605,34 @@ def detect_fights_engage_v2(cache: Dict[str, Any], tm: Dict[int, int], config: O
             diag["rejected_alive"] += 1
             return
 
-        fk = _first_kill_in_window(kill_ts, engage_ts_val, engage_ts_val + horizon_ms)
-        if bool(config.verify_kill_in_horizon) and fk is None:
-            diag["rejected_nokill"] += 1
+        horizon_end_ts = int(engage_ts_val + horizon_ms)
+        fk = _first_kill_in_window(kill_ts, engage_ts_val, horizon_end_ts)
+        kill_ok = bool(fk is not None)
+        if (not bool(config.verify_kill_in_horizon)) and str(config.fight_validation_rule).lower() == "kill_only":
+            kill_ok = True
+
+        damage_norm = _damage_norm_signal(int(engage_ts_val), int(horizon_end_ts))
+        spell_cnt = int(_count_events_in_window(summ_spell_ts, int(engage_ts_val), int(horizon_end_ts) - 1))
+        signal_ok = bool(
+            (float(damage_norm) >= float(config.min_damage_norm_in_horizon))
+            or (int(spell_cnt) >= int(config.min_summoner_spells_in_horizon))
+        )
+
+        rule = str(config.fight_validation_rule).lower()
+        if rule == "kill_only":
+            valid = kill_ok
+        elif rule == "signal_only":
+            valid = signal_ok
+        elif rule == "kill_and_signal":
+            valid = bool(kill_ok and signal_ok)
+        else:  # default: kill_or_signal
+            valid = bool(kill_ok or signal_ok)
+
+        if not valid:
+            if not kill_ok:
+                diag["rejected_nokill"] += 1
+            if not signal_ok:
+                diag["rejected_nosignal"] += 1
             return
 
         if not _passes_cluster_guards(engage_ts_val):
@@ -1555,12 +1658,17 @@ def detect_fights_engage_v2(cache: Dict[str, Any], tm: Dict[int, int], config: O
                 "det_min_dist_mean": float(min_dist_mean[d_idx]) if d_idx < len(min_dist_mean) else 0.0,
                 "det_anchor": int(anchor),
                 "det_backtracked": int(backtracked),
+                "det_damage_norm": float(damage_norm),
+                "det_summoner_spells": int(spell_cnt),
+                "det_signal_ok": int(signal_ok),
             }
         )
 
         diag["accepted"] += 1
         if anchor:
             diag["accepted_by_anchor"] += 1
+        if signal_ok and not kill_ok:
+            diag["accepted_by_signal"] += 1
         if backtracked:
             diag["backtracked"] += 1
             if not backtrack_reliable:

@@ -115,18 +115,31 @@ def _match_ids(refs: List[FightRef]) -> set:
     return set(r.match_id for r in refs)
 
 
-def check_split_leakage(tr: List[FightRef], va: List[FightRef], te: List[FightRef], log_fp: Path) -> None:
+def check_split_leakage(
+    tr: List[FightRef],
+    va: List[FightRef],
+    te: List[FightRef],
+    log_fp: Path,
+    *,
+    fail_on_leakage: bool = True,
+) -> bool:
     a, b, c = _match_ids(tr), _match_ids(va), _match_ids(te)
     ab = a & b
     ac = a & c
     bc = b & c
     if ab or ac or bc:
-        write_log(
-            f"[WARN] match_id leakage detected: trainâˆ©val={len(ab)} trainâˆ©test={len(ac)} valâˆ©test={len(bc)}",
-            log_fp,
+        msg = (
+            f"match_id leakage detected: train∩val={len(ab)} "
+            f"train∩test={len(ac)} val∩test={len(bc)}"
         )
-    else:
-        write_log(f"[SPLIT] match_id disjoint âœ… (n_match tr/va/te = {len(a)}/{len(b)}/{len(c)})", log_fp)
+        if fail_on_leakage:
+            write_log(f"[FATAL] {msg}", log_fp)
+            raise RuntimeError(msg)
+        write_log(f"[WARN] {msg}", log_fp)
+        return True
+
+    write_log(f"[SPLIT] match_id disjoint ✅ (n_match tr/va/te = {len(a)}/{len(b)}/{len(c)})", log_fp)
+    return False
 
 
 def split_by_match_id(refs: List[FightRef], val_ratio: float, seed: int) -> Tuple[List[FightRef], List[FightRef]]:

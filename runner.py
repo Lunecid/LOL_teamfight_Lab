@@ -58,6 +58,12 @@ def build_argparser() -> argparse.ArgumentParser:
     )
     ap.add_argument("--max_matches", type=int, default=int(cfg.MAX_MATCHES) if cfg.MAX_MATCHES else 0)
     ap.add_argument("--seed", type=int, default=int(cfg.SEEDS[0]) if cfg.SEEDS else 7)
+    ap.add_argument(
+        "--prediction_gap_ms",
+        type=int,
+        default=int(getattr(cfg, "PREDICTION_GAP_MS", 0)),
+        help="observation ends this many ms before engage; label horizon still starts at engage",
+    )
     ap.add_argument("--models", type=str, default="", help="comma-separated model list override")
     ap.add_argument("--filter_loadable", action="store_true", help="filter splits by build_ms_sequence success")
 
@@ -85,8 +91,13 @@ def build_argparser() -> argparse.ArgumentParser:
     ap.add_argument("--oof_folds", type=int, default=int(getattr(cfg, "OOF_FOLDS", 5)))
     ap.add_argument("--oof_inner_val_ratio", type=float, default=float(getattr(cfg, "OOF_INNER_VAL_RATIO", 0.10)))
     ap.add_argument("--oof_skip_deep", action="store_true", help="OOF: only baseline OOF; deep OOF skipped (filled zeros)")
-    ap.add_argument("--oof_meta", type=str, default=str(getattr(cfg, "OOF_META", "logreg")), choices=["logreg", "lgbm"])
+    ap.add_argument("--oof_meta", type=str, default="logreg", choices=["logreg"])
     ap.add_argument("--oof_max_folds", type=int, default=int(getattr(cfg, "OOF_MAX_FOLDS", 0)))
+    ap.add_argument(
+        "--allow_split_leakage",
+        action="store_true",
+        help="allow split overlap by match_id (not recommended; default is fail-fast)",
+    )
 
     # Patch holdout split
     ap.add_argument(
@@ -152,6 +163,7 @@ def main() -> None:
 
     seed = int(args.seed)
     set_seed(seed)
+    cfg.PREDICTION_GAP_MS = max(0, int(getattr(args, "prediction_gap_ms", 0)))
 
     profile = str(getattr(args, "speed_profile", "none"))
     if profile and profile.lower() not in ("none", "off"):

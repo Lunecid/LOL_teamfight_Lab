@@ -1290,6 +1290,123 @@ def _compute_label_weighted(
     return 1 if score > 0 else 0
 
 
+def _compute_window_targets(
+        evs: List[dict],
+        tm: Dict[int, int],
+        cache: Dict[str, Any],
+        s_ms: int,
+        e_ms: int,
+) -> Dict[str, float]:
+    kill_diff = 0.0
+    obj_diff = 0.0
+    summoner_spells = 0.0
+
+    for e in evs:
+        et = str(e.get("type", "")).upper()
+
+        if et == "CHAMPION_KILL":
+            killer = int(e.get("killerId", 0) or 0)
+            if tm.get(killer, 0) == 100:
+                kill_diff += 1.0
+            elif tm.get(killer, 0) == 200:
+                kill_diff -= 1.0
+
+        elif et == "ELITE_MONSTER_KILL":
+            mt = str(e.get("monsterType", "")).upper()
+            team = int(e.get("killerTeamId", 0) or 0)
+            key = mt.replace("_NASHOR", "")
+            w = float(OBJ_SCORE.get(key, 0.0))
+            obj_diff += w * (1.0 if team == 100 else -1.0)
+
+        elif et == "BUILDING_KILL":
+            bt = str(e.get("buildingType", "")).upper()
+            victim = int(e.get("teamId", 0) or 0)
+            sign = 1.0 if victim == 200 else -1.0
+            if "TOWER" in bt:
+                obj_diff += float(OBJ_SCORE.get("TOWER", 0.0)) * sign
+            elif "INHIBITOR" in bt:
+                obj_diff += float(OBJ_SCORE.get("INHIBITOR", 0.0)) * sign
+
+        elif et in ("SUMMONER_SPELL_USED", "SUMMONER_SPELL_CAST"):
+            summoner_spells += 1.0
+
+    gold_method = str(getattr(cfg, "LABEL_GOLD_METHOD", "linear")).lower()
+    g0 = gold_at_ms(cache, s_ms, method=gold_method)
+    g1 = gold_at_ms(cache, e_ms, method=gold_method)
+    gold_diff = float((g1[0] - g0[0]) - (g1[1] - g0[1]))
+
+    # Alive diff at horizon end (for diagnostic / auxiliary target)
+    alive_diff = 0.0
+    try:
+        node_end, _ = interpolate_node_global(cache, e_ms)
+        alive_idx = NODE_IDX.get("alive", None)
+        if alive_idx is not None:
+            tids = np.array([tm.get(i, 100 if i <= 5 else 200) for i in range(1, 11)])
+            b_idx = np.where(tids == 100)[0]
+            r_idx = np.where(tids == 200)[0]
+            alive_diff = float(node_end[b_idx, alive_idx].sum() - node_end[r_idx, alive_idx].sum())
+    except Exception:
+        alive_diff = 0.0
+
+    return {
+        "kill_diff": float(kill_diff),
+        "gold_diff": float(gold_diff),
+        "obj_diff": float(obj_diff),
+        "alive_diff": float(alive_diff),
+        "summoner_spells": float(summoner_spells),
+    }
+
+
+def compute_label_targets(
+        cache: Dict[str, Any],
+        tm: Dict[int, int],
+        t_start: int,
+        *,
+        engage_ts: Optional[int] = None,
+        horizon_ms: Optional[int] = None,
+) -> Optional[Dict[str, float]]:
+    if horizon_ms is None:
+        horizon_ms = _get_horizon_ms()
+
+    if engage_ts is not None and engage_ts >= 0:
+        s_ms = int(engage_ts)
+        e_ms = s_ms + int(horizon_ms)
+    else:
+        if t_start < 0 or t_start >= len(cache["minute_ts"]):
+            return None
+        s_ms = int(cache["minute_ts"][t_start])
+        e_ms = s_ms + int(horizon_ms)
+
+    if e_ms > int(cache["minute_ts"][-1]):
+        return None
+
+    y = compute_label(cache, tm, t_start, engage_ts=engage_ts, horizon_ms=horizon_ms)
+    if y is None:
+        return None
+
+    evs = _events_in_window(cache, s_ms, e_ms)
+    raw = _compute_window_targets(evs, tm, cache, s_ms, e_ms)
+
+    gold_norm = float(max(1e-6, float(getattr(cfg, "GOLD_NORM", 1000.0))))
+    kill_norm = float(max(1e-6, float(getattr(cfg, "MTL_KILL_NORM", 5.0))))
+    obj_norm = float(max(1e-6, float(getattr(cfg, "MTL_OBJ_NORM", 5.0))))
+
+    out = {
+        "y": float(int(y)),
+        "kill_diff": float(raw["kill_diff"]),
+        "gold_diff": float(raw["gold_diff"]),
+        "obj_diff": float(raw["obj_diff"]),
+        "alive_diff": float(raw["alive_diff"]),
+        "summoner_spells": float(raw["summoner_spells"]),
+        "kill_diff_norm": float(raw["kill_diff"] / kill_norm),
+        "gold_diff_norm": float(raw["gold_diff"] / gold_norm),
+        "obj_diff_norm": float(raw["obj_diff"] / obj_norm),
+        "label_start_ms": float(s_ms),
+        "label_end_ms": float(e_ms),
+    }
+    return out
+
+
 def build_ms_sequence(
         cache: Dict[str, Any],
         tm: Dict[int, int],
@@ -1299,6 +1416,7 @@ def build_ms_sequence(
         ctx_ms: Optional[int] = None,
         bin_ms: Optional[int] = None,
         horizon_ms: Optional[int] = None,
+        prediction_gap_ms: Optional[int] = None,
 ) -> Optional[Dict[str, Any]]:
     if ctx_ms is None:
         ctx_ms = _get_context_ms()
@@ -1306,31 +1424,31 @@ def build_ms_sequence(
         bin_ms = _get_bin_ms()
     if horizon_ms is None:
         horizon_ms = _get_horizon_ms()
+    if prediction_gap_ms is None:
+        prediction_gap_ms = int(getattr(cfg, "PREDICTION_GAP_MS", 0))
+    prediction_gap_ms = max(0, int(prediction_gap_ms))
 
     # ── compute observation window [start_ms, end_ms] ────────────
     t_min = int(cache["minute_ts"][0])
     t_max = int(cache["minute_ts"][-1])
 
+    label_start_ms: int
     if engage_ts is not None and engage_ts >= 0:
-        end_ms = int(engage_ts)
+        label_start_ms = int(engage_ts)
+        end_ms = int(label_start_ms - prediction_gap_ms)
         start_ms = end_ms - int(ctx_ms)
     else:
-        # [P1-LOGIC-2 FIX] Use ctx_ms (respects caller override)
-        # instead of hard-coded ctx_min * 60000.
-        # Previously the legacy path always used FIGHT_CONTEXT_MIN,
-        # causing window width ≠ L * bin_ms when a custom ctx_ms
-        # was passed, leading to bins that under/over-cover the
-        # actual observation window.
-        min_ctx_minutes = int(ctx_ms // 60000) or 1
-        if t_start < min_ctx_minutes:
+        if t_start < 0 or t_start >= len(cache["minute_ts"]):
             return None
-
-        end_ms = int(cache["minute_ts"][t_start])
+        label_start_ms = int(cache["minute_ts"][t_start])
+        end_ms = int(label_start_ms - prediction_gap_ms)
         start_ms = end_ms - int(ctx_ms)
 
+    if end_ms < t_min:
+        return None
     if start_ms < t_min:
         return None
-    if end_ms + horizon_ms > t_max:
+    if label_start_ms + horizon_ms > t_max:
         return None
 
     L = int(ctx_ms // bin_ms)
@@ -1353,11 +1471,11 @@ def build_ms_sequence(
         item_seq.append(it_i)
 
     if engage_ts is not None and engage_ts >= 0:
-        y = compute_label(cache, tm, -1, engage_ts=engage_ts, horizon_ms=horizon_ms)
+        y_pack = compute_label_targets(cache, tm, -1, engage_ts=label_start_ms, horizon_ms=horizon_ms)
     else:
-        y = compute_label(cache, tm, t_start, horizon_ms=horizon_ms)
+        y_pack = compute_label_targets(cache, tm, t_start, engage_ts=label_start_ms, horizon_ms=horizon_ms)
 
-    if y is None:
+    if y_pack is None:
         return None
 
     sample = {
@@ -1365,11 +1483,24 @@ def build_ms_sequence(
         "glob_seq": np.stack(glob_seq, axis=0).astype(np.float32),
         "ev_seq": np.stack(ev_seq, axis=0).astype(np.float32),
         "item_seq": np.stack(item_seq, axis=0).astype(np.float32),
-        "y": int(y),
-        "engage_ts": int(engage_ts) if engage_ts is not None else int(end_ms),
+        "y": int(y_pack["y"]),
+        "y_kill_diff": float(y_pack.get("kill_diff_norm", 0.0)),
+        "y_gold_diff": float(y_pack.get("gold_diff_norm", 0.0)),
+        "y_obj_diff": float(y_pack.get("obj_diff_norm", 0.0)),
+        "label_kill_diff_raw": float(y_pack.get("kill_diff", 0.0)),
+        "label_gold_diff_raw": float(y_pack.get("gold_diff", 0.0)),
+        "label_obj_diff_raw": float(y_pack.get("obj_diff", 0.0)),
+        "label_alive_diff_raw": float(y_pack.get("alive_diff", 0.0)),
+        "label_summoner_spells_raw": float(y_pack.get("summoner_spells", 0.0)),
+        "engage_ts": int(label_start_ms),
+        "obs_end_ts": int(end_ms),
         "ctx_ms": int(ctx_ms),
         "bin_ms": int(bin_ms),
         "horizon_ms": int(horizon_ms),
+        "prediction_gap_ms": int(prediction_gap_ms),
+        "label_start_ts": int(y_pack.get("label_start_ms", label_start_ms)),
+        "label_end_ts": int(y_pack.get("label_end_ms", label_start_ms + int(horizon_ms))),
+        "game_duration_min": float(max(1.0, (int(cache["minute_ts"][-1]) - int(cache["minute_ts"][0])) / 60000.0)),
     }
 
     if bool(getattr(cfg, "USE_EVENT_TOKENS", True)):

@@ -366,6 +366,10 @@ class CFG:
     FIGHT_CONTEXT_MIN: int = 1
     FIGHT_HORIZON_SEC: int = 60
     FIGHT_HORIZON_MIN: int = 1
+    # Predict earlier than engage by this gap:
+    # observation window ends at (engage_ts - prediction_gap_ms),
+    # while label window remains [engage_ts, engage_ts + horizon).
+    PREDICTION_GAP_MS: int = 0
     MAX_MERGED_FIGHT_DURATION_MS = 120000
 
     START_OFFSET_MIN: int = 2
@@ -387,6 +391,17 @@ class CFG:
     #   a detected engage candidate is accepted only when
     #   at least one kill exists in [engage_ts, engage_ts + horizon).
     VERIFY_KILL_IN_HORIZON: bool = True
+    # Additional combat-signal validation in horizon:
+    #   damage proxy uses normalized Δ totalDamageDoneToChampions (team-sum),
+    #   spell proxy counts SUMMONER_SPELL_USED/CAST events.
+    # Rule options:
+    #   - kill_only
+    #   - signal_only
+    #   - kill_or_signal
+    #   - kill_and_signal
+    FIGHT_VALIDATION_RULE: str = "kill_or_signal"
+    MIN_DAMAGE_NORM_IN_HORIZON: float = 0.02
+    MIN_SUMMONER_SPELLS_IN_HORIZON: int = 1
 
     PROX_DIST_NORM: float = 1800.0 / MAP_MAX
     PROX_MIN_PAIRS: int = 8
@@ -701,6 +716,11 @@ class CFG:
     EARLY_STOP_METRIC: str = "auc"
     PREC_AT_K: Tuple[int, ...] = (50, 100, 200, 500)
     PREC_AT_FRAC: Tuple[float, ...] = (0.01, 0.05, 0.10)
+    ENABLE_MINUTEWISE_REPORT: bool = True
+    ENABLE_SITUATION_REPORT: bool = True
+    MINUTE_REPORT_MAX_MINUTE: int = 60
+    SITUATION_CLOSE_GOLD_TH: float = 2000.0
+    SITUATION_STOMP_GOLD_TH: float = 5000.0
 
     LGB_PERM_IMPORTANCE: bool = False
     LGB_SHAP: bool = True
@@ -792,6 +812,7 @@ class CFG:
     USE_MULTI_TASK: bool = False
     MTL_LAMBDA_GOLD: float = 0.1
     MTL_LAMBDA_KILL: float = 0.05
+    MTL_LAMBDA_OBJ: float = 0.05
 
     LABEL_SMOOTHING: float = 0.0
 # -------------------------------------------------------------------
