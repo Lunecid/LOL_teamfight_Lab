@@ -10,7 +10,7 @@ from improvements import compute_momentum_stats, compute_game_phase_seq, GAME_PH
 # [P2-STRUCT-1] Now import NODE_IDX directly from config (SSoT).
 from config import (
     cfg,
-    CHAMPION_STATS_KEYS, DAMAGE_STATS_KEYS,
+    CHAMPION_STATS_KEYS, CHAMPION_STATS_DIV100_KEYS, DAMAGE_STATS_KEYS,
     NODE_FEATURE_NAMES, SLOT_NAMES,
     GLOBAL_FEATURE_NAMES, EVENT_FEATURE_NAMES,
     ITEM_HASH_NAMES, FEATURE_CONTRACT, F_NODE,
@@ -20,6 +20,13 @@ from config import (
 )
 
 from common import safe_float, log1p_norm
+
+
+def _normalize_cs_raw(key: str, raw_value: float) -> float:
+    v = float(raw_value)
+    if key in CHAMPION_STATS_DIV100_KEYS and abs(v) > 2.0:
+        return v / 100.0
+    return v
 
 
 # ---------------------------------------------------------------------
@@ -532,7 +539,7 @@ def snapshot_to_node_features(snap: Dict[str, float], alive: float) -> np.ndarra
     # ---- stat keys (config: cs_* / ds_*) ----
     for k in CHAMPION_STATS_KEYS:
         denom = float(CS_DENOM.get(k, 1000.0))
-        v = safe_float(snap.get(f"cs_{k}", 0.0))
+        v = _normalize_cs_raw(k, safe_float(snap.get(f"cs_{k}", 0.0)))
         vv = float(np.clip(v, 0.0, 1.0)) if abs(denom - 1.0) < 1e-9 else log1p_norm(v, denom)
         base[f"cs_{k}"] = vv
 

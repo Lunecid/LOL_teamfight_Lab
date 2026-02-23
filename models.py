@@ -201,9 +201,12 @@ def _as_list(x) -> List[str]:
 
 
 def _default_node_cat_names() -> List[str]:
-    # champion + runes + stat perks (as defined in your config_fixed.py)
+    # Static metadata IDs: champion/runes/styles/spells/stat-perks.
     return [
         "champion_id",
+        "champion_name_id",
+        "summoner_spell_1_id", "summoner_spell_2_id",
+        "primary_style_id", "sub_style_id",
         "primary_rune_1", "primary_rune_2", "primary_rune_3", "primary_rune_4",
         "sub_rune_1", "sub_rune_2",
         "stat_perk_offense", "stat_perk_flex", "stat_perk_defense",
@@ -233,9 +236,12 @@ class NodeFeatureAdapter(nn.Module):
         self.drop = nn.Dropout(float(getattr(cfg, "NODE_CAT_EMB_DROPOUT", getattr(cfg, "DROPOUT", 0.1))))
 
         # vocab sizes (safe defaults for LoL IDs)
-        self.champ_vocab = int(getattr(cfg, "CHAMPION_VOCAB", 2048))   # champions < 1000, but keep buffer
-        self.rune_vocab = int(getattr(cfg, "RUNE_VOCAB", 10000))       # rune IDs are ~5000/8000/9000 etc
-        self.stat_vocab = int(getattr(cfg, "STAT_PERK_VOCAB", 10000))  # stat perk IDs (~5000-range)
+        self.champ_vocab = int(getattr(cfg, "CHAMPION_VOCAB", 2048))
+        self.champ_name_vocab = int(getattr(cfg, "CHAMPION_NAME_VOCAB", 4096))
+        self.rune_vocab = int(getattr(cfg, "RUNE_VOCAB", 10000))
+        self.rune_style_vocab = int(getattr(cfg, "RUNE_STYLE_VOCAB", 256))
+        self.stat_vocab = int(getattr(cfg, "STAT_PERK_VOCAB", 10000))
+        self.spell_vocab = int(getattr(cfg, "SUMMONER_SPELL_VOCAB", 512))
 
         # Which feature names to treat as categorical?
         cat_names = []
@@ -254,14 +260,23 @@ class NodeFeatureAdapter(nn.Module):
 
         # Embeddings (shared tables)
         self.emb_champ = nn.Embedding(self.champ_vocab, self.emb_dim, padding_idx=0)
+        self.emb_champ_name = nn.Embedding(self.champ_name_vocab, self.emb_dim, padding_idx=0)
         self.emb_rune = nn.Embedding(self.rune_vocab, self.emb_dim, padding_idx=0)
+        self.emb_rune_style = nn.Embedding(self.rune_style_vocab, self.emb_dim, padding_idx=0)
         self.emb_stat = nn.Embedding(self.stat_vocab, self.emb_dim, padding_idx=0)
+        self.emb_spell = nn.Embedding(self.spell_vocab, self.emb_dim, padding_idx=0)
 
         # per-feature embedding routing
         self._cat_table: List[Tuple[int, nn.Embedding, int]] = []
         for idx, name in self.cat_specs:
             if name == "champion_id":
                 self._cat_table.append((idx, self.emb_champ, self.champ_vocab))
+            elif name == "champion_name_id":
+                self._cat_table.append((idx, self.emb_champ_name, self.champ_name_vocab))
+            elif name.startswith("summoner_spell_"):
+                self._cat_table.append((idx, self.emb_spell, self.spell_vocab))
+            elif name.endswith("_style_id"):
+                self._cat_table.append((idx, self.emb_rune_style, self.rune_style_vocab))
             elif name.startswith("stat_perk_"):
                 self._cat_table.append((idx, self.emb_stat, self.stat_vocab))
             else:

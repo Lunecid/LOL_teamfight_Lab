@@ -1,7 +1,9 @@
 from __future__ import annotations
+import hashlib
 import random
 from config import (
     cfg, CHAMPION_STATS_KEYS, CS_DENOM, DAMAGE_STATS_KEYS, DS_DENOM,
+    CHAMPION_STATS_DIV100_KEYS,
     F_EVENT, F_GLOBAL, F_NODE, GLOBAL_FEATURE_NAMES, MAP_MAX, NODE_IDX,
     GLOBAL_IDX, EVENT_IDX, DRAGON_SOUL_TYPES, OBJ_SCORE, ITEM_HASH_DIM,
 )
@@ -242,10 +244,29 @@ def _count_near_points(points: List[Tuple[float, float, int]], px: float, py: fl
     return int(c)
 
 
+def _stable_name_id(name: Any, vocab_size: int) -> int:
+    s = str(name or "").strip().lower()
+    if not s:
+        return 0
+    v = int(hashlib.blake2b(s.encode("utf-8"), digest_size=4).hexdigest(), 16)
+    return int(v % max(1, int(vocab_size) - 1)) + 1
+
+
+def _normalize_cs_raw(key: str, raw_value: float) -> float:
+    v = float(raw_value)
+    if key in CHAMPION_STATS_DIV100_KEYS and abs(v) > 2.0:
+        return v / 100.0
+    return v
+
+
 # =========================
 # ✅ NEW: detail(meta)에서 champion/runes/bans 추출
 # =========================
-def _extract_champ_runes_bans_from_detail(detail: Optional[Dict[str, Any]]) -> Tuple[Dict[int, int], Dict[int, Dict[str, int]], Dict[str, List[int]]]:
+def _extract_champ_runes_bans_from_detail(
+    detail: Optional[Dict[str, Any]],
+    *,
+    champion_name_vocab: int = 4096,
+) -> Tuple[Dict[int, int], Dict[int, Dict[str, int]], Dict[str, List[int]]]:
     champ_by_pid: Dict[int, int] = {}
     runes_by_pid: Dict[int, Dict[str, int]] = {}
     bans: Dict[str, List[int]] = {"blue": [0, 0, 0, 0, 0], "red": [0, 0, 0, 0, 0]}
@@ -266,6 +287,15 @@ def _extract_champ_runes_bans_from_detail(detail: Optional[Dict[str, Any]]) -> T
         except Exception:
             return 0
 
+    def _style_at(styles: list, style_idx: int) -> int:
+        try:
+            st = styles[style_idx]
+            return int(st.get("style", 0) or 0)
+        except Exception:
+            return 0
+
+    name_vocab = int(champion_name_vocab)
+
     for p in parts:
         if not isinstance(p, dict):
             continue
@@ -273,13 +303,23 @@ def _extract_champ_runes_bans_from_detail(detail: Optional[Dict[str, Any]]) -> T
         if pid <= 0:
             continue
 
-        champ_by_pid[pid] = int(p.get("championId", 0) or 0)
+        champ_name_id = _stable_name_id(p.get("championName", ""), name_vocab)
+        champ_id = int(p.get("championId", 0) or 0)
+        if champ_id <= 0:
+            # Fallback for malformed detail rows missing championId.
+            champ_id = champ_name_id
+        champ_by_pid[pid] = champ_id
 
         perks = p.get("perks", {}) or {}
         styles = perks.get("styles", []) or []
         statp = perks.get("statPerks", {}) or {}
 
         r = {
+            "champion_name_id": champ_name_id,
+            "summoner_spell_1_id": int(p.get("summoner1Id", 0) or 0),
+            "summoner_spell_2_id": int(p.get("summoner2Id", 0) or 0),
+            "primary_style_id": _style_at(styles, 0),
+            "sub_style_id": _style_at(styles, 1),
             "primary_rune_1": _perk_at(styles, 0, 0),
             "primary_rune_2": _perk_at(styles, 0, 1),
             "primary_rune_3": _perk_at(styles, 0, 2),
@@ -392,7 +432,10 @@ def parse_timeline_to_minute_cache(
     ward_kill: Dict[int, List[Tuple[float, float, int]]] = {100: [], 200: []}
 
     # ✅ NEW: metadata (champ/runes/bans)
-    champ_by_pid, runes_by_pid, bans = _extract_champ_runes_bans_from_detail(detail)
+    champ_by_pid, runes_by_pid, bans = _extract_champ_runes_bans_from_detail(
+        detail,
+        champion_name_vocab=int(getattr(_cfg, "CHAMPION_NAME_VOCAB", 4096)),
+    )
 
     def _set(vec: np.ndarray, name: str, val: float):
         j = NODE_IDX.get(name, None)
@@ -501,7 +544,8 @@ def parse_timeline_to_minute_cache(
             # champion stats + damage stats
             for k in CHAMPION_STATS_KEYS:
                 denom = float(CS_DENOM.get(k, 1.0))
-                val = float(safe_float(cs.get(k, 0.0))) / max(1e-6, denom)
+                raw_cs = _normalize_cs_raw(k, float(safe_float(cs.get(k, 0.0))))
+                val = raw_cs / max(1e-6, denom)
                 _set(vec, f"cs_{k}", float(np.clip(val, -10.0, 10.0)))
 
             for k in DAMAGE_STATS_KEYS:
