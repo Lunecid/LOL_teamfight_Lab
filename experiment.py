@@ -33,7 +33,7 @@ from indexing import (
     split_refs_patch_holdout,
 )
 from file_io import dump_fight_refs_csv, ensure_dir, now_tag
-from speed import setup_torch_speed
+from speed import apply_speed_profile, setup_torch_speed
 from utils import save_csv_rows, save_json, set_seed, write_log
 
 
@@ -289,6 +289,11 @@ def run(args) -> None:
             write_log(f"[CFG] FUSION_REQUESTS={fusion_requests} fusion_auto_best={fusion_auto_best}", run_log)
         write_log(f"[CFG] RUN_ROOT={run_root}", run_log)
         log_patch_block("CACHE matches", cache_pc, run_log)
+
+        speed_profile = str(getattr(cfg, "SPEED_PROFILE", "none"))
+        if speed_profile.lower() not in ("none", "off", ""):
+            applied = apply_speed_profile(cfg, profile=speed_profile, log_fp=run_log)
+            write_log(f"[CFG] SPEED_PROFILE={speed_profile} applied={applied}", run_log)
 
         setup_torch_speed(cfg, log_fp=run_log)
 

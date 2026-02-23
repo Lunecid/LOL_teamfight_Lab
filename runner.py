@@ -5,6 +5,7 @@ from typing import List
 
 from config import cfg
 from experiment import run
+from speed import apply_speed_profile
 from utils import set_seed
 
 
@@ -112,13 +113,24 @@ def build_argparser() -> argparse.ArgumentParser:
     ap.add_argument("--r_core", type=float, default=float(getattr(cfg, "STANDOFF_RADIUS", 1800.0)))
 
     # speed flags
+    ap.add_argument(
+        "--speed_profile",
+        type=str,
+        default="none",
+        choices=["none", "auto", "rtx50", "rtx5080", "aggressive"],
+        help="hardware speed preset",
+    )
     ap.add_argument("--amp", action="store_true", help="enable AMP mixed precision")
+    ap.add_argument("--amp_dtype", type=str, default=None, choices=["auto", "bfloat16", "float16"])
     ap.add_argument("--torch_compile", action="store_true", help="enable torch.compile (PyTorch 2)")
-    ap.add_argument("--num_workers", type=int, default=int(getattr(cfg, "NUM_WORKERS", 0)))
+    ap.add_argument("--compile_mode", type=str, default=None, choices=["default", "reduce-overhead", "max-autotune"])
+    ap.add_argument("--compile_dynamic", action="store_true", help="enable dynamic shapes for torch.compile")
+    ap.add_argument("--num_workers", type=int, default=None)
+    ap.add_argument("--batch_size", type=int, default=None)
     ap.add_argument("--pin_memory", action="store_true")
     ap.add_argument("--persistent_workers", action="store_true")
-    ap.add_argument("--eval_num_workers", type=int, default=int(getattr(cfg, "EVAL_NUM_WORKERS", 0)))
-    ap.add_argument("--prefetch_factor", type=int, default=int(getattr(cfg, "PREFETCH_FACTOR", 2)))
+    ap.add_argument("--eval_num_workers", type=int, default=None)
+    ap.add_argument("--prefetch_factor", type=int, default=None)
     ap.add_argument("--tf32", action="store_true", help="enable TF32 on supported NVIDIA GPUs")
     ap.add_argument("--no_tf32", action="store_true", help="disable TF32")
     ap.add_argument("--cache_match_packs_in_ram", action="store_true", help="enable RAM LRU for match packs")
@@ -141,16 +153,33 @@ def main() -> None:
     seed = int(args.seed)
     set_seed(seed)
 
+    profile = str(getattr(args, "speed_profile", "none"))
+    if profile and profile.lower() not in ("none", "off"):
+        cfg.SPEED_PROFILE = profile
+        apply_speed_profile(cfg, profile=profile)
+
     cfg.AMP = bool(args.amp or getattr(cfg, "AMP", False))
+    if args.amp_dtype is not None:
+        cfg.AMP_DTYPE = str(args.amp_dtype).strip()
     cfg.TORCH_COMPILE = bool(args.torch_compile or getattr(cfg, "TORCH_COMPILE", False))
-    cfg.NUM_WORKERS = int(args.num_workers)
+    if args.compile_mode is not None:
+        cfg.TORCH_COMPILE_MODE = str(args.compile_mode).strip()
+    if bool(getattr(args, "compile_dynamic", False)):
+        cfg.TORCH_COMPILE_DYNAMIC = True
+
+    if args.num_workers is not None:
+        cfg.NUM_WORKERS = int(args.num_workers)
+    if args.batch_size is not None:
+        cfg.BATCH_SIZE = int(args.batch_size)
     if args.pin_memory:
         cfg.PIN_MEMORY = True
     if args.persistent_workers:
         cfg.PERSISTENT_WORKERS = True
 
-    cfg.EVAL_NUM_WORKERS = int(getattr(args, 'eval_num_workers', getattr(cfg, 'EVAL_NUM_WORKERS', 0)))
-    cfg.PREFETCH_FACTOR = int(getattr(args, 'prefetch_factor', getattr(cfg, 'PREFETCH_FACTOR', 2)))
+    if args.eval_num_workers is not None:
+        cfg.EVAL_NUM_WORKERS = int(args.eval_num_workers)
+    if args.prefetch_factor is not None:
+        cfg.PREFETCH_FACTOR = int(args.prefetch_factor)
 
     if bool(getattr(args, 'tf32', False)):
         cfg.TF32 = True

@@ -580,9 +580,14 @@ class CFG:
     # ---- Performance / DataLoader ----
     # Mixed precision (AMP) + TF32 can significantly speed up training on NVIDIA GPUs.
     AMP: bool = True
+    # AMP dtype policy: auto | bfloat16 | float16
+    AMP_DTYPE: str = "auto"
     TF32: bool = True
     CUDNN_BENCHMARK: bool = True
     TORCH_COMPILE: bool = False
+    TORCH_COMPILE_MODE: str = "default"      # default | reduce-overhead | max-autotune
+    TORCH_COMPILE_DYNAMIC: bool = False
+    SPEED_PROFILE: str = "none"              # none | auto | rtx50 | rtx5080 | aggressive
 
     # DataLoader
     NUM_WORKERS: int = 4
