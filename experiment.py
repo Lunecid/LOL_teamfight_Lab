@@ -19,6 +19,7 @@ from fusion import (
     stack_oof_meta,
     stack_simple,
     stack_factorial,          # ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ factorial ÃƒÂ¬Ã…â€œÃ‚Â ÃƒÂ¬Ã‚Â§Ã¢â€šÂ¬ (greedy ÃƒÂ¬Ã‚Â Ã…â€œÃƒÂªÃ‚Â±Ã‚Â°)
+    refit_meta_trainval_predict_test,
     calibrate_logits_by_patch,
     split_logit_map_by_refs,
 )
@@ -603,10 +604,10 @@ def run(args) -> None:
         deep_pred_maps: Dict[Tuple[str, str], Dict[str, Dict[str, float]]] = {}
 
         need_baseline_logits = (
-            enable_factorial
-            or (ablation_mode in ("baseline_plus", "both"))
+            ((ablation_mode in ("baseline_plus", "both")) and (not enable_factorial))
+            or any((m or "").lower() == "lgbm" for m in model_list)
             or any(_needs_lgbm_logit(m) for m in model_list if (m or "").lower() != "lgbm")
-            or bool(getattr(cfg, "RUN_LGBM_BASELINE", True))
+            or bool(getattr(cfg, "RUN_LGBM_BASELINE", False))
         )
 
         lgbm_pack = None
@@ -871,95 +872,160 @@ def run(args) -> None:
 
         # 6) Fusion / stacking
         if enable_factorial or fusion_requests:
-            if not base_logit_map_full:
-                write_log("[FUSION] skipped: baseline logits not available", run_log)
-            else:
-                fusion_root = ensure_dir(models_root / "fusion")
-                meta_method = str(getattr(args, "oof_meta", "logreg")).strip().lower()
-                if meta_method != "logreg":
-                    write_log(f"[FUSION] unsupported oof_meta={meta_method!r}; fallback to 'logreg'", run_log)
-                    meta_method = "logreg"
+            fusion_root = ensure_dir(models_root / "fusion")
+            meta_method = str(getattr(args, "oof_meta", "logreg")).strip().lower()
+            if meta_method != "logreg":
+                write_log(f"[FUSION] unsupported oof_meta={meta_method!r}; fallback to 'logreg'", run_log)
+                meta_method = "logreg"
 
-                # ------------------------------------------------------------
-                # (A) Factorial stacking ONLY (ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ greedy ÃƒÂ¬Ã‚Â Ã…â€œÃƒÂªÃ‚Â±Ã‚Â°)
-                # ------------------------------------------------------------
-                if enable_factorial:
-                    def _merge_pred_map(pm: Dict[str, Dict[str, float]]) -> Dict[str, float]:
-                        mm: Dict[str, float] = {}
-                        for sp in ("train", "val", "test"):
-                            mm.update(pm.get(sp, {}))
-                        return mm
+            factorial_adopted = False
 
-                    def _count_present(refs, mp: Dict[str, float]) -> int:
-                        c = 0
-                        for r in refs:
-                            k = ref_key(r)
-                            if k in mp:
-                                c += 1
-                        return c
+            # ------------------------------------------------------------
+            # (A) Factorial stacking + automatic best adoption
+            # ------------------------------------------------------------
+            if enable_factorial:
+                def _merge_pred_map(pm: Dict[str, Dict[str, float]]) -> Dict[str, float]:
+                    mm: Dict[str, float] = {}
+                    for sp in ("train", "val", "test"):
+                        mm.update(pm.get(sp, {}))
+                    return mm
 
-                    cand_names: List[str] = []
-                    cand_maps: List[Dict[str, float]] = []
+                def _count_present(refs, mp: Dict[str, float]) -> int:
+                    c = 0
+                    for r in refs:
+                        k = ref_key(r)
+                        if k in mp:
+                            c += 1
+                    return c
 
-                    # always include baseline as anchor
+                cand_names: List[str] = []
+                cand_maps: List[Dict[str, float]] = []
+                cand_map_by_name: Dict[str, Dict[str, float]] = {}
+
+                # lgbm is optional candidate (not forced in combos).
+                if base_logit_map_full:
                     cand_names.append("lgbm")
                     cand_maps.append(base_logit_map_full)
+                    cand_map_by_name["lgbm"] = base_logit_map_full
+                else:
+                    write_log("[FACTORIAL] lgbm baseline unavailable -> proceed without lgbm candidate", run_log)
 
-                    # add ALL available deep variants that have reasonable coverage on tr/va/te
-                    for (mn, vt), pm in deep_pred_maps.items():
-                        name = f"{mn}:{vt}"
-                        merged = _merge_pred_map(pm)
+                # add ALL available deep variants that have reasonable coverage on tr/va/te
+                for (mn, vt), pm in deep_pred_maps.items():
+                    name = f"{mn}:{vt}"
+                    merged = _merge_pred_map(pm)
 
-                        cov_tr = _count_present(tr_refs, merged)
-                        cov_va = _count_present(va_refs, merged)
-                        cov_te = _count_present(te_refs, merged)
+                    cov_tr = _count_present(tr_refs, merged)
+                    cov_va = _count_present(va_refs, merged)
+                    cov_te = _count_present(te_refs, merged)
 
-                        if cov_tr >= 50 and cov_va >= 50 and cov_te >= 50:
-                            cand_names.append(name)
-                            cand_maps.append(merged)
-                        else:
-                            write_log(
-                                f"[FACTORIAL] drop candidate={name} (coverage tr={cov_tr}, val={cov_va}, test={cov_te})",
-                                run_log,
-                            )
-
-                    if len(cand_names) >= 2:
-                        factorial_out = ensure_dir(fusion_root / "factorial_search")
-
-                        min_k = int(getattr(args, "factorial_min_k", 2))
-                        max_k = int(getattr(args, "factorial_max_k", 3))
-                        max_combos = int(getattr(args, "factorial_max_combos", 300))
-
+                    if cov_tr >= 50 and cov_va >= 50 and cov_te >= 50:
+                        cand_names.append(name)
+                        cand_maps.append(merged)
+                        cand_map_by_name[name] = merged
+                    else:
                         write_log(
-                            f"[FACTORIAL] start: candidates={len(cand_names)} "
-                            f"min_k={min_k} max_k={max_k} max_combos={max_combos}",
+                            f"[FACTORIAL] drop candidate={name} (coverage tr={cov_tr}, val={cov_va}, test={cov_te})",
                             run_log,
                         )
 
-                        # ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ factorialÃƒÂ«Ã‚Â§Ã…â€™ ÃƒÂ¬Ã¢â‚¬Â¹Ã‚Â¤ÃƒÂ­Ã¢â‚¬â€œÃ¢â‚¬Â° (greedy ÃƒÂ¬Ã¢â‚¬â€Ã¢â‚¬Â ÃƒÂ¬Ã‚ÂÃ…â€™)
-                        _ = stack_factorial(
-                            tr_refs=tr_refs,
-                            va_refs=va_refs,
-                            te_refs=te_refs,
-                            feature_set=feature_set,
-                            cand_names=cand_names,
-                            cand_maps=cand_maps,
-                            out_dir=factorial_out,
-                            log_fp=run_log,
-                            seed=seed,
-                            meta_method=meta_method,
-                            min_k=min_k,
-                            max_k=max_k,
-                            anchor_name="lgbm",
-                            anchor_must_include=True,
-                            max_combos=max_combos,
-                        )
-                    else:
-                        write_log("[FACTORIAL] skipped: not enough candidates after filtering", run_log)
+                if len(cand_names) >= 2:
+                    factorial_out = ensure_dir(fusion_root / "factorial_search")
 
-                # ------------------------------------------------------------
-                # (B) Existing: one ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œselectedÃƒÂ¢Ã¢â€šÂ¬Ã‚Â stacking (rnn+gnn+baseline)
-                # ------------------------------------------------------------
+                    min_k = int(getattr(args, "factorial_min_k", 2))
+                    max_k = int(getattr(args, "factorial_max_k", 3))
+                    max_combos = int(getattr(args, "factorial_max_combos", 300))
+                    min_k = max(2, min_k)
+                    max_k = max(min_k, max_k)
+
+                    write_log(
+                        f"[FACTORIAL] start: candidates={len(cand_names)} "
+                        f"min_k={min_k} max_k={max_k} max_combos={max_combos}",
+                        run_log,
+                    )
+
+                    factorial_summary = stack_factorial(
+                        tr_refs=tr_refs,
+                        va_refs=va_refs,
+                        te_refs=te_refs,
+                        feature_set=feature_set,
+                        cand_names=cand_names,
+                        cand_maps=cand_maps,
+                        out_dir=factorial_out,
+                        log_fp=run_log,
+                        seed=seed,
+                        meta_method=meta_method,
+                        min_k=min_k,
+                        max_k=max_k,
+                        anchor_name=None,
+                        anchor_must_include=False,
+                        max_combos=max_combos,
+                    )
+
+                    # Auto-adopt best factorial combo:
+                    # refit meta on TRAIN+VAL, then evaluate TEST.
+                    try:
+                        best = factorial_summary.get("best", {}) if isinstance(factorial_summary, dict) else {}
+                        best_tag = best.get("tag")
+                        best_row = (
+                            factorial_summary.get("results", {}).get(best_tag, {})
+                            if isinstance(factorial_summary, dict) and best_tag
+                            else {}
+                        )
+                        best_names = list(best_row.get("base_names", [])) if isinstance(best_row, dict) else []
+
+                        if len(best_names) >= 2:
+                            best_maps = [cand_map_by_name[nm] for nm in best_names if nm in cand_map_by_name]
+                            if len(best_maps) == len(best_names):
+                                adopt_dir = ensure_dir(fusion_root / "factorial_best_refit")
+                                rep_adopt = refit_meta_trainval_predict_test(
+                                    tr_refs=tr_refs,
+                                    va_refs=va_refs,
+                                    te_refs=te_refs,
+                                    feature_set=feature_set,
+                                    base_names=best_names,
+                                    base_maps=best_maps,
+                                    out_dir=adopt_dir,
+                                    log_fp=run_log,
+                                    seed=seed,
+                                    meta_method=meta_method,
+                                )
+                                adopt_info = {
+                                    "source": "factorial_search",
+                                    "best_tag": best_tag,
+                                    "best_val_auc": best.get("val_auc"),
+                                    "best_test_auc_during_search": best.get("test_auc"),
+                                    "adopt_base_names": best_names,
+                                    "adopt_ok": bool(getattr(rep_adopt, "ok", False)),
+                                    "adopt_out_dir": str(adopt_dir),
+                                }
+                                save_json(adopt_dir / "adopted_from_factorial.json", adopt_info)
+                                if rep_adopt.ok:
+                                    factorial_adopted = True
+                                    write_log(
+                                        f"[FACTORIAL] adopted best combo={best_names} with train+val refit",
+                                        run_log,
+                                    )
+                                else:
+                                    write_log("[FACTORIAL] best combo refit failed -> fallback to selected fusion", run_log)
+                            else:
+                                write_log(
+                                    "[FACTORIAL] cannot adopt best combo: missing maps for some selected bases",
+                                    run_log,
+                                )
+                        else:
+                            write_log("[FACTORIAL] no valid best combo to adopt", run_log)
+                    except Exception as e:
+                        write_log(f"[FACTORIAL] auto-adopt failed (ignored): {e}", run_log)
+                else:
+                    write_log("[FACTORIAL] skipped: not enough candidates after filtering", run_log)
+
+            # ------------------------------------------------------------
+            # (B) Existing selected stacking (fallback/legacy)
+            # ------------------------------------------------------------
+            if factorial_adopted:
+                write_log("[FUSION] selected-stacking skipped (factorial best already adopted)", run_log)
+            else:
                 rnn_variant = _best_variant_for(rnn_name, deep_reports) if (fusion_auto_best and rnn_name) else "deep_only"
                 gnn_variant = _best_variant_for(gnn_name, deep_reports) if (fusion_auto_best and gnn_name) else "deep_only"
 
@@ -968,10 +1034,16 @@ def run(args) -> None:
                 if gnn_name and (gnn_name, gnn_variant) not in deep_pred_maps:
                     gnn_variant = "plus_baseline" if (gnn_name, "plus_baseline") in deep_pred_maps else gnn_variant
 
-                base_names: List[str] = ["lgbm"]
-                maps_train: List[Dict[str, float]] = [split_logit_map_by_refs(tr_refs, base_logit_map_full)]
-                maps_val: List[Dict[str, float]] = [split_logit_map_by_refs(va_refs, base_logit_map_full)]
-                maps_test: List[Dict[str, float]] = [split_logit_map_by_refs(te_refs, base_logit_map_full)]
+                base_names: List[str] = []
+                maps_train: List[Dict[str, float]] = []
+                maps_val: List[Dict[str, float]] = []
+                maps_test: List[Dict[str, float]] = []
+
+                if base_logit_map_full:
+                    base_names.append("lgbm")
+                    maps_train.append(split_logit_map_by_refs(tr_refs, base_logit_map_full))
+                    maps_val.append(split_logit_map_by_refs(va_refs, base_logit_map_full))
+                    maps_test.append(split_logit_map_by_refs(te_refs, base_logit_map_full))
 
                 if rnn_name and (rnn_name, rnn_variant) in deep_pred_maps:
                     pm = deep_pred_maps[(rnn_name, rnn_variant)]
