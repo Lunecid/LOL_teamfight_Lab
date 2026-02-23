@@ -10,7 +10,7 @@ from improvements import compute_momentum_stats, compute_game_phase_seq, GAME_PH
 # [P2-STRUCT-1] Now import NODE_IDX directly from config (SSoT).
 from config import (
     cfg,
-    CHAMPION_STATS_KEYS, DAMAGE_STATS_KEYS,
+    CHAMPION_STATS_KEYS, CHAMPION_STATS_DIV100_KEYS, DAMAGE_STATS_KEYS,
     NODE_FEATURE_NAMES, SLOT_NAMES,
     GLOBAL_FEATURE_NAMES, EVENT_FEATURE_NAMES,
     ITEM_HASH_NAMES, FEATURE_CONTRACT, F_NODE,
@@ -20,6 +20,13 @@ from config import (
 )
 
 from common import safe_float, log1p_norm
+
+
+def _normalize_cs_raw(key: str, raw_value: float) -> float:
+    v = float(raw_value)
+    if key in CHAMPION_STATS_DIV100_KEYS and abs(v) > 2.0:
+        return v / 100.0
+    return v
 
 
 # ---------------------------------------------------------------------
@@ -532,7 +539,7 @@ def snapshot_to_node_features(snap: Dict[str, float], alive: float) -> np.ndarra
     # ---- stat keys (config: cs_* / ds_*) ----
     for k in CHAMPION_STATS_KEYS:
         denom = float(CS_DENOM.get(k, 1000.0))
-        v = safe_float(snap.get(f"cs_{k}", 0.0))
+        v = _normalize_cs_raw(k, safe_float(snap.get(f"cs_{k}", 0.0)))
         vv = float(np.clip(v, 0.0, 1.0)) if abs(denom - 1.0) < 1e-9 else log1p_norm(v, denom)
         base[f"cs_{k}"] = vv
 
@@ -570,15 +577,26 @@ def snapshot_to_node_features(snap: Dict[str, float], alive: float) -> np.ndarra
 # ---------------------------------------------------------------------
 # Event minimal selection (used for node_personal)
 # ---------------------------------------------------------------------
+NODE_PERSONAL_EVENT_KEEP: List[str] = [
+    "kills_t100", "kills_t200",
+    "bounty_t100", "bounty_t200",
+    "shutdown_kill_t100", "shutdown_kill_t200",
+    "killstreak_t100", "killstreak_t200",
+    "multikill_t100", "multikill_t200",
+    "ace_t100", "ace_t200",
+    "dragon_t100", "dragon_t200",
+    "baron_t100", "baron_t200",
+    "obj_bounty_t100", "obj_bounty_t200",
+    "ward_placed_t100", "ward_placed_t200",
+    "ward_kill_t100", "ward_kill_t200",
+    "control_ward_placed_t100", "control_ward_placed_t200",
+    "control_ward_kill_t100", "control_ward_kill_t200",
+    "item_pur_t100", "item_pur_t200",
+]
+
+
 def minimal_event_seq(ev_seq: np.ndarray) -> np.ndarray:
-    keep = [
-        "kills_t100", "kills_t200",
-        "dragon_t100", "dragon_t200",
-        "baron_t100", "baron_t200",
-        "ward_placed_t100", "ward_placed_t200",
-        "item_pur_t100", "item_pur_t200",
-    ]
-    idx = [EVENT_IDX[k] for k in keep if k in EVENT_IDX]
+    idx = [EVENT_IDX[k] for k in NODE_PERSONAL_EVENT_KEEP if k in EVENT_IDX]
     if len(idx) == 0:
         return np.zeros((ev_seq.shape[0], 0), dtype=np.float32)
     return ev_seq[:, idx].astype(np.float32)
@@ -706,14 +724,7 @@ def get_xseq_feature_names(feature_set: str) -> List[str]:
     node_names = [f"{slot}_{f}" for slot in SLOT_NAMES for f in NODE_FEATURE_NAMES]
 
     if feature_set == "node_personal":
-        keep = [
-            "kills_t100", "kills_t200",
-            "dragon_t100", "dragon_t200",
-            "baron_t100", "baron_t200",
-            "ward_placed_t100", "ward_placed_t200",
-            "item_pur_t100", "item_pur_t200",
-        ]
-        return node_names + keep + spatial
+        return node_names + list(NODE_PERSONAL_EVENT_KEEP) + spatial
 
     if feature_set == "full":
         return node_names + _macro_base_names() + spatial
@@ -734,14 +745,7 @@ def get_extra_feature_names(feature_set: str) -> List[str]:
         return _macro_base_names() + spatial
 
     if feature_set == "node_personal":
-        keep = [
-            "kills_t100", "kills_t200",
-            "dragon_t100", "dragon_t200",
-            "baron_t100", "baron_t200",
-            "ward_placed_t100", "ward_placed_t200",
-            "item_pur_t100", "item_pur_t200",
-        ]
-        return keep + spatial
+        return list(NODE_PERSONAL_EVENT_KEEP) + spatial
 
     raise ValueError(feature_set)
 

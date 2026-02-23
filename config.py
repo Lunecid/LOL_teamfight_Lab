@@ -53,6 +53,15 @@ CHAMPION_STATS_KEYS: List[str] = [
     "omnivamp", "physicalVamp", "power", "powerMax", "powerRegen", "spellVamp",
 ]
 
+# Timeline championStats in some patches/regions are emitted in percent-like 0~100 scale
+# for these keys (instead of canonical 0~1 ratio). We auto-correct by /100 when |v|>2.
+CHAMPION_STATS_DIV100_KEYS: Tuple[str, ...] = (
+    "attackSpeed",
+    "armorPenPercent", "bonusArmorPenPercent", "bonusMagicPenPercent", "magicPenPercent",
+    "ccReduction", "cooldownReduction",
+    "lifesteal", "omnivamp", "physicalVamp", "spellVamp",
+)
+
 DAMAGE_STATS_KEYS: List[str] = [
     "physicalDamageDone", "magicDamageDone", "trueDamageDone", "totalDamageDone",
     "physicalDamageDoneToChampions", "magicDamageDoneToChampions",
@@ -90,6 +99,7 @@ VISION_CNT_DENOM: float = 10.0
 # Rune Feature Keys
 # -------------------------------------------------------------------
 RUNE_FEATURE_NAMES: List[str] = [
+    "primary_style_id", "sub_style_id",
     "primary_rune_1", "primary_rune_2", "primary_rune_3", "primary_rune_4",
     "sub_rune_1", "sub_rune_2",
     "stat_perk_offense", "stat_perk_flex", "stat_perk_defense",
@@ -101,6 +111,8 @@ RUNE_FEATURE_NAMES: List[str] = [
 # -------------------------------------------------------------------
 NODE_SNAPSHOT_FEATURE_NAMES: List[str] = [
     "champion_id",
+    "champion_name_id",
+    "summoner_spell_1_id", "summoner_spell_2_id",
     "x_norm", "y_norm",
     "level_norm", "xp_norm",
     "curGold_norm", "totalGold_norm", "gps_norm",
@@ -136,11 +148,18 @@ F_NODE: int = len(NODE_FEATURE_NAMES)
 # -------------------------------------------------------------------
 EVENT_FEATURE_NAMES: List[str] = [
     "kills_t100", "kills_t200", "bounty_t100", "bounty_t200",
+    "shutdown_kill_t100", "shutdown_kill_t200",
+    "killstreak_t100", "killstreak_t200",
+    "multikill_t100", "multikill_t200",
+    "ace_t100", "ace_t200",
     "dragon_t100", "dragon_t200", "baron_t100", "baron_t200",
     "herald_t100", "herald_t200", "atakhan_t100", "atakhan_t200",
     "horde_t100", "horde_t200", "tower_t100", "tower_t200",
     "inhib_t100", "inhib_t200", "plate_t100", "plate_t200",
+    "obj_bounty_t100", "obj_bounty_t200",
     "ward_placed_t100", "ward_placed_t200", "ward_kill_t100", "ward_kill_t200",
+    "control_ward_placed_t100", "control_ward_placed_t200",
+    "control_ward_kill_t100", "control_ward_kill_t200",
     "item_pur_t100", "item_pur_t200", "item_sold_t100", "item_sold_t200",
     "item_undo_t100", "item_undo_t200",
 ]
@@ -220,7 +239,7 @@ class CFG:
     # =========================================================
     # 0) Feature / Cache versioning
     # =========================================================
-    FEATURE_VERSION: str = "featV5_status_contract2_runes_bans_bin5s"
+    FEATURE_VERSION: str = "featV6_status_contract2_runes_bans_spells_styles_bin5s"
 
     # =========================================================
     # 1) Data Paths  [FIX-PATH] env var override 가능, 기본값은 원본 경로
@@ -323,7 +342,9 @@ class CFG:
         "cs_", "ds_",
         # [P1-3 NEW] 범주형 정수 ID (임베딩 룩업용 — 절대 스케일링 금지)
         "champion_id",
+        "champion_name_id",
         "primary_rune_", "sub_rune_",
+        "primary_style_id", "sub_style_id",
         "stat_perk_",
         "blue_ban_", "red_ban_",
         "summoner_spell_",
@@ -338,6 +359,10 @@ class CFG:
     USE_ULT_LEVEL: bool = True
     USE_FLASH_READY: bool = True
     USE_LOCAL_VISION: bool = True
+
+    CHAMPION_NAME_VOCAB: int = 4096
+    SUMMONER_SPELL_VOCAB: int = 512
+    RUNE_STYLE_VOCAB: int = 256
 
     BUFF_DUR_SEC: Dict[str, int] = field(default_factory=lambda: dict(BUFF_DUR_SEC))
     FLASH_CD_SEC: int = FLASH_CD_SEC

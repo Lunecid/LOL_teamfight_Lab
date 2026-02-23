@@ -1,7 +1,9 @@
 from __future__ import annotations
+import hashlib
 import random
 from config import (
     cfg, CHAMPION_STATS_KEYS, CS_DENOM, DAMAGE_STATS_KEYS, DS_DENOM,
+    CHAMPION_STATS_DIV100_KEYS,
     F_EVENT, F_GLOBAL, F_NODE, GLOBAL_FEATURE_NAMES, MAP_MAX, NODE_IDX,
     GLOBAL_IDX, EVENT_IDX, DRAGON_SOUL_TYPES, OBJ_SCORE, ITEM_HASH_DIM,
 )
@@ -242,10 +244,29 @@ def _count_near_points(points: List[Tuple[float, float, int]], px: float, py: fl
     return int(c)
 
 
+def _stable_name_id(name: Any, vocab_size: int) -> int:
+    s = str(name or "").strip().lower()
+    if not s:
+        return 0
+    v = int(hashlib.blake2b(s.encode("utf-8"), digest_size=4).hexdigest(), 16)
+    return int(v % max(1, int(vocab_size) - 1)) + 1
+
+
+def _normalize_cs_raw(key: str, raw_value: float) -> float:
+    v = float(raw_value)
+    if key in CHAMPION_STATS_DIV100_KEYS and abs(v) > 2.0:
+        return v / 100.0
+    return v
+
+
 # =========================
 # ✅ NEW: detail(meta)에서 champion/runes/bans 추출
 # =========================
-def _extract_champ_runes_bans_from_detail(detail: Optional[Dict[str, Any]]) -> Tuple[Dict[int, int], Dict[int, Dict[str, int]], Dict[str, List[int]]]:
+def _extract_champ_runes_bans_from_detail(
+    detail: Optional[Dict[str, Any]],
+    *,
+    champion_name_vocab: int = 4096,
+) -> Tuple[Dict[int, int], Dict[int, Dict[str, int]], Dict[str, List[int]]]:
     champ_by_pid: Dict[int, int] = {}
     runes_by_pid: Dict[int, Dict[str, int]] = {}
     bans: Dict[str, List[int]] = {"blue": [0, 0, 0, 0, 0], "red": [0, 0, 0, 0, 0]}
@@ -266,6 +287,15 @@ def _extract_champ_runes_bans_from_detail(detail: Optional[Dict[str, Any]]) -> T
         except Exception:
             return 0
 
+    def _style_at(styles: list, style_idx: int) -> int:
+        try:
+            st = styles[style_idx]
+            return int(st.get("style", 0) or 0)
+        except Exception:
+            return 0
+
+    name_vocab = int(champion_name_vocab)
+
     for p in parts:
         if not isinstance(p, dict):
             continue
@@ -273,13 +303,23 @@ def _extract_champ_runes_bans_from_detail(detail: Optional[Dict[str, Any]]) -> T
         if pid <= 0:
             continue
 
-        champ_by_pid[pid] = int(p.get("championId", 0) or 0)
+        champ_name_id = _stable_name_id(p.get("championName", ""), name_vocab)
+        champ_id = int(p.get("championId", 0) or 0)
+        if champ_id <= 0:
+            # Fallback for malformed detail rows missing championId.
+            champ_id = champ_name_id
+        champ_by_pid[pid] = champ_id
 
         perks = p.get("perks", {}) or {}
         styles = perks.get("styles", []) or []
         statp = perks.get("statPerks", {}) or {}
 
         r = {
+            "champion_name_id": champ_name_id,
+            "summoner_spell_1_id": int(p.get("summoner1Id", 0) or 0),
+            "summoner_spell_2_id": int(p.get("summoner2Id", 0) or 0),
+            "primary_style_id": _style_at(styles, 0),
+            "sub_style_id": _style_at(styles, 1),
             "primary_rune_1": _perk_at(styles, 0, 0),
             "primary_rune_2": _perk_at(styles, 0, 1),
             "primary_rune_3": _perk_at(styles, 0, 2),
@@ -392,7 +432,10 @@ def parse_timeline_to_minute_cache(
     ward_kill: Dict[int, List[Tuple[float, float, int]]] = {100: [], 200: []}
 
     # ✅ NEW: metadata (champ/runes/bans)
-    champ_by_pid, runes_by_pid, bans = _extract_champ_runes_bans_from_detail(detail)
+    champ_by_pid, runes_by_pid, bans = _extract_champ_runes_bans_from_detail(
+        detail,
+        champion_name_vocab=int(getattr(_cfg, "CHAMPION_NAME_VOCAB", 4096)),
+    )
 
     def _set(vec: np.ndarray, name: str, val: float):
         j = NODE_IDX.get(name, None)
@@ -501,7 +544,8 @@ def parse_timeline_to_minute_cache(
             # champion stats + damage stats
             for k in CHAMPION_STATS_KEYS:
                 denom = float(CS_DENOM.get(k, 1.0))
-                val = float(safe_float(cs.get(k, 0.0))) / max(1e-6, denom)
+                raw_cs = _normalize_cs_raw(k, float(safe_float(cs.get(k, 0.0))))
+                val = raw_cs / max(1e-6, denom)
                 _set(vec, f"cs_{k}", float(np.clip(val, -10.0, 10.0)))
 
             for k in DAMAGE_STATS_KEYS:
@@ -862,6 +906,29 @@ def interpolate_node_global(cache: Dict[str, Any], q_ms: int) -> Tuple[np.ndarra
     return node.astype(np.float32), glob.astype(np.float32)
 
 
+def _prev_snapshot_idx(ts: np.ndarray, ref_ms: int, *, strict_before: bool = True) -> int:
+    """Index of nearest previous timestamp in ts for ref_ms."""
+    if ts is None or len(ts) == 0:
+        return -1
+    side = "left" if strict_before else "right"
+    idx = int(np.searchsorted(ts, int(ref_ms), side=side) - 1)
+    if idx < 0:
+        return -1
+    return int(min(idx, len(ts) - 1))
+
+
+def global_from_prev_snapshot(cache: Dict[str, Any], ref_ms: int, *, strict_before: bool = True) -> Tuple[np.ndarray, int]:
+    """Return global feature vector from nearest previous available timestamp."""
+    ts = cache["minute_ts"]
+    gm = cache["global_minute"]
+    if ts is None or len(ts) == 0 or gm is None or len(gm) == 0:
+        return np.zeros((F_GLOBAL,), dtype=np.float32), -1
+    idx = _prev_snapshot_idx(ts, int(ref_ms), strict_before=bool(strict_before))
+    if idx < 0:
+        return np.zeros((F_GLOBAL,), dtype=np.float32), -1
+    return gm[int(idx)].astype(np.float32, copy=True), int(ts[int(idx)])
+
+
 def aggregate_events(events_or_pack: Any, tm: Dict[int, int], s_ms: int, e_ms: int) -> Tuple[np.ndarray, np.ndarray]:
     """
     Fast aggregation with event indexing:
@@ -901,8 +968,20 @@ def aggregate_events(events_or_pack: Any, tm: Dict[int, int], s_ms: int, e_ms: i
                 if k in EVENT_IDX:
                     ev[EVENT_IDX[k]] += 1.0
                 b = f"bounty_t{tid}"
+                shutdown = safe_float(e.get("shutdownBounty", 0.0))
                 if b in EVENT_IDX:
-                    ev[EVENT_IDX[b]] += safe_float(e.get("bounty", 0.0)) + safe_float(e.get("shutdownBounty", 0.0))
+                    ev[EVENT_IDX[b]] += safe_float(e.get("bounty", 0.0)) + shutdown
+
+                if shutdown > 0.0:
+                    ks = f"shutdown_kill_t{tid}"
+                    if ks in EVENT_IDX:
+                        ev[EVENT_IDX[ks]] += 1.0
+
+                streak = max(0.0, safe_float(e.get("killStreakLength", 0.0)))
+                if streak > 0.0:
+                    kk = f"killstreak_t{tid}"
+                    if kk in EVENT_IDX:
+                        ev[EVENT_IDX[kk]] += streak
 
         elif et == "ELITE_MONSTER_KILL":
             mt = str(e.get("monsterType", "")).upper()
@@ -918,6 +997,9 @@ def aggregate_events(events_or_pack: Any, tm: Dict[int, int], s_ms: int, e_ms: i
                 k = f"{tag}_t{tid}"
                 if k in EVENT_IDX:
                     ev[EVENT_IDX[k]] += 1.0
+                kb = f"obj_bounty_t{tid}"
+                if kb in EVENT_IDX:
+                    ev[EVENT_IDX[kb]] += max(0.0, safe_float(e.get("bounty", 0.0)))
 
         elif et == "BUILDING_KILL":
             bt = str(e.get("buildingType", "")).upper()
@@ -933,6 +1015,9 @@ def aggregate_events(events_or_pack: Any, tm: Dict[int, int], s_ms: int, e_ms: i
                 k = f"inhib_t{tid}"
                 if k in EVENT_IDX:
                     ev[EVENT_IDX[k]] += 1.0
+            kb = f"obj_bounty_t{tid}"
+            if kb in EVENT_IDX:
+                ev[EVENT_IDX[kb]] += max(0.0, safe_float(e.get("bounty", 0.0)))
 
         elif et == "TURRET_PLATE_DESTROYED":
             victim_team = int(e.get("teamId", 0) or 0)
@@ -942,6 +1027,23 @@ def aggregate_events(events_or_pack: Any, tm: Dict[int, int], s_ms: int, e_ms: i
             k = f"plate_t{tid}"
             if k in EVENT_IDX:
                 ev[EVENT_IDX[k]] += 1.0
+            kb = f"obj_bounty_t{tid}"
+            if kb in EVENT_IDX:
+                ev[EVENT_IDX[kb]] += max(0.0, safe_float(e.get("bounty", 0.0)))
+
+        elif et == "CHAMPION_SPECIAL_KILL":
+            tid = tm.get(int(e.get("killerId", 0) or 0), 0)
+            if tid in (100, 200):
+                kt = str(e.get("killType", "")).upper()
+                if "MULTI" in kt:
+                    km = f"multikill_t{tid}"
+                    if km in EVENT_IDX:
+                        mk = max(1.0, safe_float(e.get("multiKillLength", 1.0)))
+                        ev[EVENT_IDX[km]] += mk
+                if "ACE" in kt:
+                    ka = f"ace_t{tid}"
+                    if ka in EVENT_IDX:
+                        ev[EVENT_IDX[ka]] += 1.0
 
         elif et in ("WARD_PLACED", "WARD_KILL"):
             pid = int(e.get("creatorId", 0) or e.get("killerId", 0) or 0)
@@ -950,6 +1052,12 @@ def aggregate_events(events_or_pack: Any, tm: Dict[int, int], s_ms: int, e_ms: i
                 k = ("ward_placed_t" if et == "WARD_PLACED" else "ward_kill_t") + str(tid)
                 if k in EVENT_IDX:
                     ev[EVENT_IDX[k]] += 1.0
+                wt = str(e.get("wardType", "")).upper()
+                is_control = ("CONTROL" in wt)
+                if is_control:
+                    kc = ("control_ward_placed_t" if et == "WARD_PLACED" else "control_ward_kill_t") + str(tid)
+                    if kc in EVENT_IDX:
+                        ev[EVENT_IDX[kc]] += 1.0
 
         elif et in ("ITEM_PURCHASED", "ITEM_SOLD", "ITEM_DESTROYED", "ITEM_UNDO"):
             pid = int(e.get("participantId", 0) or 0)
@@ -1490,6 +1598,7 @@ def build_ms_sequence(
         return None
 
     glob_seq, node_seq, ev_seq, item_seq = [], [], [], []
+    glob_snap_ts_seq: List[int] = []
 
     for i in range(L):
         b0 = start_ms + i * bin_ms
@@ -1497,6 +1606,13 @@ def build_ms_sequence(
         q = b0 + bin_ms // 2
 
         node_i, glob_i = interpolate_node_global(cache, q)
+        # Enforce "previous global snapshot" for input globals:
+        # use nearest available timestamp strictly before the reference ms.
+        g_ref_ms = int(q)
+        if engage_ts is not None and engage_ts >= 0:
+            g_ref_ms = min(int(g_ref_ms), int(label_start_ms) - 1)
+        glob_i, g_ts = global_from_prev_snapshot(cache, g_ref_ms, strict_before=True)
+        glob_snap_ts_seq.append(int(g_ts))
         ev_i, it_i = aggregate_events(cache, tm, b0, b1)
 
         node_seq.append(node_i)
@@ -1553,6 +1669,7 @@ def build_ms_sequence(
         "prediction_gap_ms": int(prediction_gap_ms),
         "label_start_ts": int(y_s),
         "label_end_ts": int(y_e),
+        "global_snap_last_ts": int(glob_snap_ts_seq[-1]) if glob_snap_ts_seq else -1,
         "game_duration_min": float(max(1.0, (int(cache["minute_ts"][-1]) - int(cache["minute_ts"][0])) / 60000.0)),
     }
 

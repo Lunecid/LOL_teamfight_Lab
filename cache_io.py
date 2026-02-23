@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import time
 from pathlib import Path
 from common import Any, Dict, List, Optional, Tuple, np
-from config import CACHE_DIR, cfg
+from config import CACHE_DIR, F_GLOBAL, F_NODE, cfg
 from utils import read_json, write_log
 
 # [P1-2 FIX] _RAM_CACHE_ORDER 제거됨 — OrderedDict 단일 구조로 LRU 통합
@@ -41,6 +42,9 @@ def _extract_static_meta_from_detail(detail: Dict[str, Any]) -> Dict[str, Any]:
     """
     Extract static participant/team meta from match detail:
       - championId per participantId
+      - championName per participantId
+      - summoner spell ids (summoner1Id/summoner2Id)
+      - rune style ids (primary/sub)
       - rune perks (primary 1..4, sub 1..2, stat perks)
       - team bans
     Stored into meta.json for reproducibility / later feature attachment.
@@ -55,7 +59,18 @@ def _extract_static_meta_from_detail(detail: Dict[str, Any]) -> Dict[str, Any]:
         parts = []
 
     champ_by_pid: Dict[str, int] = {}
+    champ_name_by_pid: Dict[str, str] = {}
     runes_by_pid: Dict[str, Dict[str, int]] = {}
+    summoner_spells_by_pid: Dict[str, Dict[str, int]] = {}
+
+    name_vocab = int(getattr(cfg, "CHAMPION_NAME_VOCAB", 4096))
+
+    def _stable_name_id(name: Any) -> int:
+        s = str(name or "").strip().lower()
+        if not s:
+            return 0
+        v = int(hashlib.blake2b(s.encode("utf-8"), digest_size=4).hexdigest(), 16)
+        return int(v % max(1, name_vocab - 1)) + 1
 
     for p in parts:
         if not isinstance(p, dict):
@@ -64,7 +79,13 @@ def _extract_static_meta_from_detail(detail: Dict[str, Any]) -> Dict[str, Any]:
         if pid <= 0:
             continue
 
-        champ_by_pid[str(pid)] = _safe_int(p.get("championId", 0), 0)
+        champ_name = str(p.get("championName", "") or "")
+        champ_name_id = _stable_name_id(champ_name)
+        champ_id = _safe_int(p.get("championId", 0), 0)
+        if champ_id <= 0:
+            champ_id = champ_name_id
+        champ_by_pid[str(pid)] = champ_id
+        champ_name_by_pid[str(pid)] = champ_name
 
         # perks 구조: perks.styles[0].selections[0..3].perk (primary 4)
         #          perks.styles[1].selections[0..1].perk (sub 2)
@@ -81,7 +102,26 @@ def _extract_static_meta_from_detail(detail: Dict[str, Any]) -> Dict[str, Any]:
             except Exception:
                 return 0
 
+        def _style_at(style_idx: int) -> int:
+            try:
+                style = styles[style_idx]
+                return _safe_int(style.get("style", 0), 0)
+            except Exception:
+                return 0
+
+        s1 = _safe_int(p.get("summoner1Id", 0), 0)
+        s2 = _safe_int(p.get("summoner2Id", 0), 0)
+        summoner_spells_by_pid[str(pid)] = {
+            "summoner_spell_1_id": s1,
+            "summoner_spell_2_id": s2,
+        }
+
         r = {
+            "champion_name_id": champ_name_id,
+            "summoner_spell_1_id": s1,
+            "summoner_spell_2_id": s2,
+            "primary_style_id": _style_at(0),
+            "sub_style_id": _style_at(1),
             "primary_rune_1": _perk_at(0, 0),
             "primary_rune_2": _perk_at(0, 1),
             "primary_rune_3": _perk_at(0, 2),
@@ -120,6 +160,8 @@ def _extract_static_meta_from_detail(detail: Dict[str, Any]) -> Dict[str, Any]:
                 bans["red"] = ids
 
     out["champion_by_pid"] = champ_by_pid
+    out["champion_name_by_pid"] = champ_name_by_pid
+    out["summoner_spells_by_pid"] = summoner_spells_by_pid
     out["runes_by_pid"] = runes_by_pid
     out["bans"] = bans
     return out
@@ -158,7 +200,7 @@ def _parse_timeline_to_minute_cache_compat(
     """
     # best-effort: newest signature
     try:
-        return parse_timeline_to_minute_cache(tl, tm, detail=detail, cfg=cfg)  # type: ignore
+        return parse_timeline_to_minute_cache(tl, tm, detail=detail, cfg_in=cfg)  # type: ignore
     except TypeError:
         pass
 
@@ -201,9 +243,20 @@ def load_match_cache(match_id: str) -> Optional[Dict[str, Any]]:
         if not isinstance(m, dict):
             return None
 
+        # Guard against stale caches from older feature schemas.
+        if str(m.get("feature_version", "")) != str(getattr(cfg, "FEATURE_VERSION", "")):
+            return None
+
         if not isinstance(events, list):
             events = []
         events = [e for e in events if isinstance(e, dict)]
+
+        node = arr["node_minute"].astype(np.float32)
+        glob = arr["global_minute"].astype(np.float32)
+        if node.ndim != 3 or int(node.shape[-1]) != int(F_NODE):
+            return None
+        if glob.ndim != 2 or int(glob.shape[-1]) != int(F_GLOBAL):
+            return None
 
         team_map = _safe_int_dict(m.get("team_map", None)) or {}
         role_slots = _safe_int_dict(m.get("role_slots", None))
@@ -221,8 +274,8 @@ def load_match_cache(match_id: str) -> Optional[Dict[str, Any]]:
 
         pack: Dict[str, Any] = {
             "minute_ts": arr["minute_ts"].astype(np.int64),
-            "node_minute": arr["node_minute"].astype(np.float32),
-            "global_minute": arr["global_minute"].astype(np.float32),
+            "node_minute": node,
+            "global_minute": glob,
             "gold_team_minute": arr["gold_team_minute"].astype(np.float32),
             "events": events,
             "meta": meta_obj,
