@@ -66,6 +66,7 @@ def dump_fight_refs_csv(out_fp: Path, refs: List[Any], split: str, ref_key_fn: O
         "patch",
         "t_start",
         "t_start_ts",
+        "label_end_ts",
         "t_start_min",
         "t_start_sec",
         "t_start_ms_approx",
@@ -77,6 +78,7 @@ def dump_fight_refs_csv(out_fp: Path, refs: List[Any], split: str, ref_key_fn: O
         for r in refs:
             t_start = int(getattr(r, "t_start", 0))
             t_start_ts = int(getattr(r, "t_start_ts", -1))
+            label_end_ts = int(getattr(r, "label_end_ts", -1))
             w.writerow(
                 {
                     "split": split,
@@ -85,6 +87,7 @@ def dump_fight_refs_csv(out_fp: Path, refs: List[Any], split: str, ref_key_fn: O
                     "patch": str(getattr(r, "patch", "")),
                     "t_start": t_start,
                     "t_start_ts": t_start_ts,
+                    "label_end_ts": label_end_ts,
                     "t_start_min": float(t_start),
                     "t_start_sec": float(t_start) * 60.0,
                     "t_start_ms_approx": float(t_start) * 60000.0,
@@ -111,6 +114,7 @@ def dump_predictions_csv(
         "patch",
         "t_start",
         "t_start_ts",
+        "label_end_ts",
         "y",
         "p",
     ]
@@ -128,6 +132,7 @@ def dump_predictions_csv(
                     "patch": str(getattr(r, "patch", "")),
                     "t_start": int(getattr(r, "t_start", 0)),
                     "t_start_ts": int(getattr(r, "t_start_ts", -1)),
+                    "label_end_ts": int(getattr(r, "label_end_ts", -1)),
                     "y": int(y),
                     "p": float(p),
                 }

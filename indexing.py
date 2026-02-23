@@ -289,8 +289,21 @@ def filter_loadable_refs(
         pack = load_match_cache(r.match_id)
         if not pack:
             continue
-        ts = getattr(r, "t_start_ts", -1)
-        raw = build_ms_sequence(pack, pack["meta"]["team_map"], r.t_start, engage_ts=(ts if int(ts) >= 0 else None))
+        try:
+            ts = int(getattr(r, "t_start_ts", -1))
+        except Exception:
+            ts = -1
+        try:
+            le = int(getattr(r, "label_end_ts", -1))
+        except Exception:
+            le = -1
+        raw = build_ms_sequence(
+            pack,
+            pack["meta"]["team_map"],
+            r.t_start,
+            engage_ts=(ts if ts >= 0 else None),
+            label_end_ts=(le if le >= 0 else None),
+        )
         if not raw:
             continue
 

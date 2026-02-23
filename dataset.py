@@ -286,8 +286,19 @@ class InMemoryFightDataset(Dataset):
                 → sample dict
         """
         # 1) Build raw ms-level sequence
+        try:
+            label_end_ts = int(getattr(r, "label_end_ts", -1))
+        except Exception:
+            label_end_ts = -1
+
         if r.t_start_ts >= 0:
-            raw = build_ms_sequence(pack, tm, -1, engage_ts=r.t_start_ts)
+            raw = build_ms_sequence(
+                pack,
+                tm,
+                -1,
+                engage_ts=r.t_start_ts,
+                label_end_ts=(label_end_ts if label_end_ts >= 0 else None),
+            )
         else:
             raw = build_ms_sequence(pack, tm, r.t_start)
 

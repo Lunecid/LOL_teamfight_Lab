@@ -1083,6 +1083,7 @@ def compute_label(
         t_start: int,
         *,
         engage_ts: Optional[int] = None,
+        label_end_ts: Optional[int] = None,
         horizon_ms: Optional[int] = None,
 ) -> Optional[int]:
     if horizon_ms is None:
@@ -1091,6 +1092,13 @@ def compute_label(
     if engage_ts is not None and engage_ts >= 0:
         s_ms = int(engage_ts)
         e_ms = s_ms + int(horizon_ms)
+        if label_end_ts is not None:
+            try:
+                cand_end = int(label_end_ts)
+            except Exception:
+                cand_end = -1
+            if cand_end > s_ms:
+                e_ms = cand_end
     else:
         if t_start < 0 or t_start >= len(cache["minute_ts"]):
             return None
@@ -1363,6 +1371,7 @@ def compute_label_targets(
         t_start: int,
         *,
         engage_ts: Optional[int] = None,
+        label_end_ts: Optional[int] = None,
         horizon_ms: Optional[int] = None,
 ) -> Optional[Dict[str, float]]:
     if horizon_ms is None:
@@ -1371,6 +1380,13 @@ def compute_label_targets(
     if engage_ts is not None and engage_ts >= 0:
         s_ms = int(engage_ts)
         e_ms = s_ms + int(horizon_ms)
+        if label_end_ts is not None:
+            try:
+                cand_end = int(label_end_ts)
+            except Exception:
+                cand_end = -1
+            if cand_end > s_ms:
+                e_ms = cand_end
     else:
         if t_start < 0 or t_start >= len(cache["minute_ts"]):
             return None
@@ -1380,7 +1396,14 @@ def compute_label_targets(
     if e_ms > int(cache["minute_ts"][-1]):
         return None
 
-    y = compute_label(cache, tm, t_start, engage_ts=engage_ts, horizon_ms=horizon_ms)
+    y = compute_label(
+        cache,
+        tm,
+        t_start,
+        engage_ts=engage_ts,
+        label_end_ts=e_ms,
+        horizon_ms=horizon_ms,
+    )
     if y is None:
         return None
 
@@ -1413,6 +1436,7 @@ def build_ms_sequence(
         t_start: int,
         *,
         engage_ts: Optional[int] = None,
+        label_end_ts: Optional[int] = None,
         ctx_ms: Optional[int] = None,
         bin_ms: Optional[int] = None,
         horizon_ms: Optional[int] = None,
@@ -1433,14 +1457,24 @@ def build_ms_sequence(
     t_max = int(cache["minute_ts"][-1])
 
     label_start_ms: int
+    label_end_ms: int
     if engage_ts is not None and engage_ts >= 0:
         label_start_ms = int(engage_ts)
+        label_end_ms = label_start_ms + int(horizon_ms)
+        if label_end_ts is not None:
+            try:
+                cand_end = int(label_end_ts)
+            except Exception:
+                cand_end = -1
+            if cand_end > label_start_ms:
+                label_end_ms = cand_end
         end_ms = int(label_start_ms - prediction_gap_ms)
         start_ms = end_ms - int(ctx_ms)
     else:
         if t_start < 0 or t_start >= len(cache["minute_ts"]):
             return None
         label_start_ms = int(cache["minute_ts"][t_start])
+        label_end_ms = label_start_ms + int(horizon_ms)
         end_ms = int(label_start_ms - prediction_gap_ms)
         start_ms = end_ms - int(ctx_ms)
 
@@ -1448,7 +1482,7 @@ def build_ms_sequence(
         return None
     if start_ms < t_min:
         return None
-    if label_start_ms + horizon_ms > t_max:
+    if label_end_ms > t_max:
         return None
 
     L = int(ctx_ms // bin_ms)
@@ -1471,12 +1505,30 @@ def build_ms_sequence(
         item_seq.append(it_i)
 
     if engage_ts is not None and engage_ts >= 0:
-        y_pack = compute_label_targets(cache, tm, -1, engage_ts=label_start_ms, horizon_ms=horizon_ms)
+        y_pack = compute_label_targets(
+            cache,
+            tm,
+            -1,
+            engage_ts=label_start_ms,
+            label_end_ts=label_end_ms,
+            horizon_ms=horizon_ms,
+        )
     else:
-        y_pack = compute_label_targets(cache, tm, t_start, engage_ts=label_start_ms, horizon_ms=horizon_ms)
+        y_pack = compute_label_targets(
+            cache,
+            tm,
+            t_start,
+            engage_ts=label_start_ms,
+            label_end_ts=label_end_ms,
+            horizon_ms=horizon_ms,
+        )
 
     if y_pack is None:
         return None
+
+    y_s = int(y_pack.get("label_start_ms", label_start_ms))
+    y_e = int(y_pack.get("label_end_ms", label_end_ms))
+    y_dur = max(0, y_e - y_s)
 
     sample = {
         "node_seq": np.stack(node_seq, axis=0).astype(np.float32),
@@ -1496,10 +1548,11 @@ def build_ms_sequence(
         "obs_end_ts": int(end_ms),
         "ctx_ms": int(ctx_ms),
         "bin_ms": int(bin_ms),
-        "horizon_ms": int(horizon_ms),
+        "horizon_ms": int(y_dur),
+        "label_duration_ms": int(y_dur),
         "prediction_gap_ms": int(prediction_gap_ms),
-        "label_start_ts": int(y_pack.get("label_start_ms", label_start_ms)),
-        "label_end_ts": int(y_pack.get("label_end_ms", label_start_ms + int(horizon_ms))),
+        "label_start_ts": int(y_s),
+        "label_end_ts": int(y_e),
         "game_duration_min": float(max(1.0, (int(cache["minute_ts"][-1]) - int(cache["minute_ts"][0])) / 60000.0)),
     }
 

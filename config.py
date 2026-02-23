@@ -279,14 +279,18 @@ class CFG:
     # =========================================================
     FRAME_MS: int = 60000
     BIN_MS: int = 5000
+    # Fight detector dense XY interpolation method in fights.py:
+    # "zoh" keeps step-hold samples (no linear path assumption) while
+    # still enabling DETECT_STEP_MS dense scanning.
+    INTERP_METHOD: str = "zoh"
     INTERP_XY_METHOD: str = "linear_guard_midstep"
     INTERP_SCALARS_METHOD: str = "ffill"
 
     XY_DISCONT_DIST_RAW: float = 7000.0
     XY_DISCONT_USE_ALIVE: bool = True
-    XY_GUARD_MODE: str = "midstep"
+    XY_GUARD_MODE: str = "hold"
 
-    INTERP_XY: bool = True
+    INTERP_XY: bool = False
     INTERP_SCALARS: bool = True
 
     # =========================================================
@@ -368,14 +372,16 @@ class CFG:
     FIGHT_HORIZON_MIN: int = 1
     # Predict earlier than engage by this gap:
     # observation window ends at (engage_ts - prediction_gap_ms),
-    # while label window remains [engage_ts, engage_ts + horizon).
-    PREDICTION_GAP_MS: int = 0
+    # while label window starts at engage_ts and ends at
+    #   - horizon_end_ts (continuous merged fight), if provided
+    #   - otherwise engage_ts + horizon.
+    PREDICTION_GAP_MS: int = 10000
     MAX_MERGED_FIGHT_DURATION_MS = 120000
 
     START_OFFSET_MIN: int = 2
     FIGHT_MIN_GAP_MIN: int = 2
     FIGHT_MIN_GAP_MS: int = 120000
-    DETECT_STEP_MS: int = 5000
+    DETECT_STEP_MS: int = 10000
 
     CONTINUOUS_FIGHT_MERGE: bool = True
     CONTINUOUS_FIGHT_MAX_GAP_MS: int = 30000

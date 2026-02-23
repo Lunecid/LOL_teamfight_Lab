@@ -334,7 +334,7 @@ def _get_horizon_ms() -> int:
 # ============================================================================
 # [P0 FIX] Post-merge spacing + non-overlap enforcement
 #   - continuous_fight_merge=True 여도 fight_min_gap_ms를 강제로 적용
-#   - label window는 항상 [engage_ts, engage_ts + horizon_ms] 로 고정
+#   - label window는 [engage_ts, horizon_end_ts) 우선 (없으면 기본 horizon)
 # ============================================================================
 
 
@@ -347,8 +347,24 @@ def _count_events_in_window(ts_sorted: np.ndarray, t0: int, t1_inclusive: int) -
     return max(0, r - l)
 
 
-def _label_end_ts(engage_ts: int, horizon_ms: int) -> int:
-    return int(engage_ts) + int(horizon_ms)
+def _label_end_ts(fight: dict, horizon_ms: int) -> int:
+    """Fight label-end ts (exclusive).
+
+    Priority:
+      1) fight["horizon_end_ts"] if valid (> engage_ts)
+      2) engage_ts + horizon_ms fallback
+    """
+    t0 = int(fight.get("engage_ts", -1))
+    if t0 < 0:
+        return int(horizon_ms)
+    fallback = int(t0 + int(horizon_ms))
+    try:
+        hend = int(fight.get("horizon_end_ts", fallback))
+    except Exception:
+        hend = fallback
+    if hend <= t0:
+        return fallback
+    return hend
 
 
 def _fight_priority_score(
@@ -421,7 +437,7 @@ def enforce_postmerge_spacing_and_nonoverlap(
     """
     [P0 FIX] continuous merge 결과에 대해 최종적으로:
       1) engage_ts 간 최소 간격 fight_min_gap_ms 강제
-      2) 라벨 윈도우 [t, t+H] 가 겹치지 않도록 강제
+      2) 라벨 윈도우 [engage_ts, label_end_ts)가 겹치지 않도록 강제
 
     전략:
       - 시간순으로 스캔하며, prev와 overlap 또는 too_close면 더 "좋은" fight 1개만 남김.
@@ -456,7 +472,7 @@ def enforce_postmerge_spacing_and_nonoverlap(
             kept[-1] = f
             continue
 
-        prev_label_end = _label_end_ts(p0, horizon_ms)
+        prev_label_end = _label_end_ts(prev, horizon_ms)
         gap_from_prev_start = t0 - p0
 
         overlap = (t0 < prev_label_end)
@@ -943,7 +959,7 @@ def _merge_group(group: List[dict], horizon_ms: int) -> dict:
     primary["sub_segments"] = sub_segments
     primary["n_segments"] = int(len(group_sorted))
 
-    # horizon_end_ts: 멤버 중 최대 (NOTE: 라벨 윈도우는 별도로 고정 H 사용)
+    # horizon_end_ts: 멤버 중 최대 (연속교전 라벨의 종료시점 후보)
     max_end = primary.get("horizon_end_ts", primary_ts + horizon_ms)
     for f in group_sorted:
         max_end = max(int(max_end), int(f.get("horizon_end_ts", int(f["engage_ts"]) + horizon_ms)))
@@ -1092,11 +1108,14 @@ def classify_fight_type(fight: dict, anchors: Dict[str, Any], is_norm: bool, sca
 
 
 def compute_fight_outcome(fight: dict, kill_events: List[dict], tm: Dict[int, int]) -> FightOutcome:
-    """[P0 FIX] label horizon은 항상 고정 H 사용 (merge로 horizon_end_ts가 늘어나도 label은 늘어나지 않음)"""
-    engage_ts = int(fight["engage_ts"])
-    horizon_end = int(engage_ts + _get_horizon_ms())
+    """Compute outcome on the fight label window.
 
-    # Keep horizon semantics consistent with pipeline labels: [engage_ts, engage_ts + H)
+    For continuous merged fights, uses [engage_ts, horizon_end_ts) when available.
+    """
+    engage_ts = int(fight["engage_ts"])
+    horizon_end = _label_end_ts(fight, _get_horizon_ms())
+
+    # Keep pipeline semantics: half-open interval [start, end)
     kills_in_fight = [k for k in kill_events if engage_ts <= int(k["timestamp"]) < horizon_end]
 
     blue_kills = red_kills = blue_deaths = red_deaths = blue_assists = red_assists = 0
@@ -1146,9 +1165,9 @@ def compute_player_engagement(
     b: np.ndarray,
     r: np.ndarray,
 ) -> List[PlayerEngagement]:
-    """[P0 FIX] player_engagement도 label-horizon 기준으로 통일"""
+    """Compute engagement on the same label window used by training."""
     engage_ts = int(fight["engage_ts"])
-    horizon_end = int(engage_ts + _get_horizon_ms())
+    horizon_end = _label_end_ts(fight, _get_horizon_ms())
 
     Td = len(dense_ts)
     start_idx = int(np.clip(np.searchsorted(dense_ts, engage_ts, side="left"), 0, Td - 1))
@@ -1232,9 +1251,9 @@ def generate_fight_visualization(
     R: float,
     sample_interval: int = 5,
 ) -> FightVisualization:
-    """[P0 FIX] visualization에서도 기본은 label-horizon으로 통일"""
+    """Build visualization on the same label window used by training."""
     engage_ts = int(fight["engage_ts"])
-    horizon_end = int(engage_ts + _get_horizon_ms())
+    horizon_end = _label_end_ts(fight, _get_horizon_ms())
 
     Td = len(dense_ts)
     start_idx = int(np.clip(np.searchsorted(dense_ts, engage_ts, side="left"), 0, Td - 1))
@@ -1352,6 +1371,7 @@ def detect_fights_engage_v2(cache: Dict[str, Any], tm: Dict[int, int], config: O
         out: Dict[str, Any] = {}
         try:
             out["engage_ts"] = int(f.get("engage_ts", -1))
+            out["label_end_ts"] = int(_label_end_ts(f, horizon_ms))
             out["t_engage"] = int(f.get("t_engage", -1))
             out["fight_type"] = str(f.get("fight_type", "unknown"))
             out["importance_score"] = float(f.get("importance_score", 0.0) or 0.0)

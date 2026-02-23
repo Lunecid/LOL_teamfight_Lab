@@ -194,7 +194,13 @@ def infer_tabular_plan(
         # [P0-1 FIX] t_start is a required positional arg (before *).
         # When engage_ts is provided, the engage_ts path is taken and
         # t_start is unused — pass sentinel -1.
-        raw = build_ms_sequence(pack, pack["meta"]["team_map"], -1, engage_ts=_ref_engage_ts(r))
+        raw = build_ms_sequence(
+            pack,
+            pack["meta"]["team_map"],
+            -1,
+            engage_ts=_ref_engage_ts(r),
+            label_end_ts=_ref_label_end_ts(r),
+        )
         if not raw:
             continue
 
@@ -214,6 +220,15 @@ def infer_tabular_plan(
 
 def _ref_engage_ts(r):
     ts = getattr(r, "t_start_ts", -1)
+    try:
+        ts = int(ts)
+    except Exception:
+        ts = -1
+    return ts if ts >= 0 else None
+
+
+def _ref_label_end_ts(r):
+    ts = getattr(r, "label_end_ts", -1)
     try:
         ts = int(ts)
     except Exception:
@@ -244,7 +259,13 @@ def build_tabular_Xy(
             continue
 
         # [P0-1 FIX] t_start is required positional arg; sentinel -1 when engage_ts is provided.
-        raw = build_ms_sequence(pack, pack["meta"]["team_map"], -1, engage_ts=_ref_engage_ts(r))
+        raw = build_ms_sequence(
+            pack,
+            pack["meta"]["team_map"],
+            -1,
+            engage_ts=_ref_engage_ts(r),
+            label_end_ts=_ref_label_end_ts(r),
+        )
         if not raw:
             continue
 
