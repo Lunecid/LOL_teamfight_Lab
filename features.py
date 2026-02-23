@@ -4,7 +4,7 @@ from __future__ import annotations
 import random
 import numpy as np
 from typing import Dict, List, Any, Tuple, Optional
-from improvements import compute_momentum_stats
+from improvements import compute_momentum_stats, compute_game_phase_seq, GAME_PHASE_FEATURE_NAMES
 # [P4-SHADOW FIX] NODE_IDX removed from this import — was immediately
 # shadowed at module level by FEATURE_CONTRACT.node_idx (Issue #1).
 # [P2-STRUCT-1] Now import NODE_IDX directly from config (SSoT).
@@ -16,7 +16,7 @@ from config import (
     ITEM_HASH_NAMES, FEATURE_CONTRACT, F_NODE,
     MAP_MAX, CS_DENOM, DS_DENOM,
     DRAGON_PIT_XY, BARON_PIT_XY,
-    NODE_IDX, EVENT_IDX,  # [P2-STRUCT-1] SSoT: single import path
+    NODE_IDX, EVENT_IDX, GLOBAL_IDX,  # [P2-STRUCT-1] SSoT: single import path
 )
 
 from common import safe_float, log1p_norm
@@ -684,14 +684,21 @@ def seq_to_tabular(x_seq: np.ndarray) -> np.ndarray:
 # ---------------------------------------------------------------------
 def _macro_base_names() -> List[str]:
     items = list(ITEM_HASH_NAMES) if bool(getattr(cfg, "USE_ITEMS", True)) else []
-    return list(GLOBAL_FEATURE_NAMES) + list(EVENT_FEATURE_NAMES) + items
+    return _global_base_names() + list(EVENT_FEATURE_NAMES) + items
+
+
+def _global_base_names() -> List[str]:
+    out = list(GLOBAL_FEATURE_NAMES)
+    if bool(getattr(cfg, "USE_GAME_PHASE", False)):
+        out += list(GAME_PHASE_FEATURE_NAMES)
+    return out
 
 
 def get_xseq_feature_names(feature_set: str) -> List[str]:
     spatial = get_spatial_feature_names()
 
     if feature_set == "global_only":
-        return list(GLOBAL_FEATURE_NAMES) + spatial
+        return _global_base_names() + spatial
 
     if feature_set == "global_events":
         return _macro_base_names() + spatial
@@ -721,7 +728,7 @@ def get_extra_feature_names(feature_set: str) -> List[str]:
     spatial = get_spatial_feature_names()
 
     if feature_set == "global_only":
-        return list(GLOBAL_FEATURE_NAMES) + spatial
+        return _global_base_names() + spatial
 
     if feature_set in ("global_events", "full", "tri_modal"):
         return _macro_base_names() + spatial
@@ -841,49 +848,72 @@ def build_sequence_features(
         macro_base = np.concatenate([glob_seq, ev_seq, item_seq], axis=1).astype(np.float32)
     else:
         macro_base = np.concatenate([glob_seq, ev_seq], axis=1).astype(np.float32)
+    global_base = glob_seq.astype(np.float32)
+
+    if bool(getattr(cfg, "USE_GAME_PHASE", False)):
+        t_idx = GLOBAL_IDX.get("time_norm", None)
+        if t_idx is not None and int(t_idx) < glob_seq.shape[1]:
+            time_norm_seq = np.clip(glob_seq[:, int(t_idx)], 0.0, 1.0).astype(np.float32)
+        else:
+            time_norm_seq = np.linspace(0.0, 1.0, glob_seq.shape[0], dtype=np.float32)
+        game_duration_min = float(sample.get("game_duration_min", 35.0))
+        game_duration_min = max(1.0, game_duration_min)
+        phase_seq = compute_game_phase_seq(
+            time_norm_seq=time_norm_seq,
+            total_game_minutes=game_duration_min,
+            tau=float(getattr(cfg, "GAME_PHASE_TAU", 3.0)),
+        ).astype(np.float32)
+        macro_base = np.concatenate([macro_base, phase_seq], axis=1).astype(np.float32)
+        global_base = np.concatenate([global_base, phase_seq], axis=1).astype(np.float32)
 
     spatial_seq = compute_spatial_seq_from_node(node_role, sample)  # (L, F_SPATIAL)
 
     macro_seq = np.concatenate([macro_base, spatial_seq], axis=1).astype(np.float32)
-    global_plus_spatial = np.concatenate([glob_seq.astype(np.float32), spatial_seq], axis=1).astype(np.float32)
+    global_plus_spatial = np.concatenate([global_base, spatial_seq], axis=1).astype(np.float32)
 
     y = int(sample["y"])
 
+    def _attach_aux_targets(out: Dict[str, Any]) -> Dict[str, Any]:
+        out["y_kill_diff"] = float(sample.get("y_kill_diff", 0.0))
+        out["y_gold_diff"] = float(sample.get("y_gold_diff", 0.0))
+        out["y_obj_diff"] = float(sample.get("y_obj_diff", 0.0))
+        return out
+
     if feature_set == "global_only":
-        return dict(
+        return _attach_aux_targets(dict(
             x_seq=global_plus_spatial,
             extra_seq=global_plus_spatial,
             node_seq=node_role.astype(np.float32),
             y=y,
-        )
+        ))
 
     if feature_set == "global_events":
-        return dict(
+        return _attach_aux_targets(dict(
             x_seq=macro_seq,
             extra_seq=macro_seq,
             node_seq=node_role.astype(np.float32),
             y=y,
-        )
+        ))
 
     if feature_set == "node_personal":
         ev_min = minimal_event_seq(ev_seq)
         ev_min_plus = np.concatenate([ev_min, spatial_seq], axis=1).astype(np.float32)
         x_seq = np.concatenate([node_flat, ev_min_plus], axis=1).astype(np.float32)
-        return dict(
+        return _attach_aux_targets(dict(
             x_seq=x_seq,
             extra_seq=ev_min_plus,
             node_seq=node_role.astype(np.float32),
             y=y,
-        )
+        ))
 
     if feature_set == "full":
         x_seq = np.concatenate([node_flat, macro_seq], axis=1).astype(np.float32)
-        return dict(
+        return _attach_aux_targets(dict(
             x_seq=x_seq,
             extra_seq=macro_seq,
             node_seq=node_role.astype(np.float32),
             y=y,
-        )
+        ))
 
     if feature_set == "tri_modal":
         tab_x = seq_to_tabular(macro_seq)
@@ -891,12 +921,12 @@ def build_sequence_features(
         if bool(getattr(cfg, "USE_MOMENTUM_FEATURES", False)):
             mom = compute_momentum_stats(macro_seq)
             tab_x = np.concatenate([tab_x, mom], axis=0)
-        return dict(
+        return _attach_aux_targets(dict(
             node_seq=node_role.astype(np.float32),
             macro_seq=macro_seq.astype(np.float32),
             tab_x=tab_x.astype(np.float32),
             extra_seq=macro_seq.astype(np.float32),
             y=y,
-        )
+        ))
 
     raise ValueError(f"Unknown feature_set={feature_set}")

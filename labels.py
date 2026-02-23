@@ -41,11 +41,17 @@ def get_label_map(
             ts = int(ts)
         except Exception:
             ts = -1
+        le = getattr(r, "label_end_ts", -1)
+        try:
+            le = int(le)
+        except Exception:
+            le = -1
 
         # except 블록 바깥으로 이동
         raw = build_ms_sequence(
             pack, pack["meta"]["team_map"], r.t_start,
-            engage_ts=(ts if ts >= 0 else None)
+            engage_ts=(ts if ts >= 0 else None),
+            label_end_ts=(le if le >= 0 else None),
         )
         if not raw:
             continue

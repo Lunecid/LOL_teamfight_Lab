@@ -28,16 +28,22 @@ class FightRef:
         Minute index into ``cache["minute_ts"]`` (legacy, kept for compat).
     t_start_ts : int
         Engage timestamp in milliseconds (primary anchor; ``-1`` = unset).
+    label_end_ts : int
+        Label window end timestamp in milliseconds (exclusive).
+        ``-1`` means "use default horizon".
     """
     match_id: str
     patch: str
     t_start: int              # minute index (legacy)
     t_start_ts: int = -1      # engage timestamp in ms (primary anchor)
+    label_end_ts: int = -1    # label window end ts in ms (exclusive)
 
     def __post_init__(self) -> None:
         # t_start_ts가 설정되지 않았으면 -1 유지 (legacy 모드)
         if self.t_start_ts < 0 and self.t_start >= 0:
             pass  # 호환성: 기존 코드에서 t_start만 쓸 때는 -1로 둠
+        if self.t_start_ts >= 0 and self.label_end_ts >= 0 and self.label_end_ts <= self.t_start_ts:
+            self.label_end_ts = -1
 
 
 @dataclass

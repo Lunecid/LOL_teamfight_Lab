@@ -178,6 +178,9 @@ class FightDetectorConfig:
     kill_anchor_cooldown_sec: int = 30
     # Fight validity check: require at least one kill in [engage_ts, engage_ts + horizon).
     verify_kill_in_horizon: bool = True
+    fight_validation_rule: str = "kill_or_signal"
+    min_damage_norm_in_horizon: float = 0.02
+    min_summoner_spells_in_horizon: int = 1
     use_backtrack: bool = True
     # [P3-BT] 60s â†’ 30s: reduces noise, Phase 1 already covers long-range signals
     backtrack_max_ms: int = 30000
@@ -224,6 +227,11 @@ class FightDetectorConfig:
             errors.append(
                 f"backtrack_min_ms ({self.backtrack_min_ms}) must be <= backtrack_max_ms ({self.backtrack_max_ms})"
             )
+        valid_rules = {"kill_only", "signal_only", "kill_or_signal", "kill_and_signal"}
+        if str(self.fight_validation_rule).lower() not in valid_rules:
+            errors.append(
+                f"fight_validation_rule must be one of {sorted(valid_rules)}, got {self.fight_validation_rule!r}"
+            )
         # Project rule: fight start-point must not be kill-anchored.
         # Keep other config knobs intact by forcing this one off instead of failing whole config load.
         if self.use_kill_anchor:
@@ -265,6 +273,9 @@ class FightDetectorConfig:
             kill_anchor_pre_sec=int(getattr(cfg_obj, "KILL_ANCHOR_PRE_SEC", 15)),
             kill_anchor_cooldown_sec=int(getattr(cfg_obj, "KILL_ANCHOR_COOLDOWN_SEC", 30)),
             verify_kill_in_horizon=bool(getattr(cfg_obj, "VERIFY_KILL_IN_HORIZON", True)),
+            fight_validation_rule=str(getattr(cfg_obj, "FIGHT_VALIDATION_RULE", "kill_or_signal")).lower(),
+            min_damage_norm_in_horizon=float(getattr(cfg_obj, "MIN_DAMAGE_NORM_IN_HORIZON", 0.02)),
+            min_summoner_spells_in_horizon=int(getattr(cfg_obj, "MIN_SUMMONER_SPELLS_IN_HORIZON", 1)),
             use_backtrack=bool(getattr(cfg_obj, "USE_BACKTRACK", True)),
             backtrack_max_ms=int(getattr(cfg_obj, "BACKTRACK_MAX_MS", 30000)),
             backtrack_min_ms=int(getattr(cfg_obj, "BACKTRACK_MIN_MS", 10000)),
@@ -323,7 +334,7 @@ def _get_horizon_ms() -> int:
 # ============================================================================
 # [P0 FIX] Post-merge spacing + non-overlap enforcement
 #   - continuous_fight_merge=True 여도 fight_min_gap_ms를 강제로 적용
-#   - label window는 항상 [engage_ts, engage_ts + horizon_ms] 로 고정
+#   - label window는 [engage_ts, horizon_end_ts) 우선 (없으면 기본 horizon)
 # ============================================================================
 
 
@@ -336,8 +347,24 @@ def _count_events_in_window(ts_sorted: np.ndarray, t0: int, t1_inclusive: int) -
     return max(0, r - l)
 
 
-def _label_end_ts(engage_ts: int, horizon_ms: int) -> int:
-    return int(engage_ts) + int(horizon_ms)
+def _label_end_ts(fight: dict, horizon_ms: int) -> int:
+    """Fight label-end ts (exclusive).
+
+    Priority:
+      1) fight["horizon_end_ts"] if valid (> engage_ts)
+      2) engage_ts + horizon_ms fallback
+    """
+    t0 = int(fight.get("engage_ts", -1))
+    if t0 < 0:
+        return int(horizon_ms)
+    fallback = int(t0 + int(horizon_ms))
+    try:
+        hend = int(fight.get("horizon_end_ts", fallback))
+    except Exception:
+        hend = fallback
+    if hend <= t0:
+        return fallback
+    return hend
 
 
 def _fight_priority_score(
@@ -405,12 +432,13 @@ def enforce_postmerge_spacing_and_nonoverlap(
     horizon_ms: int,
     fight_min_gap_ms: int,
     kill_ts: np.ndarray,
+    location_radius: float = 0.0,
     diag: Optional[dict] = None,
 ) -> List[dict]:
     """
     [P0 FIX] continuous merge 결과에 대해 최종적으로:
       1) engage_ts 간 최소 간격 fight_min_gap_ms 강제
-      2) 라벨 윈도우 [t, t+H] 가 겹치지 않도록 강제
+      2) 라벨 윈도우 [engage_ts, label_end_ts)가 겹치지 않도록 강제
 
     전략:
       - 시간순으로 스캔하며, prev와 overlap 또는 too_close면 더 "좋은" fight 1개만 남김.
@@ -445,13 +473,27 @@ def enforce_postmerge_spacing_and_nonoverlap(
             kept[-1] = f
             continue
 
-        prev_label_end = _label_end_ts(p0, horizon_ms)
+        prev_label_end = _label_end_ts(prev, horizon_ms)
         gap_from_prev_start = t0 - p0
 
         overlap = (t0 < prev_label_end)
         too_close = (gap_from_prev_start < int(fight_min_gap_ms))
 
         if overlap or too_close:
+            # Keep simultaneous/nearby starts if they are clearly different locations.
+            if float(location_radius) > 0:
+                try:
+                    pcx = float(prev.get("centroid_x", float("nan")))
+                    pcy = float(prev.get("centroid_y", float("nan")))
+                    ccx = float(f.get("centroid_x", float("nan")))
+                    ccy = float(f.get("centroid_y", float("nan")))
+                    if np.isfinite(pcx) and np.isfinite(pcy) and np.isfinite(ccx) and np.isfinite(ccy):
+                        if _distance_2d((pcx, pcy), (ccx, ccy)) > float(location_radius):
+                            kept.append(f)
+                            continue
+                except Exception:
+                    pass
+
             conflicts += 1
             sp = _fight_priority_score(prev, kill_ts=kill_ts, horizon_ms=horizon_ms)
             sc = _fight_priority_score(f, kill_ts=kill_ts, horizon_ms=horizon_ms)
@@ -623,6 +665,51 @@ def _extract_kill_events(events: List[dict]) -> List[dict]:
                     pass
     kills.sort(key=lambda x: x["timestamp"])
     return kills
+
+
+def _extract_summoner_spell_ts(events: List[dict]) -> np.ndarray:
+    ts: List[int] = []
+    for ev in events or []:
+        if not isinstance(ev, dict):
+            continue
+        et = str(ev.get("type", ev.get("eventType", ""))).upper()
+        if et not in ("SUMMONER_SPELL_USED", "SUMMONER_SPELL_CAST"):
+            continue
+        try:
+            t = int(ev.get("timestamp", ev.get("ts", -1)) or -1)
+        except Exception:
+            t = -1
+        if t >= 0:
+            ts.append(int(t))
+    if not ts:
+        return np.empty((0,), dtype=np.int64)
+    ts.sort()
+    return np.asarray(ts, dtype=np.int64)
+
+
+def _extract_objective_building_ts(events: List[dict]) -> Tuple[np.ndarray, np.ndarray]:
+    obj_ts: List[int] = []
+    bld_ts: List[int] = []
+    for ev in events or []:
+        if not isinstance(ev, dict):
+            continue
+        et = str(ev.get("type", ev.get("eventType", ""))).upper()
+        try:
+            t = int(ev.get("timestamp", ev.get("ts", -1)) or -1)
+        except Exception:
+            t = -1
+        if t < 0:
+            continue
+        if et == "ELITE_MONSTER_KILL":
+            obj_ts.append(int(t))
+        elif et in ("BUILDING_KILL", "TURRET_PLATE_DESTROYED"):
+            bld_ts.append(int(t))
+    obj_ts.sort()
+    bld_ts.sort()
+    return (
+        np.asarray(obj_ts, dtype=np.int64) if obj_ts else np.empty((0,), dtype=np.int64),
+        np.asarray(bld_ts, dtype=np.int64) if bld_ts else np.empty((0,), dtype=np.int64),
+    )
 
 
 def _first_kill_in_window(kill_ts: np.ndarray, t0: int, t1_exclusive: int) -> Optional[int]:
@@ -860,6 +947,30 @@ def _largest_bipartite_cc(dist_5x5: np.ndarray, Rthr: float) -> Tuple[int, int, 
     return len(best_comp), best_b, best_r, best_comp
 
 
+def _bipartite_components(dist_5x5: np.ndarray, Rthr: float) -> List[Tuple[List[int], int, int]]:
+    """Return connected components (node ids in [0..9]) with at least one per team."""
+    uf = UnionFind(10)
+    for i in range(5):
+        for j in range(5):
+            if dist_5x5[i, j] <= Rthr:
+                uf.union(i, 5 + j)
+
+    comp_members: Dict[int, List[int]] = {}
+    for i in range(10):
+        root = uf.find(i)
+        comp_members.setdefault(root, []).append(i)
+
+    out: List[Tuple[List[int], int, int]] = []
+    for nodes in comp_members.values():
+        b_cnt = sum(1 for x in nodes if x < 5)
+        r_cnt = sum(1 for x in nodes if x >= 5)
+        if b_cnt <= 0 or r_cnt <= 0:
+            continue
+        out.append((nodes, int(b_cnt), int(r_cnt)))
+    out.sort(key=lambda x: (-len(x[0]), -x[1], -x[2]))
+    return out
+
+
 # ============================================================================
 # ST-DBSCAN(minPts=1) 병합: 후보 fight들을 시공간 ε-연결 컴포넌트로 병합
 # ============================================================================
@@ -912,7 +1023,7 @@ def _merge_group(group: List[dict], horizon_ms: int) -> dict:
     primary["sub_segments"] = sub_segments
     primary["n_segments"] = int(len(group_sorted))
 
-    # horizon_end_ts: 멤버 중 최대 (NOTE: 라벨 윈도우는 별도로 고정 H 사용)
+    # horizon_end_ts: 멤버 중 최대 (연속교전 라벨의 종료시점 후보)
     max_end = primary.get("horizon_end_ts", primary_ts + horizon_ms)
     for f in group_sorted:
         max_end = max(int(max_end), int(f.get("horizon_end_ts", int(f["engage_ts"]) + horizon_ms)))
@@ -1010,6 +1121,55 @@ def merge_fights_st_dbscan_unionfind(
     return merged
 
 
+def merge_fights_temporal_unionfind(
+    candidates: List[dict],
+    *,
+    max_gap_ms: int,
+    horizon_ms: int,
+    max_duration_ms: int,
+    diag: Optional[dict] = None,
+) -> List[dict]:
+    """Time-only connected-components merge for event-driven detection."""
+    if len(candidates) <= 1:
+        return candidates
+
+    if max_gap_ms < 0:
+        max_gap_ms = 0
+
+    cand = sorted(candidates, key=lambda x: int(x.get("engage_ts", -1)))
+    groups: List[List[dict]] = []
+    cur: List[dict] = []
+    prev_t = -10**18
+
+    for c in cand:
+        t = int(c.get("engage_ts", -1))
+        if t < 0:
+            continue
+        if (not cur) or (t - prev_t <= int(max_gap_ms)):
+            cur.append(c)
+        else:
+            groups.append(cur)
+            cur = [c]
+        prev_t = t
+    if cur:
+        groups.append(cur)
+
+    merged: List[dict] = []
+    merged_segments = 0
+    for g in groups:
+        g.sort(key=lambda x: int(x.get("engage_ts", -1)))
+        for sub in _split_by_max_duration(g, horizon_ms, max_duration_ms):
+            merged.append(_merge_group(sub, horizon_ms))
+            if len(sub) > 1:
+                merged_segments += (len(sub) - 1)
+
+    merged.sort(key=lambda x: int(x.get("engage_ts", -1)))
+    if diag is not None:
+        diag["continuous_merged"] = int(merged_segments)
+        diag["continuous_clusters"] = int(sum(1 for g in groups if len(g) > 1))
+    return merged
+
+
 # ============================================================================
 # 교전 유형/결과/참여도/중요도 계산
 # ============================================================================
@@ -1061,11 +1221,14 @@ def classify_fight_type(fight: dict, anchors: Dict[str, Any], is_norm: bool, sca
 
 
 def compute_fight_outcome(fight: dict, kill_events: List[dict], tm: Dict[int, int]) -> FightOutcome:
-    """[P0 FIX] label horizon은 항상 고정 H 사용 (merge로 horizon_end_ts가 늘어나도 label은 늘어나지 않음)"""
-    engage_ts = int(fight["engage_ts"])
-    horizon_end = int(engage_ts + _get_horizon_ms())
+    """Compute outcome on the fight label window.
 
-    # Keep horizon semantics consistent with pipeline labels: [engage_ts, engage_ts + H)
+    For continuous merged fights, uses [engage_ts, horizon_end_ts) when available.
+    """
+    engage_ts = int(fight["engage_ts"])
+    horizon_end = _label_end_ts(fight, _get_horizon_ms())
+
+    # Keep pipeline semantics: half-open interval [start, end)
     kills_in_fight = [k for k in kill_events if engage_ts <= int(k["timestamp"]) < horizon_end]
 
     blue_kills = red_kills = blue_deaths = red_deaths = blue_assists = red_assists = 0
@@ -1115,9 +1278,9 @@ def compute_player_engagement(
     b: np.ndarray,
     r: np.ndarray,
 ) -> List[PlayerEngagement]:
-    """[P0 FIX] player_engagement도 label-horizon 기준으로 통일"""
+    """Compute engagement on the same label window used by training."""
     engage_ts = int(fight["engage_ts"])
-    horizon_end = int(engage_ts + _get_horizon_ms())
+    horizon_end = _label_end_ts(fight, _get_horizon_ms())
 
     Td = len(dense_ts)
     start_idx = int(np.clip(np.searchsorted(dense_ts, engage_ts, side="left"), 0, Td - 1))
@@ -1201,9 +1364,9 @@ def generate_fight_visualization(
     R: float,
     sample_interval: int = 5,
 ) -> FightVisualization:
-    """[P0 FIX] visualization에서도 기본은 label-horizon으로 통일"""
+    """Build visualization on the same label window used by training."""
     engage_ts = int(fight["engage_ts"])
-    horizon_end = int(engage_ts + _get_horizon_ms())
+    horizon_end = _label_end_ts(fight, _get_horizon_ms())
 
     Td = len(dense_ts)
     start_idx = int(np.clip(np.searchsorted(dense_ts, engage_ts, side="left"), 0, Td - 1))
@@ -1272,6 +1435,7 @@ def detect_fights_engage_v2(cache: Dict[str, Any], tm: Dict[int, int], config: O
         "rejected_horizon": 0,
         "rejected_startctx": 0,
         "rejected_nokill": 0,
+        "rejected_nosignal": 0,
         "rejected_alive": 0,
         "rejected_engaged": 0,
         "rejected_lcc": 0,
@@ -1279,6 +1443,7 @@ def detect_fights_engage_v2(cache: Dict[str, Any], tm: Dict[int, int], config: O
         "rejected_max_duration": 0,
         "rejected_negative_gap": 0,
         "accepted_by_anchor": 0,
+        "accepted_by_signal": 0,
         "backtracked": 0,
         "backtrack_unreliable": 0,
         "continuous_merged": 0,
@@ -1319,6 +1484,7 @@ def detect_fights_engage_v2(cache: Dict[str, Any], tm: Dict[int, int], config: O
         out: Dict[str, Any] = {}
         try:
             out["engage_ts"] = int(f.get("engage_ts", -1))
+            out["label_end_ts"] = int(_label_end_ts(f, horizon_ms))
             out["t_engage"] = int(f.get("t_engage", -1))
             out["fight_type"] = str(f.get("fight_type", "unknown"))
             out["importance_score"] = float(f.get("importance_score", 0.0) or 0.0)
@@ -1439,6 +1605,8 @@ def detect_fights_engage_v2(cache: Dict[str, Any], tm: Dict[int, int], config: O
         if kill_events
         else np.empty((0,), dtype=np.int64)
     )
+    summ_spell_ts = _extract_summoner_spell_ts(events)
+    dmg_idx = NODE_IDX.get("ds_totalDamageDoneToChampions", None)
 
     # 앵커 생성
     anchors = build_anchors_from_events(events)
@@ -1448,6 +1616,27 @@ def detect_fights_engage_v2(cache: Dict[str, Any], tm: Dict[int, int], config: O
     t_max_ms = int(minute_ts[-1])
     ctx_ms = int(config.fight_context_min) * 60000
     alive_idx = NODE_IDX.get("alive", None)
+    diag["validation_rule"] = str(config.fight_validation_rule)
+    diag["min_damage_norm_in_horizon"] = float(config.min_damage_norm_in_horizon)
+    diag["min_summoner_spells_in_horizon"] = int(config.min_summoner_spells_in_horizon)
+
+    def _damage_norm_signal(engage_ts_val: int, horizon_end_ts: int) -> float:
+        if dmg_idx is None:
+            return 0.0
+        try:
+            i0 = _map_ts_to_minute_idx(minute_ts, int(engage_ts_val))
+            i1 = _map_ts_to_minute_idx(minute_ts, int(horizon_end_ts))
+            if i1 <= i0:
+                return 0.0
+            nm = cache.get("node_minute", None)
+            if not isinstance(nm, np.ndarray) or nm.ndim != 3:
+                return 0.0
+            d0 = nm[i0, :, int(dmg_idx)].astype(np.float32)
+            d1 = nm[i1, :, int(dmg_idx)].astype(np.float32)
+            dd = np.maximum(d1 - d0, 0.0)
+            return float(dd.sum())
+        except Exception:
+            return 0.0
 
     def _passes_cluster_guards(engage_ts_val: int) -> bool:
         if (
@@ -1516,6 +1705,28 @@ def detect_fights_engage_v2(cache: Dict[str, Any], tm: Dict[int, int], config: O
         backtracked: bool = False,
         backtrack_reliable: bool = True,
     ):
+        # Optional engage backtracking:
+        # keep engage-driven detection, but if a kill exists in the candidate horizon,
+        # allow moving start point earlier based on proximity continuity.
+        if bool(config.use_backtrack) and not backtracked:
+            fk_for_backtrack = _first_kill_in_window(kill_ts, engage_ts_val, engage_ts_val + horizon_ms)
+            if fk_for_backtrack is not None:
+                bt_ts, bt_ok = backtrack_engage_ts(
+                    dists=dists,
+                    dense_ts=dense_ts,
+                    prox_pairs=prox_pairs,
+                    kill_ts=int(fk_for_backtrack),
+                    R=float(R),
+                    min_pairs=int(config.backtrack_min_pairs),
+                    max_lookback_ms=int(config.backtrack_max_ms),
+                    min_lookback_ms=int(config.backtrack_min_ms),
+                )
+                bt_ts = int(bt_ts)
+                if bt_ts < int(engage_ts_val):
+                    engage_ts_val = bt_ts
+                    backtracked = True
+                    backtrack_reliable = bool(bt_ok)
+
         # context/horizon guard
         if engage_ts_val - ctx_ms < t_min_ms:
             diag["rejected_startctx"] += 1
@@ -1527,9 +1738,34 @@ def detect_fights_engage_v2(cache: Dict[str, Any], tm: Dict[int, int], config: O
             diag["rejected_alive"] += 1
             return
 
-        fk = _first_kill_in_window(kill_ts, engage_ts_val, engage_ts_val + horizon_ms)
-        if bool(config.verify_kill_in_horizon) and fk is None:
-            diag["rejected_nokill"] += 1
+        horizon_end_ts = int(engage_ts_val + horizon_ms)
+        fk = _first_kill_in_window(kill_ts, engage_ts_val, horizon_end_ts)
+        kill_ok = bool(fk is not None)
+        if (not bool(config.verify_kill_in_horizon)) and str(config.fight_validation_rule).lower() == "kill_only":
+            kill_ok = True
+
+        damage_norm = _damage_norm_signal(int(engage_ts_val), int(horizon_end_ts))
+        spell_cnt = int(_count_events_in_window(summ_spell_ts, int(engage_ts_val), int(horizon_end_ts) - 1))
+        signal_ok = bool(
+            (float(damage_norm) >= float(config.min_damage_norm_in_horizon))
+            or (int(spell_cnt) >= int(config.min_summoner_spells_in_horizon))
+        )
+
+        rule = str(config.fight_validation_rule).lower()
+        if rule == "kill_only":
+            valid = kill_ok
+        elif rule == "signal_only":
+            valid = signal_ok
+        elif rule == "kill_and_signal":
+            valid = bool(kill_ok and signal_ok)
+        else:  # default: kill_or_signal
+            valid = bool(kill_ok or signal_ok)
+
+        if not valid:
+            if not kill_ok:
+                diag["rejected_nokill"] += 1
+            if not signal_ok:
+                diag["rejected_nosignal"] += 1
             return
 
         if not _passes_cluster_guards(engage_ts_val):
@@ -1555,12 +1791,17 @@ def detect_fights_engage_v2(cache: Dict[str, Any], tm: Dict[int, int], config: O
                 "det_min_dist_mean": float(min_dist_mean[d_idx]) if d_idx < len(min_dist_mean) else 0.0,
                 "det_anchor": int(anchor),
                 "det_backtracked": int(backtracked),
+                "det_damage_norm": float(damage_norm),
+                "det_summoner_spells": int(spell_cnt),
+                "det_signal_ok": int(signal_ok),
             }
         )
 
         diag["accepted"] += 1
         if anchor:
             diag["accepted_by_anchor"] += 1
+        if signal_ok and not kill_ok:
+            diag["accepted_by_signal"] += 1
         if backtracked:
             diag["backtracked"] += 1
             if not backtrack_reliable:
@@ -1620,6 +1861,7 @@ def detect_fights_engage_v2(cache: Dict[str, Any], tm: Dict[int, int], config: O
         horizon_ms=int(horizon_ms),
         fight_min_gap_ms=int(config.fight_min_gap_ms),
         kill_ts=kill_ts,
+        location_radius=float(max(0.0, cluster_max_diam)),
         diag=diag,
     )
 
@@ -1645,17 +1887,479 @@ def detect_fights_engage_v2(cache: Dict[str, Any], tm: Dict[int, int], config: O
     return fights
 
 
+def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Optional[FightDetectorConfig] = None) -> List[dict]:
+    """Event-driven teamfight detector.
+
+    Detects fight start-points from short-window event bursts (kill/spell/objective/building + damage proxy),
+    then merges temporally to form continuous fights.
+    """
+    diag: Dict[str, Any] = {
+        "Td": 0,
+        "step_ms": 0,
+        "candidates": 0,
+        "accepted": 0,
+        "rejected_gap": 0,
+        "rejected_horizon": 0,
+        "rejected_startctx": 0,
+        "rejected_nokill": 0,
+        "rejected_nosignal": 0,
+        "rejected_alive": 0,
+        "rejected_engaged": 0,
+        "rejected_lcc": 0,
+        "rejected_compact": 0,
+        "rejected_max_duration": 0,
+        "rejected_negative_gap": 0,
+        "accepted_by_anchor": 0,
+        "accepted_by_signal": 0,
+        "backtracked": 0,
+        "backtrack_unreliable": 0,
+        "continuous_merged": 0,
+        "continuous_clusters": 0,
+        "continuous_different_location": 0,
+        "postmerge_conflicts": 0,
+        "postmerge_removed": 0,
+        "postmerge_replaced": 0,
+        "errors": [],
+    }
+
+    if config is None:
+        try:
+            config = FightDetectorConfig.from_cfg(cfg)
+        except Exception as e:
+            logger.warning(
+                f"Config load failed: {e}. Using FightDetectorConfig defaults (aligned with CFG defaults)."
+            )
+            config = FightDetectorConfig()
+
+    horizon_ms = int(_get_horizon_ms())
+
+    try:
+        b, r = validate_team_mapping(tm)
+    except Exception as e:
+        logger.error(f"Team mapping error: {e}")
+        diag["errors"].append({"type": "team_mapping", "message": str(e)})
+        b = np.array([0, 1, 2, 3, 4], dtype=np.int32)
+        r = np.array([5, 6, 7, 8, 9], dtype=np.int32)
+
+    candidates_out: List[dict] = []
+    fights: List[dict] = []
+
+    def _compact_fight_result(f: dict) -> dict:
+        out: Dict[str, Any] = {}
+        try:
+            out["engage_ts"] = int(f.get("engage_ts", -1))
+            out["label_end_ts"] = int(_label_end_ts(f, horizon_ms))
+            out["t_engage"] = int(f.get("t_engage", -1))
+            out["fight_type"] = str(f.get("fight_type", "unknown"))
+            out["importance_score"] = float(f.get("importance_score", 0.0) or 0.0)
+            out["n_segments"] = int(f.get("n_segments", 1) or 1)
+            out["first_kill_ts"] = int(f.get("first_kill_ts", -1) or -1)
+            out["det_event_score"] = float(f.get("det_event_score", 0.0) or 0.0)
+            out["det_event_count"] = int(f.get("det_event_count", 0) or 0)
+            outcome = f.get("outcome", {}) if isinstance(f.get("outcome", {}), dict) else {}
+            out["winner"] = str(outcome.get("winner", "unknown"))
+            out["kill_diff"] = int(outcome.get("kill_diff", 0) or 0)
+            out["total_kills"] = int(outcome.get("total_kills", 0) or 0)
+        except Exception:
+            pass
+        return out
+
+    def _pack_diagnostics():
+        try:
+            diag["fight_summary"] = summarize_fights(fights)
+            max_n = int(getattr(cfg, "DIAG_MAX_FIGHT_RESULTS", 50) or 50) if cfg else 50
+            max_n = max(0, max_n)
+            diag["fight_results_total"] = len(fights)
+            diag["fight_results_truncated"] = int(len(fights) > max_n) if max_n > 0 else int(len(fights) > 0)
+            diag["fight_results_brief"] = [_compact_fight_result(f) for f in (fights[:max_n] if max_n > 0 else [])]
+        except Exception as e:
+            diag["errors"].append({"type": "diag_pack", "message": str(e)})
+
+    xy = cache.get("xy_raw_minute", None)
+    if xy is None:
+        xi = NODE_IDX.get("x_norm", 0)
+        yi = NODE_IDX.get("y_norm", 1)
+        try:
+            xy = cache["node_minute"][:, :, [xi, yi]]
+        except (KeyError, IndexError) as e:
+            logger.error(f"Position data error: {e}")
+            _pack_diagnostics()
+            cache["fight_detect_diag"] = diag
+            return fights
+
+    minute_ts = np.asarray(cache["minute_ts"], dtype=np.int64)
+    events = cache.get("events", [])
+    Tm = int(len(minute_ts))
+    if Tm < 3:
+        logger.warning(f"Insufficient frames: {Tm}")
+        _pack_diagnostics()
+        cache["fight_detect_diag"] = diag
+        return fights
+
+    is_norm = bool(cache.get("meta", {}).get("anchor_is_norm", False))
+    scale_factor = float(config.coord_norm_div)
+    if not is_norm:
+        is_norm, scale_factor = detect_coordinate_scale(xy)
+
+    R = float(config.standoff_radius)
+    cluster_max_diam = float(config.cluster_max_diameter)
+    continuous_merge_radius = float(config.continuous_fight_merge_radius)
+    if is_norm:
+        R /= scale_factor
+        if cluster_max_diam > 0:
+            cluster_max_diam /= scale_factor
+        if continuous_merge_radius > 0:
+            continuous_merge_radius /= scale_factor
+
+    # event_v1 does not need dense XY interpolation for candidate generation.
+    # Use minute grid directly for faster cache building.
+    dense_ts = minute_ts.copy()
+    xy_dense = xy.astype(np.float32, copy=False)
+    step_ms = int(config.frame_ms)
+
+    Td = int(len(dense_ts))
+    if Td < 3:
+        _pack_diagnostics()
+        cache["fight_detect_diag"] = diag
+        return fights
+
+    diag["Td"] = Td
+    diag["step_ms"] = step_ms
+    diag["detector"] = "event_v1"
+
+    dists = compute_distances_chunked(xy_dense, b, r, config.chunk_size)
+    prox_pairs = np.sum(dists <= R, axis=(1, 2)).astype(np.int32)
+    min_b = np.min(dists, axis=2)
+    min_r = np.min(dists, axis=1)
+    min_dist_mean = np.mean(np.concatenate([min_b, min_r], axis=1), axis=1).astype(np.float32)
+
+    kill_events = _extract_kill_events(events)
+    kill_ts = (
+        np.array([int(k["timestamp"]) for k in kill_events], dtype=np.int64)
+        if kill_events
+        else np.empty((0,), dtype=np.int64)
+    )
+    summ_spell_ts = _extract_summoner_spell_ts(events)
+    objective_ts, building_ts = _extract_objective_building_ts(events)
+    dmg_idx = NODE_IDX.get("ds_totalDamageDoneToChampions", None)
+
+    damage_ts = np.empty((0,), dtype=np.int64)
+    try:
+        if dmg_idx is not None:
+            nm = cache.get("node_minute", None)
+            if isinstance(nm, np.ndarray) and nm.ndim == 3 and nm.shape[0] >= 2:
+                d0 = nm[:-1, :, int(dmg_idx)].astype(np.float32)
+                d1 = nm[1:, :, int(dmg_idx)].astype(np.float32)
+                dd = np.maximum(d1 - d0, 0.0).sum(axis=1)
+                dmg_thr = float(getattr(cfg, "MIN_DAMAGE_NORM_IN_HORIZON", 0.02)) if cfg is not None else 0.02
+                idx = np.where(dd >= dmg_thr)[0] + 1
+                if idx.size > 0:
+                    damage_ts = minute_ts[idx].astype(np.int64, copy=False)
+    except Exception:
+        damage_ts = np.empty((0,), dtype=np.int64)
+
+    if kill_ts.size + summ_spell_ts.size + objective_ts.size + building_ts.size + damage_ts.size == 0:
+        _pack_diagnostics()
+        cache["fight_detect_diag"] = diag
+        return fights
+
+    all_ts = np.unique(
+        np.concatenate(
+            [x for x in (kill_ts, summ_spell_ts, objective_ts, building_ts, damage_ts) if isinstance(x, np.ndarray) and x.size > 0]
+        )
+    )
+    diag["candidates"] = int(all_ts.size)
+
+    anchors = build_anchors_from_events(events)
+    t_min_ms = int(minute_ts[0])
+    t_max_ms = int(minute_ts[-1])
+    ctx_ms = int(config.fight_context_min) * 60000
+    alive_idx = NODE_IDX.get("alive", None)
+
+    event_window_ms = int(getattr(cfg, "EVENT_BURST_WINDOW_MS", 15000)) if cfg is not None else 15000
+    kill_pre_ms = int(getattr(cfg, "EVENT_KILL_PRE_MS", 10000)) if cfg is not None else 10000
+    event_min_events = int(getattr(cfg, "EVENT_MIN_EVENTS_IN_WINDOW", 2)) if cfg is not None else 2
+    event_score_thr = float(getattr(cfg, "EVENT_SCORE_THRESHOLD", 2.5)) if cfg is not None else 2.5
+    w_kill = float(getattr(cfg, "EVENT_WEIGHT_KILL", 2.0)) if cfg is not None else 2.0
+    w_spell = float(getattr(cfg, "EVENT_WEIGHT_SPELL", 0.35)) if cfg is not None else 0.35
+    w_obj = float(getattr(cfg, "EVENT_WEIGHT_OBJECTIVE", 1.5)) if cfg is not None else 1.5
+    w_build = float(getattr(cfg, "EVENT_WEIGHT_BUILDING", 1.5)) if cfg is not None else 1.5
+    w_dmg = float(getattr(cfg, "EVENT_WEIGHT_DAMAGE", 1.0)) if cfg is not None else 1.0
+    dmg_min = float(getattr(cfg, "MIN_DAMAGE_NORM_IN_HORIZON", 0.02)) if cfg is not None else 0.02
+    spell_min = int(getattr(cfg, "MIN_SUMMONER_SPELLS_IN_HORIZON", 1)) if cfg is not None else 1
+    req_engaged = int(max(0, int(config.require_engaged_per_team)))
+    req_lcc_total = int(max(0, int(config.require_lcc_total)))
+    req_lcc_per_team = int(max(0, int(config.require_lcc_per_team)))
+    kill_ts_set = set(int(x) for x in kill_ts.tolist()) if kill_ts.size > 0 else set()
+
+    diag["event_window_ms"] = int(event_window_ms)
+    diag["event_kill_pre_ms"] = int(kill_pre_ms)
+    diag["event_min_events"] = int(event_min_events)
+    diag["event_score_threshold"] = float(event_score_thr)
+
+    def _damage_norm_prewindow(t0: int, t1: int) -> float:
+        if dmg_idx is None:
+            return 0.0
+        try:
+            i0 = _map_ts_to_minute_idx(minute_ts, int(t0))
+            i1 = _map_ts_to_minute_idx(minute_ts, int(t1))
+            if i1 <= i0:
+                return 0.0
+            nm = cache.get("node_minute", None)
+            if not isinstance(nm, np.ndarray) or nm.ndim != 3:
+                return 0.0
+            d0 = nm[i0, :, int(dmg_idx)].astype(np.float32)
+            d1 = nm[i1, :, int(dmg_idx)].astype(np.float32)
+            dd = np.maximum(d1 - d0, 0.0)
+            return float(dd.sum())
+        except Exception:
+            return 0.0
+
+    def _check_alive_at_ts(engage_ts_val: int) -> bool:
+        if int(config.require_alive_per_team) <= 0 or alive_idx is None:
+            return True
+        m_idx = _map_ts_to_minute_idx(minute_ts, engage_ts_val)
+        try:
+            nm_alive = cache["node_minute"][m_idx, :, alive_idx]
+            if float(nm_alive[b].sum()) < int(config.require_alive_per_team):
+                return False
+            if float(nm_alive[r].sum()) < int(config.require_alive_per_team):
+                return False
+        except Exception:
+            return True
+        return True
+
+    def _earliest_signal_before(anchor_ts: int, lookback_ms: int) -> Optional[int]:
+        t0 = int(max(t_min_ms, anchor_ts - max(0, int(lookback_ms))))
+        if t0 >= anchor_ts:
+            return None
+        earliest: Optional[int] = None
+        for arr in (kill_ts, summ_spell_ts, objective_ts, building_ts, damage_ts):
+            if arr.size == 0:
+                continue
+            i = int(np.searchsorted(arr, t0, side="left"))
+            if i < arr.size:
+                v = int(arr[i])
+                if v < anchor_ts and (earliest is None or v < earliest):
+                    earliest = v
+        return earliest
+
+    for ts in all_ts.tolist():
+        anchor_ts = int(ts)
+        is_kill_anchor = bool(anchor_ts in kill_ts_set)
+        pre_sig_ts = _earliest_signal_before(anchor_ts, event_window_ms)
+
+        if pre_sig_ts is not None:
+            engage_ts_val = int(pre_sig_ts)
+        elif is_kill_anchor:
+            engage_ts_val = int(max(t_min_ms, anchor_ts - max(1, int(kill_pre_ms))))
+        else:
+            engage_ts_val = int(anchor_ts)
+
+        if is_kill_anchor and engage_ts_val >= anchor_ts:
+            engage_ts_val = int(max(t_min_ms, anchor_ts - 1))
+
+        if engage_ts_val - ctx_ms < t_min_ms:
+            diag["rejected_startctx"] += 1
+            continue
+        if engage_ts_val + horizon_ms > t_max_ms:
+            diag["rejected_horizon"] += 1
+            continue
+        if not _check_alive_at_ts(engage_ts_val):
+            diag["rejected_alive"] += 1
+            continue
+
+        t0 = int(max(t_min_ms, anchor_ts - event_window_ms))
+        t1 = int(anchor_ts)
+
+        kill_cnt = int(_count_events_in_window(kill_ts, t0, t1))
+        spell_cnt = int(_count_events_in_window(summ_spell_ts, t0, t1))
+        obj_cnt = int(_count_events_in_window(objective_ts, t0, t1))
+        build_cnt = int(_count_events_in_window(building_ts, t0, t1))
+        evt_cnt = int(kill_cnt + spell_cnt + obj_cnt + build_cnt)
+        dmg_norm = float(_damage_norm_prewindow(t0, t1))
+
+        score = float(
+            w_kill * kill_cnt
+            + w_spell * spell_cnt
+            + w_obj * obj_cnt
+            + w_build * build_cnt
+            + w_dmg * dmg_norm
+        )
+
+        signal_ok = bool(
+            (score >= event_score_thr)
+            and ((evt_cnt >= event_min_events) or (dmg_norm >= dmg_min) or (spell_cnt >= spell_min))
+        )
+        if not signal_ok:
+            diag["rejected_nosignal"] += 1
+            continue
+
+        d_idx = int(np.clip(np.searchsorted(dense_ts, engage_ts_val, side="right") - 1, 0, Td - 1))
+        dist_mat = dists[d_idx]
+        comps = _bipartite_components(dist_mat, R)
+        if len(comps) == 0:
+            diag["rejected_engaged"] += 1
+            continue
+
+        m_idx = _map_ts_to_minute_idx(minute_ts, engage_ts_val)
+        fk = _first_kill_in_window(kill_ts, engage_ts_val, engage_ts_val + horizon_ms)
+
+        accepted_components = 0
+        for ci, (nodes, b_cnt, r_cnt) in enumerate(comps):
+            comp_total = int(len(nodes))
+            if req_engaged > 0 and (int(b_cnt) < req_engaged or int(r_cnt) < req_engaged):
+                continue
+            if req_lcc_total > 0 and comp_total < req_lcc_total:
+                continue
+            if req_lcc_per_team > 0 and (int(b_cnt) < req_lcc_per_team or int(r_cnt) < req_lcc_per_team):
+                continue
+
+            orig_ids = [int(b[u]) if u < 5 else int(r[u - 5]) for u in nodes]
+            pts = xy_dense[d_idx, orig_ids, :]
+            if cluster_max_diam > 0 and len(orig_ids) > 1:
+                maxd = 0.0
+                for i0 in range(len(orig_ids)):
+                    for j0 in range(i0 + 1, len(orig_ids)):
+                        dx = float(pts[i0, 0] - pts[j0, 0])
+                        dy = float(pts[i0, 1] - pts[j0, 1])
+                        maxd = max(maxd, math.sqrt(dx * dx + dy * dy))
+                if maxd > cluster_max_diam:
+                    continue
+
+            prox_pairs_comp = 0
+            for u in nodes:
+                if u >= 5:
+                    continue
+                for v in nodes:
+                    if v < 5:
+                        continue
+                    if dist_mat[u, v - 5] <= R:
+                        prox_pairs_comp += 1
+            if prox_pairs_comp <= 0:
+                continue
+
+            cx = float(np.mean(pts[:, 0])) if pts.size > 0 else float(np.mean(xy_dense[d_idx, :, 0]))
+            cy = float(np.mean(pts[:, 1])) if pts.size > 0 else float(np.mean(xy_dense[d_idx, :, 1]))
+
+            candidates_out.append(
+                {
+                    "engage_ts": int(engage_ts_val),
+                    "t_engage": int(m_idx),
+                    "t_engage_ts": int(engage_ts_val),
+                    "first_kill_ts": int(fk) if fk is not None else -1,
+                    "centroid_x": float(cx),
+                    "centroid_y": float(cy),
+                    "horizon_end_ts": int(engage_ts_val + horizon_ms),
+                    "n_segments": 1,
+                    "det_step_ms": int(step_ms),
+                    "det_prox_pairs": int(prox_pairs_comp),
+                    "det_min_dist_mean": float(min_dist_mean[d_idx]) if d_idx < len(min_dist_mean) else 0.0,
+                    "det_anchor": 0,
+                    "det_backtracked": 0,
+                    "det_damage_norm": float(dmg_norm),
+                    "det_summoner_spells": int(spell_cnt),
+                    "det_signal_ok": 1,
+                    "det_event_score": float(score),
+                    "det_event_count": int(evt_cnt),
+                    "det_kill_count_window": int(kill_cnt),
+                    "det_objective_count_window": int(obj_cnt),
+                    "det_building_count_window": int(build_cnt),
+                    "det_event_anchor_ts": int(anchor_ts),
+                    "det_event_anchor_is_kill": int(is_kill_anchor),
+                    "det_event_start_shift_ms": int(max(0, anchor_ts - engage_ts_val)),
+                    "det_component_idx": int(ci),
+                    "det_component_size": int(comp_total),
+                    "det_component_blue": int(b_cnt),
+                    "det_component_red": int(r_cnt),
+                }
+            )
+            accepted_components += 1
+
+        if accepted_components <= 0:
+            diag["rejected_lcc"] += 1
+            continue
+        diag["accepted"] += int(accepted_components)
+        diag["accepted_by_signal"] += int(accepted_components)
+
+    if not candidates_out:
+        _pack_diagnostics()
+        cache["fight_detect_diag"] = diag
+        return fights
+
+    candidates_out.sort(key=lambda f: int(f["engage_ts"]))
+    if bool(config.continuous_fight_merge):
+        merge_eps_s = float(cluster_max_diam if cluster_max_diam > 0 else continuous_merge_radius)
+        if merge_eps_s > 0:
+            fights = merge_fights_st_dbscan_unionfind(
+                candidates_out,
+                eps_t_ms=int(config.continuous_fight_max_gap_ms),
+                eps_s=float(merge_eps_s),
+                horizon_ms=horizon_ms,
+                max_duration_ms=int(config.max_merged_fight_duration_ms),
+                diag=diag,
+            )
+        else:
+            fights = merge_fights_temporal_unionfind(
+                candidates_out,
+                max_gap_ms=int(config.continuous_fight_max_gap_ms),
+                horizon_ms=horizon_ms,
+                max_duration_ms=int(config.max_merged_fight_duration_ms),
+                diag=diag,
+            )
+    else:
+        fights = []
+        last_ts = -10**18
+        for f in candidates_out:
+            if int(f["engage_ts"]) - int(last_ts) < int(config.fight_min_gap_ms):
+                diag["rejected_gap"] += 1
+                continue
+            fights.append(f)
+            last_ts = int(f["engage_ts"])
+
+    fights = enforce_postmerge_spacing_and_nonoverlap(
+        fights,
+        horizon_ms=int(horizon_ms),
+        fight_min_gap_ms=int(config.fight_min_gap_ms),
+        kill_ts=kill_ts,
+        location_radius=float(max(0.0, cluster_max_diam)),
+        diag=diag,
+    )
+
+    game_duration_ms = int(minute_ts[-1]) if len(minute_ts) > 0 else 0
+    for fight in fights:
+        try:
+            fight["fight_type"] = classify_fight_type(fight, anchors, is_norm, scale_factor)
+            outcome = compute_fight_outcome(fight, kill_events, tm)
+            fight["outcome"] = outcome
+            fight["importance_score"] = compute_fight_importance(fight, outcome, fight["fight_type"], game_duration_ms)
+            fight["player_engagement"] = compute_player_engagement(fight, xy_dense, dists, dense_ts, R, b, r)
+            fight["visualization"] = generate_fight_visualization(
+                fight, xy_dense, dists, dense_ts, prox_pairs, kill_events, b, r, R
+            )
+        except Exception as e:
+            logger.warning(f"Analysis failed for fight at {fight.get('engage_ts')}: {e}")
+            diag["errors"].append({"type": "analysis", "engage_ts": fight.get("engage_ts"), "message": str(e)})
+
+    _pack_diagnostics()
+    cache["fight_detect_diag"] = diag
+    return fights
+
+
 def detect_fights(cache: Dict[str, Any], tm: Dict[int, int]) -> List[dict]:
     """교전 감지 진입점 (레거시 호환)"""
-    algo = "engage_v2"
+    algo = "event_v1"
     if cfg is not None:
-        algo = str(getattr(cfg, "FIGHT_DETECTOR", getattr(cfg, "FIGHT_DETECT_ALGO", "engage_v2"))).lower()
+        algo = str(getattr(cfg, "FIGHT_DETECTOR", getattr(cfg, "FIGHT_DETECT_ALGO", "event_v1"))).lower()
+
+    if algo in ("event_v1", "event", "v1"):
+        return detect_fights_event_v1(cache, tm)
 
     if algo in ("engage_v2", "v2", "engage"):
         return detect_fights_engage_v2(cache, tm)
 
-    logger.warning(f"Unknown fight detector algo={algo}. Falling back to engage_v2.")
-    return detect_fights_engage_v2(cache, tm)
+    logger.warning(f"Unknown fight detector algo={algo}. Falling back to event_v1.")
+    return detect_fights_event_v1(cache, tm)
 
 
 def summarize_fights(fights: List[dict]) -> Dict[str, Any]:

@@ -286,8 +286,19 @@ class InMemoryFightDataset(Dataset):
                 → sample dict
         """
         # 1) Build raw ms-level sequence
+        try:
+            label_end_ts = int(getattr(r, "label_end_ts", -1))
+        except Exception:
+            label_end_ts = -1
+
         if r.t_start_ts >= 0:
-            raw = build_ms_sequence(pack, tm, -1, engage_ts=r.t_start_ts)
+            raw = build_ms_sequence(
+                pack,
+                tm,
+                -1,
+                engage_ts=r.t_start_ts,
+                label_end_ts=(label_end_ts if label_end_ts >= 0 else None),
+            )
         else:
             raw = build_ms_sequence(pack, tm, r.t_start)
 
@@ -297,6 +308,14 @@ class InMemoryFightDataset(Dataset):
         # 2) Feature extraction
         feats = build_sequence_features(raw, tm, role_slots, self.feature_set)
         y = torch.tensor([[float(feats["y"])]], dtype=torch.float32)
+
+        def _inject_aux_targets(dst: Dict[str, Any]) -> None:
+            for k in ("y_kill_diff", "y_gold_diff", "y_obj_diff"):
+                try:
+                    v = float(feats.get(k, 0.0))
+                except Exception:
+                    v = 0.0
+                dst[k] = torch.tensor([[v]], dtype=torch.float32)
 
         # 3) Tensor construction — three possible layouts:
         #    (a) node_seq + macro_seq + tab_x  (MacroFusion models)
@@ -347,6 +366,8 @@ class InMemoryFightDataset(Dataset):
                 x_ts = x_ts[:, self.prune.x_keep]
 
             out = {"x_seq": x_ts, "y": y}
+
+        _inject_aux_targets(out)
 
         # 4) Event tokens (for EventXAttnSTModel)
         self._inject_event_tokens(out, raw)
@@ -548,6 +569,20 @@ def collate_batch(batch: List[Optional[Dict[str, Any]]]) -> Optional[Dict[str, A
 
     y = torch.cat([b["y"] for b in batch], dim=0)
     out: Dict[str, Any] = {"y": y, "ref_key": [str(k) for k in ref_keys]}
+
+    aux_target_keys = sorted({
+        k for b in batch
+        for k in b.keys()
+        if isinstance(k, str) and k.startswith("y_")
+    })
+    for k in aux_target_keys:
+        vals = []
+        for b in batch:
+            if k in b:
+                vals.append(_as_1x1(b[k]))
+            else:
+                vals.append(torch.zeros((1, 1), dtype=torch.float32))
+        out[k] = torch.cat(vals, dim=0)
 
     # ---- feature tensors ----
     if all(("macro_seq" in b) for b in batch):

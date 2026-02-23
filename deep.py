@@ -96,6 +96,38 @@ def _autocast_ctx(use_amp: bool, device: torch.device):
     return contextlib.nullcontext()
 
 
+def _extract_main_logit(model_out: Any) -> torch.Tensor:
+    if torch.is_tensor(model_out):
+        return model_out
+    if isinstance(model_out, dict):
+        for k in ("fight_logit", "logit", "y_logit"):
+            v = model_out.get(k, None)
+            if torch.is_tensor(v):
+                return v
+    raise TypeError(f"Unsupported model output type: {type(model_out)}")
+
+
+class _LogitAuxHead(nn.Module):
+    """Auxiliary regression head on top of the main fight logit."""
+
+    def __init__(self, hidden: int = 16):
+        super().__init__()
+        self.mlp = nn.Sequential(
+            nn.Linear(1, int(hidden)),
+            nn.ReLU(),
+            nn.Linear(int(hidden), 3),  # gold, kill, obj
+        )
+
+    def forward(self, logit: torch.Tensor) -> Dict[str, torch.Tensor]:
+        z = logit.view(logit.shape[0], -1)
+        o = self.mlp(z)
+        return {
+            "gold_pred": o[:, 0:1],
+            "kill_pred": o[:, 1:2],
+            "obj_pred": o[:, 2:3],
+        }
+
+
 def _eval_loop(
         model: nn.Module,
         loader: DataLoader,
@@ -118,7 +150,7 @@ def _eval_loop(
                 continue
 
             with _autocast_ctx(use_amp, device):
-                logit = model(batch)
+                logit = _extract_main_logit(model(batch))
 
             y_np = y.detach().float().cpu().numpy().reshape(-1)
             logit_np = logit.detach().float().cpu().numpy().reshape(-1)
@@ -192,7 +224,7 @@ def _predict_logit_map_for_refs(
         batch = _to_device(batch, device)
 
         with _autocast_ctx(use_amp, device):
-            logit = model(batch)
+            logit = _extract_main_logit(model(batch))
 
         logit_np = logit.detach().float().cpu().numpy().reshape(-1)
         bsz = int(logit_np.shape[0])
@@ -261,7 +293,7 @@ def _predict_logit_and_label_maps_for_loader(
 
         y = batch.get("y", None)
         with _autocast_ctx(use_amp, device):
-            logit = model(batch)
+            logit = _extract_main_logit(model(batch))
 
         logit_np = logit.detach().float().cpu().numpy().reshape(-1)
         bsz = int(logit_np.shape[0])
@@ -1514,6 +1546,18 @@ def train_deep_model(
         use_lgbm_logit=bool(lgbm_logit_map),
     ).to(device)
 
+    use_multi_task = bool(getattr(cfg, "USE_MULTI_TASK", False))
+    aux_head: Optional[nn.Module] = None
+    has_aux_targets = bool(
+        ("y_gold_diff" in b0) or ("y_kill_diff" in b0) or ("y_obj_diff" in b0)
+    )
+    if use_multi_task and has_aux_targets:
+        aux_head = _LogitAuxHead(hidden=int(getattr(cfg, "MTL_HEAD_HIDDEN", 16))).to(device)
+        write_log("[DEEP] Multi-task enabled: logit-aux head (gold/kill/obj)", log_fp)
+    elif use_multi_task and (not has_aux_targets):
+        write_log("[DEEP][WARN] USE_MULTI_TASK=True but auxiliary targets are missing in batch.", log_fp)
+        use_multi_task = False
+
     if bool(getattr(cfg, "TORCH_COMPILE", False)):
         try:
             if hasattr(torch, "compile"):
@@ -1524,6 +1568,11 @@ def train_deep_model(
                 if bool(getattr(cfg, "TORCH_COMPILE_DYNAMIC", False)):
                     compile_kwargs["dynamic"] = True
                 model = torch.compile(model, **compile_kwargs)  # type: ignore
+                if aux_head is not None and hasattr(torch, "compile"):
+                    try:
+                        aux_head = torch.compile(aux_head, **compile_kwargs)  # type: ignore
+                    except Exception:
+                        pass
                 write_log(
                     f"[DEEP] torch.compile enabled mode={compile_kwargs.get('mode','default')} "
                     f"dynamic={bool(compile_kwargs.get('dynamic', False))}",
@@ -1552,6 +1601,8 @@ def train_deep_model(
     lr = float(getattr(cfg, "LR", 1e-3))
     wd = float(getattr(cfg, "WEIGHT_DECAY", 1e-5))
     params = list(model.parameters())
+    if aux_head is not None:
+        params += list(aux_head.parameters())
 
     # T5: Role-Aware Adjacency — global module의 파라미터도 optimizer에 등록
     if bool(getattr(cfg, "USE_ROLE_AWARE_ADJ", False)):
@@ -1576,6 +1627,7 @@ def train_deep_model(
         uniq_params.append(p)
 
     opt = torch.optim.AdamW(uniq_params, lr=lr, weight_decay=wd)
+    clip_params = list(model.parameters()) + (list(aux_head.parameters()) if aux_head is not None else [])
 
     # ------------------------------------------------------------------
     # [FIX P0-2] Learning Rate Scheduler: Cosine Annealing with Linear Warm-up
@@ -1642,6 +1694,7 @@ def train_deep_model(
 
     best_auc = -1.0
     best_state = None
+    best_aux_state = None
     best_epoch = 0
     bad = 0
     train_start_time = time.time()
@@ -1655,8 +1708,14 @@ def train_deep_model(
 
     for epoch in range(1, max_epochs + 1):
         model.train()
+        if aux_head is not None:
+            aux_head.train()
         t0 = time.time()
         loss_sum = 0.0
+        loss_fight_sum = 0.0
+        loss_gold_sum = 0.0
+        loss_kill_sum = 0.0
+        loss_obj_sum = 0.0
         n_step = 0
 
         for batch in ld_tr:
@@ -1670,26 +1729,51 @@ def train_deep_model(
             opt.zero_grad(set_to_none=True)
 
             with _autocast_ctx(use_amp, device):
-                logit = model(batch)
+                logit = _extract_main_logit(model(batch))
                 y_f = y.float().view_as(logit)
                 if label_eps > 0:
                     y_f = y_f * (1.0 - label_eps) + label_eps * 0.5  # T7
-                loss = crit(logit, y_f)
+                loss_fight = crit(logit, y_f)
+                loss = loss_fight
+
+                loss_gold = torch.tensor(0.0, device=logit.device)
+                loss_kill = torch.tensor(0.0, device=logit.device)
+                loss_obj = torch.tensor(0.0, device=logit.device)
+                if aux_head is not None:
+                    aux_pred = aux_head(logit)
+                    if "y_gold_diff" in batch:
+                        tgt_gold = batch["y_gold_diff"].float().view_as(aux_pred["gold_pred"])
+                        loss_gold = F.mse_loss(aux_pred["gold_pred"], tgt_gold)
+                    if "y_kill_diff" in batch:
+                        tgt_kill = batch["y_kill_diff"].float().view_as(aux_pred["kill_pred"])
+                        loss_kill = F.mse_loss(aux_pred["kill_pred"], tgt_kill)
+                    if "y_obj_diff" in batch:
+                        tgt_obj = batch["y_obj_diff"].float().view_as(aux_pred["obj_pred"])
+                        loss_obj = F.mse_loss(aux_pred["obj_pred"], tgt_obj)
+
+                    lam_gold = float(getattr(cfg, "MTL_LAMBDA_GOLD", 0.1))
+                    lam_kill = float(getattr(cfg, "MTL_LAMBDA_KILL", 0.05))
+                    lam_obj = float(getattr(cfg, "MTL_LAMBDA_OBJ", 0.05))
+                    loss = loss + lam_gold * loss_gold + lam_kill * loss_kill + lam_obj * loss_obj
 
             if use_grad_scaler:
                 scaler_amp.scale(loss).backward()
                 scaler_amp.unscale_(opt)
                 if clip_norm > 0:
-                    torch.nn.utils.clip_grad_norm_(model.parameters(), clip_norm)
+                    torch.nn.utils.clip_grad_norm_(clip_params, clip_norm)
                 scaler_amp.step(opt)
                 scaler_amp.update()
             else:
                 loss.backward()
                 if clip_norm > 0:
-                    torch.nn.utils.clip_grad_norm_(model.parameters(), clip_norm)
+                    torch.nn.utils.clip_grad_norm_(clip_params, clip_norm)
                 opt.step()
 
             loss_sum += float(loss.detach().cpu().item())
+            loss_fight_sum += float(loss_fight.detach().cpu().item())
+            loss_gold_sum += float(loss_gold.detach().cpu().item())
+            loss_kill_sum += float(loss_kill.detach().cpu().item())
+            loss_obj_sum += float(loss_obj.detach().cpu().item())
             n_step += 1
 
             log_every = int(getattr(cfg, "LOG_EVERY", 0))
@@ -1712,11 +1796,21 @@ def train_deep_model(
             f"val_auc={auc_va:.4f} lr={current_lr:.2e} time={time.time() - t0:.1f}s",
             log_fp,
         )
+        if aux_head is not None:
+            write_log(
+                f"[DEEP][MTL] epoch={epoch} fight={loss_fight_sum / max(1, n_step):.4f} "
+                f"gold={loss_gold_sum / max(1, n_step):.4f} "
+                f"kill={loss_kill_sum / max(1, n_step):.4f} "
+                f"obj={loss_obj_sum / max(1, n_step):.4f}",
+                log_fp,
+            )
 
         if auc_va > best_auc:
             best_auc = auc_va
             best_epoch = epoch
             best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
+            if aux_head is not None:
+                best_aux_state = {k: v.detach().cpu().clone() for k, v in aux_head.state_dict().items()}
             bad = 0
         else:
             bad += 1
@@ -1726,6 +1820,8 @@ def train_deep_model(
 
     if best_state is not None:
         model.load_state_dict(best_state)
+    if aux_head is not None and best_aux_state is not None:
+        aux_head.load_state_dict(best_aux_state)
 
     met_tr = _eval_loop(model, ld_tr_eval, device, use_amp=use_amp, threshold=threshold)
     met_va = _eval_loop(model, ld_va, device, use_amp=use_amp, threshold=threshold)
@@ -1739,9 +1835,13 @@ def train_deep_model(
 
     ckpt = out_dir / "checkpoint.pt"
     try:
+        aux_state = None
+        if aux_head is not None:
+            aux_state = aux_head.state_dict()
         torch.save(
             {
                 "state_dict": model.state_dict(),
+                "aux_head_state_dict": aux_state,
                 "model_name": model_name,
                 "feature_set": feature_set,
                 "variant": variant_tag,
@@ -1805,6 +1905,7 @@ def train_deep_model(
         "out_dir": str(out_dir),
         "seq_key_used": str(seq_key_used),
         "has_baseline_logit_in_batch": bool(has_lgbm_logit),
+        "multi_task_enabled": bool(aux_head is not None),
         "pred_logit_maps": {k: {"size": len(v)} for k, v in pred_maps.items()} if pred_maps else None,
         "label_maps_available": bool(label_maps),
     }

@@ -279,14 +279,18 @@ class CFG:
     # =========================================================
     FRAME_MS: int = 60000
     BIN_MS: int = 5000
+    # Fight detector dense XY interpolation method in fights.py:
+    # "zoh" keeps step-hold samples (no linear path assumption) while
+    # still enabling DETECT_STEP_MS dense scanning.
+    INTERP_METHOD: str = "zoh"
     INTERP_XY_METHOD: str = "linear_guard_midstep"
     INTERP_SCALARS_METHOD: str = "ffill"
 
     XY_DISCONT_DIST_RAW: float = 7000.0
     XY_DISCONT_USE_ALIVE: bool = True
-    XY_GUARD_MODE: str = "midstep"
+    XY_GUARD_MODE: str = "hold"
 
-    INTERP_XY: bool = True
+    INTERP_XY: bool = False
     INTERP_SCALARS: bool = True
 
     # =========================================================
@@ -354,8 +358,8 @@ class CFG:
     # =========================================================
     # 7) Fight detection
     # =========================================================
-    FIGHT_DETECT_ALGO: str = "engage_v2"
-    FIGHT_DETECTOR: str = "engage_v2"
+    FIGHT_DETECT_ALGO: str = "event_v1"
+    FIGHT_DETECTOR: str = "event_v1"
 
     REQUIRE_ENGAGED_PER_TEAM: int = 2
     REQUIRE_LCC_TOTAL: int = 4
@@ -366,12 +370,32 @@ class CFG:
     FIGHT_CONTEXT_MIN: int = 1
     FIGHT_HORIZON_SEC: int = 60
     FIGHT_HORIZON_MIN: int = 1
+    # Predict earlier than engage by this gap:
+    # observation window ends at (engage_ts - prediction_gap_ms),
+    # while label window starts at engage_ts and ends at
+    #   - horizon_end_ts (continuous merged fight), if provided
+    #   - otherwise engage_ts + horizon.
+    PREDICTION_GAP_MS: int = 0
     MAX_MERGED_FIGHT_DURATION_MS = 120000
 
     START_OFFSET_MIN: int = 2
     FIGHT_MIN_GAP_MIN: int = 2
     FIGHT_MIN_GAP_MS: int = 120000
-    DETECT_STEP_MS: int = 5000
+    DETECT_STEP_MS: int = 10000
+
+    # Event-driven detection (event_v1):
+    # trigger teamfight candidates from short-window event burst near ts.
+    EVENT_BURST_WINDOW_MS: int = 15000
+    # If candidate anchor is a kill timestamp, move engage start earlier by this amount
+    # when no earlier burst signal exists.
+    EVENT_KILL_PRE_MS: int = 10000
+    EVENT_MIN_EVENTS_IN_WINDOW: int = 2
+    EVENT_SCORE_THRESHOLD: float = 2.5
+    EVENT_WEIGHT_KILL: float = 2.0
+    EVENT_WEIGHT_SPELL: float = 0.35
+    EVENT_WEIGHT_OBJECTIVE: float = 1.5
+    EVENT_WEIGHT_BUILDING: float = 1.5
+    EVENT_WEIGHT_DAMAGE: float = 1.0
 
     CONTINUOUS_FIGHT_MERGE: bool = True
     CONTINUOUS_FIGHT_MAX_GAP_MS: int = 30000
@@ -387,6 +411,17 @@ class CFG:
     #   a detected engage candidate is accepted only when
     #   at least one kill exists in [engage_ts, engage_ts + horizon).
     VERIFY_KILL_IN_HORIZON: bool = True
+    # Additional combat-signal validation in horizon:
+    #   damage proxy uses normalized Δ totalDamageDoneToChampions (team-sum),
+    #   spell proxy counts SUMMONER_SPELL_USED/CAST events.
+    # Rule options:
+    #   - kill_only
+    #   - signal_only
+    #   - kill_or_signal
+    #   - kill_and_signal
+    FIGHT_VALIDATION_RULE: str = "kill_or_signal"
+    MIN_DAMAGE_NORM_IN_HORIZON: float = 0.02
+    MIN_SUMMONER_SPELLS_IN_HORIZON: int = 1
 
     PROX_DIST_NORM: float = 1800.0 / MAP_MAX
     PROX_MIN_PAIRS: int = 8
@@ -701,6 +736,11 @@ class CFG:
     EARLY_STOP_METRIC: str = "auc"
     PREC_AT_K: Tuple[int, ...] = (50, 100, 200, 500)
     PREC_AT_FRAC: Tuple[float, ...] = (0.01, 0.05, 0.10)
+    ENABLE_MINUTEWISE_REPORT: bool = True
+    ENABLE_SITUATION_REPORT: bool = True
+    MINUTE_REPORT_MAX_MINUTE: int = 60
+    SITUATION_CLOSE_GOLD_TH: float = 2000.0
+    SITUATION_STOMP_GOLD_TH: float = 5000.0
 
     LGB_PERM_IMPORTANCE: bool = False
     LGB_SHAP: bool = True
@@ -792,6 +832,7 @@ class CFG:
     USE_MULTI_TASK: bool = False
     MTL_LAMBDA_GOLD: float = 0.1
     MTL_LAMBDA_KILL: float = 0.05
+    MTL_LAMBDA_OBJ: float = 0.05
 
     LABEL_SMOOTHING: float = 0.0
 # -------------------------------------------------------------------

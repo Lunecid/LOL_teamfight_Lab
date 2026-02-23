@@ -154,6 +154,7 @@ TREATMENTS: Dict[int, Treatment] = {
             "USE_MULTI_TASK": True,
             "MTL_LAMBDA_GOLD": 0.1,
             "MTL_LAMBDA_KILL": 0.05,
+            "MTL_LAMBDA_OBJ": 0.05,
         },
         hp_grid={
             "MTL_LAMBDA_GOLD": [0.05, 0.1, 0.2],
@@ -456,6 +457,7 @@ def reset_config_to_baseline(cfg_obj: Any) -> None:
         "USE_MULTI_TASK": False,
         "MTL_LAMBDA_GOLD": 0.1,
         "MTL_LAMBDA_KILL": 0.05,
+        "MTL_LAMBDA_OBJ": 0.05,
         "LABEL_SMOOTHING": 0.0,
     }
     apply_config_overlay(cfg_obj, baseline_flags)
@@ -490,6 +492,11 @@ def _build_experiment_args(
             setattr(args, k, v)
 
     return args
+
+
+def _find_unsupported_overlay_flags(overlay: Dict[str, Any]) -> List[str]:
+    unsupported: List[str] = []
+    return unsupported
 
 
 def run_single_experiment(
@@ -554,6 +561,18 @@ def run_single_experiment(
 
     # Step 2: Apply treatment overlay
     apply_config_overlay(cfg, treatment_overlay)
+
+    unsupported = _find_unsupported_overlay_flags(treatment_overlay)
+    if unsupported:
+        msg = " | ".join(unsupported)
+        print(f"    [ERROR] Unsupported overlay: {msg}")
+        return ExperimentResult(
+            treatment_id=-1,
+            treatment_name=experiment_tag,
+            seed=seed,
+            hp_config=treatment_overlay,
+            train_time_sec=time.time() - t0,
+        )
 
     # Step 3: Set seed
     set_seed(seed)

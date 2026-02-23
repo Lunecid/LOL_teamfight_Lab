@@ -169,6 +169,7 @@ def build_fight_index(
             engage_ts = f.get('engage_ts', None)
             if engage_ts is None:
                 engage_ts = f.get('t_engage_ts', None)
+            label_end_raw = f.get("horizon_end_ts", None)
 
             # legacy: t_engage (minute index)
             t_raw = f.get('t_engage', None)
@@ -202,12 +203,20 @@ def build_fight_index(
                 except Exception:
                     continue
 
+            try:
+                label_end_ts = int(label_end_raw) if label_end_raw is not None else -1
+            except Exception:
+                label_end_ts = -1
+            if t_start_ts >= 0 and label_end_ts >= 0 and label_end_ts <= t_start_ts:
+                label_end_ts = -1
+
             if t_idx >= 0:
                 refs.append(FightRef(
                     match_id=pack['meta']['match_id'],
                     patch=patch,
                     t_start=t_idx,
                     t_start_ts=t_start_ts,  # ✅ NEW
+                    label_end_ts=label_end_ts,
                 ))
 
     return refs
@@ -544,9 +553,20 @@ def estimate_seq_keep_indices(
         if not pack:
             continue
 
+        try:
+            label_end_ts = int(getattr(r, "label_end_ts", -1))
+        except Exception:
+            label_end_ts = -1
+
         # ✅ ms 기반 호출
         if r.t_start_ts >= 0:
-            raw = build_ms_sequence(pack, pack["meta"]["team_map"], -1, engage_ts=r.t_start_ts)
+            raw = build_ms_sequence(
+                pack,
+                pack["meta"]["team_map"],
+                -1,
+                engage_ts=r.t_start_ts,
+                label_end_ts=(label_end_ts if label_end_ts >= 0 else None),
+            )
         else:
             raw = build_ms_sequence(pack, pack["meta"]["team_map"], r.t_start)
 
