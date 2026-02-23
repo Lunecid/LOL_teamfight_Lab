@@ -12,7 +12,7 @@
 # ═══════════════════════════════════════════════════════════════
 
 Changes from original:
-  [P0-LEAK]    VERIFY_KILL_IN_HORIZON default → False (data leakage fix).
+  [P0-RULE]    VERIFY_KILL_IN_HORIZON default → True; USE_KILL_ANCHOR → False.
   [P0-SEED]    SEEDS expanded to 5 seeds for statistical significance.
   [P0-CAP]     DROPOUT 0.35→0.20, RNN_HIDDEN 64→128, GNN_DIM 64→96,
                GNN_DROPOUT 0.35→0.25, TCN_DROPOUT 0.35→0.20 (underfitting fix).
@@ -383,15 +383,10 @@ class CFG:
     ENGAGE_MIN_DIST_DROP: float = 250.0
     ENGAGE_MIN_PAIR_GAIN: int = 2
 
-    # ═══════════════════════════════════════════════════════════
-    # [P0-LEAK] DATA LEAKAGE FIX
-    # ─────────────────────────────────────────────────────────
-    # Original: True  →  fights validated by checking if kills
-    # exist in the *future* horizon, creating selection bias:
-    #   P(sample | kill ∈ [t₀, t₀+Δ]) ≠ P(sample)
-    # Fix: Default to False.  Enable only for sensitivity analysis.
-    # ═══════════════════════════════════════════════════════════
-    VERIFY_KILL_IN_HORIZON: bool = False
+    # Fight validity rule:
+    #   a detected engage candidate is accepted only when
+    #   at least one kill exists in [engage_ts, engage_ts + horizon).
+    VERIFY_KILL_IN_HORIZON: bool = True
 
     PROX_DIST_NORM: float = 1800.0 / MAP_MAX
     PROX_MIN_PAIRS: int = 8
@@ -409,7 +404,8 @@ class CFG:
     # ═══════════════════════════════════════════════════════════
     REQUIRE_SIGNAL_IN_HORIZON: bool = False
 
-    USE_KILL_ANCHOR: bool = True
+    # Start-point must be engage-detected (not kill-anchored).
+    USE_KILL_ANCHOR: bool = False
     KILL_ANCHOR_PRE_SEC: int = 15
     KILL_ANCHOR_COOLDOWN_SEC: int = 30
 
