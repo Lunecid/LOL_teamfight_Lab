@@ -483,14 +483,28 @@ def split_refs_random(
     return tr, va, te, info
 
 
-def split_refs(refs: List[FightRef]):
+def split_refs(
+        refs: List[FightRef],
+        mode: Optional[str] = None,
+        seed: Optional[int] = None,
+):
     if not refs:
         return [], [], [], {"mode": "empty"}
 
-    seed0 = int(getattr(cfg, "SEEDS", (7,))[0])
-    mode = str(getattr(cfg, "SPLIT_MODE", "multi_patch")).lower().strip()
+    seed0 = int(seed) if seed is not None else int(getattr(cfg, "SEEDS", (7,))[0])
+    mode0 = str(mode if mode is not None else getattr(cfg, "SPLIT_MODE", "multi_patch")).lower().strip()
+    if mode0 in ("", "auto"):
+        mode0 = str(getattr(cfg, "SPLIT_MODE", "multi_patch")).lower().strip()
+    if mode0 in ("match_id", "match", "group", "group_match"):
+        mode0 = "group_match"
+    elif mode0 in ("rand",):
+        mode0 = "random"
+    elif mode0 in ("forward_patch", "patch_time"):
+        mode0 = "patch_forward"
+    elif mode0 in ("stratified",):
+        mode0 = "multi_patch"
 
-    if mode in ("patch_forward", "forward_patch", "patch_time"):
+    if mode0 in ("patch_forward",):
         return split_refs_patch_forward(refs, seed=seed0)
 
     ratios = getattr(cfg, "SPLIT_RATIOS", None)
@@ -500,9 +514,9 @@ def split_refs(refs: List[FightRef]):
         tr = float(max(0.0, 1.0 - va - te))
         ratios = (tr, va, te)
 
-    if mode in ("group_match", "match", "group"):
+    if mode0 in ("group_match",):
         return split_refs_group_match(refs, seed=seed0, ratios=ratios)
-    if mode in ("random", "rand"):
+    if mode0 in ("random",):
         return split_refs_random(refs, seed=seed0, ratios=ratios)
     return split_refs_match_patch_stratified(refs, seed=seed0, ratios=ratios)
 

@@ -5,16 +5,7 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple
 
-# [FIX] write_log moved — using local stub
-import logging
-_logger = logging.getLogger(__name__)
-def write_log(msg, fp=None):
-    _logger.info(msg)
-    if fp is not None:
-        from pathlib import Path
-        Path(fp).parent.mkdir(parents=True, exist_ok=True)
-        with open(fp, 'a', encoding='utf-8') as f:
-            f.write(msg + '\n')
+from utils import write_log
 
 
 

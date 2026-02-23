@@ -1358,6 +1358,11 @@ def train_deep_model(
     """
     ensure_dir(out_dir)
     set_seed(int(seed))
+    try:
+        from models import reset_model_singletons
+        reset_model_singletons()
+    except Exception as e:
+        write_log(f"[DEEP][WARN] reset_model_singletons failed (ignored): {e}", log_fp)
 
     # -----------------------------------------------------
     # Speed knobs (safe defaults)
@@ -1510,18 +1515,44 @@ def train_deep_model(
     # [P4-COMPAT] torch.cuda.amp.GradScaler deprecated in PyTorch 2.x
     scaler_amp = torch.amp.GradScaler("cuda", enabled=use_amp)
 
+    # Materialize lazy global modules before optimizer creation.
+    if bool(getattr(cfg, "USE_ROLE_AWARE_ADJ", False)):
+        try:
+            model.eval()
+            with torch.no_grad():
+                _ = model(_to_device(b0, device))
+        except Exception as e:
+            write_log(f"[DEEP][WARN] role-aware warmup failed: {e}", log_fp)
+        finally:
+            model.train()
+
     lr = float(getattr(cfg, "LR", 1e-3))
     wd = float(getattr(cfg, "WEIGHT_DECAY", 1e-5))
     params = list(model.parameters())
 
     # T5: Role-Aware Adjacency — global module의 파라미터도 optimizer에 등록
     if bool(getattr(cfg, "USE_ROLE_AWARE_ADJ", False)):
-        from models import _role_adj_module
-        if _role_adj_module is not None:
-            params += list(_role_adj_module.parameters())
-            write_log(f"[DEEP] Added RoleAwareAdjacency R(5×5) to optimizer", log_fp)
+        try:
+            from models import _role_adj_module
+            if _role_adj_module is not None:
+                params += list(_role_adj_module.parameters())
+                write_log(f"[DEEP] Added RoleAwareAdjacency R(5×5) to optimizer", log_fp)
+            else:
+                write_log("[DEEP][WARN] USE_ROLE_AWARE_ADJ=True but role module not materialized.", log_fp)
+        except Exception as e:
+            write_log(f"[DEEP][WARN] Failed to attach role-aware adjacency params: {e}", log_fp)
 
-    opt = torch.optim.AdamW(params, lr=lr, weight_decay=wd)
+    # optimizer does not need duplicated parameter references
+    uniq_params = []
+    seen_param_ids = set()
+    for p in params:
+        pid = id(p)
+        if pid in seen_param_ids:
+            continue
+        seen_param_ids.add(pid)
+        uniq_params.append(p)
+
+    opt = torch.optim.AdamW(uniq_params, lr=lr, weight_decay=wd)
 
     # ------------------------------------------------------------------
     # [FIX P0-2] Learning Rate Scheduler: Cosine Annealing with Linear Warm-up

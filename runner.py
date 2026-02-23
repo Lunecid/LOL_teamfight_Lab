@@ -29,6 +29,23 @@ def _parse_model_list(x) -> List[str]:
         return []
 
 
+def _normalize_split_mode(mode: str) -> str:
+    m = str(mode or "").strip().lower()
+    if not m or m == "auto":
+        return "auto"
+    if m in ("match_id", "match", "group", "group_match"):
+        return "group_match"
+    if m in ("multi_patch", "multi", "stratified"):
+        return "multi_patch"
+    if m in ("random", "rand"):
+        return "random"
+    if m in ("patch_forward", "forward_patch", "patch_time"):
+        return "patch_forward"
+    if m == "patch_holdout":
+        return "patch_holdout"
+    return m
+
+
 def build_argparser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser()
     ap.add_argument("--mode", type=str, default=str(cfg.MODE), help="all | build_cache | index | train | report")
@@ -75,7 +92,15 @@ def build_argparser() -> argparse.ArgumentParser:
         "--split_mode",
         type=str,
         default=str(getattr(cfg, "SPLIT_MODE", "auto")),
-        choices=["auto", "match_id", "patch_holdout"],
+        choices=[
+            "auto",
+            "match_id",
+            "group_match",
+            "multi_patch",
+            "random",
+            "patch_forward",
+            "patch_holdout",
+        ],
     )
     ap.add_argument("--train_patches", type=str, default=str(getattr(cfg, "TRAIN_PATCHES", "")))
     ap.add_argument("--test_patches", type=str, default=str(getattr(cfg, "TEST_PATCHES", "")))
@@ -109,6 +134,9 @@ def main() -> None:
     # cfg updates (kept compatible with the old entrypoint)
     cfg.MODE = args.mode
     cfg.MAX_MATCHES = int(args.max_matches) if int(args.max_matches) > 0 else None  # [FIX P1-2] 0 → None
+    args.split_mode = _normalize_split_mode(getattr(args, "split_mode", "auto"))
+    if args.split_mode != "auto":
+        cfg.SPLIT_MODE = args.split_mode
 
     seed = int(args.seed)
     set_seed(seed)
