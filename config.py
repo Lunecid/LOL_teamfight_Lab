@@ -358,8 +358,8 @@ class CFG:
     # =========================================================
     # 7) Fight detection
     # =========================================================
-    FIGHT_DETECT_ALGO: str = "engage_v2"
-    FIGHT_DETECTOR: str = "engage_v2"
+    FIGHT_DETECT_ALGO: str = "event_v1"
+    FIGHT_DETECTOR: str = "event_v1"
 
     REQUIRE_ENGAGED_PER_TEAM: int = 2
     REQUIRE_LCC_TOTAL: int = 4
@@ -375,13 +375,27 @@ class CFG:
     # while label window starts at engage_ts and ends at
     #   - horizon_end_ts (continuous merged fight), if provided
     #   - otherwise engage_ts + horizon.
-    PREDICTION_GAP_MS: int = 10000
+    PREDICTION_GAP_MS: int = 0
     MAX_MERGED_FIGHT_DURATION_MS = 120000
 
     START_OFFSET_MIN: int = 2
     FIGHT_MIN_GAP_MIN: int = 2
     FIGHT_MIN_GAP_MS: int = 120000
     DETECT_STEP_MS: int = 10000
+
+    # Event-driven detection (event_v1):
+    # trigger teamfight candidates from short-window event burst near ts.
+    EVENT_BURST_WINDOW_MS: int = 15000
+    # If candidate anchor is a kill timestamp, move engage start earlier by this amount
+    # when no earlier burst signal exists.
+    EVENT_KILL_PRE_MS: int = 10000
+    EVENT_MIN_EVENTS_IN_WINDOW: int = 2
+    EVENT_SCORE_THRESHOLD: float = 2.5
+    EVENT_WEIGHT_KILL: float = 2.0
+    EVENT_WEIGHT_SPELL: float = 0.35
+    EVENT_WEIGHT_OBJECTIVE: float = 1.5
+    EVENT_WEIGHT_BUILDING: float = 1.5
+    EVENT_WEIGHT_DAMAGE: float = 1.0
 
     CONTINUOUS_FIGHT_MERGE: bool = True
     CONTINUOUS_FIGHT_MAX_GAP_MS: int = 30000
