@@ -33,7 +33,7 @@ from indexing import (
     split_refs_patch_holdout,
 )
 from file_io import dump_fight_refs_csv, ensure_dir, now_tag
-from speed import setup_torch_speed
+from speed import apply_speed_profile, setup_torch_speed
 from utils import save_csv_rows, save_json, set_seed, write_log
 
 
@@ -172,6 +172,23 @@ def _best_variant_for(model_name: str, deep_reports: Dict[str, Any]) -> Optional
     return best
 
 
+def _normalize_split_mode(mode: str) -> str:
+    m = str(mode or "").strip().lower()
+    if not m or m == "auto":
+        m = str(getattr(cfg, "SPLIT_MODE", "multi_patch")).strip().lower()
+    if m in ("match_id", "match", "group", "group_match"):
+        return "group_match"
+    if m in ("random", "rand"):
+        return "random"
+    if m in ("patch_forward", "forward_patch", "patch_time"):
+        return "patch_forward"
+    if m == "patch_holdout":
+        return "patch_holdout"
+    if m in ("multi_patch", "stratified"):
+        return "multi_patch"
+    return "multi_patch"
+
+
 def run(args) -> None:
     """Run the pipeline according to args/cfg.
 
@@ -216,7 +233,8 @@ def run(args) -> None:
         gnn_name = _resolve_alias(gnn_arg)
 
     # Split settings
-    split_mode = str(getattr(args, "split_mode", getattr(cfg, "SPLIT_MODE", "auto")))
+    split_mode = _normalize_split_mode(getattr(args, "split_mode", getattr(cfg, "SPLIT_MODE", "auto")))
+    cfg.SPLIT_MODE = split_mode
     train_patches = parse_csv_str(getattr(args, "train_patches", ""))
     test_patches = parse_csv_str(getattr(args, "test_patches", ""))
     val_patches = parse_csv_str(getattr(args, "val_patches", ""))
@@ -271,6 +289,11 @@ def run(args) -> None:
             write_log(f"[CFG] FUSION_REQUESTS={fusion_requests} fusion_auto_best={fusion_auto_best}", run_log)
         write_log(f"[CFG] RUN_ROOT={run_root}", run_log)
         log_patch_block("CACHE matches", cache_pc, run_log)
+
+        speed_profile = str(getattr(cfg, "SPEED_PROFILE", "none"))
+        if speed_profile.lower() not in ("none", "off", ""):
+            applied = apply_speed_profile(cfg, profile=speed_profile, log_fp=run_log)
+            write_log(f"[CFG] SPEED_PROFILE={speed_profile} applied={applied}", run_log)
 
         setup_torch_speed(cfg, log_fp=run_log)
 
@@ -329,7 +352,7 @@ def run(args) -> None:
                 log_fp=run_log,
             )
         else:
-            tr_refs, va_refs, te_refs, split_info = split_refs(refs)
+            tr_refs, va_refs, te_refs, split_info = split_refs(refs, mode=split_mode, seed=seed)
 
         log_patch_block("FIGHTS(train refs)", count_patches_from_refs(tr_refs), run_log)
         log_patch_block("FIGHTS(val refs)", count_patches_from_refs(va_refs), run_log)

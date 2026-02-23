@@ -526,7 +526,7 @@ def run_single_experiment(
     -------
     ExperimentResult with parsed metrics
     """
-    from config import cfg
+    from config import cfg, RUN_DIR
     from experiment import run as run_experiment
     from utils import set_seed
 
@@ -569,6 +569,16 @@ def run_single_experiment(
     model_list = list(getattr(cfg, "MODEL_LIST", []))
     args.model_list = model_list
 
+    run_dirs_before: set[str] = set()
+    try:
+        run_dirs_before = {
+            d.name
+            for d in RUN_DIR.iterdir()
+            if d.is_dir() and d.name.startswith("run_")
+        }
+    except Exception:
+        run_dirs_before = set()
+
     try:
         run_experiment(args)
     except Exception as e:
@@ -583,11 +593,19 @@ def run_single_experiment(
             train_time_sec=time.time() - t0,
         )
 
-    # Step 5: Parse results from the latest run directory
+    # Step 5: Parse results from the run directory produced by this execution
+    run_dir_hint = _pick_run_dir(
+        run_root=RUN_DIR,
+        seed=seed,
+        before_run_names=run_dirs_before,
+        started_at=t0,
+    )
     result = _parse_latest_run_result(
         experiment_tag=experiment_tag,
         seed=seed,
         hp_config=treatment_overlay,
+        run_dir_hint=run_dir_hint,
+        preferred_models=model_list,
     )
     result.train_time_sec = time.time() - t0
 
@@ -597,10 +615,56 @@ def run_single_experiment(
     return result
 
 
+def _pick_run_dir(
+    run_root: Path,
+    seed: int,
+    before_run_names: Optional[set[str]] = None,
+    started_at: Optional[float] = None,
+) -> Optional[Path]:
+    try:
+        run_dirs = [d for d in run_root.iterdir() if d.is_dir() and d.name.startswith("run_")]
+    except Exception:
+        return None
+
+    if not run_dirs:
+        return None
+
+    def _mtime(p: Path) -> float:
+        try:
+            return float(p.stat().st_mtime)
+        except Exception:
+            return -1.0
+
+    seed_token = f"__seed={int(seed)}"
+
+    def _pick(cands: List[Path]) -> Optional[Path]:
+        if not cands:
+            return None
+        cands = sorted(cands, key=_mtime, reverse=True)
+        by_seed = [d for d in cands if seed_token in d.name]
+        return by_seed[0] if by_seed else cands[0]
+
+    if before_run_names:
+        created = [d for d in run_dirs if d.name not in before_run_names]
+        picked = _pick(created)
+        if picked is not None:
+            return picked
+
+    if started_at is not None:
+        recent = [d for d in run_dirs if _mtime(d) >= float(started_at) - 1.0]
+        picked = _pick(recent)
+        if picked is not None:
+            return picked
+
+    return _pick(run_dirs)
+
+
 def _parse_latest_run_result(
     experiment_tag: str,
     seed: int,
     hp_config: Dict[str, Any],
+    run_dir_hint: Optional[Path] = None,
+    preferred_models: Optional[List[str]] = None,
 ) -> ExperimentResult:
     """가장 최근 run 디렉토리에서 결과를 파싱.
 
@@ -617,38 +681,57 @@ def _parse_latest_run_result(
     )
 
     try:
-        # RUN_DIR 내에서 가장 최근 생성된 run 디렉토리 탐색
-        run_dirs = sorted(
-            [d for d in RUN_DIR.iterdir() if d.is_dir() and d.name.startswith("run_")],
-            key=lambda p: p.stat().st_mtime,
-            reverse=True,
-        )
-
-        if not run_dirs:
+        latest_run = run_dir_hint
+        if latest_run is None:
+            latest_run = _pick_run_dir(run_root=RUN_DIR, seed=seed, before_run_names=None, started_at=None)
+        if latest_run is None:
             print(f"    [WARN] No run directories found in {RUN_DIR}")
             return result
 
-        latest_run = run_dirs[0]
-
-        # deep_reports.json 에서 metrics 파싱
-        reports_path = latest_run / "models" / "deep_reports.json" if (latest_run / "models").exists() else None
+        # deep_reports.json 에서 metrics 파싱 (run root 우선)
+        reports_path = latest_run / "deep_reports.json"
+        if not reports_path.exists() and (latest_run / "models").exists():
+            reports_path = latest_run / "models" / "deep_reports.json"
 
         # 직접 reports 검색
-        if reports_path is None or not reports_path.exists():
+        if not reports_path.exists():
             for p in latest_run.rglob("deep_reports.json"):
                 reports_path = p
                 break
 
-        if reports_path and reports_path.exists():
+        if reports_path.exists():
             with open(reports_path, "r") as f:
                 deep_reports = json.load(f)
 
-            # 첫 번째 성공한 모델의 metrics 추출
+            preferred = {
+                str(m).strip()
+                for m in (preferred_models or [])
+                if str(m).strip() and str(m).strip().lower() != "lgbm"
+            }
+            best_report = None
+            best_score = (-1, -1.0)
+
             for model_key, report in deep_reports.items():
                 if not isinstance(report, dict) or not report.get("ok", False):
                     continue
 
                 metrics = report.get("metrics", {})
+                va_m = metrics.get("val", {})
+                try:
+                    va_auc = float(va_m.get("auc", float("nan")))
+                except Exception:
+                    va_auc = float("nan")
+                va_auc_score = va_auc if np.isfinite(va_auc) else -1.0
+
+                base_model = str(model_key).split("::", 1)[0]
+                priority = 1 if (not preferred or base_model in preferred) else 0
+                score = (priority, va_auc_score)
+                if score > best_score:
+                    best_score = score
+                    best_report = report
+
+            if isinstance(best_report, dict):
+                metrics = best_report.get("metrics", {})
                 tr_m = metrics.get("train", {})
                 va_m = metrics.get("val", {})
                 te_m = metrics.get("test", {})
@@ -665,8 +748,7 @@ def _parse_latest_run_result(
                 result.val_ap = float(va_m.get("ap", -1.0))
                 result.test_ap = float(te_m.get("ap", -1.0))
 
-                result.best_epoch = int(report.get("best_epoch", -1))
-                break
+                result.best_epoch = int(best_report.get("best_epoch", -1))
 
         # ablation_summary.csv fallback
         if result.val_auc < 0:
@@ -675,11 +757,20 @@ def _parse_latest_run_result(
                 import csv
                 with open(csv_path, "r") as f:
                     reader = csv.DictReader(f)
+                    best_row = None
+                    best_va = -1.0
                     for row in reader:
-                        result.val_auc = float(row.get("va_auc", -1.0) or -1.0)
-                        result.test_auc = float(row.get("te_auc", -1.0) or -1.0)
-                        result.train_auc = float(row.get("tr_auc", -1.0) or -1.0)
-                        break
+                        try:
+                            va = float(row.get("va_auc", -1.0) or -1.0)
+                        except Exception:
+                            va = -1.0
+                        if va > best_va:
+                            best_va = va
+                            best_row = row
+                    if best_row is not None:
+                        result.val_auc = float(best_row.get("va_auc", -1.0) or -1.0)
+                        result.test_auc = float(best_row.get("te_auc", -1.0) or -1.0)
+                        result.train_auc = float(best_row.get("tr_auc", -1.0) or -1.0)
 
     except Exception as e:
         print(f"    [WARN] Result parsing failed: {e}")

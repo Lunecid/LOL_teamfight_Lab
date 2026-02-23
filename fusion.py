@@ -114,13 +114,15 @@ def stack_simple(
     log_fp: Optional[Path] = None,
     seed: int = 0,
     meta_method: str = "logreg",
+    fit_on: str = "val",
     y_tr_map: Optional[Dict[str, int]] = None,
     y_va_map: Optional[Dict[str, int]] = None,
     y_te_map: Optional[Dict[str, int]] = None,
 ) -> StackingResult:
-    """Fit meta learner on VAL, evaluate on TRAIN/VAL/TEST.
+    """Fit meta learner on one split, evaluate on TRAIN/VAL/TEST.
 
-    - We fit the meta model on VAL (simple + leakage-safe w.r.t. TEST).
+    - `fit_on="val"`: fit on VAL (legacy simple mode).
+    - `fit_on="train"`: fit on TRAIN, evaluate on VAL/TEST (selection-safe for search).
     - We report TRAIN metrics by *applying* the fitted meta model to TRAIN.
       This resolves the previous issue where greedy tried to read train AUC but
       stack_simple did not compute it.
@@ -166,14 +168,23 @@ def stack_simple(
     Xva = _sanitize_meta_X(Xva, clip=20.0)
     Xte = _sanitize_meta_X(Xte, clip=20.0)
 
-    if Xva.shape[0] < 50 or Xte.shape[0] < 50:
-        _log(f"[FUSION] too few samples (val={Xva.shape[0]}, test={Xte.shape[0]})")
+    fit_on_norm = str(fit_on or "val").strip().lower()
+    if fit_on_norm not in ("val", "train"):
+        _log(f"[FUSION] invalid fit_on={fit_on!r} (expected 'val' or 'train')")
+        return StackingResult(ok=False, meta_method=meta_method, base_names=base_names, metrics={}, out_dir=str(out_dir))
+
+    Xfit, yfit = (Xva, yva) if fit_on_norm == "val" else (Xtr, ytr)
+    if Xfit.shape[0] < 50 or Xva.shape[0] < 50 or Xte.shape[0] < 50:
+        _log(
+            f"[FUSION] too few samples "
+            f"(fit={Xfit.shape[0]}@{fit_on_norm}, val={Xva.shape[0]}, test={Xte.shape[0]})"
+        )
         return StackingResult(ok=False, meta_method=meta_method, base_names=base_names, metrics={}, out_dir=str(out_dir))
 
     try:
         if meta_method != "logreg":
             raise ValueError(f"unsupported meta_method={meta_method} (only logreg supported here)")
-        clf = _fit_logreg(Xva, yva, seed=seed)
+        clf = _fit_logreg(Xfit, yfit, seed=seed)
     except Exception as e:
         _log(f"[FUSION] meta fit failed: {e}")
         return StackingResult(ok=False, meta_method=meta_method, base_names=base_names, metrics={}, out_dir=str(out_dir))
@@ -202,6 +213,7 @@ def stack_simple(
         "ok": True,
         "mode": "simple",
         "meta_method": meta_method,
+        "fit_on": fit_on_norm,
         "base_names": base_names,
         "metrics": {"train": met_tr, "val": met_va, "test": met_te},
         "n": {"train": int(Xtr.shape[0]), "val": int(Xva.shape[0]), "test": int(Xte.shape[0])},
@@ -436,15 +448,13 @@ def stack_greedy_forward(
     0) (Optional) prune highly correlated base columns using VAL keys
     1) pick anchor by best single-model VAL AUC (or use anchor_name)
     2) add one model at a time that maximizes VAL AUC of the stacked meta model
-       (meta is fit on VAL inside stack_simple; we evaluate on VAL for selection)
+       (meta is fit on TRAIN via stack_simple(fit_on="train"), evaluated on VAL)
     3) stop if no improvement (optional)
 
     Notes
     -----
-    - [FIX P0-1] Changed from TRAIN to VAL metric for greedy search to prevent
-      information leakage. This aligns with stack_factorial() which already
-      correctly uses VAL AUC (line 927).
-    - For leakage-free selection, VAL is used for stepwise addition.
+    - Selection metric is VAL AUC, with meta fitted on TRAIN for each candidate
+      combo to avoid fit/eval-on-the-same-split bias during search.
     """
 
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -565,6 +575,7 @@ def stack_greedy_forward(
             log_fp=log_fp,
             seed=local_seed,
             meta_method=meta_method,
+            fit_on="train",
             y_tr_map=y_tr_map,
             y_va_map=y_va_map,
             y_te_map=y_te_map,
@@ -916,6 +927,7 @@ def stack_factorial(
             log_fp=log_fp,
             seed=seed + ci,
             meta_method=meta_method,
+            fit_on="train",
         )
 
         val_auc = float(rep.metrics.get("val", {}).get("auc", float("nan"))) if rep.ok else float("nan")

@@ -158,7 +158,7 @@ def _maybe_dump_fights_for_match(
 
         # Kill anchor
         "VERIFY_KILL_IN_HORIZON": bool(getattr(cfg, "VERIFY_KILL_IN_HORIZON", True)),
-        "USE_KILL_ANCHOR": bool(getattr(cfg, "USE_KILL_ANCHOR", True)),
+        "USE_KILL_ANCHOR": bool(getattr(cfg, "USE_KILL_ANCHOR", False)),
         "KILL_ANCHOR_PRE_SEC": int(getattr(cfg, "KILL_ANCHOR_PRE_SEC", 15)),
         "KILL_ANCHOR_COOLDOWN_SEC": int(getattr(cfg, "KILL_ANCHOR_COOLDOWN_SEC", 30)),
 

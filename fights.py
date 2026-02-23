@@ -172,12 +172,12 @@ class FightDetectorConfig:
     max_merged_fight_duration_ms: int = 120000
 
     # kill-anchor / backtrack
-    use_kill_anchor: bool = True
+    # Project rule: start-point must be engage-based, not kill-based.
+    use_kill_anchor: bool = False
     kill_anchor_pre_sec: int = 15
     kill_anchor_cooldown_sec: int = 30
-    # [P0-LEAK] MUST be False â€” True causes selection bias via future-kill gating.
-    #   P(sample | kill âˆˆ [tâ‚€, tâ‚€+H]) â‰  P(sample)
-    verify_kill_in_horizon: bool = False
+    # Fight validity check: require at least one kill in [engage_ts, engage_ts + horizon).
+    verify_kill_in_horizon: bool = True
     use_backtrack: bool = True
     # [P3-BT] 60s â†’ 30s: reduces noise, Phase 1 already covers long-range signals
     backtrack_max_ms: int = 30000
@@ -224,12 +224,14 @@ class FightDetectorConfig:
             errors.append(
                 f"backtrack_min_ms ({self.backtrack_min_ms}) must be <= backtrack_max_ms ({self.backtrack_max_ms})"
             )
-        # [P0-2 FIX] verify_kill_in_horizon=True는 데이터 누수를 유발하므로 강제 차단
-        if self.verify_kill_in_horizon:
-            errors.append(
-                "verify_kill_in_horizon=True is permanently disabled "
-                "(causes label-conditioned selection bias: P(sample|kill∈[t₀,t₀+H]) ≠ P(sample))"
+        # Project rule: fight start-point must not be kill-anchored.
+        # Keep other config knobs intact by forcing this one off instead of failing whole config load.
+        if self.use_kill_anchor:
+            logger.warning(
+                "USE_KILL_ANCHOR=True is not allowed; forcing False. "
+                "fight start-point remains engage-detected."
             )
+            self.use_kill_anchor = False
         if errors:
             raise ConfigurationError("Config validation failed:\n" + "\n".join(errors))
 
@@ -237,36 +239,12 @@ class FightDetectorConfig:
     def from_cfg(cls, cfg_obj: Any) -> "FightDetectorConfig":
         """cfg 객체로부터 설정 생성 (fallback은 CFG 기본값에 정렬).
 
-        [P0-2 FIX] VERIFY_KILL_IN_HORIZON=True → fail-fast 예외 발생.
-
-        수학적 근거:
-            VERIFY_KILL_IN_HORIZON=True이면 데이터 구성 시:
-
-                D = {(x_i, y_i) | ∃ kill ∈ [t₀⁽ⁱ⁾, t₀⁽ⁱ⁾ + H]}
-
-            이는 라벨 y와 상관된 조건부 샘플링(selection bias)을 유발:
-
-                P_train(x, y) = P(x, y | selected=1) ≠ P(x, y)
-
-            결과:
-                - AUC 과대추정 (킬이 없는 어려운 전투가 학습에서 제외)
-                - 배포 환경에서의 일반화 성능 저하
-
-            이 옵션은 설계상 "절대 켜면 안 되는" 플래그이므로
-            fail-fast 정책을 적용하여 실수로 활성화되는 것을 원천 차단.
+        Project rule:
+          - fight start-point: engage detection only
+          - fight validity: require at least one kill in horizon
         """
         if cfg_obj is None:
             return cls()
-
-        # [P0-2 FAIL-FAST] 절대 켜면 안 되는 옵션에 대한 강제 차단
-        if bool(getattr(cfg_obj, "VERIFY_KILL_IN_HORIZON", False)):
-            raise ConfigurationError(
-                "[P0-LEAK] VERIFY_KILL_IN_HORIZON=True is permanently disabled.\n"
-                "  Reason: Future-kill gating causes label-conditioned selection bias.\n"
-                "  Math:   P(sample | kill ∈ [t₀, t₀+H]) ≠ P(sample)\n"
-                "  Impact: AUC over-estimation, poor generalisation.\n"
-                "  Fix:    Set VERIFY_KILL_IN_HORIZON = False in your config."
-            )
 
         return cls(
             standoff_radius=float(getattr(cfg_obj, "STANDOFF_RADIUS", 1800.0)),
@@ -282,12 +260,11 @@ class FightDetectorConfig:
             continuous_fight_merge=bool(getattr(cfg_obj, "CONTINUOUS_FIGHT_MERGE", True)),
             continuous_fight_max_gap_ms=int(getattr(cfg_obj, "CONTINUOUS_FIGHT_MAX_GAP_MS", 30000)),
             continuous_fight_merge_radius=float(getattr(cfg_obj, "CONTINUOUS_FIGHT_MERGE_RADIUS", 2000.0)),
-            max_merged_fight_duration_ms=int(getattr(cfg_obj, "MAX_MERGED_FIGHT_DURATION_MS", 300000)),
-            use_kill_anchor=bool(getattr(cfg_obj, "USE_KILL_ANCHOR", True)),
+            max_merged_fight_duration_ms=int(getattr(cfg_obj, "MAX_MERGED_FIGHT_DURATION_MS", 120000)),
+            use_kill_anchor=bool(getattr(cfg_obj, "USE_KILL_ANCHOR", False)),
             kill_anchor_pre_sec=int(getattr(cfg_obj, "KILL_ANCHOR_PRE_SEC", 15)),
             kill_anchor_cooldown_sec=int(getattr(cfg_obj, "KILL_ANCHOR_COOLDOWN_SEC", 30)),
-            # [P0-LEAK FIX] fallback MUST be False (was True â†’ data leakage)
-            verify_kill_in_horizon=bool(getattr(cfg_obj, "VERIFY_KILL_IN_HORIZON", False)),
+            verify_kill_in_horizon=bool(getattr(cfg_obj, "VERIFY_KILL_IN_HORIZON", True)),
             use_backtrack=bool(getattr(cfg_obj, "USE_BACKTRACK", True)),
             backtrack_max_ms=int(getattr(cfg_obj, "BACKTRACK_MAX_MS", 30000)),
             backtrack_min_ms=int(getattr(cfg_obj, "BACKTRACK_MIN_MS", 10000)),
@@ -648,11 +625,12 @@ def _extract_kill_events(events: List[dict]) -> List[dict]:
     return kills
 
 
-def _first_kill_in_window(kill_ts: np.ndarray, t0: int, t1: int) -> Optional[int]:
+def _first_kill_in_window(kill_ts: np.ndarray, t0: int, t1_exclusive: int) -> Optional[int]:
+    """Return first kill in half-open window [t0, t1_exclusive)."""
     if kill_ts.size == 0:
         return None
     i = int(np.searchsorted(kill_ts, t0, side="left"))
-    if i < kill_ts.size and int(kill_ts[i]) <= t1:
+    if i < kill_ts.size and int(kill_ts[i]) < t1_exclusive:
         return int(kill_ts[i])
     return None
 
@@ -1087,7 +1065,8 @@ def compute_fight_outcome(fight: dict, kill_events: List[dict], tm: Dict[int, in
     engage_ts = int(fight["engage_ts"])
     horizon_end = int(engage_ts + _get_horizon_ms())
 
-    kills_in_fight = [k for k in kill_events if engage_ts <= int(k["timestamp"]) <= horizon_end]
+    # Keep horizon semantics consistent with pipeline labels: [engage_ts, engage_ts + H)
+    kills_in_fight = [k for k in kill_events if engage_ts <= int(k["timestamp"]) < horizon_end]
 
     blue_kills = red_kills = blue_deaths = red_deaths = blue_assists = red_assists = 0
 
@@ -1142,7 +1121,7 @@ def compute_player_engagement(
 
     Td = len(dense_ts)
     start_idx = int(np.clip(np.searchsorted(dense_ts, engage_ts, side="left"), 0, Td - 1))
-    end_idx = int(np.clip(np.searchsorted(dense_ts, horizon_end, side="right"), start_idx + 1, Td))
+    end_idx = int(np.clip(np.searchsorted(dense_ts, horizon_end, side="left"), start_idx + 1, Td))
 
     end_idx = min(end_idx, len(dists))
     n_frames = max(1, end_idx - start_idx)
@@ -1228,7 +1207,7 @@ def generate_fight_visualization(
 
     Td = len(dense_ts)
     start_idx = int(np.clip(np.searchsorted(dense_ts, engage_ts, side="left"), 0, Td - 1))
-    end_idx = int(np.clip(np.searchsorted(dense_ts, horizon_end, side="right"), start_idx + 1, Td))
+    end_idx = int(np.clip(np.searchsorted(dense_ts, horizon_end, side="left"), start_idx + 1, Td))
 
     trajectory: List[dict] = []
     for d_idx in range(start_idx, end_idx, sample_interval):
@@ -1266,7 +1245,7 @@ def generate_fight_visualization(
             "position": {"x": kill["position"][0], "y": kill["position"][1]} if kill.get("position") else None,
         }
         for kill in kill_events
-        if engage_ts <= int(kill["timestamp"]) <= horizon_end
+        if engage_ts <= int(kill["timestamp"]) < horizon_end
     ]
 
     return FightVisualization(
@@ -1591,34 +1570,12 @@ def detect_fights_engage_v2(cache: Dict[str, Any], tm: Dict[int, int], config: O
     for d_idx in cand_idx.tolist():
         _try_add_candidate(int(dense_ts[d_idx]), anchor=False, backtracked=False)
 
-    # Phase 2: Kill Anchor
-    if bool(config.use_kill_anchor) and kill_ts.size > 0:
-        last_anchor_ts = -10**18
-        cd_ms = int(config.kill_anchor_cooldown_sec) * 1000
-
-        for kt in kill_ts.tolist():
-            kt = int(kt)
-            if kt - last_anchor_ts < cd_ms:
-                continue
-
-            if bool(config.use_backtrack):
-                engage_ts_val, reliable = backtrack_engage_ts(
-                    dists,
-                    dense_ts,
-                    prox_pairs,
-                    kt,
-                    R=R,
-                    min_pairs=int(config.backtrack_min_pairs),
-                    max_lookback_ms=int(config.backtrack_max_ms),
-                    min_lookback_ms=int(config.backtrack_min_ms),
-                )
-                _try_add_candidate(engage_ts_val, anchor=True, backtracked=True, backtrack_reliable=reliable)
-            else:
-                pre_ms = int(config.kill_anchor_pre_sec) * 1000
-                engage_ts_val = max(int(dense_ts[0]), kt - pre_ms)
-                _try_add_candidate(engage_ts_val, anchor=True, backtracked=False)
-
-            last_anchor_ts = kt
+    # Phase 2: Kill-anchor start-points are intentionally disabled.
+    if bool(config.use_kill_anchor):
+        logger.warning(
+            "USE_KILL_ANCHOR is ignored by design: "
+            "fight start-point must be engage-detected, not kill-anchored."
+        )
 
     # 후보가 비어있으면 진단 후 종료
     if not candidates_out:

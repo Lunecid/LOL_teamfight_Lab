@@ -275,7 +275,7 @@ class CFG:
     STANDOFF_NO_KILL_PREV_MIN: bool = True
     REQUIRE_SIGNAL_IN_HORIZON: bool = True
 
-    USE_KILL_ANCHOR: bool = True
+    USE_KILL_ANCHOR: bool = False
     KILL_ANCHOR_PRE_SEC: int = 15
     KILL_ANCHOR_COOLDOWN_SEC: int = 30
     DUMP_FIGHTS: bool = True

@@ -67,6 +67,35 @@ def _safe_auc_ap(y_true: np.ndarray, y_prob: np.ndarray) -> Dict[str, float]:
         return {"auc": -1.0, "ap": -1.0}
 
 
+def _resolve_amp_dtype() -> torch.dtype:
+    """Resolve CUDA AMP dtype from config.
+
+    Supported values:
+      - auto      : prefer bf16 when supported, else fp16
+      - bfloat16  : force bf16
+      - float16   : force fp16
+    """
+    pref = str(getattr(cfg, "AMP_DTYPE", "auto")).strip().lower()
+    if pref in ("bfloat16", "bf16"):
+        return torch.bfloat16
+    if pref in ("float16", "fp16", "half"):
+        return torch.float16
+
+    # auto
+    try:
+        if torch.cuda.is_available() and bool(torch.cuda.is_bf16_supported()):
+            return torch.bfloat16
+    except Exception:
+        pass
+    return torch.float16
+
+
+def _autocast_ctx(use_amp: bool, device: torch.device):
+    if use_amp and device.type == "cuda":
+        return torch.autocast(device_type="cuda", dtype=_resolve_amp_dtype())
+    return contextlib.nullcontext()
+
+
 def _eval_loop(
         model: nn.Module,
         loader: DataLoader,
@@ -78,12 +107,6 @@ def _eval_loop(
     ys: List[np.ndarray] = []
     ls: List[np.ndarray] = []
 
-    autocast_ctx = (
-        torch.autocast(device_type="cuda", dtype=torch.float16)
-        if (use_amp and device.type == "cuda")
-        else contextlib.nullcontext()
-    )
-
     with torch.inference_mode():
         for batch in loader:
             if batch is None:
@@ -94,7 +117,7 @@ def _eval_loop(
             if y is None:
                 continue
 
-            with autocast_ctx:
+            with _autocast_ctx(use_amp, device):
                 logit = model(batch)
 
             y_np = y.detach().float().cpu().numpy().reshape(-1)
@@ -163,18 +186,12 @@ def _predict_logit_map_for_refs(
     model.eval()
     out: Dict[str, float] = {}
 
-    autocast_ctx = (
-        torch.autocast(device_type="cuda", dtype=torch.float16)
-        if (use_amp and device.type == "cuda")
-        else contextlib.nullcontext()
-    )
-
     for batch in loader:
         if batch is None:
             continue
         batch = _to_device(batch, device)
 
-        with autocast_ctx:
+        with _autocast_ctx(use_amp, device):
             logit = model(batch)
 
         logit_np = logit.detach().float().cpu().numpy().reshape(-1)
@@ -237,19 +254,13 @@ def _predict_logit_and_label_maps_for_loader(
     logit_map: Dict[str, float] = {}
     label_map: Dict[str, int] = {}
 
-    autocast_ctx = (
-        torch.autocast(device_type="cuda", dtype=torch.float16)
-        if (use_amp and device.type == "cuda")
-        else contextlib.nullcontext()
-    )
-
     for batch in loader:
         if batch is None:
             continue
         batch = _to_device(batch, device)
 
         y = batch.get("y", None)
-        with autocast_ctx:
+        with _autocast_ctx(use_amp, device):
             logit = model(batch)
 
         logit_np = logit.detach().float().cpu().numpy().reshape(-1)
@@ -1358,6 +1369,11 @@ def train_deep_model(
     """
     ensure_dir(out_dir)
     set_seed(int(seed))
+    try:
+        from models import reset_model_singletons
+        reset_model_singletons()
+    except Exception as e:
+        write_log(f"[DEEP][WARN] reset_model_singletons failed (ignored): {e}", log_fp)
 
     # -----------------------------------------------------
     # Speed knobs (safe defaults)
@@ -1501,14 +1517,37 @@ def train_deep_model(
     if bool(getattr(cfg, "TORCH_COMPILE", False)):
         try:
             if hasattr(torch, "compile"):
-                model = torch.compile(model)  # type: ignore
-                write_log("[DEEP] torch.compile enabled", log_fp)
+                compile_kwargs: Dict[str, Any] = {}
+                compile_mode = str(getattr(cfg, "TORCH_COMPILE_MODE", "default") or "default").strip()
+                if compile_mode:
+                    compile_kwargs["mode"] = compile_mode
+                if bool(getattr(cfg, "TORCH_COMPILE_DYNAMIC", False)):
+                    compile_kwargs["dynamic"] = True
+                model = torch.compile(model, **compile_kwargs)  # type: ignore
+                write_log(
+                    f"[DEEP] torch.compile enabled mode={compile_kwargs.get('mode','default')} "
+                    f"dynamic={bool(compile_kwargs.get('dynamic', False))}",
+                    log_fp,
+                )
         except Exception as e:
             write_log(f"[DEEP] torch.compile failed (ignored): {e}", log_fp)
 
     use_amp = bool(getattr(cfg, "AMP", False)) and (device.type == "cuda")
+    amp_dtype = _resolve_amp_dtype() if use_amp else torch.float32
+    use_grad_scaler = bool(use_amp and (amp_dtype == torch.float16))
     # [P4-COMPAT] torch.cuda.amp.GradScaler deprecated in PyTorch 2.x
-    scaler_amp = torch.amp.GradScaler("cuda", enabled=use_amp)
+    scaler_amp = torch.amp.GradScaler("cuda", enabled=use_grad_scaler)
+
+    # Materialize lazy global modules before optimizer creation.
+    if bool(getattr(cfg, "USE_ROLE_AWARE_ADJ", False)):
+        try:
+            model.eval()
+            with torch.no_grad():
+                _ = model(_to_device(b0, device))
+        except Exception as e:
+            write_log(f"[DEEP][WARN] role-aware warmup failed: {e}", log_fp)
+        finally:
+            model.train()
 
     lr = float(getattr(cfg, "LR", 1e-3))
     wd = float(getattr(cfg, "WEIGHT_DECAY", 1e-5))
@@ -1516,12 +1555,27 @@ def train_deep_model(
 
     # T5: Role-Aware Adjacency — global module의 파라미터도 optimizer에 등록
     if bool(getattr(cfg, "USE_ROLE_AWARE_ADJ", False)):
-        from models import _role_adj_module
-        if _role_adj_module is not None:
-            params += list(_role_adj_module.parameters())
-            write_log(f"[DEEP] Added RoleAwareAdjacency R(5×5) to optimizer", log_fp)
+        try:
+            from models import _role_adj_module
+            if _role_adj_module is not None:
+                params += list(_role_adj_module.parameters())
+                write_log(f"[DEEP] Added RoleAwareAdjacency R(5×5) to optimizer", log_fp)
+            else:
+                write_log("[DEEP][WARN] USE_ROLE_AWARE_ADJ=True but role module not materialized.", log_fp)
+        except Exception as e:
+            write_log(f"[DEEP][WARN] Failed to attach role-aware adjacency params: {e}", log_fp)
 
-    opt = torch.optim.AdamW(params, lr=lr, weight_decay=wd)
+    # optimizer does not need duplicated parameter references
+    uniq_params = []
+    seen_param_ids = set()
+    for p in params:
+        pid = id(p)
+        if pid in seen_param_ids:
+            continue
+        seen_param_ids.add(pid)
+        uniq_params.append(p)
+
+    opt = torch.optim.AdamW(uniq_params, lr=lr, weight_decay=wd)
 
     # ------------------------------------------------------------------
     # [FIX P0-2] Learning Rate Scheduler: Cosine Annealing with Linear Warm-up
@@ -1594,14 +1648,9 @@ def train_deep_model(
 
     write_log(
         f"[DEEP] Train {model_name} (fs={feature_set}, variant={variant_tag}) "
-        f"Ntr={len(ds_tr)} Nva={len(ds_va)} AMP={use_amp} device={device.type}",
+        f"Ntr={len(ds_tr)} Nva={len(ds_va)} AMP={use_amp} amp_dtype={str(amp_dtype).replace('torch.', '')} "
+        f"grad_scaler={use_grad_scaler} device={device.type}",
         log_fp,
-    )
-
-    autocast_ctx = (
-        torch.autocast(device_type="cuda", dtype=torch.float16)
-        if (use_amp and device.type == "cuda")
-        else contextlib.nullcontext()
     )
 
     for epoch in range(1, max_epochs + 1):
@@ -1620,14 +1669,14 @@ def train_deep_model(
 
             opt.zero_grad(set_to_none=True)
 
-            with autocast_ctx:
+            with _autocast_ctx(use_amp, device):
                 logit = model(batch)
                 y_f = y.float().view_as(logit)
                 if label_eps > 0:
                     y_f = y_f * (1.0 - label_eps) + label_eps * 0.5  # T7
                 loss = crit(logit, y_f)
 
-            if use_amp:
+            if use_grad_scaler:
                 scaler_amp.scale(loss).backward()
                 scaler_amp.unscale_(opt)
                 if clip_norm > 0:
