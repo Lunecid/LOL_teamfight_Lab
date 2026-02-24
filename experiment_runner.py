@@ -546,10 +546,32 @@ def run_single_experiment(
     # Step 1a: Apply GPU speed overlay (RAM cache, batch scaling, compile)
     # T_total = M × S × E × (T_io + T_compute + T_eval)
     # Speed overlay targets each term: T_io→0, T_compute↓, E↓
-    _use_speed = bool(os.environ.get("LOL_SPEED_OVERLAY", "1") != "0")
+    _speed_env = str(os.environ.get("LOL_SPEED_OVERLAY", "1")).strip().lower()
+    _use_speed = _speed_env not in ("0", "false", "off", "no")
     _vram_gb = float(os.environ.get("LOL_VRAM_GB", "24.0"))
+    _speed_profile_raw = str(os.environ.get("LOL_SPEED_PROFILE", "auto" if _use_speed else "none")).strip().lower()
+    _speed_profile = "none" if _speed_profile_raw in ("", "off") else _speed_profile_raw
     if _use_speed:
         apply_speed_overlay(cfg, vram_gb=_vram_gb)
+        cfg.SPEED_PROFILE = _speed_profile
+        try:
+            from train.speed import apply_speed_profile as _apply_runtime_speed_profile
+            _applied = "none" if _speed_profile == "none" else _apply_runtime_speed_profile(cfg, profile=_speed_profile)
+        except Exception:
+            _applied = "none"
+        print(
+            "    [SPEED] enabled "
+            f"(vram={_vram_gb:.1f}GB, profile_req={_speed_profile}, profile_applied={_applied}, "
+            f"batch={getattr(cfg, 'BATCH_SIZE', '?')}, "
+            f"amp={getattr(cfg, 'AMP', False)}, "
+            f"compile={getattr(cfg, 'TORCH_COMPILE', False)}, "
+            f"cache_train={getattr(cfg, 'CACHE_TRAIN_SAMPLES_IN_RAM', False)})"
+        )
+        if _speed_profile != "none" and _applied == "none":
+            print("    [SPEED] runtime profile fallback: overlay-only (likely CUDA unavailable for auto profile)")
+    else:
+        cfg.SPEED_PROFILE = "none"
+        print("    [SPEED] disabled")
 
     # Step 1b: Reset module-level singletons to prevent parameter leakage
     # θ_singleton ← None → forces lazy re-initialization with fresh parameters
@@ -1433,6 +1455,14 @@ Examples:
                         help="Disable GPU speed overlay")
     parser.add_argument("--vram", type=float, default=24.0,
                         help="GPU VRAM in GB for auto batch sizing (default: 24.0)")
+    parser.add_argument(
+        "--speed-profile", "--speed_profile", "--speed-mode", "--speed_mode",
+        dest="speed_profile",
+        type=str,
+        default="auto",
+        choices=["none", "auto", "rtx50", "rtx5080", "aggressive"],
+        help="Runtime speed profile to combine with overlay (default: auto)",
+    )
 
     return parser
 
@@ -1502,9 +1532,11 @@ def main():
     if args.speed:
         os.environ["LOL_SPEED_OVERLAY"] = "1"
         os.environ["LOL_VRAM_GB"] = str(args.vram)
-        print(f"Speed overlay: ENABLED (VRAM={args.vram:.1f} GB)")
+        os.environ["LOL_SPEED_PROFILE"] = str(args.speed_profile)
+        print(f"Speed overlay: ENABLED (VRAM={args.vram:.1f} GB, profile={args.speed_profile})")
     else:
         os.environ["LOL_SPEED_OVERLAY"] = "0"
+        os.environ["LOL_SPEED_PROFILE"] = "none"
         print(f"Speed overlay: DISABLED")
 
     print(f"{'=' * 70}\n")
