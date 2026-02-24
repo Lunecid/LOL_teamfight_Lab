@@ -67,7 +67,7 @@ def percentile_safe(x: np.ndarray, q: float) -> float:
         return 0.0
     try:
         return float(np.percentile(x, q))
-    except Exception:
+    except (IndexError, ValueError) as e:
         return float(np.sort(x)[int(np.clip(round((q / 100.0) * (len(x) - 1)), 0, len(x) - 1))])
 
 

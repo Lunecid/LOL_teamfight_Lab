@@ -1,6 +1,7 @@
 # lol_teamfight/deep/models_spatiotemporal_v2.py
 from __future__ import annotations
 
+import logging
 import math
 import time
 import contextlib
@@ -14,6 +15,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
+
+logger = logging.getLogger(__name__)
 
 # =========================================================
 # Robust imports (project-safe)
@@ -35,7 +38,7 @@ from train.models import build_model  # type: ignore  # [P4-IMPORT]
 # Ã¢Å“â€¦ Dataset / collate import ÃªÂ²Â½Ã«Â¡Å“Ã«Å â€ Ã«â€žÂ¤ Ã­â€â€žÃ«Â¡Å“Ã¬Â ÂÃ­Å Â¸Ã¬â€”Â Ã«Â§Å¾ÃªÂ²Å’ Ã¬Â¡Â°Ã¬Â â€¢
 try:
     from data_loader.dataset import InMemoryFightDataset, collate_batch  # type: ignore
-except Exception:
+except ImportError:
     # fallback (Ã¬ËœË†Ã¬Â â€ž ÃªÂ²Â½Ã«Â¡Å“ÃªÂ°â‚¬ Ã¬â€šÂ´Ã¬â€¢â€žÃ¬Å¾Ë†Ã¬Ââ€ž Ã«â€¢Å’)
     from data.dataset import InMemoryFightDataset, collate_batch  # type: ignore
 
@@ -60,7 +63,8 @@ def _safe_auc_ap(y_true: np.ndarray, y_prob: np.ndarray) -> Dict[str, float]:
             "auc": float(roc_auc_score(y_true, y_prob)),
             "ap": float(average_precision_score(y_true, y_prob)),
         }
-    except Exception:
+    except Exception as e:
+        logger.debug("AUC/AP computation failed: %s", e)
         return {"auc": -1.0, "ap": -1.0}
 
 
@@ -82,8 +86,8 @@ def _resolve_amp_dtype() -> torch.dtype:
     try:
         if torch.cuda.is_available() and bool(torch.cuda.is_bf16_supported()):
             return torch.bfloat16
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("bf16 support check failed: %s", e)
     return torch.float16
 
 

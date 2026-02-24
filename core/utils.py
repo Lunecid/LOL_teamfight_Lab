@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import csv
 import json
+import logging
 import math
 import random
 from dataclasses import dataclass
@@ -11,6 +12,8 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import numpy as np
 import torch
+
+_write_log_logger = logging.getLogger("lol_teamfight")
 
 
 def _pairwise_dists_xy(xy_t: np.ndarray, b_idx: np.ndarray, r_idx: np.ndarray) -> np.ndarray:
@@ -54,11 +57,20 @@ def set_seed(seed: int):
 # Logging / IO
 # =========================================================
 def write_log(msg: str, fp: Optional[Path] = None):
-    print(msg)
+    _write_log_logger.info(msg)
     if fp is not None:
         fp.parent.mkdir(parents=True, exist_ok=True)
         with open(fp, "a", encoding="utf-8") as f:
             f.write(str(msg) + "\n")
+
+
+def setup_logging(level: int = logging.INFO):
+    """Configure root logging for the project."""
+    logging.basicConfig(
+        level=level,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
 
 
 def read_json(path: Path) -> dict:
@@ -261,6 +273,67 @@ def average_precision(y_true: np.ndarray, y_prob: np.ndarray) -> float:
     return float(ap)
 
 
+def brier_score(y_true: np.ndarray, y_prob: np.ndarray) -> float:
+    """Brier score: mean squared error of probabilistic predictions.
+
+    BS = (1/N) * sum((p_i - y_i)^2)
+
+    Lower is better. Range [0, 1].
+    """
+    y_true = y_true.astype(float)
+    y_prob = y_prob.astype(float)
+    return float(np.mean((y_prob - y_true) ** 2))
+
+
+def recall_at_precision(y_true: np.ndarray, y_prob: np.ndarray, min_precision: float = 0.95) -> float:
+    """Compute recall at a given minimum precision threshold.
+
+    Finds the highest recall achievable while maintaining precision >= min_precision.
+    Useful for high-stakes predictions where false positives are costly.
+    """
+    y_true = y_true.astype(int)
+    y_prob = y_prob.astype(float)
+    if y_true.sum() == 0:
+        return float("nan")
+
+    order = np.argsort(-y_prob)
+    y_sorted = y_true[order]
+    tp_cum = np.cumsum(y_sorted == 1).astype(float)
+    fp_cum = np.cumsum(y_sorted == 0).astype(float)
+    prec_at_k = tp_cum / (tp_cum + fp_cum)
+
+    total_pos = float(y_true.sum())
+    recall_at_k = tp_cum / total_pos
+
+    # Find the maximum recall where precision >= min_precision
+    valid = prec_at_k >= min_precision
+    if not valid.any():
+        return 0.0
+    return float(recall_at_k[valid].max())
+
+
+def calibration_curve(y_true: np.ndarray, y_prob: np.ndarray, n_bins: int = 10) -> Tuple[np.ndarray, np.ndarray]:
+    """Compute calibration curve (reliability diagram data).
+
+    Returns (mean_predicted, fraction_positive) for each bin.
+    """
+    bin_edges = np.linspace(0, 1, n_bins + 1)
+    mean_pred = []
+    frac_pos = []
+
+    for i in range(n_bins):
+        if i == n_bins - 1:
+            mask = (y_prob >= bin_edges[i]) & (y_prob <= bin_edges[i + 1])
+        else:
+            mask = (y_prob >= bin_edges[i]) & (y_prob < bin_edges[i + 1])
+        if mask.sum() == 0:
+            continue
+        mean_pred.append(float(y_prob[mask].mean()))
+        frac_pos.append(float(y_true[mask].mean()))
+
+    return np.array(mean_pred), np.array(frac_pos)
+
+
 def metrics_from_probs(y_true: np.ndarray, y_prob: np.ndarray, threshold: float = 0.5) -> Dict[str, float]:
     cm = confusion_from_probs(y_true, y_prob, threshold=threshold)
     tp, tn, fp, fn = cm["tp"], cm["tn"], cm["fp"], cm["fn"]
@@ -277,6 +350,7 @@ def metrics_from_probs(y_true: np.ndarray, y_prob: np.ndarray, threshold: float 
         "f1": float(f1),
         "auc": float(auc),
         "ap": float(ap),
+        "brier": brier_score(y_true, y_prob),
         "tp": float(tp),
         "tn": float(tn),
         "fp": float(fp),
@@ -418,6 +492,37 @@ class SeqScaler:
                 extra_ts = (extra_ts - mean) / std
 
         return node_ts, extra_ts
+
+    def state_dict(self) -> Dict[str, Any]:
+        """Serialize scaler state for checkpoint persistence."""
+        state = {
+            "scaler_type": self.scaler_type,
+            "exclude_prefixes": self.exclude_prefixes,
+            "fitted": self.fitted,
+        }
+        if self.node_mean is not None:
+            state["node_mean"] = self.node_mean.cpu()
+        if self.node_std is not None:
+            state["node_std"] = self.node_std.cpu()
+        if self.extra_mean is not None:
+            state["extra_mean"] = self.extra_mean.cpu()
+        if self.extra_std is not None:
+            state["extra_std"] = self.extra_std.cpu()
+        return state
+
+    @classmethod
+    def from_state_dict(cls, state: Dict[str, Any]) -> "SeqScaler":
+        """Restore scaler from checkpoint state dict."""
+        scaler = cls(
+            scaler_type=state.get("scaler_type", "standard"),
+            exclude_prefixes=tuple(state.get("exclude_prefixes", ("x_", "y_", "pos_", "dist_", "angle_"))),
+        )
+        scaler.fitted = state.get("fitted", False)
+        scaler.node_mean = state.get("node_mean", None)
+        scaler.node_std = state.get("node_std", None)
+        scaler.extra_mean = state.get("extra_mean", None)
+        scaler.extra_std = state.get("extra_std", None)
+        return scaler
 
 
 # =========================================================

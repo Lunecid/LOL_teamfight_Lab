@@ -492,6 +492,63 @@ def split_refs_random(
     return tr, va, te, info
 
 
+def validate_split_label_balance(
+    tr_refs: List[FightRef],
+    va_refs: List[FightRef],
+    te_refs: List[FightRef],
+    label_fn=None,
+    max_drift: float = 0.10,
+) -> Dict[str, Any]:
+    """Validate that label distribution does not drift excessively across splits.
+
+    Checks that |pos_rate_train - pos_rate_test| < max_drift to catch
+    cases where random splitting creates unbalanced label distributions.
+
+    Returns a dict with per-split stats and a 'balanced' boolean.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    def _pos_rate(refs):
+        if not refs:
+            return float("nan")
+        # If label_fn provided, use it; otherwise return nan
+        if label_fn is not None:
+            labels = [label_fn(r) for r in refs]
+            labels = [l for l in labels if l is not None and l >= 0]
+            if not labels:
+                return float("nan")
+            return float(np.mean(labels))
+        return float("nan")
+
+    rates = {
+        "train_pos_rate": _pos_rate(tr_refs),
+        "val_pos_rate": _pos_rate(va_refs),
+        "test_pos_rate": _pos_rate(te_refs),
+        "train_n": len(tr_refs),
+        "val_n": len(va_refs),
+        "test_n": len(te_refs),
+    }
+
+    tr_rate = rates["train_pos_rate"]
+    te_rate = rates["test_pos_rate"]
+
+    if not (np.isnan(tr_rate) or np.isnan(te_rate)):
+        drift = abs(tr_rate - te_rate)
+        rates["label_drift"] = float(drift)
+        rates["balanced"] = drift < max_drift
+        if drift >= max_drift:
+            logger.warning(
+                "Label drift between train (%.3f) and test (%.3f) exceeds threshold %.2f",
+                tr_rate, te_rate, max_drift,
+            )
+    else:
+        rates["label_drift"] = float("nan")
+        rates["balanced"] = True  # can't check without labels
+
+    return rates
+
+
 def split_refs(
         refs: List[FightRef],
         mode: Optional[str] = None,

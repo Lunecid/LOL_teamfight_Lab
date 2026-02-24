@@ -326,13 +326,7 @@ class FightDetectorConfig:
 # ============================================================================
 
 
-def safe_float(v: Any, default: float = 0.0) -> float:
-    if v is None:
-        return default
-    try:
-        return float(v)
-    except (TypeError, ValueError):
-        return default
+from core.common import safe_float
 
 
 def safe_int(v: Any, default: int = 0) -> int:

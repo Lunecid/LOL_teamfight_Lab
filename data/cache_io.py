@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import time
 from pathlib import Path
 from core.common import Any, Dict, List, Optional, Tuple, np
 from core.config import CACHE_DIR, F_GLOBAL, F_NODE, cfg
 from core.utils import read_json, write_log
+
+logger = logging.getLogger(__name__)
 
 # [P1-2 FIX] _RAM_CACHE_ORDER 제거됨 — OrderedDict 단일 구조로 LRU 통합
 from data.ram_cache import _ram_cache_enabled, _ram_get, _ram_put, _RAM_CACHE
@@ -292,7 +295,8 @@ def load_match_cache(match_id: str) -> Optional[Dict[str, Any]]:
 
         return pack
 
-    except Exception:
+    except Exception as e:
+        logger.debug("Failed to load cache for match %s: %s", match_id, e)
         return None
 
 

@@ -43,6 +43,49 @@ import numpy as np
 from train.speed_config import apply_speed_overlay
 
 
+def bootstrap_ci(
+    values: List[float],
+    n_bootstrap: int = 1000,
+    alpha: float = 0.05,
+    seed: int = 42,
+) -> Tuple[float, float, float]:
+    """Compute bootstrap confidence interval for a list of metric values.
+
+    Returns (mean, ci_low, ci_high) using percentile method.
+
+    Parameters
+    ----------
+    values : list of float
+        Observed metric values (e.g., AUC from different seeds).
+    n_bootstrap : int
+        Number of bootstrap resamples.
+    alpha : float
+        Significance level (0.05 = 95% CI).
+    seed : int
+        Random seed for reproducibility.
+
+    Returns
+    -------
+    (mean, ci_low, ci_high) : tuple of float
+    """
+    arr = np.array(values, dtype=np.float64)
+    n = len(arr)
+    if n <= 1:
+        m = float(arr.mean()) if n == 1 else 0.0
+        return m, m, m
+
+    rng = np.random.RandomState(seed)
+    boot_means = np.empty(n_bootstrap, dtype=np.float64)
+    for i in range(n_bootstrap):
+        sample = arr[rng.randint(0, n, size=n)]
+        boot_means[i] = sample.mean()
+
+    ci_low = float(np.percentile(boot_means, 100 * (alpha / 2)))
+    ci_high = float(np.percentile(boot_means, 100 * (1 - alpha / 2)))
+    mean = float(arr.mean())
+    return mean, ci_low, ci_high
+
+
 # ──────────────────────────────────────────────────────────────
 # 1. Treatment Definitions
 # ──────────────────────────────────────────────────────────────
