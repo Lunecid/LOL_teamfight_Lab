@@ -436,6 +436,10 @@ class CFG:
     KILLCHAIN_WINDOW_MS: int = 30000   # max gap between chained kills
     KILLCHAIN_BACKTRACK_MS: int = 10000  # backtrack before first kill → engage_ts
 
+    # Zero out x_norm/y_norm in node features for prediction input.
+    # Position data has only 60s frame resolution — too stale for fight prediction.
+    ZERO_XY_NODE_FEATURES: bool = False
+
     CONTINUOUS_FIGHT_MERGE: bool = True
     CONTINUOUS_FIGHT_MAX_GAP_MS: int = 30000
     CONTINUOUS_FIGHT_MERGE_RADIUS: float = 2000.0

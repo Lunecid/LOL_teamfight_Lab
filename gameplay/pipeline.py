@@ -797,6 +797,16 @@ def interpolate_node_global(cache: Dict[str, Any], q_ms: int) -> Tuple[np.ndarra
                 if yj_idx is not None:
                     node[:, yj_idx] = xy_norm[:, 1]
 
+    # ---- Zero out x,y node features when configured ----
+    # Position data is at 60s frame resolution; too stale for prediction input.
+    if bool(getattr(cfg, "ZERO_XY_NODE_FEATURES", False)):
+        xj_idx = NODE_IDX.get("x_norm", None)
+        yj_idx = NODE_IDX.get("y_norm", None)
+        if xj_idx is not None:
+            node[:, xj_idx] = 0.0
+        if yj_idx is not None:
+            node[:, yj_idx] = 0.0
+
         # ---- optional: continuous time_norm in global ----
         tj = GLOBAL_IDX.get("time_norm", None)
         if tj is not None:
