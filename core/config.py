@@ -431,6 +431,11 @@ class CFG:
     EVENT_WEIGHT_BUILDING: float = 1.5
     EVENT_WEIGHT_DAMAGE: float = 1.0
 
+    # Kill-chain detection (killchain_v1):
+    # Chain kills by participant overlap in victimDamageReceived/Dealt.
+    KILLCHAIN_WINDOW_MS: int = 30000   # max gap between chained kills
+    KILLCHAIN_BACKTRACK_MS: int = 10000  # backtrack before first kill → engage_ts
+
     CONTINUOUS_FIGHT_MERGE: bool = True
     CONTINUOUS_FIGHT_MAX_GAP_MS: int = 30000
     CONTINUOUS_FIGHT_MERGE_RADIUS: float = 2000.0
