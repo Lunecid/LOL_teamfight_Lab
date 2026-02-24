@@ -1,65 +1,9 @@
-"""types.py — Core data types for the teamfight pipeline.
+from importlib import import_module as _import_module
 
-Changes from original:
-  [FIX-IMPORT] Replaced ``from .common import *`` with explicit imports.
-  [FIX-IMPORT] Added missing ``dataclass`` import (previously relied on
-               transitive wildcard, which silently broke when common.py
-               didn't export it).
-"""
-from __future__ import annotations
+_module = _import_module("core.fight_types")
+for _k, _v in _module.__dict__.items():
+    if _k in {"__name__", "__package__", "__loader__", "__spec__", "__file__", "__cached__", "__builtins__"}:
+        continue
+    globals()[_k] = _v
 
-from dataclasses import dataclass
-from typing import Optional
-
-import numpy as np
-
-
-@dataclass
-class FightRef:
-    """Reference to a single detected teamfight instance.
-
-    Attributes
-    ----------
-    match_id : str
-        Riot match identifier (e.g., ``"KR_7123456789"``).
-    patch : str
-        Game patch string for stratified splitting.
-    t_start : int
-        Minute index into ``cache["minute_ts"]`` (legacy, kept for compat).
-    t_start_ts : int
-        Engage timestamp in milliseconds (primary anchor; ``-1`` = unset).
-    label_end_ts : int
-        Label window end timestamp in milliseconds (exclusive).
-        ``-1`` means "use default horizon".
-    """
-    match_id: str
-    patch: str
-    t_start: int              # minute index (legacy)
-    t_start_ts: int = -1      # engage timestamp in ms (primary anchor)
-    label_end_ts: int = -1    # label window end ts in ms (exclusive)
-
-    def __post_init__(self) -> None:
-        # t_start_ts가 설정되지 않았으면 -1 유지 (legacy 모드)
-        if self.t_start_ts < 0 and self.t_start >= 0:
-            pass  # 호환성: 기존 코드에서 t_start만 쓸 때는 -1로 둠
-        if self.t_start_ts >= 0 and self.label_end_ts >= 0 and self.label_end_ts <= self.t_start_ts:
-            self.label_end_ts = -1
-
-
-@dataclass
-class PruneSpec:
-    """Column-pruning specification for tabular features."""
-    x_keep: Optional[np.ndarray] = None
-    extra_keep: Optional[np.ndarray] = None
-
-
-def ref_key(r: FightRef) -> str:
-    """Unique string key for a FightRef — used as dict/set key throughout.
-
-    [FIX] Prioritises ``t_start_ts`` (ms-level precision) over the legacy
-    minute-level ``t_start`` to avoid collisions when multiple fights
-    occur within the same game-minute.
-    """
-    if r.t_start_ts >= 0:
-        return f"{r.match_id}|t_start_ts={int(r.t_start_ts)}"
-    return f"{r.match_id}|t_start={int(r.t_start)}"
+del _k, _v, _module, _import_module

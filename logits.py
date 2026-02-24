@@ -1,59 +1,9 @@
-from __future__ import annotations
+from importlib import import_module as _import_module
 
-from common import Any, Dict, Optional
-from fight_types import ref_key
+_module = _import_module("data.logits")
+for _k, _v in _module.__dict__.items():
+    if _k in {"__name__", "__package__", "__loader__", "__spec__", "__file__", "__cached__", "__builtins__"}:
+        continue
+    globals()[_k] = _v
 
-# [FIX-IMPORT] cfg must be imported explicitly from config
-from config import cfg
-
-def _normalize_logit_maps(
-    lgbm_logit_map: Optional[Dict[str, float]] = None,
-    logit_maps: Optional[Dict[str, Dict[str, float]]] = None,
-) -> Dict[str, Dict[str, float]]:
-    """
-    Normalize different input styles into:
-      {"lgbm_logit": {ref_key: float}, ...}
-
-    Rules:
-      - explicit logit_maps has priority for matching keys
-      - lgbm_logit_map is backward-compatible addition
-    """
-    out: Dict[str, Dict[str, float]] = {}
-
-    if isinstance(logit_maps, dict):
-        for k, v in logit_maps.items():
-            if not isinstance(k, str):
-                continue
-            if not isinstance(v, dict):
-                continue
-            vv: Dict[str, float] = {}
-            for rk, val in v.items():
-                try:
-                    vv[str(rk)] = float(val)
-                except Exception:
-                    continue
-            out[k] = vv
-
-    if lgbm_logit_map is not None and "lgbm_logit" not in out:
-        vv = {}
-        if isinstance(lgbm_logit_map, dict):
-            for rk, val in lgbm_logit_map.items():
-                try:
-                    vv[str(rk)] = float(val)
-                except Exception:
-                    continue
-        out["lgbm_logit"] = vv
-
-    return out
-
-def _cfg_wants_logits(model_name: str = "") -> bool:
-    """
-    Decide if current run/model should have *_logit keys in batch.
-    Uses cfg.* hints + model_name.
-    """
-    toks = [str(model_name or "").lower()]
-    for attr in ("DEEP_MODEL", "MODEL", "MODEL_NAME", "ARCH", "NET"):
-        if hasattr(cfg, attr):
-            toks.append(str(getattr(cfg, attr) or "").lower())
-    s = " ".join(toks)
-    return any(k in s for k in ("tablogit", "tab_logit", "logit"))
+del _k, _v, _module, _import_module
