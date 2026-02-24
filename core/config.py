@@ -414,6 +414,15 @@ class CFG:
     # If candidate anchor is a kill timestamp, move engage start earlier by this amount
     # when no earlier burst signal exists.
     EVENT_KILL_PRE_MS: int = 10000
+    # Kill-centric event validation also checks post-kill window for objective/building.
+    EVENT_KILL_POST_MS: int = 10000
+    # Two-stage mode:
+    #  1) realtime candidate detection (ward + structural guards)
+    #  2) post validation around nearest kill (objective/building in pre/post window)
+    EVENT_REQUIRE_POST_KILL_VALIDATION: bool = True
+    # Stage-2 post validation window around nearest kill.
+    EVENT_POST_VALIDATE_PRE_MS: int = 45000
+    EVENT_POST_VALIDATE_POST_MS: int = 45000
     EVENT_MIN_EVENTS_IN_WINDOW: int = 2
     EVENT_SCORE_THRESHOLD: float = 2.5
     EVENT_WEIGHT_KILL: float = 2.0
@@ -425,6 +434,9 @@ class CFG:
     CONTINUOUS_FIGHT_MERGE: bool = True
     CONTINUOUS_FIGHT_MAX_GAP_MS: int = 30000
     CONTINUOUS_FIGHT_MERGE_RADIUS: float = 2000.0
+    # If True, ward signal is valid only when ward actor(s) are inside fight radius.
+    REQUIRE_WARD_ACTOR_IN_FIGHT_RADIUS: bool = True
+    WARD_ACTOR_RADIUS: float = 1800.0
 
     STANDOFF_RADIUS: float = 1800.0
     REQUIRE_ALIVE_PER_TEAM: int = 3
@@ -787,6 +799,8 @@ class CFG:
     DEBUG_GNN: bool = False
     DUMP_FIGHTS_PRINT_SUMMARY: bool = False
     DIAG_MAX_FIGHT_RESULTS: int = 50
+    # Large but bounded list for validated fight outputs in diagnostics.
+    DIAG_MAX_VALIDATED_FIGHT_RESULTS: int = 10000
 
     # =========================================================
     # 16) Baseline Params (LGBM / XGB)
