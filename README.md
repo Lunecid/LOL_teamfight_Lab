@@ -14,6 +14,7 @@ A machine learning pipeline for predicting **League of Legends teamfight outcome
 - [Usage](#usage)
 - [Configuration](#configuration)
 - [Models](#models)
+- [Testing](#testing)
 - [Key Features](#key-features)
 
 ---
@@ -37,37 +38,37 @@ The pipeline supports systematic ablation studies, multi-seed bootstrapping for 
 Match JSONs (detail + timeline)
         |
         v
-  cache_io.prebuild_cache()
+  data.cache_io.prebuild_cache()
         |
         v
   Preprocessed Match Cache (NPZ + JSON meta)
         |
         v
-  fights.detect_fights()
+  gameplay.fights.detect_fights()
         |
         v
-  FightRef objects (fight identifiers with timestamps)
+  core.fight_types.FightRef (fight identifiers with timestamps)
         |
         v
-  index_split.build_fight_index() -> split_refs()
+  data.index_split.build_fight_index() -> split_refs()
         |
         v
   Train / Val / Test splits (match-grouped, patch-stratified)
         |
         v
-  dataset.InMemoryFightDataset
-        |--- pipeline.build_ms_sequence()        [temporal features]
-        |--- features.build_sequence_features()   [normalization]
-        |--- collate_batch()                      [graph pooling]
+  data.dataset.InMemoryFightDataset
+        |--- gameplay.pipeline.build_ms_sequence()       [temporal features]
+        |--- gameplay.features.build_sequence_features() [normalization]
+        |--- collate_batch()                             [graph pooling]
         |
         v
   Model Training
-        |--- LightGBM baseline (tabular)
-        |--- RNN / Transformer / TCN / Mamba (sequential)
-        |--- GNN / GAT / MPNN / ST-GNN (graph)
+        |--- train.baseline: LightGBM (tabular)
+        |--- train.deep: RNN / Transformer / TCN / Mamba (sequential)
+        |--- train.deep: GNN / GAT / MPNN / ST-GNN (graph)
         |
         v
-  Ensemble Fusion
+  Ensemble Fusion (train.fusion)
         |--- Simple stacking
         |--- Out-of-fold stacking
         |--- Factorial stacking + meta-learner
@@ -83,60 +84,63 @@ Match JSONs (detail + timeline)
 ```
 LOL_teamfight_Lab/
 |
-|-- Entry Points
-|   |-- main.py                  # Wrapper calling runner.main()
-|   |-- runner.py                # Argument parser & main entry point
-|   |-- experiment_runner.py     # Systematic ablation study runner
+|-- pyproject.toml                  # Build & package configuration
+|-- requirements.txt                # Pinned dependency list
+|-- __init__.py                     # Package metadata (v0.1.0)
+|-- main.py                         # Wrapper calling runner.main()
+|-- runner.py                       # Argument parser & main entry point
+|-- experiment_runner.py            # Systematic ablation study runner
 |
-|-- Configuration
-|   |-- config.py                # Central CFG dataclass (single source of truth)
-|   |-- config_legacy.py         # Deprecated config (reference only)
-|   |-- speed_config.py          # Speed/performance profiles
-|   |-- feature_contract.py      # Feature contract definitions
-|   |-- contract.py              # Contract validation imports
+|-- core/                           # Configuration, contracts & utilities
+|   |-- config.py                   # Central CFG dataclass (single source of truth)
+|   |-- config_legacy.py            # Deprecated config (reference only)
+|   |-- contract.py                 # Contract validation imports
+|   |-- feature_contract.py         # Feature contract definitions
+|   |-- time_contract.py            # Time/index contract for legacy compat
+|   |-- fight_types.py              # FightRef dataclass
+|   |-- roles.py                    # Lane/role assignment
+|   |-- diagnostics.py              # Fight detection diagnostics
+|   |-- improvements.py             # Domain knowledge enhancements
+|   |-- timeutils.py                # Time-based calculations
+|   |-- common.py                   # Shared math utilities
+|   |-- common_torch.py             # PyTorch-specific utilities
+|   |-- utils.py                    # General utilities (metrics, seeding)
 |
-|-- Data Loading & Caching
-|   |-- cache_io.py              # Match cache I/O (NPZ + JSON)
-|   |-- ram_cache.py             # In-RAM LRU cache for loaded matches
-|   |-- file_io.py               # File utilities (CSV, JSON writes)
-|   |-- timeutils.py             # Time-based calculations
+|-- data/                           # Data loading, caching & splitting
+|   |-- cache_io.py                 # Match cache I/O (NPZ + JSON)
+|   |-- ram_cache.py                # In-RAM LRU cache for loaded matches
+|   |-- file_io.py                  # File utilities (CSV, JSON writes)
+|   |-- dataset.py                  # InMemoryFightDataset (PyTorch)
+|   |-- index_split.py              # Data splitting strategies
+|   |-- indexing.py                 # Match indexing & leakage checks
+|   |-- events_index.py             # Event timestamp indexing
+|   |-- labels.py                   # Ground-truth label generation
+|   |-- logits.py                   # Model prediction management
 |
-|-- Feature Engineering
-|   |-- pipeline.py              # Core temporal feature building
-|   |-- features.py              # Feature builders & normalizers
-|   |-- events_index.py          # Event timestamp indexing
-|   |-- roles.py                 # Lane/role assignment
-|   |-- labels.py                # Ground-truth label generation
+|-- gameplay/                       # Fight detection & feature engineering
+|   |-- fights.py                   # Fight detection engine
+|   |-- pipeline.py                 # Core temporal feature building
+|   |-- features.py                 # Feature builders & normalizers
 |
-|-- Fight Detection
-|   |-- fights.py                # Fight detection engine
-|   |-- fight_types.py           # FightRef dataclass
-|   |-- diagnostics.py           # Fight detection diagnostics
-|   |-- analysis.py              # Fight analysis utilities
+|-- train/                          # Model definitions & training
+|   |-- models.py                   # Model factory & architecture definitions
+|   |-- deep.py                     # Deep learning training harness
+|   |-- baseline.py                 # LightGBM tabular baseline
+|   |-- fusion.py                   # Model stacking & fusion
+|   |-- speed_config.py             # Speed/performance profiles
+|   |-- speed.py                    # Performance profiling
 |
-|-- Dataset & Training
-|   |-- dataset.py               # InMemoryFightDataset (PyTorch)
-|   |-- index_split.py           # Data splitting strategies
-|   |-- indexing.py              # Match indexing & leakage checks
-|   |-- logits.py                # Model prediction management
-|   |-- experiment.py            # Main training loop orchestrator
+|-- app/                            # Orchestration & analysis
+|   |-- experiment.py               # Main training loop orchestrator
+|   |-- analysis.py                 # Fight analysis utilities
 |
-|-- Models
-|   |-- models.py                # Model factory & architecture definitions
-|   |-- deep.py                  # Deep learning training harness
-|
-|-- Baseline & Ensemble
-|   |-- baseline.py              # LightGBM tabular baseline
-|   |-- fusion.py                # Model stacking & fusion
-|   |-- improvements.py          # Domain knowledge enhancements
-|
-|-- Utilities
-|   |-- common.py                # Shared math utilities
-|   |-- common_torch.py          # PyTorch-specific utilities
-|   |-- utils.py                 # General utilities (metrics, seeding)
-|   |-- speed.py                 # Performance profiling
-|
-|-- __init__.py                  # Package metadata (v0.1.0)
+|-- tests/                          # Unit tests
+|   |-- test_common.py              # Tests for math utilities
+|   |-- test_config.py              # Tests for CFG dataclass
+|   |-- test_experiment_runner.py   # Tests for ablation runner
+|   |-- test_fight_types.py         # Tests for FightRef
+|   |-- test_index_split.py         # Tests for data splitting
+|   |-- test_utils.py               # Tests for general utilities
 ```
 
 ---
@@ -165,16 +169,19 @@ LOL_teamfight_Lab/
 ### Install Dependencies
 
 ```bash
-# PyTorch with CUDA support
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+# Editable install (recommended for development)
+pip install -e ".[all]"
 
-# ML libraries
-pip install lightgbm numpy scikit-learn
+# Or use requirements.txt
+pip install -r requirements.txt
+
+# PyTorch with CUDA support (if not already installed)
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 ```
 
 ### Configure Data Paths
 
-Set environment variables or edit `config.py` (lines 247-259):
+Set environment variables or edit `core/config.py`:
 
 ```bash
 export LOL_DETAIL_DIR="/path/to/match/details"
@@ -226,7 +233,7 @@ python main.py --mode all --max_matches 10 --seed 7
 
 ## Configuration
 
-All hyperparameters live in `config.py` as a single `CFG` dataclass:
+All hyperparameters live in `core/config.py` as a single `CFG` dataclass:
 
 | Section | What It Controls |
 |---------|-----------------|
@@ -264,6 +271,31 @@ All hyperparameters live in `config.py` as a single `CFG` dataclass:
 
 ---
 
+## Testing
+
+The project includes a unit test suite under `tests/` using pytest:
+
+```bash
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov
+
+# Run a specific test file
+pytest tests/test_utils.py
+```
+
+Test coverage includes:
+- **core utilities** -- safe numeric parsing, sigmoid/logit, sign-preserving log
+- **CFG dataclass** -- default values, required fields, model list population
+- **FightRef** -- construction, key stability/uniqueness, label boundary validation
+- **data splitting** -- match-grouped splits, patch stratification, leakage checks
+- **experiment runner** -- bootstrap CI calculation, seed determinism
+- **metrics** -- AUC, AP, Brier score, recall computation
+
+---
+
 ## Key Features
 
 - **Event-driven fight detection** -- Triggers from event bursts rather than position clustering alone; merges continuous fights within 30s / 2000 units
@@ -285,8 +317,9 @@ All hyperparameters live in `config.py` as a single `CFG` dataclass:
 
 | Metric | Value |
 |--------|-------|
-| Python files | 37 |
-| Lines of code | ~22,400 |
+| Python files | 49 |
+| Lines of code | ~24,400 |
+| Test cases | 100+ |
 | Model architectures | 15+ variants |
 | Configurable hyperparameters | 150+ |
 | Feature dimensions | 100+ across node/event/global |
