@@ -3,10 +3,10 @@ from __future__ import annotations
 import argparse
 from typing import List
 
-from config import cfg
-from experiment import run
-from speed import apply_speed_profile
-from utils import set_seed
+from core.config import cfg
+from app.experiment import run
+from train.speed import apply_speed_profile
+from core.utils import set_seed
 
 
 def _parse_model_list(x) -> List[str]:

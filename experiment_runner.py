@@ -39,7 +39,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 
 # [SPEED] GPU utilization overlay
-from speed_config import apply_speed_overlay
+from train.speed_config import apply_speed_overlay
 
 
 # ──────────────────────────────────────────────────────────────
@@ -533,9 +533,9 @@ def run_single_experiment(
     -------
     ExperimentResult with parsed metrics
     """
-    from config import cfg, RUN_DIR
-    from experiment import run as run_experiment
-    from utils import set_seed
+    from core.config import cfg, RUN_DIR
+    from app.experiment import run as run_experiment
+    from core.utils import set_seed
 
     print(f"\n    [EXEC] {experiment_tag} | seed={seed} | overlay={treatment_overlay}")
     t0 = time.time()
@@ -554,7 +554,7 @@ def run_single_experiment(
     # Step 1b: Reset module-level singletons to prevent parameter leakage
     # θ_singleton ← None → forces lazy re-initialization with fresh parameters
     try:
-        from models import reset_model_singletons
+        from train.models import reset_model_singletons
         reset_model_singletons()
     except ImportError:
         pass  # models.py가 아직 reset 함수를 갖지 않는 환경 (backward compat)
@@ -690,7 +690,7 @@ def _parse_latest_run_result(
     experiment.run()은 RUN_DIR/<run_tag>/ 아래에 결과를 저장.
     deep_reports.json 또는 ablation_summary.csv에서 metrics를 추출.
     """
-    from config import RUN_DIR
+    from core.config import RUN_DIR
 
     result = ExperimentResult(
         treatment_id=-1,
