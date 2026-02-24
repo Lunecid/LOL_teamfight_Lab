@@ -47,15 +47,14 @@ class TestSafeFloat:
         assert safe_float("abc", default=-1.0) == -1.0
 
     def test_inf(self):
-        # utils.safe_float does NOT filter inf (unlike common.safe_float).
-        # float("inf") succeeds, so it returns inf.
+        # [BUG FIX] safe_float now correctly rejects inf, returning default.
         result = safe_float(float("inf"))
-        assert math.isinf(result)
+        assert result == 0.0
 
     def test_nan(self):
-        # float("nan") succeeds, so it returns nan.
+        # [BUG FIX] safe_float now correctly rejects nan, returning default.
         result = safe_float(float("nan"))
-        assert math.isnan(result)
+        assert result == 0.0
 
 
 # =========================================================
@@ -71,10 +70,12 @@ class TestLog1pNorm:
         result = log1p_norm(0, 100)
         assert result == 0.0
 
-    def test_negative_clamped_to_zero(self):
-        # log1p_norm in utils.py clamps x to max(0, x)
+    def test_negative_preserves_sign(self):
+        # [BUG FIX] log1p_norm now preserves sign of negative values
+        # sign(x) * log1p(|x|) / log1p(denom)
         result = log1p_norm(-50, 100)
-        assert result == 0.0
+        assert result < 0.0
+        assert result > -1.0
 
     def test_output_range(self):
         result = log1p_norm(50, 100)

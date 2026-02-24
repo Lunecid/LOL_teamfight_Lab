@@ -78,11 +78,6 @@ def read_json(path: Path) -> dict:
         return json.load(f)
 
 
-# utils.py
-import json
-from pathlib import Path
-
-
 def _json_default(o):
     # Path -> str
     if isinstance(o, Path):
@@ -141,9 +136,14 @@ def save_csv_rows(path: Path, fieldnames: List[str], rows: List[dict]):
 # Numeric safety helpers
 # =========================================================
 def safe_float(x, default: float = 0.0) -> float:
+    if x is None:
+        return float(default)
     try:
-        return float(x)
-    except Exception:
+        f = float(x)
+        if math.isnan(f) or math.isinf(f):
+            return float(default)
+        return f
+    except (ValueError, TypeError):
         return float(default)
 
 
@@ -151,10 +151,12 @@ def log1p_norm(x, denom: float) -> float:
     """
     Deterministic log(1+x) normalization.
     - Used in features.py for various counts/values.
+    - Preserves sign of negative values: sign(x) * log1p(|x|) / log1p(denom).
     """
-    x = max(0.0, safe_float(x))
-    d = max(1.0, float(denom))
-    return math.log1p(x) / math.log1p(d)
+    v = safe_float(x)
+    d = max(abs(float(denom)), 1e-8)
+    sign = 1.0 if v >= 0 else -1.0
+    return sign * math.log1p(abs(v)) / math.log1p(d)
 
 
 def clamp01(x: float) -> float:
