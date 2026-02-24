@@ -132,6 +132,28 @@ class FightOutcome(TypedDict):
     kill_diff: int
     total_kills: int
     assists: Dict[str, int]
+    blue_unique_deaths: int
+    red_unique_deaths: int
+    blue_survivors: int
+    red_survivors: int
+    blue_alive_end: int
+    red_alive_end: int
+    gold_blue_delta: float
+    gold_red_delta: float
+    gold_diff: float
+    tower_blue: int
+    tower_red: int
+    tower_diff: int
+    plate_blue: int
+    plate_red: int
+    plate_diff: int
+    inhib_blue: int
+    inhib_red: int
+    inhib_diff: int
+    objective_blue: int
+    objective_red: int
+    objective_diff: int
+    objective_by_type: Dict[str, Dict[str, int]]
 
 
 class FightVisualization(TypedDict):
@@ -194,6 +216,8 @@ class FightDetectorConfig:
     require_lcc_total: int = 4
     require_lcc_per_team: int = 2
     cluster_max_diameter: float = 4000.0
+    require_ward_actor_in_fight_radius: bool = True
+    ward_actor_radius: float = 1800.0
 
     # 보간/스케일
     interp_method: str = "linear"
@@ -227,6 +251,8 @@ class FightDetectorConfig:
             errors.append(
                 f"backtrack_min_ms ({self.backtrack_min_ms}) must be <= backtrack_max_ms ({self.backtrack_max_ms})"
             )
+        if self.ward_actor_radius < 0:
+            errors.append(f"ward_actor_radius must be >= 0, got {self.ward_actor_radius}")
         valid_rules = {"kill_only", "signal_only", "kill_or_signal", "kill_and_signal"}
         if str(self.fight_validation_rule).lower() not in valid_rules:
             errors.append(
@@ -285,6 +311,8 @@ class FightDetectorConfig:
             require_lcc_total=int(getattr(cfg_obj, "REQUIRE_LCC_TOTAL", 4) or 0),
             require_lcc_per_team=int(getattr(cfg_obj, "REQUIRE_LCC_PER_TEAM", 2) or 0),
             cluster_max_diameter=float(getattr(cfg_obj, "CLUSTER_MAX_DIAMETER", 4000.0) or 0.0),
+            require_ward_actor_in_fight_radius=bool(getattr(cfg_obj, "REQUIRE_WARD_ACTOR_IN_FIGHT_RADIUS", True)),
+            ward_actor_radius=float(getattr(cfg_obj, "WARD_ACTOR_RADIUS", 1800.0) or 0.0),
             interp_method=str(getattr(cfg_obj, "INTERP_METHOD", "linear")).lower(),
             coord_norm_div=float(getattr(cfg_obj, "COORD_NORM_DIV", 16000.0)),
             chunk_size=int(getattr(cfg_obj, "CHUNK_SIZE", 500)),
@@ -762,6 +790,59 @@ def _extract_ward_signal_ts(events: List[dict], tm: Dict[int, int]) -> Tuple[np.
         np.asarray(ward_t100_ts, dtype=np.int64) if ward_t100_ts else np.empty((0,), dtype=np.int64),
         np.asarray(ward_t200_ts, dtype=np.int64) if ward_t200_ts else np.empty((0,), dtype=np.int64),
     )
+
+
+def _extract_ward_actor_events(events: List[dict], tm: Dict[int, int]) -> List[Dict[str, int]]:
+    """Extract ward activity events with actor identity/team for spatial validation."""
+    out: List[Dict[str, int]] = []
+
+    def _team_of_pid(pid: int) -> int:
+        pid = int(pid or 0)
+        tid = int(tm.get(pid, 0) or 0) if isinstance(tm, dict) else 0
+        if tid in (100, 200):
+            return tid
+        if 1 <= pid <= 5:
+            return 100
+        if 6 <= pid <= 10:
+            return 200
+        return 0
+
+    for ev in events or []:
+        if not isinstance(ev, dict):
+            continue
+        et = str(ev.get("type", ev.get("eventType", ""))).upper()
+        if et not in ("WARD_KILL", "WARD_PLACED"):
+            continue
+        try:
+            t = int(ev.get("timestamp", ev.get("ts", -1)) or -1)
+        except Exception:
+            t = -1
+        if t < 0:
+            continue
+
+        is_kill = 1 if et == "WARD_KILL" else 0
+        if is_kill:
+            pid = int(ev.get("killerId", 0) or ev.get("creatorId", 0) or 0)
+        else:
+            pid = int(ev.get("creatorId", 0) or ev.get("participantId", 0) or 0)
+
+        if not (1 <= pid <= 10):
+            continue
+        tid = _team_of_pid(pid)
+        if tid not in (100, 200):
+            continue
+
+        out.append(
+            {
+                "timestamp": int(t),
+                "pid": int(pid),
+                "team": int(tid),
+                "is_kill": int(is_kill),
+            }
+        )
+
+    out.sort(key=lambda e: (int(e["timestamp"]), int(e["pid"]), -int(e["is_kill"])))
+    return out
 
 
 def _extract_ace_ts(events: List[dict]) -> np.ndarray:
@@ -1405,7 +1486,188 @@ def classify_fight_type(fight: dict, anchors: Dict[str, Any], is_norm: bool, sca
     return FightType.PICK.value
 
 
-def compute_fight_outcome(fight: dict, kill_events: List[dict], tm: Dict[int, int]) -> FightOutcome:
+def _team_of_pid(pid: int, tm: Dict[int, int]) -> int:
+    pid = int(pid or 0)
+    tid = int(tm.get(pid, 0) or 0) if isinstance(tm, dict) else 0
+    if tid in (100, 200):
+        return tid
+    if 1 <= pid <= 5:
+        return 100
+    if 6 <= pid <= 10:
+        return 200
+    return 0
+
+
+def _gold_team_at_ms(cache: Optional[Dict[str, Any]], q_ms: int) -> Optional[np.ndarray]:
+    if not isinstance(cache, dict):
+        return None
+
+    ts_raw = cache.get("minute_ts", None)
+    g_raw = cache.get("gold_team_minute", None)
+
+    try:
+        ts = np.asarray(ts_raw, dtype=np.int64)
+        g = np.asarray(g_raw, dtype=np.float32)
+    except Exception:
+        return None
+
+    if ts.ndim != 1 or ts.size <= 0:
+        return None
+    if g.ndim != 2 or g.shape[0] != ts.size or g.shape[1] < 2:
+        return None
+
+    if ts.size == 1:
+        return g[0, :2].astype(np.float32, copy=False)
+
+    q = int(q_ms)
+    idx = int(np.searchsorted(ts, q, side="right") - 1)
+    i = int(np.clip(idx, 0, ts.size - 1))
+    j = int(np.clip(i + 1, 0, ts.size - 1))
+
+    method = "ffill"
+    if cfg is not None:
+        method = str(
+            getattr(
+                cfg,
+                "LABEL_GOLD_METHOD",
+                getattr(cfg, "INTERP_SCALARS_METHOD", "ffill"),
+            )
+        ).lower().strip()
+
+    if method in ("bfill",):
+        return g[j, :2].astype(np.float32, copy=False)
+
+    if method in ("linear",) and j > i and int(ts[j]) != int(ts[i]):
+        alpha = float(q - int(ts[i])) / float(int(ts[j]) - int(ts[i]))
+        alpha = float(np.clip(alpha, 0.0, 1.0))
+        return ((1.0 - alpha) * g[i, :2] + alpha * g[j, :2]).astype(np.float32)
+
+    # ffill / zoh / none / default
+    return g[i, :2].astype(np.float32, copy=False)
+
+
+def _window_resource_changes(events: List[dict], tm: Dict[int, int], t0: int, t1_exclusive: int) -> Dict[str, Any]:
+    tower_blue = tower_red = 0
+    plate_blue = plate_red = 0
+    inhib_blue = inhib_red = 0
+    obj_by_type = {
+        "dragon": {"blue": 0, "red": 0},
+        "baron": {"blue": 0, "red": 0},
+        "herald": {"blue": 0, "red": 0},
+        "atakhan": {"blue": 0, "red": 0},
+        "horde": {"blue": 0, "red": 0},
+        "other": {"blue": 0, "red": 0},
+    }
+
+    for ev in events or []:
+        if not isinstance(ev, dict):
+            continue
+        try:
+            ts = int(ev.get("timestamp", ev.get("ts", -1)) or -1)
+        except Exception:
+            ts = -1
+        if ts < int(t0) or ts >= int(t1_exclusive):
+            continue
+
+        et = str(ev.get("type", ev.get("eventType", ""))).upper()
+        if et == "ELITE_MONSTER_KILL":
+            team = int(ev.get("killerTeamId", 0) or 0)
+            if team not in (100, 200):
+                team = _team_of_pid(
+                    int(ev.get("killerId", 0) or ev.get("participantId", 0) or 0),
+                    tm,
+                )
+            if team not in (100, 200):
+                continue
+
+            mt = str(ev.get("monsterType", "")).upper()
+            key = "other"
+            if mt == "DRAGON":
+                key = "dragon"
+            elif mt == "BARON_NASHOR":
+                key = "baron"
+            elif mt == "RIFTHERALD":
+                key = "herald"
+            elif mt == "ATAKHAN":
+                key = "atakhan"
+            elif mt == "HORDE":
+                key = "horde"
+
+            side = "blue" if team == 100 else "red"
+            obj_by_type[key][side] += 1
+
+        elif et == "BUILDING_KILL":
+            bt = str(ev.get("buildingType", "")).upper()
+            victim_team = int(ev.get("teamId", 0) or 0)
+            if victim_team in (100, 200):
+                taker_team = 100 if victim_team == 200 else 200
+            else:
+                taker_team = _team_of_pid(
+                    int(ev.get("killerId", 0) or ev.get("participantId", 0) or 0),
+                    tm,
+                )
+            if taker_team not in (100, 200):
+                continue
+
+            if "TOWER" in bt:
+                if taker_team == 100:
+                    tower_blue += 1
+                else:
+                    tower_red += 1
+            elif "INHIBITOR" in bt:
+                if taker_team == 100:
+                    inhib_blue += 1
+                else:
+                    inhib_red += 1
+
+        elif et == "TURRET_PLATE_DESTROYED":
+            victim_team = int(ev.get("teamId", 0) or 0)
+            if victim_team in (100, 200):
+                taker_team = 100 if victim_team == 200 else 200
+            else:
+                taker_team = _team_of_pid(
+                    int(ev.get("killerId", 0) or ev.get("participantId", 0) or 0),
+                    tm,
+                )
+            if taker_team == 100:
+                plate_blue += 1
+            elif taker_team == 200:
+                plate_red += 1
+
+    obj_blue = int(sum(int(v["blue"]) for v in obj_by_type.values()))
+    obj_red = int(sum(int(v["red"]) for v in obj_by_type.values()))
+
+    return {
+        "tower_blue": int(tower_blue),
+        "tower_red": int(tower_red),
+        "tower_diff": int(tower_blue - tower_red),
+        "plate_blue": int(plate_blue),
+        "plate_red": int(plate_red),
+        "plate_diff": int(plate_blue - plate_red),
+        "inhib_blue": int(inhib_blue),
+        "inhib_red": int(inhib_red),
+        "inhib_diff": int(inhib_blue - inhib_red),
+        "objective_blue": int(obj_blue),
+        "objective_red": int(obj_red),
+        "objective_diff": int(obj_blue - obj_red),
+        "objective_by_type": {
+            k: {
+                "blue": int(v["blue"]),
+                "red": int(v["red"]),
+                "diff": int(int(v["blue"]) - int(v["red"])),
+            }
+            for k, v in obj_by_type.items()
+        },
+    }
+
+
+def compute_fight_outcome(
+    fight: dict,
+    kill_events: List[dict],
+    tm: Dict[int, int],
+    cache: Optional[Dict[str, Any]] = None,
+    events: Optional[List[dict]] = None,
+) -> FightOutcome:
     """Compute outcome on the fight label window.
 
     For continuous merged fights, uses [engage_ts, horizon_end_ts) when available.
@@ -1417,6 +1679,8 @@ def compute_fight_outcome(fight: dict, kill_events: List[dict], tm: Dict[int, in
     kills_in_fight = [k for k in kill_events if engage_ts <= int(k["timestamp"]) < horizon_end]
 
     blue_kills = red_kills = blue_deaths = red_deaths = blue_assists = red_assists = 0
+    blue_dead_unique: set = set()
+    red_dead_unique: set = set()
 
     for kill in kills_in_fight:
         killer_team = tm.get(kill.get("killer_id", 0), 0)
@@ -1429,8 +1693,10 @@ def compute_fight_outcome(fight: dict, kill_events: List[dict], tm: Dict[int, in
 
         if victim_team == 100:
             blue_deaths += 1
+            blue_dead_unique.add(int(kill.get("victim_id", 0) or 0))
         elif victim_team == 200:
             red_deaths += 1
+            red_dead_unique.add(int(kill.get("victim_id", 0) or 0))
 
         for assist_id in kill.get("assisting_ids", []) or []:
             assist_team = tm.get(assist_id, 0)
@@ -1442,6 +1708,55 @@ def compute_fight_outcome(fight: dict, kill_events: List[dict], tm: Dict[int, in
     kill_diff = blue_kills - red_kills
     winner = "blue" if kill_diff > 0 else ("red" if kill_diff < 0 else "draw")
 
+    blue_survivors = int(max(0, 5 - len(blue_dead_unique)))
+    red_survivors = int(max(0, 5 - len(red_dead_unique)))
+    blue_alive_end = int(blue_survivors)
+    red_alive_end = int(red_survivors)
+
+    try:
+        if isinstance(cache, dict):
+            minute_ts = np.asarray(cache.get("minute_ts", []), dtype=np.int64)
+            nm = cache.get("node_minute", None)
+            alive_idx = NODE_IDX.get("alive", None)
+            if (
+                alive_idx is not None
+                and isinstance(nm, np.ndarray)
+                and nm.ndim == 3
+                and minute_ts.ndim == 1
+                and minute_ts.size > 0
+                and nm.shape[0] == minute_ts.size
+                and nm.shape[1] >= 10
+                and int(alive_idx) < nm.shape[2]
+            ):
+                m_idx = _map_ts_to_minute_idx(minute_ts, max(0, int(horizon_end) - 1))
+                alive_vec = nm[m_idx, :, int(alive_idx)].astype(np.float32)
+                b_alive = 0.0
+                r_alive = 0.0
+                for pid in range(1, 11):
+                    tid = _team_of_pid(pid, tm)
+                    if tid == 100:
+                        b_alive += float(alive_vec[pid - 1])
+                    elif tid == 200:
+                        r_alive += float(alive_vec[pid - 1])
+                blue_alive_end = int(np.clip(round(b_alive), 0, 5))
+                red_alive_end = int(np.clip(round(r_alive), 0, 5))
+                blue_survivors = int(blue_alive_end)
+                red_survivors = int(red_alive_end)
+    except Exception:
+        pass
+
+    gold_blue_delta = 0.0
+    gold_red_delta = 0.0
+    gold_diff = 0.0
+    g0 = _gold_team_at_ms(cache, int(engage_ts))
+    g1 = _gold_team_at_ms(cache, max(int(engage_ts), int(horizon_end) - 1))
+    if g0 is not None and g1 is not None:
+        gold_blue_delta = float(g1[0] - g0[0])
+        gold_red_delta = float(g1[1] - g0[1])
+        gold_diff = float(gold_blue_delta - gold_red_delta)
+
+    res = _window_resource_changes(events or [], tm, int(engage_ts), int(horizon_end))
+
     return FightOutcome(
         winner=winner,
         blue_kills=blue_kills,
@@ -1451,6 +1766,28 @@ def compute_fight_outcome(fight: dict, kill_events: List[dict], tm: Dict[int, in
         kill_diff=kill_diff,
         total_kills=len(kills_in_fight),
         assists={"blue": blue_assists, "red": red_assists},
+        blue_unique_deaths=int(len(blue_dead_unique)),
+        red_unique_deaths=int(len(red_dead_unique)),
+        blue_survivors=int(blue_survivors),
+        red_survivors=int(red_survivors),
+        blue_alive_end=int(blue_alive_end),
+        red_alive_end=int(red_alive_end),
+        gold_blue_delta=float(gold_blue_delta),
+        gold_red_delta=float(gold_red_delta),
+        gold_diff=float(gold_diff),
+        tower_blue=int(res.get("tower_blue", 0)),
+        tower_red=int(res.get("tower_red", 0)),
+        tower_diff=int(res.get("tower_diff", 0)),
+        plate_blue=int(res.get("plate_blue", 0)),
+        plate_red=int(res.get("plate_red", 0)),
+        plate_diff=int(res.get("plate_diff", 0)),
+        inhib_blue=int(res.get("inhib_blue", 0)),
+        inhib_red=int(res.get("inhib_red", 0)),
+        inhib_diff=int(res.get("inhib_diff", 0)),
+        objective_blue=int(res.get("objective_blue", 0)),
+        objective_red=int(res.get("objective_red", 0)),
+        objective_diff=int(res.get("objective_diff", 0)),
+        objective_by_type=res.get("objective_by_type", {}),
     )
 
 
@@ -1622,6 +1959,7 @@ def detect_fights_engage_v2(cache: Dict[str, Any], tm: Dict[int, int], config: O
         "rejected_nokill": 0,
         "rejected_nosignal": 0,
         "rejected_noward_signal": 0,
+        "rejected_noward_spatial": 0,
         "rejected_nocombat_signal": 0,
         "rejected_alive": 0,
         "rejected_engaged": 0,
@@ -1686,6 +2024,20 @@ def detect_fights_engage_v2(cache: Dict[str, Any], tm: Dict[int, int], config: O
             out["winner"] = str(outcome.get("winner", "unknown"))
             out["kill_diff"] = int(outcome.get("kill_diff", 0) or 0)
             out["total_kills"] = int(outcome.get("total_kills", 0) or 0)
+            out["blue_deaths"] = int(outcome.get("blue_deaths", 0) or 0)
+            out["red_deaths"] = int(outcome.get("red_deaths", 0) or 0)
+            out["blue_survivors"] = int(outcome.get("blue_survivors", 0) or 0)
+            out["red_survivors"] = int(outcome.get("red_survivors", 0) or 0)
+            out["gold_diff"] = float(outcome.get("gold_diff", 0.0) or 0.0)
+            out["gold_blue_delta"] = float(outcome.get("gold_blue_delta", 0.0) or 0.0)
+            out["gold_red_delta"] = float(outcome.get("gold_red_delta", 0.0) or 0.0)
+            out["tower_diff"] = int(outcome.get("tower_diff", 0) or 0)
+            out["tower_blue"] = int(outcome.get("tower_blue", 0) or 0)
+            out["tower_red"] = int(outcome.get("tower_red", 0) or 0)
+            out["plate_diff"] = int(outcome.get("plate_diff", 0) or 0)
+            out["objective_diff"] = int(outcome.get("objective_diff", 0) or 0)
+            out["objective_blue"] = int(outcome.get("objective_blue", 0) or 0)
+            out["objective_red"] = int(outcome.get("objective_red", 0) or 0)
         except Exception:
             pass
         return out
@@ -1694,11 +2046,21 @@ def detect_fights_engage_v2(cache: Dict[str, Any], tm: Dict[int, int], config: O
         """fights 리스트가 완전히 채워진 뒤에만 호출."""
         try:
             diag["fight_summary"] = summarize_fights(fights)
+            diag["fight_type_change_summary"] = summarize_fight_type_changes(fights)
             max_n = int(getattr(cfg, "DIAG_MAX_FIGHT_RESULTS", 50) or 50) if cfg else 50
             max_n = max(0, max_n)
             diag["fight_results_total"] = len(fights)
             diag["fight_results_truncated"] = int(len(fights) > max_n) if max_n > 0 else int(len(fights) > 0)
             diag["fight_results_brief"] = [_compact_fight_result(f) for f in (fights[:max_n] if max_n > 0 else [])]
+            max_valid_n = int(getattr(cfg, "DIAG_MAX_VALIDATED_FIGHT_RESULTS", 10000) or 10000) if cfg else 10000
+            max_valid_n = max(0, max_valid_n)
+            diag["fight_results_validated_total"] = len(fights)
+            diag["fight_results_validated_truncated"] = (
+                int(len(fights) > max_valid_n) if max_valid_n > 0 else int(len(fights) > 0)
+            )
+            diag["fight_results_validated_brief"] = [
+                _compact_fight_result(f) for f in (fights[:max_valid_n] if max_valid_n > 0 else [])
+            ]
         except Exception as e:
             diag["errors"].append({"type": "diag_pack", "message": str(e)})
 
@@ -2086,7 +2448,7 @@ def detect_fights_engage_v2(cache: Dict[str, Any], tm: Dict[int, int], config: O
     for fight in fights:
         try:
             fight["fight_type"] = classify_fight_type(fight, anchors, is_norm, scale_factor)
-            outcome = compute_fight_outcome(fight, kill_events, tm)
+            outcome = compute_fight_outcome(fight, kill_events, tm, cache=cache, events=events)
             fight["outcome"] = outcome
             fight["importance_score"] = compute_fight_importance(fight, outcome, fight["fight_type"], game_duration_ms)
             fight["player_engagement"] = compute_player_engagement(fight, xy_dense, dists, dense_ts, R, b, r)
@@ -2105,8 +2467,12 @@ def detect_fights_engage_v2(cache: Dict[str, Any], tm: Dict[int, int], config: O
 def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Optional[FightDetectorConfig] = None) -> List[dict]:
     """Event-driven teamfight detector.
 
-    Detects fight start-points from short-window event bursts (kill/spell/objective/building + damage proxy),
-    then merges temporally to form continuous fights.
+    Detects fight start-points from short-window event bursts,
+    then validates candidates with kill-centric pre/post window:
+      - ward signal
+      - objective/building around kill
+      - structural guards (engaged/LCC/compactness)
+    and merges temporally to form continuous fights.
     """
     diag: Dict[str, Any] = {
         "Td": 0,
@@ -2119,6 +2485,9 @@ def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Op
         "rejected_nokill": 0,
         "rejected_nosignal": 0,
         "rejected_noward_signal": 0,
+        "rejected_noward_spatial": 0,
+        "rejected_post_nokill": 0,
+        "rejected_noobjbuild": 0,
         "rejected_nocombat_signal": 0,
         "rejected_alive": 0,
         "rejected_engaged": 0,
@@ -2180,6 +2549,20 @@ def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Op
             out["winner"] = str(outcome.get("winner", "unknown"))
             out["kill_diff"] = int(outcome.get("kill_diff", 0) or 0)
             out["total_kills"] = int(outcome.get("total_kills", 0) or 0)
+            out["blue_deaths"] = int(outcome.get("blue_deaths", 0) or 0)
+            out["red_deaths"] = int(outcome.get("red_deaths", 0) or 0)
+            out["blue_survivors"] = int(outcome.get("blue_survivors", 0) or 0)
+            out["red_survivors"] = int(outcome.get("red_survivors", 0) or 0)
+            out["gold_diff"] = float(outcome.get("gold_diff", 0.0) or 0.0)
+            out["gold_blue_delta"] = float(outcome.get("gold_blue_delta", 0.0) or 0.0)
+            out["gold_red_delta"] = float(outcome.get("gold_red_delta", 0.0) or 0.0)
+            out["tower_diff"] = int(outcome.get("tower_diff", 0) or 0)
+            out["tower_blue"] = int(outcome.get("tower_blue", 0) or 0)
+            out["tower_red"] = int(outcome.get("tower_red", 0) or 0)
+            out["plate_diff"] = int(outcome.get("plate_diff", 0) or 0)
+            out["objective_diff"] = int(outcome.get("objective_diff", 0) or 0)
+            out["objective_blue"] = int(outcome.get("objective_blue", 0) or 0)
+            out["objective_red"] = int(outcome.get("objective_red", 0) or 0)
         except Exception:
             pass
         return out
@@ -2187,11 +2570,21 @@ def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Op
     def _pack_diagnostics():
         try:
             diag["fight_summary"] = summarize_fights(fights)
+            diag["fight_type_change_summary"] = summarize_fight_type_changes(fights)
             max_n = int(getattr(cfg, "DIAG_MAX_FIGHT_RESULTS", 50) or 50) if cfg else 50
             max_n = max(0, max_n)
             diag["fight_results_total"] = len(fights)
             diag["fight_results_truncated"] = int(len(fights) > max_n) if max_n > 0 else int(len(fights) > 0)
             diag["fight_results_brief"] = [_compact_fight_result(f) for f in (fights[:max_n] if max_n > 0 else [])]
+            max_valid_n = int(getattr(cfg, "DIAG_MAX_VALIDATED_FIGHT_RESULTS", 10000) or 10000) if cfg else 10000
+            max_valid_n = max(0, max_valid_n)
+            diag["fight_results_validated_total"] = len(fights)
+            diag["fight_results_validated_truncated"] = (
+                int(len(fights) > max_valid_n) if max_valid_n > 0 else int(len(fights) > 0)
+            )
+            diag["fight_results_validated_brief"] = [
+                _compact_fight_result(f) for f in (fights[:max_valid_n] if max_valid_n > 0 else [])
+            ]
         except Exception as e:
             diag["errors"].append({"type": "diag_pack", "message": str(e)})
 
@@ -2267,6 +2660,7 @@ def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Op
     summ_spell_ts = _extract_summoner_spell_ts(events)
     objective_ts, building_ts = _extract_objective_building_ts(events)
     ward_kill_ts, ward_t100_ts, ward_t200_ts = _extract_ward_signal_ts(events, tm)
+    ward_actor_events = _extract_ward_actor_events(events, tm)
     dmg_idx = NODE_IDX.get("ds_totalDamageDoneToChampions", None)
 
     damage_ts = np.empty((0,), dtype=np.int64)
@@ -2326,6 +2720,12 @@ def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Op
 
     event_window_ms = int(getattr(cfg, "EVENT_BURST_WINDOW_MS", 15000)) if cfg is not None else 15000
     kill_pre_ms = int(getattr(cfg, "EVENT_KILL_PRE_MS", 10000)) if cfg is not None else 10000
+    kill_post_ms = int(getattr(cfg, "EVENT_KILL_POST_MS", 10000)) if cfg is not None else 10000
+    require_post_kill_validation = bool(
+        getattr(cfg, "EVENT_REQUIRE_POST_KILL_VALIDATION", True)
+    ) if cfg is not None else True
+    post_validate_pre_ms = int(getattr(cfg, "EVENT_POST_VALIDATE_PRE_MS", 45000)) if cfg is not None else 45000
+    post_validate_post_ms = int(getattr(cfg, "EVENT_POST_VALIDATE_POST_MS", 45000)) if cfg is not None else 45000
     event_min_events = int(getattr(cfg, "EVENT_MIN_EVENTS_IN_WINDOW", 2)) if cfg is not None else 2
     event_score_thr = float(getattr(cfg, "EVENT_SCORE_THRESHOLD", 2.5)) if cfg is not None else 2.5
     w_kill = float(getattr(cfg, "EVENT_WEIGHT_KILL", 2.0)) if cfg is not None else 2.0
@@ -2338,10 +2738,29 @@ def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Op
     req_engaged = int(max(2, int(config.require_engaged_per_team)))
     req_lcc_total = int(max(4, int(config.require_lcc_total)))
     req_lcc_per_team = int(max(2, int(config.require_lcc_per_team)))
+    require_ward_actor_spatial = bool(config.require_ward_actor_in_fight_radius)
+    ward_actor_radius = float(config.ward_actor_radius if config.ward_actor_radius > 0 else config.standoff_radius)
+    if is_norm and ward_actor_radius > 0:
+        ward_actor_radius /= scale_factor
     kill_ts_set = set(int(x) for x in kill_ts.tolist()) if kill_ts.size > 0 else set()
+
+    if ward_actor_events:
+        ward_evt_ts = np.asarray([int(e["timestamp"]) for e in ward_actor_events], dtype=np.int64)
+        ward_evt_pid = np.asarray([int(e["pid"]) for e in ward_actor_events], dtype=np.int32)
+        ward_evt_team = np.asarray([int(e["team"]) for e in ward_actor_events], dtype=np.int32)
+        ward_evt_is_kill = np.asarray([int(e["is_kill"]) for e in ward_actor_events], dtype=np.int8)
+    else:
+        ward_evt_ts = np.empty((0,), dtype=np.int64)
+        ward_evt_pid = np.empty((0,), dtype=np.int32)
+        ward_evt_team = np.empty((0,), dtype=np.int32)
+        ward_evt_is_kill = np.empty((0,), dtype=np.int8)
 
     diag["event_window_ms"] = int(event_window_ms)
     diag["event_kill_pre_ms"] = int(kill_pre_ms)
+    diag["event_kill_post_ms"] = int(kill_post_ms)
+    diag["event_require_post_kill_validation"] = int(require_post_kill_validation)
+    diag["event_post_validate_pre_ms"] = int(post_validate_pre_ms)
+    diag["event_post_validate_post_ms"] = int(post_validate_post_ms)
     diag["event_min_events"] = int(event_min_events)
     diag["event_score_threshold"] = float(event_score_thr)
 
@@ -2401,6 +2820,77 @@ def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Op
                     earliest = v
         return earliest
 
+    def _nearest_kill_around(ts: int, pre_ms: int, post_ms: int) -> Optional[int]:
+        if kill_ts.size == 0:
+            return None
+        lo = int(ts) - max(0, int(pre_ms))
+        hi = int(ts) + max(0, int(post_ms))
+        l = int(np.searchsorted(kill_ts, lo, side="left"))
+        r_ = int(np.searchsorted(kill_ts, hi, side="right"))
+        if r_ <= l:
+            return None
+        seg = kill_ts[l:r_]
+        if seg.size <= 0:
+            return None
+        j = int(np.argmin(np.abs(seg.astype(np.int64) - int(ts))))
+        return int(seg[j])
+
+    def _ward_signal_spatial_for_component(
+        d_idx: int,
+        t0: int,
+        t1: int,
+        comp_players: List[int],
+        comp_cx: float,
+        comp_cy: float,
+    ) -> Tuple[bool, bool, bool, int]:
+        """Validate ward actors are inside fight radius of the candidate component."""
+        if ward_evt_ts.size == 0:
+            return False, False, False, 0
+        if ward_actor_radius <= 0:
+            return False, False, False, 0
+        l = int(np.searchsorted(ward_evt_ts, int(t0), side="left"))
+        r_ = int(np.searchsorted(ward_evt_ts, int(t1), side="right"))
+        if r_ <= l:
+            return False, False, False, 0
+
+        comp_set = set(int(x) for x in comp_players)
+        has_kill = False
+        blue_seen = False
+        red_seen = False
+        in_radius_cnt = 0
+
+        for i in range(l, r_):
+            pid = int(ward_evt_pid[i])
+            p_idx = int(pid - 1)
+            if p_idx < 0 or p_idx >= 10:
+                continue
+            if p_idx in comp_set:
+                in_radius = True
+            else:
+                px = float(xy_dense[d_idx, p_idx, 0])
+                py = float(xy_dense[d_idx, p_idx, 1])
+                if not np.isfinite(px) or not np.isfinite(py):
+                    continue
+                dx = px - float(comp_cx)
+                dy = py - float(comp_cy)
+                in_radius = bool((dx * dx + dy * dy) <= (ward_actor_radius * ward_actor_radius))
+
+            if not in_radius:
+                continue
+
+            in_radius_cnt += 1
+            if int(ward_evt_is_kill[i]) == 1:
+                has_kill = True
+            t_id = int(ward_evt_team[i])
+            if t_id == 100:
+                blue_seen = True
+            elif t_id == 200:
+                red_seen = True
+
+        both_teams = bool(blue_seen and red_seen)
+        ward_ok = bool(has_kill or both_teams)
+        return ward_ok, has_kill, both_teams, int(in_radius_cnt)
+
     for ts in all_ts.tolist():
         anchor_ts = int(ts)
         is_kill_anchor = bool(anchor_ts in kill_ts_set)
@@ -2411,12 +2901,12 @@ def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Op
         if pre_sig_ts is not None:
             engage_ts_val = int(pre_sig_ts)
         elif is_kill_anchor:
-            engage_ts_val = int(max(t_min_ms, anchor_ts - max(1, int(kill_pre_ms))))
+            engage_ts_val = int(max(t_min_ms, int(anchor_ts) - max(1, int(kill_pre_ms))))
         else:
             engage_ts_val = int(anchor_ts)
 
-        if is_kill_anchor and engage_ts_val >= anchor_ts:
-            engage_ts_val = int(max(t_min_ms, anchor_ts - 1))
+        if is_kill_anchor and engage_ts_val >= int(anchor_ts):
+            engage_ts_val = int(max(t_min_ms, int(anchor_ts) - 1))
 
         if bool(config.use_backtrack):
             fk_for_backtrack = _first_kill_in_window(kill_ts, engage_ts_val, engage_ts_val + horizon_ms)
@@ -2460,19 +2950,23 @@ def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Op
             diag["rejected_alive"] += 1
             continue
 
-        t0 = int(max(t_min_ms, anchor_ts - event_window_ms))
-        t1 = int(anchor_ts)
+        # Stage-1 (realtime): signal check on pre-window around anchor.
+        rt_t0 = int(max(t_min_ms, int(anchor_ts) - event_window_ms))
+        rt_t1 = int(anchor_ts)
+        if rt_t1 < rt_t0:
+            diag["rejected_nosignal"] += 1
+            continue
 
-        kill_cnt = int(_count_events_in_window(kill_ts, t0, t1))
-        spell_cnt = int(_count_events_in_window(summ_spell_ts, t0, t1))
-        obj_cnt = int(_count_events_in_window(objective_ts, t0, t1))
-        build_cnt = int(_count_events_in_window(building_ts, t0, t1))
-        ward_kill_cnt = int(_count_events_in_window(ward_kill_ts, t0, t1))
-        ward_b_cnt = int(_count_events_in_window(ward_t100_ts, t0, t1))
-        ward_r_cnt = int(_count_events_in_window(ward_t200_ts, t0, t1))
+        kill_cnt = int(_count_events_in_window(kill_ts, rt_t0, rt_t1))
+        spell_cnt = int(_count_events_in_window(summ_spell_ts, rt_t0, rt_t1))
+        obj_cnt = int(_count_events_in_window(objective_ts, rt_t0, rt_t1))
+        build_cnt = int(_count_events_in_window(building_ts, rt_t0, rt_t1))
+        ward_kill_cnt = int(_count_events_in_window(ward_kill_ts, rt_t0, rt_t1))
+        ward_b_cnt = int(_count_events_in_window(ward_t100_ts, rt_t0, rt_t1))
+        ward_r_cnt = int(_count_events_in_window(ward_t200_ts, rt_t0, rt_t1))
         ward_both_teams = bool((ward_b_cnt > 0) and (ward_r_cnt > 0))
         evt_cnt = int(kill_cnt + spell_cnt + obj_cnt + build_cnt + ward_kill_cnt)
-        dmg_norm = float(_damage_norm_prewindow(t0, t1))
+        dmg_norm = float(_damage_norm_prewindow(rt_t0, rt_t1))
 
         score = float(
             w_kill * kill_cnt
@@ -2486,17 +2980,40 @@ def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Op
             (score >= event_score_thr)
             and ((evt_cnt >= event_min_events) or (dmg_norm >= dmg_min) or (spell_cnt >= spell_min))
         )
-        ward_signal_ok = bool((ward_kill_cnt >= 1) or ward_both_teams)
-        combat_signal_ok = bool((dmg_norm >= dmg_min) or ((obj_cnt + build_cnt) >= 1))
-        signal_ok = bool(ward_signal_ok and combat_signal_ok)
-
-        if not signal_ok:
-            if not ward_signal_ok:
-                diag["rejected_noward_signal"] += 1
-            if not combat_signal_ok:
-                diag["rejected_nocombat_signal"] += 1
+        ward_signal_time_ok = bool((ward_kill_cnt >= 1) or ward_both_teams)
+        combat_signal_ok = bool((obj_cnt + build_cnt) >= 1)
+        if not combat_signal_ok:
+            diag["rejected_noobjbuild"] += 1
+            diag["rejected_nocombat_signal"] += 1
             diag["rejected_nosignal"] += 1
             continue
+        if not ward_signal_time_ok:
+            diag["rejected_noward_signal"] += 1
+            diag["rejected_nosignal"] += 1
+            continue
+
+        # Stage-2 (post validation): nearest kill around anchor and obj/build near that kill.
+        kill_ref_ts = _nearest_kill_around(anchor_ts, post_validate_pre_ms, post_validate_post_ms)
+        post_obj_cnt = 0
+        post_build_cnt = 0
+        if require_post_kill_validation:
+            if kill_ref_ts is None:
+                diag["rejected_post_nokill"] += 1
+                diag["rejected_nokill"] += 1
+                diag["rejected_nosignal"] += 1
+                continue
+            post_t0 = int(max(t_min_ms, int(kill_ref_ts) - post_validate_pre_ms))
+            post_t1 = int(min(t_max_ms, int(kill_ref_ts) + post_validate_post_ms))
+            if post_t1 < post_t0:
+                diag["rejected_nosignal"] += 1
+                continue
+            post_obj_cnt = int(_count_events_in_window(objective_ts, post_t0, post_t1))
+            post_build_cnt = int(_count_events_in_window(building_ts, post_t0, post_t1))
+            if (post_obj_cnt + post_build_cnt) <= 0:
+                diag["rejected_noobjbuild"] += 1
+                diag["rejected_nocombat_signal"] += 1
+                diag["rejected_nosignal"] += 1
+                continue
 
         d_idx = int(np.clip(np.searchsorted(dense_ts, engage_ts_val, side="right") - 1, 0, Td - 1))
         dist_mat = dists[d_idx]
@@ -2509,6 +3026,7 @@ def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Op
         fk = _first_kill_in_window(kill_ts, engage_ts_val, engage_ts_val + horizon_ms)
 
         accepted_components = 0
+        rejected_by_ward_spatial = 0
         for ci, (nodes, b_cnt, r_cnt) in enumerate(comps):
             comp_total = int(len(nodes))
             if req_engaged > 0 and (int(b_cnt) < req_engaged or int(r_cnt) < req_engaged):
@@ -2545,6 +3063,29 @@ def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Op
             cx = float(np.mean(pts[:, 0])) if pts.size > 0 else float(np.mean(xy_dense[d_idx, :, 0]))
             cy = float(np.mean(pts[:, 1])) if pts.size > 0 else float(np.mean(xy_dense[d_idx, :, 1]))
 
+            ward_signal_spatial_ok = bool(ward_signal_time_ok)
+            ward_kill_spatial_ok = bool(ward_kill_cnt >= 1)
+            ward_both_spatial_ok = bool(ward_both_teams)
+            ward_actor_in_radius_cnt = -1
+            if require_ward_actor_spatial:
+                (
+                    ward_signal_spatial_ok,
+                    ward_kill_spatial_ok,
+                    ward_both_spatial_ok,
+                    ward_actor_in_radius_cnt,
+                ) = _ward_signal_spatial_for_component(
+                    d_idx=d_idx,
+                    t0=rt_t0,
+                    t1=rt_t1,
+                    comp_players=orig_ids,
+                    comp_cx=cx,
+                    comp_cy=cy,
+                )
+            if not ward_signal_spatial_ok:
+                rejected_by_ward_spatial += 1
+                diag["rejected_noward_spatial"] += 1
+                continue
+
             candidates_out.append(
                 {
                     "engage_ts": int(engage_ts_val),
@@ -2563,19 +3104,28 @@ def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Op
                     "det_backtrack_reliable": int(backtrack_reliable),
                     "det_damage_norm": float(dmg_norm),
                     "det_summoner_spells": int(spell_cnt),
-                    "det_signal_ok": 1,
+                    "det_signal_ok": int(ward_signal_spatial_ok and combat_signal_ok),
                     "det_score_ok": int(score_ok),
                     "det_event_score": float(score),
                     "det_event_count": int(evt_cnt),
                     "det_kill_count_window": int(kill_cnt),
                     "det_objective_count_window": int(obj_cnt),
                     "det_building_count_window": int(build_cnt),
+                    "det_post_objective_count_window": int(post_obj_cnt),
+                    "det_post_building_count_window": int(post_build_cnt),
                     "det_ward_kill_count_window": int(ward_kill_cnt),
                     "det_ward_both_teams_window": int(ward_both_teams),
+                    "det_ward_signal_time_ok": int(ward_signal_time_ok),
+                    "det_ward_signal_spatial_ok": int(ward_signal_spatial_ok),
+                    "det_ward_kill_spatial_ok": int(ward_kill_spatial_ok),
+                    "det_ward_both_teams_spatial_ok": int(ward_both_spatial_ok),
+                    "det_ward_actor_in_radius_count": int(max(0, ward_actor_in_radius_cnt)),
+                    "det_ward_actor_radius": float(max(0.0, ward_actor_radius)),
                     "det_combat_signal_ok": int(combat_signal_ok),
                     "det_event_anchor_ts": int(anchor_ts),
                     "det_event_anchor_is_kill": int(is_kill_anchor),
-                    "det_event_start_shift_ms": int(max(0, anchor_ts - engage_ts_val)),
+                    "det_kill_ref_ts": int(kill_ref_ts) if kill_ref_ts is not None else -1,
+                    "det_event_start_shift_ms": int(max(0, (int(kill_ref_ts) if kill_ref_ts is not None else int(anchor_ts)) - engage_ts_val)),
                     "det_component_idx": int(ci),
                     "det_component_size": int(comp_total),
                     "det_component_blue": int(b_cnt),
@@ -2585,7 +3135,10 @@ def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Op
             accepted_components += 1
 
         if accepted_components <= 0:
-            diag["rejected_lcc"] += 1
+            if rejected_by_ward_spatial > 0:
+                diag["rejected_nosignal"] += 1
+            else:
+                diag["rejected_lcc"] += 1
             continue
         diag["accepted"] += int(accepted_components)
         diag["accepted_by_signal"] += int(accepted_components)
@@ -2650,7 +3203,7 @@ def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Op
     for fight in fights:
         try:
             fight["fight_type"] = classify_fight_type(fight, anchors, is_norm, scale_factor)
-            outcome = compute_fight_outcome(fight, kill_events, tm)
+            outcome = compute_fight_outcome(fight, kill_events, tm, cache=cache, events=events)
             fight["outcome"] = outcome
             fight["importance_score"] = compute_fight_importance(fight, outcome, fight["fight_type"], game_duration_ms)
             fight["player_engagement"] = compute_player_engagement(fight, xy_dense, dists, dense_ts, R, b, r)
@@ -2713,3 +3266,88 @@ def summarize_fights(fights: List[dict]) -> Dict[str, Any]:
         "avg_importance": (total_importance / len(fights)) if fights else 0.0,
         "total_kills": total_kills,
     }
+
+
+def summarize_fight_type_changes(fights: List[dict]) -> Dict[str, Any]:
+    if not fights:
+        return {}
+
+    agg: Dict[str, Dict[str, float]] = {}
+    for fight in fights:
+        ft = str(fight.get("fight_type", "unknown"))
+        outcome = fight.get("outcome", {})
+        if not isinstance(outcome, dict):
+            outcome = {}
+
+        if ft not in agg:
+            agg[ft] = {
+                "count": 0.0,
+                "blue_win": 0.0,
+                "red_win": 0.0,
+                "draw": 0.0,
+                "total_kills": 0.0,
+                "blue_deaths": 0.0,
+                "red_deaths": 0.0,
+                "blue_survivors": 0.0,
+                "red_survivors": 0.0,
+                "gold_diff": 0.0,
+                "gold_blue_delta": 0.0,
+                "gold_red_delta": 0.0,
+                "tower_diff": 0.0,
+                "tower_blue": 0.0,
+                "tower_red": 0.0,
+                "objective_diff": 0.0,
+                "objective_blue": 0.0,
+                "objective_red": 0.0,
+            }
+
+        rec = agg[ft]
+        rec["count"] += 1.0
+
+        winner = str(outcome.get("winner", "draw"))
+        if winner == "blue":
+            rec["blue_win"] += 1.0
+        elif winner == "red":
+            rec["red_win"] += 1.0
+        else:
+            rec["draw"] += 1.0
+
+        rec["total_kills"] += float(outcome.get("total_kills", 0) or 0.0)
+        rec["blue_deaths"] += float(outcome.get("blue_deaths", 0) or 0.0)
+        rec["red_deaths"] += float(outcome.get("red_deaths", 0) or 0.0)
+        rec["blue_survivors"] += float(outcome.get("blue_survivors", 0) or 0.0)
+        rec["red_survivors"] += float(outcome.get("red_survivors", 0) or 0.0)
+        rec["gold_diff"] += float(outcome.get("gold_diff", 0.0) or 0.0)
+        rec["gold_blue_delta"] += float(outcome.get("gold_blue_delta", 0.0) or 0.0)
+        rec["gold_red_delta"] += float(outcome.get("gold_red_delta", 0.0) or 0.0)
+        rec["tower_diff"] += float(outcome.get("tower_diff", 0) or 0.0)
+        rec["tower_blue"] += float(outcome.get("tower_blue", 0) or 0.0)
+        rec["tower_red"] += float(outcome.get("tower_red", 0) or 0.0)
+        rec["objective_diff"] += float(outcome.get("objective_diff", 0) or 0.0)
+        rec["objective_blue"] += float(outcome.get("objective_blue", 0) or 0.0)
+        rec["objective_red"] += float(outcome.get("objective_red", 0) or 0.0)
+
+    out: Dict[str, Any] = {}
+    for ft, rec in agg.items():
+        c = float(max(1.0, rec.get("count", 0.0)))
+        out[ft] = {
+            "count": int(rec["count"]),
+            "blue_win_rate": float(rec["blue_win"] / c),
+            "red_win_rate": float(rec["red_win"] / c),
+            "draw_rate": float(rec["draw"] / c),
+            "avg_total_kills": float(rec["total_kills"] / c),
+            "avg_blue_deaths": float(rec["blue_deaths"] / c),
+            "avg_red_deaths": float(rec["red_deaths"] / c),
+            "avg_blue_survivors": float(rec["blue_survivors"] / c),
+            "avg_red_survivors": float(rec["red_survivors"] / c),
+            "avg_gold_diff": float(rec["gold_diff"] / c),
+            "avg_gold_blue_delta": float(rec["gold_blue_delta"] / c),
+            "avg_gold_red_delta": float(rec["gold_red_delta"] / c),
+            "avg_tower_diff": float(rec["tower_diff"] / c),
+            "avg_tower_blue": float(rec["tower_blue"] / c),
+            "avg_tower_red": float(rec["tower_red"] / c),
+            "avg_objective_diff": float(rec["objective_diff"] / c),
+            "avg_objective_blue": float(rec["objective_blue"] / c),
+            "avg_objective_red": float(rec["objective_red"] / c),
+        }
+    return out
