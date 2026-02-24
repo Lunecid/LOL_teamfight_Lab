@@ -88,6 +88,10 @@ def validate_engage_ts(cache: Dict[str, Any], engage_ts: int, horizon_ms: int, c
     """
     Validate that engage_ts has enough context before and horizon after.
     Returns True if valid.
+
+    The last minute_ts entry represents the last recorded frame, but game data
+    may extend up to one frame_ms beyond it.  Use >= so that fights whose
+    horizon ends exactly at t_max are not incorrectly rejected.
     """
     minute_ts = cache.get("minute_ts", np.array([]))
     if len(minute_ts) < 2:
@@ -95,13 +99,15 @@ def validate_engage_ts(cache: Dict[str, Any], engage_ts: int, horizon_ms: int, c
 
     t_min = int(minute_ts[0])
     t_max = int(minute_ts[-1])
+    # Allow up to one frame beyond the last recorded timestamp
+    frame_ms = int(getattr(cfg, "FRAME_MS", 60000))
 
     # Need ctx_ms before engage_ts
     if int(engage_ts) - int(ctx_ms) < t_min:
         return False
 
-    # Need horizon_ms after engage_ts
-    if int(engage_ts) + int(horizon_ms) > t_max:
+    # Need horizon_ms after engage_ts (allow up to one frame beyond last ts)
+    if int(engage_ts) + int(horizon_ms) > t_max + frame_ms:
         return False
 
     return True

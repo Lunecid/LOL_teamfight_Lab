@@ -181,7 +181,7 @@ class FightDetectorConfig:
     engage_min_pair_gain: int = 2
     fight_min_gap_ms: int = 120000
     fight_context_min: int = 1
-    detect_step_ms: int = 5000
+    detect_step_ms: int = 10000
     frame_ms: int = 60000
 
     # 병합 관련

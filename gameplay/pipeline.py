@@ -7,8 +7,6 @@ from core.config import (
     F_EVENT, F_GLOBAL, F_NODE, GLOBAL_FEATURE_NAMES, MAP_MAX, NODE_IDX,
     GLOBAL_IDX, EVENT_IDX, DRAGON_SOUL_TYPES, OBJ_SCORE, ITEM_HASH_DIM,
 )
-from typing import Optional
-
 from core.common import Any, Dict, List, Optional, Tuple, np, math, safe_float, log1p_norm
 from core.contract import _BOOL_NODE_COLS
 
