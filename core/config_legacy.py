@@ -543,8 +543,8 @@ DATASET_DIR.mkdir(parents=True, exist_ok=True)
 BASELINE_LGB_PARAMS: Dict[str, Any] = dict(cfg.BASELINE_LGB_PARAMS)
 
 # ---- contracts (single source of truth) ----
-from feature_contract import build_feature_contract
-from time_contract import TimeContract
+from core.feature_contract import build_feature_contract
+from core.time_contract import TimeContract
 
 FEATURE_CONTRACT = build_feature_contract(
     node_names=NODE_FEATURE_NAMES,

@@ -70,14 +70,14 @@ def _safe_import_node_idx() -> Tuple[Optional[Dict[str, int]], Optional[List[str
     node_names: Optional[List[str]] = None
 
     try:
-        from config import NODE_IDX as _idx  # type: ignore
+        from core.config import NODE_IDX as _idx  # type: ignore
         if _idx is not None:
             node_idx = _idx  # [P2-STRUCT-1] direct ref, NOT dict()
     except ImportError:
         pass
 
     try:
-        from config import NODE_FEATURE_NAMES as _names  # type: ignore
+        from core.config import NODE_FEATURE_NAMES as _names  # type: ignore
         if _names is not None:
             node_names = list(_names)
     except ImportError:

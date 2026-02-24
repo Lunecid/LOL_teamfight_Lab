@@ -7,18 +7,18 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
-from config import cfg
-from fight_types import FightRef, ref_key
-from pipeline import build_ms_sequence
-from cache_io import load_match_cache
-from features import (
+from core.config import cfg
+from core.fight_types import FightRef, ref_key
+from gameplay.pipeline import build_ms_sequence
+from data.cache_io import load_match_cache
+from gameplay.features import (
     build_sequence_features,
     get_extra_feature_names,
     get_xseq_feature_names,
     prune_correlated_columns,
     seq_to_tabular,
 )
-from utils import (
+from core.utils import (
     confusion_from_probs,
     metrics_from_probs,
     pretty_cm,
@@ -26,9 +26,9 @@ from utils import (
     save_json,
     write_log,
 )
-from common import logit
-from indexing import count_patches_from_refs, log_patch_block
-from file_io import dump_predictions_csv, ensure_dir, save_kv_csv, save_text_lines
+from core.common import logit
+from data.indexing import count_patches_from_refs, log_patch_block
+from data.file_io import dump_predictions_csv, ensure_dir, save_kv_csv, save_text_lines
 
 
 # =========================================================
@@ -159,7 +159,7 @@ def _as_frame(X: np.ndarray, feat_names: List[str]):
 
 def _tabular_feature_names_from_base(base_names: List[str]) -> List[str]:
     # [P4-STATS] Use centralized TABULAR_SUFFIXES (was hardcoded, Issue #5)
-    from feature_contract import tabular_feature_names
+    from core.feature_contract import tabular_feature_names
     feat_names = list(tabular_feature_names(base_names))
     return sanitize_feature_names(feat_names)
 
@@ -389,7 +389,7 @@ def run_lgbm_baseline(
         write_log(f"[LGBM] corr-prune kept={len(keep_idx)} dropped={len(dropped)}", log_fp)
 
     try:
-        import config as _cfg_mod
+        import core.config as _cfg_mod
 
         params = dict(getattr(_cfg_mod, "BASELINE_LGB_PARAMS", {}))
     except Exception:

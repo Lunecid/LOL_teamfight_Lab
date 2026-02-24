@@ -42,18 +42,18 @@ from __future__ import annotations
 import time
 from collections import defaultdict
 
-from common import Any, Dict, List, Optional, Tuple, np
-from config import NODE_IDX, cfg
+from core.common import Any, Dict, List, Optional, Tuple, np
+from core.config import NODE_IDX, cfg
 
 import torch
 from torch.utils.data import Dataset
 
-from fight_types import FightRef, PruneSpec, ref_key
-from cache_io import load_match_cache
-from pipeline import build_ms_sequence
-from logits import _normalize_logit_maps, _cfg_wants_logits
-from contract import SPATIAL_NAMES
-from features import build_sequence_features, get_extra_feature_names, get_xseq_feature_names
+from core.fight_types import FightRef, PruneSpec, ref_key
+from data.cache_io import load_match_cache
+from gameplay.pipeline import build_ms_sequence
+from data.logits import _normalize_logit_maps, _cfg_wants_logits
+from core.contract import SPATIAL_NAMES
+from gameplay.features import build_sequence_features, get_extra_feature_names, get_xseq_feature_names
 
 
 # =====================================================================

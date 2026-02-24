@@ -5,7 +5,7 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple
 
-from utils import write_log
+from core.utils import write_log
 
 
 
@@ -48,7 +48,7 @@ def save_kv_csv(
 
 
 def _default_ref_key() -> RefKeyFn:
-    from fight_types import ref_key  # local import to avoid import cycles
+    from core.fight_types import ref_key  # local import to avoid import cycles
 
     return ref_key
 

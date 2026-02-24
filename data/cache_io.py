@@ -4,17 +4,17 @@ import hashlib
 import json
 import time
 from pathlib import Path
-from common import Any, Dict, List, Optional, Tuple, np
-from config import CACHE_DIR, F_GLOBAL, F_NODE, cfg
-from utils import read_json, write_log
+from core.common import Any, Dict, List, Optional, Tuple, np
+from core.config import CACHE_DIR, F_GLOBAL, F_NODE, cfg
+from core.utils import read_json, write_log
 
 # [P1-2 FIX] _RAM_CACHE_ORDER 제거됨 — OrderedDict 단일 구조로 LRU 통합
-from ram_cache import _ram_cache_enabled, _ram_get, _ram_put, _RAM_CACHE
-from events_index import _attach_event_index_inplace
-from pipeline import parse_timeline_to_minute_cache
-from fights import build_anchors_from_events, normalize_patch
-from events_index import _safe_int_dict
-from roles import get_role_slots_from_detail
+from data.ram_cache import _ram_cache_enabled, _ram_get, _ram_put, _RAM_CACHE
+from data.events_index import _attach_event_index_inplace
+from gameplay.pipeline import parse_timeline_to_minute_cache
+from gameplay.fights import build_anchors_from_events, normalize_patch
+from data.events_index import _safe_int_dict
+from core.roles import get_role_slots_from_detail
 
 
 # =========================================================

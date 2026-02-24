@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import math
 from typing import Dict, List, Optional, Tuple, Any
-from config import cfg
+from core.config import cfg
 import numpy as np
 import torch
 import torch.nn as nn

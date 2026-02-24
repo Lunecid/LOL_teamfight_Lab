@@ -3,8 +3,8 @@ from __future__ import annotations
 import csv
 import json
 from pathlib import Path
-from common import Any, Dict, List, Optional, Tuple, np, dataclass
-from config import CACHE_DIR, RUN_DIR, cfg
+from core.common import Any, Dict, List, Optional, Tuple, np, dataclass
+from core.config import CACHE_DIR, RUN_DIR, cfg
 
 # module-level counter
 _DUMP_MATCH_COUNT = 0

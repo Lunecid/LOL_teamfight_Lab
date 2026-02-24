@@ -5,8 +5,8 @@ speed_config.py — Phase 1 GPU Maximum Utilization Config
 사용법:
     실험 실행 전에 import하여 cfg에 오버레이 적용:
 
-    from config import cfg
-    from speed_config import apply_speed_overlay
+    from core.config import cfg
+    from train.speed_config import apply_speed_overlay
     apply_speed_overlay(cfg)  # 기본: 단일 GPU, 충분한 RAM
 
 또는 experiment_runner에서 직접:

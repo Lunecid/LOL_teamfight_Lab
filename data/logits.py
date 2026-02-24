@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from common import Any, Dict, Optional
-from fight_types import ref_key
+from core.common import Any, Dict, Optional
+from core.fight_types import ref_key
 
 # [FIX-IMPORT] cfg must be imported explicitly from config
-from config import cfg
+from core.config import cfg
 
 def _normalize_logit_maps(
     lgbm_logit_map: Optional[Dict[str, float]] = None,

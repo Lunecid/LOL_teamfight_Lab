@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Dict, List
 
-from config import ROLE_ORDER
+from core.config import ROLE_ORDER
 
 
 def _norm_role(x: str) -> str:

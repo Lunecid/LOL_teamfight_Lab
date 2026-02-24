@@ -13,11 +13,11 @@ import numpy as np
 # ============================================================================
 
 try:
-    from config import cfg  # type: ignore
+    from core.config import cfg  # type: ignore
 except ImportError:
     cfg = None
 
-from common_torch import resolve_node_idx  # [P4-DEDUP]
+from core.common_torch import resolve_node_idx  # [P4-DEDUP]
 NODE_IDX = resolve_node_idx()
 
 
@@ -2405,6 +2405,8 @@ def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Op
         anchor_ts = int(ts)
         is_kill_anchor = bool(anchor_ts in kill_ts_set)
         pre_sig_ts = _earliest_signal_before(anchor_ts, event_window_ms)
+        backtracked = False
+        backtrack_reliable = True
 
         if pre_sig_ts is not None:
             engage_ts_val = int(pre_sig_ts)
@@ -2415,6 +2417,25 @@ def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Op
 
         if is_kill_anchor and engage_ts_val >= anchor_ts:
             engage_ts_val = int(max(t_min_ms, anchor_ts - 1))
+
+        if bool(config.use_backtrack):
+            fk_for_backtrack = _first_kill_in_window(kill_ts, engage_ts_val, engage_ts_val + horizon_ms)
+            if fk_for_backtrack is not None:
+                bt_ts, bt_ok = backtrack_engage_ts(
+                    dists=dists,
+                    dense_ts=dense_ts,
+                    prox_pairs=prox_pairs,
+                    kill_ts=int(fk_for_backtrack),
+                    R=float(R),
+                    min_pairs=int(config.backtrack_min_pairs),
+                    max_lookback_ms=int(config.backtrack_max_ms),
+                    min_lookback_ms=int(config.backtrack_min_ms),
+                )
+                bt_ts = int(bt_ts)
+                if bt_ts < int(engage_ts_val):
+                    engage_ts_val = bt_ts
+                    backtracked = True
+                    backtrack_reliable = bool(bt_ok)
 
         shifted_start, shifted = _ensure_start_before_recent_kill(
             engage_ts_val=int(engage_ts_val),
@@ -2538,7 +2559,8 @@ def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Op
                     "det_prox_pairs": int(prox_pairs_comp),
                     "det_min_dist_mean": float(min_dist_mean[d_idx]) if d_idx < len(min_dist_mean) else 0.0,
                     "det_anchor": 0,
-                    "det_backtracked": 0,
+                    "det_backtracked": int(backtracked),
+                    "det_backtrack_reliable": int(backtrack_reliable),
                     "det_damage_norm": float(dmg_norm),
                     "det_summoner_spells": int(spell_cnt),
                     "det_signal_ok": 1,
@@ -2567,6 +2589,10 @@ def detect_fights_event_v1(cache: Dict[str, Any], tm: Dict[int, int], config: Op
             continue
         diag["accepted"] += int(accepted_components)
         diag["accepted_by_signal"] += int(accepted_components)
+        if backtracked:
+            diag["backtracked"] += int(accepted_components)
+            if not backtrack_reliable:
+                diag["backtrack_unreliable"] += int(accepted_components)
 
     if not candidates_out:
         _pack_diagnostics()

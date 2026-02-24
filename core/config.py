@@ -882,7 +882,7 @@ BASELINE_LGB_PARAMS: Dict[str, Any] = dict(cfg.BASELINE_LGB_PARAMS)
 # -------------------------------------------------------------------
 # Contracts (single source of truth)
 # -------------------------------------------------------------------
-from feature_contract import build_feature_contract
+from core.feature_contract import build_feature_contract
 
 FEATURE_CONTRACT = build_feature_contract(
     node_names=NODE_FEATURE_NAMES,

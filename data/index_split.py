@@ -5,16 +5,16 @@ import re
 import hashlib
 from collections import defaultdict
 from typing import Iterable
-from common import Any, Dict, List, Optional, Tuple, np, dataclass, field
-from config import CACHE_DIR, cfg
+from core.common import Any, Dict, List, Optional, Tuple, np, dataclass, field
+from core.config import CACHE_DIR, cfg
 
-from fight_types import FightRef, PruneSpec
-from cache_io import load_match_cache
-from pipeline import build_ms_sequence
-from fights import detect_fights, normalize_patch
-from diagnostics import _maybe_dump_fights_for_match
-from features import build_sequence_features, get_xseq_feature_names, get_extra_feature_names, prune_correlated_columns
-from contract import TIME_CONTRACT
+from core.fight_types import FightRef, PruneSpec
+from data.cache_io import load_match_cache
+from gameplay.pipeline import build_ms_sequence
+from gameplay.fights import detect_fights, normalize_patch
+from core.diagnostics import _maybe_dump_fights_for_match
+from gameplay.features import build_sequence_features, get_xseq_feature_names, get_extra_feature_names, prune_correlated_columns
+from core.contract import TIME_CONTRACT
 
 
 def _stable_int_hash(s: str) -> int:

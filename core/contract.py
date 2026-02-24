@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Dict, List
 
-from config import (
+from core.config import (
     cfg,
     NODE_FEATURE_NAMES, EVENT_FEATURE_NAMES, GLOBAL_FEATURE_NAMES,
     # [P2-STRUCT-1] SSoT: Import indices directly from config.
@@ -13,7 +13,7 @@ from config import (
     FEATURE_CONTRACT,
 )
 
-from features import get_spatial_feature_names
+from gameplay.features import get_spatial_feature_names
 
 # ---------------------------------------------------------------------
 # [P2-STRUCT-1] Feature/time contracts — unified via config.py
@@ -50,7 +50,7 @@ class _TimeContractFallback:
             return max(0, t)
 
 try:
-    from config import TIME_CONTRACT as TIME_CONTRACT  # type: ignore
+    from core.config import TIME_CONTRACT as TIME_CONTRACT  # type: ignore
 except Exception:
     TIME_CONTRACT = _TimeContractFallback()
 

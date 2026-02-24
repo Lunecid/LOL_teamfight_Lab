@@ -3,9 +3,9 @@ from __future__ import annotations
 from typing import Dict, Any, Optional
 
 try:
-    from config import cfg
+    from core.config import cfg
 except ImportError:
-    from config import cfg
+    from core.config import cfg
 from collections import OrderedDict
 
 # ---------------------------------------------------------------------

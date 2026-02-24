@@ -11,7 +11,7 @@ import math
 from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Dict, Optional, Tuple, List, Any, Sequence
-from improvements import TemporalAttentionPooling
+from core.improvements import TemporalAttentionPooling
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -28,9 +28,9 @@ import torch.nn.functional as F
 #
 # All now delegated to common_torch.py.
 # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-from config import cfg  # type: ignore
+from core.config import cfg  # type: ignore
 
-from common_torch import (
+from core.common_torch import (
     autocast_disabled as _autocast_disabled_ctx,
     nan_to_num as _nan_to_num_,
     resolve_node_idx,
@@ -56,7 +56,7 @@ def _get_role_adj_module(device: torch.device) -> nn.Module:
     """
     global _role_adj_module
     if _role_adj_module is None:
-        from improvements import RoleAwareAdjacency
+        from core.improvements import RoleAwareAdjacency
         init_val = float(getattr(cfg, "ROLE_ADJ_INIT", 0.0))
         _role_adj_module = RoleAwareAdjacency(n_roles=5, init_value=init_val)
     # device migration (idempotent if already on target)

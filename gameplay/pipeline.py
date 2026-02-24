@@ -1,7 +1,7 @@
 from __future__ import annotations
 import hashlib
 import random
-from config import (
+from core.config import (
     cfg, CHAMPION_STATS_KEYS, CS_DENOM, DAMAGE_STATS_KEYS, DS_DENOM,
     CHAMPION_STATS_DIV100_KEYS,
     F_EVENT, F_GLOBAL, F_NODE, GLOBAL_FEATURE_NAMES, MAP_MAX, NODE_IDX,
@@ -9,12 +9,12 @@ from config import (
 )
 from typing import Optional
 
-from common import Any, Dict, List, Optional, Tuple, np, math, safe_float, log1p_norm
-from contract import _BOOL_NODE_COLS
+from core.common import Any, Dict, List, Optional, Tuple, np, math, safe_float, log1p_norm
+from core.contract import _BOOL_NODE_COLS
 
-from events_index import _events_in_window
-from timeutils import gold_at_ms, _get_horizon_ms, _get_context_ms, _get_bin_ms, ts_to_minute_idx, validate_engage_ts
-from fights import _event_xy
+from data.events_index import _events_in_window
+from core.timeutils import gold_at_ms, _get_horizon_ms, _get_context_ms, _get_bin_ms, ts_to_minute_idx, validate_engage_ts
+from gameplay.fights import _event_xy
 
 
 def _sum_feat(nm_t: np.ndarray, idxs: np.ndarray, name: str) -> float:
@@ -1095,7 +1095,7 @@ def build_event_tokens_for_xattn(
     max_tokens: int = 64,
 ) -> Dict[str, np.ndarray]:
 
-    from events_index import _events_in_window, _event_ts_safe
+    from data.events_index import _events_in_window, _event_ts_safe
 
     evs = _events_in_window(pack, int(s_ms), int(e_ms))
     if not evs:

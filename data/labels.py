@@ -6,16 +6,16 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
-from fight_types import FightRef, ref_key
-from pipeline import build_ms_sequence
-from cache_io import load_match_cache
-from features import build_sequence_features
+from core.fight_types import FightRef, ref_key
+from gameplay.pipeline import build_ms_sequence
+from data.cache_io import load_match_cache
+from gameplay.features import build_sequence_features
 
 # [P2-STRUCT-2] Unified write_log from utils.py (single source of truth).
 # Previously: local stub using logging.info() — behaviour mismatch with
 # utils.write_log() which uses print(). All modules now share identical
 # write_log semantics: stdout + optional file append.
-from utils import write_log
+from core.utils import write_log
 
 
 

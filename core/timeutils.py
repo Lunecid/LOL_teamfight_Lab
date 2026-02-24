@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from common import Any, Dict, List, Optional, np
-from config import cfg
+from core.common import Any, Dict, List, Optional, np
+from core.config import cfg
 
 
 def _get_horizon_ms() -> int:

@@ -22,25 +22,22 @@ from torch.utils.data import DataLoader
 # [P4-IMPORT] Simplified imports — removed duplicate try/except
 # where try and except blocks contained identical code (Issue #3).
 # ─────────────────────────────────────────────────────────────
-from config import cfg  # type: ignore
-from utils import set_seed, write_log, save_json  # type: ignore
-from file_io import ensure_dir  # type: ignore
+from core.config import cfg  # type: ignore
+from core.utils import set_seed, write_log, save_json  # type: ignore
+from data.file_io import ensure_dir  # type: ignore
 
-# ref_keyÃ«Å â€ "t_start_ts Ã¬Å¡Â°Ã¬â€žÂ " ÃªÂ·Å“Ã¬Â¹â„¢Ã¬ÂÂ´ Ã«â€œÂ¤Ã¬â€“Â´ÃªÂ°â€ž Ã¬ÂµÅ“Ã¬â€¹Â  Ã«Â²â€žÃ¬Â â€žÃ¬Ââ€ž Ã¬â€šÂ¬Ã¬Å¡Â©Ã­â€¢Â´Ã¬â€¢Â¼ Ã­â€¢Â¨
-try:
-    from fight_types import ref_key  # type: ignore
-except Exception:
-    from lol_teamfight.data.types import ref_key  # type: ignore  # (Ã­ËœÂ¹Ã¬â€¹Å“ typesÃ¬â€”Â Ã¬Å¾Ë†Ã¬Å“Â¼Ã«Â©Â´)
+# ref_key는 core.fight_types에서 단일 경로로 로드한다.
+from core.fight_types import ref_key  # type: ignore
 
 # Ã¢Å“â€¦ build_model(factory) import Ã¬â€¢Ë†Ã¬Â â€žÃ­â„¢â€
-from models import build_model  # type: ignore  # [P4-IMPORT]
+from train.models import build_model  # type: ignore  # [P4-IMPORT]
 
 # Ã¢Å“â€¦ Dataset / collate import ÃªÂ²Â½Ã«Â¡Å“Ã«Å â€ Ã«â€žÂ¤ Ã­â€â€žÃ«Â¡Å“Ã¬Â ÂÃ­Å Â¸Ã¬â€”Â Ã«Â§Å¾ÃªÂ²Å’ Ã¬Â¡Â°Ã¬Â â€¢
 try:
     from data_loader.dataset import InMemoryFightDataset, collate_batch  # type: ignore
 except Exception:
     # fallback (Ã¬ËœË†Ã¬Â â€ž ÃªÂ²Â½Ã«Â¡Å“ÃªÂ°â‚¬ Ã¬â€šÂ´Ã¬â€¢â€žÃ¬Å¾Ë†Ã¬Ââ€ž Ã«â€¢Å’)
-    from dataset import InMemoryFightDataset, collate_batch  # type: ignore
+    from data.dataset import InMemoryFightDataset, collate_batch  # type: ignore
 
 
 # =========================================================
@@ -329,8 +326,8 @@ def _predict_logit_and_label_maps_for_loader(
 # =========================================================
 # [P4-DEDUP] _autocast_disabled / _nan_to_num_ moved to common_torch.py
 # Kept as thin aliases for backward compatibility within this module.
-from common_torch import autocast_disabled as _autocast_disabled_impl
-from common_torch import nan_to_num as _nan_to_num_impl
+from core.common_torch import autocast_disabled as _autocast_disabled_impl
+from core.common_torch import nan_to_num as _nan_to_num_impl
 
 
 @contextmanager
@@ -349,7 +346,7 @@ def _nan_to_num_(x: torch.Tensor) -> torch.Tensor:
 # Robust NODE_IDX / NODE_FEATURE_NAMES import
 # =========================================================
 # [P4-DEDUP] NODE_IDX now resolved via common_torch (single source of truth)
-from common_torch import (
+from core.common_torch import (
     resolve_node_idx as _resolve_node_idx_impl,
     idx_required as _idx_required,
     idx_optional as _idx_optional,
@@ -1402,7 +1399,7 @@ def train_deep_model(
     ensure_dir(out_dir)
     set_seed(int(seed))
     try:
-        from models import reset_model_singletons
+        from train.models import reset_model_singletons
         reset_model_singletons()
     except Exception as e:
         write_log(f"[DEEP][WARN] reset_model_singletons failed (ignored): {e}", log_fp)
@@ -1607,7 +1604,7 @@ def train_deep_model(
     # T5: Role-Aware Adjacency — global module의 파라미터도 optimizer에 등록
     if bool(getattr(cfg, "USE_ROLE_AWARE_ADJ", False)):
         try:
-            from models import _role_adj_module
+            from train.models import _role_adj_module
             if _role_adj_module is not None:
                 params += list(_role_adj_module.parameters())
                 write_log(f"[DEEP] Added RoleAwareAdjacency R(5×5) to optimizer", log_fp)
@@ -1675,7 +1672,7 @@ def train_deep_model(
     label_eps = float(getattr(cfg, "LABEL_SMOOTHING", 0.0))
 
     if getattr(cfg, "USE_FOCAL_LOSS", False):
-        from improvements import FocalLoss
+        from core.improvements import FocalLoss
         crit = FocalLoss(
             gamma=float(getattr(cfg, "FOCAL_GAMMA", 2.0)),
             alpha=float(getattr(cfg, "FOCAL_ALPHA", 0.25)),

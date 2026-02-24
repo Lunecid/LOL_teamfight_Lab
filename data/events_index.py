@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from common import Any, Dict, List, Optional, np
+from core.common import Any, Dict, List, Optional, np
 
 # -----------------------------------------------------------------------------
 # Event time indexing (FAST)

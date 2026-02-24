@@ -11,7 +11,7 @@ import torch
 # Previously: local stub using logging.info() — different behaviour from
 # utils.write_log() which uses print(). Now all modules share the same
 # observable behaviour for write_log.
-from utils import write_log
+from core.utils import write_log
 
 
 def _cuda_device_info() -> Optional[Dict[str, object]]:

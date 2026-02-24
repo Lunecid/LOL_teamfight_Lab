@@ -9,10 +9,10 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
-from fight_types import FightRef, ref_key
-from labels import aligned_xy_from_maps, get_label_map
-from common import sigmoid_np
-from utils import confusion_from_probs, metrics_from_probs, pretty_cm, save_json, write_log
+from core.fight_types import FightRef, ref_key
+from data.labels import aligned_xy_from_maps, get_label_map
+from core.common import sigmoid_np
+from core.utils import confusion_from_probs, metrics_from_probs, pretty_cm, save_json, write_log
 
 # Optional meta learner deps
 try:

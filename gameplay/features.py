@@ -4,11 +4,11 @@ from __future__ import annotations
 import random
 import numpy as np
 from typing import Dict, List, Any, Tuple, Optional
-from improvements import compute_momentum_stats, compute_game_phase_seq, GAME_PHASE_FEATURE_NAMES
+from core.improvements import compute_momentum_stats, compute_game_phase_seq, GAME_PHASE_FEATURE_NAMES
 # [P4-SHADOW FIX] NODE_IDX removed from this import — was immediately
 # shadowed at module level by FEATURE_CONTRACT.node_idx (Issue #1).
 # [P2-STRUCT-1] Now import NODE_IDX directly from config (SSoT).
-from config import (
+from core.config import (
     cfg,
     CHAMPION_STATS_KEYS, CHAMPION_STATS_DIV100_KEYS, DAMAGE_STATS_KEYS,
     NODE_FEATURE_NAMES, SLOT_NAMES,
@@ -19,7 +19,7 @@ from config import (
     NODE_IDX, EVENT_IDX, GLOBAL_IDX,  # [P2-STRUCT-1] SSoT: single import path
 )
 
-from common import safe_float, log1p_norm
+from core.common import safe_float, log1p_norm
 
 
 def _normalize_cs_raw(key: str, raw_value: float) -> float:
@@ -33,7 +33,7 @@ def _normalize_cs_raw(key: str, raw_value: float) -> float:
 # Optional import: deterministic denoms for snapshot normalization
 # ---------------------------------------------------------------------
 try:
-    from config import NODE_BASE_DENOM as _NODE_BASE_DENOM  # type: ignore
+    from core.config import NODE_BASE_DENOM as _NODE_BASE_DENOM  # type: ignore
     NODE_BASE_DENOM: Dict[str, float] = dict(_NODE_BASE_DENOM)
 except Exception:
     # Fallback if config doesn't export it (keeps backward compatibility)
@@ -756,7 +756,7 @@ def get_gnn_extra_names(feature_set: str) -> List[str]:
 
 def get_tabular_feature_names_tri_modal() -> List[str]:
     # [P4-STATS] Use centralized TABULAR_SUFFIXES (was hardcoded, Issue #5)
-    from feature_contract import tabular_feature_names
+    from core.feature_contract import tabular_feature_names
     base = _macro_base_names() + get_spatial_feature_names()
     return list(tabular_feature_names(base))
 
