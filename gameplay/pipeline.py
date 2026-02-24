@@ -262,98 +262,10 @@ def _normalize_cs_raw(key: str, raw_value: float) -> float:
 # =========================
 # ✅ NEW: detail(meta)에서 champion/runes/bans 추출
 # =========================
-def _extract_champ_runes_bans_from_detail(
-    detail: Optional[Dict[str, Any]],
-    *,
-    champion_name_vocab: int = 4096,
-) -> Tuple[Dict[int, int], Dict[int, Dict[str, int]], Dict[str, List[int]]]:
-    champ_by_pid: Dict[int, int] = {}
-    runes_by_pid: Dict[int, Dict[str, int]] = {}
-    bans: Dict[str, List[int]] = {"blue": [0, 0, 0, 0, 0], "red": [0, 0, 0, 0, 0]}
-
-    if not isinstance(detail, dict):
-        return champ_by_pid, runes_by_pid, bans
-
-    info = detail.get("info", {}) if isinstance(detail.get("info", {}), dict) else {}
-    parts = info.get("participants", [])
-    if not isinstance(parts, list):
-        parts = []
-
-    def _perk_at(styles: list, style_idx: int, sel_idx: int) -> int:
-        try:
-            st = styles[style_idx]
-            sels = st.get("selections", [])
-            return int(sels[sel_idx].get("perk", 0) or 0)
-        except Exception:
-            return 0
-
-    def _style_at(styles: list, style_idx: int) -> int:
-        try:
-            st = styles[style_idx]
-            return int(st.get("style", 0) or 0)
-        except Exception:
-            return 0
-
-    name_vocab = int(champion_name_vocab)
-
-    for p in parts:
-        if not isinstance(p, dict):
-            continue
-        pid = int(p.get("participantId", 0) or 0)
-        if pid <= 0:
-            continue
-
-        champ_name_id = _stable_name_id(p.get("championName", ""), name_vocab)
-        champ_id = int(p.get("championId", 0) or 0)
-        if champ_id <= 0:
-            # Fallback for malformed detail rows missing championId.
-            champ_id = champ_name_id
-        champ_by_pid[pid] = champ_id
-
-        perks = p.get("perks", {}) or {}
-        styles = perks.get("styles", []) or []
-        statp = perks.get("statPerks", {}) or {}
-
-        r = {
-            "champion_name_id": champ_name_id,
-            "summoner_spell_1_id": int(p.get("summoner1Id", 0) or 0),
-            "summoner_spell_2_id": int(p.get("summoner2Id", 0) or 0),
-            "primary_style_id": _style_at(styles, 0),
-            "sub_style_id": _style_at(styles, 1),
-            "primary_rune_1": _perk_at(styles, 0, 0),
-            "primary_rune_2": _perk_at(styles, 0, 1),
-            "primary_rune_3": _perk_at(styles, 0, 2),
-            "primary_rune_4": _perk_at(styles, 0, 3),
-            "sub_rune_1": _perk_at(styles, 1, 0),
-            "sub_rune_2": _perk_at(styles, 1, 1),
-            "stat_perk_offense": int(statp.get("offense", 0) or 0),
-            "stat_perk_flex": int(statp.get("flex", 0) or 0),
-            "stat_perk_defense": int(statp.get("defense", 0) or 0),
-        }
-        runes_by_pid[pid] = r
-
-    teams = info.get("teams", [])
-    if isinstance(teams, list):
-        for t in teams:
-            if not isinstance(t, dict):
-                continue
-            tid = int(t.get("teamId", 0) or 0)  # 100/200
-            ban_list = t.get("bans", [])
-            if not isinstance(ban_list, list):
-                ban_list = []
-            ids = []
-            for b in ban_list[:5]:
-                if isinstance(b, dict):
-                    ids.append(int(b.get("championId", 0) or 0))
-                else:
-                    ids.append(0)
-            ids += [0] * (5 - len(ids))
-            if tid == 100:
-                bans["blue"] = ids
-            elif tid == 200:
-                bans["red"] = ids
-
-    return champ_by_pid, runes_by_pid, bans
+def _extract_champ_runes_bans_from_detail(detail):
+    """Delegate to canonical implementation in data.cache_io."""
+    from data.cache_io import _extract_static_meta_from_detail
+    return _extract_static_meta_from_detail(detail)
 
 
 # =========================
@@ -432,10 +344,14 @@ def parse_timeline_to_minute_cache(
     ward_kill: Dict[int, List[Tuple[float, float, int]]] = {100: [], 200: []}
 
     # ✅ NEW: metadata (champ/runes/bans)
-    champ_by_pid, runes_by_pid, bans = _extract_champ_runes_bans_from_detail(
-        detail,
-        champion_name_vocab=int(getattr(_cfg, "CHAMPION_NAME_VOCAB", 4096)),
-    )
+    _meta = _extract_champ_runes_bans_from_detail(detail)
+    champ_by_pid: Dict[int, int] = {
+        int(k): int(v) for k, v in _meta.get("champion_by_pid", {}).items()
+    }
+    runes_by_pid: Dict[int, Dict[str, int]] = {
+        int(k): v for k, v in _meta.get("runes_by_pid", {}).items()
+    }
+    bans: Dict[str, List[int]] = _meta.get("bans", {"blue": [0, 0, 0, 0, 0], "red": [0, 0, 0, 0, 0]})
 
     def _set(vec: np.ndarray, name: str, val: float):
         j = NODE_IDX.get(name, None)

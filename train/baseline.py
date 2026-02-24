@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -29,6 +30,8 @@ from core.utils import (
 from core.common import logit
 from data.indexing import count_patches_from_refs, log_patch_block
 from data.file_io import dump_predictions_csv, ensure_dir, save_kv_csv, save_text_lines
+
+logger = logging.getLogger(__name__)
 
 
 # =========================================================
@@ -327,150 +330,51 @@ def corr_prune_tabular(
     return np.asarray(keep_idx, dtype=int), list(dropped)
 
 
-def run_lgbm_baseline(
-    feature_set: str,
-    tr_refs: List[FightRef],
-    va_refs: List[FightRef],
-    te_refs: List[FightRef],
-    seed: int,
+def _lgbm_evaluate_splits(
+    clf,
+    Xtr_in, ytr, Xva_in, yva, Xte_in, yte,
+    Xva_size: bool, Xte_size: bool,
     log_fp: Path,
-    out_dir: Path,
-) -> Dict[str, Any]:
-    """Train + eval a LightGBM tabular baseline, returning a logit_map keyed by ref_key."""
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Dict, Dict, Dict]:
+    """Predict and compute metrics for all splits."""
+    p_tr = clf.predict_proba(Xtr_in)[:, 1]
+    p_va = clf.predict_proba(Xva_in)[:, 1] if Xva_size else np.array([])
+    p_te = clf.predict_proba(Xte_in)[:, 1] if Xte_size else np.array([])
 
-    out: Dict[str, Any] = {"ok": False, "model_path": None, "logit_map": {}}
-    ensure_dir(out_dir)
+    thr = float(cfg.CLS_THRESHOLD)
+    met_tr = metrics_from_probs(ytr, p_tr, threshold=thr)
+    met_va = metrics_from_probs(yva, p_va, threshold=thr) if Xva_size else {}
+    met_te = metrics_from_probs(yte, p_te, threshold=thr) if Xte_size else {}
 
-    if not HAS_LGB:
-        write_log("[LGBM] lightgbm not installed -> skip baseline", log_fp)
-        return out
+    write_log(f"[LGBM] Train: auc={met_tr.get('auc'):.4f} {pretty_cm(confusion_from_probs(ytr, p_tr, thr))}", log_fp)
+    if Xva_size:
+        write_log(f"[LGBM] Val  : auc={met_va.get('auc'):.4f} {pretty_cm(confusion_from_probs(yva, p_va, thr))}", log_fp)
+    if Xte_size:
+        write_log(f"[LGBM] Test : auc={met_te.get('auc'):.4f} {pretty_cm(confusion_from_probs(yte, p_te, thr))}", log_fp)
 
-    tab_plan = infer_tabular_plan(tr_refs, feature_set, log_fp=log_fp)
-    if tab_plan is None:
-        write_log("[LGBM] failed to infer tabular plan -> skip baseline", log_fp)
-        return out
+    return p_tr, p_va, p_te, met_tr, met_va, met_te
 
-    write_log(f"[LGBM] Building tabular features (feature_set={feature_set}, seq_key={tab_plan.seq_key}) ...", log_fp)
 
-    Xtr, ytr, feat_names, tr_used = build_tabular_Xy(tr_refs, feature_set, log_fp=log_fp, plan=tab_plan)
-    Xva, yva, _, va_used = build_tabular_Xy(va_refs, feature_set, log_fp=log_fp, plan=tab_plan)
-    Xte, yte, _, te_used = build_tabular_Xy(te_refs, feature_set, log_fp=log_fp, plan=tab_plan)
-
-    tr_used_pc = count_patches_from_refs(tr_used)
-    va_used_pc = count_patches_from_refs(va_used)
-    te_used_pc = count_patches_from_refs(te_used)
-    log_patch_block("LGBM used(train)", tr_used_pc, log_fp)
-    if Xva.size:
-        log_patch_block("LGBM used(val)", va_used_pc, log_fp)
-    if Xte.size:
-        log_patch_block("LGBM used(test)", te_used_pc, log_fp)
-
-    if len(tr_used) < 200:
-        write_log(f"[LGBM] Not enough samples for training: N={len(tr_used)}", log_fp)
-        out["patch_counts_used"] = {"train": tr_used_pc, "val": va_used_pc, "test": te_used_pc}
-        return out
-
-    keep_idx = np.arange(Xtr.shape[1])
-    dropped: List[str] = []
-    if bool(getattr(cfg, "DROP_CORR_FEATURES", False)) and Xtr.shape[1] > 1:
-        keep_idx, dropped = corr_prune_tabular(
-            Xtr,
-            feat_names,
-            seed=seed,
-            threshold=float(getattr(cfg, "CORR_THRESHOLD", 0.98)),
-        )
-        Xtr = Xtr[:, keep_idx]
-        if Xva.size:
-            Xva = Xva[:, keep_idx]
-        if Xte.size:
-            Xte = Xte[:, keep_idx]
-        feat_names = [feat_names[i] for i in keep_idx]
-        feat_names = sanitize_feature_names(feat_names)
-        write_log(f"[LGBM] corr-prune kept={len(keep_idx)} dropped={len(dropped)}", log_fp)
-
-    try:
-        import core.config as _cfg_mod
-
-        params = dict(getattr(_cfg_mod, "BASELINE_LGB_PARAMS", {}))
-    except Exception:
-        params = {}
-    params["random_state"] = int(seed)
-
-    clf = lgb.LGBMClassifier(**params)
-    write_log("[LGBM] Training ...", log_fp)
-
-    # [REC-4a] Compute recency weights for patch drift mitigation
-    sample_weight = None
-    if bool(getattr(cfg, "RECENCY_WEIGHT_ENABLED", False)):
-        tau = float(getattr(cfg, "RECENCY_WEIGHT_TAU", 2.0))
-        sample_weight = compute_recency_weights(tr_used, tau=tau, log_fp=log_fp)
-        write_log(f"[LGBM] Recency weighting enabled (τ={tau}, n={len(sample_weight)})", log_fp)
-
-    Xtr_in = _as_frame(Xtr, feat_names)
-    Xva_in = _as_frame(Xva, feat_names) if Xva.size else Xva
-    Xte_in = _as_frame(Xte, feat_names) if Xte.size else Xte
-
-    try:
-        if Xva.size:
-            clf.fit(
-                Xtr_in,
-                ytr,
-                sample_weight=sample_weight,
-                eval_set=[(Xva_in, yva)],
-                eval_metric="auc",
-                callbacks=[lgb.early_stopping(stopping_rounds=200, verbose=False)],
-            )
-        else:
-            clf.fit(Xtr_in, ytr, sample_weight=sample_weight)
-    except Exception as e:
-        write_log(f"[LGBM] fit failed: {e}", log_fp)
-        out["patch_counts_used"] = {"train": tr_used_pc, "val": va_used_pc, "test": te_used_pc}
-        return out
-
-    try:
-        p_tr = clf.predict_proba(Xtr_in)[:, 1]
-        p_va = clf.predict_proba(Xva_in)[:, 1] if Xva.size else np.array([])
-        p_te = clf.predict_proba(Xte_in)[:, 1] if Xte.size else np.array([])
-    except Exception as e:
-        write_log(f"[LGBM] predict failed: {e}", log_fp)
-        out["patch_counts_used"] = {"train": tr_used_pc, "val": va_used_pc, "test": te_used_pc}
-        return out
-
-    met_tr = metrics_from_probs(ytr, p_tr, threshold=float(cfg.CLS_THRESHOLD))
-    met_va = metrics_from_probs(yva, p_va, threshold=float(cfg.CLS_THRESHOLD)) if Xva.size else {}
-    met_te = metrics_from_probs(yte, p_te, threshold=float(cfg.CLS_THRESHOLD)) if Xte.size else {}
-
-    write_log(f"[LGBM] Train: auc={met_tr.get('auc'):.4f} {pretty_cm(confusion_from_probs(ytr, p_tr, cfg.CLS_THRESHOLD))}", log_fp)
-    if Xva.size:
-        write_log(f"[LGBM] Val  : auc={met_va.get('auc'):.4f} {pretty_cm(confusion_from_probs(yva, p_va, cfg.CLS_THRESHOLD))}", log_fp)
-    if Xte.size:
-        write_log(f"[LGBM] Test : auc={met_te.get('auc'):.4f} {pretty_cm(confusion_from_probs(yte, p_te, cfg.CLS_THRESHOLD))}", log_fp)
-
-    # per-fight prediction csv dumps
-    try:
-        dump_predictions_csv(out_dir / "pred_train.csv", tr_used, ytr.tolist(), p_tr.tolist(), split="train")
-        if Xva.size:
-            dump_predictions_csv(out_dir / "pred_val.csv", va_used, yva.tolist(), p_va.tolist(), split="val")
-        if Xte.size:
-            dump_predictions_csv(out_dir / "pred_test.csv", te_used, yte.tolist(), p_te.tolist(), split="test")
-    except Exception as e:
-        write_log(f"[LGBM] dump_predictions_csv failed: {e}", log_fp)
-
+def _lgbm_feature_analysis(
+    clf, feat_names: List[str],
+    Xva_in, Xva_size: bool,
+    log_fp: Path,
+) -> Tuple[List, Optional[List]]:
+    """Extract feature importance and optional SHAP values."""
     try:
         imp = clf.booster_.feature_importance(importance_type="gain")
         fi = sorted(zip(feat_names, imp.tolist()), key=lambda x: x[1], reverse=True)
-    except Exception:
+    except Exception as e:
+        logger.debug("Feature importance extraction failed: %s", e)
         fi = []
 
     shap_summary = None
-    if bool(getattr(cfg, "LGB_SHAP", False)) and Xva.size:
-        # Lazy import to avoid slow matplotlib/font cache work during CLI `--help`.
+    if bool(getattr(cfg, "LGB_SHAP", False)) and Xva_size:
         try:
             import shap  # type: ignore
-
             expl = shap.TreeExplainer(clf.booster_)
-            n = min(2000, Xva.shape[0])
-            Xs = Xva_in.iloc[:n] if HAS_PANDAS and hasattr(Xva_in, "iloc") else Xva[:n]
+            n = min(2000, Xva_in.shape[0] if hasattr(Xva_in, "shape") else len(Xva_in))
+            Xs = Xva_in.iloc[:n] if HAS_PANDAS and hasattr(Xva_in, "iloc") else Xva_in[:n]
             sv = expl.shap_values(Xs)
             if isinstance(sv, list) and len(sv) == 2:
                 sv = sv[1]
@@ -480,27 +384,39 @@ def run_lgbm_baseline(
         except Exception as e:
             write_log(f"[LGBM] SHAP skipped/failed: {e}", log_fp)
 
-    # Build logit_map in-memory
-    logit_map: Dict[str, float] = {}
+    return fi, shap_summary
 
-    def _fill_logit_map(refs_used: List[FightRef], probs: np.ndarray):
+
+def _lgbm_build_logit_map(
+    splits: List[Tuple[List[FightRef], np.ndarray]],
+) -> Dict[str, float]:
+    """Build ref_key -> logit map from (refs, probs) pairs."""
+    logit_map: Dict[str, float] = {}
+    for refs_used, probs in splits:
+        if probs.size == 0:
+            continue
         for r, p in zip(refs_used, probs):
             logit_map[ref_key(r)] = logit(float(p))
+    return logit_map
 
-    _fill_logit_map(tr_used, p_tr)
-    if Xva.size:
-        _fill_logit_map(va_used, p_va)
-    if Xte.size:
-        _fill_logit_map(te_used, p_te)
 
-    # Save model file
+def _lgbm_save_reports(
+    out_dir: Path, clf, seed: int,
+    feat_names: List[str], dropped: List[str],
+    fi: List, shap_summary: Optional[List],
+    met_tr: Dict, met_va: Dict, met_te: Dict,
+    tr_used_pc: Dict, va_used_pc: Dict, te_used_pc: Dict,
+    tr_used: List, va_used: List, te_used: List,
+    tab_plan: TabularPlan, logit_map: Dict,
+) -> Optional[Path]:
+    """Save model file, feature reports, and compact JSON report."""
     model_path = out_dir / f"lgbm_baseline_seed{seed}.txt"
     try:
         clf.booster_.save_model(str(model_path))
-    except Exception:
+    except Exception as e:
+        logger.warning("Failed to save LightGBM model: %s", e)
         model_path = None
 
-    # Save feature reports
     kept = list(feat_names)
     dropped_corr = list(dropped)
     save_text_lines(out_dir / "features_used.txt", kept)
@@ -527,23 +443,158 @@ def run_lgbm_baseline(
         "note": "logit_map is kept in-memory for deep models; not written to disk by default.",
     }
     save_json(out_dir / "report.json", compact_report)
+    return model_path
 
-    out.update(
-        {
-            "ok": True,
-            "model_path": str(model_path) if model_path else None,
-            "metrics": {"train": met_tr, "val": met_va, "test": met_te},
-            "feature_importance_gain": fi[:200],
-            "shap_mean_abs": shap_summary[:200] if shap_summary else None,
-            "corr_dropped": dropped_corr[:500],
-            "logit_map": logit_map,
-            "kept_features": kept,
-            "patch_counts_used": {"train": tr_used_pc, "val": va_used_pc, "test": te_used_pc},
-            "n_used": {"train": len(tr_used), "val": len(va_used), "test": len(te_used)},
-            "tab_plan": {"seq_key": tab_plan.seq_key, "base_dim": len(tab_plan.base_names)},
-            "out_dir": str(out_dir),
-        }
+
+def run_lgbm_baseline(
+    feature_set: str,
+    tr_refs: List[FightRef],
+    va_refs: List[FightRef],
+    te_refs: List[FightRef],
+    seed: int,
+    log_fp: Path,
+    out_dir: Path,
+) -> Dict[str, Any]:
+    """Train + eval a LightGBM tabular baseline, returning a logit_map keyed by ref_key."""
+
+    out: Dict[str, Any] = {"ok": False, "model_path": None, "logit_map": {}}
+    ensure_dir(out_dir)
+
+    if not HAS_LGB:
+        write_log("[LGBM] lightgbm not installed -> skip baseline", log_fp)
+        return out
+
+    tab_plan = infer_tabular_plan(tr_refs, feature_set, log_fp=log_fp)
+    if tab_plan is None:
+        write_log("[LGBM] failed to infer tabular plan -> skip baseline", log_fp)
+        return out
+
+    # --- Build tabular features ---
+    write_log(f"[LGBM] Building tabular features (feature_set={feature_set}, seq_key={tab_plan.seq_key}) ...", log_fp)
+
+    Xtr, ytr, feat_names, tr_used = build_tabular_Xy(tr_refs, feature_set, log_fp=log_fp, plan=tab_plan)
+    Xva, yva, _, va_used = build_tabular_Xy(va_refs, feature_set, log_fp=log_fp, plan=tab_plan)
+    Xte, yte, _, te_used = build_tabular_Xy(te_refs, feature_set, log_fp=log_fp, plan=tab_plan)
+
+    tr_used_pc = count_patches_from_refs(tr_used)
+    va_used_pc = count_patches_from_refs(va_used)
+    te_used_pc = count_patches_from_refs(te_used)
+    log_patch_block("LGBM used(train)", tr_used_pc, log_fp)
+    if Xva.size:
+        log_patch_block("LGBM used(val)", va_used_pc, log_fp)
+    if Xte.size:
+        log_patch_block("LGBM used(test)", te_used_pc, log_fp)
+
+    if len(tr_used) < 200:
+        write_log(f"[LGBM] Not enough samples for training: N={len(tr_used)}", log_fp)
+        out["patch_counts_used"] = {"train": tr_used_pc, "val": va_used_pc, "test": te_used_pc}
+        return out
+
+    # --- Correlation pruning ---
+    dropped: List[str] = []
+    if bool(getattr(cfg, "DROP_CORR_FEATURES", False)) and Xtr.shape[1] > 1:
+        keep_idx, dropped = corr_prune_tabular(
+            Xtr, feat_names, seed=seed,
+            threshold=float(getattr(cfg, "CORR_THRESHOLD", 0.98)),
+        )
+        Xtr = Xtr[:, keep_idx]
+        if Xva.size:
+            Xva = Xva[:, keep_idx]
+        if Xte.size:
+            Xte = Xte[:, keep_idx]
+        feat_names = sanitize_feature_names([feat_names[i] for i in keep_idx])
+        write_log(f"[LGBM] corr-prune kept={len(keep_idx)} dropped={len(dropped)}", log_fp)
+
+    # --- Train ---
+    try:
+        import core.config as _cfg_mod
+        params = dict(getattr(_cfg_mod, "BASELINE_LGB_PARAMS", {}))
+    except Exception as e:
+        logger.warning("Failed to load BASELINE_LGB_PARAMS from config: %s", e)
+        params = {}
+    params["random_state"] = int(seed)
+
+    clf = lgb.LGBMClassifier(**params)
+    write_log("[LGBM] Training ...", log_fp)
+
+    sample_weight = None
+    if bool(getattr(cfg, "RECENCY_WEIGHT_ENABLED", False)):
+        tau = float(getattr(cfg, "RECENCY_WEIGHT_TAU", 2.0))
+        sample_weight = compute_recency_weights(tr_used, tau=tau, log_fp=log_fp)
+        write_log(f"[LGBM] Recency weighting enabled (τ={tau}, n={len(sample_weight)})", log_fp)
+
+    Xtr_in = _as_frame(Xtr, feat_names)
+    Xva_in = _as_frame(Xva, feat_names) if Xva.size else Xva
+    Xte_in = _as_frame(Xte, feat_names) if Xte.size else Xte
+
+    try:
+        if Xva.size:
+            clf.fit(
+                Xtr_in, ytr, sample_weight=sample_weight,
+                eval_set=[(Xva_in, yva)], eval_metric="auc",
+                callbacks=[lgb.early_stopping(stopping_rounds=200, verbose=False)],
+            )
+        else:
+            clf.fit(Xtr_in, ytr, sample_weight=sample_weight)
+    except Exception as e:
+        write_log(f"[LGBM] fit failed: {e}", log_fp)
+        out["patch_counts_used"] = {"train": tr_used_pc, "val": va_used_pc, "test": te_used_pc}
+        return out
+
+    # --- Evaluate ---
+    try:
+        p_tr, p_va, p_te, met_tr, met_va, met_te = _lgbm_evaluate_splits(
+            clf, Xtr_in, ytr, Xva_in, yva, Xte_in, yte,
+            bool(Xva.size), bool(Xte.size), log_fp,
+        )
+    except Exception as e:
+        write_log(f"[LGBM] predict failed: {e}", log_fp)
+        out["patch_counts_used"] = {"train": tr_used_pc, "val": va_used_pc, "test": te_used_pc}
+        return out
+
+    # --- Prediction dumps ---
+    try:
+        dump_predictions_csv(out_dir / "pred_train.csv", tr_used, ytr.tolist(), p_tr.tolist(), split="train")
+        if Xva.size:
+            dump_predictions_csv(out_dir / "pred_val.csv", va_used, yva.tolist(), p_va.tolist(), split="val")
+        if Xte.size:
+            dump_predictions_csv(out_dir / "pred_test.csv", te_used, yte.tolist(), p_te.tolist(), split="test")
+    except Exception as e:
+        write_log(f"[LGBM] dump_predictions_csv failed: {e}", log_fp)
+
+    # --- Feature analysis ---
+    fi, shap_summary = _lgbm_feature_analysis(clf, feat_names, Xva_in, bool(Xva.size), log_fp)
+
+    # --- Build logit map ---
+    logit_map = _lgbm_build_logit_map([
+        (tr_used, p_tr),
+        (va_used, p_va),
+        (te_used, p_te),
+    ])
+
+    # --- Save reports ---
+    model_path = _lgbm_save_reports(
+        out_dir, clf, seed, feat_names, dropped, fi, shap_summary,
+        met_tr, met_va, met_te,
+        tr_used_pc, va_used_pc, te_used_pc,
+        tr_used, va_used, te_used,
+        tab_plan, logit_map,
     )
+
+    out.update({
+        "ok": True,
+        "model_path": str(model_path) if model_path else None,
+        "metrics": {"train": met_tr, "val": met_va, "test": met_te},
+        "feature_importance_gain": fi[:200],
+        "shap_mean_abs": shap_summary[:200] if shap_summary else None,
+        "corr_dropped": dropped[:500],
+        "logit_map": logit_map,
+        "kept_features": list(feat_names),
+        "patch_counts_used": {"train": tr_used_pc, "val": va_used_pc, "test": te_used_pc},
+        "n_used": {"train": len(tr_used), "val": len(va_used), "test": len(te_used)},
+        "tab_plan": {"seq_key": tab_plan.seq_key, "base_dim": len(tab_plan.base_names)},
+        "out_dir": str(out_dir),
+    })
     return out
 
 

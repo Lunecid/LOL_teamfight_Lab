@@ -695,7 +695,9 @@ class CFG:
     ADJ_CLAMP_MIN: float = 1e-4
 
     # [P2-SIGMA] Adaptive σ — if True, σ(t) = mean_pairwise_dist(t) * ADJ_SIGMA_RATIO
-    ADJ_SIGMA_ADAPTIVE: bool = False
+    # [IMPROVE] Enable adaptive sigma by default — sigma adapts to actual
+    # mean pairwise distance per timestep, improving skirmish vs 5v5 accuracy.
+    ADJ_SIGMA_ADAPTIVE: bool = True
     ADJ_SIGMA_RATIO: float = 0.5
 
     ADJ_CLAMP_NONNEG: bool = True

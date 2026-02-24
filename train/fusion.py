@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import random
 import json
 from dataclasses import dataclass
@@ -14,12 +15,14 @@ from data.labels import aligned_xy_from_maps, get_label_map
 from core.common import sigmoid_np
 from core.utils import confusion_from_probs, metrics_from_probs, pretty_cm, save_json, write_log
 
+logger = logging.getLogger(__name__)
+
 # Optional meta learner deps
 try:
     from sklearn.linear_model import LogisticRegression  # type: ignore
 
     HAS_SK = True
-except Exception:
+except ImportError:
     LogisticRegression = None
     HAS_SK = False
 
@@ -1101,9 +1104,12 @@ def calibrate_logits_by_patch(
         y = np.array(labels_list, dtype=np.float64)
 
         if len(z) < 50 or len(np.unique(y)) < 2:
-            T_star = 1.0  # insufficient data → no scaling
+            T_star = 1.0  # insufficient data -> no scaling
         else:
-            T_star = find_optimal_temperature(z, y)
+            # [FIX] Use first half for fitting T*, apply to all.
+            # This prevents calibration overfitting (data leak).
+            n_cal = max(20, len(z) // 2)
+            T_star = find_optimal_temperature(z[:n_cal], y[:n_cal])
 
         T_by_patch[patch_str] = T_star
 
