@@ -22,6 +22,7 @@ Usage:
     보정: Holm-Bonferroni (m=7 multiple comparisons)
 """
 
+# -*- coding: utf-8 -*-
 from __future__ import annotations
 
 import argparse
@@ -349,6 +350,18 @@ def compute_ece(y_true: np.ndarray, y_prob: np.ndarray, n_bins: int = 15) -> flo
 def compute_brier(y_true: np.ndarray, y_prob: np.ndarray) -> float:
     """Brier Score: BS = (1/N) Σ (p_i - y_i)²"""
     return float(np.mean((y_prob - y_true) ** 2))
+
+
+def _safe_mean(values: List[float], default: float = -1.0) -> float:
+    if not values:
+        return float(default)
+    return float(np.mean(values))
+
+
+def _safe_std(values: List[float]) -> float:
+    if len(values) <= 1:
+        return 0.0
+    return float(np.std(values, ddof=1))
 
 
 # ──────────────────────────────────────────────────────────────
@@ -884,10 +897,10 @@ def run_phase2_single_factor(
 
     for tid in treatment_ids:
         treatment = TREATMENTS[tid]
-        print(f"\n{'─' * 50}")
+        print("\n" + ("-" * 50))
         print(f"Treatment T_{tid}: {treatment.name}")
         print(f"Description:\n{treatment.description}")
-        print(f"{'─' * 50}")
+        print("-" * 50)
 
         # Step 1: HP Grid Search
         best_hp = _hp_grid_search(args, treatment)
@@ -997,7 +1010,14 @@ def run_phase3_interaction(
 
     # Rank treatments by mean Δ_val_auc
     treatment_deltas = {}
-    baseline_mean = np.mean([r.val_auc for r in baseline_results if r.val_auc > 0])
+    baseline_pos = [float(r.val_auc) for r in baseline_results if r.val_auc > 0]
+    baseline_all = [float(r.val_auc) for r in baseline_results]
+    baseline_mean = _safe_mean(baseline_pos, default=_safe_mean(baseline_all, default=-1.0))
+    if not baseline_pos:
+        print(
+            f"[WARN] No positive baseline val_auc found. "
+            f"Fallback baseline_mean={baseline_mean:.4f} for interaction math."
+        )
 
     for tid, results in phase2_results.items():
         val_aucs = [r.val_auc for r in results if r.val_auc > 0]
@@ -1048,8 +1068,7 @@ def run_phase3_interaction(
         # Compute interaction
         delta_i = treatment_deltas.get(i, 0.0)
         delta_j = treatment_deltas.get(j, 0.0)
-        pair_mean = np.mean([r.val_auc for r in pair_results if r.val_auc > 0]) if any(
-            r.val_auc > 0 for r in pair_results) else baseline_mean
+        pair_mean = _safe_mean([float(r.val_auc) for r in pair_results if r.val_auc > 0], default=baseline_mean)
         delta_ij = pair_mean - baseline_mean
         interaction = delta_ij - (delta_i + delta_j)
 
@@ -1094,8 +1113,7 @@ def run_phase3_interaction(
 
         all_results[combo_key] = combo_results
 
-        current_auc = np.mean([r.val_auc for r in combo_results if r.val_auc > 0]) if any(
-            r.val_auc > 0 for r in combo_results) else prev_auc
+        current_auc = _safe_mean([float(r.val_auc) for r in combo_results if r.val_auc > 0], default=prev_auc)
         mc = current_auc - prev_auc
 
         print(f"  Step {step + 1}: +T_{tid}({TREATMENTS[tid].short_name}) → "
@@ -1135,10 +1153,10 @@ def run_phase4_sensitivity(
             print(f"\n  T_{tid} ({treatment.name}): No HP grid → skip")
             continue
 
-        print(f"\n{'─' * 50}")
+        print("\n" + ("-" * 50))
         print(f"Treatment T_{tid}: {treatment.name}")
         print(f"HP Grid: {treatment.hp_grid}")
-        print(f"{'─' * 50}")
+        print("-" * 50)
 
         keys = list(treatment.hp_grid.keys())
         values = list(treatment.hp_grid.values())
@@ -1178,7 +1196,7 @@ def run_phase4_sensitivity(
             val_aucs = [r.val_auc for r in combo_results if r.val_auc > 0]
             if val_aucs:
                 hp_aucs[hp_key] = val_aucs
-                print(f"  {hp_config}: AUC = {np.mean(val_aucs):.4f} ± {np.std(val_aucs, ddof=1):.4f}")
+                print(f"  {hp_config}: AUC = {_safe_mean(val_aucs):.4f} ± {_safe_std(val_aucs):.4f}")
 
         # Sensitivity summary
         if hp_aucs:
@@ -1335,8 +1353,8 @@ def _print_phase1_summary(results: List[ExperimentResult]) -> None:
     print("=" * 60)
 
     if val_aucs:
-        print(f"  Val  AUC: {np.mean(val_aucs):.4f} ± {np.std(val_aucs, ddof=1):.4f}")
-        print(f"  Test AUC: {np.mean(test_aucs):.4f} ± {np.std(test_aucs, ddof=1):.4f}")
+        print(f"  Val  AUC: {_safe_mean(val_aucs):.4f} ± {_safe_std(val_aucs):.4f}")
+        print(f"  Test AUC: {_safe_mean(test_aucs):.4f} ± {_safe_std(test_aucs):.4f}")
         print(f"  Seeds: {[f'{a:.4f}' for a in val_aucs]}")
     else:
         print("  [No results yet — execute pipeline to populate]")
@@ -1391,7 +1409,7 @@ def _print_phase5_summary(results: List[ExperimentResult]) -> None:
 
     for name, values in metrics.items():
         if values:
-            print(f"  {name:<15}: {np.mean(values):.4f} ± {np.std(values, ddof=1):.4f}")
+            print(f"  {name:<15}: {_safe_mean(values):.4f} ± {_safe_std(values):.4f}")
 
     if val_aucs and test_aucs:
         gen_gap = np.mean(val_aucs) - np.mean(test_aucs)
@@ -1506,6 +1524,10 @@ def _determine_best_treatments(
             # HP는 첫 결과에서 추출
             if results_list and isinstance(results_list[0], dict):
                 best_hps[tid] = results_list[0].get("hp_config", {})
+
+    if not best_ids:
+        print("[WARN] No treatment with positive val_auc in Phase 2. Falling back to all treatments.")
+        return list(TREATMENTS.keys()), {}
 
     # Delta 기준 상위 3개로 제한 (conservative)
     if len(best_ids) > 3:
