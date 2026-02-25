@@ -11,6 +11,7 @@ from core.common import Any, Dict, List, Optional, Tuple, np, math, safe_float, 
 from core.contract import _BOOL_NODE_COLS
 
 from data.events_index import _events_in_window
+from core.interpolation import remap_alpha
 from core.timeutils import gold_at_ms, _get_horizon_ms, _get_context_ms, _get_bin_ms, ts_to_minute_idx, validate_engage_ts
 from gameplay.fights import _event_xy
 
@@ -702,6 +703,8 @@ def _interp_xy_guarded(
     Returns xy_norm (10,2) after guarded interpolation.
     - Uses cache['xy_raw_minute'] if available, otherwise returns None.
     - If jump/discontinuity detected, uses midstep snapping by default.
+    - The raw linear *alpha* is remapped through the curve selected by
+      ``cfg.INTERP_XY_CURVE`` (linear | cosine | exponential | cubic).
     """
     xy = cache.get("xy_raw_minute", None)
     if not isinstance(xy, np.ndarray) or xy.ndim != 3 or xy.shape[2] != 2:
@@ -715,6 +718,11 @@ def _interp_xy_guarded(
     th2 = th * th
     guard_mode = str(getattr(cfg, "XY_GUARD_MODE", "midstep")).lower()
     use_alive = bool(getattr(cfg, "XY_DISCONT_USE_ALIVE", True))
+
+    # interpolation curve
+    curve = str(getattr(cfg, "INTERP_XY_CURVE", "linear")).lower().strip()
+    exp_k = float(getattr(cfg, "INTERP_EXP_K", 3.0))
+    curved_alpha = remap_alpha(alpha, curve=curve, k=exp_k)
 
     alive_idx = NODE_IDX.get("alive", None)
     alive_i = None
@@ -734,19 +742,17 @@ def _interp_xy_guarded(
         if dist2 > th2:
             disc = True
         if use_alive and alive_i is not None and alive_j is not None:
-            # alive가 바뀌는 구간은 순간이동/리콜/부활/데스 등의 불연속 가능성이 높으니 보수적으로 처리
             if (alive_i[p] > 0.5) != (alive_j[p] > 0.5):
                 disc = True
 
         if disc:
-            # midstep: alpha<0.5면 i, 아니면 j
             if guard_mode == "hold":
                 xr, yr = xi[p, 0], xi[p, 1]
             else:
-                xr, yr = (xi[p, 0], xi[p, 1]) if alpha < 0.5 else (xj[p, 0], xj[p, 1])
+                xr, yr = (xi[p, 0], xi[p, 1]) if curved_alpha < 0.5 else (xj[p, 0], xj[p, 1])
         else:
-            xr = (1.0 - alpha) * xi[p, 0] + alpha * xj[p, 0]
-            yr = (1.0 - alpha) * xi[p, 1] + alpha * xj[p, 1]
+            xr = (1.0 - curved_alpha) * xi[p, 0] + curved_alpha * xj[p, 0]
+            yr = (1.0 - curved_alpha) * xi[p, 1] + curved_alpha * xj[p, 1]
 
         out[p, 0] = float(np.clip(xr / max(1e-6, coord_div), 0.0, 2.0))
         out[p, 1] = float(np.clip(yr / max(1e-6, coord_div), 0.0, 2.0))
@@ -776,15 +782,20 @@ def interpolate_node_global(cache: Dict[str, Any], q_ms: int) -> Tuple[np.ndarra
             alpha = float(q_ms - ts[i]) / float(ts[j] - ts[i])
             alpha = float(np.clip(alpha, 0.0, 1.0))
 
-        # ✅ 핵심: scalars는 hold(ffill), xy만 guarded linear
+        # scalars: hold(ffill) by default, or continuous interpolation
         scalars_method = str(getattr(cfg, "INTERP_SCALARS_METHOD", "ffill")).lower()
         if scalars_method in ("ffill", "hold", "step", "zero_order"):
             node = nm[i].copy()
             glob = gm[i].copy()
+        elif scalars_method in ("bfill",):
+            node = nm[j].copy()
+            glob = gm[j].copy()
         else:
-            # legacy fallback: full linear (원하면 유지)
-            node = ((1.0 - alpha) * nm[i] + alpha * nm[j]).astype(np.float32)
-            glob = ((1.0 - alpha) * gm[i] + alpha * gm[j]).astype(np.float32)
+            # continuous: remap alpha through the selected curve
+            exp_k = float(getattr(cfg, "INTERP_EXP_K", 3.0))
+            s_alpha = remap_alpha(alpha, curve=scalars_method, k=exp_k)
+            node = ((1.0 - s_alpha) * nm[i] + s_alpha * nm[j]).astype(np.float32)
+            glob = ((1.0 - s_alpha) * gm[i] + s_alpha * gm[j]).astype(np.float32)
 
         # ---- XY interpolation (guarded) ----
         if bool(getattr(cfg, "INTERP_XY", True)):

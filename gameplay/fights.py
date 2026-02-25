@@ -1123,6 +1123,20 @@ def _truncate_fights_at_ace(
 # ============================================================================
 
 
+def _remap_alpha_vec(a: np.ndarray, curve: str, k: float = 3.0) -> np.ndarray:
+    """Vectorised alpha remapping for dense arrays (mirrors core.interpolation curves)."""
+    curve = str(curve or "linear").lower().strip()
+    a = np.clip(a, 0.0, 1.0)
+    if curve in ("exponential", "exp"):
+        return np.clip(1.0 - np.exp(-k * a), 0.0, 1.0)
+    if curve in ("cubic", "smoothstep"):
+        return np.clip(a * a * (3.0 - 2.0 * a), 0.0, 1.0)
+    if curve == "cosine":
+        return np.clip((1.0 - np.cos(np.pi * a)) * 0.5, 0.0, 1.0)
+    # fallback: linear
+    return a
+
+
 def _interp_xy_dense(
     xy_minute: np.ndarray,
     minute_ts: np.ndarray,
@@ -1149,8 +1163,16 @@ def _interp_xy_dense(
     tL = minute_ts[left].astype(np.float32)
     tR = minute_ts[right].astype(np.float32)
     denom = np.maximum(tR - tL, 1.0)
-    a = ((dense_ts.astype(np.float32) - tL) / denom).reshape(Td, 1, 1)
+    a = (dense_ts.astype(np.float32) - tL) / denom
 
+    # Apply interpolation curve: use INTERP_XY_CURVE setting.
+    # "linear" method falls through to linear remap (identity).
+    # Other method values (e.g. "exponential", "cubic") remap alpha.
+    xy_curve = str(getattr(cfg, "INTERP_XY_CURVE", "exponential")).lower().strip()
+    exp_k = float(getattr(cfg, "INTERP_EXP_K", 3.0))
+    a = _remap_alpha_vec(a, curve=xy_curve, k=exp_k)
+
+    a = a.reshape(Td, 1, 1)
     xyL = xy_minute[left].astype(np.float32)
     xyR = xy_minute[right].astype(np.float32)
     xy_dense = (1.0 - a) * xyL + a * xyR

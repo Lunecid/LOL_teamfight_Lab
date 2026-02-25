@@ -302,14 +302,27 @@ class CFG:
     # "zoh" keeps step-hold samples (no linear path assumption) while
     # still enabling DETECT_STEP_MS dense scanning.
     INTERP_METHOD: str = "zoh"
+    # XY interpolation curve used between two anchor points.
+    # Supported: "linear", "cosine", "exponential", "cubic"
+    #   linear      – straight-line lerp (fast, simple)
+    #   cosine      – smooth ease-in/out via cos curve
+    #   exponential – 1-e^(-k*t), accelerates toward the target position
+    #   cubic       – cubic Hermite (ease-in-out with zero endpoint tangents)
+    # The discontinuity guard wraps whichever curve is selected.
     INTERP_XY_METHOD: str = "linear_guard_midstep"
-    INTERP_SCALARS_METHOD: str = "ffill"
+    INTERP_XY_CURVE: str = "exponential"
+    INTERP_SCALARS_METHOD: str = "cubic"
+
+    # Exponential decay rate for INTERP_XY_CURVE="exponential".
+    # Higher k → faster convergence toward the target position.
+    # k=3: at t=0.5, alpha≈0.78; at t=1.0, alpha≈0.95
+    INTERP_EXP_K: float = 3.0
 
     XY_DISCONT_DIST_RAW: float = 7000.0
     XY_DISCONT_USE_ALIVE: bool = True
     XY_GUARD_MODE: str = "hold"
 
-    INTERP_XY: bool = False
+    INTERP_XY: bool = True
     INTERP_SCALARS: bool = True
 
     # =========================================================
