@@ -2162,19 +2162,26 @@ class EventTokenEncoder(nn.Module):
     def __init__(self, d_model: int):
         super().__init__()
         type_vocab = int(getattr(cfg, "EVENT_TYPE_VOCAB", 128))
+        self.cont_dim = max(5, int(getattr(cfg, "EVENT_CONT_DIM", 12)))
         self.type_emb = nn.Embedding(type_vocab, d_model)
         self.actor_emb = nn.Embedding(11, d_model)      # 0..10
         self.team_emb  = nn.Embedding(3, d_model)       # 0 blue, 1 red, 2 unk
-        self.cont_proj = nn.Linear(5, d_model)
+        self.cont_proj = nn.Linear(self.cont_dim, d_model)
         self.drop = nn.Dropout(float(getattr(cfg, "DROPOUT", 0.1)))
         self.norm = nn.LayerNorm(d_model)
 
     def forward(self, etype, eactor, eteam, econt):
+        econt_f = econt.float()
+        if econt_f.size(-1) > self.cont_dim:
+            econt_f = econt_f[..., :self.cont_dim]
+        elif econt_f.size(-1) < self.cont_dim:
+            pad = self.cont_dim - int(econt_f.size(-1))
+            econt_f = F.pad(econt_f, (0, pad), mode="constant", value=0.0)
         x = (
             self.type_emb(etype.long())
             + self.actor_emb(eactor.long().clamp(0, 10))
             + self.team_emb(eteam.long().clamp(0, 2))
-            + self.cont_proj(econt.float())
+            + self.cont_proj(econt_f)
         )
         x = self.drop(x)
         return self.norm(x)
@@ -2221,6 +2228,19 @@ class EventXAttnSTModel(nn.Module, DebugHookMixin):
             dropout=drop,
             batch_first=True,
         )
+        self._importance_pool = bool(getattr(cfg, "XATTN_IMPORTANCE_POOL", True))
+        self._importance_prior_idx = int(getattr(cfg, "EVENT_CONT_IMPORTANCE_PRIOR_IDX", 11))
+        self._importance_prior_boost = float(getattr(cfg, "XATTN_PRIOR_BOOST", 1.25))
+        self.imp_mlp = None
+        if self._importance_pool:
+            imp_hidden = int(getattr(cfg, "XATTN_IMPORTANCE_HIDDEN", 64))
+            imp_hidden = max(16, imp_hidden)
+            self.imp_mlp = nn.Sequential(
+                nn.Linear(2 * d_model, imp_hidden),
+                nn.ReLU(),
+                nn.Dropout(drop),
+                nn.Linear(imp_hidden, 1),
+            )
 
         head_hidden = int(getattr(cfg, "HEAD_HIDDEN", int(getattr(cfg, "RNN_HIDDEN", 128))))
         head_layers = int(getattr(cfg, "HEAD_LAYERS", 2))
@@ -2280,10 +2300,29 @@ class EventXAttnSTModel(nn.Module, DebugHookMixin):
             attn_out = _nan_to_num_(attn_out)
 
         attn_out = attn_out.to(dtype=e_emb.dtype)
+        m = emask.float().clamp(0.0, 1.0)
 
-        m = emask.float().unsqueeze(-1)
-        denom = m.sum(dim=1).clamp_min(1.0)
-        cross_pool = (attn_out * m).sum(dim=1) / denom
+        attn_alpha = None
+        if self.imp_mlp is not None:
+            imp_in = torch.cat([attn_out, e_emb], dim=-1)
+            imp_logits = self.imp_mlp(imp_in).squeeze(-1)
+
+            if econt is not None and econt.ndim == 3:
+                j = int(self._importance_prior_idx)
+                if 0 <= j < int(econt.shape[-1]):
+                    prior = econt[..., j].float()
+                    imp_logits = imp_logits + self._importance_prior_boost * prior
+
+            neg_inf = torch.full_like(imp_logits, -1.0e4)
+            imp_logits = torch.where(m > 0.0, imp_logits, neg_inf)
+            attn_alpha = torch.softmax(imp_logits, dim=1)
+            attn_alpha = attn_alpha * m
+            attn_alpha = attn_alpha / attn_alpha.sum(dim=1, keepdim=True).clamp_min(1.0e-6)
+            cross_pool = (attn_out * attn_alpha.unsqueeze(-1)).sum(dim=1)
+        else:
+            m_exp = m.unsqueeze(-1)
+            denom = m_exp.sum(dim=1).clamp_min(1.0)
+            cross_pool = (attn_out * m_exp).sum(dim=1) / denom
 
         fused = torch.cat([z_last, cross_pool], dim=-1)
         logit = self.head(fused)
@@ -2295,6 +2334,7 @@ class EventXAttnSTModel(nn.Module, DebugHookMixin):
                 "event_emb": e_emb,
                 "attn_out": attn_out,
                 "cross_pool": cross_pool,
+                "event_alpha": attn_alpha,
             }
         return logit
 

@@ -522,7 +522,7 @@ class CFG:
     # =========================================================
     # 9) Labels (outcome shaping)
     # =========================================================
-    LABEL_TYPE: str = "kill_survival"
+    LABEL_TYPE: str = "attention_value_win"
     LABEL_W_KILL: float = 1.0
     LABEL_W_ALIVE: float = 0.3
 
@@ -539,6 +539,16 @@ class CFG:
     W_OBJ: float = 0.25
     GOLD_NORM: float = 1000.0
     LABEL_GOLD_METHOD: str = "linear"
+    # rule-based attention-like label:
+    # alpha_e = softmax(beta * prior_e), score = sum(alpha_e * sign_e * value_e)
+    LABEL_ATTN_BETA: float = 2.0
+    LABEL_ATTN_W_KILL: float = 1.0
+    LABEL_ATTN_W_SHUTDOWN: float = 1.6
+    LABEL_ATTN_W_STREAK: float = 0.35
+    LABEL_ATTN_W_ASSIST: float = 0.20
+    LABEL_ATTN_W_BOUNTY: float = 0.30
+    LABEL_ATTN_W_OBJECTIVE: float = 1.10
+    LABEL_ATTN_W_LANE: float = 0.25
 
     # graph (interaction)
     INTERACT_SIGMA_NORM: float = 0.12
@@ -552,11 +562,20 @@ class CFG:
     USE_EVENT_TOKENS: bool = True
     MAX_EVENT_TOKENS: int = 64
     EVENT_TYPE_VOCAB: int = 128
+    # event_cont layout (default 12 dims):
+    # [t_rel, dt_end, x_norm, y_norm, val_log,
+    #  is_shutdown, shutdown_norm, streak_norm, assist_norm,
+    #  objective_tier, lane_priority, importance_prior]
+    EVENT_CONT_DIM: int = 12
+    EVENT_CONT_IMPORTANCE_PRIOR_IDX: int = 11
 
     XATTN_D_MODEL: int = 128
     XATTN_NHEAD: int = 4
     XATTN_GNN_KIND: str = "mpnn"
     XATTN_MULTISCALE_ADJ: bool = False
+    XATTN_IMPORTANCE_POOL: bool = True
+    XATTN_IMPORTANCE_HIDDEN: int = 64
+    XATTN_PRIOR_BOOST: float = 1.25
 
     # Mamba hyperparameters
     MAMBA_D_MODEL: int = 128
