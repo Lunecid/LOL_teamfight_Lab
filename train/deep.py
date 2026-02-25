@@ -1449,6 +1449,7 @@ def train_deep_model(
         lgbm_logit_map=lgbm_logit_map,
         cache_in_ram=cache_train,
         force_emit_logits=bool(getattr(cfg, "FORCE_EMIT_LOGITS", False)),
+        split_label="train",
     )
     ds_va = InMemoryFightDataset(
         va_refs,
@@ -1457,6 +1458,7 @@ def train_deep_model(
         lgbm_logit_map=lgbm_logit_map,
         cache_in_ram=cache_eval,
         force_emit_logits=bool(getattr(cfg, "FORCE_EMIT_LOGITS", False)),
+        split_label="val",
     )
     ds_te = InMemoryFightDataset(
         te_refs,
@@ -1465,6 +1467,7 @@ def train_deep_model(
         lgbm_logit_map=lgbm_logit_map,
         cache_in_ram=cache_eval,
         force_emit_logits=bool(getattr(cfg, "FORCE_EMIT_LOGITS", False)),
+        split_label="test",
     )
 
     if len(ds_tr) < int(getattr(cfg, "MIN_TRAIN_SAMPLES", 200)):
