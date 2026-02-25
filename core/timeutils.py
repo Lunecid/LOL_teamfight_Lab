@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from core.common import Any, Dict, List, Optional, np
 from core.config import cfg
+from core.interpolation import remap_alpha
 
 
 def _get_horizon_ms() -> int:
@@ -30,11 +31,14 @@ def gold_at_ms(cache: Dict[str, Any], q_ms: int, method: str = "linear") -> np.n
     Return gold at arbitrary ms.
 
     Supported methods:
-      - "linear": linear interpolation between neighbor minute frames
-      - "ffill": forward-fill / zero-order hold (piecewise constant)
-      - "zoh":   alias of ffill
-      - "none":  alias of ffill
-      - "bfill": backward-fill (use next frame)
+      - "linear":      linear interpolation between neighbor minute frames
+      - "cosine":      cosine ease-in-out curve
+      - "exponential": exponential decay toward target (1 - e^{-k*t})
+      - "cubic":       cubic Hermite smoothstep
+      - "ffill":       forward-fill / zero-order hold (piecewise constant)
+      - "zoh":         alias of ffill
+      - "none":        alias of ffill
+      - "bfill":       backward-fill (use next frame)
     """
     ts = cache["minute_ts"]
     g = cache["gold_team_minute"]
@@ -59,12 +63,14 @@ def gold_at_ms(cache: Dict[str, Any], q_ms: int, method: str = "linear") -> np.n
     if m in ("bfill",):
         return g[j].astype(np.float32)
 
-    # ---- linear ----
+    # ---- continuous interpolation (linear, cosine, exponential, cubic) ----
     if ts[j] == ts[i]:
         return g[i].astype(np.float32)
 
-    alpha = float(q_ms - ts[i]) / float(ts[j] - ts[i])
-    alpha = float(np.clip(alpha, 0.0, 1.0))
+    t = float(q_ms - ts[i]) / float(ts[j] - ts[i])
+    t = float(np.clip(t, 0.0, 1.0))
+    exp_k = float(getattr(cfg, "INTERP_EXP_K", 3.0))
+    alpha = remap_alpha(t, curve=m, k=exp_k)
     return ((1.0 - alpha) * g[i] + alpha * g[j]).astype(np.float32)
 
 

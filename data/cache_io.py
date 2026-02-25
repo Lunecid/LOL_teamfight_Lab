@@ -184,6 +184,8 @@ def _interp_policy_snapshot() -> Dict[str, Any]:
         "interp_scalars": bool(getattr(cfg, "INTERP_SCALARS", True)),
         # recommended split policies (if you added them)
         "interp_xy_method": str(getattr(cfg, "INTERP_XY_METHOD", "linear_guard_midstep")),
+        "interp_xy_curve": str(getattr(cfg, "INTERP_XY_CURVE", "linear")),
+        "interp_exp_k": float(getattr(cfg, "INTERP_EXP_K", 3.0)),
         "interp_scalars_method": str(getattr(cfg, "INTERP_SCALARS_METHOD", "ffill")),
         "xy_discont_dist_raw": float(getattr(cfg, "XY_DISCONT_DIST_RAW", 7000.0)),
         "xy_discont_use_alive": bool(getattr(cfg, "XY_DISCONT_USE_ALIVE", True)),
