@@ -1,36 +1,44 @@
-# Pipeline: Detect & Predict
+# Pipeline: Detect Teamfight & Predict Winner
 
-End-to-end data flow from Riot API timeline JSON to teamfight outcome prediction.
+End-to-end data flow from Riot API timeline JSON to teamfight winner prediction.
 
 ```
   Riot API Timeline JSON
-          |
-          v
-  [1] Cache Build ──────────── node_minute, global_minute, events
-          |
-          v
-  [2] Fight Detection ──────── engage_ts, centroid, participants
-          |
-          v
-  [3] FightRef Index ────────── match_id | t_start_ts=<ms>
-          |
-          v
-  [4] Sample Build ─────────── node_seq, glob_seq, ev_seq, item_seq
-          |
-          v
-  [5] Feature Extraction ───── spatial, momentum, game-phase features
-          |
-          v
-  [6] Label Computation ────── y ∈ {0,1}, auxiliary regression targets
-          |
-          v
-  [7] Tensor Collation ─────── batched tensors (B, L, N, F)
-          |
-          v
-  [8] Model Forward ────────── logit → sigmoid → prob ∈ [0,1]
-          |
-          v
-  [9] Evaluation ───────────── AUC, AP, Accuracy (ref_key aligned)
+          │
+          ▼
+  ┌─────────────────────┐
+  │  [1] Cache Build     │  node_minute [T,10,F], events[], minute_ts[]
+  └─────────┬───────────┘
+            │
+            ▼
+  ┌─────────────────────┐
+  │  [2] Fight Detection │  teamfight_v2: kills → clusters → radii → validation
+  └─────────┬───────────┘
+            │
+            ▼
+  ┌─────────────────────┐
+  │  [3] FightRef Index  │  "KR_712345|t_start_ts=532000" + train/val/test split
+  └─────────┬───────────┘
+            │
+            ▼
+  ┌─────────────────────┐
+  │  [4] Sample Build    │  12 bins × 5s → node_seq [12,10,F], glob_seq [12,G]
+  └─────────┬───────────┘
+            │
+            ▼
+  ┌─────────────────────┐
+  │  [5] Label Compute   │  y ∈ {0,1} from kill_diff + alive_diff in label window
+  └─────────┬───────────┘
+            │
+            ▼
+  ┌─────────────────────┐
+  │  [6] Model Forward   │  GNN / RNN / Transformer → logit → P(blue wins)
+  └─────────┬───────────┘
+            │
+            ▼
+  ┌─────────────────────┐
+  │  [7] Evaluation      │  AUC, AP, Brier (ref_key aligned, 5-seed bootstrap)
+  └─────────────────────┘
 ```
 
 ---
@@ -48,124 +56,343 @@ Riot API provides timeline frames at **60-second intervals** plus raw events at 
 | `node_minute` | `[T, 10, F_node]` | 60s | Per-player feature vectors |
 | `global_minute` | `[T, F_global]` | 60s | Team-level aggregated features |
 | `gold_team_minute` | `[T, 2]` | 60s | Total gold per team |
-| `xy_raw_minute` | `[T, 10, 2]` | 60s | Raw player positions |
+| `xy_raw_minute` | `[T, 10, 2]` | 60s | Raw player positions (X, Y) |
 | `minute_ts` | `[T]` | 60s | Frame timestamps in ms |
 | `events` | `List[dict]` | ms | All raw game events |
 
 ### Node Features (per player, per frame)
 
 ```
-Position:      x_norm, y_norm
+Position:      x_norm, y_norm           (zeroed for model input — used only for spatial checks)
 Resources:     level_norm, xp_norm, curGold_norm, totalGold_norm, gps_norm
 CS:            laneCS_norm, jgCS_norm
 Status:        alive (0/1), hp_pct, mp_pct
-Identity:      champion_id (categorical)
-Runes:         primary_rune_1-4, sub_rune_1-2 (categorical)
+Identity:      champion_id, champion_name_id (categorical → embedding)
+Spells:        summoner_spell_1_id, summoner_spell_2_id (categorical)
+Runes:         primary_rune_1-4, sub_rune_1-2, style_ids (categorical)
 Buffs:         has_baron, has_elder, has_red, has_blue (0/1)
-Buff Duration: baron_remain_norm, elder_remain_norm, ...
+Buff Duration: baron_remain_norm, elder_remain_norm, red_remain_norm, blue_remain_norm
 Cooldowns:     ult_level_norm, flash_ready, flash_remain_norm
-Vision:        ward_count, ward_kills, vision_score (normalized)
-Champion Stats: armor, AD, AP, MR, AS (25 features, normalized)
-Damage Stats:  total/magic/physical damage to champs (12 features)
-Dragon Soul:   soul_infernal, soul_ocean, soul_mountain, soul_cloud, soul_hextech
+Vision:        vision_ally_ward_cnt_norm, vision_ward_kill_recent_norm, vision_nearby_score_norm
+Dragon Soul:   soul_infernal, soul_ocean, soul_mountain, soul_cloud, soul_hextech, soul_chemtech
+Champion Stats: cs_armor, cs_attackDamage, cs_abilityPower, cs_magicResist, ... (25 features)
+Damage Stats:  ds_totalDamageDoneToChampions, ds_physicalDamageTaken, ... (12 features)
 ```
+
+**Total:** `F_node` = 87 features per player per timestep
 
 ### Global Features (per frame)
 
 ```
-Differentials: gold_diff, xp_diff, level_diff, cs_diff, alive_diff
-Cumulative:    kill_diff, tower_diff, inhib_diff, dragon_diff, baron_diff
-Bans:          blue_ban_0-4, red_ban_0-4 (champion IDs)
 Time:          time_norm ∈ [0, 1]
+Bans:          blue_ban_0..4, red_ban_0..4 (champion IDs)
+Differentials: goldDiff, xpDiff, avgLevelDiff, csDiff_total, csJgDiff, aliveDiff
+Cumulative:    killDiff_cum, towerDiff_cum, inhibDiff_cum
+               dragonDiff_cum, baronDiff_cum, heraldDiff_cum
+               atakhanDiff_cum, plateDiff_cum, hordeDiff_cum
 ```
 
 ---
 
-## 2. Fight Detection
+## 2. Fight Detection (teamfight_v2)
 
-**Entry:** `gameplay/fights.py::detect_fights()`
+**Entry:** `gameplay/fights.py::detect_fights()` → `detect_fights_teamfight_v2()`
 
-Three detection algorithms are available, selected by `FIGHT_DETECT_ALGO` config:
+Only kill events create fights. No ward/objective hard gates, no multi-stage guards.
+Single definition: **kills → temporal clustering → spatial radii → validation**.
 
-### Algorithm: `killchain_v1` (kill-chain based)
-
-Uses `victimDamageReceived[]` from `CHAMPION_KILL` events to identify all combatants at millisecond precision, then chains overlapping kills into fights.
+### 2.1 Step-by-Step Algorithm
 
 ```
-Step 1: Extract rich kill events
-  CHAMPION_KILL → {timestamp, killer, victim, assists, position, damageReceived[]}
-
-Step 2: Get all participants per kill
-  victimDamageReceived[] → all pids who dealt damage
-  Union with killer + victim + assists
-
-Step 3: Chain kills (Union-Find)
-  Kill_A shares participants with Kill_B within 30s → same chain
-
-Step 4: Chain → Fight candidate
-  engage_ts = first_kill_ts - 10s (backtrack)
-  centroid  = mean(kill positions)
-  participants = union of all damage arrays
-
-Step 5: Filter
-  ≥ 2 participants per team (from damage arrays)
-  Within match time bounds
-
-Step 6: Post-process
-  ST-DBSCAN merge nearby candidates
-  ACE truncation
-  Spacing enforcement (≥ 120s gap)
-
-Step 7: Classify + compute outcome
-  Near dragon pit → "objective_dragon"
-  Near tower      → "tower_dive"
-  8+ participants → "teamfight"
-  Outcome: kills, gold swing per team
+Step 1 ─ Build 5-Second Position Grid
+Step 2 ─ Cluster Kills by Time Gap
+Step 3 ─ Validate Each Cluster as Teamfight
+Step 4 ─ Collect Interactions
+Step 5 ─ Post-Fight Outcome (45s window)
+Step 6 ─ Classify, Score, Output
 ```
 
+---
+
+### Step 1: Build 5-Second Position Grid
+
+**Function:** `_build_5s_position_grid()`
+
+Riot API gives player XY at 60-second intervals. We need finer resolution for spatial
+checks, so we interpolate to a **5-second dense grid** using two layers:
+
+```
+Riot API: 60s frames                  Dense 5s grid
+  ┌─ 0:00 ─┬─ 1:00 ─┬─ 2:00 ─┐        ┌─ 0:00 ─ 0:05 ─ 0:10 ─ ... ─ 0:55 ─ 1:00 ─ 1:05 ─ ...
+  │ (x,y)  │ (x,y)  │ (x,y)  │  ───►   │  interpolated XY at every 5-second mark
+  └────────┴────────┴────────┘        └─ for all 10 players
+```
+
+**Layer 1 — Baseline Linear Interpolation:**
+
+For each 5-second tick `t` between frame `F_i` (at `ts_i`) and `F_{i+1}` (at `ts_{i+1}`):
+
+```
+α = (t - ts_i) / (ts_{i+1} - ts_i)          # α ∈ [0, 1]
+XY(player, t) = (1 - α) · XY(F_i) + α · XY(F_{i+1})
+```
+
+**Layer 2 — Pre-Kill Override:**
+
+For each kill event (processed chronologically), override kill participants' positions:
+
+```
+Kill at ts=482000ms at position (8200, 4100)
+  Participants: killer(pid=3), victim(pid=7), assists(pid=1, pid=4)
+
+  For each participant:
+    prior_frame = last 60s frame before kill
+    override interval = [prior_frame_ts ... kill_ts]
+
+    α_kill = (t - prior_frame_ts) / (kill_ts - prior_frame_ts)
+    XY(participant, t) = (1-α_kill) · XY(prior_frame) + α_kill · kill_position
+```
+
+```
+                  prior_frame                       kill event
+                      │                                 │
+  60s frame ─────────●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━●─────── 60s frame
+                      │  participant XY overridden to  │
+                      │  interpolate toward kill (x,y) │
+                      │                                │
+                      │  ← override interval →         │
+                      │  non-participants: baseline     │
+```
+
+Later kills overwrite earlier overrides. This grid is used **ONLY for spatial checks** —
+never as model input features.
+
+---
+
+### Step 2: Cluster Kills by Temporal Proximity
+
+**Function:** `_cluster_kills_temporal(gap_ms=18000)`
+
+Kills are sorted by timestamp. Consecutive kills within `18 seconds` remain in the same cluster.
+When the next kill exceeds the gap, a new cluster starts.
+
+```
+Timeline (ms):
+  K1        K2    K3              K4   K5      K6
+  │         │     │               │    │       │
+  120000    125000 131000          180000 185000 192000
+  │←──5s──→│←─6s─→│               │←5s→│←─7s──→│
+  │    within 18s gap              │   within 18s gap
+  │                                │
+  └───── Cluster A ────────┘      └──── Cluster B ─────┘
+    first_kill: 120000               first_kill: 180000
+    last_kill:  131000               last_kill:  192000
+    center: K1 position              center: K4 position
+                    ▲ 49s gap ▲
+                   (> 18s → split)
+```
+
+Each cluster produces:
+- `first_kill_ts`, `last_kill_ts`
+- `fight_center` = first kill's (x, y) position
+- `participants` = set of all killer/victim/assist IDs
+- `n_kills` = number of kills in cluster
+
+---
+
+### Step 3: Validate Each Cluster as Teamfight
+
+For each kill cluster, determine if it qualifies as a teamfight:
+
+```
+3a. Compute engage time
+    engage_ts = first_kill_ts − 10,000ms
+    (clamped to game start)
+
+3b. Check context bounds
+    engage_ts must be at least 60s into the game
+    engage_ts + horizon must not exceed game end
+
+3c. Check alive count
+    At engage_ts: both teams must have ≥ 2 alive champions
+
+3d. SPATIAL VALIDATION (§4A): Radius 1800 check
+    At engage_ts, look up all 10 positions from the 5s grid.
+    Count how many are within radius=1800 of fight_center.
+    Require: ≥ 2 blue AND ≥ 2 red within radius.
+```
+
+```
+          Radius 1800 check at engage_ts
+          ┌─────────────────────────────────┐
+          │                                 │
+          │     ●B1   ●B2                   │
+          │              ⊕ fight_center     │
+          │     ●R1   ●R2                   │
+          │                                 │   ● = player inside
+          │                                 │   ○ = player outside
+          └─────────────────────────────────┘
+                                  ○B3 ○R3 ○B4 ○R4 ○B5 ○R5
+
+    blue_in_radius = 2 (B1, B2)  ≥ 2 ✓
+    red_in_radius  = 2 (R1, R2)  ≥ 2 ✓
+    → VALID TEAMFIGHT
+```
+
+If validation fails (e.g., 1v1 pick), the cluster is rejected:
+
+```
+          ●B1              ⊕ center
+                           ●R1
+    blue_in = 1  < 2 ✗
+    → REJECTED (pick, not teamfight)
+```
+
+---
+
+### Step 4: Collect Interactions (Radius 3000)
+
+**Function:** `_collect_interactions_in_radius()`
+
+Non-kill events during `[engage_ts, last_kill_ts]` within **radius 3000** of fight center
+are counted as fight interactions.
+
+```
+          ┌──────── Radius 3000 ────────┐
+          │                             │
+          │   ┌── Radius 1800 ──┐       │
+          │   │                 │       │
+          │   │  ⊕ center       │       │
+          │   │  (validity)     │       │
+          │   └─────────────────┘       │
+          │   (interactions counted)    │
+          └─────────────────────────────┘
+```
+
+**Exception:** Objective and tower events (ELITE_MONSTER_KILL, BUILDING_KILL, TURRET_PLATE_DESTROYED)
+are included **regardless of radius** — objectives near the fight are always relevant.
+
+---
+
+### Step 5: Post-Fight Outcome Window (45 seconds)
+
+**Function:** `_compute_postfight_outcome()`
+
+After the last kill in the cluster, a **45-second window** captures the consequences:
+
+```
+  ─── fight ───                    ─── post-fight window (45s) ───
+  [engage ... last_kill]           [last_kill ... last_kill + 45000ms]
+                    │                              │
+                    │  Collect:                     │
+                    │    • objectives taken         │
+                    │    • towers destroyed         │
+                    │    • gold differential        │
+                    │                              │
+```
+
+This captures whether the winning team converted kills into map objectives.
+
+---
+
+### Step 6: Classify, Score, Output
+
+Each validated fight is classified by spatial location and enriched with outcome data.
+
+**Fight Type Classification** (`classify_fight_type()`):
+
+```
+  Is fight center near Baron pit (< 1500)?     → objective_baron
+  Is fight center near Dragon pit (< 1500)?    → objective_dragon
+  Is fight center near Rift Herald (< 1500)?   → objective_riftherald
+  Is fight center near a tower (< 1000)?       → tower_dive
+  Is fight center near a base (< 3000)?        → base_fight
+  Are there ≥ 8 proximity pairs?               → teamfight
+  Are there ≥ 4 proximity pairs?               → skirmish
+  Otherwise                                    → pick
+```
+
+**Fight Outcome** (`compute_fight_outcome()`):
+
+Counts kills, deaths, assists, gold swing, towers, objectives in the label window
+`[engage_ts, horizon_end_ts)` — blue team kills minus red team kills determines the winner.
+
+### Complete Timeline Diagram
+
+```
+  Game Timeline (ms)
+  ════════════════════════════════════════════════════════════════════
+
+  0        60000      120000     180000     240000     300000
+  ├──────────┼──────────┼──────────┼──────────┼──────────┤
+  │          │          │          │          │          │
+  │  60s frame snapshots from Riot API (node_minute)    │
+  │                                                     │
+  │                    Kill K1 ────┐                     │
+  │                    Kill K2 ──┐ │ < 18s gap           │
+  │                    Kill K3 ┐ │ │  (same cluster)     │
+  │                            │ │ │                     │
+  │                            ▼ ▼ ▼                     │
+  │                     ┌──────────────┐                 │
+  │                     │ Kill Cluster │                 │
+  │                     │ first: K3    │                 │
+  │                     │ last:  K1    │                 │
+  │                     │ center: K3xy │                 │
+  │                     └──────┬───────┘                 │
+  │                            │                         │
+  │              ┌─────────────┤                         │
+  │              ▼             ▼                         │
+  │         engage_ts    first_kill_ts                   │
+  │         (K3 - 10s)   (K3)                           │
+  │              │                                       │
+  │    ┌─────────┤                                       │
+  │    │ Radius  │                                       │
+  │    │ 1800    │ → ≥2 blue + ≥2 red? → VALID         │
+  │    │ check   │                                       │
+  │    └─────────┤                                       │
+  │              │                                       │
+  │              │◄─── fight time window ──►│            │
+  │              │   [engage ... last_kill]  │            │
+  │              │      │                   │            │
+  │              │      │ Radius 3000       │            │
+  │              │      │ interactions      │            │
+  │              │                          │            │
+  │              │                     last_kill_ts      │
+  │              │                          │            │
+  │              │                          │◄── 45s ──►│
+  │              │                          │ post-fight │
+  │              │                          │ objectives │
+  │              │                          │ gold swing │
+  │                                                     │
+  ════════════════════════════════════════════════════════════════════
+```
+
+### Detection Parameters
+
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `KILLCHAIN_WINDOW_MS` | 30,000 | Max time gap to chain two kills |
-| `KILLCHAIN_BACKTRACK_MS` | 10,000 | How far before first kill to set engage_ts |
-| `fight_min_gap_ms` | 60,000 | Minimum spacing between fights |
-| `continuous_fight_merge_radius` | 2,000 | Spatial merge radius |
+| `TF2_KILL_CLUSTER_GAP_MS` | 18,000 | Max gap between kills in same cluster |
+| `TF2_ENGAGE_PRE_KILL_MS` | 10,000 | How far before first kill = engage time |
+| `TF2_VALIDITY_RADIUS` | 1,800 | Radius for teamfight validation (≥2 per team) |
+| `TF2_INTERACTION_RADIUS` | 3,000 | Radius for counting fight interactions |
+| `TF2_POST_FIGHT_WINDOW_MS` | 45,000 | Post-fight outcome window |
+| `TF2_MIN_PER_TEAM` | 2 | Minimum champions per team in validity radius |
+| `FIGHT_MIN_GAP_MS` | 60,000 | Minimum spacing between detected fights |
+| `MAX_MERGED_FIGHT_DURATION_MS` | 120,000 | Maximum fight duration cap |
 
-### Algorithm: `event_v1` (event-driven)
-
-Scores event bursts (kills, spells, objectives, buildings) within sliding windows to identify fight candidates.
-
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `EVENT_BURST_WINDOW_MS` | 15,000 | Sliding window size |
-| `EVENT_SCORE_THRESHOLD` | 2.5 | Min score to trigger candidate |
-| `EVENT_WEIGHT_KILL` | 2.0 | Kill event weight |
-| `EVENT_WEIGHT_SPELL` | 0.35 | Spell event weight |
-| `EVENT_WEIGHT_OBJECTIVE` | 1.5 | Objective event weight |
-| `EVENT_WEIGHT_BUILDING` | 1.5 | Building event weight |
-
-### Algorithm: `engage_v2` (position-based)
-
-Dense XY interpolation to detect standoff-to-engagement transitions via distance drops between teams.
-
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `standoff_radius` | 1,800 | Engagement distance threshold |
-| `standoff_min_pairs` | 3 | Min proximity pairs |
-| `engage_min_dist_drop` | 250 | Min distance drop for engagement |
-| `detect_step_ms` | 10,000 | Detection step size |
-
-### Output
-
-Each detected fight produces:
+### Detection Output
 
 ```python
 {
-    "engage_ts":     int,    # ms — when fight starts (primary anchor)
-    "horizon_end_ts": int,   # ms — label window end
-    "centroid_x":    float,  # mean fight position X
-    "centroid_y":    float,  # mean fight position Y
-    "fight_type":    str,    # teamfight / skirmish / pick / tower_dive / objective_*
-    "outcome":       dict,   # kills, deaths, gold per team
+    "engage_ts":        int,    # ms — fight start (primary anchor)
+    "horizon_end_ts":   int,    # ms — label window end
+    "first_kill_ts":    int,    # ms — first kill in cluster
+    "last_kill_ts":     int,    # ms — last kill in cluster
+    "centroid_x":       float,  # fight center X (from first kill)
+    "centroid_y":       float,  # fight center Y (from first kill)
+    "fight_type":       str,    # teamfight / skirmish / objective_baron / tower_dive / ...
+    "outcome":          dict,   # kills, deaths, gold, towers per team
+    "post_fight_outcome": dict, # 45s window: objectives, towers, gold swing
 }
 ```
 
@@ -175,14 +402,15 @@ Each detected fight produces:
 
 **Entry:** `data/index_split.py::build_fight_index()`
 
-Each detected fight becomes a `FightRef` — the unique identifier that tracks a sample through the entire pipeline.
+Each detected fight becomes a `FightRef` — the unique identifier that tracks a sample through
+the entire pipeline.
 
 ```python
 FightRef(
     match_id    = "KR_7123456789",
     patch       = "14.10",
-    t_start     = 8,            # minute index (legacy)
-    t_start_ts  = 532000,       # engage timestamp in ms (primary)
+    t_start     = 8,            # minute index
+    t_start_ts  = 532000,       # engage timestamp in ms (primary key)
     label_end_ts = 592000,      # label window end in ms
 )
 ```
@@ -200,30 +428,39 @@ FightRef(
 
 Default split ratios: **70% train / 20% val / 10% test**
 
+All fights from one match stay in the same split (no match leakage).
+
 ---
 
-## 4. Sample Build
+## 4. Sample Build (Observation Window)
 
 **Entry:** `gameplay/pipeline.py::build_ms_sequence()`
 
-Given a `FightRef`, builds the observation window and label window.
+Given a `FightRef` with `engage_ts`, builds the **observation window** (what the model sees)
+and the **label window** (what we predict).
 
 ### Timeline Layout
 
 ```
-                    ctx_ms (60s)
-              |◄─────────────────────►|
-              |   12 bins × 5s each   |
-              |                       |
-  [start_ms ........................ end_ms]
-              |   observation window   |
-                                      ↑
-                                  engage_ts
-                                      |
-                                      |◄── horizon_ms (60s) ──►|
-                                      |    label window         |
-                                      [engage_ts ...... label_end_ts]
+  ◄──────────── observation window (60s) ──────────────►
+  │                                                     │
+  │  bin0   bin1   bin2   ...   bin10  bin11             │
+  │ [0-5s] [5-10s] [10-15s]         [50-55s] [55-60s]  │
+  │                                                     │
+  start_ms                                           end_ms = engage_ts
+  (engage_ts − 60s)                                     │
+                                                        │
+                                        ◄─── label window (60s) ───►
+                                        │                           │
+                                    engage_ts               label_end_ts
+                                   (= fight start)      (= engage + horizon)
+                                        │                           │
+                                        │   kills, deaths, gold     │
+                                        │   counted here → label    │
 ```
+
+**Key principle:** The model sees 60 seconds of game state **before the fight starts**.
+It never sees the fight outcome — that's the label.
 
 ### Time Parameters
 
@@ -234,100 +471,129 @@ Given a `FightRef`, builds the observation window and label window.
 | `horizon_ms` | 60,000 | Label window duration |
 | `prediction_gap_ms` | 0 | Gap between observation end and engage_ts |
 
-**Derived:** `L = ctx_ms / bin_ms = 12 time steps`
+**Derived:** `L = ctx_ms / bin_ms = 60000 / 5000 = 12 time steps`
 
 ### Per-Bin Computation
 
-For each of the 12 time bins:
+For each of the 12 bins, the midpoint timestamp `q` is computed:
 
 ```
-q = bin midpoint (ms)
-
-node_i  = interpolate_node_global(cache, q)
-  → Linear interpolation between 60s frames
-  → XY uses jump detection + midstep snapping
-  → Zeroed if ZERO_XY_NODE_FEATURES = True
-
-glob_i  = global_from_prev_snapshot(cache, q)
-  → Nearest frame strictly before q (no future leakage)
-
-ev_i    = aggregate_events(cache, team_map, bin_start, bin_end)
-  → Event counts/features within [b0, b1)
-
-item_i  = aggregate_items(cache, team_map, bin_start, bin_end)
-  → Item purchase hashes within [b0, b1)
+  bin_i:  b0 = start_ms + i × 5000
+          b1 = start_ms + (i+1) × 5000
+          q  = b0 + 2500  (midpoint)
 ```
 
-### Raw Output
+At each midpoint `q`:
+
+```
+  node_i = interpolate_node_global(cache, q)
+      → Linear interpolation between surrounding 60s frames
+      → XY positions zeroed (ZERO_XY_NODE_FEATURES = True)
+      → Shape: (10, F_node)
+
+  glob_i = global_from_prev_snapshot(cache, q, strict_before=True)
+      → Nearest 60s frame STRICTLY before q (no future leakage)
+      → Shape: (F_global,)
+
+  ev_i = aggregate_events(cache, team_map, b0, b1)
+      → Count kills, spells, objectives, wards in [b0, b1)
+      → Shape: (F_event,)
+
+  item_i = aggregate_items(cache, team_map, b0, b1)
+      → Hash item purchases within [b0, b1)
+      → Shape: (F_item,)
+```
+
+### XY Exclusion (ZERO_XY_NODE_FEATURES = True)
+
+```
+  ┌──────────────────────────────────────────────────────────┐
+  │  IMPORTANT: XY positions have TWO separate uses          │
+  │                                                          │
+  │  1. Fight Detection (5s grid):                           │
+  │     XY IS used — dense interpolation for radius checks   │
+  │     This is internal to detect_fights_teamfight_v2()     │
+  │                                                          │
+  │  2. Model Input (observation window):                    │
+  │     XY is ZEROED — x_norm=0, y_norm=0 in every bin      │
+  │     Model predicts fight outcome from stats, not XY      │
+  │     Prevents model from memorizing map-position bias     │
+  └──────────────────────────────────────────────────────────┘
+```
+
+### Output Tensors
 
 ```python
-{
-    "node_seq":  np.array[L, 10, F_node],    # per-player features
-    "glob_seq":  np.array[L, F_global],       # team-level features
-    "ev_seq":    np.array[L, F_event],        # event aggregations
-    "item_seq":  np.array[L, F_item],         # item hashes
+sample = {
+    "node_seq":  np.array[12, 10, F_node],   # per-player features, 12 bins
+    "glob_seq":  np.array[12, F_global],      # team-level features, 12 bins
+    "ev_seq":    np.array[12, F_event],       # event aggregations, 12 bins
+    "item_seq":  np.array[12, F_item],        # item hashes, 12 bins
+    "y":         int,                          # label: 1=blue wins, 0=red wins
 }
 ```
 
----
-
-## 5. Feature Extraction
-
-**Entry:** `gameplay/features.py::build_sequence_features()`
-
-Transforms raw sequences into model-ready feature tensors. Five feature sets are available:
-
-| Feature Set | Components | Use Case |
-|-------------|------------|----------|
-| `full` | node_seq + macro + spatial | GNN / RNN models (default) |
-| `global_only` | global base + spatial | Lightweight baseline |
-| `global_events` | global + events + spatial | Event-focused models |
-| `node_personal` | per-node + minimal events + spatial | Per-champion analysis |
-| `tri_modal` | node + macro + tabular static | Fusion models |
-
-### Spatial Features (23 dimensions)
-
-Computed from player XY positions at each time step:
+### Full Sample Build Diagram
 
 ```
-Team Centroids:    pos_fight_x/y, pos_blue_x/y, pos_red_x/y
-Separation:        dist_team_sep_norm
-Engagement:        standoff_pairs_frac, mean_min_enemy_dist_norm
-Deltas:            d_standoff_pairs_frac, d_mean_min_enemy_dist_norm
-Objectives:        dist_obj_nearest, near_obj_dragon/baron/herald/atakhan/horde
-Structures:        dist_tower_nearest, in_tower_range, near_tower_radius
-Map Zones:         zone_top_lane, zone_mid_lane, zone_bot_lane, zone_river, zone_jungle
+  Game:  0:00    1:00    2:00    3:00    4:00    5:00    6:00    7:00    8:00
+         │       │       │       │       │       │       │       │       │
+         ├───────┼───────┼───────┼───────┼───────┼───────┼───────┼───────┤
+                 60s frame snapshots from Riot API
+
+  Detected fight: engage_ts = 420000 (7:00)
+
+  Observation window: [360000, 420000] = 6:00 → 7:00
+
+       6:00                                                         7:00
+        │  bin0  │  bin1  │  bin2  │  ...  │ bin10  │ bin11  │       │
+        │ 360-365│ 365-370│ 370-375│       │ 410-415│ 415-420│       │
+        │  q=362 │  q=367 │  q=372 │       │  q=412 │  q=417 │       │
+        │        │        │        │       │        │        │       │
+        ▼        ▼        ▼        ▼       ▼        ▼        ▼       │
+    interp    interp    interp            interp   interp            │
+    node+glob node+glob node+glob         node+glob node+glob       │
+    + events  + events  + events          + events  + events         │
+                                                                     │
+                                                               engage_ts
+                                                                     │
+                                                                     ▼
+                                                            Label window
+                                                            [420000, 480000]
+                                                             7:00 → 8:00
+                                                            count kills →
+                                                            compute y
 ```
 
 ---
 
-## 6. Label Computation
+## 5. Label Computation
 
 **Entry:** `gameplay/pipeline.py::compute_label_targets()`
 
-Counts events within the label window `[engage_ts, engage_ts + horizon_ms)` to determine fight outcome.
+Events within the label window `[engage_ts, engage_ts + horizon_ms)` determine the fight outcome.
 
-### Label Types
-
-**`kill_survival` (default):**
+### Label: `kill_survival` (default)
 
 ```
-score = W_KILL × kill_diff + W_ALIVE × alive_diff
-y = 1  if score > 0 (blue wins)
-y = 0  if score < 0 (red wins)
-ties → TIE_POLICY (drop by default)
+  Score = W_KILL × (blue_kills − red_kills) + W_ALIVE × (blue_alive − red_alive)
+
+  W_KILL  = 1.0   (kill differential weight)
+  W_ALIVE = 0.3   (alive-at-end differential weight)
+
+  y = 1  if Score > 0   → blue team wins the fight
+  y = 0  if Score < 0   → red team wins the fight
+  tie   → dropped (LABEL_TIE_STRATEGY = "random" assigns randomly)
 ```
 
-| Weight | Default | Description |
-|--------|---------|-------------|
-| `LABEL_W_KILL` | 1.0 | Kill differential weight |
-| `LABEL_W_ALIVE` | 0.3 | Alive-at-end differential weight |
-
-**`micro_win`:**
+**Example:**
 
 ```
-score = blue_kills - red_kills
-y = 1 if score > 0, else y = 0
+  Label window [420000, 480000]:
+    Blue kills: 3, Red kills: 1  →  kill_diff = +2
+    Blue alive at end: 4, Red alive at end: 2  →  alive_diff = +2
+
+    Score = 1.0 × 2 + 0.3 × 2 = 2.6 > 0  →  y = 1 (blue wins)
 ```
 
 ### Auxiliary Targets (multi-task learning)
@@ -336,132 +602,100 @@ y = 1 if score > 0, else y = 0
 |--------|---------------|-------------|
 | `y_kill_diff` | kill_diff / 5.0 | Normalized kill differential |
 | `y_gold_diff` | gold_diff / 1000.0 | Normalized gold swing |
-| `y_objective_diff` | obj_diff / 5.0 | Normalized objective differential |
+| `y_obj_diff` | obj_diff / 5.0 | Normalized objective differential |
 | `y_tower_diff` | tower_diff / 5.0 | Normalized tower differential |
 | `y_alive_diff_raw` | raw count | Alive count differential |
 
 ---
 
-## 7. Tensor Collation
+## 6. Tensor Collation & Model Forward
 
-**Entry:** `data/dataset.py::InMemoryFightDataset` → `collate_batch()`
+**Entry:** `data/dataset.py::InMemoryFightDataset` → `train/deep.py`
 
-Three tensor layouts depending on model architecture:
-
-### Layout A: GNN / RNN (default)
+### Tensor Layout (GNN / RNN)
 
 ```
-node_seq:  (B, L, 10, F_node)   float32   per-player temporal
-extra_seq: (B, L, D_extra)      float32   macro + spatial
-y:         (B, 1)               float32   binary label
+  node_seq:   (B, 12, 10, F_node)    float32   per-player temporal sequence
+  extra_seq:  (B, 12, D_extra)       float32   macro + spatial features
+  y:          (B, 1)                 float32   binary label
+
+  Optional:
+    event_type:  (B, K)   int64    event type hash
+    event_actor: (B, K)   int64    participant ID
+    event_cont:  (B, K, 5) float32  [t_rel, dt_end, x, y, val]
+    event_mask:  (B, K)   float32  1=real, 0=pad
 ```
 
-### Layout B: MacroFusion
+### Model Architecture (GATv2 Example)
 
 ```
-node_seq:  (B, L, 10, F_node)   float32   per-player temporal
-macro_seq: (B, L, D_macro)      float32   team-level temporal
-tab_x:     (B, D_tab)           float32   static match features
-y:         (B, 1)               float32   binary label
-```
-
-### Layout C: Flat Sequence
-
-```
-x_seq:     (B, L, D_flat)       float32   flattened features
-y:         (B, 1)               float32   binary label
-```
-
-### Optional Additions
-
-```
-Event tokens (cross-attention):
-  event_type:  (B, K, int64)      event type hash
-  event_actor: (B, K, int64)      participant ID
-  event_team:  (B, K, int64)      0=blue, 1=red, 2=unknown
-  event_cont:  (B, K, 5, float32) [t_rel, dt_end, x, y, val]
-  event_mask:  (B, K, float32)    1=real, 0=pad
-
-Auxiliary targets:
-  y_kill_diff: (B, 1)
-  y_gold_diff: (B, 1)
-  y_obj_diff:  (B, 1)
-
-Teacher logits:
-  lgbm_logit:  (B, 1)             LightGBM baseline prediction
-```
-
-### Scaling
-
-StandardScaler applied to numeric features. Spatial coordinates (`x_norm`, `y_norm`, `pos_*`, `dist_*`) are **excluded** from scaling to maintain position invariance.
-
----
-
-## 8. Model Forward
-
-**Entry:** `train/models.py` (model registry) → `train/deep.py` (training harness)
-
-### 28 Registered Architectures
-
-| Category | Models |
-|----------|--------|
-| **Baseline** | `lgbm` |
-| **RNN** | `rnn_ugru`, `rnn_bigru`, `rnn_ulstm`, `rnn_bilstm`, `rnn_transformer`, `rnn_tcn`, `rnn_mamba` |
-| **Hybrid h0** | `hybrid_bigru`, `hybrid_bilstm`, `hybrid_ugru` |
-| **GNN** | `gnn_gcn`, `gnn_graphsage`, `gnn_graphtransformer`, `gnn_gatv2`, `gnn_mpnn` |
-| **Spatio-Temporal** | `gnn_stgnn`, `gnn_stgcn`, `edge_stgnn`, `ms_stgcn`, `ms_stgnn`, `stgnn_mamba`, `event_xattn` |
-| **Fusion** | `fusion_gated_gnn_bigru` |
-
-### GNN Example (GATv2)
-
-```
-Input:  node_seq (B, L, 10, F_node) + extra_seq (B, L, D_extra)
-                    |
-        NodeFeatureAdapter
-          ├─ champion_id → Embedding(d)
-          ├─ runes → Embedding(d)
-          └─ numeric → Linear(d_hidden)
-                    |
-                concat → (B, L, 10, d_hidden)
-                    |
-        For each time step t:
-          ├─ Build adjacency A from XY positions
-          ├─ Role-aware weighting: A_role(i,j) = A_dist(i,j) × R[role(i), role(j)]
-          └─ GATv2 message passing: h_t = σ(A · h_t)
-                    |
-        Temporal attention pooling across L steps
-                    |
-        Classification head → logit ∈ ℝ
-                    |
-        sigmoid(logit) → prob ∈ [0, 1]
+  Input
+    │
+    ▼
+  node_seq (B, 12, 10, F_node)
+    │
+    ├──► champion_id ──► Embedding(d)  ─┐
+    ├──► rune_ids    ──► Embedding(d)  ─┤
+    └──► numeric     ──► Linear(d)     ─┤
+                                        ▼
+                                   concat → (B, 12, 10, d_hidden)
+                                        │
+                        ┌───────────────┤ For each time step t:
+                        │               │
+                        │   Build adjacency A from XY positions
+                        │   (soft Gaussian: A_ij = exp(-d²/2σ²))
+                        │               │
+                        │   GATv2 multi-head attention
+                        │   h_t = σ(α_ij · W · h_j)
+                        │               │
+                        └───────────────┤
+                                        ▼
+                              (B, 12, 10, d_hidden)
+                                        │
+                              Temporal attention pooling
+                              across 12 time steps
+                                        │
+                                        ▼
+                              (B, d_pool)
+                                        │
+                              Classification head
+                              Linear → ReLU → Dropout → Linear
+                                        │
+                                        ▼
+                              logit ∈ ℝ
+                                        │
+                              sigmoid(logit)
+                                        │
+                                        ▼
+                              P(blue wins) ∈ [0, 1]
 ```
 
 ### Loss Function
 
 ```
-L_total = BCE(logit, y) + λ_k × MSE(pred_kill, y_kill_diff)
-                        + λ_g × MSE(pred_gold, y_gold_diff)
-                        + λ_o × MSE(pred_obj, y_obj_diff)
+  L_total = BCE(logit, y)
+          + λ_kill × MSE(pred_kill, y_kill_diff)
+          + λ_gold × MSE(pred_gold, y_gold_diff)
+          + λ_obj  × MSE(pred_obj,  y_obj_diff)
 ```
 
-Focal loss variant available for imbalanced fight outcomes.
+### Registered Architectures (28 models)
 
-### Key Hyperparameters
-
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `RNN_HIDDEN` | 128 | RNN hidden dimension |
-| `RNN_LAYERS` | 2 | RNN depth |
-| `GNN_DIM` | 96 | GNN hidden dimension |
-| `HEAD_HIDDEN` | 128 | Classification head dimension |
-| `HEAD_LAYERS` | 2 | Classification head depth |
-| `DROPOUT` | 0.20 | Dropout rate |
+| Category | Models |
+|----------|--------|
+| **Baseline** | `lgbm` (LightGBM) |
+| **RNN** | `rnn_bigru`, `rnn_bilstm`, `rnn_transformer`, `rnn_tcn`, `rnn_mamba` |
+| **Hybrid h0** | `hybrid_bigru`, `hybrid_bilstm` |
+| **GNN** | `gnn_graphsage`, `gnn_gatv2`, `gnn_mpnn` |
+| **Spatio-Temporal** | `gnn_stgnn`, `stgcn`, `stgnn_mamba`, `event_xattn`, `ms_dyngraph` |
+| **Fusion** | `fusion_gated_gnn_bigru` |
 
 ---
 
-## 9. Evaluation
+## 7. Evaluation
 
-Predictions are aligned by `ref_key` (not batch position) to handle shuffling, dropped samples, and multi-worker loading.
+Predictions are aligned by `ref_key` (not batch position) to handle shuffling,
+dropped samples, and multi-worker loading.
 
 ```python
 for batch in dataloader:
@@ -484,21 +718,81 @@ for batch in dataloader:
 ### Subgroup Analysis
 
 - **By minute**: early / mid / late game fights
-- **By gold state**: close / moderate / stomp
+- **By gold state**: close (< 2000) / moderate / stomp (> 5000)
 - **By patch**: per-patch performance tracking
 - **Bootstrap CI**: 5-seed runs `(7, 42, 123, 256, 512)` for confidence intervals
+
+---
+
+## Full End-to-End Example
+
+```
+  MATCH: KR_7123456789, Patch 14.10, Duration 32:00
+  ════════════════════════════════════════════════════════
+
+  [1] Cache Build
+      → 33 minute frames (0:00 → 32:00)
+      → node_minute: [33, 10, 87]
+      → 847 raw events (kills, objectives, wards, ...)
+
+  [2] Fight Detection (teamfight_v2)
+      → Extract 28 CHAMPION_KILL events
+      → Cluster temporally (gap=18s): 6 clusters
+      → Build 5s position grid: [385 timesteps, 10, 2]
+      → Validate each cluster:
+          Cluster 1 (3 kills, 7:10-7:25): 3v3 at radius 1800 → ✓ teamfight
+          Cluster 2 (1 kill, 11:40):      1v1 at radius 1800 → ✗ rejected (pick)
+          Cluster 3 (4 kills, 15:20-15:45): 4v4 at radius 1800 → ✓ teamfight
+          Cluster 4 (2 kills, 20:05-20:12): 2v3 at radius 1800 → ✓ teamfight
+          Cluster 5 (5 kills, 26:30-27:00): 5v5 at radius 1800 → ✓ teamfight
+          Cluster 6 (2 kills, 31:10-31:15): horizon exceeds game → ✗ rejected
+      → 4 fights detected
+
+  [3] FightRef Index
+      → Fight 1: "KR_7123456789|t_start_ts=420000"
+      → Fight 3: "KR_7123456789|t_start_ts=910000"
+      → Fight 4: "KR_7123456789|t_start_ts=1195000"
+      → Fight 5: "KR_7123456789|t_start_ts=1580000"
+      → Split: match grouped into "train" partition
+
+  [4] Sample Build (Fight 1: engage_ts = 420000)
+      → Observation window: [360000, 420000] (6:00 → 7:00)
+      → 12 bins × 5s each
+      → Per bin: interpolate node features, get global snapshot,
+                 aggregate events, hash items
+      → XY zeroed in all bins
+      → node_seq: [12, 10, 87], glob_seq: [12, 27], ev_seq: [12, 48]
+
+  [5] Label (Fight 1)
+      → Label window: [420000, 480000] (7:00 → 8:00)
+      → Events in window: 3 blue kills, 1 red kill
+      → Blue alive at 8:00: 4, Red alive: 2
+      → Score = 1.0 × 2 + 0.3 × 2 = 2.6 → y = 1 (blue wins)
+
+  [6] Model Prediction
+      → GATv2 forward: node_seq + extra → logit = 1.34
+      → P(blue wins) = sigmoid(1.34) = 0.79
+      → Prediction: blue team wins (confidence 79%)
+
+  [7] Evaluation
+      → Aligned by ref_key: "KR_7123456789|t_start_ts=420000"
+      → True label: y=1, Predicted: 0.79 → correct
+      → Contributes to AUC, AP, accuracy metrics
+```
 
 ---
 
 ## Interpretation
 
 ```
-prob > 0.5 → model predicts blue team wins the fight
-prob < 0.5 → model predicts red team wins the fight
-prob ≈ 0.5 → uncertain / close fight
+  P(blue wins) > 0.5  →  model predicts blue team wins the fight
+  P(blue wins) < 0.5  →  model predicts red team wins the fight
+  P(blue wins) ≈ 0.5  →  uncertain / close fight
 ```
 
-The prediction is made at `engage_ts - prediction_gap_ms` (default: at the moment of engagement). The model sees the **game state leading up to the fight** but never the fight outcome itself.
+The prediction is made at `engage_ts` (the moment of engagement). The model sees
+the **game state leading up to the fight** (60s observation window) but never the
+fight outcome itself.
 
 ---
 
@@ -506,9 +800,11 @@ The prediction is made at `engage_ts - prediction_gap_ms` (default: at the momen
 
 | Principle | Implementation |
 |-----------|----------------|
-| **Millisecond anchoring** | All timestamps in ms; sub-minute fight precision |
+| **Kills-only creation** | Only CHAMPION_KILL events create fights — no ward/objective triggers |
 | **No future leakage** | Global features from strictly-before snapshots; label window starts at engage_ts |
+| **XY excluded from model** | Positions used only for spatial detection, zeroed in model input |
+| **Millisecond anchoring** | All timestamps in ms; sub-minute fight precision via 5s grid |
 | **Ref-key alignment** | Predictions matched by `match_id\|t_start_ts=<ms>`, not by batch position |
-| **Interpolation guards** | XY positions use jump detection + midstep snapping for teleports/deaths |
 | **Match-grouped splits** | All fights from one match stay in the same split partition |
 | **Patch stratification** | Each split has proportional representation of game patches |
+| **Post-fight outcome** | 45-second window captures objective conversion after fight |
