@@ -28,7 +28,7 @@ import torch.nn.functional as F
 #
 # All now delegated to common_torch.py.
 # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-from core.config import cfg  # type: ignore
+from core.config import cfg, F_GLOBAL  # type: ignore
 
 from core.common_torch import (
     autocast_disabled as _autocast_disabled_ctx,
@@ -2340,6 +2340,310 @@ class EventXAttnSTModel(nn.Module, DebugHookMixin):
 
 
 # =========================================================
+# Layered fusion: global(BiGRU) + champion-relation(GNN) + pre-fight events(attention)
+# =========================================================
+class LayeredFusionGNNBiGRUXAttn(nn.Module, DebugHookMixin):
+    """Tri-branch fusion model aligned with domain priors.
+
+    1) Global branch: global-feature prefix -> selectable temporal encoder
+    2) Champion relation/status branch: last-frame GNN over node graph
+    3) Event branch: event tokens -> self-attention -> importance pooling
+    4) Late fusion with learned branch gates
+    """
+
+    def __init__(
+        self,
+        f_node: int,
+        d_seq: int,
+        use_lgbm_logit: bool = True,
+        *,
+        global_kind: Optional[str] = None,
+        gnn_kind: Optional[str] = None,
+        event_kind: Optional[str] = None,
+    ):
+        super().__init__()
+        self.use_lgbm_logit = bool(use_lgbm_logit)
+
+        gnn_dim = int(getattr(cfg, "GNN_DIM", 64))
+        gnn_drop = float(getattr(cfg, "GNN_DROPOUT", 0.1))
+        gnn_norm = bool(getattr(cfg, "GNN_NORM", True))
+        rnn_hidden = int(getattr(cfg, "RNN_HIDDEN", 128))
+        rnn_layers = int(getattr(cfg, "RNN_LAYERS", 1))
+        drop = float(getattr(cfg, "DROPOUT", 0.1))
+
+        gnn_kind_eff = gnn_kind if gnn_kind is not None else str(getattr(cfg, "LAYER_FUSION_GNN_KIND", "graphsage"))
+        self.gnn_kind = str(gnn_kind_eff).lower().strip()
+        if self.gnn_kind not in ("gcn", "graphsage", "graphtransformer", "gatv2", "mpnn"):
+            self.gnn_kind = "graphsage"
+        self.multiscale_adj = bool(getattr(cfg, "LAYER_FUSION_GNN_MULTISCALE_ADJ", False))
+
+        self.node_adapter = NodeFeatureAdapter(f_in=f_node, d_out=gnn_dim)
+        self.gnn = GraphEncoder(
+            kind=self.gnn_kind,
+            d_in=gnn_dim,
+            d_h=gnn_dim,
+            n_layers=2,
+            dropout=gnn_drop,
+            use_norm=gnn_norm,
+        )
+        self.gnn_out_dim = 3 * gnn_dim
+
+        phase_dim = 3 if bool(getattr(cfg, "USE_GAME_PHASE", False)) else 0
+        gdim_cfg = int(getattr(cfg, "LAYER_FUSION_GLOBAL_DIM", 0))
+        self.global_in_dim = int(gdim_cfg if gdim_cfg > 0 else (F_GLOBAL + phase_dim))
+        self.global_in_dim = max(1, self.global_in_dim)
+        self.global_kind = str(
+            global_kind if global_kind is not None else getattr(cfg, "LAYER_FUSION_GLOBAL_KIND", "bigru")
+        ).lower().strip()
+        if self.global_kind not in ("ugru", "bigru", "ulstm", "bilstm", "transformer", "tcn", "mamba"):
+            self.global_kind = "bigru"
+
+        if self.global_kind == "ugru":
+            self.global_temporal = RNNEncoder(
+                rnn_type="gru",
+                d_in=self.global_in_dim,
+                d_h=rnn_hidden,
+                n_layers=rnn_layers,
+                bidirectional=False,
+                dropout=drop,
+            )
+        elif self.global_kind == "bigru":
+            self.global_temporal = RNNEncoder(
+                rnn_type="gru",
+                d_in=self.global_in_dim,
+                d_h=rnn_hidden,
+                n_layers=rnn_layers,
+                bidirectional=True,
+                dropout=drop,
+            )
+        elif self.global_kind == "ulstm":
+            self.global_temporal = RNNEncoder(
+                rnn_type="lstm",
+                d_in=self.global_in_dim,
+                d_h=rnn_hidden,
+                n_layers=rnn_layers,
+                bidirectional=False,
+                dropout=drop,
+            )
+        elif self.global_kind == "bilstm":
+            self.global_temporal = RNNEncoder(
+                rnn_type="lstm",
+                d_in=self.global_in_dim,
+                d_h=rnn_hidden,
+                n_layers=rnn_layers,
+                bidirectional=True,
+                dropout=drop,
+            )
+        elif self.global_kind == "transformer":
+            self.global_temporal = TransformerTemporalEncoder(
+                d_in=self.global_in_dim,
+                d_model=int(getattr(cfg, "TRANS_D_MODEL", rnn_hidden)),
+                nhead=int(getattr(cfg, "TRANS_NHEAD", 4)),
+                n_layers=int(getattr(cfg, "TRANS_LAYERS", 2)),
+                dropout=drop,
+                max_len=int(getattr(cfg, "MAX_SEQ_LEN", 512)),
+            )
+        elif self.global_kind == "tcn":
+            self.global_temporal = TCNTemporalEncoder(
+                d_in=self.global_in_dim,
+                channels=int(getattr(cfg, "TCN_CHANNELS", max(64, rnn_hidden))),
+                n_levels=int(getattr(cfg, "TCN_LEVELS", 3)),
+                kernel=int(getattr(cfg, "TCN_KERNEL", 3)),
+                dropout=float(getattr(cfg, "TCN_DROPOUT", drop)),
+            )
+        else:
+            self.global_temporal = MambaTemporalEncoder(
+                d_in=self.global_in_dim,
+                d_model=int(getattr(cfg, "MAMBA_D_MODEL", rnn_hidden)),
+                n_layers=int(getattr(cfg, "MAMBA_LAYERS", 3)),
+                d_state=int(getattr(cfg, "MAMBA_D_STATE", 16)),
+                dropout=drop,
+            )
+        self.global_out_dim = self.global_temporal.out_dim
+
+        d_model = int(getattr(cfg, "LAYER_FUSION_EVENT_D_MODEL", int(getattr(cfg, "XATTN_D_MODEL", 128))))
+        nhead = int(getattr(cfg, "LAYER_FUSION_EVENT_NHEAD", int(getattr(cfg, "XATTN_NHEAD", 4))))
+        self.event_kind = str(
+            event_kind if event_kind is not None else getattr(cfg, "LAYER_FUSION_EVENT_KIND", "attn")
+        ).lower().strip()
+        if self.event_kind not in ("attn", "xattn", "mean"):
+            self.event_kind = "attn"
+        self.ev_enc = EventTokenEncoder(d_model=d_model)
+        self.ev_attn = None
+        self.ev_importance = None
+        if self.event_kind in ("attn", "xattn"):
+            self.ev_attn = nn.MultiheadAttention(
+                embed_dim=d_model,
+                num_heads=max(1, nhead),
+                dropout=drop,
+                batch_first=True,
+            )
+            imp_hidden = int(getattr(cfg, "LAYER_FUSION_EVENT_IMP_HIDDEN", 64))
+            imp_hidden = max(16, imp_hidden)
+            self.ev_importance = nn.Sequential(
+                nn.Linear(2 * d_model, imp_hidden),
+                nn.ReLU(),
+                nn.Dropout(drop),
+                nn.Linear(imp_hidden, 1),
+            )
+        self.ev_prior_idx = int(getattr(cfg, "EVENT_CONT_IMPORTANCE_PRIOR_IDX", 11))
+        self.ev_prior_boost = float(getattr(cfg, "XATTN_PRIOR_BOOST", 1.25))
+        self.event_out_dim = d_model
+
+        fuse_dim = int(
+            getattr(
+                cfg,
+                "LAYER_FUSION_FUSE_DIM",
+                max(self.gnn_out_dim, self.global_out_dim, self.event_out_dim),
+            )
+        )
+        self.gnn_proj = nn.Linear(self.gnn_out_dim, fuse_dim) if self.gnn_out_dim != fuse_dim else nn.Identity()
+        self.global_proj = nn.Linear(self.global_out_dim, fuse_dim) if self.global_out_dim != fuse_dim else nn.Identity()
+        self.event_proj = nn.Linear(self.event_out_dim, fuse_dim) if self.event_out_dim != fuse_dim else nn.Identity()
+
+        gate_h = int(getattr(cfg, "LAYER_FUSION_GATE_H", 64))
+        gate_h = max(16, gate_h)
+        self.fuse_gate = nn.Sequential(
+            nn.Linear(3 * fuse_dim, gate_h),
+            nn.ReLU(),
+            nn.Dropout(drop),
+            nn.Linear(gate_h, 3),
+        )
+
+        head_hidden = int(getattr(cfg, "HEAD_HIDDEN", int(getattr(cfg, "RNN_HIDDEN", 128))))
+        head_layers = int(getattr(cfg, "HEAD_LAYERS", 2))
+        head_in = int(fuse_dim + (1 if self.use_lgbm_logit else 0))
+        self.head = MLP(head_in, head_hidden, 1, dropout=drop, layers=head_layers)
+
+    def _global_prefix(self, temporal_seq: torch.Tensor) -> torch.Tensor:
+        # Contract: global features are placed at sequence prefix in macro/extra sequences.
+        if temporal_seq.shape[-1] >= self.global_in_dim:
+            return temporal_seq[..., :self.global_in_dim]
+        pad_dim = int(self.global_in_dim - int(temporal_seq.shape[-1]))
+        pad = temporal_seq.new_zeros((*temporal_seq.shape[:-1], pad_dim))
+        return torch.cat([temporal_seq, pad], dim=-1)
+
+    def _encode_node_gnn(self, node_seq: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        x_raw = node_seq[:, -1, :, :]
+        xy = x_raw[:, :, [X_IDX, Y_IDX]]
+        alive = _extract_alive_from_raw(x_raw)
+
+        x = self.node_adapter(x_raw)
+        if alive is not None:
+            x = x * alive.unsqueeze(-1)
+
+        A = _build_adj(xy, alive, multiscale=self.multiscale_adj)
+        if self.gnn_kind == "mpnn":
+            h = self.gnn(x, A, xy=xy)
+        else:
+            h = self.gnn(x, A)
+
+        pooled = pool_team_repr(h, alive=alive)
+        return pooled, h, A
+
+    def _encode_event_attention(
+        self,
+        etype: torch.Tensor,
+        eactor: torch.Tensor,
+        eteam: torch.Tensor,
+        econt: torch.Tensor,
+        emask: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        e_emb = self.ev_enc(etype, eactor, eteam, econt)
+        m = emask.float().clamp(0.0, 1.0)
+        if self.event_kind == "mean":
+            alpha = m / m.sum(dim=1, keepdim=True).clamp_min(1.0e-6)
+            event_feat = (e_emb * alpha.unsqueeze(-1)).sum(dim=1)
+            return event_feat, alpha
+
+        if self.ev_attn is None or self.ev_importance is None:
+            alpha = m / m.sum(dim=1, keepdim=True).clamp_min(1.0e-6)
+            event_feat = (e_emb * alpha.unsqueeze(-1)).sum(dim=1)
+            return event_feat, alpha
+
+        key_padding = (m <= 0.0)
+        with _autocast_disabled():
+            q = _nan_to_num_(e_emb.float())
+            k = _nan_to_num_(e_emb.float())
+            v = k
+            e_ctx, _ = self.ev_attn(q, k, v, key_padding_mask=key_padding, need_weights=False)
+            e_ctx = _nan_to_num_(e_ctx)
+        e_ctx = e_ctx.to(dtype=e_emb.dtype)
+
+        imp_logits = self.ev_importance(torch.cat([e_ctx, e_emb], dim=-1)).squeeze(-1)
+        if econt is not None and econt.ndim == 3:
+            j = int(self.ev_prior_idx)
+            if 0 <= j < int(econt.shape[-1]):
+                prior = econt[..., j].float()
+                imp_logits = imp_logits + self.ev_prior_boost * prior
+
+        neg_inf = torch.full_like(imp_logits, -1.0e4)
+        imp_logits = torch.where(m > 0.0, imp_logits, neg_inf)
+        alpha = torch.softmax(imp_logits, dim=1)
+        alpha = alpha * m
+        alpha = alpha / alpha.sum(dim=1, keepdim=True).clamp_min(1.0e-6)
+        event_feat = (e_ctx * alpha.unsqueeze(-1)).sum(dim=1)
+        return event_feat, alpha
+
+    def forward(self, batch: Dict[str, torch.Tensor], return_aux: bool = False):
+        node_seq = batch.get("node_seq", None)
+        if node_seq is None:
+            raise KeyError("LayeredFusionGNNBiGRUXAttn requires node_seq")
+
+        temporal_seq, seq_key = pick_temporal_seq(batch)
+        global_src = batch.get("global_seq", None)
+        if global_src is None:
+            global_src = temporal_seq
+        global_in = self._global_prefix(global_src)
+
+        etype = batch.get("event_type", None)
+        eactor = batch.get("event_actor", None)
+        eteam = batch.get("event_team", None)
+        econt = batch.get("event_cont", None)
+        emask = batch.get("event_mask", None)
+        if any(x is None for x in (etype, eactor, eteam, econt, emask)):
+            raise KeyError("LayeredFusionGNNBiGRUXAttn requires event_type/event_actor/event_team/event_cont/event_mask")
+
+        gnn_feat, h, A = self._encode_node_gnn(node_seq)
+        self._maybe_store_debug(A, h)
+        global_feat = self.global_temporal(global_in)
+        event_feat, event_alpha = self._encode_event_attention(etype, eactor, eteam, econt, emask)
+
+        g = self.gnn_proj(gnn_feat)
+        r = self.global_proj(global_feat)
+        e = self.event_proj(event_feat)
+        fusion_input = torch.cat([g, r, e], dim=-1)
+        gate = torch.softmax(self.fuse_gate(fusion_input), dim=-1)
+        fused = gate[:, 0:1] * g + gate[:, 1:2] * r + gate[:, 2:3] * e
+
+        if self.use_lgbm_logit and (batch.get("lgbm_logit", None) is not None):
+            llog = batch["lgbm_logit"]
+            if isinstance(llog, torch.Tensor):
+                if llog.ndim == 1:
+                    llog = llog.unsqueeze(-1)
+            else:
+                llog = torch.as_tensor(llog).unsqueeze(-1)
+            fused = torch.cat([fused, llog.to(device=fused.device, dtype=fused.dtype)], dim=-1)
+
+        logit = self.head(fused)
+        if return_aux:
+            return logit, {
+                "seq_key": seq_key,
+                "global_kind": self.global_kind,
+                "gnn_kind": self.gnn_kind,
+                "event_kind": self.event_kind,
+                "global_in": global_in,
+                "gnn_feat": gnn_feat,
+                "global_feat": global_feat,
+                "event_feat": event_feat,
+                "branch_gate": gate,
+                "event_alpha": event_alpha,
+                "adj": A,
+            }
+        return logit
+
+
+# =========================================================
 # Model factory
 # =========================================================
 @dataclass
@@ -2522,6 +2826,163 @@ def _build_xattn(f_node, d_seq, use_lgbm_logit):
         multiscale_adj=bool(getattr(cfg, "XATTN_MULTISCALE_ADJ", False)),
     )
 
+@register_model("fusion_layered_gnn_bigru_xattn", "layered_fusion", "fusion_layered")
+def _build_layered_fusion(f_node, d_seq, use_lgbm_logit):
+    return LayeredFusionGNNBiGRUXAttn(
+        f_node=f_node,
+        d_seq=d_seq,
+        use_lgbm_logit=use_lgbm_logit,
+    )
+
+
+def _norm_layered_global_kind(v: str) -> Optional[str]:
+    t = (v or "").lower().strip()
+    if not t:
+        return None
+    if t.startswith("rnn_"):
+        t = t[4:]
+    alias = {
+        "gru": "ugru",
+        "ugru": "ugru",
+        "bigru": "bigru",
+        "lstm": "ulstm",
+        "ulstm": "ulstm",
+        "bilstm": "bilstm",
+        "transformer": "transformer",
+        "tcn": "tcn",
+        "mamba": "mamba",
+    }
+    return alias.get(t, None)
+
+
+def _norm_layered_gnn_kind(v: str) -> Optional[str]:
+    t = (v or "").lower().strip()
+    if not t:
+        return None
+    if t.startswith("gnn_"):
+        t = t[4:]
+    alias = {
+        "gcn": "gcn",
+        "graphsage": "graphsage",
+        "sage": "graphsage",
+        "gnnsage": "graphsage",
+        "graphtransformer": "graphtransformer",
+        "gat": "gatv2",
+        "gatv2": "gatv2",
+        "mpnn": "mpnn",
+    }
+    return alias.get(t, None)
+
+
+def _norm_layered_event_kind(v: str) -> Optional[str]:
+    t = (v or "").lower().strip()
+    if not t:
+        return None
+    alias = {
+        "attn": "attn",
+        "xattn": "xattn",
+        "event_xattn": "xattn",
+        "mean": "mean",
+        "avg": "mean",
+        "pool": "mean",
+    }
+    return alias.get(t, None)
+
+
+def _parse_bool_optional(v: str) -> Optional[bool]:
+    t = (v or "").lower().strip()
+    if t in ("1", "true", "on", "yes", "y"):
+        return True
+    if t in ("0", "false", "off", "no", "n"):
+        return False
+    return None
+
+
+def _parse_layered_fusion_spec(model_name: str) -> Optional[Dict[str, Any]]:
+    """Parse layered-fusion inline alias spec.
+
+    Supported forms:
+      layered_fusion
+      layered_fusion@global=rnn_bigru+gnn=gnn_gatv2+event=event_xattn
+      fusion_layered@rnn_transformer+gatv2+mean
+      fusion_layered_gnn_bigru_xattn@global=tcn+gnn=mpnn+logit=0
+    """
+    m_raw = (model_name or "").strip()
+    if not m_raw:
+        return None
+    m = m_raw.lower()
+
+    bases = ("layered_fusion", "fusion_layered", "fusion_layered_gnn_bigru_xattn")
+    base = None
+    rest = ""
+    for b in bases:
+        if m == b:
+            base = b
+            break
+        tag = b + "@"
+        if m.startswith(tag):
+            base = b
+            rest = m[len(tag):]
+            break
+    if base is None:
+        return None
+
+    out: Dict[str, Any] = {}
+    if not rest:
+        return out
+
+    parts = [p.strip() for p in rest.replace(",", "+").split("+") if p.strip()]
+    for part in parts:
+        if "=" in part:
+            k, v = part.split("=", 1)
+        elif ":" in part:
+            k, v = part.split(":", 1)
+        else:
+            k, v = "", part
+
+        key = (k or "").lower().strip()
+        val = (v or "").lower().strip()
+
+        if key in ("global", "rnn", "g"):
+            gk = _norm_layered_global_kind(val)
+            if gk is not None:
+                out["global_kind"] = gk
+            continue
+        if key in ("gnn", "graph", "n"):
+            nk = _norm_layered_gnn_kind(val)
+            if nk is not None:
+                out["gnn_kind"] = nk
+            continue
+        if key in ("event", "attn", "e"):
+            ek = _norm_layered_event_kind(val)
+            if ek is not None:
+                out["event_kind"] = ek
+            continue
+        if key in ("logit", "lgbm", "use_logit"):
+            bv = _parse_bool_optional(val)
+            if bv is not None:
+                out["use_lgbm_logit"] = bool(bv)
+            continue
+
+        gk = _norm_layered_global_kind(val)
+        if gk is not None:
+            out["global_kind"] = gk
+            continue
+        nk = _norm_layered_gnn_kind(val)
+        if nk is not None:
+            out["gnn_kind"] = nk
+            continue
+        ek = _norm_layered_event_kind(val)
+        if ek is not None:
+            out["event_kind"] = ek
+            continue
+        bv = _parse_bool_optional(val)
+        if bv is not None and key in ("", "logit", "lgbm"):
+            out["use_lgbm_logit"] = bool(bv)
+
+    return out
+
+
 # --- Fusion ---
 @register_model("fusion_gated_gnn_bigru", "lgbm_dual_gnn_bigru", "fusion")
 def _build_fusion(f_node, d_seq, use_lgbm_logit):
@@ -2536,6 +2997,19 @@ def build_model(model_name: str, f_node: int, d_seq: int, use_lgbm_logit: bool =
     New models can be added via @register_model without modifying this function.
     """
     m = (model_name or "").lower().strip()
+
+    layered_spec = _parse_layered_fusion_spec(m)
+    if layered_spec is not None:
+        use_logit_eff = bool(layered_spec.get("use_lgbm_logit", use_lgbm_logit))
+        return LayeredFusionGNNBiGRUXAttn(
+            f_node=f_node,
+            d_seq=d_seq,
+            use_lgbm_logit=use_logit_eff,
+            global_kind=layered_spec.get("global_kind", None),
+            gnn_kind=layered_spec.get("gnn_kind", None),
+            event_kind=layered_spec.get("event_kind", None),
+        )
+
     if m not in MODEL_REGISTRY:
         available = sorted(MODEL_REGISTRY.keys())
         raise ValueError(

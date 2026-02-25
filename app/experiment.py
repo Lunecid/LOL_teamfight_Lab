@@ -147,9 +147,53 @@ def _infer_feature_set_for_model(model_name: str, default_fs: str) -> str:
     return default_fs
 
 
+def _layered_logit_override(model_name: str) -> Optional[bool]:
+    """Parse optional layered-fusion inline override: ...@...+logit=0/1"""
+    m = (model_name or "").strip().lower()
+    if not m.startswith(("layered_fusion", "fusion_layered")):
+        return None
+    if "@" not in m:
+        return None
+
+    try:
+        tail = m.split("@", 1)[1]
+    except Exception:
+        return None
+    if not tail:
+        return None
+
+    bool_map = {
+        "1": True, "true": True, "on": True, "yes": True, "y": True,
+        "0": False, "false": False, "off": False, "no": False, "n": False,
+    }
+
+    parts = [p.strip() for p in tail.replace(",", "+").split("+") if p.strip()]
+    for part in parts:
+        if "=" in part:
+            k, v = part.split("=", 1)
+        elif ":" in part:
+            k, v = part.split(":", 1)
+        else:
+            continue
+        key = (k or "").strip().lower()
+        val = (v or "").strip().lower()
+        if key not in ("logit", "lgbm", "use_logit", "use_lgbm_logit"):
+            continue
+        if val.startswith("logit_"):
+            val = val[len("logit_") :]
+        if val.startswith("lgbm_"):
+            val = val[len("lgbm_") :]
+        return bool_map.get(val, None)
+    return None
+
+
 def _needs_lgbm_logit(model_name: str) -> bool:
     """Returns True if the model expects baseline logits in-batch (XGB removed)."""
     m = (model_name or "").lower()
+    if m.startswith(("layered_fusion", "fusion_layered")):
+        # layered fusion can run without baseline logits unless explicitly forced by spec.
+        ovr = _layered_logit_override(m)
+        return bool(ovr) if ovr is not None else False
     if m.startswith(("fusion_", "lgbm_dual_")):
         return True
     if "tablogit" in m:
@@ -402,6 +446,8 @@ def run(args) -> None:
         model_list = [m for m in model_list if not (m or "").lower().startswith("fusion_")]
 
     ablation_mode = str(getattr(args, "ablation_mode", getattr(cfg, "ABLATION_MODE", "baseline_plus")))
+    # Policy: baseline logit is injected only in baseline_plus mode.
+    use_logit_inputs = (ablation_mode == "baseline_plus")
     require_lgbm = bool(getattr(args, "require_lgbm", False) or getattr(cfg, "REQUIRE_LGBM_FOR_ABLATION", False))
 
     enable_factorial = not bool(getattr(args, "no_factorial_fusion", False))
@@ -467,7 +513,7 @@ def run(args) -> None:
 
         write_log(f"[RUN] {run_tag}", run_log)
         write_log(f"[CFG] MODE={cfg.MODE} MAX_MATCHES={cfg.MAX_MATCHES}", run_log)
-        write_log(f"[CFG] ABLATION_MODE={ablation_mode} REQUIRE_LGBM={require_lgbm}", run_log)
+        write_log(f"[CFG] ABLATION_MODE={ablation_mode} REQUIRE_LGBM={require_lgbm} USE_LOGIT_INPUTS={use_logit_inputs}", run_log)
         write_log(f"[CFG] STANDOFF_RADIUS(R_core)={getattr(cfg,'STANDOFF_RADIUS',None)}", run_log)
         write_log(f"[CFG] PREDICTION_GAP_MS={int(getattr(cfg, 'PREDICTION_GAP_MS', 0))}", run_log)
         write_log(f"[CFG] SPLIT_MODE={split_mode}", run_log)
@@ -604,9 +650,8 @@ def run(args) -> None:
         deep_pred_maps: Dict[Tuple[str, str], Dict[str, Dict[str, float]]] = {}
 
         need_baseline_logits = (
-            ((ablation_mode in ("baseline_plus", "both")) and (not enable_factorial))
+            use_logit_inputs
             or any((m or "").lower() == "lgbm" for m in model_list)
-            or any(_needs_lgbm_logit(m) for m in model_list if (m or "").lower() != "lgbm")
             or bool(getattr(cfg, "RUN_LGBM_BASELINE", False))
         )
 
@@ -667,9 +712,18 @@ def run(args) -> None:
                 continue
 
             fs = _infer_feature_set_for_model(model_name, feature_set)
-            requires_logit = _needs_lgbm_logit(model_name)
-            if requires_logit and not base_logit_map_full:
-                msg = f"[SKIP] {model_name} requires baseline logits but none are available."
+            model_logit_capable = _needs_lgbm_logit(model_name)
+
+            if (not use_logit_inputs) and model_logit_capable:
+                write_log(
+                    f"[SKIP] {model_name} expects baseline logits, but logit inputs are disabled "
+                    f"(enable with --ablation_mode baseline_plus).",
+                    run_log,
+                )
+                continue
+
+            if use_logit_inputs and (not base_logit_map_full):
+                msg = f"[SKIP] {model_name} needs baseline-plus inputs but baseline logits are unavailable."
                 if require_lgbm:
                     write_log("[FATAL] " + msg, run_log)
                     break
@@ -677,7 +731,7 @@ def run(args) -> None:
                 continue
 
             if ablation_mode == "as_is":
-                need_logit = _needs_lgbm_logit(model_name)
+                need_logit = bool(use_logit_inputs and model_logit_capable)
                 logit_map = base_logit_map_full if need_logit else None
                 variant_tag = "default"
 
@@ -741,21 +795,10 @@ def run(args) -> None:
             # ablation grid: deep_only / plus_baseline
             variants_to_run: List[Tuple[str, Optional[Dict[str, float]]]] = []
 
-            if requires_logit:
+            if use_logit_inputs:
                 variants_to_run = [("plus_baseline", base_logit_map_full)]
             else:
-                if ablation_mode == "both":
-                    variants_to_run.append(("deep_only", None))
-
-                is_fusion_target = bool(enable_factorial and (model_name == rnn_name or model_name == gnn_name))
-                if is_fusion_target and all(vt != "deep_only" for vt, _ in variants_to_run):
-                    variants_to_run.insert(0, ("deep_only", None))
-
-                if base_logit_map_full:
-                    variants_to_run.append(("plus_baseline", base_logit_map_full))
-                else:
-                    if ablation_mode in ("baseline_plus", "both") and not is_fusion_target:
-                        continue
+                variants_to_run = [("deep_only", None)]
 
             for variant_tag, logit_map in variants_to_run:
                 model_dir = ensure_dir(models_root / model_name / variant_tag)
