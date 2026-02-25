@@ -396,8 +396,10 @@ class CFG:
     # =========================================================
     # 7) Fight detection
     # =========================================================
-    FIGHT_DETECT_ALGO: str = "event_v1"
-    FIGHT_DETECTOR: str = "event_v1"
+    # Default detector: "teamfight_v2" (kill-cluster-based).
+    # Legacy: "event_v1", "killchain_v1", "engage_v2".
+    FIGHT_DETECT_ALGO: str = "teamfight_v2"
+    FIGHT_DETECTOR: str = "teamfight_v2"
 
     REQUIRE_ENGAGED_PER_TEAM: int = 2
     REQUIRE_LCC_TOTAL: int = 4
@@ -444,14 +446,32 @@ class CFG:
     EVENT_WEIGHT_BUILDING: float = 1.5
     EVENT_WEIGHT_DAMAGE: float = 1.0
 
-    # Kill-chain detection (killchain_v1):
-    # Chain kills by participant overlap in victimDamageReceived/Dealt.
-    KILLCHAIN_WINDOW_MS: int = 30000   # max gap between chained kills
-    KILLCHAIN_BACKTRACK_MS: int = 10000  # backtrack before first kill → engage_ts
+    # ─── teamfight_v2 parameters ────────────────────────────
+    # Kill clustering: max temporal gap between consecutive kills
+    # in the same fight cluster (15–20s recommended).
+    TF2_KILL_CLUSTER_GAP_MS: int = 18000
+    # Fight start = first_kill_ts - this offset (engage time).
+    TF2_ENGAGE_PRE_KILL_MS: int = 10000
+    # Small radius: at engage time, require >=2 per team within
+    # this radius of fight center (first kill XY) for teamfight validity.
+    TF2_VALIDITY_RADIUS: float = 1800.0
+    # Large radius: events within this radius of fight center are
+    # counted as fight interactions during the fight time window.
+    TF2_INTERACTION_RADIUS: float = 3000.0
+    # Post-fight outcome window (ms after last kill in cluster).
+    TF2_POST_FIGHT_WINDOW_MS: int = 45000
+    # Optional tail buffer after last kill (ms).
+    TF2_TAIL_BUFFER_MS: int = 0
+    # Minimum champions per team within validity radius.
+    TF2_MIN_PER_TEAM: int = 2
+
+    # ─── Legacy killchain_v1 parameters ──────────────────────
+    KILLCHAIN_WINDOW_MS: int = 30000
+    KILLCHAIN_BACKTRACK_MS: int = 10000
 
     # Zero out x_norm/y_norm in node features for prediction input.
-    # Position data has only 60s frame resolution — too stale for fight prediction.
-    ZERO_XY_NODE_FEATURES: bool = False
+    # [teamfight_v2] Default True: XY excluded from model inputs.
+    ZERO_XY_NODE_FEATURES: bool = True
 
     CONTINUOUS_FIGHT_MERGE: bool = True
     CONTINUOUS_FIGHT_MAX_GAP_MS: int = 30000
