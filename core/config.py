@@ -576,6 +576,18 @@ class CFG:
     XATTN_IMPORTANCE_POOL: bool = True
     XATTN_IMPORTANCE_HIDDEN: int = 64
     XATTN_PRIOR_BOOST: float = 1.25
+    # Layered fusion (global-BiGRU + GNN + event-attention)
+    LAYER_FUSION_GNN_KIND: str = "graphsage"
+    LAYER_FUSION_GNN_MULTISCALE_ADJ: bool = False
+    LAYER_FUSION_GLOBAL_KIND: str = "bigru"
+    LAYER_FUSION_EVENT_KIND: str = "attn"
+    # 0 => auto (F_GLOBAL + phase dims)
+    LAYER_FUSION_GLOBAL_DIM: int = 0
+    LAYER_FUSION_EVENT_D_MODEL: int = 128
+    LAYER_FUSION_EVENT_NHEAD: int = 4
+    LAYER_FUSION_EVENT_IMP_HIDDEN: int = 64
+    LAYER_FUSION_FUSE_DIM: int = 192
+    LAYER_FUSION_GATE_H: int = 64
 
     # Mamba hyperparameters
     MAMBA_D_MODEL: int = 128
@@ -608,7 +620,7 @@ class CFG:
         "gnn_graphsage", "gnn_stgnn", "gnn_gatv2",
         "stgnn_edge_mpnn", "stgcn", "stgnn_mamba",
         "ms_dyngraph", "event_xattn",
-        "fusion_gated_gnn_bigru",
+        "fusion_gated_gnn_bigru", "fusion_layered_gnn_bigru_xattn",
     )
 
     MODEL_ALIASES: Dict[str, str] = field(default_factory=lambda: {
@@ -641,6 +653,9 @@ class CFG:
         "multiscale": "ms_dyngraph", "multi_scale": "ms_dyngraph",
         "ms_dyngraph": "ms_dyngraph",
         "event_xattn": "event_xattn", "eventxattn": "event_xattn",
+        "fusion_layered_gnn_bigru_xattn": "fusion_layered_gnn_bigru_xattn",
+        "layered_fusion": "fusion_layered_gnn_bigru_xattn",
+        "fusion_layered": "fusion_layered_gnn_bigru_xattn",
         "xattn": "event_xattn","mamba": "rnn_mamba","stmamba": "stgnn_mamba","st_mamba": "stgnn_mamba",
         # [REC-1] Hybrid h₀-conditioned model aliases
         "hybrid_bigru": "hybrid_bigru", "rnn_hybrid_bigru": "hybrid_bigru",

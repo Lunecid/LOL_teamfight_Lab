@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import argparse
-from typing import List
+import itertools
+from typing import Dict, List, Optional, Tuple
 
 from core.config import cfg
 from app.experiment import run
@@ -47,6 +48,232 @@ def _normalize_split_mode(mode: str) -> str:
     return m
 
 
+_FUSION_GLOBAL_ORDER: Tuple[str, ...] = ("ugru", "bigru", "ulstm", "bilstm", "transformer", "tcn", "mamba")
+_FUSION_GNN_ORDER: Tuple[str, ...] = ("gcn", "graphsage", "graphtransformer", "gatv2", "mpnn")
+_FUSION_EVENT_ORDER: Tuple[str, ...] = ("attn", "xattn", "mean")
+_FUSION_LOGIT_ORDER: Tuple[str, ...] = ("1", "0")
+
+_FUSION_GLOBAL_ALIASES: Dict[str, str] = {
+    "gru": "ugru",
+    "ugru": "ugru",
+    "bigru": "bigru",
+    "lstm": "ulstm",
+    "ulstm": "ulstm",
+    "bilstm": "bilstm",
+    "transformer": "transformer",
+    "tcn": "tcn",
+    "mamba": "mamba",
+}
+_FUSION_GNN_ALIASES: Dict[str, str] = {
+    "gcn": "gcn",
+    "graphsage": "graphsage",
+    "sage": "graphsage",
+    "gnnsage": "graphsage",
+    "graphtransformer": "graphtransformer",
+    "gat": "gatv2",
+    "gatv2": "gatv2",
+    "mpnn": "mpnn",
+}
+_FUSION_EVENT_ALIASES: Dict[str, str] = {
+    "attn": "attn",
+    "xattn": "xattn",
+    "event_xattn": "xattn",
+    "mean": "mean",
+    "avg": "mean",
+    "pool": "mean",
+}
+_FUSION_LOGIT_ALIASES: Dict[str, str] = {
+    "1": "1",
+    "true": "1",
+    "on": "1",
+    "yes": "1",
+    "y": "1",
+    "with": "1",
+    "use": "1",
+    "0": "0",
+    "false": "0",
+    "off": "0",
+    "no": "0",
+    "n": "0",
+    "without": "0",
+    "drop": "0",
+}
+
+
+def _stable_unique(xs: List[str]) -> List[str]:
+    seen = set()
+    out: List[str] = []
+    for x in xs:
+        if x in seen:
+            continue
+        seen.add(x)
+        out.append(x)
+    return out
+
+
+def _axis_key_from_token(tok: str) -> Optional[Tuple[str, str]]:
+    t = (tok or "").strip().lower()
+    if not t:
+        return None
+
+    if "=" in t:
+        k, v = t.split("=", 1)
+        return k.strip(), v.strip()
+    if ":" in t:
+        k, v = t.split(":", 1)
+        return k.strip(), v.strip()
+
+    if t in ("rnn_all", "global_all"):
+        return "rnn", "all"
+    if t in ("gnn_all", "graph_all"):
+        return "gnn", "all"
+    if t in ("event_all",):
+        return "event", "all"
+    if t in ("logit_all", "lgbm_all"):
+        return "logit", "all"
+
+    if t.startswith(("rnn_", "global_")):
+        return "rnn", t
+    if t.startswith("gnn_"):
+        return "gnn", t
+    if t.startswith(("event_", "attn_")):
+        return "event", t
+    if t.startswith(("logit_", "lgbm_")):
+        return "logit", t
+
+    if t in _FUSION_GLOBAL_ALIASES:
+        return "rnn", t
+    if t in _FUSION_GNN_ALIASES:
+        return "gnn", t
+    if t in _FUSION_EVENT_ALIASES:
+        return "event", t
+    if t in _FUSION_LOGIT_ALIASES:
+        return "logit", t
+
+    return None
+
+
+def _normalize_fusion_axis_key(k: str) -> Optional[str]:
+    key = (k or "").strip().lower()
+    if key in ("rnn", "global", "g"):
+        return "rnn"
+    if key in ("gnn", "graph", "n"):
+        return "gnn"
+    if key in ("event", "attn", "e"):
+        return "event"
+    if key in ("logit", "lgbm", "use_logit", "use_lgbm_logit", "l"):
+        return "logit"
+    return None
+
+
+def _expand_fusion_axis_values(axis: str, raw_val: str) -> List[str]:
+    v = (raw_val or "").strip().lower()
+    if axis == "rnn":
+        if v in ("all", "rnn_all", "global_all"):
+            return list(_FUSION_GLOBAL_ORDER)
+        if v.startswith("global_"):
+            v = v[len("global_") :]
+        if v.startswith("rnn_"):
+            v = v[len("rnn_") :]
+        x = _FUSION_GLOBAL_ALIASES.get(v)
+        if x is not None:
+            return [x]
+        raise ValueError(f"Unsupported fusion rnn/global token: {raw_val!r}")
+
+    if axis == "gnn":
+        if v in ("all", "gnn_all", "graph_all"):
+            return list(_FUSION_GNN_ORDER)
+        if v.startswith("gnn_"):
+            v = v[len("gnn_") :]
+        x = _FUSION_GNN_ALIASES.get(v)
+        if x is not None:
+            return [x]
+        raise ValueError(f"Unsupported fusion gnn token: {raw_val!r}")
+
+    if axis == "event":
+        if v in ("all", "event_all"):
+            return list(_FUSION_EVENT_ORDER)
+        if v.startswith("event_"):
+            x = _FUSION_EVENT_ALIASES.get(v)
+            if x is not None:
+                return [x]
+            v = v[len("event_") :]
+        if v.startswith("attn_"):
+            v = v[len("attn_") :]
+        x = _FUSION_EVENT_ALIASES.get(v)
+        if x is not None:
+            return [x]
+        raise ValueError(f"Unsupported fusion event token: {raw_val!r}")
+
+    if axis == "logit":
+        if v in ("all", "logit_all", "lgbm_all"):
+            return list(_FUSION_LOGIT_ORDER)
+        if v.startswith("logit_"):
+            v = v[len("logit_") :]
+        elif v.startswith("lgbm_"):
+            v = v[len("lgbm_") :]
+        x = _FUSION_LOGIT_ALIASES.get(v)
+        if x is not None:
+            return [x]
+        raise ValueError(f"Unsupported fusion logit token: {raw_val!r}")
+
+    raise ValueError(f"Unsupported fusion axis: {axis!r}")
+
+
+def _expand_single_fusion_expr(expr: str) -> List[str]:
+    parts = [p.strip() for p in str(expr or "").split("+") if p.strip()]
+    if not parts:
+        return []
+
+    axis_vals: Dict[str, List[str]] = {"rnn": [], "gnn": [], "event": [], "logit": []}
+
+    for p in parts:
+        kv = _axis_key_from_token(p)
+        if kv is None:
+            raise ValueError(f"Could not parse fusion token: {p!r}")
+        raw_k, raw_v = kv
+        axis = _normalize_fusion_axis_key(raw_k)
+        if axis is None:
+            raise ValueError(f"Unsupported fusion axis key: {raw_k!r}")
+        vals = _expand_fusion_axis_values(axis, raw_v)
+        for v in vals:
+            if v not in axis_vals[axis]:
+                axis_vals[axis].append(v)
+
+    rnn_vals = axis_vals["rnn"] or [None]
+    gnn_vals = axis_vals["gnn"] or [None]
+    event_vals = axis_vals["event"] or [None]
+    logit_vals = axis_vals["logit"] or [None]
+
+    out: List[str] = []
+    for rnn_v, gnn_v, event_v, logit_v in itertools.product(rnn_vals, gnn_vals, event_vals, logit_vals):
+        spec_parts: List[str] = []
+        if rnn_v is not None:
+            spec_parts.append(f"global=rnn_{rnn_v}")
+        if gnn_v is not None:
+            spec_parts.append(f"gnn=gnn_{gnn_v}")
+        if event_v is not None:
+            event_token = "event_xattn" if event_v == "xattn" else event_v
+            spec_parts.append(f"event={event_token}")
+        if logit_v is not None:
+            spec_parts.append(f"logit={logit_v}")
+
+        if spec_parts:
+            out.append("layered_fusion@" + "+".join(spec_parts))
+        else:
+            out.append("layered_fusion")
+
+    return _stable_unique(out)
+
+
+def _expand_fusion_exprs(raw: str) -> List[str]:
+    exprs = _parse_model_list(raw)
+    out: List[str] = []
+    for expr in exprs:
+        out.extend(_expand_single_fusion_expr(expr))
+    return _stable_unique(out)
+
+
 def build_argparser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser()
     ap.add_argument("--mode", type=str, default=str(cfg.MODE), help="all | build_cache | index | train | report")
@@ -77,6 +304,15 @@ def build_argparser() -> argparse.ArgumentParser:
     ap.add_argument("--require_lgbm", action="store_true", help="stop if baseline logits are required but baseline not available")
 
     # Fusion control
+    ap.add_argument(
+        "--fusion",
+        type=str,
+        default="",
+        help=(
+            "layered-fusion sweep expression(s). "
+            "Example: rnn_ugru+gnn_all, rnn_all+gnn_gcn+event_all+logit_all"
+        ),
+    )
     ap.add_argument("--no_factorial_fusion", action="store_true")
     ap.add_argument("--rnn_model", type=str, default="")
     ap.add_argument("--gnn_model", type=str, default="")
@@ -207,8 +443,25 @@ def main() -> None:
 
     # resolve model list
     model_list = _parse_model_list(getattr(cfg, "MODEL_LIST", []))
-    if str(args.models).strip():
+    models_overridden = bool(str(args.models).strip())
+    if models_overridden:
         model_list = _parse_model_list(args.models)
+
+    fusion_raw = str(getattr(args, "fusion", "")).strip()
+    if fusion_raw:
+        try:
+            fusion_models = _expand_fusion_exprs(fusion_raw)
+        except ValueError as e:
+            ap.error(str(e))
+            return
+        if fusion_models:
+            if models_overridden:
+                model_list.extend(fusion_models)
+            else:
+                # If --fusion is provided without --models, run the expanded fusion grid only.
+                model_list = list(fusion_models)
+
+    model_list = _stable_unique(model_list)
 
     # attach resolved list for experiment
     args.model_list = model_list
