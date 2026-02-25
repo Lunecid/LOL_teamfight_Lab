@@ -808,9 +808,11 @@ def interpolate_node_global(cache: Dict[str, Any], q_ms: int) -> Tuple[np.ndarra
                 if yj_idx is not None:
                     node[:, yj_idx] = xy_norm[:, 1]
 
-    # ---- Zero out x,y node features when configured ----
-    # Position data is at 60s frame resolution; too stale for prediction input.
-    if bool(getattr(cfg, "ZERO_XY_NODE_FEATURES", False)):
+    # ---- Zero out x,y node features for prediction input ----
+    # [teamfight_v2] XY excluded from model inputs per spec §8:
+    # use only closest 60s snapshot stats/items/global, no XY.
+    # XY positions are used only for 5s spatial checks, never as features.
+    if bool(getattr(cfg, "ZERO_XY_NODE_FEATURES", True)):
         xj_idx = NODE_IDX.get("x_norm", None)
         yj_idx = NODE_IDX.get("y_norm", None)
         if xj_idx is not None:

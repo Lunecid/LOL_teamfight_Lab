@@ -3767,11 +3767,761 @@ def detect_fights_killchain_v1(
     return fights
 
 
+def _build_5s_position_grid(
+    xy_minute: np.ndarray,
+    minute_ts: np.ndarray,
+    kill_events: List[dict],
+    tm: Dict[int, int],
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Build a 5-second dense XY-only position grid with pre-kill override.
+
+    1. Baseline grid: interpolate X/Y between consecutive 60s frames
+       for all 10 players using linear interpolation at 5s intervals.
+    2. Pre-kill override: for each kill event, override kill participants'
+       positions from their prior 60s frame XY → kill event XY, up to
+       the kill timestamp. After the kill timestamp, revert to baseline.
+       Later kills overwrite earlier overrides (chronological processing).
+
+    This grid is used ONLY for spatial checks (radius/cluster/teamfight
+    validation), NEVER as model input.
+
+    Returns: (dense_ts, xy_dense) — timestamps and (Td, 10, 2) XY array.
+    """
+    T = int(len(minute_ts))
+    if T < 2:
+        return minute_ts.copy(), xy_minute[:, :, :2].astype(np.float32, copy=True)
+
+    step_ms = 5000
+    t_start = int(minute_ts[0])
+    t_end = int(minute_ts[-1])
+    dense_ts = np.arange(t_start, t_end + step_ms, step_ms, dtype=np.int64)
+    Td = int(len(dense_ts))
+
+    # --- Baseline: linear interpolation of XY between 60s frames ---
+    left = np.searchsorted(minute_ts, dense_ts, side="right") - 1
+    left = np.clip(left, 0, T - 2)
+    right = left + 1
+
+    tL = minute_ts[left].astype(np.float64)
+    tR = minute_ts[right].astype(np.float64)
+    denom = np.maximum(tR - tL, 1.0)
+    alpha = ((dense_ts.astype(np.float64) - tL) / denom).astype(np.float32)
+    alpha = np.clip(alpha, 0.0, 1.0).reshape(Td, 1, 1)
+
+    xy_only = xy_minute[:, :, :2].astype(np.float32)
+    xyL = xy_only[left]
+    xyR = xy_only[right]
+    xy_dense = ((1.0 - alpha) * xyL + alpha * xyR).astype(np.float32)
+
+    if not kill_events:
+        return dense_ts, xy_dense
+
+    # --- Pre-kill override: process kills in chronological order ---
+    for kill in kill_events:
+        kill_ts_val = int(kill["timestamp"])
+        kill_pos = kill.get("position")
+        if kill_pos is None:
+            continue
+        kill_x, kill_y = float(kill_pos[0]), float(kill_pos[1])
+
+        # Identify kill participants: killer + victim + assists
+        participants = set()
+        kid = safe_int(kill.get("killer_id", 0))
+        vid = safe_int(kill.get("victim_id", 0))
+        if 1 <= kid <= 10:
+            participants.add(kid - 1)  # 0-indexed
+        if 1 <= vid <= 10:
+            participants.add(vid - 1)
+        for aid in kill.get("assisting_ids", []) or []:
+            a = safe_int(aid)
+            if 1 <= a <= 10:
+                participants.add(a - 1)
+
+        if not participants:
+            continue
+
+        # Find the prior 60s frame index
+        m_idx = int(np.searchsorted(minute_ts, kill_ts_val, side="right")) - 1
+        m_idx = max(0, min(m_idx, T - 1))
+        prior_frame_ts = int(minute_ts[m_idx])
+
+        # Find dense indices for the override interval:
+        # from prior_frame_ts up to kill_ts_val (inclusive)
+        d_start = int(np.searchsorted(dense_ts, prior_frame_ts, side="left"))
+        d_end = int(np.searchsorted(dense_ts, kill_ts_val, side="right"))
+        d_start = max(0, d_start)
+        d_end = min(Td, d_end)
+
+        if d_end <= d_start:
+            continue
+
+        # For each participant, interpolate from their prior-frame XY → kill XY
+        interval_ts = dense_ts[d_start:d_end].astype(np.float64)
+        interval_dur = max(1.0, float(kill_ts_val - prior_frame_ts))
+        a_vec = np.clip((interval_ts - float(prior_frame_ts)) / interval_dur, 0.0, 1.0).astype(np.float32)
+
+        for p_idx in participants:
+            if p_idx < 0 or p_idx >= 10:
+                continue
+            start_x = float(xy_only[m_idx, p_idx, 0])
+            start_y = float(xy_only[m_idx, p_idx, 1])
+            xy_dense[d_start:d_end, p_idx, 0] = start_x + a_vec * (kill_x - start_x)
+            xy_dense[d_start:d_end, p_idx, 1] = start_y + a_vec * (kill_y - start_y)
+
+    return dense_ts, xy_dense
+
+
+def _cluster_kills_temporal(
+    kill_events: List[dict],
+    gap_ms: int,
+) -> List[dict]:
+    """Cluster kill events by temporal proximity.
+
+    Kills within gap_ms of the previous kill remain in the same cluster.
+    When the next kill occurs after gap_ms from the previous, a new cluster
+    starts. Returns list of clusters, each with:
+      - kills: list of kill events in the cluster
+      - first_kill_ts, last_kill_ts: timestamps of first/last kills
+      - fight_center: (x, y) from the first kill's position
+      - participants: set of all participant IDs (1-indexed)
+    """
+    if not kill_events:
+        return []
+
+    sorted_kills = sorted(kill_events, key=lambda k: int(k["timestamp"]))
+    clusters: List[dict] = []
+    current_kills: List[dict] = [sorted_kills[0]]
+
+    for i in range(1, len(sorted_kills)):
+        gap = int(sorted_kills[i]["timestamp"]) - int(sorted_kills[i - 1]["timestamp"])
+        if gap <= gap_ms:
+            current_kills.append(sorted_kills[i])
+        else:
+            clusters.append(_finalize_kill_cluster(current_kills))
+            current_kills = [sorted_kills[i]]
+
+    if current_kills:
+        clusters.append(_finalize_kill_cluster(current_kills))
+
+    return clusters
+
+
+def _finalize_kill_cluster(kills: List[dict]) -> dict:
+    """Convert a list of kills into a cluster dict."""
+    participants: set = set()
+    for k in kills:
+        kid = safe_int(k.get("killer_id", 0))
+        vid = safe_int(k.get("victim_id", 0))
+        if 1 <= kid <= 10:
+            participants.add(kid)
+        if 1 <= vid <= 10:
+            participants.add(vid)
+        for aid in k.get("assisting_ids", []) or []:
+            a = safe_int(aid)
+            if 1 <= a <= 10:
+                participants.add(a)
+
+    first_pos = kills[0].get("position")
+    if first_pos is not None:
+        cx, cy = float(first_pos[0]), float(first_pos[1])
+    else:
+        positions = [k["position"] for k in kills if k.get("position")]
+        if positions:
+            cx = float(np.mean([p[0] for p in positions]))
+            cy = float(np.mean([p[1] for p in positions]))
+        else:
+            cx, cy = 0.0, 0.0
+
+    return {
+        "kills": kills,
+        "first_kill_ts": int(kills[0]["timestamp"]),
+        "last_kill_ts": int(kills[-1]["timestamp"]),
+        "fight_center": (cx, cy),
+        "participants": participants,
+        "n_kills": len(kills),
+    }
+
+
+def _validate_teamfight_at_engage(
+    xy_dense: np.ndarray,
+    dense_ts: np.ndarray,
+    engage_ts: int,
+    fight_center: Tuple[float, float],
+    b: np.ndarray,
+    r: np.ndarray,
+    validity_radius: float,
+    min_per_team: int,
+    is_norm: bool,
+    scale_factor: float,
+) -> bool:
+    """Check teamfight validity: at engage time, require min_per_team
+    champions from each team within validity_radius of fight center.
+
+    Uses the 5-second dense XY grid for spatial checks.
+    """
+    Td = int(len(dense_ts))
+    d_idx = int(np.clip(np.searchsorted(dense_ts, engage_ts, side="right") - 1, 0, Td - 1))
+
+    R = float(validity_radius)
+    if is_norm and scale_factor > 0:
+        R /= scale_factor
+
+    cx, cy = float(fight_center[0]), float(fight_center[1])
+    if is_norm and scale_factor > 0:
+        cx /= scale_factor
+        cy /= scale_factor
+
+    R_sq = R * R
+    blue_in = 0
+    red_in = 0
+
+    for bi in b:
+        dx = float(xy_dense[d_idx, int(bi), 0]) - cx
+        dy = float(xy_dense[d_idx, int(bi), 1]) - cy
+        if dx * dx + dy * dy <= R_sq:
+            blue_in += 1
+
+    for ri in r:
+        dx = float(xy_dense[d_idx, int(ri), 0]) - cx
+        dy = float(xy_dense[d_idx, int(ri), 1]) - cy
+        if dx * dx + dy * dy <= R_sq:
+            red_in += 1
+
+    return blue_in >= min_per_team and red_in >= min_per_team
+
+
+def _collect_interactions_in_radius(
+    events: List[dict],
+    fight_start: int,
+    fight_end: int,
+    fight_center: Tuple[float, float],
+    interaction_radius: float,
+    xy_dense: np.ndarray,
+    dense_ts: np.ndarray,
+    is_norm: bool,
+    scale_factor: float,
+) -> Tuple[List[dict], set]:
+    """Collect non-kill events as interactions within fight time + radius 3000.
+
+    Objectives/tower events are included regardless of radius (per spec §4C).
+    Returns (interactions, additional_participant_ids).
+    """
+    R = float(interaction_radius)
+    if is_norm and scale_factor > 0:
+        R /= scale_factor
+
+    cx, cy = float(fight_center[0]), float(fight_center[1])
+    if is_norm and scale_factor > 0:
+        cx /= scale_factor
+        cy /= scale_factor
+
+    R_sq = R * R
+    Td = int(len(dense_ts))
+    interactions: List[dict] = []
+    extra_pids: set = set()
+
+    obj_building_types = {
+        "ELITE_MONSTER_KILL", "BUILDING_KILL", "TURRET_PLATE_DESTROYED",
+    }
+
+    for ev in events or []:
+        if not isinstance(ev, dict):
+            continue
+        et = str(ev.get("type", ev.get("eventType", ""))).upper()
+        if et == "CHAMPION_KILL":
+            continue  # kills already handled
+
+        ts = ev.get("timestamp", ev.get("ts"))
+        if ts is None:
+            continue
+        try:
+            ts_val = int(ts)
+        except (TypeError, ValueError):
+            continue
+
+        if ts_val < fight_start or ts_val > fight_end:
+            continue
+
+        is_obj_tower = et in obj_building_types
+
+        # Check spatial constraint (objectives/towers exempt per §4C)
+        if not is_obj_tower:
+            pos = _event_xy(ev)
+            if pos is not None:
+                dx = float(pos[0]) - cx
+                dy = float(pos[1]) - cy
+                if is_norm and scale_factor > 0:
+                    dx = float(pos[0]) / scale_factor - cx
+                    dy = float(pos[1]) / scale_factor - cy
+                if dx * dx + dy * dy > R_sq:
+                    continue
+            else:
+                # Approximate position using actor's dense 5s XY
+                actor_id = safe_int(ev.get("participantId", ev.get("killerId", ev.get("creatorId", 0))))
+                if 1 <= actor_id <= 10:
+                    d_idx = int(np.clip(np.searchsorted(dense_ts, ts_val, side="right") - 1, 0, Td - 1))
+                    px = float(xy_dense[d_idx, actor_id - 1, 0])
+                    py = float(xy_dense[d_idx, actor_id - 1, 1])
+                    dx = px - cx
+                    dy = py - cy
+                    if dx * dx + dy * dy > R_sq:
+                        continue
+                else:
+                    continue
+
+        interactions.append(ev)
+
+        # Add actors to participant candidate set
+        for key in ("participantId", "killerId", "creatorId"):
+            pid = safe_int(ev.get(key, 0))
+            if 1 <= pid <= 10:
+                extra_pids.add(pid)
+
+    return interactions, extra_pids
+
+
+def _compute_postfight_outcome(
+    events: List[dict],
+    tm: Dict[int, int],
+    cache: Dict[str, Any],
+    fight_end_ts: int,
+    post_window_ms: int,
+) -> Dict[str, Any]:
+    """Aggregate post-fight signals in a fixed window after fight end.
+
+    Collects objectives/tower results (radius-independent per §4C).
+    Gold delta from raw 60s snapshots only (no interpolation per §7).
+    """
+    post_start = int(fight_end_ts)
+    post_end = int(fight_end_ts + post_window_ms)
+
+    obj_blue = 0
+    obj_red = 0
+    tower_blue = 0
+    tower_red = 0
+    objectives: List[dict] = []
+
+    for ev in events or []:
+        if not isinstance(ev, dict):
+            continue
+        ts = ev.get("timestamp", ev.get("ts"))
+        if ts is None:
+            continue
+        try:
+            ts_val = int(ts)
+        except (TypeError, ValueError):
+            continue
+        if ts_val < post_start or ts_val > post_end:
+            continue
+
+        et = str(ev.get("type", ev.get("eventType", ""))).upper()
+
+        if et == "ELITE_MONSTER_KILL":
+            killer_team = safe_int(ev.get("killerTeamId", 0))
+            if killer_team == 100:
+                obj_blue += 1
+            elif killer_team == 200:
+                obj_red += 1
+            objectives.append(ev)
+
+        elif et in ("BUILDING_KILL", "TURRET_PLATE_DESTROYED"):
+            # Team that destroyed it
+            killer_team = safe_int(ev.get("teamId", 0))
+            # In building events, teamId is the team that LOST the building
+            victim_team = killer_team
+            if victim_team == 100:
+                tower_red += 1  # red destroyed blue tower
+            elif victim_team == 200:
+                tower_blue += 1  # blue destroyed red tower
+
+    # Gold delta from raw 60s snapshots only
+    gold_diff = 0.0
+    try:
+        g0 = _gold_team_at_ms(cache, post_start)
+        g1 = _gold_team_at_ms(cache, min(post_end, int(np.asarray(cache.get("minute_ts", [0])).max())))
+        if g0 is not None and g1 is not None:
+            gold_diff = float((g1[0] - g0[0]) - (g1[1] - g0[1]))
+    except Exception:
+        pass
+
+    return {
+        "post_obj_blue": obj_blue,
+        "post_obj_red": obj_red,
+        "post_obj_diff": obj_blue - obj_red,
+        "post_tower_blue": tower_blue,
+        "post_tower_red": tower_red,
+        "post_tower_diff": tower_blue - tower_red,
+        "post_gold_diff": gold_diff,
+        "post_objectives": objectives,
+    }
+
+
+def detect_fights_teamfight_v2(
+    cache: Dict[str, Any],
+    tm: Dict[int, int],
+    config: Optional[FightDetectorConfig] = None,
+) -> List[dict]:
+    """Kill-cluster-based teamfight detector (v2).
+
+    Algorithm:
+      1. Build 5-second position grid with baseline + pre-kill override.
+      2. Cluster kill events temporally (gap threshold ~18s).
+      3. For each cluster:
+         a. Fight center = first kill XY.
+         b. Engage time = first_kill_ts - 10s.
+         c. Validate teamfight: >=2 per team within radius 1800 at engage.
+         d. Fight end = last kill in cluster.
+      4. Collect interactions within radius 3000 (objectives/towers exempt).
+      5. Post-fight outcome: 45s window for objectives/towers/gold.
+      6. Model input: closest 60s snapshot before fight start, XY excluded.
+
+    Key changes from legacy detectors:
+      - Kills ONLY create fights (no ward/objective hard gates).
+      - Single consistent definition: kills → clustering → radii → validation.
+      - No multi-stage time-window guards.
+    """
+    diag: Dict[str, Any] = {
+        "Td": 0,
+        "step_ms": 5000,
+        "detector": "teamfight_v2",
+        "candidates": 0,
+        "clusters_total": 0,
+        "clusters_accepted": 0,
+        "accepted": 0,
+        "rejected_startctx": 0,
+        "rejected_horizon": 0,
+        "rejected_alive": 0,
+        "rejected_too_few_per_team": 0,
+        "rejected_gap": 0,
+        "rejected_max_duration": 0,
+        "ace_events": 0,
+        "ace_end_truncated": 0,
+        "postmerge_conflicts": 0,
+        "postmerge_removed": 0,
+        "postmerge_replaced": 0,
+        "errors": [],
+    }
+
+    if config is None:
+        try:
+            config = FightDetectorConfig.from_cfg(cfg)
+        except Exception as e:
+            logger.warning(f"Config load failed: {e}. Using defaults.")
+            config = FightDetectorConfig()
+
+    horizon_ms = int(_get_horizon_ms())
+
+    try:
+        b, r = validate_team_mapping(tm)
+    except Exception as e:
+        logger.error(f"Team mapping error: {e}")
+        diag["errors"].append({"type": "team_mapping", "message": str(e)})
+        b = np.array([0, 1, 2, 3, 4], dtype=np.int32)
+        r = np.array([5, 6, 7, 8, 9], dtype=np.int32)
+
+    fights: List[dict] = []
+
+    def _compact_fight_result(f: dict) -> dict:
+        out: Dict[str, Any] = {}
+        try:
+            out["engage_ts"] = int(f.get("engage_ts", -1))
+            out["label_end_ts"] = int(_label_end_ts(f, horizon_ms))
+            out["t_engage"] = int(f.get("t_engage", -1))
+            out["fight_type"] = str(f.get("fight_type", "unknown"))
+            out["importance_score"] = float(f.get("importance_score", 0.0) or 0.0)
+            out["n_segments"] = int(f.get("n_segments", 1) or 1)
+            out["first_kill_ts"] = int(f.get("first_kill_ts", -1) or -1)
+            out["last_kill_ts"] = int(f.get("last_kill_ts", -1) or -1)
+            outcome = f.get("outcome", {}) if isinstance(f.get("outcome", {}), dict) else {}
+            out["winner"] = str(outcome.get("winner", "unknown"))
+            out["kill_diff"] = int(outcome.get("kill_diff", 0) or 0)
+            out["total_kills"] = int(outcome.get("total_kills", 0) or 0)
+            out["blue_deaths"] = int(outcome.get("blue_deaths", 0) or 0)
+            out["red_deaths"] = int(outcome.get("red_deaths", 0) or 0)
+            out["gold_diff"] = float(outcome.get("gold_diff", 0.0) or 0.0)
+        except Exception:
+            pass
+        return out
+
+    def _pack_diagnostics():
+        try:
+            diag["fight_summary"] = summarize_fights(fights)
+            diag["fight_type_change_summary"] = summarize_fight_type_changes(fights)
+            max_n = int(getattr(cfg, "DIAG_MAX_FIGHT_RESULTS", 50) or 50) if cfg else 50
+            diag["fight_results_total"] = len(fights)
+            diag["fight_results_truncated"] = int(len(fights) > max_n)
+            diag["fight_results_brief"] = [_compact_fight_result(f) for f in fights[:max_n]]
+            max_valid_n = int(getattr(cfg, "DIAG_MAX_VALIDATED_FIGHT_RESULTS", 10000) or 10000) if cfg else 10000
+            diag["fight_results_validated_total"] = len(fights)
+            diag["fight_results_validated_truncated"] = int(len(fights) > max_valid_n)
+            diag["fight_results_validated_brief"] = [_compact_fight_result(f) for f in fights[:max_valid_n]]
+        except Exception as e:
+            diag["errors"].append({"type": "diag_pack", "message": str(e)})
+
+    # --- Data setup ---
+    xy = cache.get("xy_raw_minute", None)
+    if xy is None:
+        xi = NODE_IDX.get("x_norm", 0)
+        yi = NODE_IDX.get("y_norm", 1)
+        try:
+            xy = cache["node_minute"][:, :, [xi, yi]]
+        except (KeyError, IndexError) as e:
+            logger.error(f"Position data error: {e}")
+            _pack_diagnostics()
+            cache["fight_detect_diag"] = diag
+            return fights
+
+    minute_ts = np.asarray(cache["minute_ts"], dtype=np.int64)
+    events = cache.get("events", [])
+    Tm = int(len(minute_ts))
+    if Tm < 3:
+        logger.warning(f"Insufficient frames: {Tm}")
+        _pack_diagnostics()
+        cache["fight_detect_diag"] = diag
+        return fights
+
+    is_norm = bool(cache.get("meta", {}).get("anchor_is_norm", False))
+    scale_factor = float(config.coord_norm_div)
+    if not is_norm:
+        is_norm, scale_factor = detect_coordinate_scale(xy)
+
+    # --- Extract kill events ---
+    kill_events = _extract_kill_events(events)
+    kill_ts = (
+        np.array([int(k["timestamp"]) for k in kill_events], dtype=np.int64)
+        if kill_events
+        else np.empty((0,), dtype=np.int64)
+    )
+    ace_ts = _extract_ace_ts(events)
+
+    if not kill_events:
+        _pack_diagnostics()
+        cache["fight_detect_diag"] = diag
+        return fights
+
+    diag["candidates"] = len(kill_events)
+
+    # --- Config parameters ---
+    kill_cluster_gap_ms = int(getattr(cfg, "TF2_KILL_CLUSTER_GAP_MS", 18000)) if cfg else 18000
+    engage_pre_kill_ms = int(getattr(cfg, "TF2_ENGAGE_PRE_KILL_MS", 10000)) if cfg else 10000
+    validity_radius = float(getattr(cfg, "TF2_VALIDITY_RADIUS", 1800.0)) if cfg else 1800.0
+    interaction_radius = float(getattr(cfg, "TF2_INTERACTION_RADIUS", 3000.0)) if cfg else 3000.0
+    post_fight_window_ms = int(getattr(cfg, "TF2_POST_FIGHT_WINDOW_MS", 45000)) if cfg else 45000
+    tail_buffer_ms = int(getattr(cfg, "TF2_TAIL_BUFFER_MS", 0)) if cfg else 0
+    min_per_team = int(getattr(cfg, "TF2_MIN_PER_TEAM", 2)) if cfg else 2
+
+    t_min_ms = int(minute_ts[0])
+    t_max_ms = int(minute_ts[-1])
+    ctx_ms = int(config.fight_context_min) * 60000
+    alive_idx = NODE_IDX.get("alive", None)
+
+    # --- Step 1: Build 5-second position grid ---
+    dense_ts, xy_dense = _build_5s_position_grid(xy_minute=xy, minute_ts=minute_ts, kill_events=kill_events, tm=tm)
+    Td = int(len(dense_ts))
+    diag["Td"] = Td
+
+    # Also compute distances for engagement/visualization compatibility
+    R_compat = float(config.standoff_radius)
+    if is_norm and scale_factor > 0:
+        R_compat /= scale_factor
+    dists = compute_distances_chunked(xy_dense, b, r, config.chunk_size)
+    prox_pairs = np.sum(dists <= R_compat, axis=(1, 2)).astype(np.int32)
+
+    # --- Step 2: Cluster kills temporally ---
+    clusters = _cluster_kills_temporal(kill_events, kill_cluster_gap_ms)
+    diag["clusters_total"] = len(clusters)
+
+    def _check_alive_at_ts(ts_val: int) -> bool:
+        if int(config.require_alive_per_team) <= 0 or alive_idx is None:
+            return True
+        m_idx = _map_ts_to_minute_idx(minute_ts, ts_val)
+        try:
+            nm_alive = cache["node_minute"][m_idx, :, alive_idx]
+            if float(nm_alive[b].sum()) < int(config.require_alive_per_team):
+                return False
+            if float(nm_alive[r].sum()) < int(config.require_alive_per_team):
+                return False
+        except Exception:
+            return True
+        return True
+
+    # --- Step 3: Convert clusters to fight candidates ---
+    blue_set = set(int(x + 1) for x in b.tolist())
+    red_set = set(int(x + 1) for x in r.tolist())
+    candidates_out: List[dict] = []
+
+    for cluster in clusters:
+        first_kill_ts = int(cluster["first_kill_ts"])
+        last_kill_ts = int(cluster["last_kill_ts"])
+        fight_center = cluster["fight_center"]
+
+        # §3: engage time = ~10s before first kill
+        engage_ts_val = int(max(t_min_ms, first_kill_ts - engage_pre_kill_ms))
+        if engage_ts_val >= first_kill_ts:
+            engage_ts_val = int(max(t_min_ms, first_kill_ts - 1))
+
+        # Context / horizon guards
+        if engage_ts_val - ctx_ms < t_min_ms:
+            diag["rejected_startctx"] += 1
+            continue
+        if engage_ts_val + horizon_ms > t_max_ms:
+            diag["rejected_horizon"] += 1
+            continue
+        if not _check_alive_at_ts(engage_ts_val):
+            diag["rejected_alive"] += 1
+            continue
+
+        # §4A: Validate teamfight — at least 2 per team within 1800 of fight center
+        if not _validate_teamfight_at_engage(
+            xy_dense=xy_dense,
+            dense_ts=dense_ts,
+            engage_ts=engage_ts_val,
+            fight_center=fight_center,
+            b=b, r=r,
+            validity_radius=validity_radius,
+            min_per_team=min_per_team,
+            is_norm=is_norm,
+            scale_factor=scale_factor,
+        ):
+            diag["rejected_too_few_per_team"] += 1
+            continue
+
+        # §5: fight time window
+        fight_end_ts = last_kill_ts + tail_buffer_ms
+        horizon_end_ts = int(max(fight_end_ts, engage_ts_val + horizon_ms))
+
+        # Duration cap
+        if fight_end_ts - engage_ts_val > int(config.max_merged_fight_duration_ms):
+            diag["rejected_max_duration"] += 1
+            continue
+
+        # §6: Collect interactions within fight time + radius 3000
+        interactions, extra_pids = _collect_interactions_in_radius(
+            events=events,
+            fight_start=engage_ts_val,
+            fight_end=fight_end_ts,
+            fight_center=fight_center,
+            interaction_radius=interaction_radius,
+            xy_dense=xy_dense,
+            dense_ts=dense_ts,
+            is_norm=is_norm,
+            scale_factor=scale_factor,
+        )
+
+        # All participants: kill participants + interaction actors
+        all_participants = cluster["participants"] | extra_pids
+        blue_cnt = len(all_participants & blue_set)
+        red_cnt = len(all_participants & red_set)
+
+        m_idx = _map_ts_to_minute_idx(minute_ts, engage_ts_val)
+        cx, cy = float(fight_center[0]), float(fight_center[1])
+        if is_norm and scale_factor > 0:
+            cx /= scale_factor
+            cy /= scale_factor
+
+        candidates_out.append({
+            "engage_ts": int(engage_ts_val),
+            "t_engage": int(m_idx),
+            "t_engage_ts": int(engage_ts_val),
+            "first_kill_ts": int(first_kill_ts),
+            "last_kill_ts": int(last_kill_ts),
+            "centroid_x": float(cx),
+            "centroid_y": float(cy),
+            "horizon_end_ts": int(horizon_end_ts),
+            "n_segments": 1,
+            "det_step_ms": 5000,
+            "det_prox_pairs": int(blue_cnt * red_cnt),
+            "det_min_dist_mean": 0.0,
+            "det_anchor": 0,
+            "det_backtracked": 1,
+            "det_backtrack_reliable": 1,
+            "det_damage_norm": 0.0,
+            "det_summoner_spells": 0,
+            "det_signal_ok": 1,
+            "det_score_ok": 1,
+            "det_event_score": float(cluster["n_kills"]),
+            "det_event_count": int(cluster["n_kills"]),
+            "det_kill_count_window": int(cluster["n_kills"]),
+            "det_combat_signal_ok": 1,
+            "det_cluster_participants": int(len(all_participants)),
+            "det_cluster_blue": int(blue_cnt),
+            "det_cluster_red": int(red_cnt),
+            "det_cluster_duration_ms": int(last_kill_ts - first_kill_ts),
+            "det_interaction_count": int(len(interactions)),
+        })
+        diag["clusters_accepted"] += 1
+
+    diag["accepted"] = len(candidates_out)
+
+    if not candidates_out:
+        _pack_diagnostics()
+        cache["fight_detect_diag"] = diag
+        return fights
+
+    # --- Enforce minimum gap between fights ---
+    candidates_out.sort(key=lambda f: int(f["engage_ts"]))
+    fights = []
+    last_ts = -(10**18)
+    for f in candidates_out:
+        if int(f["engage_ts"]) - int(last_ts) < int(config.fight_min_gap_ms):
+            diag["rejected_gap"] += 1
+            continue
+        fights.append(f)
+        last_ts = int(f["engage_ts"])
+
+    # ACE truncation
+    _truncate_fights_at_ace(fights, ace_ts, horizon_ms=int(horizon_ms), diag=diag)
+
+    # Post-merge spacing enforcement
+    fights = enforce_postmerge_spacing_and_nonoverlap(
+        fights,
+        horizon_ms=int(horizon_ms),
+        fight_min_gap_ms=int(config.fight_min_gap_ms),
+        kill_ts=kill_ts,
+        location_radius=0.0,
+        diag=diag,
+    )
+
+    # --- Analysis: classify, outcome, importance, engagement, viz ---
+    anchors = build_anchors_from_events(events)
+    game_duration_ms = int(minute_ts[-1]) if len(minute_ts) > 0 else 0
+    for fight in fights:
+        try:
+            fight["fight_type"] = classify_fight_type(fight, anchors, is_norm, scale_factor)
+            outcome = compute_fight_outcome(fight, kill_events, tm, cache=cache, events=events)
+            fight["outcome"] = outcome
+            fight["importance_score"] = compute_fight_importance(fight, outcome, fight["fight_type"], game_duration_ms)
+            fight["player_engagement"] = compute_player_engagement(fight, xy_dense, dists, dense_ts, R_compat, b, r)
+            fight["visualization"] = generate_fight_visualization(
+                fight, xy_dense, dists, dense_ts, prox_pairs, kill_events, b, r, R_compat,
+            )
+
+            # §7: Post-fight outcome aggregation (45s after fight end)
+            fight_end = int(fight.get("last_kill_ts", fight.get("first_kill_ts", fight["engage_ts"])))
+            fight["post_fight_outcome"] = _compute_postfight_outcome(
+                events=events,
+                tm=tm,
+                cache=cache,
+                fight_end_ts=fight_end,
+                post_window_ms=post_fight_window_ms,
+            )
+        except Exception as e:
+            logger.warning(f"Analysis failed for fight at {fight.get('engage_ts')}: {e}")
+            diag["errors"].append({"type": "analysis", "engage_ts": fight.get("engage_ts"), "message": str(e)})
+
+    _pack_diagnostics()
+    cache["fight_detect_diag"] = diag
+    return fights
+
+
 def detect_fights(cache: Dict[str, Any], tm: Dict[int, int]) -> List[dict]:
-    """교전 감지 진입점 (레거시 호환)"""
-    algo = "event_v1"
+    """Fight detection entry point."""
+    algo = "teamfight_v2"
     if cfg is not None:
-        algo = str(getattr(cfg, "FIGHT_DETECTOR", getattr(cfg, "FIGHT_DETECT_ALGO", "event_v1"))).lower()
+        algo = str(getattr(cfg, "FIGHT_DETECTOR", getattr(cfg, "FIGHT_DETECT_ALGO", "teamfight_v2"))).lower()
+
+    if algo in ("teamfight_v2", "tf2", "teamfight"):
+        return detect_fights_teamfight_v2(cache, tm)
 
     if algo in ("killchain_v1", "killchain", "kc"):
         return detect_fights_killchain_v1(cache, tm)
@@ -3782,8 +4532,8 @@ def detect_fights(cache: Dict[str, Any], tm: Dict[int, int]) -> List[dict]:
     if algo in ("engage_v2", "v2", "engage"):
         return detect_fights_engage_v2(cache, tm)
 
-    logger.warning(f"Unknown fight detector algo={algo}. Falling back to event_v1.")
-    return detect_fights_event_v1(cache, tm)
+    logger.warning(f"Unknown fight detector algo={algo}. Falling back to teamfight_v2.")
+    return detect_fights_teamfight_v2(cache, tm)
 
 
 def summarize_fights(fights: List[dict]) -> Dict[str, Any]:
