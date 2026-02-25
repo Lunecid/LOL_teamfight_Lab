@@ -310,8 +310,8 @@ class CFG:
     #   cubic       – cubic Hermite (ease-in-out with zero endpoint tangents)
     # The discontinuity guard wraps whichever curve is selected.
     INTERP_XY_METHOD: str = "linear_guard_midstep"
-    INTERP_XY_CURVE: str = "linear"
-    INTERP_SCALARS_METHOD: str = "ffill"
+    INTERP_XY_CURVE: str = "exponential"
+    INTERP_SCALARS_METHOD: str = "cubic"
 
     # Exponential decay rate for INTERP_XY_CURVE="exponential".
     # Higher k → faster convergence toward the target position.
@@ -322,7 +322,7 @@ class CFG:
     XY_DISCONT_USE_ALIVE: bool = True
     XY_GUARD_MODE: str = "hold"
 
-    INTERP_XY: bool = False
+    INTERP_XY: bool = True
     INTERP_SCALARS: bool = True
 
     # =========================================================
