@@ -22,7 +22,7 @@ End-to-end data flow from Riot API timeline JSON to teamfight winner prediction.
             │
             ▼
   ┌─────────────────────┐
-  │  [4] Sample Build    │  12 bins × 5s → node_seq [12,10,F], glob_seq [12,G]
+  │  [4] Sample Build    │  12 bins × 5s → snapshot node/glob + bin events
   └─────────┬───────────┘
             │
             ▼
@@ -128,14 +128,24 @@ Riot API: 60s frames                  Dense 5s grid
   └────────┴────────┴────────┘        └─ for all 10 players
 ```
 
-**Layer 1 — Baseline Linear Interpolation:**
+**Layer 1 — Baseline XY Interpolation:**
 
-For each 5-second tick `t` between frame `F_i` (at `ts_i`) and `F_{i+1}` (at `ts_{i+1}`):
+For each 5-second tick `t` between frame `F_i` (at `ts_i`) and `F_{i+1}` (at `ts_{i+1}`),
+the 5s grid uses the XY interpolation curve configured in the codebase
+(`cfg.INTERP_XY_CURVE`, default: `exponential` with k=3).
+Apply the same curve consistently for baseline and override layers.
 
 ```
-α = (t - ts_i) / (ts_{i+1} - ts_i)          # α ∈ [0, 1]
+α_raw = (t - ts_i) / (ts_{i+1} - ts_i)      # α ∈ [0, 1]
+α = remap_alpha(α_raw, curve=cfg.INTERP_XY_CURVE)
 XY(player, t) = (1 - α) · XY(F_i) + α · XY(F_{i+1})
 ```
+
+> **Note:** The 5s grid currently uses linear interpolation internally
+> (`_build_5s_position_grid`), while `pipeline.py` uses the configured
+> curve (exponential by default) with a discontinuity guard for model XY.
+> Since model XY is zeroed (`ZERO_XY_NODE_FEATURES = True`), the curve
+> choice only affects fight detection spatial checks.
 
 **Layer 2 — Pre-Kill Override:**
 
@@ -269,8 +279,12 @@ are counted as fight interactions.
           └─────────────────────────────┘
 ```
 
-**Exception:** Objective and tower events (ELITE_MONSTER_KILL, BUILDING_KILL, TURRET_PLATE_DESTROYED)
-are included **regardless of radius** — objectives near the fight are always relevant.
+**Important:** Objective and tower events (ELITE_MONSTER_KILL, BUILDING_KILL, TURRET_PLATE_DESTROYED)
+are **NOT** counted as radius-3000 interactions. They are tracked only in the
+post-fight outcome window (Step 5), which is radius-independent. This prevents
+double-counting the same event in both interactions and outcome.
+
+Only position-based events (wards, summoner spells, etc.) are collected here.
 
 ---
 
@@ -335,15 +349,15 @@ Counts kills, deaths, assists, gold swing, towers, objectives in the label windo
   │                            ▼ ▼ ▼                     │
   │                     ┌──────────────┐                 │
   │                     │ Kill Cluster │                 │
-  │                     │ first: K3    │                 │
-  │                     │ last:  K1    │                 │
-  │                     │ center: K3xy │                 │
+  │                     │ first: K1    │                 │
+  │                     │ last:  K3    │                 │
+  │                     │ center: K1xy │                 │
   │                     └──────┬───────┘                 │
   │                            │                         │
   │              ┌─────────────┤                         │
   │              ▼             ▼                         │
   │         engage_ts    first_kill_ts                   │
-  │         (K3 - 10s)   (K3)                           │
+  │         (K1 - 10s)   (K1)                           │
   │              │                                       │
   │    ┌─────────┤                                       │
   │    │ Radius  │                                       │
@@ -486,13 +500,16 @@ For each of the 12 bins, the midpoint timestamp `q` is computed:
 At each midpoint `q`:
 
 ```
-  node_i = interpolate_node_global(cache, q)
-      → Linear interpolation between surrounding 60s frames
+  node_i = snapshot from nearest 60s frame STRICTLY BEFORE q
+      → Piecewise-constant (step-hold / ffill): NO interpolation of
+        scalar features (stats, items, buffs, etc.)
       → XY positions zeroed (ZERO_XY_NODE_FEATURES = True)
+      → Same snapshot repeated for all bins within one 60s frame interval
+      → Snapshot changes only when bin midpoint crosses a frame boundary
       → Shape: (10, F_node)
 
-  glob_i = global_from_prev_snapshot(cache, q, strict_before=True)
-      → Nearest 60s frame STRICTLY before q (no future leakage)
+  glob_i = snapshot from nearest 60s frame STRICTLY BEFORE q
+      → Same piecewise-constant rule — no interpolation, no future leakage
       → Shape: (F_global,)
 
   ev_i = aggregate_events(cache, team_map, b0, b1)
@@ -504,21 +521,35 @@ At each midpoint `q`:
       → Shape: (F_item,)
 ```
 
-### XY Exclusion (ZERO_XY_NODE_FEATURES = True)
+> **Rule: "XY만 보간, 나머지 피처는 보간 금지"**
+> Node scalars and global features use strict-before 60s snapshots
+> (piecewise-constant). Only XY positions are interpolated (for the 5s
+> position grid in fight detection), and even those are zeroed in model input.
+
+### Feature Handling Rules
 
 ```
-  ┌──────────────────────────────────────────────────────────┐
-  │  IMPORTANT: XY positions have TWO separate uses          │
-  │                                                          │
-  │  1. Fight Detection (5s grid):                           │
-  │     XY IS used — dense interpolation for radius checks   │
-  │     This is internal to detect_fights_teamfight_v2()     │
-  │                                                          │
-  │  2. Model Input (observation window):                    │
-  │     XY is ZEROED — x_norm=0, y_norm=0 in every bin      │
-  │     Model predicts fight outcome from stats, not XY      │
-  │     Prevents model from memorizing map-position bias     │
-  └──────────────────────────────────────────────────────────┘
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  RULE: "XY만 보간, 나머지 피처는 보간 금지 / 모델 입력은 스냅샷"      │
+  │                                                                  │
+  │  1. Fight Detection (5s grid):                                   │
+  │     XY IS interpolated — dense 5s grid for radius checks         │
+  │     This is internal to detect_fights_teamfight_v2()             │
+  │                                                                  │
+  │  2. Model Input — Node/Global (observation window):              │
+  │     ✗ NO interpolation of scalar features                        │
+  │     Use strict-before 60s snapshot (piecewise-constant / ffill)  │
+  │     → INTERP_SCALARS_METHOD = "ffill"                            │
+  │                                                                  │
+  │  3. Model Input — XY:                                            │
+  │     XY is ZEROED — x_norm=0, y_norm=0 in every bin              │
+  │     Model predicts fight outcome from stats, not XY              │
+  │     Prevents model from memorizing map-position bias             │
+  │                                                                  │
+  │  4. Events/Items:                                                │
+  │     Bin-level aggregation [b0, b1) — this is NOT interpolation   │
+  │     It counts raw events that occurred in the bin time interval   │
+  └──────────────────────────────────────────────────────────────────┘
 ```
 
 ### Output Tensors
@@ -551,7 +582,7 @@ sample = {
         │  q=362 │  q=367 │  q=372 │       │  q=412 │  q=417 │       │
         │        │        │        │       │        │        │       │
         ▼        ▼        ▼        ▼       ▼        ▼        ▼       │
-    interp    interp    interp            interp   interp            │
+    snap      snap      snap              snap     snap              │
     node+glob node+glob node+glob         node+glob node+glob       │
     + events  + events  + events          + events  + events         │
                                                                      │
@@ -571,9 +602,22 @@ sample = {
 
 **Entry:** `gameplay/pipeline.py::compute_label_targets()`
 
-Events within the label window `[engage_ts, engage_ts + horizon_ms)` determine the fight outcome.
+### Definition of "Winning a Teamfight"
 
-### Label: `kill_survival` (default)
+Two aspects define the fight outcome:
+
+| Aspect | Window | What It Captures |
+|--------|--------|------------------|
+| **Fight Result** (primary label) | `[engage_ts, engage_ts + horizon)` | Who won the fight itself (kills, survival) |
+| **Post-Fight Conversion** (auxiliary) | `[last_kill_ts, last_kill_ts + 45s]` | What the winner gained (towers, objectives, gold) |
+
+The **primary binary label** uses fight-result signals (kill_diff + alive_diff).
+Post-fight conversion metrics (gold, towers, objectives) are tracked as
+**auxiliary targets for multi-task learning** and **evaluation metrics**.
+
+### Primary Label: `kill_survival` (default)
+
+Events within the label window `[engage_ts, engage_ts + horizon_ms)` determine the fight outcome.
 
 ```
   Score = W_KILL × (blue_kills − red_kills) + W_ALIVE × (blue_alive − red_alive)
@@ -596,15 +640,32 @@ Events within the label window `[engage_ts, engage_ts + horizon_ms)` determine t
     Score = 1.0 × 2 + 0.3 × 2 = 2.6 > 0  →  y = 1 (blue wins)
 ```
 
-### Auxiliary Targets (multi-task learning)
+### Auxiliary Targets (multi-task learning + evaluation)
 
-| Target | Normalization | Description |
-|--------|---------------|-------------|
-| `y_kill_diff` | kill_diff / 5.0 | Normalized kill differential |
-| `y_gold_diff` | gold_diff / 1000.0 | Normalized gold swing |
-| `y_obj_diff` | obj_diff / 5.0 | Normalized objective differential |
-| `y_tower_diff` | tower_diff / 5.0 | Normalized tower differential |
-| `y_alive_diff_raw` | raw count | Alive count differential |
+Post-fight conversion signals from the 45s outcome window are used as
+auxiliary regression targets and evaluation metrics. They capture whether
+the fight winner successfully *converted* kills into map advantages.
+
+| Target | Source | Normalization | Description |
+|--------|--------|---------------|-------------|
+| `y_kill_diff` | fight window | kill_diff / 5.0 | Normalized kill differential |
+| `y_gold_diff` | fight window | gold_diff / 1000.0 | Normalized gold swing |
+| `y_obj_diff` | fight window | obj_diff / 5.0 | Normalized objective differential |
+| `y_alive_diff_raw` | fight window | raw count | Alive count differential |
+| `post_gold_diff` | 45s outcome | raw gold | Gold swing after fight |
+| `post_tower_diff` | 45s outcome | raw count | Towers taken after fight |
+| `post_obj_diff` | 45s outcome | raw count | Objectives taken after fight |
+
+```
+  ┌─────────────────────────────────────────────────────────────┐
+  │  Primary label (y):   fight window kill/alive signals       │
+  │  Auxiliary targets:   fight window gold/obj + 45s conversion│
+  │                                                             │
+  │  The model predicts "who wins the fight" (primary y).       │
+  │  Auxiliary targets help the model learn richer signals      │
+  │  about fight consequences (multi-task loss).                │
+  └─────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -758,7 +819,7 @@ for batch in dataloader:
   [4] Sample Build (Fight 1: engage_ts = 420000)
       → Observation window: [360000, 420000] (6:00 → 7:00)
       → 12 bins × 5s each
-      → Per bin: interpolate node features, get global snapshot,
+      → Per bin: snapshot node+global (strict-before 60s frame, no interpolation),
                  aggregate events, hash items
       → XY zeroed in all bins
       → node_seq: [12, 10, 87], glob_seq: [12, 27], ev_seq: [12, 48]
@@ -801,10 +862,12 @@ fight outcome itself.
 | Principle | Implementation |
 |-----------|----------------|
 | **Kills-only creation** | Only CHAMPION_KILL events create fights — no ward/objective triggers |
-| **No future leakage** | Global features from strictly-before snapshots; label window starts at engage_ts |
+| **XY만 보간, 나머지 금지** | Node/global use strict-before 60s snapshot (ffill); only XY is interpolated (for spatial checks) |
+| **No future leakage** | Node + global features from strictly-before snapshots; label window starts at engage_ts |
 | **XY excluded from model** | Positions used only for spatial detection, zeroed in model input |
+| **No double-counting** | Objectives/towers tracked only in post-fight outcome (Step 5), not in radius-3000 interactions (Step 4) |
 | **Millisecond anchoring** | All timestamps in ms; sub-minute fight precision via 5s grid |
 | **Ref-key alignment** | Predictions matched by `match_id\|t_start_ts=<ms>`, not by batch position |
 | **Match-grouped splits** | All fights from one match stay in the same split partition |
 | **Patch stratification** | Each split has proportional representation of game patches |
-| **Post-fight outcome** | 45-second window captures objective conversion after fight |
+| **Post-fight conversion** | 45-second window captures objective/tower/gold conversion after fight |

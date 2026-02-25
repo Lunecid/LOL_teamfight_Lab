@@ -1479,7 +1479,9 @@ def _collect_interactions_in_radius(
 ) -> Tuple[List[dict], set]:
     """Collect non-kill events as interactions within fight time + radius 3000.
 
-    Objectives/tower events are included regardless of radius (per spec §4C).
+    Position-based events only (wards, spells, etc.).
+    Objectives/tower events are excluded here — they are tracked only in
+    the post-fight outcome window (Step 5) to prevent double-counting.
     Returns (interactions, additional_participant_ids).
     """
     R = float(interaction_radius)
@@ -1518,32 +1520,34 @@ def _collect_interactions_in_radius(
         if ts_val < fight_start or ts_val > fight_end:
             continue
 
-        is_obj_tower = et in obj_building_types
+        # Objectives/towers tracked only in post-fight outcome (Step 5),
+        # NOT counted as radius-3000 interactions (prevents double-counting).
+        if et in obj_building_types:
+            continue
 
-        # Check spatial constraint (objectives/towers exempt per §4C)
-        if not is_obj_tower:
-            pos = _event_xy(ev)
-            if pos is not None:
-                dx = float(pos[0]) - cx
-                dy = float(pos[1]) - cy
-                if is_norm and scale_factor > 0:
-                    dx = float(pos[0]) / scale_factor - cx
-                    dy = float(pos[1]) / scale_factor - cy
+        # Check spatial constraint (radius 3000)
+        pos = _event_xy(ev)
+        if pos is not None:
+            dx = float(pos[0]) - cx
+            dy = float(pos[1]) - cy
+            if is_norm and scale_factor > 0:
+                dx = float(pos[0]) / scale_factor - cx
+                dy = float(pos[1]) / scale_factor - cy
+            if dx * dx + dy * dy > R_sq:
+                continue
+        else:
+            # Approximate position using actor's dense 5s XY
+            actor_id = safe_int(ev.get("participantId", ev.get("killerId", ev.get("creatorId", 0))))
+            if 1 <= actor_id <= 10:
+                d_idx = int(np.clip(np.searchsorted(dense_ts, ts_val, side="right") - 1, 0, Td - 1))
+                px = float(xy_dense[d_idx, actor_id - 1, 0])
+                py = float(xy_dense[d_idx, actor_id - 1, 1])
+                dx = px - cx
+                dy = py - cy
                 if dx * dx + dy * dy > R_sq:
                     continue
             else:
-                # Approximate position using actor's dense 5s XY
-                actor_id = safe_int(ev.get("participantId", ev.get("killerId", ev.get("creatorId", 0))))
-                if 1 <= actor_id <= 10:
-                    d_idx = int(np.clip(np.searchsorted(dense_ts, ts_val, side="right") - 1, 0, Td - 1))
-                    px = float(xy_dense[d_idx, actor_id - 1, 0])
-                    py = float(xy_dense[d_idx, actor_id - 1, 1])
-                    dx = px - cx
-                    dy = py - cy
-                    if dx * dx + dy * dy > R_sq:
-                        continue
-                else:
-                    continue
+                continue
 
         interactions.append(ev)
 
@@ -1645,7 +1649,8 @@ def detect_fights_teamfight_v2(
          b. Engage time = first_kill_ts - 10s.
          c. Validate teamfight: >=2 per team within radius 1800 at engage.
          d. Fight end = last kill in cluster.
-      4. Collect interactions within radius 3000 (objectives/towers exempt).
+      4. Collect interactions within radius 3000 (position-based events only;
+         objectives/towers tracked in Step 5 post-fight outcome only).
       5. Post-fight outcome: 45s window for objectives/towers/gold.
       6. Model input: closest 60s snapshot before fight start, XY excluded.
 

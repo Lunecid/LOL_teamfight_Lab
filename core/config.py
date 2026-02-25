@@ -311,7 +311,9 @@ class CFG:
     # The discontinuity guard wraps whichever curve is selected.
     INTERP_XY_METHOD: str = "linear_guard_midstep"
     INTERP_XY_CURVE: str = "exponential"
-    INTERP_SCALARS_METHOD: str = "cubic"
+    # [SPEC-FIX] "XY만 보간, 나머지 피처는 보간 금지" — node/global use
+    # strict-before 60s snapshot (piecewise-constant / step-hold).
+    INTERP_SCALARS_METHOD: str = "ffill"
 
     # Exponential decay rate for INTERP_XY_CURVE="exponential".
     # Higher k → faster convergence toward the target position.
