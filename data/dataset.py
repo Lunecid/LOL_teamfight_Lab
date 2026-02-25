@@ -106,6 +106,7 @@ class InMemoryFightDataset(Dataset):
         cache_in_ram: bool = True,
         logit_maps: Optional[Dict[str, Dict[str, float]]] = None,
         force_emit_logits: Optional[bool] = None,
+        split_label: str = "",
     ):
         self.refs_all = list(refs)
         self.refs = list(refs)
@@ -141,6 +142,8 @@ class InMemoryFightDataset(Dataset):
                     print("[WARN] emit_logits=True but all logit maps are empty -> batch logits will be zeros.")
 
         self.cache_in_ram = bool(cache_in_ram)
+        self.split_label = split_label
+        self._log_tag = f"[RAM/{split_label}]" if split_label else "[RAM]"
 
         # [OPT-4] Hoist cfg lookups out of per-sample hot path
         self.exclude_prefixes = tuple(getattr(cfg, "SCALER_EXCLUDE_PREFIXES", ("x_", "y_", "pos_", "dist_", "angle_")))
@@ -182,7 +185,8 @@ class InMemoryFightDataset(Dataset):
         """
         t0 = time.time()
         n_total = len(self.refs)
-        print(f"[RAM] Loading {n_total} samples (match-grouped)...")
+        tag = self._log_tag
+        print(f"{tag} Loading {n_total} samples (match-grouped)...")
 
         # Step 1: group ref indices by match_id  — O(N)
         #   groups[match_id] = [(original_index, ref), ...]
@@ -230,7 +234,7 @@ class InMemoryFightDataset(Dataset):
                 pct = 100.0 * (m_idx + 1) / n_matches
                 eta = elapsed / (m_idx + 1) * (n_matches - m_idx - 1)
                 print(
-                    f"[RAM]  {pct:5.1f}%  matches={m_idx+1}/{n_matches}  "
+                    f"{tag}  {pct:5.1f}%  matches={m_idx+1}/{n_matches}  "
                     f"ok={n_ok}  fail={n_fail}  "
                     f"elapsed={elapsed:.1f}s  ETA={eta:.0f}s"
                 )
@@ -256,12 +260,12 @@ class InMemoryFightDataset(Dataset):
 
         elapsed = time.time() - t0
         print(
-            f"[RAM] Done: kept={len(self.refs)}  dropped={len(self.dropped_refs)}  "
+            f"{tag} Done: kept={len(self.refs)}  dropped={len(self.dropped_refs)}  "
             f"matches={n_matches}  time={elapsed:.1f}s"
         )
         if self.dropped_refs and self._log_dropped:
             show = self.dropped_keys[:10]
-            print(f"[RAM] Dropped keys (first 10): {show}")
+            print(f"{tag} Dropped keys (first 10): {show}")
 
     # =================================================================
     # [OPT-4] Factored sample builder
