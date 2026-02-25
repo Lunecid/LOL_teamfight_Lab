@@ -1034,13 +1034,15 @@ def build_event_tokens_for_xattn(
 
     from data.events_index import _events_in_window, _event_ts_safe
 
+    cont_dim = max(5, int(getattr(cfg, "EVENT_CONT_DIM", 12)))
+
     evs = _events_in_window(pack, int(s_ms), int(e_ms))
     if not evs:
         return {
             "event_type": np.zeros((max_tokens,), np.int64),
             "event_actor": np.zeros((max_tokens,), np.int64),
             "event_team": np.full((max_tokens,), 2, np.int64),  # 0 blue, 1 red, 2 unk
-            "event_cont": np.zeros((max_tokens, 5), np.float32),
+            "event_cont": np.zeros((max_tokens, cont_dim), np.float32),
             "event_mask": np.zeros((max_tokens,), np.float32),
         }
 
@@ -1061,7 +1063,7 @@ def build_event_tokens_for_xattn(
     event_type = np.zeros((K,), np.int64)
     event_actor = np.zeros((K,), np.int64)
     event_team = np.full((K,), 2, np.int64)
-    event_cont = np.zeros((K, 5), np.float32)
+    event_cont = np.zeros((K, cont_dim), np.float32)
     event_mask = np.zeros((K,), np.float32)
 
     def _pick_pid(e: dict) -> int:
@@ -1077,6 +1079,100 @@ def build_event_tokens_for_xattn(
                 pass
         return 0
 
+    def _lane_priority(et: str, e: dict) -> float:
+        lane = str(e.get("laneType", "")).upper()
+        if "MID" in lane:
+            return 1.0
+        if "BOT" in lane or "BOTTOM" in lane:
+            return 0.80
+        if "TOP" in lane:
+            return 0.70
+        if "RIVER" in lane:
+            return 0.90
+        if "JUNGLE" in lane:
+            return 0.75
+
+        mt = str(e.get("monsterType", "")).upper()
+        if mt in ("BARON_NASHOR", "DRAGON", "RIFTHERALD", "ATAKHAN", "HORDE"):
+            return 0.95
+        if et == "CHAMPION_KILL":
+            if safe_float(e.get("shutdownBounty", 0.0)) > 0.0:
+                return 0.95
+            return 0.60
+        return 0.50
+
+    def _objective_tier(et: str, e: dict) -> float:
+        if et == "ELITE_MONSTER_KILL":
+            mt = str(e.get("monsterType", "")).upper()
+            sub = str(e.get("monsterSubType", "")).upper()
+            if mt == "BARON_NASHOR":
+                return 1.0
+            if mt == "DRAGON":
+                return 1.0 if ("ELDER" in sub) else 0.75
+            if mt == "RIFTHERALD":
+                return 0.70
+            if mt == "ATAKHAN":
+                return 0.85
+            if mt == "HORDE":
+                return 0.60
+        elif et == "BUILDING_KILL":
+            bt = str(e.get("buildingType", "")).upper()
+            tt = str(e.get("towerType", "")).upper()
+            if "NEXUS" in bt:
+                return 1.0
+            if "INHIBITOR" in bt:
+                return 0.85
+            if "TOWER" in bt:
+                if "BASE" in tt:
+                    return 0.75
+                if "INNER" in tt:
+                    return 0.60
+                if "OUTER" in tt:
+                    return 0.45
+                return 0.55
+        elif et == "TURRET_PLATE_DESTROYED":
+            return 0.35
+        elif et == "CHAMPION_KILL":
+            return 0.40
+        elif et == "DRAGON_SOUL_GIVEN":
+            return 1.0
+        return 0.0
+
+    def _importance_prior(
+        et: str,
+        e: dict,
+        *,
+        shutdown_flag: float,
+        shutdown_norm: float,
+        streak_norm: float,
+        assist_norm: float,
+        obj_tier: float,
+        lane_pri: float,
+    ) -> float:
+        score = 0.10
+        score += 0.55 * float(shutdown_flag)
+        score += 0.20 * float(streak_norm)
+        score += 0.15 * float(assist_norm)
+        score += 0.45 * float(obj_tier)
+        score += 0.20 * float(lane_pri)
+        score += 0.15 * float(shutdown_norm)
+
+        if et == "CHAMPION_SPECIAL_KILL":
+            kt = str(e.get("killType", "")).upper()
+            if "ACE" in kt:
+                score += 0.45
+            elif "MULTI" in kt:
+                score += 0.25
+            elif "FIRST_BLOOD" in kt:
+                score += 0.20
+            mk = float(np.clip(safe_float(e.get("multiKillLength", 0.0)) / 4.0, 0.0, 1.0))
+            score += 0.20 * mk
+
+        if et in ("GAME_END", "DRAGON_SOUL_GIVEN"):
+            score = max(score, 1.0)
+
+        return float(np.clip(score, 0.0, 1.0))
+
     for i, (ts, e) in enumerate(evs2):
         et = str(e.get("type", "")).upper()
         event_type[i] = int(_hash32(et) % max(1, type_vocab))
@@ -1087,7 +1183,16 @@ def build_event_tokens_for_xattn(
         tid = tm.get(pid, 0)
         if tid not in (100, 200):
             try:
-                tid = int(e.get("killerTeamId", 0) or e.get("teamId", 0) or 0)
+                if et in ("BUILDING_KILL", "TURRET_PLATE_DESTROYED"):
+                    victim_team = int(e.get("teamId", 0) or 0)
+                    if victim_team == 100:
+                        tid = 200
+                    elif victim_team == 200:
+                        tid = 100
+                    else:
+                        tid = 0
+                else:
+                    tid = int(e.get("killerTeamId", 0) or e.get("teamId", 0) or 0)
             except Exception:
                 tid = 0
         if tid == 100:
@@ -1103,13 +1208,52 @@ def build_event_tokens_for_xattn(
         x = safe_float(pos.get("x", 0.0)) / coord_div
         y = safe_float(pos.get("y", 0.0)) / coord_div
 
+        shutdown = max(0.0, safe_float(e.get("shutdownBounty", 0.0)))
+        shutdown_flag = 1.0 if shutdown > 0.0 else 0.0
+        shutdown_norm = float(np.clip(np.log1p(shutdown) / np.log1p(1500.0), 0.0, 1.0))
+        streak_norm = float(np.clip(safe_float(e.get("killStreakLength", 0.0)) / 10.0, 0.0, 1.0))
+        assists = e.get("assistingParticipantIds", [])
+        assist_cnt = len(assists) if isinstance(assists, list) else 0
+        assist_norm = float(np.clip(float(assist_cnt) / 4.0, 0.0, 1.0))
+        obj_tier = _objective_tier(et, e)
+        lane_pri = _lane_priority(et, e)
+
         val = 0.0
         for kk in ("bounty", "shutdownBounty", "goldGain", "xpGain"):
             if kk in e:
                 val += safe_float(e.get(kk, 0.0))
         val = float(np.log1p(max(0.0, val)))
+        imp_prior = _importance_prior(
+            et,
+            e,
+            shutdown_flag=shutdown_flag,
+            shutdown_norm=shutdown_norm,
+            streak_norm=streak_norm,
+            assist_norm=assist_norm,
+            obj_tier=obj_tier,
+            lane_pri=lane_pri,
+        )
 
-        event_cont[i] = np.asarray([t_rel, dt_end, x, y, val], np.float32)
+        feat = np.asarray(
+            [
+                t_rel,
+                dt_end,
+                x,
+                y,
+                val,
+                shutdown_flag,
+                shutdown_norm,
+                streak_norm,
+                assist_norm,
+                obj_tier,
+                lane_pri,
+                imp_prior,
+            ],
+            np.float32,
+        )
+        d = min(cont_dim, int(feat.shape[0]))
+        if d > 0:
+            event_cont[i, :d] = feat[:d]
         event_mask[i] = 1.0
 
     return {
@@ -1120,6 +1264,238 @@ def build_event_tokens_for_xattn(
         "event_mask": event_mask,
     }
 
+
+
+def _label_lane_tag(e: dict) -> str:
+    lane = str(e.get("laneType", "")).upper()
+    if "MID" in lane:
+        return "MID"
+    if "BOT" in lane or "BOTTOM" in lane:
+        return "BOT"
+    if "TOP" in lane:
+        return "TOP"
+    if "RIVER" in lane:
+        return "RIVER"
+    if "JUNGLE" in lane:
+        return "JUNGLE"
+
+    pos = e.get("position", {})
+    if not isinstance(pos, dict):
+        return "UNKNOWN"
+    x = safe_float(pos.get("x", 0.0))
+    y = safe_float(pos.get("y", 0.0))
+    if x <= 0.0 and y <= 0.0:
+        return "UNKNOWN"
+
+    d = y - x
+    if abs(d) <= 2200.0:
+        return "MID"
+    if d > 0.0:
+        return "TOP"
+    return "BOT"
+
+
+def _label_lane_priority(et: str, e: dict) -> float:
+    lane = _label_lane_tag(e)
+    if lane == "MID":
+        return 1.00
+    if lane == "BOT":
+        return 0.80
+    if lane == "TOP":
+        return 0.70
+    if lane == "RIVER":
+        return 0.90
+    if lane == "JUNGLE":
+        return 0.75
+
+    mt = str(e.get("monsterType", "")).upper()
+    if mt in ("BARON_NASHOR", "DRAGON", "RIFTHERALD", "ATAKHAN", "HORDE"):
+        return 0.95
+    if et == "CHAMPION_KILL":
+        if safe_float(e.get("shutdownBounty", 0.0)) > 0.0:
+            return 0.95
+        return 0.60
+    return 0.50
+
+
+def _label_objective_tier(et: str, e: dict) -> float:
+    if et == "ELITE_MONSTER_KILL":
+        mt = str(e.get("monsterType", "")).upper()
+        sub = str(e.get("monsterSubType", "")).upper()
+        if mt == "BARON_NASHOR":
+            return 1.0
+        if mt == "DRAGON":
+            return 1.0 if ("ELDER" in sub) else 0.75
+        if mt == "RIFTHERALD":
+            return 0.70
+        if mt == "ATAKHAN":
+            return 0.85
+        if mt == "HORDE":
+            return 0.60
+    elif et == "BUILDING_KILL":
+        bt = str(e.get("buildingType", "")).upper()
+        tt = str(e.get("towerType", "")).upper()
+        if "NEXUS" in bt:
+            return 1.0
+        if "INHIBITOR" in bt:
+            return 0.85
+        if "TOWER" in bt:
+            if "BASE" in tt:
+                return 0.75
+            if "INNER" in tt:
+                return 0.60
+            if "OUTER" in tt:
+                return 0.45
+            return 0.55
+    elif et == "TURRET_PLATE_DESTROYED":
+        return 0.35
+    elif et == "DRAGON_SOUL_GIVEN":
+        return 1.0
+    elif et == "CHAMPION_KILL":
+        return 0.40
+    return 0.0
+
+
+def _label_special_kill_bonus(et: str, e: dict) -> float:
+    if et != "CHAMPION_SPECIAL_KILL":
+        return 0.0
+    score = 0.0
+    kt = str(e.get("killType", "")).upper()
+    if "ACE" in kt:
+        score += 0.45
+    elif "MULTI" in kt:
+        score += 0.25
+    elif "FIRST_BLOOD" in kt:
+        score += 0.20
+    mk = float(np.clip(safe_float(e.get("multiKillLength", 0.0)) / 4.0, 0.0, 1.0))
+    score += 0.20 * mk
+    return float(np.clip(score, 0.0, 1.0))
+
+
+def _label_event_team_sign(e: dict, tm: Dict[int, int]) -> int:
+    et = str(e.get("type", "")).upper()
+    tid = 0
+    try:
+        if et in ("CHAMPION_KILL", "CHAMPION_SPECIAL_KILL"):
+            tid = int(tm.get(int(e.get("killerId", 0) or 0), 0) or 0)
+        elif et == "ELITE_MONSTER_KILL":
+            tid = int(e.get("killerTeamId", 0) or 0)
+        elif et in ("BUILDING_KILL", "TURRET_PLATE_DESTROYED"):
+            victim_team = int(e.get("teamId", 0) or 0)
+            if victim_team == 100:
+                tid = 200
+            elif victim_team == 200:
+                tid = 100
+            else:
+                tid = 0
+        elif et == "DRAGON_SOUL_GIVEN":
+            tid = int(e.get("teamId", 0) or 0)
+    except Exception:
+        tid = 0
+
+    if tid == 100:
+        return 1
+    if tid == 200:
+        return -1
+    return 0
+
+
+def _compute_label_attention_value_win(evs: List[dict], tm: Dict[int, int]) -> Optional[int]:
+    """Rule-based attention-like label.
+
+    score = Σ_e α_e * sign_e * value_e, where α = softmax(β * prior).
+    """
+    tie_policy = str(getattr(cfg, "LABEL_TIE_POLICY",
+                             getattr(cfg, "LABEL_TIE_STRATEGY", "drop"))).lower()
+    eps = float(getattr(cfg, "LABEL_TIE_EPS", 1e-8))
+
+    beta = float(max(1e-6, float(getattr(cfg, "LABEL_ATTN_BETA", 2.0))))
+    w_kill = float(getattr(cfg, "LABEL_ATTN_W_KILL", 1.0))
+    w_shutdown = float(getattr(cfg, "LABEL_ATTN_W_SHUTDOWN", 1.6))
+    w_streak = float(getattr(cfg, "LABEL_ATTN_W_STREAK", 0.35))
+    w_assist = float(getattr(cfg, "LABEL_ATTN_W_ASSIST", 0.20))
+    w_bounty = float(getattr(cfg, "LABEL_ATTN_W_BOUNTY", 0.30))
+    w_obj = float(getattr(cfg, "LABEL_ATTN_W_OBJECTIVE", 1.10))
+    w_lane = float(getattr(cfg, "LABEL_ATTN_W_LANE", 0.25))
+
+    values: List[float] = []
+    priors: List[float] = []
+    signs: List[float] = []
+
+    for e in evs:
+        if not isinstance(e, dict):
+            continue
+        et = str(e.get("type", "")).upper()
+        sign = _label_event_team_sign(e, tm)
+        if sign == 0:
+            continue
+
+        shutdown = max(0.0, safe_float(e.get("shutdownBounty", 0.0)))
+        shutdown_norm = float(np.clip(np.log1p(shutdown) / np.log1p(1500.0), 0.0, 1.0))
+        streak_norm = float(np.clip(safe_float(e.get("killStreakLength", 0.0)) / 10.0, 0.0, 1.0))
+        assists = e.get("assistingParticipantIds", [])
+        assist_cnt = len(assists) if isinstance(assists, list) else 0
+        assist_norm = float(np.clip(float(assist_cnt) / 4.0, 0.0, 1.0))
+        bounty_raw = max(0.0, safe_float(e.get("bounty", 0.0))) + shutdown
+        bounty_norm = float(np.clip(np.log1p(bounty_raw) / np.log1p(1500.0), 0.0, 1.0))
+        obj_tier = float(_label_objective_tier(et, e))
+        lane_pri = float(_label_lane_priority(et, e))
+        special_bonus = float(_label_special_kill_bonus(et, e))
+        is_kill = 1.0 if et in ("CHAMPION_KILL", "CHAMPION_SPECIAL_KILL") else 0.0
+
+        value_e = (
+            w_kill * is_kill
+            + w_shutdown * shutdown_norm
+            + w_streak * streak_norm
+            + w_assist * assist_norm
+            + w_bounty * bounty_norm
+            + w_obj * obj_tier
+            + w_lane * lane_pri
+            + special_bonus
+        )
+        prior_e = (
+            0.25 * is_kill
+            + 0.30 * shutdown_norm
+            + 0.15 * streak_norm
+            + 0.10 * assist_norm
+            + 0.20 * bounty_norm
+            + 0.35 * obj_tier
+            + 0.15 * lane_pri
+            + special_bonus
+        )
+
+        values.append(float(max(0.0, value_e)))
+        priors.append(float(prior_e))
+        signs.append(float(sign))
+
+    if len(values) == 0:
+        return None
+
+    pri = np.asarray(priors, dtype=np.float64)
+    logits = beta * pri
+    logits = logits - float(np.max(logits))
+    w = np.exp(logits)
+    w_sum = float(np.sum(w))
+    if w_sum <= 0.0:
+        return None
+    alpha = w / w_sum
+
+    val = np.asarray(values, dtype=np.float64)
+    sgn = np.asarray(signs, dtype=np.float64)
+    score = float(np.sum(alpha * sgn * val))
+
+    if abs(score) < eps:
+        if tie_policy in ("drop", "exclude", "none"):
+            return None
+        if tie_policy in ("random", "stochastic", "coinflip"):
+            return int(random.random() < 0.5)
+        if tie_policy == "blue":
+            return 1
+        if tie_policy == "red":
+            return 0
+        return None
+
+    return 1 if score > 0.0 else 0
 
 
 def compute_label(
@@ -1167,10 +1543,13 @@ def compute_label(
 
     if label_type == "micro_win":
         return _compute_label_micro_win(evs, tm)
-    elif label_type == "kill_survival":
+    if label_type == "kill_survival":
         return _compute_label_kill_survival(evs, tm, cache, e_ms)
-    else:
+    if label_type in ("attention_value_win", "attention_value", "attn_value", "attn"):
+        return _compute_label_attention_value_win(evs, tm)
+    if label_type in ("weighted", "composite", "weight"):
         return _compute_label_weighted(evs, tm, cache, s_ms, e_ms)
+    return _compute_label_kill_survival(evs, tm, cache, e_ms)
 
 
 def _compute_label_micro_win(evs: List[dict], tm: Dict[int, int]) -> Optional[int]:

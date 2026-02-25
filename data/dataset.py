@@ -62,7 +62,8 @@ from gameplay.features import build_sequence_features, get_extra_feature_names, 
 #     event_type   (K,)    int64   — event category hash
 #     event_actor  (K,)    int64   — acting participantId
 #     event_team   (K,)    int64   — team (0=blue, 1=red, 2=unk)
-#     event_cont   (K, 5)  float32 — continuous [t_rel, dt_end, x, y, val]
+#     event_cont   (K, D)  float32 — D=cfg.EVENT_CONT_DIM (default 12),
+#                                   [t_rel, dt_end, x, y, val, ...importance features]
 #     event_mask   (K,)    float32 — padding mask (1=real, 0=pad)
 # =====================================================================
 _EVENT_TOKEN_KEYS = ("event_type", "event_actor", "event_team", "event_cont", "event_mask")
