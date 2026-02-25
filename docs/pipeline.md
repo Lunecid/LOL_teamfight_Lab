@@ -127,7 +127,7 @@ Step 7: Classify + compute outcome
 |-----------|---------|-------------|
 | `KILLCHAIN_WINDOW_MS` | 30,000 | Max time gap to chain two kills |
 | `KILLCHAIN_BACKTRACK_MS` | 10,000 | How far before first kill to set engage_ts |
-| `fight_min_gap_ms` | 120,000 | Minimum spacing between fights |
+| `fight_min_gap_ms` | 60,000 | Minimum spacing between fights |
 | `continuous_fight_merge_radius` | 2,000 | Spatial merge radius |
 
 ### Algorithm: `event_v1` (event-driven)

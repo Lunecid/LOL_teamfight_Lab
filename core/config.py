@@ -404,8 +404,8 @@ class CFG:
     MAX_MERGED_FIGHT_DURATION_MS = 120000
 
     START_OFFSET_MIN: int = 2
-    FIGHT_MIN_GAP_MIN: int = 2
-    FIGHT_MIN_GAP_MS: int = 120000
+    FIGHT_MIN_GAP_MIN: int = 1
+    FIGHT_MIN_GAP_MS: int = 60000
     DETECT_STEP_MS: int = 10000
 
     # Event-driven detection (event_v1):
@@ -448,7 +448,7 @@ class CFG:
     WARD_ACTOR_RADIUS: float = 1800.0
 
     STANDOFF_RADIUS: float = 1800.0
-    REQUIRE_ALIVE_PER_TEAM: int = 3
+    REQUIRE_ALIVE_PER_TEAM: int = 2
 
     ENGAGE_MIN_DIST_DROP: float = 250.0
     ENGAGE_MIN_PAIR_GAIN: int = 2
@@ -524,7 +524,7 @@ class CFG:
     #   "blue"    — ties → blue win (original behaviour, biased).
     #   "red"     — ties → red win.
     #   "random"  — ties → random class (per sample, seeded).
-    LABEL_TIE_STRATEGY: str = "exclude"
+    LABEL_TIE_STRATEGY: str = "random"
 
     # weighted label
     W_KILL: float = 1.0
