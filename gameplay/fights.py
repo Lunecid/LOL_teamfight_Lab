@@ -179,7 +179,7 @@ class FightDetectorConfig:
     standoff_min_pairs: int = 3
     engage_min_dist_drop: float = 250.0
     engage_min_pair_gain: int = 2
-    fight_min_gap_ms: int = 120000
+    fight_min_gap_ms: int = 60000
     fight_context_min: int = 1
     detect_step_ms: int = 10000
     frame_ms: int = 60000
@@ -211,7 +211,7 @@ class FightDetectorConfig:
 
     # 구조적 가드
     # [P3-ALIVE] 2 â†’ 3: exclude 2v2 skirmishes (P(y|2v2) â‰  P(y|5v5))
-    require_alive_per_team: int = 3
+    require_alive_per_team: int = 2
     require_engaged_per_team: int = 2
     require_lcc_total: int = 4
     require_lcc_per_team: int = 2
@@ -286,7 +286,7 @@ class FightDetectorConfig:
             engage_min_dist_drop=float(getattr(cfg_obj, "ENGAGE_MIN_DIST_DROP", 250.0)),
             engage_min_pair_gain=int(getattr(cfg_obj, "ENGAGE_MIN_PAIR_GAIN", 2)),
             fight_min_gap_ms=int(
-                getattr(cfg_obj, "FIGHT_MIN_GAP_MS", int(getattr(cfg_obj, "FIGHT_MIN_GAP_MIN", 2)) * 60000)
+                getattr(cfg_obj, "FIGHT_MIN_GAP_MS", int(getattr(cfg_obj, "FIGHT_MIN_GAP_MIN", 1)) * 60000)
             ),
             fight_context_min=int(getattr(cfg_obj, "FIGHT_CONTEXT_MIN", 1)),
             detect_step_ms=int(getattr(cfg_obj, "DETECT_STEP_MS", int(getattr(cfg_obj, "BIN_MS", 5000)))),
@@ -306,7 +306,7 @@ class FightDetectorConfig:
             backtrack_max_ms=int(getattr(cfg_obj, "BACKTRACK_MAX_MS", 30000)),
             backtrack_min_ms=int(getattr(cfg_obj, "BACKTRACK_MIN_MS", 10000)),
             backtrack_min_pairs=int(getattr(cfg_obj, "BACKTRACK_MIN_PAIRS", 3)),
-            require_alive_per_team=int(getattr(cfg_obj, "REQUIRE_ALIVE_PER_TEAM", 3) or 0),
+            require_alive_per_team=int(getattr(cfg_obj, "REQUIRE_ALIVE_PER_TEAM", 2) or 0),
             require_engaged_per_team=int(getattr(cfg_obj, "REQUIRE_ENGAGED_PER_TEAM", 2) or 0),
             require_lcc_total=int(getattr(cfg_obj, "REQUIRE_LCC_TOTAL", 4) or 0),
             require_lcc_per_team=int(getattr(cfg_obj, "REQUIRE_LCC_PER_TEAM", 2) or 0),
