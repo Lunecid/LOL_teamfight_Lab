@@ -396,8 +396,7 @@ class CFG:
     # =========================================================
     # 7) Fight detection
     # =========================================================
-    # Default detector: "teamfight_v2" (kill-cluster-based).
-    # Legacy: "event_v1", "killchain_v1", "engage_v2".
+    # Only supported detector: "teamfight_v2" (kill-cluster-based).
     FIGHT_DETECT_ALGO: str = "teamfight_v2"
     FIGHT_DETECTOR: str = "teamfight_v2"
 
@@ -423,29 +422,6 @@ class CFG:
     FIGHT_MIN_GAP_MS: int = 60000
     DETECT_STEP_MS: int = 10000
 
-    # Event-driven detection (event_v1):
-    # trigger teamfight candidates from short-window event burst near ts.
-    EVENT_BURST_WINDOW_MS: int = 15000
-    # If candidate anchor is a kill timestamp, move engage start earlier by this amount
-    # when no earlier burst signal exists.
-    EVENT_KILL_PRE_MS: int = 10000
-    # Kill-centric event validation also checks post-kill window for objective/building.
-    EVENT_KILL_POST_MS: int = 10000
-    # Two-stage mode:
-    #  1) realtime candidate detection (ward + structural guards)
-    #  2) post validation around nearest kill (objective/building in pre/post window)
-    EVENT_REQUIRE_POST_KILL_VALIDATION: bool = True
-    # Stage-2 post validation window around nearest kill.
-    EVENT_POST_VALIDATE_PRE_MS: int = 45000
-    EVENT_POST_VALIDATE_POST_MS: int = 45000
-    EVENT_MIN_EVENTS_IN_WINDOW: int = 2
-    EVENT_SCORE_THRESHOLD: float = 2.5
-    EVENT_WEIGHT_KILL: float = 2.0
-    EVENT_WEIGHT_SPELL: float = 0.35
-    EVENT_WEIGHT_OBJECTIVE: float = 1.5
-    EVENT_WEIGHT_BUILDING: float = 1.5
-    EVENT_WEIGHT_DAMAGE: float = 1.0
-
     # ─── teamfight_v2 parameters ────────────────────────────
     # Kill clustering: max temporal gap between consecutive kills
     # in the same fight cluster (15–20s recommended).
@@ -464,10 +440,6 @@ class CFG:
     TF2_TAIL_BUFFER_MS: int = 0
     # Minimum champions per team within validity radius.
     TF2_MIN_PER_TEAM: int = 2
-
-    # ─── Legacy killchain_v1 parameters ──────────────────────
-    KILLCHAIN_WINDOW_MS: int = 30000
-    KILLCHAIN_BACKTRACK_MS: int = 10000
 
     # Zero out x_norm/y_norm in node features for prediction input.
     # [teamfight_v2] Default True: XY excluded from model inputs.
