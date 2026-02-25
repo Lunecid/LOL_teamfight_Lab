@@ -280,7 +280,8 @@ class CFG:
 
     SPLIT_GROUP_BY_MATCH_ID: bool = True
 
-    MAX_FIGHTS_PER_MATCH: Optional[int] = 5
+    # None => keep all detected fights per match (no per-match cap).
+    MAX_FIGHTS_PER_MATCH: Optional[int] = None
     FIGHT_SUBSAMPLE_STRATEGY: str = "uniform"
     FIGHT_SUBSAMPLE_SEED_OFFSET: int = 0
 
@@ -420,8 +421,9 @@ class CFG:
     MAX_MERGED_FIGHT_DURATION_MS = 120000
 
     START_OFFSET_MIN: int = 2
-    FIGHT_MIN_GAP_MIN: int = 1
-    FIGHT_MIN_GAP_MS: int = 60000
+    FIGHT_MIN_GAP_MIN: int = 0
+    # 0 => no additional start-gap filtering; clustering/overlap rules decide.
+    FIGHT_MIN_GAP_MS: int = 0
     DETECT_STEP_MS: int = 10000
 
     # ─── teamfight_v2 parameters ────────────────────────────

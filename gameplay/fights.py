@@ -163,7 +163,7 @@ class FightDetectorConfig:
     standoff_min_pairs: int = 3
     engage_min_dist_drop: float = 250.0
     engage_min_pair_gain: int = 2
-    fight_min_gap_ms: int = 60000
+    fight_min_gap_ms: int = 0
     fight_context_min: int = 1
     detect_step_ms: int = 10000
     frame_ms: int = 60000
@@ -226,7 +226,11 @@ class FightDetectorConfig:
             errors.append(f"standoff_min_pairs must be 1-25, got {self.standoff_min_pairs}")
         if self.fight_min_gap_ms < 0:
             errors.append("fight_min_gap_ms must be non-negative")
-        if self.continuous_fight_merge and self.continuous_fight_max_gap_ms >= self.fight_min_gap_ms:
+        if (
+            self.continuous_fight_merge
+            and self.fight_min_gap_ms > 0
+            and self.continuous_fight_max_gap_ms >= self.fight_min_gap_ms
+        ):
             errors.append(
                 f"continuous_fight_max_gap_ms ({self.continuous_fight_max_gap_ms}) "
                 f"must be < fight_min_gap_ms ({self.fight_min_gap_ms})"
@@ -1384,6 +1388,106 @@ def _cluster_kills_temporal(
 
     return clusters
 
+
+def _split_kill_cluster_spatial(cluster: dict, max_diameter: float) -> List[dict]:
+    """Split one temporal kill cluster into spatial sub-clusters.
+
+    Strategy:
+      - Build an undirected graph among kills-with-position.
+      - Edge if distance <= max_diameter.
+      - Connected components become spatial sub-clusters.
+      - Kills without position are attached to the temporally nearest component.
+    """
+    if not isinstance(cluster, dict):
+        return []
+
+    kills = list(cluster.get("kills", []) or [])
+    if len(kills) <= 1 or float(max_diameter) <= 0.0:
+        return [cluster] if kills else []
+
+    with_pos: List[Tuple[int, dict, float, float]] = []
+    without_pos: List[Tuple[int, dict]] = []
+    for i, k in enumerate(kills):
+        pos = k.get("position", None) if isinstance(k, dict) else None
+        if isinstance(pos, (tuple, list)) and len(pos) >= 2:
+            try:
+                with_pos.append((i, k, float(pos[0]), float(pos[1])))
+            except Exception:
+                without_pos.append((i, k))
+        else:
+            without_pos.append((i, k))
+
+    if len(with_pos) <= 1:
+        return [_finalize_kill_cluster(kills)]
+
+    r = float(max_diameter)
+    r2 = r * r
+    n = len(with_pos)
+    adj: List[List[int]] = [[] for _ in range(n)]
+    for i in range(n):
+        _, _, xi, yi = with_pos[i]
+        for j in range(i + 1, n):
+            _, _, xj, yj = with_pos[j]
+            dx = xi - xj
+            dy = yi - yj
+            if (dx * dx + dy * dy) <= r2:
+                adj[i].append(j)
+                adj[j].append(i)
+
+    # connected components
+    comp_nodes: List[List[int]] = []
+    seen = [False] * n
+    for s in range(n):
+        if seen[s]:
+            continue
+        stack = [s]
+        seen[s] = True
+        comp: List[int] = []
+        while stack:
+            v = stack.pop()
+            comp.append(v)
+            for nx in adj[v]:
+                if not seen[nx]:
+                    seen[nx] = True
+                    stack.append(nx)
+        comp_nodes.append(comp)
+
+    if len(comp_nodes) <= 1 and not without_pos:
+        return [_finalize_kill_cluster(kills)]
+
+    # component payloads
+    comp_payload: List[List[Tuple[int, dict]]] = []
+    comp_first_ts: List[int] = []
+    for comp in comp_nodes:
+        pairs = [(with_pos[idx][0], with_pos[idx][1]) for idx in comp]
+        pairs.sort(key=lambda t: int(t[1].get("timestamp", 0)))
+        comp_payload.append(pairs)
+        comp_first_ts.append(int(pairs[0][1].get("timestamp", 0)) if pairs else 10**18)
+
+    # attach missing-position kills to temporally nearest component
+    for orig_idx, k in without_pos:
+        ts = int(k.get("timestamp", 0)) if isinstance(k, dict) else 0
+        best_ci = 0
+        best_dt = 10**18
+        for ci, cts in enumerate(comp_first_ts):
+            dt = abs(int(ts) - int(cts))
+            if dt < best_dt:
+                best_dt = dt
+                best_ci = ci
+        comp_payload[best_ci].append((orig_idx, k))
+
+    out: List[dict] = []
+    for pairs in comp_payload:
+        if not pairs:
+            continue
+        # keep deterministic temporal order inside each sub-cluster
+        pairs.sort(key=lambda t: int(t[1].get("timestamp", 0)))
+        out.append(_finalize_kill_cluster([k for _, k in pairs]))
+
+    out.sort(key=lambda c: int(c.get("first_kill_ts", 0)))
+    return out
+
+
 def _finalize_kill_cluster(kills: List[dict]) -> dict:
     """Convert a list of kills into a cluster dict."""
     participants: set = set()
@@ -1643,7 +1747,8 @@ def detect_fights_teamfight_v2(
 
     Algorithm:
       1. Build 5-second position grid with baseline + pre-kill override.
-      2. Cluster kill events temporally (gap threshold ~18s).
+      2. Cluster kill events temporally (gap threshold ~18s),
+         then split temporal clusters spatially (diameter <= CLUSTER_MAX_DIAMETER).
       3. For each cluster:
          a. Fight center = first kill XY.
          b. Engage time = first_kill_ts - 10s.
@@ -1656,7 +1761,7 @@ def detect_fights_teamfight_v2(
 
     Key changes from legacy detectors:
       - Kills ONLY create fights (no ward/objective hard gates).
-      - Single consistent definition: kills → clustering → radii → validation.
+      - Single consistent definition: kills → temporal clustering → spatial split → radii → validation.
       - No multi-stage time-window guards.
     """
     diag: Dict[str, Any] = {
@@ -1806,9 +1911,23 @@ def detect_fights_teamfight_v2(
     dists = compute_distances_chunked(xy_dense, b, r, config.chunk_size)
     prox_pairs = np.sum(dists <= R_compat, axis=(1, 2)).astype(np.int32)
 
-    # --- Step 2: Cluster kills temporally ---
+    # --- Step 2: Cluster kills (temporal -> spatial split) ---
     clusters = _cluster_kills_temporal(kill_events, kill_cluster_gap_ms)
     diag["clusters_total"] = len(clusters)
+
+    spatial_added = 0
+    spatial_diam = float(getattr(config, "cluster_max_diameter", 0.0) or 0.0)
+    if spatial_diam > 0.0:
+        split_clusters: List[dict] = []
+        for cl in clusters:
+            subs = _split_kill_cluster_spatial(cl, max_diameter=spatial_diam)
+            if len(subs) > 1:
+                spatial_added += (len(subs) - 1)
+            split_clusters.extend(subs)
+        clusters = sorted(split_clusters, key=lambda c: int(c.get("first_kill_ts", 0)))
+
+    diag["clusters_spatial_added"] = int(spatial_added)
+    diag["clusters_after_spatial"] = int(len(clusters))
 
     def _check_alive_at_ts(ts_val: int) -> bool:
         if int(config.require_alive_per_team) <= 0 or alive_idx is None:
@@ -1952,12 +2071,15 @@ def detect_fights_teamfight_v2(
     _truncate_fights_at_ace(fights, ace_ts, horizon_ms=int(horizon_ms), diag=diag)
 
     # Post-merge spacing enforcement
+    postmerge_location_radius = float(getattr(config, "cluster_max_diameter", 0.0) or 0.0)
+    if postmerge_location_radius > 0.0 and is_norm and scale_factor > 0:
+        postmerge_location_radius /= scale_factor
     fights = enforce_postmerge_spacing_and_nonoverlap(
         fights,
         horizon_ms=int(horizon_ms),
         fight_min_gap_ms=int(config.fight_min_gap_ms),
         kill_ts=kill_ts,
-        location_radius=0.0,
+        location_radius=float(max(0.0, postmerge_location_radius)),
         diag=diag,
     )
 
