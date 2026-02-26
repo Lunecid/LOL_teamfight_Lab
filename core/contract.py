@@ -66,7 +66,7 @@ _BOOL_NODE_COLS: List[int] = []
 for nm, j in NODE_IDX.items():
     if j is None:
         continue
-    if nm == "alive" or nm == "flash_ready":
+    if nm == "alive":
         _BOOL_NODE_COLS.append(j)
     elif nm.startswith("has_") or nm.startswith("soul_"):
         _BOOL_NODE_COLS.append(j)

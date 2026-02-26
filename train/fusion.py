@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-import logging
 import random
-import json
-from dataclasses import dataclass
 from itertools import combinations
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -12,95 +9,18 @@ import numpy as np
 
 from core.fight_types import FightRef, ref_key
 from data.labels import aligned_xy_from_maps, get_label_map
-from core.common import sigmoid_np
 from core.utils import confusion_from_probs, metrics_from_probs, pretty_cm, save_json, write_log
-
-logger = logging.getLogger(__name__)
-
-# Optional meta learner deps
-try:
-    from sklearn.linear_model import LogisticRegression  # type: ignore
-
-    HAS_SK = True
-except ImportError:
-    LogisticRegression = None
-    HAS_SK = False
-
-
-# ---------------------------------------------------------------------
-# Safety helpers
-# ---------------------------------------------------------------------
-def _sanitize_meta_X(X: np.ndarray, clip: float = 20.0) -> np.ndarray:
-    """
-    Make meta feature matrix safe for sklearn:
-    - replace NaN/Inf with 0
-    - clip extreme values (useful if logits blow up)
-    """
-    if X is None:
-        return X
-    X = np.asarray(X, dtype=np.float32)
-    X = np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0)
-    if clip is not None and clip > 0:
-        X = np.clip(X, -clip, clip)
-    return X
-
-
-def _logit_from_prob(p: np.ndarray) -> np.ndarray:
-    p = np.clip(p, 1e-6, 1 - 1e-6)
-    return np.log(p / (1 - p))
-
-
-def _safe_tag(s: str) -> str:
-    """Filesystem-safe tag."""
-    s = str(s)
-    for ch in [" ", "/", "\\", ":", "|", ";", ",", "\t", "\n"]:
-        s = s.replace(ch, "_")
-    while "__" in s:
-        s = s.replace("__", "_")
-    return s.strip("_") or "combo"
-
-
-# ---------------------------------------------------------------------
-# Types
-# ---------------------------------------------------------------------
-@dataclass
-class StackingResult:
-    ok: bool
-    meta_method: str
-    base_names: List[str]
-    metrics: Dict[str, Any]
-    out_dir: str
-    pred_logit_map: Optional[Dict[str, float]] = None
-
-
-def split_logit_map_by_refs(refs: List[FightRef], logit_map: Dict[str, float]) -> Dict[str, float]:
-    out: Dict[str, float] = {}
-    for r in refs:
-        k = ref_key(r)
-        if k in logit_map:
-            out[k] = float(logit_map[k])
-    return out
-
-
-# ---------------------------------------------------------------------
-# Meta learner
-# ---------------------------------------------------------------------
-def _fit_logreg(X: np.ndarray, y: np.ndarray, seed: int) -> Any:
-    if not HAS_SK or LogisticRegression is None:
-        raise RuntimeError("scikit-learn not installed")
-    clf = LogisticRegression(
-        solver="lbfgs",
-        max_iter=2000,
-        random_state=int(seed),
-    )
-    clf.fit(X, y)
-    return clf
-
-
-def _predict_proba(clf, X: np.ndarray) -> np.ndarray:
-    X = _sanitize_meta_X(X)
-    p = clf.predict_proba(X)[:, 1]
-    return p
+from train.fusion_calibration import calibrate_logits_by_patch, compute_ece, find_optimal_temperature
+from train.fusion_helpers import (
+    StackingResult,
+    _eval_single_base_auc,
+    _fit_logreg,
+    _logit_from_prob,
+    _predict_proba,
+    _safe_tag,
+    _sanitize_meta_X,
+    split_logit_map_by_refs,
+)
 
 
 # ---------------------------------------------------------------------
@@ -234,31 +154,6 @@ def stack_simple(
 
 
 #Ã«â€¹Â¨Ã¬ÂÂ¼ Ã¬â€žÂ±Ã«Å Â¥ Ã­â€”Â¬Ã­ÂÂ¼
-def _eval_single_base_auc(
-    refs: List[FightRef],
-    y_map: Dict[str, int],
-    logit_map: Dict[str, float],
-) -> Dict[str, Any]:
-    ys: List[int] = []
-    ps: List[float] = []
-
-    for r in refs:
-        k = ref_key(r)
-        if k in y_map and k in logit_map:
-            ys.append(int(y_map[k]))
-            ps.append(float(logit_map[k]))
-
-    if len(ys) < 10:
-        return {"n": len(ys), "auc": float("nan")}
-
-    y = np.asarray(ys, dtype=np.int64)
-    z = np.asarray(ps, dtype=np.float64)
-    p = sigmoid_np(z)  # logits -> prob
-
-    met = metrics_from_probs(y, p, threshold=0.5)
-    met["n"] = int(len(ys))
-    return met
-
 def prune_correlated_columns(
     X: np.ndarray,
     names: List[str],
@@ -990,180 +885,3 @@ def stack_factorial(
 def stack_factorical(*args, **kwargs):
     return stack_factorial(*args, **kwargs)
 
-
-# =========================================================
-# [REC-4b] Temperature Scaling — Post-hoc Calibration
-# ---------------------------------------------------------
-# Mathematical formulation:
-#   P_calibrated(y=1) = σ(z / T_p*)
-#
-# where T_p* minimizes the negative log-likelihood on patch p:
-#   T_p* = argmin_T Σ_{i ∈ patch_p} [-y_i log σ(z_i/T) - (1-y_i) log(1-σ(z_i/T))]
-#
-# Numerical stability:
-#   log σ(x)   = -log(1 + exp(-x)) = -log1p(exp(-x))
-#   log(1-σ(x)) = -log(1 + exp(x))  = -log1p(exp(x))
-#
-# Reference: Guo et al. (2017), "On Calibration of Modern Neural Networks"
-# =========================================================
-
-def _nll_temperature(T: float, logits: np.ndarray, labels: np.ndarray) -> float:
-    """
-    Compute negative log-likelihood with temperature scaling.
-
-    NLL = -Σ [y_i · log σ(z_i/T) + (1-y_i) · log(1 - σ(z_i/T))]
-
-    Uses numerically stable formulation via log1p to prevent underflow.
-    """
-    T = max(float(T), 1e-6)
-    z = logits / T
-    # Numerically stable: -log σ(x) = log1p(exp(-x))
-    # For y=1: loss = log1p(exp(-z))
-    # For y=0: loss = log1p(exp(z))
-    loss_pos = np.log1p(np.exp(-np.clip(z, -30, 30)))   # -log σ(z)
-    loss_neg = np.log1p(np.exp(np.clip(z, -30, 30)))    # -log(1-σ(z))
-    nll = float(np.mean(labels * loss_pos + (1 - labels) * loss_neg))
-    return nll
-
-
-def find_optimal_temperature(
-    logits: np.ndarray,
-    labels: np.ndarray,
-    T_init: float = 1.0,
-    bounds: Tuple[float, float] = (0.1, 10.0),
-) -> float:
-    """
-    Find optimal temperature T* using Brent's method.
-
-    T* = argmin_T NLL(logits/T, labels)
-
-    Falls back to grid search if scipy is unavailable.
-    """
-    try:
-        from scipy.optimize import minimize_scalar  # type: ignore
-        result = minimize_scalar(
-            _nll_temperature,
-            bounds=bounds,
-            args=(logits, labels),
-            method="bounded",
-            options={"xatol": 1e-4, "maxiter": 200},
-        )
-        return float(result.x)
-    except ImportError:
-        # Grid search fallback
-        best_T, best_nll = T_init, _nll_temperature(T_init, logits, labels)
-        for T_cand in np.linspace(bounds[0], bounds[1], 100):
-            nll = _nll_temperature(T_cand, logits, labels)
-            if nll < best_nll:
-                best_T, best_nll = float(T_cand), nll
-        return best_T
-
-
-def calibrate_logits_by_patch(
-    logit_map: Dict[str, float],
-    refs: List,
-    labels: Dict[str, int],
-    log_fp: Optional[Path] = None,
-) -> Tuple[Dict[str, float], Dict[str, float]]:
-    """
-    Apply per-patch temperature scaling to a logit map.
-
-    Parameters
-    ----------
-    logit_map : {ref_key: logit}
-    refs : list of FightRef (must have .patch attribute)
-    labels : {ref_key: 0 or 1}
-    log_fp : optional log path
-
-    Returns
-    -------
-    calibrated_map : {ref_key: calibrated_logit}
-    T_by_patch : {patch_str: optimal_T}
-    """
-    # Group logits by patch
-    from collections import defaultdict
-    patch_groups: Dict[str, Tuple[List[str], List[float], List[int]]] = defaultdict(
-        lambda: ([], [], [])
-    )
-
-    for r in refs:
-        k = ref_key(r) if callable(ref_key) else str(r)
-        if k not in logit_map or k not in labels:
-            continue
-        patch_str = str(getattr(r, "patch", getattr(r, "patch_str", "unknown")))
-        keys_list, logits_list, labels_list = patch_groups[patch_str]
-        keys_list.append(k)
-        logits_list.append(logit_map[k])
-        labels_list.append(labels[k])
-
-    calibrated_map: Dict[str, float] = {}
-    T_by_patch: Dict[str, float] = {}
-
-    for patch_str, (keys_list, logits_list, labels_list) in patch_groups.items():
-        z = np.array(logits_list, dtype=np.float64)
-        y = np.array(labels_list, dtype=np.float64)
-
-        if len(z) < 50 or len(np.unique(y)) < 2:
-            T_star = 1.0  # insufficient data -> no scaling
-        else:
-            # [FIX] Use first half for fitting T*, apply to all.
-            # This prevents calibration overfitting (data leak).
-            n_cal = max(20, len(z) // 2)
-            T_star = find_optimal_temperature(z[:n_cal], y[:n_cal])
-
-        T_by_patch[patch_str] = T_star
-
-        for k, logit_val in zip(keys_list, logits_list):
-            calibrated_map[k] = float(logit_val / T_star)
-
-        if log_fp:
-            write_log(
-                f"[TEMP_SCALE] patch={patch_str} n={len(z)} T*={T_star:.4f}",
-                log_fp,
-            )
-
-    return calibrated_map, T_by_patch
-
-
-def compute_ece(
-    probs: np.ndarray,
-    labels: np.ndarray,
-    n_bins: int = 15,
-) -> float:
-    """
-    Compute Expected Calibration Error.
-
-    ECE = Σ_{m=1}^{M} (|B_m| / n) · |acc(B_m) - conf(B_m)|
-
-    where B_m is the set of samples whose predicted probability falls
-    in the m-th bin, acc(B_m) is the actual accuracy, and conf(B_m)
-    is the mean predicted probability in that bin.
-
-    Parameters
-    ----------
-    probs : (N,) predicted probabilities
-    labels : (N,) binary labels
-    n_bins : number of equal-width bins
-
-    Returns
-    -------
-    ece : float in [0, 1]
-    """
-    bin_edges = np.linspace(0, 1, n_bins + 1)
-    ece = 0.0
-    n = len(probs)
-    if n == 0:
-        return 0.0
-
-    for i in range(n_bins):
-        mask = (probs >= bin_edges[i]) & (probs < bin_edges[i + 1])
-        if i == n_bins - 1:  # last bin includes right edge
-            mask = (probs >= bin_edges[i]) & (probs <= bin_edges[i + 1])
-        n_bin = int(mask.sum())
-        if n_bin == 0:
-            continue
-        acc_bin = float(labels[mask].mean())
-        conf_bin = float(probs[mask].mean())
-        ece += (n_bin / n) * abs(acc_bin - conf_bin)
-
-    return float(ece)

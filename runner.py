@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import itertools
+import sys
 from typing import Dict, List, Optional, Tuple
 
 from core.config import cfg
@@ -98,6 +99,15 @@ _FUSION_LOGIT_ALIASES: Dict[str, str] = {
     "without": "0",
     "drop": "0",
 }
+
+_PAPER_CORE4_MODELS = ",".join(
+    [
+        "rnn_bigru",
+        "gnn_graphsage",
+        "rnn_transformer",
+        "layered_fusion@global=bigru+gnn=graphsage+event=attn+logit=1",
+    ]
+)
 
 
 def _stable_unique(xs: List[str]) -> List[str]:
@@ -274,8 +284,57 @@ def _expand_fusion_exprs(raw: str) -> List[str]:
     return _stable_unique(out)
 
 
+def _apply_paper_preset(args: argparse.Namespace) -> None:
+    preset = str(getattr(args, "paper_preset", "none") or "none").strip().lower()
+    if preset in ("", "none", "off", "false", "0"):
+        return
+
+    paper_seed = int(getattr(args, "paper_seed", 7))
+    paper_max_matches = int(getattr(args, "paper_max_matches", 0))
+
+    # Core objective:
+    #   1) RNN, GNN, Attention, 3-way fusion
+    #   2) single-seed fast path for paper iteration
+    args.seed = int(paper_seed)
+    args.feature_set = "full"
+    args.models = _PAPER_CORE4_MODELS
+    args.ablation_mode = "baseline_plus"
+    args.require_lgbm = True
+    args.no_factorial_fusion = True
+    args.stacking_mode = "simple"
+    args.oof_skip_deep = True
+
+    # Hardware-aware speed defaults for RTX 50xx class.
+    speed_raw = str(getattr(args, "speed_profile", "none") or "none").strip().lower()
+    if speed_raw in ("none", "off", ""):
+        args.speed_profile = "rtx5080"
+    args.amp = True
+    args.tf32 = True
+    args.no_tf32 = False
+    args.cache_match_packs_in_ram = True
+    args.cache_eval_in_ram = True
+
+    if preset == "core4_1seed_fast":
+        # Fast triage mode: cap matches unless user explicitly sets one.
+        if paper_max_matches > 0:
+            args.max_matches = int(paper_max_matches)
+        elif int(getattr(args, "max_matches", 0)) <= 0:
+            args.max_matches = 600
+    elif paper_max_matches > 0:
+        args.max_matches = int(paper_max_matches)
+
+
 def build_argparser() -> argparse.ArgumentParser:
-    ap = argparse.ArgumentParser()
+    ap = argparse.ArgumentParser(
+        description="Unified experiment runner (default pipeline mode).",
+        epilog=(
+            "Ablation runner is also available in this same entrypoint.\n"
+            "Use one of:\n"
+            "  python runner.py ablation --phase 1\n"
+            "  python runner.py --phase 1"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     ap.add_argument("--mode", type=str, default=str(cfg.MODE), help="all | build_cache | index | train | report")
     ap.add_argument(
         "--feature_set",
@@ -293,6 +352,24 @@ def build_argparser() -> argparse.ArgumentParser:
     )
     ap.add_argument("--models", type=str, default="", help="comma-separated model list override")
     ap.add_argument("--filter_loadable", action="store_true", help="filter splits by build_ms_sequence success")
+    ap.add_argument(
+        "--paper_preset",
+        type=str,
+        default="none",
+        choices=["none", "core4_1seed", "core4_1seed_fast"],
+        help=(
+            "paper fast preset: "
+            "RNN(bigru)+GNN(graphsage)+Attention(transformer)+3-way layered_fusion. "
+            "core4_1seed_fast additionally caps max_matches for quick triage."
+        ),
+    )
+    ap.add_argument("--paper_seed", type=int, default=7, help="seed used by --paper_preset")
+    ap.add_argument(
+        "--paper_max_matches",
+        type=int,
+        default=0,
+        help="optional max_matches override for --paper_preset (0 keeps preset/default behavior)",
+    )
 
     # Ablation control
     ap.add_argument(
@@ -386,9 +463,40 @@ def build_argparser() -> argparse.ArgumentParser:
     return ap
 
 
-def main() -> None:
+def _looks_like_ablation_argv(argv: List[str]) -> bool:
+    if not argv:
+        return False
+    if argv[0].lower() in ("ablation", "abl"):
+        return True
+    return any(tok == "--phase" or tok.startswith("--phase=") for tok in argv)
+
+
+def _run_ablation_from_argv(argv: List[str]) -> None:
+    from app.experiment_runner_io import build_parser as _build_ablation_parser
+    from experiment_runner import run_phase_cli as _run_phase_cli
+
+    ab_parser = _build_ablation_parser()
+    ab_args = ab_parser.parse_args(argv)
+    _run_phase_cli(ab_args)
+
+
+def main(argv: Optional[List[str]] = None) -> None:
+    raw_argv = list(argv) if argv is not None else sys.argv[1:]
+
+    if raw_argv and raw_argv[0].lower() in ("experiment", "exp", "run"):
+        raw_argv = raw_argv[1:]
+
+    if raw_argv and raw_argv[0].lower() in ("ablation", "abl"):
+        _run_ablation_from_argv(raw_argv[1:])
+        return
+
+    if _looks_like_ablation_argv(raw_argv):
+        _run_ablation_from_argv(raw_argv)
+        return
+
     ap = build_argparser()
-    args = ap.parse_args()
+    args = ap.parse_args(raw_argv)
+    _apply_paper_preset(args)
 
     # cfg updates (kept compatible with the old entrypoint)
     cfg.MODE = args.mode

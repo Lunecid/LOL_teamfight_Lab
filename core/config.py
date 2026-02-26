@@ -42,6 +42,27 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 
+def _repo_root() -> Path:
+    # core/config.py -> project root
+    return Path(__file__).resolve().parents[1]
+
+
+def _path_from_env_or_default(env_key: str, windows_default: str, posix_rel_default: str) -> Path:
+    """Return env override when set; otherwise platform-aware default path.
+
+    Why this exists:
+      - Previous defaults used hardcoded Windows paths on all platforms.
+      - On macOS/Linux those strings become literal relative directory names
+        (for example, `D:\\LOL_Project`) inside the workspace.
+    """
+    raw = str(os.environ.get(env_key, "")).strip()
+    if raw:
+        return Path(raw)
+    if os.name == "nt":
+        return Path(windows_default)
+    return (_repo_root() / posix_rel_default).resolve()
+
+
 # -------------------------------------------------------------------
 # Feature keys (timeline participantFrames)
 # -------------------------------------------------------------------
@@ -123,14 +144,10 @@ NODE_SNAPSHOT_FEATURE_NAMES: List[str] = [
 ]
 
 NODE_STATUS_FEATURE_NAMES: List[str] = [
-    "has_baron", "has_elder", "has_red", "has_blue",
-    "baron_remain_norm", "elder_remain_norm", "red_remain_norm", "blue_remain_norm",
+    "has_baron", "has_elder",
+    "baron_remain_norm", "elder_remain_norm",
     *[f"soul_{t}" for t in DRAGON_SOUL_TYPES],
     "ult_level_norm",
-    "flash_ready", "flash_remain_norm",
-    "vision_ally_ward_cnt_norm",
-    "vision_ward_kill_recent_norm",
-    "vision_nearby_score_norm",
 ]
 
 NODE_FEATURE_NAMES: List[str] = (
@@ -239,23 +256,29 @@ class CFG:
     # =========================================================
     # 0) Feature / Cache versioning
     # =========================================================
-    FEATURE_VERSION: str = "featV6_status_contract2_runes_bans_spells_styles_bin5s"
+    FEATURE_VERSION: str = "featV7_schema_pruned_status_runes_bans_spells_styles_bin5s"
 
     # =========================================================
     # 1) Data Paths  [FIX-PATH] env var override 가능, 기본값은 원본 경로
     # =========================================================
-    DETAIL_DIR: Path = field(default_factory=lambda: Path(
-        os.environ.get("LOL_DETAIL_DIR", r"C:\Users\todtj\PycharmProjects\Lol_project\data\raw\matches\kr\detail")
+    DETAIL_DIR: Path = field(default_factory=lambda: _path_from_env_or_default(
+        "LOL_DETAIL_DIR",
+        r"C:\Users\todtj\PycharmProjects\Lol_project\data\raw\matches\kr\detail",
+        "data/raw/matches/kr/detail",
     ))
-    TIMELINE_DIR: Path = field(default_factory=lambda: Path(
-        os.environ.get("LOL_TIMELINE_DIR", r"C:\Users\todtj\PycharmProjects\Lol_project\data\raw\matches\kr\timeline")
+    TIMELINE_DIR: Path = field(default_factory=lambda: _path_from_env_or_default(
+        "LOL_TIMELINE_DIR",
+        r"C:\Users\todtj\PycharmProjects\Lol_project\data\raw\matches\kr\timeline",
+        "data/raw/matches/kr/timeline",
     ))
 
     # =========================================================
     # 2) Output Paths  [FIX-PATH]
     # =========================================================
-    OUTPUT_ROOT: Path = field(default_factory=lambda: Path(
-        os.environ.get("LOL_OUTPUT_ROOT", r"D:\LOL_Project")
+    OUTPUT_ROOT: Path = field(default_factory=lambda: _path_from_env_or_default(
+        "LOL_OUTPUT_ROOT",
+        r"D:\LOL_Project",
+        "outputs",
     ))
     CACHE_DIRNAME: str = "match_cache_fresh_v3_engage_status12"
     RUN_DIRNAME: str = "runs_teamfight_fresh_v3_engage_status13"
@@ -444,6 +467,14 @@ class CFG:
     TF2_TAIL_BUFFER_MS: int = 0
     # Minimum champions per team within validity radius.
     TF2_MIN_PER_TEAM: int = 2
+    # Dense XY grid step used by teamfight_v2 detector.
+    # Default 5s preserves current behavior.
+    TF2_GRID_STEP_MS: int = 5000
+    # Build dense grid with linear interpolation between 60s frames.
+    TF2_USE_FRAME_INTERP: bool = True
+    # Override actor trajectories from prior 60s frame toward kill position.
+    # This is the key interpolation algorithm under ablation.
+    TF2_USE_KILL_TRAJECTORY_INTERP: bool = True
 
     # Zero out x_norm/y_norm in node features for prediction input.
     # [teamfight_v2] Default True: XY excluded from model inputs.

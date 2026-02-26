@@ -26,854 +26,30 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import copy
 import itertools
-import json
 import math
 import os
-import sys
-import time
-from dataclasses import dataclass, field, asdict
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 import numpy as np
 
-# [SPEED] GPU utilization overlay
-from train.speed_config import apply_speed_overlay
-
-
-def bootstrap_ci(
-    values: List[float],
-    n_bootstrap: int = 1000,
-    alpha: float = 0.05,
-    seed: int = 42,
-) -> Tuple[float, float, float]:
-    """Compute bootstrap confidence interval for a list of metric values.
-
-    Returns (mean, ci_low, ci_high) using percentile method.
-
-    Parameters
-    ----------
-    values : list of float
-        Observed metric values (e.g., AUC from different seeds).
-    n_bootstrap : int
-        Number of bootstrap resamples.
-    alpha : float
-        Significance level (0.05 = 95% CI).
-    seed : int
-        Random seed for reproducibility.
-
-    Returns
-    -------
-    (mean, ci_low, ci_high) : tuple of float
-    """
-    arr = np.array(values, dtype=np.float64)
-    n = len(arr)
-    if n <= 1:
-        m = float(arr.mean()) if n == 1 else 0.0
-        return m, m, m
-
-    rng = np.random.RandomState(seed)
-    boot_means = np.empty(n_bootstrap, dtype=np.float64)
-    for i in range(n_bootstrap):
-        sample = arr[rng.randint(0, n, size=n)]
-        boot_means[i] = sample.mean()
-
-    ci_low = float(np.percentile(boot_means, 100 * (alpha / 2)))
-    ci_high = float(np.percentile(boot_means, 100 * (1 - alpha / 2)))
-    mean = float(arr.mean())
-    return mean, ci_low, ci_high
-
-
-# ──────────────────────────────────────────────────────────────
-# 1. Treatment Definitions
-# ──────────────────────────────────────────────────────────────
-
-@dataclass
-class Treatment:
-    """개선안 정의.
-
-    각 Treatment는 config.py에 대한 overlay (설정 덮어쓰기)로 표현.
-    이를 통해 기존 파이프라인을 수정하지 않고 실험 조건을 제어.
-    """
-    id: int
-    name: str
-    short_name: str
-    config_overlay: Dict[str, Any]
-    hp_grid: Dict[str, List[Any]] = field(default_factory=dict)
-    description: str = ""
-
-
-# 7가지 개선안 정의
-TREATMENTS: Dict[int, Treatment] = {
-    1: Treatment(
-        id=1,
-        name="Focal Loss",
-        short_name="focal",
-        config_overlay={
-            "USE_FOCAL_LOSS": True,
-            "FOCAL_GAMMA": 2.0,
-            "FOCAL_ALPHA": 0.25,
-        },
-        hp_grid={
-            "FOCAL_GAMMA": [1.0, 2.0, 3.0],
-        },
-        description=(
-            "L_FL(p_t) = -α_t (1 - p_t)^γ log(p_t)\n"
-            "Hard example mining: 쉬운 샘플(gold_diff >> 0)의 기여를 줄이고\n"
-            "어려운 샘플(close fights)에 집중"
-        ),
-    ),
-    2: Treatment(
-        id=2,
-        name="Game Phase Encoding",
-        short_name="phase",
-        config_overlay={
-            "USE_GAME_PHASE": True,
-            "GAME_PHASE_TAU": 3.0,
-        },
-        hp_grid={
-            "GAME_PHASE_TAU": [2.0, 3.0, 4.0],
-        },
-        description=(
-            "φ(t) = [σ((14-t)/τ), σ((t-10)/τ)·σ((28-t)/τ), σ((t-22)/τ)]\n"
-            "LoL의 3단계 게임 국면(초반/중반/후반)을 연속 인코딩"
-        ),
-    ),
-    3: Treatment(
-        id=3,
-        name="Attention Temporal Pooling",
-        short_name="attn_pool",
-        config_overlay={
-            "USE_ATTENTION_POOL": True,
-            "ATTENTION_POOL_DIM": 64,
-        },
-        hp_grid={},
-        description=(
-            "α_t = softmax(w^T tanh(W_a h_t))\n"
-            "c = Σ_t α_t h_t\n"
-            "output = [h_T || c]\n"
-            "마지막 hidden state만 사용하는 대신 전체 시퀀스 가중 합산"
-        ),
-    ),
-    4: Treatment(
-        id=4,
-        name="Gold/Stat Momentum Features",
-        short_name="momentum",
-        config_overlay={
-            "USE_MOMENTUM_FEATURES": True,
-            "MOMENTUM_K_SHORT": 3,
-        },
-        hp_grid={
-            "MOMENTUM_K_SHORT": [3, 5],
-        },
-        description=(
-            "μ_short = (1/k) Σ Δx_{T-i}  (최근 k 스텝)\n"
-            "μ_long  = (1/T) Σ Δx_t       (전체 평균)\n"
-            "δ_mom   = μ_short - μ_long    (MACD-like divergence)\n"
-            "단기 모멘텀 vs 장기 추세 괴리 포착"
-        ),
-    ),
-    5: Treatment(
-        id=5,
-        name="Role-Aware Adjacency",
-        short_name="role_adj",
-        config_overlay={
-            "USE_ROLE_AWARE_ADJ": True,
-            "ROLE_ADJ_INIT": 0.0,
-        },
-        hp_grid={},
-        description=(
-            "A'_ij = A^dist_ij · softplus(R_{role(i), role(j)})\n"
-            "R ∈ R^{5×5}: 학습 가능한 역할 상호작용 행렬\n"
-            "봇 듀오, 중정글 연동 등 도메인 구조 반영"
-        ),
-    ),
-    6: Treatment(
-        id=6,
-        name="Multi-Task Auxiliary Loss",
-        short_name="mtl",
-        config_overlay={
-            "USE_MULTI_TASK": True,
-            "MTL_LAMBDA_GOLD": 0.1,
-            "MTL_LAMBDA_KILL": 0.05,
-            "MTL_LAMBDA_OBJ": 0.05,
-        },
-        hp_grid={
-            "MTL_LAMBDA_GOLD": [0.05, 0.1, 0.2],
-        },
-        description=(
-            "L = L_fight + λ_g·||ĝ - g*||² + λ_k·||k̂ - k*||²\n"
-            "보조 회귀 task가 implicit regularization 역할\n"
-            "(Ruder 2017: multi-task → tighter generalization bounds)"
-        ),
-    ),
-    7: Treatment(
-        id=7,
-        name="Label Smoothing",
-        short_name="label_smooth",
-        config_overlay={
-            "LABEL_SMOOTHING": 0.05,
-        },
-        hp_grid={
-            "LABEL_SMOOTHING": [0.03, 0.05, 0.10],
-        },
-        description=(
-            "y_smooth = y·(1-ε) + ε/2\n"
-            "ε=0.05: y=1→0.975, y=0→0.025\n"
-            "KL regularization toward uniform; calibration 개선"
-        ),
-    ),
-}
-
-SEEDS: Tuple[int, ...] = (7, 42, 123, 256, 512)
-
-
-# ──────────────────────────────────────────────────────────────
-# 2. Statistical Testing Utilities
-# ──────────────────────────────────────────────────────────────
-
-def delong_test(y_true: np.ndarray, pred_a: np.ndarray, pred_b: np.ndarray) -> float:
-    """DeLong's test for comparing two AUC values.
-
-    수학적 배경:
-        Z = (AUC_A - AUC_B) / sqrt(Var(AUC_A) + Var(AUC_B) - 2·Cov(AUC_A, AUC_B))
-
-    DeLong et al. (1988) "Comparing the areas under two or more correlated
-    receiver operating characteristic curves: a nonparametric approach"
-
-    Returns:
-        p-value (two-sided)
-    """
-    try:
-        from scipy import stats as sp_stats
-        from sklearn.metrics import roc_auc_score
-    except ImportError:
-        print("[WARN] scipy/sklearn not available for DeLong's test")
-        return float('nan')
-
-    n = len(y_true)
-    pos_idx = np.where(y_true == 1)[0]
-    neg_idx = np.where(y_true == 0)[0]
-    n_pos = len(pos_idx)
-    n_neg = len(neg_idx)
-
-    if n_pos == 0 or n_neg == 0:
-        return float('nan')
-
-    # Structural components for variance estimation
-    def compute_structural(pred, pos_idx, neg_idx):
-        """Compute placement values for DeLong variance."""
-        pred_pos = pred[pos_idx]
-        pred_neg = pred[neg_idx]
-
-        v10 = np.zeros(len(pos_idx))
-        for j, pp in enumerate(pred_pos):
-            v10[j] = np.mean((pred_neg < pp).astype(float) + 0.5 * (pred_neg == pp).astype(float))
-
-        v01 = np.zeros(len(neg_idx))
-        for i, pn in enumerate(pred_neg):
-            v01[i] = np.mean((pred_pos > pn).astype(float) + 0.5 * (pred_pos == pn).astype(float))
-
-        return v10, v01
-
-    v10_a, v01_a = compute_structural(pred_a, pos_idx, neg_idx)
-    v10_b, v01_b = compute_structural(pred_b, pos_idx, neg_idx)
-
-    auc_a = roc_auc_score(y_true, pred_a)
-    auc_b = roc_auc_score(y_true, pred_b)
-
-    # Covariance matrix of (AUC_A, AUC_B)
-    s10 = np.cov(np.stack([v10_a, v10_b]))[0, 1] if n_pos > 1 else 0
-    s01 = np.cov(np.stack([v01_a, v01_b]))[0, 1] if n_neg > 1 else 0
-
-    var_a = np.var(v10_a, ddof=1) / n_pos + np.var(v01_a, ddof=1) / n_neg if (n_pos > 1 and n_neg > 1) else 1e-10
-    var_b = np.var(v10_b, ddof=1) / n_pos + np.var(v01_b, ddof=1) / n_neg if (n_pos > 1 and n_neg > 1) else 1e-10
-    cov_ab = s10 / n_pos + s01 / n_neg
-
-    var_diff = var_a + var_b - 2 * cov_ab
-
-    if var_diff <= 0:
-        return 1.0 if abs(auc_a - auc_b) < 1e-10 else 0.0
-
-    z = (auc_a - auc_b) / math.sqrt(var_diff)
-    p_value = 2 * (1 - sp_stats.norm.cdf(abs(z)))  # two-sided
-
-    return float(p_value)
-
-
-def mcnemar_test(y_true: np.ndarray, pred_a: np.ndarray, pred_b: np.ndarray,
-                 threshold: float = 0.5) -> float:
-    """McNemar's test for paired classification comparison.
-
-    수학적 배경:
-        2×2 contingency table:
-                       Model B correct    Model B wrong
-        Model A correct     n_{11}          n_{10}  (= c)
-        Model A wrong       n_{01}  (= b)  n_{00}
-
-        χ² = (|b - c| - 1)² / (b + c)    (continuity correction)
-    """
-    try:
-        from scipy import stats as sp_stats
-    except ImportError:
-        return float('nan')
-
-    y_a = (pred_a >= threshold).astype(int)
-    y_b = (pred_b >= threshold).astype(int)
-
-    correct_a = (y_a == y_true)
-    correct_b = (y_b == y_true)
-
-    b = int(np.sum(~correct_a & correct_b))
-    c = int(np.sum(correct_a & ~correct_b))
-
-    if b + c == 0:
-        return 1.0
-
-    chi2 = (abs(b - c) - 1) ** 2 / (b + c)
-    p_value = 1 - sp_stats.chi2.cdf(chi2, df=1)
-
-    return float(p_value)
-
-
-def holm_bonferroni(p_values: List[float], alpha: float = 0.05) -> List[bool]:
-    """Holm-Bonferroni method for multiple testing correction.
-
-    수학적 배경:
-        Sorted p-values: p_(1) ≤ p_(2) ≤ ... ≤ p_(m)
-        Adjusted threshold: α_(k) = α / (m - k + 1)
-        Reject H_0^(k) if p_(k) ≤ α_(k)
-
-    Properties:
-        - Controls Family-Wise Error Rate (FWER) ≤ α
-        - Uniformly more powerful than Bonferroni
-    """
-    m = len(p_values)
-    indexed = sorted(enumerate(p_values), key=lambda x: x[1])
-
-    results = [False] * m
-
-    for rank, (original_idx, p_val) in enumerate(indexed):
-        adjusted_alpha = alpha / (m - rank)
-        if p_val <= adjusted_alpha:
-            results[original_idx] = True
-        else:
-            break
-
-    return results
-
-
-def compute_ece(y_true: np.ndarray, y_prob: np.ndarray, n_bins: int = 15) -> float:
-    """Expected Calibration Error.
-
-    ECE = Σ_{m=1}^{M} (|B_m|/N) · |acc(B_m) - conf(B_m)|
-    """
-    bin_edges = np.linspace(0, 1, n_bins + 1)
-    ece = 0.0
-    n_total = len(y_true)
-
-    for i in range(n_bins):
-        mask = (y_prob > bin_edges[i]) & (y_prob <= bin_edges[i + 1])
-        if i == 0:
-            mask = (y_prob >= bin_edges[i]) & (y_prob <= bin_edges[i + 1])
-
-        n_bin = mask.sum()
-        if n_bin == 0:
-            continue
-
-        acc_bin = y_true[mask].mean()
-        conf_bin = y_prob[mask].mean()
-        ece += (n_bin / n_total) * abs(acc_bin - conf_bin)
-
-    return float(ece)
-
-
-def compute_brier(y_true: np.ndarray, y_prob: np.ndarray) -> float:
-    """Brier Score: BS = (1/N) Σ (p_i - y_i)²"""
-    return float(np.mean((y_prob - y_true) ** 2))
-
-
-def _safe_mean(values: List[float], default: float = -1.0) -> float:
-    if not values:
-        return float(default)
-    return float(np.mean(values))
-
-
-def _safe_std(values: List[float]) -> float:
-    if len(values) <= 1:
-        return 0.0
-    return float(np.std(values, ddof=1))
-
-
-# ──────────────────────────────────────────────────────────────
-# 3. Experiment Result Container
-# ──────────────────────────────────────────────────────────────
-
-@dataclass
-class ExperimentResult:
-    """단일 실험 run의 결과.
-
-    각 run은 (treatment_id, seed, hp_config) 3-tuple로 식별.
-    """
-    treatment_id: int
-    treatment_name: str
-    seed: int
-    hp_config: Dict[str, Any]
-
-    # Core metrics (train/val/test)
-    train_auc: float = -1.0
-    val_auc: float = -1.0
-    test_auc: float = -1.0
-
-    train_ap: float = -1.0
-    val_ap: float = -1.0
-    test_ap: float = -1.0
-
-    train_f1: float = -1.0
-    val_f1: float = -1.0
-    test_f1: float = -1.0
-
-    # Calibration metrics
-    val_brier: float = -1.0
-    val_ece: float = -1.0
-    test_brier: float = -1.0
-    test_ece: float = -1.0
-
-    # Training metadata
-    best_epoch: int = -1
-    train_time_sec: float = -1.0
-
-    # Prediction maps for statistical testing
-    pred_logits_val: Optional[Dict[str, float]] = None
-    pred_logits_test: Optional[Dict[str, float]] = None
-
-
-@dataclass
-class AblationSummary:
-    """단일 Treatment의 5-seed 종합 결과."""
-    treatment_id: int
-    treatment_name: str
-
-    # Mean ± Std over seeds
-    val_auc_mean: float = 0.0
-    val_auc_std: float = 0.0
-    val_auc_seeds: List[float] = field(default_factory=list)
-
-    test_auc_mean: float = 0.0
-    test_auc_std: float = 0.0
-
-    # Effect size relative to baseline
-    delta_val_auc_mean: float = 0.0
-    delta_val_auc_std: float = 0.0
-    delta_val_auc_ci_low: float = 0.0
-    delta_val_auc_ci_high: float = 0.0
-
-    # Statistical tests
-    delong_p_value: float = 1.0
-    mcnemar_p_value: float = 1.0
-    significant_after_correction: bool = False
-
-    # Cohen's d effect size
-    cohens_d: float = 0.0
-
-
-# ──────────────────────────────────────────────────────────────
-# 4. Config Overlay Mechanism
-# ──────────────────────────────────────────────────────────────
-
-def apply_config_overlay(cfg_obj: Any, overlay: Dict[str, Any]) -> None:
-    """Config 객체에 Treatment-specific 설정을 덮어씌움."""
-    for key, value in overlay.items():
-        try:
-            setattr(cfg_obj, key, value)
-        except AttributeError:
-            print(f"[WARN] Config attribute '{key}' does not exist, adding dynamically")
-            setattr(cfg_obj, key, value)
-
-
-def reset_config_to_baseline(cfg_obj: Any) -> None:
-    """모든 Treatment flag를 기본값(off)으로 리셋.
-
-    Phase 2 실험 간 교차 오염을 방지하기 위해 필수.
-    """
-    baseline_flags = {
-        "USE_FOCAL_LOSS": False,
-        "FOCAL_GAMMA": 2.0,
-        "FOCAL_ALPHA": 0.25,
-        "USE_GAME_PHASE": False,
-        "GAME_PHASE_TAU": 3.0,
-        "USE_ATTENTION_POOL": False,
-        "ATTENTION_POOL_DIM": 64,
-        "USE_MOMENTUM_FEATURES": False,
-        "MOMENTUM_K_SHORT": 3,
-        "USE_ROLE_AWARE_ADJ": False,
-        "ROLE_ADJ_INIT": 0.0,
-        "USE_MULTI_TASK": False,
-        "MTL_LAMBDA_GOLD": 0.1,
-        "MTL_LAMBDA_KILL": 0.05,
-        "MTL_LAMBDA_OBJ": 0.05,
-        "LABEL_SMOOTHING": 0.0,
-    }
-    apply_config_overlay(cfg_obj, baseline_flags)
-
-
-# ──────────────────────────────────────────────────────────────
-# 4b. Pipeline Bridge — 실제 실험 실행 인터페이스
-# ──────────────────────────────────────────────────────────────
-
-def _build_experiment_args(
-    feature_set: str = "full",
-    seed: int = 7,
-    split_mode: str = "patch_holdout",
-    extra_overrides: Optional[Dict[str, Any]] = None,
-) -> argparse.Namespace:
-    """runner.py의 argparser와 호환되는 Namespace 생성.
-
-    experiment.run(args)에 전달할 수 있는 형태로 변환.
-    """
-    from runner import build_argparser
-    parser = build_argparser()
-    args = parser.parse_args([])  # 기본값으로 초기화
-
-    # 핵심 실험 파라미터 설정
-    args.feature_set = feature_set
-    args.seed = seed
-    args.split_mode = split_mode
-
-    # 추가 오버라이드 적용
-    if extra_overrides:
-        for k, v in extra_overrides.items():
-            setattr(args, k, v)
-
-    return args
-
-
-def _find_unsupported_overlay_flags(overlay: Dict[str, Any]) -> List[str]:
-    unsupported: List[str] = []
-    return unsupported
-
-
-def run_single_experiment(
-    treatment_overlay: Dict[str, Any],
-    seed: int,
-    feature_set: str = "full",
-    split_mode: str = "patch_holdout",
-    experiment_tag: str = "",
-) -> ExperimentResult:
-    """단일 실험을 실행하고 ExperimentResult를 반환.
-
-    이 함수는 experiment_runner와 기존 pipeline 사이의 브릿지 역할.
-
-    수학적 흐름:
-        1. Config reset → baseline state
-        2. Treatment overlay 적용: cfg ← cfg ⊕ treatment_overlay
-        3. experiment.run(args) 실행 → deep model training + evaluation
-        4. metrics 파싱 → ExperimentResult
-
-    Parameters
-    ----------
-    treatment_overlay : dict
-        Treatment.config_overlay + hp_config merged
-    seed : int
-        Random seed for reproducibility
-    feature_set : str
-        Feature set identifier
-    split_mode : str
-        Data split strategy
-    experiment_tag : str
-        Human-readable experiment identifier
-
-    Returns
-    -------
-    ExperimentResult with parsed metrics
-    """
-    from core.config import cfg, RUN_DIR
-    from app.experiment import run as run_experiment
-    from core.utils import set_seed
-
-    print(f"\n    [EXEC] {experiment_tag} | seed={seed} | overlay={treatment_overlay}")
-    t0 = time.time()
-
-    # Step 1: Reset to clean baseline
-    reset_config_to_baseline(cfg)
-
-    # Step 1a: Apply GPU speed overlay (RAM cache, batch scaling, compile)
-    # T_total = M × S × E × (T_io + T_compute + T_eval)
-    # Speed overlay targets each term: T_io→0, T_compute↓, E↓
-    _speed_env = str(os.environ.get("LOL_SPEED_OVERLAY", "1")).strip().lower()
-    _use_speed = _speed_env not in ("0", "false", "off", "no")
-    _vram_gb = float(os.environ.get("LOL_VRAM_GB", "24.0"))
-    _speed_profile_raw = str(os.environ.get("LOL_SPEED_PROFILE", "auto" if _use_speed else "none")).strip().lower()
-    _speed_profile = "none" if _speed_profile_raw in ("", "off") else _speed_profile_raw
-    if _use_speed:
-        apply_speed_overlay(cfg, vram_gb=_vram_gb)
-        cfg.SPEED_PROFILE = _speed_profile
-        try:
-            from train.speed import apply_speed_profile as _apply_runtime_speed_profile
-            _applied = "none" if _speed_profile == "none" else _apply_runtime_speed_profile(cfg, profile=_speed_profile)
-        except Exception:
-            _applied = "none"
-        print(
-            "    [SPEED] enabled "
-            f"(vram={_vram_gb:.1f}GB, profile_req={_speed_profile}, profile_applied={_applied}, "
-            f"batch={getattr(cfg, 'BATCH_SIZE', '?')}, "
-            f"amp={getattr(cfg, 'AMP', False)}, "
-            f"compile={getattr(cfg, 'TORCH_COMPILE', False)}, "
-            f"cache_train={getattr(cfg, 'CACHE_TRAIN_SAMPLES_IN_RAM', False)})"
-        )
-        if _speed_profile != "none" and _applied == "none":
-            print("    [SPEED] runtime profile fallback: overlay-only (likely CUDA unavailable for auto profile)")
-    else:
-        cfg.SPEED_PROFILE = "none"
-        print("    [SPEED] disabled")
-
-    # Step 1b: Reset module-level singletons to prevent parameter leakage
-    # θ_singleton ← None → forces lazy re-initialization with fresh parameters
-    try:
-        from train.models import reset_model_singletons
-        reset_model_singletons()
-    except ImportError:
-        pass  # models.py가 아직 reset 함수를 갖지 않는 환경 (backward compat)
-
-    # Step 2: Apply treatment overlay
-    apply_config_overlay(cfg, treatment_overlay)
-
-    unsupported = _find_unsupported_overlay_flags(treatment_overlay)
-    if unsupported:
-        msg = " | ".join(unsupported)
-        print(f"    [ERROR] Unsupported overlay: {msg}")
-        return ExperimentResult(
-            treatment_id=-1,
-            treatment_name=experiment_tag,
-            seed=seed,
-            hp_config=treatment_overlay,
-            train_time_sec=time.time() - t0,
-        )
-
-    # Step 3: Set seed
-    set_seed(seed)
-
-    # Step 4: Build args and run
-    args = _build_experiment_args(
-        feature_set=feature_set,
-        seed=seed,
-        split_mode=split_mode,
-    )
-
-    # Attach model list from config
-    model_list = list(getattr(cfg, "MODEL_LIST", []))
-    args.model_list = model_list
-
-    run_dirs_before: set[str] = set()
-    try:
-        run_dirs_before = {
-            d.name
-            for d in RUN_DIR.iterdir()
-            if d.is_dir() and d.name.startswith("run_")
-        }
-    except Exception:
-        run_dirs_before = set()
-
-    try:
-        run_experiment(args)
-    except Exception as e:
-        print(f"    [ERROR] Experiment failed: {e}")
-        import traceback
-        traceback.print_exc()
-        return ExperimentResult(
-            treatment_id=-1,
-            treatment_name=experiment_tag,
-            seed=seed,
-            hp_config=treatment_overlay,
-            train_time_sec=time.time() - t0,
-        )
-
-    # Step 5: Parse results from the run directory produced by this execution
-    run_dir_hint = _pick_run_dir(
-        run_root=RUN_DIR,
-        seed=seed,
-        before_run_names=run_dirs_before,
-        started_at=t0,
-    )
-    result = _parse_latest_run_result(
-        experiment_tag=experiment_tag,
-        seed=seed,
-        hp_config=treatment_overlay,
-        run_dir_hint=run_dir_hint,
-        preferred_models=model_list,
-    )
-    result.train_time_sec = time.time() - t0
-
-    print(f"    [DONE] val_auc={result.val_auc:.4f} test_auc={result.test_auc:.4f} "
-          f"time={result.train_time_sec:.1f}s")
-
-    return result
-
-
-def _pick_run_dir(
-    run_root: Path,
-    seed: int,
-    before_run_names: Optional[set[str]] = None,
-    started_at: Optional[float] = None,
-) -> Optional[Path]:
-    try:
-        run_dirs = [d for d in run_root.iterdir() if d.is_dir() and d.name.startswith("run_")]
-    except Exception:
-        return None
-
-    if not run_dirs:
-        return None
-
-    def _mtime(p: Path) -> float:
-        try:
-            return float(p.stat().st_mtime)
-        except Exception:
-            return -1.0
-
-    seed_token = f"__seed={int(seed)}"
-
-    def _pick(cands: List[Path]) -> Optional[Path]:
-        if not cands:
-            return None
-        cands = sorted(cands, key=_mtime, reverse=True)
-        by_seed = [d for d in cands if seed_token in d.name]
-        return by_seed[0] if by_seed else cands[0]
-
-    if before_run_names:
-        created = [d for d in run_dirs if d.name not in before_run_names]
-        picked = _pick(created)
-        if picked is not None:
-            return picked
-
-    if started_at is not None:
-        recent = [d for d in run_dirs if _mtime(d) >= float(started_at) - 1.0]
-        picked = _pick(recent)
-        if picked is not None:
-            return picked
-
-    return _pick(run_dirs)
-
-
-def _parse_latest_run_result(
-    experiment_tag: str,
-    seed: int,
-    hp_config: Dict[str, Any],
-    run_dir_hint: Optional[Path] = None,
-    preferred_models: Optional[List[str]] = None,
-) -> ExperimentResult:
-    """가장 최근 run 디렉토리에서 결과를 파싱.
-
-    experiment.run()은 RUN_DIR/<run_tag>/ 아래에 결과를 저장.
-    deep_reports.json 또는 ablation_summary.csv에서 metrics를 추출.
-    """
-    from core.config import RUN_DIR
-
-    result = ExperimentResult(
-        treatment_id=-1,
-        treatment_name=experiment_tag,
-        seed=seed,
-        hp_config=hp_config,
-    )
-
-    try:
-        latest_run = run_dir_hint
-        if latest_run is None:
-            latest_run = _pick_run_dir(run_root=RUN_DIR, seed=seed, before_run_names=None, started_at=None)
-        if latest_run is None:
-            print(f"    [WARN] No run directories found in {RUN_DIR}")
-            return result
-
-        # deep_reports.json 에서 metrics 파싱 (run root 우선)
-        reports_path = latest_run / "deep_reports.json"
-        if not reports_path.exists() and (latest_run / "models").exists():
-            reports_path = latest_run / "models" / "deep_reports.json"
-
-        # 직접 reports 검색
-        if not reports_path.exists():
-            for p in latest_run.rglob("deep_reports.json"):
-                reports_path = p
-                break
-
-        if reports_path.exists():
-            with open(reports_path, "r") as f:
-                deep_reports = json.load(f)
-
-            preferred = {
-                str(m).strip()
-                for m in (preferred_models or [])
-                if str(m).strip() and str(m).strip().lower() != "lgbm"
-            }
-            best_report = None
-            best_score = (-1, -1.0)
-
-            for model_key, report in deep_reports.items():
-                if not isinstance(report, dict) or not report.get("ok", False):
-                    continue
-
-                metrics = report.get("metrics", {})
-                va_m = metrics.get("val", {})
-                try:
-                    va_auc = float(va_m.get("auc", float("nan")))
-                except Exception:
-                    va_auc = float("nan")
-                va_auc_score = va_auc if np.isfinite(va_auc) else -1.0
-
-                base_model = str(model_key).split("::", 1)[0]
-                priority = 1 if (not preferred or base_model in preferred) else 0
-                score = (priority, va_auc_score)
-                if score > best_score:
-                    best_score = score
-                    best_report = report
-
-            if isinstance(best_report, dict):
-                metrics = best_report.get("metrics", {})
-                tr_m = metrics.get("train", {})
-                va_m = metrics.get("val", {})
-                te_m = metrics.get("test", {})
-
-                result.train_auc = float(tr_m.get("auc", -1.0))
-                result.val_auc = float(va_m.get("auc", -1.0))
-                result.test_auc = float(te_m.get("auc", -1.0))
-
-                result.train_f1 = float(tr_m.get("f1", -1.0))
-                result.val_f1 = float(va_m.get("f1", -1.0))
-                result.test_f1 = float(te_m.get("f1", -1.0))
-
-                result.train_ap = float(tr_m.get("ap", -1.0))
-                result.val_ap = float(va_m.get("ap", -1.0))
-                result.test_ap = float(te_m.get("ap", -1.0))
-
-                result.best_epoch = int(best_report.get("best_epoch", -1))
-
-        # ablation_summary.csv fallback
-        if result.val_auc < 0:
-            csv_path = latest_run / "ablation_summary.csv"
-            if csv_path.exists():
-                import csv
-                with open(csv_path, "r") as f:
-                    reader = csv.DictReader(f)
-                    best_row = None
-                    best_va = -1.0
-                    for row in reader:
-                        try:
-                            va = float(row.get("va_auc", -1.0) or -1.0)
-                        except Exception:
-                            va = -1.0
-                        if va > best_va:
-                            best_va = va
-                            best_row = row
-                    if best_row is not None:
-                        result.val_auc = float(best_row.get("va_auc", -1.0) or -1.0)
-                        result.test_auc = float(best_row.get("te_auc", -1.0) or -1.0)
-                        result.train_auc = float(best_row.get("tr_auc", -1.0) or -1.0)
-
-    except Exception as e:
-        print(f"    [WARN] Result parsing failed: {e}")
-
-    return result
-
+from app.experiment_io import load_results_json as _load_results
+from app.experiment_io import save_results_json as _save_results
+from app.experiment_runner_io import (
+    build_parser,
+    deserialize_phase2_results,
+    deserialize_results,
+    determine_best_treatments,
+)
+from app.experiment_stats import (
+    bootstrap_ci,
+    holm_bonferroni,
+    safe_mean as _safe_mean,
+    safe_std as _safe_std,
+)
+from app.experiment_runtime import run_single_experiment
+from app.experiment_types import AblationSummary, ExperimentResult, SEEDS, TREATMENTS, TREATMENT_GROUPS, Treatment
 
 # ──────────────────────────────────────────────────────────────
 # 5. Phase Executors
@@ -976,6 +152,17 @@ def run_phase2_single_factor(
 
             results_for_treatment.append(result)
 
+        # Detector/sample diagnostics snapshot
+        valid_counts = [r for r in results_for_treatment if r.n_train >= 0 and r.n_val >= 0 and r.n_test >= 0]
+        if valid_counts:
+            tr_mean = float(np.mean([r.n_train for r in valid_counts]))
+            va_mean = float(np.mean([r.n_val for r in valid_counts]))
+            te_mean = float(np.mean([r.n_test for r in valid_counts]))
+            print(f"  [DIAG] mean split sizes train/val/test = {tr_mean:.1f}/{va_mean:.1f}/{te_mean:.1f}")
+        valid_fights = [r.n_fights_all for r in results_for_treatment if r.n_fights_all >= 0]
+        if valid_fights:
+            print(f"  [DIAG] mean detected fights (all refs) = {float(np.mean(valid_fights)):.1f}")
+
         all_results[tid] = results_for_treatment
 
     # Compute summaries and statistical tests
@@ -1030,6 +217,24 @@ def _hp_grid_search(args: argparse.Namespace, treatment: Treatment) -> Dict[str,
 
     print(f"  [HP Search] Best: {best_config} (val_auc={best_val_auc:.4f})")
     return best_config
+
+
+def _resolve_treatment_selection(raw: str) -> List[int]:
+    token = str(raw or "").strip().lower()
+    if token == "all":
+        return sorted(TREATMENTS.keys())
+
+    if token in TREATMENT_GROUPS:
+        ids = [int(tid) for tid in TREATMENT_GROUPS[token] if int(tid) in TREATMENTS]
+        if not ids:
+            raise ValueError(f"Treatment group '{raw}' is empty after filtering.")
+        return sorted(set(ids))
+
+    ids = [int(x.strip()) for x in str(raw).split(",") if x.strip()]
+    missing = [tid for tid in ids if tid not in TREATMENTS]
+    if missing:
+        raise ValueError(f"Unknown treatment id(s): {missing}. Available: {sorted(TREATMENTS.keys())}")
+    return ids
 
 
 def run_phase3_interaction(
@@ -1399,6 +604,15 @@ def _print_phase1_summary(results: List[ExperimentResult]) -> None:
         print(f"  Val  AUC: {_safe_mean(val_aucs):.4f} ± {_safe_std(val_aucs):.4f}")
         print(f"  Test AUC: {_safe_mean(test_aucs):.4f} ± {_safe_std(test_aucs):.4f}")
         print(f"  Seeds: {[f'{a:.4f}' for a in val_aucs]}")
+        split_known = [r for r in results if r.n_train >= 0 and r.n_val >= 0 and r.n_test >= 0]
+        if split_known:
+            tr_mean = float(np.mean([r.n_train for r in split_known]))
+            va_mean = float(np.mean([r.n_val for r in split_known]))
+            te_mean = float(np.mean([r.n_test for r in split_known]))
+            print(f"  Split n: train/val/test = {tr_mean:.1f}/{va_mean:.1f}/{te_mean:.1f}")
+        fights_known = [r.n_fights_all for r in results if r.n_fights_all >= 0]
+        if fights_known:
+            print(f"  Detected fights(all): {float(np.mean(fights_known)):.1f}")
     else:
         print("  [No results yet — execute pipeline to populate]")
 
@@ -1471,117 +685,8 @@ def _print_phase5_summary(results: List[ExperimentResult]) -> None:
 # 7. Main Entry Point
 # ──────────────────────────────────────────────────────────────
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="LoL Teamfight Prediction — Systematic Ablation Study Runner",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Phase descriptions:
-  1  Baseline reproduction (5 seeds)
-  2  Single-factor ablation (each treatment independently)
-  3  Interaction analysis (pairwise + cumulative)
-  4  Hyperparameter sensitivity analysis
-  5  Final test set evaluation (ONE-TIME)
-
-Examples:
-  python experiment_runner.py --phase 1
-  python experiment_runner.py --phase 2 --treatment 1
-  python experiment_runner.py --phase 2 --treatment all
-  python experiment_runner.py --phase 3 --top-k 3
-  python experiment_runner.py --phase 4
-  python experiment_runner.py --phase 5
-        """
-    )
-
-    parser.add_argument("--phase", type=int, required=True, choices=[1, 2, 3, 4, 5],
-                        help="Experiment phase to execute")
-    parser.add_argument("--treatment", type=str, default="all",
-                        help="Treatment ID(s) for Phase 2. 'all' or comma-separated (e.g., '1,3,5')")
-    parser.add_argument("--top-k", type=int, default=3,
-                        help="Top-K treatments for Phase 3 interaction analysis")
-    parser.add_argument("--output-dir", type=str, default="./ablation_results",
-                        help="Directory to save experiment results")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Print experiment plan without executing")
-
-    # Pass-through args for the underlying experiment pipeline
-    parser.add_argument("--feature-set", type=str, default="full", dest="feature_set")
-    parser.add_argument("--seed", type=int, default=7)
-    parser.add_argument("--split-mode", type=str, default="patch_holdout", dest="split_mode")
-
-    # [SPEED] GPU utilization overlay
-    parser.add_argument("--speed", action="store_true", default=True,
-                        help="Apply GPU speed overlay (RAM caching, batch scaling, torch.compile). Default: True")
-    parser.add_argument("--no-speed", action="store_false", dest="speed",
-                        help="Disable GPU speed overlay")
-    parser.add_argument("--vram", type=float, default=24.0,
-                        help="GPU VRAM in GB for auto batch sizing (default: 24.0)")
-    parser.add_argument(
-        "--speed-profile", "--speed_profile", "--speed-mode", "--speed_mode",
-        dest="speed_profile",
-        type=str,
-        default="auto",
-        choices=["none", "auto", "rtx50", "rtx5080", "aggressive"],
-        help="Runtime speed profile to combine with overlay (default: auto)",
-    )
-
-    return parser
-
-
-def _determine_best_treatments(
-    output_dir: Path,
-) -> Tuple[List[int], Dict[int, Dict[str, Any]]]:
-    """Phase 2/3 결과로부터 최적 Treatment 조합 결정.
-
-    Selection 기준:
-        1. Significant after Holm-Bonferroni correction
-        2. Positive delta (Δ > 0)
-        3. Phase 3에서 pairwise redundancy 없음
-
-    Returns
-    -------
-    best_ids : List[int]
-        선택된 treatment IDs
-    best_hps : Dict[int, Dict[str, Any]]
-        각 treatment의 최적 HP
-    """
-    # Phase 2 결과 로드
-    phase2_data = _load_results(output_dir / "phase2_single_factor.json")
-    if not phase2_data:
-        print("[WARN] Phase 2 results not found, selecting all treatments")
-        return list(TREATMENTS.keys()), {}
-
-    # 각 treatment의 mean val_auc 계산 및 양의 delta 필터링
-    best_ids = []
-    best_hps: Dict[int, Dict[str, Any]] = {}
-
-    for tid_str, results_list in phase2_data.items():
-        tid = int(tid_str)
-        if not isinstance(results_list, list):
-            continue
-        val_aucs = [r.get("val_auc", -1) for r in results_list if isinstance(r, dict)]
-        val_aucs = [a for a in val_aucs if a > 0]
-
-        if val_aucs:
-            best_ids.append(tid)
-            # HP는 첫 결과에서 추출
-            if results_list and isinstance(results_list[0], dict):
-                best_hps[tid] = results_list[0].get("hp_config", {})
-
-    if not best_ids:
-        print("[WARN] No treatment with positive val_auc in Phase 2. Falling back to all treatments.")
-        return list(TREATMENTS.keys()), {}
-
-    # Delta 기준 상위 3개로 제한 (conservative)
-    if len(best_ids) > 3:
-        best_ids = best_ids[:3]
-
-    return best_ids, best_hps
-
-
-def main():
-    parser = build_parser()
-    args = parser.parse_args()
+def run_phase_cli(args: argparse.Namespace) -> None:
+    """Execute the ablation workflow from an already-parsed namespace."""
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -1612,15 +717,12 @@ def main():
 
     elif args.phase == 2:
         # Parse treatment IDs
-        if args.treatment.lower() == "all":
-            treatment_ids = list(TREATMENTS.keys())
-        else:
-            treatment_ids = [int(x.strip()) for x in args.treatment.split(",")]
+        treatment_ids = _resolve_treatment_selection(args.treatment)
 
         # Load baseline results (must exist from Phase 1)
         baseline_path = output_dir / "phase1_baseline.json"
         baseline_data = _load_results(baseline_path) if baseline_path.exists() else None
-        baseline_results = _deserialize_results(baseline_data) if baseline_data else []
+        baseline_results = deserialize_results(baseline_data) if baseline_data else []
 
         if not baseline_results:
             print("[WARN] No baseline results found. Run Phase 1 first.")
@@ -1639,8 +741,8 @@ def main():
             print("[ERROR] Phase 1 and Phase 2 results required. Run them first.")
             return
 
-        baseline_results = _deserialize_results(baseline_data)
-        phase2_results = _deserialize_phase2_results(phase2_data)
+        baseline_results = deserialize_results(baseline_data)
+        phase2_results = deserialize_phase2_results(phase2_data)
 
         results = run_phase3_interaction(args, phase2_results, baseline_results, top_k=args.top_k)
         _save_results(output_dir / "phase3_interaction.json", results)
@@ -1654,8 +756,8 @@ def main():
             print("[ERROR] Phase 1 and Phase 2 results required. Run them first.")
             return
 
-        baseline_results = _deserialize_results(baseline_data)
-        phase2_results = _deserialize_phase2_results(phase2_data)
+        baseline_results = deserialize_results(baseline_data)
+        phase2_results = deserialize_phase2_results(phase2_data)
 
         results = run_phase4_sensitivity(args, phase2_results, baseline_results)
         _save_results(output_dir / "phase4_sensitivity.json", results)
@@ -1663,7 +765,7 @@ def main():
     elif args.phase == 5:
         print("[Phase 5] Final test evaluation — determining best treatments...")
 
-        best_ids, best_hps = _determine_best_treatments(output_dir)
+        best_ids, best_hps = determine_best_treatments(output_dir)
         print(f"  Selected treatments: {best_ids}")
         print(f"  HP configs: {best_hps}")
 
@@ -1673,103 +775,10 @@ def main():
     print("\n[DONE] Experiment phase completed.")
 
 
-# ──────────────────────────────────────────────────────────────
-# 8. Serialization / Deserialization Utilities
-# ──────────────────────────────────────────────────────────────
-
-def _save_results(path: Path, results: Any) -> None:
-    """결과를 JSON으로 저장."""
-    try:
-        if isinstance(results, list):
-            data = [asdict(r) if hasattr(r, '__dataclass_fields__') else r for r in results]
-        elif isinstance(results, dict):
-            data = {}
-            for k, v in results.items():
-                k_str = str(k)
-                if isinstance(v, list):
-                    data[k_str] = [asdict(r) if hasattr(r, '__dataclass_fields__') else r for r in v]
-                else:
-                    data[k_str] = v
-        else:
-            data = results
-
-        # Remove non-serializable fields
-        def _clean(obj):
-            if isinstance(obj, dict):
-                return {k: _clean(v) for k, v in obj.items()
-                        if k not in ("pred_logits_val", "pred_logits_test")}
-            elif isinstance(obj, list):
-                return [_clean(x) for x in obj]
-            elif isinstance(obj, (np.floating, np.integer)):
-                return float(obj)
-            return obj
-
-        data = _clean(data)
-
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-        print(f"  [SAVED] {path}")
-    except Exception as e:
-        print(f"  [WARN] Failed to save results: {e}")
-
-
-def _load_results(path: Path) -> Any:
-    """JSON에서 결과 로드."""
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return None
-
-
-def _deserialize_results(data: Any) -> List[ExperimentResult]:
-    """JSON 데이터를 ExperimentResult 리스트로 역직렬화."""
-    if not isinstance(data, list):
-        return []
-
-    results = []
-    for item in data:
-        if not isinstance(item, dict):
-            continue
-        try:
-            result = ExperimentResult(
-                treatment_id=int(item.get("treatment_id", -1)),
-                treatment_name=str(item.get("treatment_name", "")),
-                seed=int(item.get("seed", 0)),
-                hp_config=item.get("hp_config", {}),
-                train_auc=float(item.get("train_auc", -1.0)),
-                val_auc=float(item.get("val_auc", -1.0)),
-                test_auc=float(item.get("test_auc", -1.0)),
-                train_f1=float(item.get("train_f1", -1.0)),
-                val_f1=float(item.get("val_f1", -1.0)),
-                test_f1=float(item.get("test_f1", -1.0)),
-                val_brier=float(item.get("val_brier", -1.0)),
-                val_ece=float(item.get("val_ece", -1.0)),
-                best_epoch=int(item.get("best_epoch", -1)),
-                train_time_sec=float(item.get("train_time_sec", -1.0)),
-            )
-            results.append(result)
-        except (KeyError, ValueError, TypeError):
-            continue
-
-    return results
-
-
-def _deserialize_phase2_results(data: Any) -> Dict[int, List[ExperimentResult]]:
-    """Phase 2 JSON을 Dict[int, List[ExperimentResult]]로 역직렬화."""
-    if not isinstance(data, dict):
-        return {}
-
-    result_dict: Dict[int, List[ExperimentResult]] = {}
-    for k, v in data.items():
-        try:
-            tid = int(k)
-        except ValueError:
-            continue
-        if isinstance(v, list):
-            result_dict[tid] = _deserialize_results(v)
-
-    return result_dict
+def main(argv: Optional[List[str]] = None):
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    run_phase_cli(args)
 
 
 if __name__ == "__main__":

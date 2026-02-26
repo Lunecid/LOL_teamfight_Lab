@@ -70,16 +70,15 @@ Status:        alive (0/1), hp_pct, mp_pct
 Identity:      champion_id, champion_name_id (categorical → embedding)
 Spells:        summoner_spell_1_id, summoner_spell_2_id (categorical)
 Runes:         primary_rune_1-4, sub_rune_1-2, style_ids (categorical)
-Buffs:         has_baron, has_elder, has_red, has_blue (0/1)
-Buff Duration: baron_remain_norm, elder_remain_norm, red_remain_norm, blue_remain_norm
-Cooldowns:     ult_level_norm, flash_ready, flash_remain_norm
-Vision:        vision_ally_ward_cnt_norm, vision_ward_kill_recent_norm, vision_nearby_score_norm
+Buffs:         has_baron, has_elder (0/1)
+Buff Duration: baron_remain_norm, elder_remain_norm
+Cooldowns:     ult_level_norm
 Dragon Soul:   soul_infernal, soul_ocean, soul_mountain, soul_cloud, soul_hextech, soul_chemtech
 Champion Stats: cs_armor, cs_attackDamage, cs_abilityPower, cs_magicResist, ... (25 features)
 Damage Stats:  ds_totalDamageDoneToChampions, ds_physicalDamageTaken, ... (12 features)
 ```
 
-**Total:** `F_node` = 87 features per player per timestep
+**Total:** `F_node` = 76 features per player per timestep
 
 ### Global Features (per frame)
 

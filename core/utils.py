@@ -13,9 +13,6 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 import numpy as np
 import torch
 
-_write_log_logger = logging.getLogger("lol_teamfight")
-
-
 def _pairwise_dists_xy(xy_t: np.ndarray, b_idx: np.ndarray, r_idx: np.ndarray) -> np.ndarray:
     """xy_t: (10,2) raw coords. return (5,5) distances."""
     d = xy_t[b_idx][:, None, :] - xy_t[r_idx][None, :, :]
@@ -57,11 +54,13 @@ def set_seed(seed: int):
 # Logging / IO
 # =========================================================
 def write_log(msg: str, fp: Optional[Path] = None):
-    _write_log_logger.info(msg)
+    line = str(msg)
+    # Keep logs visible even when logging handlers are not configured.
+    print(line, flush=True)
     if fp is not None:
         fp.parent.mkdir(parents=True, exist_ok=True)
         with open(fp, "a", encoding="utf-8") as f:
-            f.write(str(msg) + "\n")
+            f.write(line + "\n")
 
 
 def setup_logging(level: int = logging.INFO):

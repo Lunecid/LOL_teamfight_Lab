@@ -8,22 +8,25 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 import torch
 
-from core.config import CACHE_DIR, RUN_DIR, cfg
-from core.fight_types import ref_key, FightRef
-from data.index_split import build_fight_index, split_refs
-from data.cache_io import build_match_pairs, prebuild_cache, load_match_cache
-from train.baseline import densify_logit_map, run_lgbm_baseline
-from core.common import parse_csv_nums, parse_csv_str
-from train.deep import train_deep_model
-from train.fusion import (
-    stack_oof_meta,
-    stack_simple,
-    stack_factorial,          # ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ factorial ÃƒÂ¬Ã…â€œÃ‚Â ÃƒÂ¬Ã‚Â§Ã¢â€šÂ¬ (greedy ÃƒÂ¬Ã‚Â Ã…â€œÃƒÂªÃ‚Â±Ã‚Â°)
-    refit_meta_trainval_predict_test,
-    calibrate_logits_by_patch,
-    split_logit_map_by_refs,
+from app.experiment_helpers import (
+    LGBM_MAX_TRAIN as _LGBM_MAX_TRAIN,
+    best_variant_for as _best_variant_for,
+    infer_feature_set_for_model as _infer_feature_set_for_model,
+    infer_rnn_gnn_models,
+    needs_lgbm_logit as _needs_lgbm_logit,
+    normalize_split_mode as _normalize_split_mode,
+    resolve_alias as _resolve_alias,
+    subsample_refs_for_deep as _subsample_refs_for_deep,
+    subsample_refs_for_lgbm as _subsample_refs_for_lgbm,
 )
-
+from app.split_reports import emit_split_reports as _emit_split_reports
+from core.config import CACHE_DIR, RUN_DIR, cfg
+from core.fight_types import ref_key
+from core.common import parse_csv_nums, parse_csv_str
+from core.utils import save_csv_rows, save_json, set_seed, write_log
+from data.cache_io import build_match_pairs, prebuild_cache
+from data.file_io import dump_fight_refs_csv, ensure_dir, now_tag
+from data.index_split import build_fight_index, split_refs
 from data.indexing import (
     check_split_leakage,
     count_patches_from_refs,
@@ -34,390 +37,18 @@ from data.indexing import (
     split_by_match_id_kfold,
     split_refs_patch_holdout,
 )
-from data.file_io import dump_fight_refs_csv, ensure_dir, now_tag
 from data.labels import get_label_map
+from train.baseline import densify_logit_map, run_lgbm_baseline
+from train.deep import train_deep_model
+from train.fusion import (
+    stack_oof_meta,
+    stack_simple,
+    stack_factorial,
+    refit_meta_trainval_predict_test,
+    calibrate_logits_by_patch,
+    split_logit_map_by_refs,
+)
 from train.speed import apply_speed_profile, setup_torch_speed
-from core.utils import save_csv_rows, save_json, set_seed, write_log, metrics_from_probs
-
-
-# Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
-# Memory-safe subsampling for LightGBM tabular baseline
-# Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
-_LGBM_MAX_TRAIN: int = 150_000          # Ã¢â€ Â Ã­â€¢â€žÃ¬Å¡â€Ã¬â€¹Å“ Ã¬Â¡Â°Ã¬Â Ë† (15Ã«Â§Å’Ã¬ÂÂ´Ã«Â©Â´ ~3.6 GiB)
-
-def _subsample_refs_for_lgbm(
-    refs: List,
-    max_n: int,
-    seed: int,
-    log_fp=None,
-) -> List:
-
-    if len(refs) <= max_n:
-        return refs
-
-    rng = np.random.RandomState(seed)
-    idx = rng.choice(len(refs), max_n, replace=False)
-    idx.sort()
-    sampled = [refs[i] for i in idx]
-
-    if log_fp:
-        write_log(
-            f"[LGBM-SUBSAMPLE] {len(refs):,} -> {len(sampled):,} "
-            f"(max_n={max_n:,}, seed={seed})",
-            log_fp,
-        )
-    return sampled
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# [FIX P1-1] Memory-safe subsampling for Deep model training
-# ─────────────────────────────────────────────────────────────────────────────
-def _subsample_refs_for_deep(
-    refs: List,
-    max_n: int,
-    seed: int,
-    log_fp=None,
-) -> List:
-    """Subsample training refs for deep models to prevent OOM and reduce training time.
-
-    Mathematical justification:
-      For N >> max_n, uniform subsampling preserves the label distribution
-      in expectation: E[p̂₊] = p₊ (unbiased).
-      Variance: Var[AUC] ∝ 1/max_n, so 200K samples gives sufficient stability.
-    """
-    if len(refs) <= max_n:
-        return refs
-
-    rng = np.random.RandomState(seed)
-    idx = rng.choice(len(refs), max_n, replace=False)
-    idx.sort()
-    sampled = [refs[i] for i in idx]
-
-    if log_fp:
-        write_log(
-            f"[DEEP-SUBSAMPLE] {len(refs):,} -> {len(sampled):,} "
-            f"(max_n={max_n:,}, seed={seed})",
-            log_fp,
-        )
-    return sampled
-
-
-def _resolve_alias(name: str) -> str:
-    """Map user token -> canonical model id using cfg.MODEL_ALIASES (if exists)."""
-    n = (name or "").strip()
-    if not n:
-        return n
-    aliases = getattr(cfg, "MODEL_ALIASES", {}) or {}
-    key = n.lower()
-    mapped = aliases.get(key, n)
-    return str(mapped)
-
-
-def infer_rnn_gnn_models(model_list: List[str]) -> Tuple[str, str]:
-    """Heuristic: pick first sequence model and first gnn model name (robust)."""
-    rnn = ""
-    gnn = ""
-
-    for m in model_list:
-        ml = (m or "").lower()
-
-        # --- sequence models ---
-        if not rnn and any(k in ml for k in (
-            "rnn", "gru", "lstm", "bigr", "bilstm",
-            "transformer", "tcn",
-            "temporal", "multiscale", "ms_", "stride", "dilated"
-        )):
-            rnn = m
-
-        # --- graph / spatiotemporal graph models ---
-        if not gnn and any(k in ml for k in (
-            "gnn", "gcn", "sage", "stgnn",
-            "graphtransformer", "gat", "gatv2", "mpnn",
-            "stgcn", "st-gcn", "dyn", "dynamic", "edge", "edgeaware"
-        )):
-            gnn = m
-
-        if rnn and gnn:
-            break
-
-    return rnn, gnn
-
-
-def _infer_feature_set_for_model(model_name: str, default_fs: str) -> str:
-    return default_fs
-
-
-def _layered_logit_override(model_name: str) -> Optional[bool]:
-    """Parse optional layered-fusion inline override: ...@...+logit=0/1"""
-    m = (model_name or "").strip().lower()
-    if not m.startswith(("layered_fusion", "fusion_layered")):
-        return None
-    if "@" not in m:
-        return None
-
-    try:
-        tail = m.split("@", 1)[1]
-    except Exception:
-        return None
-    if not tail:
-        return None
-
-    bool_map = {
-        "1": True, "true": True, "on": True, "yes": True, "y": True,
-        "0": False, "false": False, "off": False, "no": False, "n": False,
-    }
-
-    parts = [p.strip() for p in tail.replace(",", "+").split("+") if p.strip()]
-    for part in parts:
-        if "=" in part:
-            k, v = part.split("=", 1)
-        elif ":" in part:
-            k, v = part.split(":", 1)
-        else:
-            continue
-        key = (k or "").strip().lower()
-        val = (v or "").strip().lower()
-        if key not in ("logit", "lgbm", "use_logit", "use_lgbm_logit"):
-            continue
-        if val.startswith("logit_"):
-            val = val[len("logit_") :]
-        if val.startswith("lgbm_"):
-            val = val[len("lgbm_") :]
-        return bool_map.get(val, None)
-    return None
-
-
-def _needs_lgbm_logit(model_name: str) -> bool:
-    """Returns True if the model expects baseline logits in-batch (XGB removed)."""
-    m = (model_name or "").lower()
-    if m.startswith(("layered_fusion", "fusion_layered")):
-        # layered fusion can run without baseline logits unless explicitly forced by spec.
-        ovr = _layered_logit_override(m)
-        return bool(ovr) if ovr is not None else False
-    if m.startswith(("fusion_", "lgbm_dual_")):
-        return True
-    if "tablogit" in m:
-        return True
-    if m.startswith(("logit_",)) or m.endswith(("_logit",)):
-        return True
-    return False
-
-
-def _best_variant_for(model_name: str, deep_reports: Dict[str, Any]) -> Optional[str]:
-    best = None
-    best_auc = -1.0
-    for k, rep in deep_reports.items():
-        if not k.startswith(model_name + "::"):
-            continue
-        try:
-            auc = float(rep.get("metrics", {}).get("val", {}).get("auc", -1.0))
-        except Exception:
-            auc = -1.0
-        if auc > best_auc:
-            best_auc = auc
-            best = k.split("::", 1)[1]
-    return best
-
-
-def _normalize_split_mode(mode: str) -> str:
-    m = str(mode or "").strip().lower()
-    if not m or m == "auto":
-        m = str(getattr(cfg, "SPLIT_MODE", "multi_patch")).strip().lower()
-    if m in ("match_id", "match", "group", "group_match"):
-        return "group_match"
-    if m in ("random", "rand"):
-        return "random"
-    if m in ("patch_forward", "forward_patch", "patch_time"):
-        return "patch_forward"
-    if m == "patch_holdout":
-        return "patch_holdout"
-    if m in ("multi_patch", "stratified"):
-        return "multi_patch"
-    return "multi_patch"
-
-
-def _sigmoid_logit_arr(z: np.ndarray) -> np.ndarray:
-    return 1.0 / (1.0 + np.exp(-np.clip(z.astype(np.float64), -30.0, 30.0)))
-
-
-def _engage_minute(ref: FightRef) -> int:
-    ts = int(getattr(ref, "t_start_ts", -1) or -1)
-    if ts >= 0:
-        return max(0, int(ts // 60000))
-    return max(0, int(getattr(ref, "t_start", 0) or 0))
-
-
-def _subset_metrics(
-    refs: List[FightRef],
-    logit_map: Dict[str, float],
-    y_map: Dict[str, int],
-) -> Dict[str, Any]:
-    ys: List[int] = []
-    zs: List[float] = []
-    for r in refs:
-        k = ref_key(r)
-        if k not in y_map or k not in logit_map:
-            continue
-        ys.append(int(y_map[k]))
-        zs.append(float(logit_map[k]))
-    if not ys:
-        return {"n": 0}
-    y = np.asarray(ys, dtype=np.int64)
-    p = _sigmoid_logit_arr(np.asarray(zs, dtype=np.float64))
-    met = metrics_from_probs(y, p, threshold=float(getattr(cfg, "CLS_THRESHOLD", 0.5)))
-    met["n"] = int(len(y))
-    met["mean_prob"] = float(np.mean(p))
-    met["pos_rate"] = float(np.mean(y))
-    return met
-
-
-def _build_minutewise_report(
-    refs: List[FightRef],
-    logit_map: Dict[str, float],
-    y_map: Dict[str, int],
-) -> Dict[str, Any]:
-    max_minute = int(getattr(cfg, "MINUTE_REPORT_MAX_MINUTE", 60))
-    minute_to_refs: Dict[int, List[FightRef]] = {}
-    for r in refs:
-        m = _engage_minute(r)
-        if m < 0 or m > max_minute:
-            continue
-        minute_to_refs.setdefault(int(m), []).append(r)
-
-    rows: List[Dict[str, Any]] = []
-    prev_mean_prob: Optional[float] = None
-    for m in sorted(minute_to_refs.keys()):
-        met = _subset_metrics(minute_to_refs[m], logit_map, y_map)
-        row = {"minute": int(m), **met}
-        mp = met.get("mean_prob", None)
-        if mp is not None and prev_mean_prob is not None:
-            row["delta_mean_prob"] = float(mp - prev_mean_prob)
-        else:
-            row["delta_mean_prob"] = None
-        if mp is not None:
-            prev_mean_prob = float(mp)
-        rows.append(row)
-
-    return {
-        "prediction_gap_ms": int(getattr(cfg, "PREDICTION_GAP_MS", 0)),
-        "overall": _subset_metrics(refs, logit_map, y_map),
-        "by_minute": rows,
-    }
-
-
-def _prefight_gold_state_by_key(refs: List[FightRef]) -> Dict[str, str]:
-    from core.timeutils import gold_at_ms
-
-    close_th = float(getattr(cfg, "SITUATION_CLOSE_GOLD_TH", 2000.0))
-    stomp_th = float(getattr(cfg, "SITUATION_STOMP_GOLD_TH", 5000.0))
-
-    out: Dict[str, str] = {}
-    pack_cache: Dict[str, Optional[Dict[str, Any]]] = {}
-
-    for r in refs:
-        mid = str(r.match_id)
-        if mid not in pack_cache:
-            pack_cache[mid] = load_match_cache(mid)
-        pack = pack_cache[mid]
-        if not pack:
-            continue
-
-        ts = int(getattr(r, "t_start_ts", -1) or -1)
-        if ts < 0:
-            t_idx = int(getattr(r, "t_start", -1) or -1)
-            mts = pack.get("minute_ts", None)
-            if isinstance(mts, np.ndarray) and 0 <= t_idx < len(mts):
-                ts = int(mts[t_idx])
-        if ts < 0:
-            continue
-
-        try:
-            g = gold_at_ms(pack, ts, method=str(getattr(cfg, "LABEL_GOLD_METHOD", "linear")).lower())
-            gd = float(g[0] - g[1])
-        except Exception:
-            continue
-
-        a = abs(gd)
-        if a < close_th:
-            bucket = "close"
-        elif a < stomp_th:
-            bucket = "moderate"
-        else:
-            bucket = "stomp"
-        out[ref_key(r)] = bucket
-
-    return out
-
-
-def _build_situation_report(
-    refs: List[FightRef],
-    logit_map: Dict[str, float],
-    y_map: Dict[str, int],
-) -> Dict[str, Any]:
-    phase_groups: Dict[str, List[FightRef]] = {"early": [], "mid": [], "late": []}
-    patch_groups: Dict[str, List[FightRef]] = {}
-    gold_state_groups: Dict[str, List[FightRef]] = {"close": [], "moderate": [], "stomp": [], "unknown": []}
-
-    gold_state_by_key = _prefight_gold_state_by_key(refs)
-
-    for r in refs:
-        m = _engage_minute(r)
-        if m < 14:
-            phase_groups["early"].append(r)
-        elif m < 28:
-            phase_groups["mid"].append(r)
-        else:
-            phase_groups["late"].append(r)
-
-        patch = str(getattr(r, "patch", "unknown"))
-        patch_groups.setdefault(patch, []).append(r)
-
-        gk = gold_state_by_key.get(ref_key(r), "unknown")
-        gold_state_groups.setdefault(gk, []).append(r)
-
-    out = {
-        "overall": _subset_metrics(refs, logit_map, y_map),
-        "by_phase": {k: _subset_metrics(v, logit_map, y_map) for k, v in phase_groups.items()},
-        "by_gold_state": {k: _subset_metrics(v, logit_map, y_map) for k, v in gold_state_groups.items()},
-        "by_patch": {k: _subset_metrics(v, logit_map, y_map) for k, v in sorted(patch_groups.items())},
-    }
-    return out
-
-
-def _emit_split_reports(
-    model_dir: Path,
-    model_name: str,
-    variant_tag: str,
-    feature_set: str,
-    refs_by_split: Dict[str, List[FightRef]],
-    rep: Dict[str, Any],
-    run_log: Path,
-) -> None:
-    pred_maps = rep.get("_pred_maps_in_memory", {}) if isinstance(rep, dict) else {}
-    label_maps = rep.get("_label_maps_in_memory", {}) if isinstance(rep, dict) else {}
-    if not isinstance(pred_maps, dict) or not pred_maps:
-        return
-
-    for split in ("val", "test"):
-        refs = refs_by_split.get(split, [])
-        logit_map = pred_maps.get(split, {})
-        if not refs or not isinstance(logit_map, dict) or not logit_map:
-            continue
-
-        y_map = label_maps.get(split, {}) if isinstance(label_maps, dict) else {}
-        if not isinstance(y_map, dict) or not y_map:
-            y_map = get_label_map(refs, feature_set=feature_set, log_fp=run_log, log_every=50000)
-
-        if bool(getattr(cfg, "ENABLE_MINUTEWISE_REPORT", True)):
-            minute_rep = _build_minutewise_report(refs, logit_map, y_map)
-            save_json(model_dir / f"minute_report_{split}.json", minute_rep)
-
-        if bool(getattr(cfg, "ENABLE_SITUATION_REPORT", True)):
-            situation_rep = _build_situation_report(refs, logit_map, y_map)
-            save_json(model_dir / f"situation_report_{split}.json", situation_rep)
-
-    write_log(f"[REPORT] split reports emitted for {model_name}/{variant_tag}", run_log)
-
 
 def run(args) -> None:
     """Run the pipeline according to args/cfg.

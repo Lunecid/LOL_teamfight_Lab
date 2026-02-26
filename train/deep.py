@@ -36,301 +36,29 @@ from core.fight_types import ref_key  # type: ignore
 # Ã¢Å“â€¦ build_model(factory) import Ã¬â€¢Ë†Ã¬Â â€žÃ­â„¢â€
 from train.models import build_model  # type: ignore  # [P4-IMPORT]
 
-# Ã¢Å“â€¦ Dataset / collate import ÃªÂ²Â½Ã«Â¡Å“Ã«Å â€ Ã«â€žÂ¤ Ã­â€â€žÃ«Â¡Å“Ã¬Â ÂÃ­Å Â¸Ã¬â€”Â Ã«Â§Å¾ÃªÂ²Å’ Ã¬Â¡Â°Ã¬Â â€¢
+# Dataset/collate import path: fallback only when legacy package is missing.
 try:
     from data_loader.dataset import InMemoryFightDataset, collate_batch  # type: ignore
-except ImportError:
-    # fallback (Ã¬ËœË†Ã¬Â â€ž ÃªÂ²Â½Ã«Â¡Å“ÃªÂ°â‚¬ Ã¬â€šÂ´Ã¬â€¢â€žÃ¬Å¾Ë†Ã¬Ââ€ž Ã«â€¢Å’)
+except ModuleNotFoundError as e:
+    # Do not swallow unrelated import errors raised inside data_loader.dataset.
+    if getattr(e, "name", "") not in {"data_loader", "data_loader.dataset"}:
+        raise
     from data.dataset import InMemoryFightDataset, collate_batch  # type: ignore
 
 
 # =========================================================
 # Small helpers (self-contained)
 # =========================================================
-def _to_device(batch: Dict[str, Any], device: torch.device) -> Dict[str, Any]:
-    out = {}
-    for k, v in batch.items():
-        if torch.is_tensor(v):
-            out[k] = v.to(device, non_blocking=True)
-        else:
-            out[k] = v
-    return out
-
-
-def _safe_auc_ap(y_true: np.ndarray, y_prob: np.ndarray) -> Dict[str, float]:
-    try:
-        from sklearn.metrics import roc_auc_score, average_precision_score  # type: ignore
-        return {
-            "auc": float(roc_auc_score(y_true, y_prob)),
-            "ap": float(average_precision_score(y_true, y_prob)),
-        }
-    except Exception as e:
-        logger.debug("AUC/AP computation failed: %s", e)
-        return {"auc": -1.0, "ap": -1.0}
-
-
-def _resolve_amp_dtype() -> torch.dtype:
-    """Resolve CUDA AMP dtype from config.
-
-    Supported values:
-      - auto      : prefer bf16 when supported, else fp16
-      - bfloat16  : force bf16
-      - float16   : force fp16
-    """
-    pref = str(getattr(cfg, "AMP_DTYPE", "auto")).strip().lower()
-    if pref in ("bfloat16", "bf16"):
-        return torch.bfloat16
-    if pref in ("float16", "fp16", "half"):
-        return torch.float16
-
-    # auto
-    try:
-        if torch.cuda.is_available() and bool(torch.cuda.is_bf16_supported()):
-            return torch.bfloat16
-    except Exception as e:
-        logger.debug("bf16 support check failed: %s", e)
-    return torch.float16
-
-
-def _autocast_ctx(use_amp: bool, device: torch.device):
-    if use_amp and device.type == "cuda":
-        return torch.autocast(device_type="cuda", dtype=_resolve_amp_dtype())
-    return contextlib.nullcontext()
-
-
-def _extract_main_logit(model_out: Any) -> torch.Tensor:
-    if torch.is_tensor(model_out):
-        return model_out
-    if isinstance(model_out, dict):
-        for k in ("fight_logit", "logit", "y_logit"):
-            v = model_out.get(k, None)
-            if torch.is_tensor(v):
-                return v
-    raise TypeError(f"Unsupported model output type: {type(model_out)}")
-
-
-class _LogitAuxHead(nn.Module):
-    """Auxiliary regression head on top of the main fight logit."""
-
-    def __init__(self, hidden: int = 16):
-        super().__init__()
-        self.mlp = nn.Sequential(
-            nn.Linear(1, int(hidden)),
-            nn.ReLU(),
-            nn.Linear(int(hidden), 3),  # gold, kill, obj
-        )
-
-    def forward(self, logit: torch.Tensor) -> Dict[str, torch.Tensor]:
-        z = logit.view(logit.shape[0], -1)
-        o = self.mlp(z)
-        return {
-            "gold_pred": o[:, 0:1],
-            "kill_pred": o[:, 1:2],
-            "obj_pred": o[:, 2:3],
-        }
-
-
-def _eval_loop(
-        model: nn.Module,
-        loader: DataLoader,
-        device: torch.device,
-        use_amp: bool,
-        threshold: float,
-) -> Dict[str, float]:
-    model.eval()
-    ys: List[np.ndarray] = []
-    ls: List[np.ndarray] = []
-
-    with torch.inference_mode():
-        for batch in loader:
-            if batch is None:
-                continue
-            batch = _to_device(batch, device)
-
-            y = batch.get("y", None)
-            if y is None:
-                continue
-
-            with _autocast_ctx(use_amp, device):
-                logit = _extract_main_logit(model(batch))
-
-            y_np = y.detach().float().cpu().numpy().reshape(-1)
-            logit_np = logit.detach().float().cpu().numpy().reshape(-1)
-
-            ys.append(y_np)
-            ls.append(logit_np)
-
-    if not ys:
-        return {
-            "acc": -1.0, "precision": -1.0, "recall": -1.0, "f1": -1.0, "auc": -1.0, "ap": -1.0,
-            "tp": 0.0, "tn": 0.0, "fp": 0.0, "fn": 0.0, "n": 0.0
-        }
-
-    y_true = np.concatenate(ys).astype(np.int64)
-    y_logit = np.concatenate(ls).astype(np.float32)
-    # sigmoid (numpy safe)
-    y_prob = 1.0 / (1.0 + np.exp(-np.clip(y_logit, -30, 30)))
-    y_pred = (y_prob >= float(threshold)).astype(np.int64)
-
-    tp = int(((y_pred == 1) & (y_true == 1)).sum())
-    tn = int(((y_pred == 0) & (y_true == 0)).sum())
-    fp = int(((y_pred == 1) & (y_true == 0)).sum())
-    fn = int(((y_pred == 0) & (y_true == 1)).sum())
-
-    prec = tp / max(1, (tp + fp))
-    rec = tp / max(1, (tp + fn))
-    f1 = (2 * prec * rec) / max(1e-12, (prec + rec))
-    acc = float((y_pred == y_true).mean())
-
-    auc_ap = _safe_auc_ap(y_true, y_prob)
-
-    return {
-        "acc": float(acc),
-        "precision": float(prec),
-        "recall": float(rec),
-        "f1": float(f1),
-        "auc": float(auc_ap["auc"]),
-        "ap": float(auc_ap["ap"]),
-        "tp": float(tp),
-        "tn": float(tn),
-        "fp": float(fp),
-        "fn": float(fn),
-        "n": float(len(y_true)),
-    }
-
-
-@torch.inference_mode()
-def _predict_logit_map_for_refs(
-        model: nn.Module,
-        loader: DataLoader,
-        refs: List[Any],
-        device: torch.device,
-        use_amp: bool,
-) -> Dict[str, float]:
-    """
-    Returns {ref_key: logit} for the given refs.
-
-    Alignment policy
-    ----------------
-    We *require* a per-sample key (batch['ref_key'] or batch['ref_keys']) from the
-    dataset/collate_fn. Sequential/fallback alignment is intentionally disabled
-    because dropped/None samples and multi-worker loading can silently permute
-    ordering and collapse validation AUC.
-    """
-    model.eval()
-    out: Dict[str, float] = {}
-
-    for batch in loader:
-        if batch is None:
-            continue
-        batch = _to_device(batch, device)
-
-        with _autocast_ctx(use_amp, device):
-            logit = _extract_main_logit(model(batch))
-
-        logit_np = logit.detach().float().cpu().numpy().reshape(-1)
-        bsz = int(logit_np.shape[0])
-
-        keys = None
-        if "ref_key" in batch:
-            rk = batch["ref_key"]
-            if isinstance(rk, (list, tuple)):
-                keys = [str(x) for x in rk]
-        elif "ref_keys" in batch:
-            rk = batch["ref_keys"]
-            if isinstance(rk, (list, tuple)):
-                keys = [str(x) for x in rk]
-
-        # STRICT: never fall back to sequential alignment.
-        # If ref keys are missing, logit_map alignment will silently break (AUC collapses).
-        if keys is None or len(keys) != bsz:
-            raise RuntimeError(
-                "[PRED_MAP] Batch missing ref_key/ref_keys (or length mismatch). "
-                "Cannot safely align logits to FightRef. "
-                "Ensure dataset/collate_batch injects 'ref_key' list."
-            )
-
-        for k, l in zip(keys, logit_np):
-            out[str(k)] = float(l)
-
-    return out
-
-
-def _predict_logit_and_label_maps_for_loader(
-        model: nn.Module,
-        loader: DataLoader,
-        device: torch.device,
-        use_amp: bool,
-) -> Tuple[Dict[str, float], Dict[str, int]]:
-    """
-    Returns ({ref_key: logit}, {ref_key: label}) for paired statistical tests.
-
-    수학적 배경 (DeLong / McNemar paired alignment)
-    ------------------------------------------------
-    DeLong test와 McNemar test는 동일 샘플 집합 S에 대해
-    두 모델 A, B의 예측을 정렬(align)해야 합니다:
-
-        ∀ s ∈ S: (ŷ_A(s), ŷ_B(s), y(s)) 필요
-
-    기존 ``_predict_logit_map_for_refs()`` 는 logit만 반환하므로
-    label 정렬이 불가.  이 함수는 한 번의 순회로 logit + label을 수집:
-
-        logit_map[ref_key(s)] = f_θ(x_s)    ∈ ℝ  (raw logit)
-        label_map[ref_key(s)] = y_s           ∈ {0, 1}
-
-    이를 통해 experiment_runner의 paired test에서:
-
-        Z_DeLong = (AUC_A - AUC_B) / √(Var(AUC_A) + Var(AUC_B) - 2·Cov)
-
-    을 정확하게 계산할 수 있습니다.
-    """
-    model.eval()
-    logit_map: Dict[str, float] = {}
-    label_map: Dict[str, int] = {}
-
-    for batch in loader:
-        if batch is None:
-            continue
-        batch = _to_device(batch, device)
-
-        y = batch.get("y", None)
-        with _autocast_ctx(use_amp, device):
-            logit = _extract_main_logit(model(batch))
-
-        logit_np = logit.detach().float().cpu().numpy().reshape(-1)
-        bsz = int(logit_np.shape[0])
-
-        # Extract labels
-        if y is not None:
-            y_np = y.detach().float().cpu().numpy().reshape(-1)
-        else:
-            y_np = np.full(bsz, -1, dtype=np.float32)
-
-        # Extract ref_keys (same strict policy as _predict_logit_map_for_refs)
-        keys = None
-        if "ref_key" in batch:
-            rk = batch["ref_key"]
-            if isinstance(rk, (list, tuple)):
-                keys = [str(x) for x in rk]
-        elif "ref_keys" in batch:
-            rk = batch["ref_keys"]
-            if isinstance(rk, (list, tuple)):
-                keys = [str(x) for x in rk]
-
-        if keys is None or len(keys) != bsz:
-            raise RuntimeError(
-                "[PRED_LABEL_MAP] Batch missing ref_key/ref_keys (or length mismatch). "
-                "Cannot safely align logits+labels to FightRef."
-            )
-
-        for k, l_val, y_val in zip(keys, logit_np, y_np):
-            logit_map[str(k)] = float(l_val)
-            label_map[str(k)] = int(round(float(y_val)))
-
-    return logit_map, label_map
-# =========================================================
-# [P4-DEDUP] _autocast_disabled / _nan_to_num_ moved to common_torch.py
-# Kept as thin aliases for backward compatibility within this module.
+from train.deep_eval import (
+    _LogitAuxHead,
+    _autocast_ctx,
+    _eval_loop,
+    _extract_main_logit,
+    _predict_logit_and_label_maps_for_loader,
+    _predict_logit_map_for_refs,
+    _resolve_amp_dtype,
+    _to_device,
+)
 from core.common_torch import autocast_disabled as _autocast_disabled_impl
 from core.common_torch import nan_to_num as _nan_to_num_impl
 
@@ -380,8 +108,8 @@ if GOLD_IDX is None:
     raise KeyError("[CONFIG MISMATCH] Need one of: totalGold_norm / curGold_norm")
 
 CC_IDX = _idx_required(NODE_IDX, "ccTime_norm")
-VISION_IDX = _idx_required(NODE_IDX, "vision_nearby_score_norm")
-FLASH_IDX = _idx_required(NODE_IDX, "flash_ready")
+VISION_IDX = _idx_optional(NODE_IDX, "vision_nearby_score_norm")
+FLASH_IDX = _idx_optional(NODE_IDX, "flash_ready")
 ULT_IDX = _idx_required(NODE_IDX, "ult_level_norm")
 
 # optional: recent damage proxy (ds schema)
@@ -1657,8 +1385,22 @@ def train_deep_model(
         seen_param_ids.add(pid)
         uniq_params.append(p)
 
-    opt = torch.optim.AdamW(uniq_params, lr=lr, weight_decay=wd)
+    opt_kwargs: Dict[str, Any] = {"lr": lr, "weight_decay": wd}
+    fused_requested = bool(getattr(cfg, "USE_FUSED_ADAMW", True))
+    fused_used = False
+    if (device.type == "cuda") and fused_requested:
+        opt_kwargs["fused"] = True
+    try:
+        opt = torch.optim.AdamW(uniq_params, **opt_kwargs)
+        fused_used = bool(opt_kwargs.get("fused", False))
+    except TypeError:
+        opt_kwargs.pop("fused", None)
+        opt = torch.optim.AdamW(uniq_params, **opt_kwargs)
     clip_params = list(model.parameters()) + (list(aux_head.parameters()) if aux_head is not None else [])
+    write_log(
+        f"[DEEP] optimizer=AdamW fused={fused_used} requested={fused_requested}",
+        log_fp,
+    )
 
     # ------------------------------------------------------------------
     # [FIX P0-2] Learning Rate Scheduler: Cosine Annealing with Linear Warm-up

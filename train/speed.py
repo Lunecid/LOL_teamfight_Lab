@@ -28,6 +28,56 @@ def _cuda_device_info() -> Optional[Dict[str, object]]:
         return None
 
 
+def _resolve_profile(profile: str, info: Optional[Dict[str, object]]) -> str:
+    p = str(profile or "none").strip().lower()
+    if p in ("", "none", "off"):
+        return "none"
+    if p != "auto":
+        return p
+    if info is None:
+        return "none"
+    name = str(info.get("name", ""))
+    if re.search(r"rtx\s*50\d\d", name, flags=re.IGNORECASE):
+        if re.search(r"5080", name, flags=re.IGNORECASE):
+            return "rtx5080"
+        return "rtx50"
+    return "aggressive"
+
+
+def _pick_target_batch_size(profile: str, info: Optional[Dict[str, object]], curr_bs: int) -> int:
+    if info is None:
+        return curr_bs
+    vram = float(info.get("vram_gb", 0.0))
+    gpu_name = str(info.get("name", "")).lower()
+    if profile == "rtx5080":
+        if vram >= 16.0:
+            target_bs = 384
+        else:
+            target_bs = 320
+    elif profile == "rtx50":
+        if vram >= 30:
+            target_bs = 640
+        elif vram >= 24:
+            target_bs = 512
+        elif vram >= 16:
+            target_bs = 320
+        else:
+            target_bs = 256
+    else:
+        if vram >= 24:
+            target_bs = 512
+        elif vram >= 16:
+            target_bs = 256
+        elif vram >= 12:
+            target_bs = 192
+        else:
+            target_bs = 128
+    # Safety: keep 5080 explicit target even if device string is unexpected.
+    if ("5080" in gpu_name) and profile in ("rtx5080", "rtx50"):
+        target_bs = max(target_bs, 384)
+    return int(target_bs)
+
+
 def apply_speed_profile(cfg, profile: str = "none", log_fp: Optional[Path] = None) -> str:
     """Apply hardware-oriented runtime speed profile.
 
@@ -36,16 +86,10 @@ def apply_speed_profile(cfg, profile: str = "none", log_fp: Optional[Path] = Non
       - auto:     RTX 50-series -> rtx50, otherwise aggressive
       - rtx5080 / rtx50 / aggressive: high-throughput defaults
     """
-    p = str(profile or "none").strip().lower()
-    if p in ("", "none", "off"):
-        return "none"
-
     info = _cuda_device_info()
-    if p == "auto":
-        if info is None:
-            return "none"
-        name = str(info.get("name", ""))
-        p = "rtx50" if re.search(r"rtx\s*50\d\d", name, flags=re.IGNORECASE) else "aggressive"
+    p = _resolve_profile(profile, info)
+    if p == "none":
+        return "none"
 
     if p not in ("rtx5080", "rtx50", "aggressive"):
         return "none"
@@ -56,8 +100,10 @@ def apply_speed_profile(cfg, profile: str = "none", log_fp: Optional[Path] = Non
     setattr(cfg, "TF32", True)
     setattr(cfg, "CUDNN_BENCHMARK", True)
     setattr(cfg, "TORCH_COMPILE", True)
-    setattr(cfg, "TORCH_COMPILE_MODE", "max-autotune")
-    setattr(cfg, "TORCH_COMPILE_DYNAMIC", True)
+    setattr(cfg, "TORCH_COMPILE_MODE", "max-autotune" if p in ("rtx5080", "rtx50") else "reduce-overhead")
+    # Fixed-shape sequence workloads benefit from static compilation on RTX 50-series.
+    setattr(cfg, "TORCH_COMPILE_DYNAMIC", False if p in ("rtx5080", "rtx50") else True)
+    setattr(cfg, "USE_FUSED_ADAMW", True)
 
     # IO / dataloader
     setattr(cfg, "CACHE_MATCH_PACKS_IN_RAM", True)
@@ -72,30 +118,20 @@ def apply_speed_profile(cfg, profile: str = "none", log_fp: Optional[Path] = Non
     setattr(cfg, "EVAL_NUM_WORKERS", max(2, num_workers // 2))
     setattr(cfg, "PREFETCH_FACTOR", 4)
 
-    # Conservative batch-size bump by available VRAM.
-    if info is not None:
-        vram = float(info.get("vram_gb", 0.0))
-        if vram >= 24:
-            target_bs = 512
-        elif vram >= 16:
-            target_bs = 256
-        elif vram >= 12:
-            target_bs = 192
-        else:
-            target_bs = 128
-        try:
-            curr_bs = int(getattr(cfg, "BATCH_SIZE", 64) or 64)
-        except Exception:
-            curr_bs = 64
-        if target_bs > curr_bs:
-            setattr(cfg, "BATCH_SIZE", target_bs)
+    try:
+        curr_bs = int(getattr(cfg, "BATCH_SIZE", 64) or 64)
+    except Exception:
+        curr_bs = 64
+    setattr(cfg, "BATCH_SIZE", int(_pick_target_batch_size(p, info, curr_bs)))
 
     if log_fp:
         write_log(
             f"[TORCH] speed_profile={p} amp_dtype={getattr(cfg,'AMP_DTYPE','auto')} "
             f"compile={getattr(cfg,'TORCH_COMPILE',False)} mode={getattr(cfg,'TORCH_COMPILE_MODE','default')} "
             f"batch={getattr(cfg,'BATCH_SIZE', '?')} workers={getattr(cfg,'NUM_WORKERS','?')} "
-            f"cache_train={getattr(cfg,'CACHE_TRAIN_SAMPLES_IN_RAM',False)}",
+            f"cache_train={getattr(cfg,'CACHE_TRAIN_SAMPLES_IN_RAM',False)} "
+            f"compile_dynamic={getattr(cfg,'TORCH_COMPILE_DYNAMIC',False)} "
+            f"fused_adamw={getattr(cfg,'USE_FUSED_ADAMW',False)}",
             log_fp,
         )
     return p

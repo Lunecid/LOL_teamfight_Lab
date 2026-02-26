@@ -221,12 +221,23 @@ python experiment_runner.py --phase 1
 
 # Phase 2: Single-factor treatments
 python experiment_runner.py --phase 2 --treatment all
+
+# Interpolation quality/meaningfulness report
+python app/detection_quality_report.py \
+  --variants full_interp,no_kill_traj_interp,snapshot_60s_no_interp \
+  --reference full_interp --max-matches 200
 ```
 
 ### Quick Test Run
 
 ```bash
 python main.py --mode all --max_matches 10 --seed 7
+
+# 1-seed paper preset (RNN + GNN + Attention + 3-way fusion)
+python runner.py --paper_preset core4_1seed --split_mode patch_holdout
+
+# Faster triage preset (auto max_matches cap)
+python runner.py --paper_preset core4_1seed_fast --paper_max_matches 600
 ```
 
 ---
