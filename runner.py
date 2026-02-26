@@ -109,6 +109,15 @@ _PAPER_CORE4_MODELS = ",".join(
     ]
 )
 
+_PAPER_CORE4_OPTIMAL_MODELS = ",".join(
+    [
+        "rnn_bigru",
+        "gnn_graphsage",
+        "event_xattn",
+        "layered_fusion@global=bigru+gnn=graphsage+event=xattn+logit=1",
+    ]
+)
+
 
 def _stable_unique(xs: List[str]) -> List[str]:
     seen = set()
@@ -297,7 +306,10 @@ def _apply_paper_preset(args: argparse.Namespace) -> None:
     #   2) single-seed fast path for paper iteration
     args.seed = int(paper_seed)
     args.feature_set = "full"
-    args.models = _PAPER_CORE4_MODELS
+    if preset in ("core4_optimal", "core4_optimal_fast"):
+        args.models = _PAPER_CORE4_OPTIMAL_MODELS
+    else:
+        args.models = _PAPER_CORE4_MODELS
     args.ablation_mode = "baseline_plus"
     args.require_lgbm = True
     args.no_factorial_fusion = True
@@ -314,7 +326,7 @@ def _apply_paper_preset(args: argparse.Namespace) -> None:
     args.cache_match_packs_in_ram = True
     args.cache_eval_in_ram = True
 
-    if preset == "core4_1seed_fast":
+    if preset in ("core4_1seed_fast", "core4_optimal_fast"):
         # Fast triage mode: cap matches unless user explicitly sets one.
         if paper_max_matches > 0:
             args.max_matches = int(paper_max_matches)
@@ -356,11 +368,12 @@ def build_argparser() -> argparse.ArgumentParser:
         "--paper_preset",
         type=str,
         default="none",
-        choices=["none", "core4_1seed", "core4_1seed_fast"],
+        choices=["none", "core4_1seed", "core4_1seed_fast", "core4_optimal", "core4_optimal_fast"],
         help=(
-            "paper fast preset: "
-            "RNN(bigru)+GNN(graphsage)+Attention(transformer)+3-way layered_fusion. "
-            "core4_1seed_fast additionally caps max_matches for quick triage."
+            "paper presets: "
+            "core4_1seed uses transformer attention; "
+            "core4_optimal uses event_xattn + layered_fusion(xattn) for stronger attention modeling. "
+            "*_fast additionally caps max_matches for quick triage."
         ),
     )
     ap.add_argument("--paper_seed", type=int, default=7, help="seed used by --paper_preset")

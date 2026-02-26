@@ -238,6 +238,9 @@ python runner.py --paper_preset core4_1seed --split_mode patch_holdout
 
 # Faster triage preset (auto max_matches cap)
 python runner.py --paper_preset core4_1seed_fast --paper_max_matches 600
+
+# Optimal preset from current model list (event_xattn attention stack)
+python runner.py --paper_preset core4_optimal --split_mode patch_holdout
 ```
 
 ---

@@ -38,3 +38,17 @@ def test_paper_preset_fast_respects_explicit_paper_max_matches():
     _apply_paper_preset(args)
 
     assert int(args.max_matches) == 321
+
+
+def test_paper_preset_optimal_uses_event_xattn_stack():
+    ap = build_argparser()
+    args = ap.parse_args(["--paper_preset", "core4_optimal"])
+    _apply_paper_preset(args)
+
+    models = str(args.models)
+    assert "rnn_bigru" in models
+    assert "gnn_graphsage" in models
+    assert "event_xattn" in models
+    assert "layered_fusion@" in models
+    assert "event=xattn" in models
+    assert "rnn_transformer" not in models
