@@ -5,6 +5,7 @@ import logging
 import math
 import time
 import contextlib
+import warnings
 from dataclasses import dataclass
 from contextlib import contextmanager
 from pathlib import Path
@@ -1400,6 +1401,11 @@ def train_deep_model(
     """
     Updated trainer compatible with current experiment.py
     """
+    # Suppress repeated "triton not found" warnings from torch internals
+    warnings.filterwarnings(
+        "ignore", message=".*triton.*", category=UserWarning,
+    )
+
     ensure_dir(out_dir)
     set_seed(int(seed))
     try:
@@ -1571,6 +1577,26 @@ def train_deep_model(
                     compile_kwargs["mode"] = compile_mode
                 if bool(getattr(cfg, "TORCH_COMPILE_DYNAMIC", False)):
                     compile_kwargs["dynamic"] = True
+                # --- Triton availability check ---
+                # The default "inductor" backend requires Triton for GPU
+                # kernels.  Triton is not available on Windows and some
+                # other environments.  Detect this *before* compilation so
+                # we can fall back to the "eager" backend instead of
+                # crashing at the first forward pass.
+                _triton_ok = True
+                if device.type == "cuda":
+                    try:
+                        import triton  # noqa: F401
+                    except (ImportError, ModuleNotFoundError):
+                        _triton_ok = False
+                if not _triton_ok:
+                    compile_kwargs["backend"] = "eager"
+                    write_log(
+                        "[DEEP][WARN] triton not found — falling back to "
+                        "torch.compile(backend='eager'). Install triton for "
+                        "full inductor performance.",
+                        log_fp,
+                    )
                 model = torch.compile(model, **compile_kwargs)  # type: ignore
                 if aux_head is not None and hasattr(torch, "compile"):
                     try:
@@ -1579,6 +1605,7 @@ def train_deep_model(
                         pass
                 write_log(
                     f"[DEEP] torch.compile enabled mode={compile_kwargs.get('mode','default')} "
+                    f"backend={compile_kwargs.get('backend','inductor')} "
                     f"dynamic={bool(compile_kwargs.get('dynamic', False))}",
                     log_fp,
                 )
