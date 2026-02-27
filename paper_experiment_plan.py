@@ -78,7 +78,9 @@ SPEED_FLAGS: List[str] = [
     "--amp",
     "--tf32",
     "--cache_match_packs_in_ram",
+    "--cache_train_in_ram",
     "--cache_eval_in_ram",
+    "--share_datasets",              # 데이터셋 1회 빌드 후 모델 간 공유
 ]
 
 OUTPUT_DIR = Path("outputs/paper_experiments")
@@ -284,8 +286,8 @@ def run_round1(args: argparse.Namespace) -> None:
         "--seed", str(SCREENING_SEED),
         "--feature_set", "full",
         "--models", models_str,
-        "--ablation_mode", "baseline_plus",
-        "--require_lgbm",
+        "--ablation_mode", "as_is",          # 공정 비교: lgbm logit은 fusion만 수신
+        "--split_mode", "patch_holdout",
         "--no_factorial_fusion",
         "--stacking_mode", "simple",
         "--oof_skip_deep",
@@ -320,8 +322,8 @@ def run_round2(args: argparse.Namespace) -> None:
             "--seed", str(seed),
             "--feature_set", "full",
             "--models", models_str,
-            "--ablation_mode", "baseline_plus",
-            "--require_lgbm",
+            "--ablation_mode", "as_is",          # 공정 비교: lgbm logit은 fusion만 수신
+            "--split_mode", "patch_holdout",
             "--no_factorial_fusion",
             "--stacking_mode", "simple",
             "--oof_skip_deep",

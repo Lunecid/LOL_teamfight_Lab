@@ -473,6 +473,17 @@ def build_argparser() -> argparse.ArgumentParser:
     ap.add_argument("--cache_match_packs_in_ram", action="store_true", help="enable RAM LRU for match packs")
     ap.add_argument("--cache_train_in_ram", action="store_true", help="preload TRAIN samples in RAM")
     ap.add_argument("--cache_eval_in_ram", action="store_true", help="preload VAL/TEST samples in RAM")
+
+    # Dataset sharing — build datasets once, reuse across models
+    ap.add_argument(
+        "--share_datasets",
+        action="store_true",
+        help=(
+            "Pre-build datasets once and share across all deep models. "
+            "Eliminates repeated build_ms_sequence calls (~5h savings). "
+            "Requires --cache_train_in_ram and --cache_eval_in_ram."
+        ),
+    )
     return ap
 
 
@@ -560,6 +571,11 @@ def main(argv: Optional[List[str]] = None) -> None:
     if bool(getattr(args, 'cache_train_in_ram', False)):
         cfg.CACHE_TRAIN_SAMPLES_IN_RAM = True
     if bool(getattr(args, 'cache_eval_in_ram', False)):
+        cfg.CACHE_EVAL_SAMPLES_IN_RAM = True
+
+    # --share_datasets implies RAM caching for both train and eval
+    if bool(getattr(args, 'share_datasets', False)):
+        cfg.CACHE_TRAIN_SAMPLES_IN_RAM = True
         cfg.CACHE_EVAL_SAMPLES_IN_RAM = True
 
     # resolve model list
