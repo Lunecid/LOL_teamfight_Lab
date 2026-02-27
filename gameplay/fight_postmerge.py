@@ -75,12 +75,25 @@ def enforce_postmerge_spacing_and_nonoverlap(
     location_radius: float = 0.0,
     diag: Optional[dict] = None,
 ) -> List[dict]:
-    """Apply minimum start-gap and label-window non-overlap constraints post-merge."""
+    """Apply minimum start-gap and label-window non-overlap constraints post-merge.
+
+    [FIX-6.2] When two fights overlap but are spatially distant, instead of
+    blindly keeping both (which causes label overlap for sequential models),
+    resolve by priority:
+      - Higher-priority fight: kept unchanged.
+      - Lower-priority (smaller) fight:
+          * If smaller is the earlier fight: clip its horizon_end_ts to the
+            later fight's engage_ts (eliminates temporal overlap).
+          * If smaller is the later fight: drop it (its engage falls inside
+            the bigger fight's label window, cannot be cleanly clipped).
+    """
     if not fights:
         if diag is not None:
             diag.setdefault("postmerge_conflicts", 0)
             diag.setdefault("postmerge_removed", 0)
             diag.setdefault("postmerge_replaced", 0)
+            diag.setdefault("postmerge_overlap_clipped", 0)
+            diag.setdefault("postmerge_overlap_dropped", 0)
         return fights
 
     fs = sorted(fights, key=lambda x: int(x.get("engage_ts", -1)))
@@ -89,6 +102,8 @@ def enforce_postmerge_spacing_and_nonoverlap(
     conflicts = 0
     removed = 0
     replaced = 0
+    overlap_clipped = 0
+    overlap_dropped = 0
 
     for f in fs:
         t0 = int(f.get("engage_ts", -1))
@@ -111,7 +126,8 @@ def enforce_postmerge_spacing_and_nonoverlap(
         too_close = (gap_from_prev_start < int(fight_min_gap_ms))
 
         if overlap or too_close:
-            if float(location_radius) > 0:
+            # [FIX-6.2] Spatially distant overlap → clip smaller fight
+            if overlap and float(location_radius) > 0:
                 try:
                     pcx = float(prev.get("centroid_x", float("nan")))
                     pcy = float(prev.get("centroid_y", float("nan")))
@@ -119,7 +135,19 @@ def enforce_postmerge_spacing_and_nonoverlap(
                     ccy = float(f.get("centroid_y", float("nan")))
                     if np.isfinite(pcx) and np.isfinite(pcy) and np.isfinite(ccx) and np.isfinite(ccy):
                         if distance_2d((pcx, pcy), (ccx, ccy)) > float(location_radius):
-                            kept.append(f)
+                            sp = fight_priority_score(prev, kill_ts=kill_ts, horizon_ms=horizon_ms)
+                            sc = fight_priority_score(f, kill_ts=kill_ts, horizon_ms=horizon_ms)
+                            if sc > sp:
+                                # f is bigger — clip prev (smaller, earlier)
+                                clipped_end = int(min(prev_label_end, t0))
+                                if clipped_end > p0:
+                                    prev["horizon_end_ts"] = clipped_end
+                                    prev["det_overlap_clipped"] = 1
+                                    overlap_clipped += 1
+                                kept.append(f)
+                            else:
+                                # prev is bigger — drop f (smaller, later)
+                                overlap_dropped += 1
                             continue
                 except Exception:
                     pass
@@ -140,5 +168,7 @@ def enforce_postmerge_spacing_and_nonoverlap(
         diag["postmerge_conflicts"] = int(diag.get("postmerge_conflicts", 0) or 0) + int(conflicts)
         diag["postmerge_removed"] = int(diag.get("postmerge_removed", 0) or 0) + int(removed)
         diag["postmerge_replaced"] = int(diag.get("postmerge_replaced", 0) or 0) + int(replaced)
+        diag["postmerge_overlap_clipped"] = int(diag.get("postmerge_overlap_clipped", 0) or 0) + int(overlap_clipped)
+        diag["postmerge_overlap_dropped"] = int(diag.get("postmerge_overlap_dropped", 0) or 0) + int(overlap_dropped)
 
     return kept
