@@ -516,6 +516,113 @@ def run_phase5_final_test(
 
 
 # ──────────────────────────────────────────────────────────────
+# 5b. Phase 6: Feature Ablation Analysis
+# ──────────────────────────────────────────────────────────────
+
+def run_phase6_feature_ablation(
+    args: argparse.Namespace,
+    output_dir: Path,
+) -> None:
+    """Phase 6: Feature Ablation Analysis.
+
+    Four analyses for LightGBM baseline review:
+      1. Single-feature ablation (bJNG_cs_cooldownReduction__max)
+      2. Static-attribute temporal aggregation validation
+      3. SHAP-based parsimonious model (top-k feature selection)
+      4. Logit pipeline integrity check
+    """
+    from app.experiment import run as _run_experiment
+    from app.experiment_runtime import reset_config_to_baseline
+    from core.config import cfg
+
+    print("=" * 70)
+    print("PHASE 6: Feature Ablation Analysis")
+    print("=" * 70)
+
+    reset_config_to_baseline(cfg)
+
+    # Build refs via the same pipeline as Phase 1
+    seed = args.seed
+    feature_set = args.feature_set
+
+    phase6_dir = output_dir / "phase6_feature_ablation"
+    phase6_dir.mkdir(parents=True, exist_ok=True)
+    log_fp = phase6_dir / "phase6.log"
+
+    from core.utils import write_log
+    write_log("[PHASE 6] Starting feature ablation analysis", log_fp)
+
+    if args.dry_run:
+        print("  [DRY-RUN] Would run feature ablation analysis")
+        print("  Analyses: single_feature_ablation, static_temporal_validation,")
+        print("            parsimonious_model, logit_pipeline_check")
+        return
+
+    # Build data references (same as baseline)
+    try:
+        from app.experiment import _build_refs_for_phase6
+        tr_refs, va_refs, te_refs = _build_refs_for_phase6(
+            feature_set=feature_set,
+            split_mode=args.split_mode,
+            seed=seed,
+            log_fp=log_fp,
+        )
+    except (ImportError, AttributeError):
+        # Fallback: build refs directly
+        write_log("[PHASE 6] Falling back to direct ref building", log_fp)
+        try:
+            from data.index_split import build_split_refs
+            from data.cache_io import load_dataset_index
+            idx = load_dataset_index()
+            if not idx:
+                print("[PHASE 6 ERROR] No dataset index. Run cache builder first.")
+                return
+            tr_refs, va_refs, te_refs = build_split_refs(
+                idx, mode=args.split_mode, seed=seed,
+            )
+        except Exception as e:
+            print(f"[PHASE 6 ERROR] Cannot build refs: {e}")
+            write_log(f"[PHASE 6] Cannot build refs: {e}", log_fp)
+            return
+
+    write_log(
+        f"[PHASE 6] Refs: train={len(tr_refs)} val={len(va_refs)} test={len(te_refs)}",
+        log_fp,
+    )
+
+    from analysis.feature_ablation import run_all_analyses
+    results = run_all_analyses(
+        feature_set=feature_set,
+        tr_refs=tr_refs,
+        va_refs=va_refs,
+        te_refs=te_refs,
+        seed=seed,
+        log_fp=log_fp,
+        out_dir=phase6_dir,
+    )
+
+    # Print summary
+    print("\n" + "=" * 70)
+    print("PHASE 6 SUMMARY: Feature Ablation Analysis")
+    print("=" * 70)
+
+    for name, info in results.items():
+        status = "PASS" if info.get("ok", False) else "FAIL"
+        print(f"  [{status}] {name}")
+        if "delta_val_auc" in info and info["delta_val_auc"] is not None:
+            print(f"         delta_val_auc = {info['delta_val_auc']:+.4f}")
+        if "verdict" in info:
+            print(f"         verdict = {info['verdict']}")
+        if "n_models" in info:
+            print(f"         n_models = {info['n_models']}")
+        if "issues" in info:
+            for issue in info["issues"][:3]:
+                print(f"         issue: {issue}")
+
+    print("=" * 70)
+
+
+# ──────────────────────────────────────────────────────────────
 # 6. Summary / Reporting Utilities
 # ──────────────────────────────────────────────────────────────
 
@@ -771,6 +878,10 @@ def run_phase_cli(args: argparse.Namespace) -> None:
 
         results = run_phase5_final_test(args, best_ids, best_hps)
         _save_results(output_dir / "phase5_final_test.json", results)
+
+    elif args.phase == 6:
+        print("[Phase 6] Feature ablation analysis (SHAP, static-attr validation, parsimonious model, logit pipeline)")
+        run_phase6_feature_ablation(args, output_dir)
 
     print("\n[DONE] Experiment phase completed.")
 
