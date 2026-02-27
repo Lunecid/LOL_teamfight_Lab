@@ -396,10 +396,18 @@ class TestDetectFightsTeamfightV2:
 # ============================================================
 
 class TestXYExclusion:
-    def test_zero_xy_default_true(self):
-        """Default config should have ZERO_XY_NODE_FEATURES=True."""
+    def test_zero_xy_default_false(self):
+        """[P0-1] Default config should have ZERO_XY_NODE_FEATURES=False (dual-path design)."""
         from core.config import cfg
-        assert bool(getattr(cfg, "ZERO_XY_NODE_FEATURES", True)) is True
+        assert bool(getattr(cfg, "ZERO_XY_NODE_FEATURES", False)) is False
+
+    def test_dual_path_xy_flags(self):
+        """[P0-1] Dual-path XY config flags exist and have correct defaults."""
+        from core.config import cfg
+        assert bool(getattr(cfg, "ZERO_XY_IN_EXTRA_SEQ", True)) is True
+        assert bool(getattr(cfg, "USE_RELATIVE_XY", True)) is True
+        assert isinstance(getattr(cfg, "ADJ_SIGMA_FACTOR", 1.0), float)
+        assert cfg.ADJ_SIGMA_FACTOR > 1.0
 
 
 # ============================================================

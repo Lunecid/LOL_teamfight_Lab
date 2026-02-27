@@ -358,6 +358,16 @@ class InMemoryFightDataset(Dataset):
 
             out = {"node_seq": node_ts, "extra_seq": extra_ts, "y": y}
 
+            # [P1-2] Also include x_seq in Layout (b) so models that need
+            # full-info access (e.g., RNNOnlyModel with USE_INPUT_PROJECTION)
+            # can pick it up via pick_temporal_seq fallback.
+            x_np = feats.get("x_seq", None)
+            if x_np is not None:
+                x_ts = torch.from_numpy(x_np).float()
+                x_names = get_xseq_feature_names(self.feature_set)
+                _, x_ts = self._apply_scaler_and_restore_coords(None, x_ts, seq_names=x_names)
+                out["x_seq"] = x_ts
+
         else:
             x_np = feats.get("x_seq", None)
             if x_np is None:
@@ -598,6 +608,9 @@ def collate_batch(batch: List[Optional[Dict[str, Any]]]) -> Optional[Dict[str, A
     elif all(("node_seq" in b) and ("extra_seq" in b) for b in batch):
         out["node_seq"] = torch.stack([b["node_seq"] for b in batch], dim=0)
         out["extra_seq"] = torch.stack([b["extra_seq"] for b in batch], dim=0)
+        # [P1-2] Include x_seq if available in Layout (b) for full-info models
+        if all("x_seq" in b for b in batch):
+            out["x_seq"] = torch.stack([b["x_seq"] for b in batch], dim=0)
 
     else:
         out["x_seq"] = torch.stack([b["x_seq"] for b in batch], dim=0)

@@ -18,7 +18,16 @@ from core.config import (
 )
 
 from core.common import safe_float, log1p_norm
-from gameplay.feature_spatial import F_SPATIAL, compute_spatial_seq_from_node, get_spatial_feature_names
+from gameplay.feature_spatial import F_SPATIAL, SPATIAL_FEATURE_NAMES, compute_spatial_seq_from_node, get_spatial_feature_names
+
+# [P0-1] Indices of direct-position features in spatial_seq to zero out
+# when ZERO_XY_IN_EXTRA_SEQ is True. These are absolute position centroids
+# that could enable map-position memorization in BiGRU/extra_seq.
+# Derived features (dist, zone, standoff, etc.) are preserved.
+_SPATIAL_XY_INDICES: List[int] = [
+    i for i, n in enumerate(SPATIAL_FEATURE_NAMES)
+    if n.startswith("pos_")  # pos_fight_x/y, pos_blue_x/y, pos_red_x/y
+]
 
 
 def _normalize_cs_raw(key: str, raw_value: float) -> float:
@@ -527,8 +536,17 @@ def build_sequence_features(
 
     spatial_seq = compute_spatial_seq_from_node(node_role, sample)  # (L, F_SPATIAL)
 
-    macro_seq = np.concatenate([macro_base, spatial_seq], axis=1).astype(np.float32)
-    global_plus_spatial = np.concatenate([global_base, spatial_seq], axis=1).astype(np.float32)
+    # [P0-1] When ZERO_XY_IN_EXTRA_SEQ is True, zero out direct position features
+    # (pos_fight_x/y, pos_blue_x/y, pos_red_x/y) from the spatial_seq copy used
+    # in extra_seq/macro_seq (BiGRU path). The full spatial_seq is still available
+    # via node_seq for GNN models.
+    spatial_for_extra = spatial_seq
+    if bool(getattr(cfg, "ZERO_XY_IN_EXTRA_SEQ", True)) and _SPATIAL_XY_INDICES:
+        spatial_for_extra = spatial_seq.copy()
+        spatial_for_extra[:, _SPATIAL_XY_INDICES] = 0.0
+
+    macro_seq = np.concatenate([macro_base, spatial_for_extra], axis=1).astype(np.float32)
+    global_plus_spatial = np.concatenate([global_base, spatial_for_extra], axis=1).astype(np.float32)
 
     y = int(sample["y"])
 

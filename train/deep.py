@@ -1185,6 +1185,31 @@ def train_deep_model(
             log_fp,
         )
     else:
+        # [P0-6] Val/Test subsampling — reduces I/O from ~10h to ~3h.
+        # AUC SE at n=80K: ~0.0035 (vs 0.0017 at full size), acceptable.
+        val_max_n = int(getattr(cfg, "VAL_MAX_N", 0))
+        test_max_n = int(getattr(cfg, "TEST_MAX_N", 0))
+        _va_refs = list(va_refs)
+        _te_refs = list(te_refs)
+        if val_max_n > 0 and len(_va_refs) > val_max_n:
+            rng = np.random.RandomState(seed)
+            idx = rng.choice(len(_va_refs), val_max_n, replace=False)
+            _va_refs = [_va_refs[i] for i in sorted(idx)]
+            write_log(
+                f"[DEEP-SUBSAMPLE] val {len(va_refs)} -> {len(_va_refs)} "
+                f"(max_n={val_max_n}, seed={seed})",
+                log_fp,
+            )
+        if test_max_n > 0 and len(_te_refs) > test_max_n:
+            rng = np.random.RandomState(seed + 1000)
+            idx = rng.choice(len(_te_refs), test_max_n, replace=False)
+            _te_refs = [_te_refs[i] for i in sorted(idx)]
+            write_log(
+                f"[DEEP-SUBSAMPLE] test {len(te_refs)} -> {len(_te_refs)} "
+                f"(max_n={test_max_n}, seed={seed})",
+                log_fp,
+            )
+
         ds_tr = InMemoryFightDataset(
             tr_refs,
             feature_set=feature_set,
@@ -1195,7 +1220,7 @@ def train_deep_model(
             split_label="train",
         )
         ds_va = InMemoryFightDataset(
-            va_refs,
+            _va_refs,
             feature_set=feature_set,
             model_name=model_name,
             lgbm_logit_map=lgbm_logit_map,
@@ -1204,7 +1229,7 @@ def train_deep_model(
             split_label="val",
         )
         ds_te = InMemoryFightDataset(
-            te_refs,
+            _te_refs,
             feature_set=feature_set,
             model_name=model_name,
             lgbm_logit_map=lgbm_logit_map,
@@ -1421,7 +1446,8 @@ def train_deep_model(
     # where T_warm = ceil(0.1 × T_max)
     # ------------------------------------------------------------------
     max_epochs = int(getattr(cfg, "EPOCHS", 10))
-    warmup_epochs = max(1, int(math.ceil(0.1 * max_epochs)))
+    # [P1-7] Warmup epochs from config (was hardcoded as ceil(0.1 * EPOCHS))
+    warmup_epochs = int(getattr(cfg, "WARMUP_EPOCHS", max(1, int(math.ceil(0.1 * max_epochs)))))
     scheduler = None
     try:
         from torch.optim.lr_scheduler import LinearLR, CosineAnnealingLR, SequentialLR
@@ -1498,6 +1524,7 @@ def train_deep_model(
         loss_gold_sum = 0.0
         loss_kill_sum = 0.0
         loss_obj_sum = 0.0
+        grad_norm_sum = 0.0  # [P1-6] Track gradient norm for diagnostics
         n_step = 0
 
         for batch in ld_tr:
@@ -1538,17 +1565,19 @@ def train_deep_model(
                     lam_obj = float(getattr(cfg, "MTL_LAMBDA_OBJ", 0.05))
                     loss = loss + lam_gold * loss_gold + lam_kill * loss_kill + lam_obj * loss_obj
 
+            # [P1-6] Gradient computation + norm logging
+            grad_norm_val = 0.0
             if use_grad_scaler:
                 scaler_amp.scale(loss).backward()
                 scaler_amp.unscale_(opt)
                 if clip_norm > 0:
-                    torch.nn.utils.clip_grad_norm_(clip_params, clip_norm)
+                    grad_norm_val = float(torch.nn.utils.clip_grad_norm_(clip_params, clip_norm).item())
                 scaler_amp.step(opt)
                 scaler_amp.update()
             else:
                 loss.backward()
                 if clip_norm > 0:
-                    torch.nn.utils.clip_grad_norm_(clip_params, clip_norm)
+                    grad_norm_val = float(torch.nn.utils.clip_grad_norm_(clip_params, clip_norm).item())
                 opt.step()
 
             loss_sum += float(loss.detach().cpu().item())
@@ -1556,11 +1585,16 @@ def train_deep_model(
             loss_gold_sum += float(loss_gold.detach().cpu().item())
             loss_kill_sum += float(loss_kill.detach().cpu().item())
             loss_obj_sum += float(loss_obj.detach().cpu().item())
+            grad_norm_sum += grad_norm_val
             n_step += 1
 
             log_every = int(getattr(cfg, "LOG_EVERY", 0))
             if log_every > 0 and (n_step % log_every == 0):
-                write_log(f"[DEEP] epoch={epoch} step={n_step} loss={loss_sum / max(1, n_step):.4f}", log_fp)
+                write_log(
+                    f"[DEEP] epoch={epoch} step={n_step} loss={loss_sum / max(1, n_step):.4f} "
+                    f"grad_norm={grad_norm_sum / max(1, n_step):.4f}",
+                    log_fp,
+                )
 
         met_va = _eval_loop(model, ld_va, device, use_amp=use_amp, threshold=threshold)
         auc_va = float(met_va.get("auc", -1.0))
@@ -1573,9 +1607,11 @@ def train_deep_model(
             except Exception:
                 pass
 
+        avg_grad_norm = grad_norm_sum / max(1, n_step)
         write_log(
             f"[DEEP] epoch={epoch} loss={loss_sum / max(1, n_step):.4f} "
-            f"val_auc={auc_va:.4f} lr={current_lr:.2e} time={time.time() - t0:.1f}s",
+            f"val_auc={auc_va:.4f} lr={current_lr:.2e} "
+            f"grad_norm={avg_grad_norm:.4f} time={time.time() - t0:.1f}s",
             log_fp,
         )
         if aux_head is not None:

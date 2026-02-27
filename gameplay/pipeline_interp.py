@@ -107,14 +107,39 @@ def interpolate_node_global(cache: Dict[str, Any], q_ms: int) -> Tuple[np.ndarra
                 if yj_idx is not None:
                     node[:, yj_idx] = xy_norm[:, 1]
 
-    if bool(getattr(cfg, "ZERO_XY_NODE_FEATURES", True)):
-        xj_idx = NODE_IDX.get("x_norm", None)
-        yj_idx = NODE_IDX.get("y_norm", None)
+    # ── [P0-1] Dual-path XY handling ──────────────────────────
+    # Path 1 (node_seq for GNN/spatial): preserve XY, optionally
+    #   convert to centroid-relative coordinates.
+    # Path 2 (extra_seq for BiGRU): XY removal handled downstream
+    #   in features.py via ZERO_XY_IN_EXTRA_SEQ.
+    xj_idx = NODE_IDX.get("x_norm", None)
+    yj_idx = NODE_IDX.get("y_norm", None)
+
+    if bool(getattr(cfg, "ZERO_XY_NODE_FEATURES", False)):
+        # Legacy behavior: zero out all XY in node_seq
         if xj_idx is not None:
             node[:, xj_idx] = 0.0
         if yj_idx is not None:
             node[:, yj_idx] = 0.0
+    elif bool(getattr(cfg, "USE_RELATIVE_XY", True)):
+        # [P0-1 NEW] Convert absolute XY → centroid-relative XY
+        # pos_i^{rel} = pos_i - centroid(all_10_players)
+        # This removes map-position bias while preserving inter-player
+        # spatial structure (team separation, formation shape).
+        if xj_idx is not None and yj_idx is not None:
+            xy = node[:, [xj_idx, yj_idx]]  # (10, 2)
+            alive_idx_rel = NODE_IDX.get("alive", None)
+            if alive_idx_rel is not None:
+                alive_w = node[:, alive_idx_rel].reshape(-1, 1)  # (10, 1)
+                alive_sum = max(float(alive_w.sum()), 1e-6)
+                centroid = (xy * alive_w).sum(axis=0) / alive_sum  # (2,)
+            else:
+                centroid = xy.mean(axis=0)  # (2,)
+            node[:, xj_idx] -= centroid[0]
+            node[:, yj_idx] -= centroid[1]
 
+    # Ensure time_norm is set properly when XY is zeroed
+    if bool(getattr(cfg, "ZERO_XY_NODE_FEATURES", False)):
         tj = GLOBAL_IDX.get("time_norm", None)
         if tj is not None:
             t0 = float(ts[0])
