@@ -280,7 +280,7 @@ class CFG:
         r"D:\LOL_Project",
         "outputs",
     ))
-    CACHE_DIRNAME: str = "match_cache_fresh_v3_engage_status12"
+    CACHE_DIRNAME: str = "match_cache_fresh_v3_engage_status13"
     RUN_DIRNAME: str = "runs_teamfight_fresh_v3_engage_status13"
     META_DIRNAME: str = "meta"
     DATASET_DIRNAME: str = "dataset_teamfight_fresh_v3_engage_status4"
