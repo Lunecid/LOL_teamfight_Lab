@@ -1028,6 +1028,7 @@ def detect_fights_teamfight_v2(
         "clusters_accepted": 0,
         "accepted": 0,
         "rejected_startctx": 0,
+        "rejected_start_offset": 0,
         "rejected_horizon": 0,
         "rejected_alive": 0,
         "rejected_too_few_per_team": 0,
@@ -1038,6 +1039,8 @@ def detect_fights_teamfight_v2(
         "postmerge_conflicts": 0,
         "postmerge_removed": 0,
         "postmerge_replaced": 0,
+        "postmerge_overlap_clipped": 0,
+        "postmerge_overlap_dropped": 0,
         "errors": [],
     }
 
@@ -1152,6 +1155,7 @@ def detect_fights_teamfight_v2(
     t_min_ms = int(minute_ts[0])
     t_max_ms = int(minute_ts[-1])
     ctx_ms = int(config.fight_context_min) * 60000
+    start_offset_ms = int(getattr(cfg, "START_OFFSET_MIN", 2)) * 60000 if cfg else 120000
     alive_idx = NODE_IDX.get("alive", None)
 
     # --- Step 1: Build 5-second position grid ---
@@ -1222,6 +1226,10 @@ def detect_fights_teamfight_v2(
         # Context / horizon guards
         if engage_ts_val - ctx_ms < t_min_ms:
             diag["rejected_startctx"] += 1
+            continue
+        # [FIX-6.3] Enforce START_OFFSET_MIN — reject fights too early in game.
+        if engage_ts_val - t_min_ms < start_offset_ms:
+            diag["rejected_start_offset"] += 1
             continue
         if engage_ts_val + horizon_ms > t_max_ms:
             diag["rejected_horizon"] += 1
