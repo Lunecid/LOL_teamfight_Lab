@@ -19,6 +19,7 @@ Phase descriptions:
   3  Interaction analysis (pairwise + cumulative)
   4  Hyperparameter sensitivity analysis
   5  Final test set evaluation (ONE-TIME)
+  6  Feature ablation analysis (SHAP, static-attribute validation, parsimonious model)
 
 Examples:
   python experiment_runner.py --phase 1
@@ -30,7 +31,7 @@ Examples:
         """,
     )
 
-    parser.add_argument("--phase", type=int, required=True, choices=[1, 2, 3, 4, 5], help="Experiment phase to execute")
+    parser.add_argument("--phase", type=int, required=True, choices=[1, 2, 3, 4, 5, 6], help="Experiment phase to execute (6=feature ablation analysis)")
     parser.add_argument(
         "--treatment",
         type=str,

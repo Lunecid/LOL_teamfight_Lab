@@ -124,3 +124,111 @@ def build_feature_contract(
         event_names=_as_tuple_str(event_names),
         global_names=_as_tuple_str(global_names),
     )
+
+
+# ─────────────────────────────────────────────────────────────
+# [ABLATION] Static feature identification for temporal
+# aggregation validation.
+#
+# Static attributes (champion_id, rune IDs, summoner spells, bans)
+# do not change across timesteps within a single fight sequence.
+# Temporal aggregation suffixes (__std, __delta, __slope) applied
+# to these features should yield ~0 values. Non-zero values
+# indicate data artifacts (champion swap, remake) or noise fitting.
+# ─────────────────────────────────────────────────────────────
+STATIC_NODE_FEATURE_PREFIXES: Tuple[str, ...] = (
+    "champion_id",
+    "champion_name_id",
+    "summoner_spell_1_id",
+    "summoner_spell_2_id",
+    "primary_style_id",
+    "sub_style_id",
+    "primary_rune_1",
+    "primary_rune_2",
+    "primary_rune_3",
+    "primary_rune_4",
+    "sub_rune_1",
+    "sub_rune_2",
+    "stat_perk_offense",
+    "stat_perk_flex",
+    "stat_perk_defense",
+)
+
+STATIC_GLOBAL_FEATURE_PREFIXES: Tuple[str, ...] = (
+    "blue_ban_",
+    "red_ban_",
+)
+
+TEMPORAL_NOISE_SUFFIXES: Tuple[str, ...] = ("__std", "__delta", "__slope")
+
+
+def is_static_temporal_noise(tabular_name: str) -> bool:
+    """Return True if a tabular feature is a temporal-noise aggregation
+    of a static attribute (should be ~0 and contributes only noise).
+
+    Parameters
+    ----------
+    tabular_name : str
+        A tabular feature name like "bJNG_primary_rune_3__delta".
+
+    Returns
+    -------
+    bool
+        True if this is a static attribute with a noise suffix.
+    """
+    # Must end with a noise suffix
+    has_noise_suffix = False
+    for sfx in TEMPORAL_NOISE_SUFFIXES:
+        if tabular_name.endswith(sfx):
+            has_noise_suffix = True
+            break
+    if not has_noise_suffix:
+        return False
+
+    # Strip suffix and slot prefix to get the base attribute name
+    parts = tabular_name.split("__")
+    if len(parts) < 2:
+        return False
+    base = parts[0]  # e.g., "bJNG_primary_rune_3"
+
+    # Check against slot-prefixed static features
+    # Slot names: bTOP_, bJNG_, bMID_, bBOT_, bSUP_, rTOP_, ...
+    _SLOT_PREFIXES = (
+        "bTOP_", "bJNG_", "bMID_", "bBOT_", "bSUP_",
+        "rTOP_", "rJNG_", "rMID_", "rBOT_", "rSUP_",
+    )
+    for slot in _SLOT_PREFIXES:
+        if base.startswith(slot):
+            attr = base[len(slot):]
+            for static_pfx in STATIC_NODE_FEATURE_PREFIXES:
+                if attr == static_pfx or attr.startswith(static_pfx):
+                    return True
+
+    # Check against global static features (no slot prefix)
+    for static_pfx in STATIC_GLOBAL_FEATURE_PREFIXES:
+        if base.startswith(static_pfx) or base == static_pfx.rstrip("_"):
+            return True
+
+    return False
+
+
+def filter_static_temporal_noise(
+    feature_names: Sequence[str],
+) -> Tuple[Tuple[int, ...], Tuple[str, ...]]:
+    """Identify static temporal-noise features in a feature name list.
+
+    Returns
+    -------
+    keep_indices : tuple of int
+        Indices of features to keep (non-noise).
+    dropped_names : tuple of str
+        Names of dropped noise features.
+    """
+    keep = []
+    dropped = []
+    for i, name in enumerate(feature_names):
+        if is_static_temporal_noise(name):
+            dropped.append(name)
+        else:
+            keep.append(i)
+    return tuple(keep), tuple(dropped)
