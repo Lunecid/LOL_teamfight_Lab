@@ -14,8 +14,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-# [P4-DEDUP] Unified imports via common_torch â€” single source of truth.
+# â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+# [P4-DEDUP] Unified imports via common_torch â€" single source of truth.
 #
 # Previously this module duplicated ~100 lines of:
 #   - _autocast_disabled()  (identical to deep.py L240)
@@ -25,7 +25,7 @@ import torch.nn.functional as F
 #   - 50+ lines of nested try/except for config imports
 #
 # All now delegated to common_torch.py.
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 from core.config import cfg, F_GLOBAL  # type: ignore
 
 from core.common_torch import (
@@ -102,6 +102,11 @@ def reset_model_singletons() -> None:
 
 
 def _build_adj(xy: torch.Tensor, alive: Optional[torch.Tensor], multiscale: bool = False) -> torch.Tensor:
+    # [P0-1] Apply ADJ_SIGMA_FACTOR to enlarge σ for 60s positional noise robustness.
+    # σ_effective = σ_base × ADJ_SIGMA_FACTOR (default 1.5)
+    base_sigma = float(getattr(cfg, "ADJ_SIGMA_NORM", 0.125))
+    sigma_factor = float(getattr(cfg, "ADJ_SIGMA_FACTOR", 1.0))
+    effective_sigma = base_sigma * sigma_factor
 
     if multiscale:
         A = build_multiscale_adjacency_from_xy(
@@ -111,11 +116,11 @@ def _build_adj(xy: torch.Tensor, alive: Optional[torch.Tensor], multiscale: bool
             alive=alive,
             clamp_min=float(getattr(cfg, "ADJ_CLAMP_MIN", 1e-4)),
         )
-    else:  # ← 기존 코드 그대로
+    else:
         A = build_adjacency_from_xy(
             xy,
             soft=bool(getattr(cfg, "ADJ_SOFT", True)),
-            sigma=float(getattr(cfg, "ADJ_SIGMA_NORM", 0.125)),
+            sigma=effective_sigma,
             team_edge_weight=float(getattr(cfg, "TEAM_EDGE_WEIGHT", 1.0)),
             add_self_loops=True,
             alive=alive,
@@ -123,8 +128,6 @@ def _build_adj(xy: torch.Tensor, alive: Optional[torch.Tensor], multiscale: bool
         )
 
     # [P1-LOGIC-4 FIX] Delegate to _get_role_adj_module() — single init path.
-    # Previously duplicated inline creation logic, which could diverge from
-    # the factory function and bypass reset_model_singletons().
     if bool(getattr(cfg, "USE_ROLE_AWARE_ADJ", False)):
         role_mod = _get_role_adj_module(A.device)
         A = role_mod(A)
@@ -135,7 +138,7 @@ def _build_adj(xy: torch.Tensor, alive: Optional[torch.Tensor], multiscale: bool
 # Backward-compatible alias: existing code calls `with _autocast_disabled():`
 @contextmanager
 def _autocast_disabled():
-    """Thin wrapper â€” delegates to common_torch.autocast_disabled()."""
+    """Thin wrapper â€" delegates to common_torch.autocast_disabled()."""
     with _autocast_disabled_ctx():
         yield
 
@@ -152,7 +155,7 @@ def pick_first(d: dict, *keys):
 
 
 # =========================================================
-# NODE_IDX â€” single source of truth via common_torch
+# NODE_IDX â€" single source of truth via common_torch
 # =========================================================
 NODE_IDX: Dict[str, int] = resolve_node_idx()
 X_IDX, Y_IDX = pick_xy_indices(NODE_IDX)
@@ -468,17 +471,35 @@ class RNNOnlyModel(nn.Module):
         rnn_layers = int(getattr(cfg, "RNN_LAYERS", 1))
         drop = float(getattr(cfg, "DROPOUT", 0.1))
 
+        # [P0-3] Optional input projection for full-info x_seq access.
+        # When USE_INPUT_PROJECTION=True, the model can process x_seq (~997-dim)
+        # through a projection: Linear(d_in, proj_dim) → LayerNorm → ReLU
+        # This gives BiGRU access to all 10 players' individual features.
+        self._use_proj = bool(getattr(cfg, "USE_INPUT_PROJECTION", False))
+        proj_dim = int(getattr(cfg, "INPUT_PROJ_DIM", 256))
+        if self._use_proj:
+            self.input_proj = nn.Sequential(
+                nn.Linear(d_in, proj_dim),
+                nn.LayerNorm(proj_dim),
+                nn.ReLU(),
+                nn.Dropout(drop),
+            )
+            enc_d_in = proj_dim
+        else:
+            self.input_proj = None
+            enc_d_in = d_in
+
         if kind == "ugru":
-            self.enc = RNNEncoder("gru", d_in, rnn_hidden, n_layers=rnn_layers, bidirectional=False, dropout=drop)
+            self.enc = RNNEncoder("gru", enc_d_in, rnn_hidden, n_layers=rnn_layers, bidirectional=False, dropout=drop)
         elif kind == "bigru":
-            self.enc = RNNEncoder("gru", d_in, rnn_hidden, n_layers=rnn_layers, bidirectional=True, dropout=drop)
+            self.enc = RNNEncoder("gru", enc_d_in, rnn_hidden, n_layers=rnn_layers, bidirectional=True, dropout=drop)
         elif kind == "ulstm":
-            self.enc = RNNEncoder("lstm", d_in, rnn_hidden, n_layers=rnn_layers, bidirectional=False, dropout=drop)
+            self.enc = RNNEncoder("lstm", enc_d_in, rnn_hidden, n_layers=rnn_layers, bidirectional=False, dropout=drop)
         elif kind == "bilstm":
-            self.enc = RNNEncoder("lstm", d_in, rnn_hidden, n_layers=rnn_layers, bidirectional=True, dropout=drop)
+            self.enc = RNNEncoder("lstm", enc_d_in, rnn_hidden, n_layers=rnn_layers, bidirectional=True, dropout=drop)
         elif kind == "transformer":
             self.enc = TransformerTemporalEncoder(
-                d_in=d_in,
+                d_in=enc_d_in,
                 d_model=int(getattr(cfg, "TRANS_D_MODEL", 256)),
                 nhead=int(getattr(cfg, "TRANS_NHEAD", 4)),
                 n_layers=int(getattr(cfg, "TRANS_LAYERS", 3)),
@@ -491,7 +512,7 @@ class RNNOnlyModel(nn.Module):
             tcn_kernel = int(getattr(cfg, "TCN_KERNEL", 3))
             tcn_drop = float(getattr(cfg, "TCN_DROPOUT", drop))
             self.enc = TCNTemporalEncoder(
-                d_in=d_in,
+                d_in=enc_d_in,
                 channels=tcn_channels,
                 n_levels=tcn_levels,
                 kernel=tcn_kernel,
@@ -504,7 +525,7 @@ class RNNOnlyModel(nn.Module):
             mamba_conv = int(getattr(cfg, "MAMBA_D_CONV", 4))
             mamba_expand = int(getattr(cfg, "MAMBA_EXPAND", 2))
             self.enc = MambaTemporalEncoder(
-                d_in=d_in,
+                d_in=enc_d_in,
                 d_model=mamba_d,
                 n_layers=mamba_layers,
                 d_state=mamba_state,
@@ -521,6 +542,9 @@ class RNNOnlyModel(nn.Module):
 
     def forward(self, batch: Dict[str, torch.Tensor], return_aux: bool = False):
         x, key = pick_temporal_seq(batch)
+        # [P0-3] Apply input projection if enabled
+        if self.input_proj is not None:
+            x = self.input_proj(x)
         feat = self.enc(x)
         logit = self.head(feat)
         if return_aux:
@@ -662,6 +686,11 @@ def _extract_alive_from_raw(x_raw: torch.Tensor) -> Optional[torch.Tensor]:
 
 
 def _build_adj(xy: torch.Tensor, alive: Optional[torch.Tensor], multiscale: bool = False) -> torch.Tensor:
+    # [P0-1] Apply ADJ_SIGMA_FACTOR for noise-robust adjacency
+    base_sigma = float(getattr(cfg, "ADJ_SIGMA_NORM", 0.125))
+    sigma_factor = float(getattr(cfg, "ADJ_SIGMA_FACTOR", 1.0))
+    effective_sigma = base_sigma * sigma_factor
+
     if multiscale:
         return build_multiscale_adjacency_from_xy(
             xy,
@@ -673,7 +702,7 @@ def _build_adj(xy: torch.Tensor, alive: Optional[torch.Tensor], multiscale: bool
     return build_adjacency_from_xy(
         xy,
         soft=bool(getattr(cfg, "ADJ_SOFT", True)),
-        sigma=float(getattr(cfg, "ADJ_SIGMA_NORM", 0.125)),
+        sigma=effective_sigma,
         team_edge_weight=float(getattr(cfg, "TEAM_EDGE_WEIGHT", 1.0)),
         add_self_loops=True,
         alive=alive,

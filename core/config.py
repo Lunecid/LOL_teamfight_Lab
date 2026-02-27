@@ -476,9 +476,22 @@ class CFG:
     # This is the key interpolation algorithm under ablation.
     TF2_USE_KILL_TRAJECTORY_INTERP: bool = True
 
-    # Zero out x_norm/y_norm in node features for prediction input.
-    # [teamfight_v2] Default True: XY excluded from model inputs.
-    ZERO_XY_NODE_FEATURES: bool = True
+    # ── [P0-1 FIX] Dual-path XY coordinate handling ──────────
+    # Original: ZERO_XY=True zeroed XY everywhere, destroying
+    # GNN adjacency (→ uniform) and 25 spatial features (→ constant).
+    #
+    # New design:
+    #   Path 1: GNN adjacency + spatial features use raw (relative) XY
+    #   Path 2: extra_seq (BiGRU input) removes only direct XY coords
+    #
+    # ZERO_XY_NODE_FEATURES: False → preserve XY in node_seq for GNN/spatial
+    # ZERO_XY_IN_EXTRA_SEQ: True → remove raw XY from extra_seq (BiGRU)
+    # USE_RELATIVE_XY: True → centroid-relative coordinates (map bias removal)
+    # ADJ_SIGMA_FACTOR: 1.5 → enlarged σ absorbs 60s positional noise
+    ZERO_XY_NODE_FEATURES: bool = False
+    ZERO_XY_IN_EXTRA_SEQ: bool = True
+    USE_RELATIVE_XY: bool = True
+    ADJ_SIGMA_FACTOR: float = 1.5
 
     CONTINUOUS_FIGHT_MERGE: bool = True
     CONTINUOUS_FIGHT_MAX_GAP_MS: int = 30000
@@ -731,6 +744,13 @@ class CFG:
     LOG_EVERY: int = 100
     GRAD_CLIP_NORM: float = 5.0
     DEEP_MAX_TRAIN: int = 200_000   # [FIX P1-1] deep model train 서브샘플링 한도
+    # [P0-6] Val/Test subsampling — reduces I/O from 10+ hours to ~3 hours.
+    # AUC SE at n=80K: ~0.0035 (vs 0.0017 at full 358K), acceptable for comparison.
+    # Final reported Test AUC should use full data (1 run).
+    VAL_MAX_N: int = 80_000
+    TEST_MAX_N: int = 80_000
+    # [P1-7] Warmup epochs — explicit config (was hardcoded as ceil(0.1 * EPOCHS))
+    WARMUP_EPOCHS: int = 1
 
     # ---- Performance / DataLoader ----
     # Mixed precision (AMP) + TF32 can significantly speed up training on NVIDIA GPUs.
@@ -959,6 +979,25 @@ class CFG:
     MTL_LAMBDA_OBJ: float = 0.05
 
     LABEL_SMOOTHING: float = 0.0
+
+    # ── [P0-3] Input Projection for RNN full-info access ──────
+    # When True, RNNOnlyModel can use x_seq (~997-dim) via a projection
+    # layer: Linear(997, INPUT_PROJ_DIM) → LayerNorm → ReLU → BiGRU
+    # This gives BiGRU access to all 10 players' individual features.
+    USE_INPUT_PROJECTION: bool = False
+    INPUT_PROJ_DIM: int = 256
+
+    # ── [P2-2] Categorical Embedding Specs for NodeFeatureAdapter ──
+    # Maps categorical node features to learned embeddings instead of
+    # feeding raw integer IDs into Linear layers.
+    NODE_CAT_SPECS: Dict[str, Dict[str, int]] = field(default_factory=lambda: {
+        "champion_id": {"num_embeddings": 250, "emb_dim": 16},
+        "champion_name_id": {"num_embeddings": 4096, "emb_dim": 16},
+        "primary_style_id": {"num_embeddings": 256, "emb_dim": 8},
+        "sub_style_id": {"num_embeddings": 256, "emb_dim": 8},
+        "summoner_spell_1_id": {"num_embeddings": 512, "emb_dim": 4},
+        "summoner_spell_2_id": {"num_embeddings": 512, "emb_dim": 4},
+    })
 # -------------------------------------------------------------------
 # Singleton instance + directory creation
 # -------------------------------------------------------------------
