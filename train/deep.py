@@ -43,7 +43,7 @@ except ModuleNotFoundError as e:
     # Do not swallow unrelated import errors raised inside data_loader.dataset.
     if getattr(e, "name", "") not in {"data_loader", "data_loader.dataset"}:
         raise
-    from data.dataset import InMemoryFightDataset, collate_batch  # type: ignore
+    from data.dataset import InMemoryFightDataset, LogitInjectorDataset, collate_batch  # type: ignore
 
 
 # =========================================================
@@ -1125,6 +1125,7 @@ def train_deep_model(
         log_fp: Path,
         lgbm_logit_map: Optional[Dict[str, float]] = None,
         return_pred_maps: bool = True,
+        prebuilt_datasets: Optional[Tuple[Any, Any, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Updated trainer compatible with current experiment.py
@@ -1176,33 +1177,41 @@ def train_deep_model(
     cache_train = bool(getattr(cfg, "CACHE_TRAIN_SAMPLES_IN_RAM", getattr(cfg, "CACHE_IN_RAM", False)))
     cache_eval = bool(getattr(cfg, "CACHE_EVAL_SAMPLES_IN_RAM", True))
 
-    ds_tr = InMemoryFightDataset(
-        tr_refs,
-        feature_set=feature_set,
-        model_name=model_name,
-        lgbm_logit_map=lgbm_logit_map,
-        cache_in_ram=cache_train,
-        force_emit_logits=bool(getattr(cfg, "FORCE_EMIT_LOGITS", False)),
-        split_label="train",
-    )
-    ds_va = InMemoryFightDataset(
-        va_refs,
-        feature_set=feature_set,
-        model_name=model_name,
-        lgbm_logit_map=lgbm_logit_map,
-        cache_in_ram=cache_eval,
-        force_emit_logits=bool(getattr(cfg, "FORCE_EMIT_LOGITS", False)),
-        split_label="val",
-    )
-    ds_te = InMemoryFightDataset(
-        te_refs,
-        feature_set=feature_set,
-        model_name=model_name,
-        lgbm_logit_map=lgbm_logit_map,
-        cache_in_ram=cache_eval,
-        force_emit_logits=bool(getattr(cfg, "FORCE_EMIT_LOGITS", False)),
-        split_label="test",
-    )
+    if prebuilt_datasets is not None:
+        ds_tr, ds_va, ds_te = prebuilt_datasets
+        write_log(
+            f"[DEEP] Using prebuilt shared datasets: "
+            f"train={len(ds_tr)}, val={len(ds_va)}, test={len(ds_te)}",
+            log_fp,
+        )
+    else:
+        ds_tr = InMemoryFightDataset(
+            tr_refs,
+            feature_set=feature_set,
+            model_name=model_name,
+            lgbm_logit_map=lgbm_logit_map,
+            cache_in_ram=cache_train,
+            force_emit_logits=bool(getattr(cfg, "FORCE_EMIT_LOGITS", False)),
+            split_label="train",
+        )
+        ds_va = InMemoryFightDataset(
+            va_refs,
+            feature_set=feature_set,
+            model_name=model_name,
+            lgbm_logit_map=lgbm_logit_map,
+            cache_in_ram=cache_eval,
+            force_emit_logits=bool(getattr(cfg, "FORCE_EMIT_LOGITS", False)),
+            split_label="val",
+        )
+        ds_te = InMemoryFightDataset(
+            te_refs,
+            feature_set=feature_set,
+            model_name=model_name,
+            lgbm_logit_map=lgbm_logit_map,
+            cache_in_ram=cache_eval,
+            force_emit_logits=bool(getattr(cfg, "FORCE_EMIT_LOGITS", False)),
+            split_label="test",
+        )
 
     if len(ds_tr) < int(getattr(cfg, "MIN_TRAIN_SAMPLES", 200)):
         write_log(f"[DEEP] Not enough train samples: N={len(ds_tr)}", log_fp)

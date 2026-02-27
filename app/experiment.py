@@ -39,6 +39,7 @@ from data.indexing import (
 )
 from data.labels import get_label_map
 from train.baseline import densify_logit_map, run_lgbm_baseline
+from data.dataset import InMemoryFightDataset, LogitInjectorDataset
 from train.deep import train_deep_model
 from train.fusion import (
     stack_oof_meta,
@@ -337,6 +338,59 @@ def run(args) -> None:
         all_split_refs = list(tr_refs) + list(va_refs) + list(te_refs)
         base_logit_map_full = densify_logit_map(all_split_refs, base_logit_map, default_logit=0.0) if base_logit_map else {}
 
+        # ─── Dataset sharing: build once, reuse across models ────────
+        share_datasets = bool(getattr(args, "share_datasets", False))
+        _shared_base_datasets = None  # (ds_tr, ds_va, ds_te) without logits
+
+        if share_datasets:
+            _deep_max = int(getattr(cfg, "DEEP_MAX_TRAIN", 200_000))
+            _tr_refs_shared = _subsample_refs_for_deep(tr_refs, _deep_max, seed, log_fp=run_log)
+            cache_train = bool(getattr(cfg, "CACHE_TRAIN_SAMPLES_IN_RAM", getattr(cfg, "CACHE_IN_RAM", False)))
+            cache_eval = bool(getattr(cfg, "CACHE_EVAL_SAMPLES_IN_RAM", True))
+
+            write_log(
+                f"[SHARE_DS] Building shared base datasets once "
+                f"(train={len(_tr_refs_shared):,}, val={len(va_refs):,}, test={len(te_refs):,})",
+                run_log,
+            )
+            _t0_share = __import__("time").time()
+
+            _ds_base_tr = InMemoryFightDataset(
+                _tr_refs_shared,
+                feature_set=feature_set,
+                model_name="__shared_base__",
+                lgbm_logit_map=None,
+                cache_in_ram=cache_train,
+                force_emit_logits=False,
+                split_label="train",
+            )
+            _ds_base_va = InMemoryFightDataset(
+                va_refs,
+                feature_set=feature_set,
+                model_name="__shared_base__",
+                lgbm_logit_map=None,
+                cache_in_ram=cache_eval,
+                force_emit_logits=False,
+                split_label="val",
+            )
+            _ds_base_te = InMemoryFightDataset(
+                te_refs,
+                feature_set=feature_set,
+                model_name="__shared_base__",
+                lgbm_logit_map=None,
+                cache_in_ram=cache_eval,
+                force_emit_logits=False,
+                split_label="test",
+            )
+            _shared_base_datasets = (_ds_base_tr, _ds_base_va, _ds_base_te)
+
+            _elapsed_share = __import__("time").time() - _t0_share
+            write_log(
+                f"[SHARE_DS] Done in {_elapsed_share:.1f}s — "
+                f"train={len(_ds_base_tr)}, val={len(_ds_base_va)}, test={len(_ds_base_te)}",
+                run_log,
+            )
+
         # 5) Deep models
         for model_name in model_list:
             if (model_name or "").lower() == "lgbm":
@@ -374,6 +428,23 @@ def run(args) -> None:
                 _deep_max = int(getattr(cfg, "DEEP_MAX_TRAIN", 200_000))
                 tr_refs_deep = _subsample_refs_for_deep(tr_refs, _deep_max, seed, log_fp=run_log)
 
+                # Dataset sharing: reuse prebuilt datasets when available
+                _prebuilt = None
+                if _shared_base_datasets is not None:
+                    _base_tr, _base_va, _base_te = _shared_base_datasets
+                    if need_logit and logit_map:
+                        # Fusion model — wrap with logit injection
+                        _prebuilt = (
+                            LogitInjectorDataset(_base_tr, logit_map),
+                            LogitInjectorDataset(_base_va, logit_map),
+                            LogitInjectorDataset(_base_te, logit_map),
+                        )
+                        write_log(f"[SHARE_DS] {model_name}: reusing shared datasets + logit injection", run_log)
+                    else:
+                        # Pure model — use base directly
+                        _prebuilt = (_base_tr, _base_va, _base_te)
+                        write_log(f"[SHARE_DS] {model_name}: reusing shared datasets (no logit)", run_log)
+
                 rep = train_deep_model(
                     model_name=model_name,
                     feature_set=fs,
@@ -387,6 +458,7 @@ def run(args) -> None:
                     log_fp=model_log,
                     lgbm_logit_map=logit_map,
                     return_pred_maps=True,
+                    prebuilt_datasets=_prebuilt,
                 )
 
                 deep_reports[f"{model_name}::{variant_tag}"] = rep
@@ -440,6 +512,21 @@ def run(args) -> None:
                 _deep_max = int(getattr(cfg, "DEEP_MAX_TRAIN", 200_000))
                 tr_refs_deep = _subsample_refs_for_deep(tr_refs, _deep_max, seed, log_fp=run_log)
 
+                # Dataset sharing: reuse prebuilt datasets when available
+                _prebuilt = None
+                if _shared_base_datasets is not None:
+                    _base_tr, _base_va, _base_te = _shared_base_datasets
+                    if logit_map:
+                        _prebuilt = (
+                            LogitInjectorDataset(_base_tr, logit_map),
+                            LogitInjectorDataset(_base_va, logit_map),
+                            LogitInjectorDataset(_base_te, logit_map),
+                        )
+                        write_log(f"[SHARE_DS] {model_name}/{variant_tag}: shared + logit injection", run_log)
+                    else:
+                        _prebuilt = (_base_tr, _base_va, _base_te)
+                        write_log(f"[SHARE_DS] {model_name}/{variant_tag}: shared (no logit)", run_log)
+
                 rep = train_deep_model(
                     model_name=model_name,
                     feature_set=fs,
@@ -453,6 +540,7 @@ def run(args) -> None:
                     log_fp=model_log,
                     lgbm_logit_map=logit_map,
                     return_pred_maps=True,
+                    prebuilt_datasets=_prebuilt,
                 )
                 deep_reports[f"{model_name}::{variant_tag}"] = rep
                 if rep.get("ok") and rep.get("_pred_maps_in_memory"):

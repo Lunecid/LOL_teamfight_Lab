@@ -630,6 +630,59 @@ def collate_batch(batch: List[Optional[Dict[str, Any]]]) -> Optional[Dict[str, A
     return out
 
 
+class LogitInjectorDataset(Dataset):
+    """Thin wrapper that injects lgbm logit into pre-built shared datasets.
+
+    Design rationale
+    ----------------
+    When ``ablation_mode=as_is``, pure models (no logit) share the **same**
+    preloaded ``InMemoryFightDataset``.  Fusion models that *do* need the
+    LGBM logit can wrap the same base dataset with this class — avoiding the
+    expensive ``_preload_grouped()`` rebuild (≈5 hours on 1M fights).
+
+    Cost per __getitem__: one dict shallow-copy + one tensor creation ≈ 1 µs.
+    """
+
+    def __init__(
+        self,
+        base_dataset: InMemoryFightDataset,
+        lgbm_logit_map: Dict[str, float],
+    ):
+        self.base = base_dataset
+        self.lgbm_logit_map = lgbm_logit_map or {}
+
+    # ---- Dataset interface ----
+    def __len__(self) -> int:
+        return len(self.base)
+
+    def __getitem__(self, idx):
+        sample = self.base[idx]
+        if sample is None:
+            return None
+        # Shallow copy — avoids mutating the shared base sample
+        sample = dict(sample)
+        rk = sample.get("ref_key", "")
+        try:
+            lg = float(self.lgbm_logit_map.get(rk, 0.0))
+        except Exception:
+            lg = 0.0
+        sample["lgbm_logit"] = torch.tensor([[lg]], dtype=torch.float32)
+        return sample
+
+    # ---- Proxy commonly-accessed attributes from base ----
+    @property
+    def refs(self):
+        return self.base.refs
+
+    @property
+    def samples(self):
+        return self.base.samples
+
+    @property
+    def dropped_refs(self):
+        return self.base.dropped_refs
+
+
 def _as_1x1(t) -> torch.Tensor:
     """Coerce any scalar-like tensor to shape (1, 1)."""
     if not isinstance(t, torch.Tensor):
