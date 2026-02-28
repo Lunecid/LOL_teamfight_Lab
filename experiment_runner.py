@@ -48,8 +48,19 @@ from app.experiment_stats import (
     safe_mean as _safe_mean,
     safe_std as _safe_std,
 )
-from app.experiment_runtime import run_single_experiment
+from app.experiment_runtime import run_single_experiment, run_single_experiment_isolated
 from app.experiment_types import AblationSummary, ExperimentResult, SEEDS, TREATMENTS, TREATMENT_GROUPS, Treatment
+
+
+def _pick_experiment_runner(args: argparse.Namespace):
+    """--isolate 플래그에 따라 적절한 실험 실행 함수를 반환한다.
+
+    isolate=True → subprocess 격리 (메모리 보장, OS가 100% 회수)
+    isolate=False → in-process 실행 (기존 방식 + gc/cuda clear)
+    """
+    if getattr(args, "isolate", False):
+        return run_single_experiment_isolated
+    return run_single_experiment
 
 # ──────────────────────────────────────────────────────────────
 # 5. Phase Executors
@@ -68,6 +79,7 @@ def run_phase1_baseline(args: argparse.Namespace) -> List[ExperimentResult]:
     print("PHASE 1: Baseline Reproduction (5 seeds)")
     print("=" * 70)
 
+    _run_exp = _pick_experiment_runner(args)
     results = []
 
     for seed in SEEDS:
@@ -79,7 +91,7 @@ def run_phase1_baseline(args: argparse.Namespace) -> List[ExperimentResult]:
                 seed=seed, hp_config={},
             )
         else:
-            result = run_single_experiment(
+            result = _run_exp(
                 treatment_overlay={},  # empty = pure baseline
                 seed=seed,
                 feature_set=args.feature_set,
@@ -112,6 +124,7 @@ def run_phase2_single_factor(
     print(f"PHASE 2: Single-Factor Ablation (treatments={treatment_ids})")
     print("=" * 70)
 
+    _run_exp = _pick_experiment_runner(args)
     all_results: Dict[int, List[ExperimentResult]] = {}
 
     for tid in treatment_ids:
@@ -139,7 +152,7 @@ def run_phase2_single_factor(
                     seed=seed, hp_config=best_hp,
                 )
             else:
-                result = run_single_experiment(
+                result = _run_exp(
                     treatment_overlay=merged_overlay,
                     seed=seed,
                     feature_set=args.feature_set,
@@ -185,6 +198,7 @@ def _hp_grid_search(args: argparse.Namespace, treatment: Treatment) -> Dict[str,
 
     print(f"  [HP Search] Grid: {treatment.hp_grid}")
 
+    _run_exp = _pick_experiment_runner(args)
     keys = list(treatment.hp_grid.keys())
     values = list(treatment.hp_grid.values())
 
@@ -200,7 +214,7 @@ def _hp_grid_search(args: argparse.Namespace, treatment: Treatment) -> Dict[str,
         else:
             # Merge treatment overlay + this HP combo
             merged_overlay = {**treatment.config_overlay, **hp_config}
-            result = run_single_experiment(
+            result = _run_exp(
                 treatment_overlay=merged_overlay,
                 seed=SEEDS[0],  # single seed for speed
                 feature_set=args.feature_set,
@@ -256,6 +270,8 @@ def run_phase3_interaction(
     print("PHASE 3: Interaction Analysis")
     print("=" * 70)
 
+    _run_exp = _pick_experiment_runner(args)
+
     # Rank treatments by mean Δ_val_auc
     treatment_deltas = {}
     baseline_pos = [float(r.val_auc) for r in baseline_results if r.val_auc > 0]
@@ -299,7 +315,7 @@ def run_phase3_interaction(
                     seed=seed, hp_config={},
                 )
             else:
-                result = run_single_experiment(
+                result = _run_exp(
                     treatment_overlay=combined_overlay,
                     seed=seed,
                     feature_set=args.feature_set,
@@ -347,7 +363,7 @@ def run_phase3_interaction(
                     seed=seed, hp_config={},
                 )
             else:
-                result = run_single_experiment(
+                result = _run_exp(
                     treatment_overlay=cumul_overlay,
                     seed=seed,
                     feature_set=args.feature_set,
@@ -394,6 +410,7 @@ def run_phase4_sensitivity(
     print("PHASE 4: Hyperparameter Sensitivity Analysis")
     print("=" * 70)
 
+    _run_exp = _pick_experiment_runner(args)
     all_results: Dict[str, List[ExperimentResult]] = {}
 
     for tid, treatment in TREATMENTS.items():
@@ -426,7 +443,7 @@ def run_phase4_sensitivity(
                         seed=seed, hp_config=hp_config,
                     )
                 else:
-                    result = run_single_experiment(
+                    result = _run_exp(
                         treatment_overlay=merged_overlay,
                         seed=seed,
                         feature_set=args.feature_set,
@@ -481,6 +498,8 @@ def run_phase5_final_test(
     print("=" * 70)
     print("\n⚠️  WARNING: Test set is evaluated ONCE. No further tuning allowed.\n")
 
+    _run_exp = _pick_experiment_runner(args)
+
     # Merge all selected treatments into a single overlay
     final_overlay: Dict[str, Any] = {}
     for tid in best_treatment_ids:
@@ -499,7 +518,7 @@ def run_phase5_final_test(
                 hp_config={t: best_hp_configs.get(t, {}) for t in best_treatment_ids},
             )
         else:
-            result = run_single_experiment(
+            result = _run_exp(
                 treatment_overlay=final_overlay,
                 seed=seed,
                 feature_set=args.feature_set,
@@ -804,6 +823,7 @@ def run_phase_cli(args: argparse.Namespace) -> None:
     print(f"Output: {output_dir}")
     print(f"Seeds: {SEEDS}")
     print(f"Dry-run: {args.dry_run}")
+    print(f"Isolate (subprocess): {getattr(args, 'isolate', False)}")
 
     # [SPEED] Propagate speed settings via environment for run_single_experiment
     if args.speed:

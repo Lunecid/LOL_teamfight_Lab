@@ -50,6 +50,7 @@ from train.fusion import (
     split_logit_map_by_refs,
 )
 from train.speed import apply_speed_profile, setup_torch_speed
+from core.memory import clear_memory
 
 def run(args) -> None:
     """Run the pipeline according to args/cfg.
@@ -305,7 +306,8 @@ def run(args) -> None:
                 run_log,
             )
             lgbm_pack = run_lgbm_baseline(feature_set, tr_refs_lgbm, va_refs, te_refs, seed, lgbm_log, out_dir=lgbm_dir)
-            del tr_refs_lgbm  # Ã¬Â¦â€°Ã¬â€¹Å“ Ã«Â©â€Ã«ÂªÂ¨Ã«Â¦Â¬ Ã­â€¢Â´Ã¬Â Å“
+            del tr_refs_lgbm
+            clear_memory(log_fp=run_log)  # [MEM] LGBM 훈련 후 메모리 해제
             if lgbm_pack and lgbm_pack.get("ok"):
                 lgbm_logit_map = dict(lgbm_pack.get("logit_map", {}))
                 met = lgbm_pack.get("metrics", {})
@@ -493,6 +495,8 @@ def run(args) -> None:
                         "checkpoint": rep.get("checkpoint"),
                     }
                 )
+                # [MEM] θ_{M_i} + B_{M_i} 해제 → 다음 모델 안전 할당
+                clear_memory(log_fp=run_log)
                 continue
 
             # ablation grid: deep_only / plus_baseline
@@ -574,6 +578,8 @@ def run(args) -> None:
                         "checkpoint": rep.get("checkpoint"),
                     }
                 )
+                # [MEM] θ_{M_i} + B_{M_i} 해제 → 다음 variant/model 안전 할당
+                clear_memory(log_fp=run_log)
 
         # persist reports
         save_json(run_root / "deep_reports.json", deep_reports)

@@ -69,6 +69,16 @@ Examples:
         choices=["none", "auto", "rtx50", "rtx5080", "aggressive"],
         help="Runtime speed profile to combine with overlay (default: auto)",
     )
+    parser.add_argument(
+        "--isolate",
+        action="store_true",
+        default=False,
+        help=(
+            "각 실험을 별도 subprocess로 실행하여 메모리 격리 보장. "
+            "프로세스 종료 시 OS가 메모리를 100%% 회수하므로 메모리 누수 원천 차단. "
+            "PyCharm 등 IDE에서 메모리 크래시가 발생할 때 사용."
+        ),
+    )
     return parser
 
 
