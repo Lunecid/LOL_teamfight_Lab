@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import itertools
+import subprocess
 import sys
 from typing import Dict, List, Optional, Tuple
 
@@ -484,6 +485,30 @@ def build_argparser() -> argparse.ArgumentParser:
             "Requires --cache_train_in_ram and --cache_eval_in_ram."
         ),
     )
+
+    # Memory isolation
+    ap.add_argument(
+        "--isolate",
+        action="store_true",
+        default=False,
+        help=(
+            "각 모델을 별도 subprocess로 실행하여 메모리 격리 보장. "
+            "프로세스 종료 시 OS가 메모리를 100%% 회수하므로 메모리 누수 원천 차단. "
+            "PyCharm 등 IDE에서 메모리 크래시가 발생할 때 사용. "
+            "예: python runner.py --models rnn_bigru,gnn_graphsage --isolate"
+        ),
+    )
+    ap.add_argument(
+        "--parallel",
+        type=int,
+        default=1,
+        help=(
+            "동시에 실행할 모델 수 (--isolate 필요). "
+            "--parallel 2 → deep 모델 2개를 동시에 훈련. "
+            "GPU 사용 시 VRAM이 충분한지 확인 필요. "
+            "CPU 훈련(LGBM 등)이나 멀티 GPU 환경에 적합."
+        ),
+    )
     return ap
 
 
@@ -603,7 +628,125 @@ def main(argv: Optional[List[str]] = None) -> None:
     # attach resolved list for experiment
     args.model_list = model_list
 
-    run(args)
+    # --isolate: 각 모델을 별도 subprocess로 실행
+    parallel = max(1, int(getattr(args, "parallel", 1)))
+    if getattr(args, "isolate", False) and len(model_list) > 1:
+        _run_isolated_per_model(raw_argv, model_list, parallel=parallel)
+    elif parallel > 1 and len(model_list) > 1:
+        # --parallel만 지정해도 --isolate 암시
+        _run_isolated_per_model(raw_argv, model_list, parallel=parallel)
+    else:
+        run(args)
+
+
+def _strip_isolate_args(raw_argv: List[str]) -> List[str]:
+    """raw_argv에서 --isolate, --parallel, --models 플래그를 제거한다."""
+    base_argv: List[str] = []
+    skip_next = False
+    for tok in raw_argv:
+        if skip_next:
+            skip_next = False
+            continue
+        if tok == "--isolate":
+            continue
+        if tok in ("--models", "--parallel"):
+            skip_next = True
+            continue
+        if tok.startswith("--models=") or tok.startswith("--parallel="):
+            continue
+        base_argv.append(tok)
+    return base_argv
+
+
+def _run_isolated_per_model(
+    raw_argv: List[str],
+    model_list: List[str],
+    parallel: int = 1,
+) -> None:
+    """각 모델을 별도 프로세스로 실행하여 메모리 격리를 보장한다.
+
+    parallel=1: 순차 실행 (기존 동작)
+    parallel≥2: deep 모델을 N개씩 동시 실행
+
+    LGBM은 항상 먼저 단독 실행 (다른 모델이 logit을 필요로 할 수 있으므로).
+    Deep 모델은 parallel 개수만큼 동시 실행하여 훈련 시간 단축.
+
+    프로세스 격리 보장:
+        ∀ i ≠ j: AddressSpace(M_i) ∩ AddressSpace(M_j) = ∅
+    """
+    import time as _time
+
+    lgbm_models = [m for m in model_list if m.lower() == "lgbm"]
+    deep_models = [m for m in model_list if m.lower() != "lgbm"]
+    base_argv = _strip_isolate_args(raw_argv)
+
+    total = len(lgbm_models) + len(deep_models)
+    mode_str = f"parallel={parallel}" if parallel > 1 else "sequential"
+    print(f"[ISOLATE] {total} model(s), mode={mode_str}")
+    print(f"[ISOLATE] LGBM (sequential): {lgbm_models or '(none)'}")
+    print(f"[ISOLATE] Deep  ({mode_str}):  {deep_models or '(none)'}")
+
+    def _make_cmd(model_name: str) -> List[str]:
+        return [sys.executable, "-u", sys.argv[0]] + base_argv + ["--models", model_name]
+
+    results: Dict[str, str] = {}
+
+    # ── Phase 1: LGBM 순차 실행 (logit 선행 조건) ──
+    for m in lgbm_models:
+        print(f"\n{'='*60}")
+        print(f"[ISOLATE] LGBM: {m}")
+        print(f"{'='*60}")
+        proc = subprocess.run(_make_cmd(m))
+        results[m] = "SUCCESS" if proc.returncode == 0 else f"FAILED (exit={proc.returncode})"
+
+    # ── Phase 2: Deep 모델 병렬 실행 ──
+    if parallel <= 1:
+        # 순차 실행
+        for i, m in enumerate(deep_models):
+            print(f"\n{'='*60}")
+            print(f"[ISOLATE] [{i+1}/{len(deep_models)}] {m}")
+            print(f"{'='*60}")
+            proc = subprocess.run(_make_cmd(m))
+            results[m] = "SUCCESS" if proc.returncode == 0 else f"FAILED (exit={proc.returncode})"
+    else:
+        # 병렬 실행: parallel 개씩 batch
+        for batch_start in range(0, len(deep_models), parallel):
+            batch = deep_models[batch_start:batch_start + parallel]
+            batch_idx = batch_start // parallel + 1
+            n_batches = (len(deep_models) + parallel - 1) // parallel
+
+            print(f"\n{'='*60}")
+            print(f"[PARALLEL] Batch {batch_idx}/{n_batches}: {batch}")
+            print(f"{'='*60}")
+
+            # 동시 시작
+            procs: List[Tuple[str, subprocess.Popen]] = []
+            for m in batch:
+                print(f"  [START] {m}")
+                p = subprocess.Popen(
+                    _make_cmd(m),
+                    stdout=None,  # 부모의 stdout 공유 (실시간 출력)
+                    stderr=None,
+                )
+                procs.append((m, p))
+
+            # 전부 완료 대기
+            for m, p in procs:
+                p.wait()
+                status = "SUCCESS" if p.returncode == 0 else f"FAILED (exit={p.returncode})"
+                results[m] = status
+                print(f"  [DONE] {m}: {status}")
+
+    # ── Summary ──
+    print(f"\n{'='*60}")
+    print(f"[ISOLATE] Summary:")
+    for m in (lgbm_models + deep_models):
+        print(f"  {m}: {results.get(m, 'UNKNOWN')}")
+    failed = [m for m, s in results.items() if not s.startswith("SUCCESS")]
+    if failed:
+        print(f"[ISOLATE] {len(failed)} model(s) FAILED: {failed}")
+    else:
+        print(f"[ISOLATE] All {total} model(s) completed successfully.")
 
 
 if __name__ == "__main__":
