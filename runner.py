@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import itertools
+import subprocess
 import sys
 from typing import Dict, List, Optional, Tuple
 
@@ -484,6 +485,19 @@ def build_argparser() -> argparse.ArgumentParser:
             "Requires --cache_train_in_ram and --cache_eval_in_ram."
         ),
     )
+
+    # Memory isolation
+    ap.add_argument(
+        "--isolate",
+        action="store_true",
+        default=False,
+        help=(
+            "각 모델을 별도 subprocess로 실행하여 메모리 격리 보장. "
+            "프로세스 종료 시 OS가 메모리를 100%% 회수하므로 메모리 누수 원천 차단. "
+            "PyCharm 등 IDE에서 메모리 크래시가 발생할 때 사용. "
+            "예: python runner.py --models rnn_bigru,gnn_graphsage --isolate"
+        ),
+    )
     return ap
 
 
@@ -603,7 +617,59 @@ def main(argv: Optional[List[str]] = None) -> None:
     # attach resolved list for experiment
     args.model_list = model_list
 
-    run(args)
+    # --isolate: 각 모델을 별도 subprocess로 실행
+    if getattr(args, "isolate", False) and len(model_list) > 1:
+        _run_isolated_per_model(raw_argv, model_list)
+    else:
+        run(args)
+
+
+def _run_isolated_per_model(raw_argv: List[str], model_list: List[str]) -> None:
+    """각 모델을 별도 프로세스로 실행하여 메모리 격리를 보장한다.
+
+    프로세스 종료 시 OS가 메모리를 100% 회수하므로,
+    이전 모델의 텐서/캐시가 다음 모델에 누적되지 않는다.
+
+    AddressSpace(M_i) ∩ AddressSpace(M_j) = ∅
+    """
+    # lgbm은 첫 번째로, 나머지 deep 모델은 순서대로
+    lgbm_models = [m for m in model_list if m.lower() == "lgbm"]
+    deep_models = [m for m in model_list if m.lower() != "lgbm"]
+
+    # --isolate와 --models를 제거한 base argv 구성
+    base_argv = []
+    skip_next = False
+    for i, tok in enumerate(raw_argv):
+        if skip_next:
+            skip_next = False
+            continue
+        if tok == "--isolate":
+            continue
+        if tok == "--models":
+            skip_next = True
+            continue
+        if tok.startswith("--models="):
+            continue
+        base_argv.append(tok)
+
+    ordered = lgbm_models + deep_models
+    print(f"[ISOLATE] Running {len(ordered)} model(s) in isolated subprocesses:")
+    for i, m in enumerate(ordered):
+        print(f"  [{i+1}/{len(ordered)}] {m}")
+
+    for i, model_name in enumerate(ordered):
+        print(f"\n{'='*60}")
+        print(f"[ISOLATE] [{i+1}/{len(ordered)}] Starting: {model_name}")
+        print(f"{'='*60}")
+
+        cmd = [sys.executable, "-u"] + [sys.argv[0]] + base_argv + ["--models", model_name]
+        proc = subprocess.run(cmd)
+
+        # 프로세스 종료 → OS가 RAM 완전 회수
+        status = "SUCCESS" if proc.returncode == 0 else f"FAILED (exit={proc.returncode})"
+        print(f"[ISOLATE] [{i+1}/{len(ordered)}] {model_name}: {status}")
+
+    print(f"\n[ISOLATE] All {len(ordered)} models completed.")
 
 
 if __name__ == "__main__":
