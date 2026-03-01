@@ -408,6 +408,8 @@ def _lgbm_save_reports(
     tr_used_pc: Dict, va_used_pc: Dict, te_used_pc: Dict,
     tr_used: List, va_used: List, te_used: List,
     tab_plan: TabularPlan, logit_map: Dict,
+    dropped_constant: Optional[List[str]] = None,
+    dropped_quasi_constant: Optional[List[str]] = None,
 ) -> Optional[Path]:
     """Save model file, feature reports, and compact JSON report."""
     model_path = out_dir / f"lgbm_baseline_seed{seed}.txt"
@@ -421,6 +423,10 @@ def _lgbm_save_reports(
     dropped_corr = list(dropped)
     save_text_lines(out_dir / "features_used.txt", kept)
     save_text_lines(out_dir / "features_dropped.txt", dropped_corr)
+    if dropped_constant:
+        save_text_lines(out_dir / "features_dropped_constant.txt", dropped_constant)
+    if dropped_quasi_constant:
+        save_text_lines(out_dir / "features_dropped_quasi_constant.txt", dropped_quasi_constant)
     if fi:
         save_kv_csv(out_dir / "feature_importance_gain.csv", fi[:1000], k="feature", v="gain")
     if shap_summary:
@@ -433,8 +439,12 @@ def _lgbm_save_reports(
         "feature_importance_gain_top": fi[:200],
         "shap_mean_abs_top": shap_summary[:200] if shap_summary else None,
         "n_features_used": len(kept),
-        "n_features_dropped": len(dropped_corr),
+        "n_features_dropped_corr": len(dropped_corr),
+        "n_features_dropped_constant": len(dropped_constant or []),
+        "n_features_dropped_quasi_constant": len(dropped_quasi_constant or []),
         "corr_dropped": dropped_corr[:2000],
+        "constant_dropped": (dropped_constant or [])[:2000],
+        "quasi_constant_dropped": (dropped_quasi_constant or [])[:2000],
         "kept_features": kept[:2000],
         "patch_counts_used": {"train": tr_used_pc, "val": va_used_pc, "test": te_used_pc},
         "n_used": {"train": len(tr_used), "val": len(va_used), "test": len(te_used)},
@@ -489,6 +499,39 @@ def run_lgbm_baseline(
         write_log(f"[LGBM] Not enough samples for training: N={len(tr_used)}", log_fp)
         out["patch_counts_used"] = {"train": tr_used_pc, "val": va_used_pc, "test": te_used_pc}
         return out
+
+    # --- Constant / quasi-constant redundant feature pruning ---
+    # [FE-CONST] Remove redundant temporal aggregations of features that
+    # are constant (or near-constant) within a fight sequence.
+    # Only __last is kept; __mean/__std/__min/__max/__delta/__slope are dropped.
+    dropped_const_names: List[str] = []
+    dropped_quasi_names: List[str] = []
+    _drop_const = bool(getattr(cfg, "DROP_CONSTANT_FEATURES", True))
+    _drop_quasi = bool(getattr(cfg, "DROP_QUASI_CONSTANT_FEATURES", True))
+    if (_drop_const or _drop_quasi) and Xtr.shape[1] > 1:
+        from core.feature_contract import filter_constant_and_quasi_constant
+        const_keep_idx, dc, dq = filter_constant_and_quasi_constant(
+            feat_names,
+            drop_strictly_constant=_drop_const,
+            drop_quasi_constant=_drop_quasi,
+        )
+        dropped_const_names = list(dc)
+        dropped_quasi_names = list(dq)
+        n_dropped = len(dropped_const_names) + len(dropped_quasi_names)
+        if n_dropped > 0:
+            const_keep = list(const_keep_idx)
+            Xtr = Xtr[:, const_keep]
+            if Xva.size:
+                Xva = Xva[:, const_keep]
+            if Xte.size:
+                Xte = Xte[:, const_keep]
+            feat_names = [feat_names[i] for i in const_keep]
+            write_log(
+                f"[LGBM] const-prune: dropped_const={len(dropped_const_names)} "
+                f"dropped_quasi={len(dropped_quasi_names)} kept={len(const_keep)} "
+                f"({Xtr.shape[1]}/{Xtr.shape[1] + n_dropped})",
+                log_fp,
+            )
 
     # --- Correlation pruning ---
     dropped: List[str] = []
@@ -579,6 +622,8 @@ def run_lgbm_baseline(
         tr_used_pc, va_used_pc, te_used_pc,
         tr_used, va_used, te_used,
         tab_plan, logit_map,
+        dropped_constant=dropped_const_names,
+        dropped_quasi_constant=dropped_quasi_names,
     )
 
     out.update({
@@ -588,6 +633,8 @@ def run_lgbm_baseline(
         "feature_importance_gain": fi[:200],
         "shap_mean_abs": shap_summary[:200] if shap_summary else None,
         "corr_dropped": dropped[:500],
+        "constant_dropped": dropped_const_names[:500],
+        "quasi_constant_dropped": dropped_quasi_names[:500],
         "logit_map": logit_map,
         "kept_features": list(feat_names),
         "patch_counts_used": {"train": tr_used_pc, "val": va_used_pc, "test": te_used_pc},
