@@ -744,6 +744,7 @@ class CFG:
     LOG_EVERY: int = 100
     GRAD_CLIP_NORM: float = 5.0
     DEEP_MAX_TRAIN: int = 200_000   # [FIX P1-1] deep model train 서브샘플링 한도
+    LGBM_MAX_TRAIN: int = 200_000   # [FE-CONST] LGBM train subsampling (was 150K)
     # [P0-6] Val/Test subsampling — reduces I/O from 10+ hours to ~3 hours.
     # AUC SE at n=80K: ~0.0035 (vs 0.0017 at full 358K), acceptable for comparison.
     # Final reported Test AUC should use full data (1 run).
