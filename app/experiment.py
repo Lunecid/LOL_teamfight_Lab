@@ -249,6 +249,31 @@ def run(args) -> None:
         else:
             pc_tr_used, pc_va_used, pc_te_used = {}, {}, {}
 
+        # ── Global per-split subsample ──────────────────────────────
+        _global_cap = int(getattr(cfg, "GLOBAL_SUBSAMPLE_PER_SPLIT", 0))
+        if _global_cap > 0:
+            _before = (len(tr_refs), len(va_refs), len(te_refs))
+            for _tag, _refs in [("train", tr_refs), ("val", va_refs), ("test", te_refs)]:
+                if len(_refs) > _global_cap:
+                    _rng = np.random.RandomState(seed)
+                    _idx = _rng.choice(len(_refs), _global_cap, replace=False)
+                    _idx.sort()
+                    _sub = [_refs[i] for i in _idx]
+                    if _tag == "train":
+                        tr_refs = _sub
+                    elif _tag == "val":
+                        va_refs = _sub
+                    else:
+                        te_refs = _sub
+            _after = (len(tr_refs), len(va_refs), len(te_refs))
+            write_log(
+                f"[GLOBAL-SUBSAMPLE] per_split_cap={_global_cap:,}  "
+                f"train {_before[0]:,}->{_after[0]:,}  "
+                f"val {_before[1]:,}->{_after[1]:,}  "
+                f"test {_before[2]:,}->{_after[2]:,}",
+                run_log,
+            )
+
         save_json(
             meta_root / "split.json",
             {

@@ -750,6 +750,9 @@ class CFG:
     # Final reported Test AUC should use full data (1 run).
     VAL_MAX_N: int = 80_000
     TEST_MAX_N: int = 80_000
+    # Global per-split subsample applied right after train/val/test split.
+    # 0 = disabled (no global cap).  Affects ALL downstream consumers.
+    GLOBAL_SUBSAMPLE_PER_SPLIT: int = 200_000
     # [P1-7] Warmup epochs — explicit config (was hardcoded as ceil(0.1 * EPOCHS))
     WARMUP_EPOCHS: int = 1
 
