@@ -9,15 +9,13 @@ import numpy as np
 import torch
 
 from app.experiment_helpers import (
-    LGBM_MAX_TRAIN as _LGBM_MAX_TRAIN,
+
     best_variant_for as _best_variant_for,
     infer_feature_set_for_model as _infer_feature_set_for_model,
     infer_rnn_gnn_models,
     needs_lgbm_logit as _needs_lgbm_logit,
     normalize_split_mode as _normalize_split_mode,
     resolve_alias as _resolve_alias,
-    subsample_refs_for_deep as _subsample_refs_for_deep,
-    subsample_refs_for_lgbm as _subsample_refs_for_lgbm,
 )
 from app.split_reports import emit_split_reports as _emit_split_reports
 from core.config import CACHE_DIR, RUN_DIR, cfg
@@ -249,6 +247,31 @@ def run(args) -> None:
         else:
             pc_tr_used, pc_va_used, pc_te_used = {}, {}, {}
 
+        # ── Global per-split subsample ──────────────────────────────
+        _global_cap = int(getattr(cfg, "GLOBAL_SUBSAMPLE_PER_SPLIT", 0))
+        if _global_cap > 0:
+            _before = (len(tr_refs), len(va_refs), len(te_refs))
+            for _tag, _refs in [("train", tr_refs), ("val", va_refs), ("test", te_refs)]:
+                if len(_refs) > _global_cap:
+                    _rng = np.random.RandomState(seed)
+                    _idx = _rng.choice(len(_refs), _global_cap, replace=False)
+                    _idx.sort()
+                    _sub = [_refs[i] for i in _idx]
+                    if _tag == "train":
+                        tr_refs = _sub
+                    elif _tag == "val":
+                        va_refs = _sub
+                    else:
+                        te_refs = _sub
+            _after = (len(tr_refs), len(va_refs), len(te_refs))
+            write_log(
+                f"[GLOBAL-SUBSAMPLE] per_split_cap={_global_cap:,}  "
+                f"train {_before[0]:,}->{_after[0]:,}  "
+                f"val {_before[1]:,}->{_after[1]:,}  "
+                f"test {_before[2]:,}->{_after[2]:,}",
+                run_log,
+            )
+
         save_json(
             meta_root / "split.json",
             {
@@ -295,18 +318,13 @@ def run(args) -> None:
             lgbm_log = lgbm_dir / "run.log"
             write_log(f"[STEP] LGBM baseline (need_baseline_logits={need_baseline_logits})", run_log)
 
-            # Ã¢â€â‚¬Ã¢â€â‚¬ Memory-safe: subsample train refs for LGBM Ã¢â€â‚¬Ã¢â€â‚¬
-            lgbm_max_train = int(getattr(cfg, "LGBM_MAX_TRAIN", _LGBM_MAX_TRAIN))
-            tr_refs_lgbm = _subsample_refs_for_lgbm(
-                tr_refs, max_n=lgbm_max_train, seed=seed, log_fp=run_log,
-            )
+
             write_log(
-                f"[LGBM] train refs: {len(tr_refs):,} -> {len(tr_refs_lgbm):,} "
+                f"[LGBM] train refs: {len(tr_refs):,} "
                 f"(val={len(va_refs):,}, test={len(te_refs):,})",
                 run_log,
             )
-            lgbm_pack = run_lgbm_baseline(feature_set, tr_refs_lgbm, va_refs, te_refs, seed, lgbm_log, out_dir=lgbm_dir)
-            del tr_refs_lgbm
+            lgbm_pack = run_lgbm_baseline(feature_set, tr_refs, va_refs, te_refs, seed, lgbm_log, out_dir=lgbm_dir)
             clear_memory(log_fp=run_log)  # [MEM] LGBM 훈련 후 메모리 해제
             if lgbm_pack and lgbm_pack.get("ok"):
                 lgbm_logit_map = dict(lgbm_pack.get("logit_map", {}))
@@ -345,20 +363,18 @@ def run(args) -> None:
         _shared_base_datasets = None  # (ds_tr, ds_va, ds_te) without logits
 
         if share_datasets:
-            _deep_max = int(getattr(cfg, "DEEP_MAX_TRAIN", 200_000))
-            _tr_refs_shared = _subsample_refs_for_deep(tr_refs, _deep_max, seed, log_fp=run_log)
             cache_train = bool(getattr(cfg, "CACHE_TRAIN_SAMPLES_IN_RAM", getattr(cfg, "CACHE_IN_RAM", False)))
             cache_eval = bool(getattr(cfg, "CACHE_EVAL_SAMPLES_IN_RAM", True))
 
             write_log(
                 f"[SHARE_DS] Building shared base datasets once "
-                f"(train={len(_tr_refs_shared):,}, val={len(va_refs):,}, test={len(te_refs):,})",
+                f"(train={len(tr_refs):,}, val={len(va_refs):,}, test={len(te_refs):,})",
                 run_log,
             )
             _t0_share = __import__("time").time()
 
             _ds_base_tr = InMemoryFightDataset(
-                _tr_refs_shared,
+                tr_refs,
                 feature_set=feature_set,
                 model_name="__shared_base__",
                 lgbm_logit_map=None,
@@ -426,10 +442,6 @@ def run(args) -> None:
                 model_log = model_dir / "run.log"
                 write_log(f"[MODEL] {model_name}/{variant_tag} -> {model_dir}", run_log)
 
-                # [FIX P1-1] Subsample train refs for deep model
-                _deep_max = int(getattr(cfg, "DEEP_MAX_TRAIN", 200_000))
-                tr_refs_deep = _subsample_refs_for_deep(tr_refs, _deep_max, seed, log_fp=run_log)
-
                 # Dataset sharing: reuse prebuilt datasets when available
                 _prebuilt = None
                 if _shared_base_datasets is not None:
@@ -451,7 +463,7 @@ def run(args) -> None:
                     model_name=model_name,
                     feature_set=fs,
                     variant_tag=variant_tag,
-                    tr_refs=tr_refs_deep,
+                    tr_refs=tr_refs,
                     va_refs=va_refs,
                     te_refs=te_refs,
                     seed=seed,
@@ -471,7 +483,7 @@ def run(args) -> None:
                         model_name=model_name,
                         variant_tag=variant_tag,
                         feature_set=fs,
-                        refs_by_split={"train": tr_refs_deep, "val": va_refs, "test": te_refs},
+                        refs_by_split={"train": tr_refs, "val": va_refs, "test": te_refs},
                         rep=rep,
                         run_log=run_log,
                     )
@@ -512,10 +524,6 @@ def run(args) -> None:
                 model_log = model_dir / "run.log"
                 write_log(f"[MODEL] {model_name}/{variant_tag} -> {model_dir}", run_log)
 
-                # [FIX P1-1] Subsample train refs for deep model
-                _deep_max = int(getattr(cfg, "DEEP_MAX_TRAIN", 200_000))
-                tr_refs_deep = _subsample_refs_for_deep(tr_refs, _deep_max, seed, log_fp=run_log)
-
                 # Dataset sharing: reuse prebuilt datasets when available
                 _prebuilt = None
                 if _shared_base_datasets is not None:
@@ -535,7 +543,7 @@ def run(args) -> None:
                     model_name=model_name,
                     feature_set=fs,
                     variant_tag=variant_tag,
-                    tr_refs=tr_refs_deep,
+                    tr_refs=tr_refs,
                     va_refs=va_refs,
                     te_refs=te_refs,
                     seed=seed,
@@ -554,7 +562,7 @@ def run(args) -> None:
                         model_name=model_name,
                         variant_tag=variant_tag,
                         feature_set=fs,
-                        refs_by_split={"train": tr_refs_deep, "val": va_refs, "test": te_refs},
+                        refs_by_split={"train": tr_refs, "val": va_refs, "test": te_refs},
                         rep=rep,
                         run_log=run_log,
                     )
