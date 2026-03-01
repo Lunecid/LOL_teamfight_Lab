@@ -1300,15 +1300,15 @@ def train_deep_model(
     write_log(f"[DEEP] first_batch_keys={sorted(list(b0.keys()))}", log_fp)
 
     f_node = int(b0["node_seq"].shape[-1]) if "node_seq" in b0 else -1
-    if "macro_seq" in b0:
-        d_seq = int(b0["macro_seq"].shape[-1])
-        seq_key_used = "macro_seq"
-    elif "extra_seq" in b0:
-        d_seq = int(b0["extra_seq"].shape[-1])
-        seq_key_used = "extra_seq"
-    else:
-        d_seq = int(b0["x_seq"].shape[-1])
-        seq_key_used = "x_seq"
+    _seq_priority = getattr(cfg, "TEMPORAL_SEQ_PRIORITY",
+                            ("macro_seq", "x_seq", "extra_seq"))
+    d_seq = -1
+    seq_key_used = "none"
+    for _sk in _seq_priority:
+        if _sk in b0:
+            d_seq = int(b0[_sk].shape[-1])
+            seq_key_used = _sk
+            break
 
     has_lgbm_logit = ("lgbm_logit" in b0) or ("lgbm_logit_seq" in b0)
     write_log(f"[DEEP] seq_key_used={seq_key_used} has_lgbm_logit_in_batch={has_lgbm_logit}", log_fp)

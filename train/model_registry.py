@@ -23,12 +23,12 @@ def infer_dims_from_batch(batch: Dict[str, torch.Tensor]) -> Tuple[int, int]:
     if batch.get("node_seq", None) is not None:
         f_node = int(batch["node_seq"].shape[-1])
 
-    if batch.get("macro_seq", None) is not None:
-        d_macro = int(batch["macro_seq"].shape[-1])
-    elif batch.get("extra_seq", None) is not None:
-        d_macro = int(batch["extra_seq"].shape[-1])
-    elif batch.get("x_seq", None) is not None:
-        d_macro = int(batch["x_seq"].shape[-1])
+    priority = getattr(cfg, "TEMPORAL_SEQ_PRIORITY",
+                       ("macro_seq", "x_seq", "extra_seq"))
+    for k in priority:
+        if batch.get(k, None) is not None:
+            d_macro = int(batch[k].shape[-1])
+            break
 
     return f_node, d_macro
 
