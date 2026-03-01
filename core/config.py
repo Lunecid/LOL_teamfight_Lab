@@ -855,7 +855,7 @@ class CFG:
     # P_calibrated = σ(z / T_p*)
     # T_p* = argmin_T Σ [-y_i log σ(z_i/T) - (1-y_i) log(1-σ(z_i/T))]
     # =========================================================
-    TEMP_SCALING_ENABLED: bool = True
+    TEMP_SCALING_ENABLED: bool = False
 
     # GATv2
     GAT_HEADS: int = 4
