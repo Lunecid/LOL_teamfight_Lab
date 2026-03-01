@@ -168,14 +168,17 @@ def _tabular_feature_names_from_base(base_names: List[str]) -> List[str]:
 
 
 def _choose_tab_seq_key_and_names(feature_set: str, feats: Dict[str, Any]) -> Tuple[Optional[str], List[str]]:
-    """Decide which sequence to flatten based on feature_set."""
-    fs = str(feature_set or "x").lower()
-    if "extra" in fs and isinstance(feats.get("extra_seq", None), np.ndarray):
-        return "extra_seq", list(get_extra_feature_names(feature_set))
-    if isinstance(feats.get("macro_seq", None), np.ndarray):
-        return "macro_seq", list(get_extra_feature_names(feature_set))
-    if isinstance(feats.get("x_seq", None), np.ndarray):
-        return "x_seq", list(get_xseq_feature_names(feature_set))
+    """Decide which sequence to flatten, respecting cfg.TEMPORAL_SEQ_PRIORITY."""
+    _name_fn = {
+        "macro_seq": lambda: list(get_extra_feature_names(feature_set)),
+        "extra_seq": lambda: list(get_extra_feature_names(feature_set)),
+        "x_seq": lambda: list(get_xseq_feature_names(feature_set)),
+    }
+    priority = getattr(cfg, "TEMPORAL_SEQ_PRIORITY",
+                       ("macro_seq", "x_seq", "extra_seq"))
+    for k in priority:
+        if isinstance(feats.get(k, None), np.ndarray) and k in _name_fn:
+            return k, _name_fn[k]()
     return None, []
 
 

@@ -666,54 +666,41 @@ def _run_isolated_per_model(
     """각 모델을 별도 프로세스로 실행하여 메모리 격리를 보장한다.
 
     parallel=1: 순차 실행 (기존 동작)
-    parallel≥2: deep 모델을 N개씩 동시 실행
+    parallel≥2: 모든 모델(LGBM 포함)을 N개씩 동시 실행
 
-    LGBM은 항상 먼저 단독 실행 (다른 모델이 logit을 필요로 할 수 있으므로).
-    Deep 모델은 parallel 개수만큼 동시 실행하여 훈련 시간 단축.
+    각 서브프로세스가 독립적으로 experiment.run()을 호출하므로
+    LGBM logit이 필요한 모델은 자체적으로 baseline을 학습한다.
+    따라서 LGBM을 별도 Phase로 분리할 필요 없이 동일한 병렬 풀에서 실행 가능.
 
     프로세스 격리 보장:
         ∀ i ≠ j: AddressSpace(M_i) ∩ AddressSpace(M_j) = ∅
     """
-    import time as _time
-
-    lgbm_models = [m for m in model_list if m.lower() == "lgbm"]
-    deep_models = [m for m in model_list if m.lower() != "lgbm"]
     base_argv = _strip_isolate_args(raw_argv)
 
-    total = len(lgbm_models) + len(deep_models)
+    total = len(model_list)
     mode_str = f"parallel={parallel}" if parallel > 1 else "sequential"
     print(f"[ISOLATE] {total} model(s), mode={mode_str}")
-    print(f"[ISOLATE] LGBM (sequential): {lgbm_models or '(none)'}")
-    print(f"[ISOLATE] Deep  ({mode_str}):  {deep_models or '(none)'}")
+    print(f"[ISOLATE] models: {model_list}")
 
     def _make_cmd(model_name: str) -> List[str]:
         return [sys.executable, "-u", sys.argv[0]] + base_argv + ["--models", model_name]
 
     results: Dict[str, str] = {}
 
-    # ── Phase 1: LGBM 순차 실행 (logit 선행 조건) ──
-    for m in lgbm_models:
-        print(f"\n{'='*60}")
-        print(f"[ISOLATE] LGBM: {m}")
-        print(f"{'='*60}")
-        proc = subprocess.run(_make_cmd(m))
-        results[m] = "SUCCESS" if proc.returncode == 0 else f"FAILED (exit={proc.returncode})"
-
-    # ── Phase 2: Deep 모델 병렬 실행 ──
     if parallel <= 1:
         # 순차 실행
-        for i, m in enumerate(deep_models):
+        for i, m in enumerate(model_list):
             print(f"\n{'='*60}")
-            print(f"[ISOLATE] [{i+1}/{len(deep_models)}] {m}")
+            print(f"[ISOLATE] [{i+1}/{total}] {m}")
             print(f"{'='*60}")
             proc = subprocess.run(_make_cmd(m))
             results[m] = "SUCCESS" if proc.returncode == 0 else f"FAILED (exit={proc.returncode})"
     else:
         # 병렬 실행: parallel 개씩 batch
-        for batch_start in range(0, len(deep_models), parallel):
-            batch = deep_models[batch_start:batch_start + parallel]
+        for batch_start in range(0, total, parallel):
+            batch = model_list[batch_start:batch_start + parallel]
             batch_idx = batch_start // parallel + 1
-            n_batches = (len(deep_models) + parallel - 1) // parallel
+            n_batches = (total + parallel - 1) // parallel
 
             print(f"\n{'='*60}")
             print(f"[PARALLEL] Batch {batch_idx}/{n_batches}: {batch}")
@@ -740,7 +727,7 @@ def _run_isolated_per_model(
     # ── Summary ──
     print(f"\n{'='*60}")
     print(f"[ISOLATE] Summary:")
-    for m in (lgbm_models + deep_models):
+    for m in model_list:
         print(f"  {m}: {results.get(m, 'UNKNOWN')}")
     failed = [m for m, s in results.items() if not s.startswith("SUCCESS")]
     if failed:
