@@ -990,6 +990,11 @@ class CFG:
 
     LABEL_SMOOTHING: float = 0.0
 
+    # ── Temporal sequence selection priority ──────────────────
+    # Controls which sequence key pick_temporal_seq() prefers.
+    # Default: x_seq before extra_seq so BiGRU sees full raw features.
+    TEMPORAL_SEQ_PRIORITY: Tuple[str, ...] = ("macro_seq", "x_seq", "extra_seq")
+
     # ── [P0-3] Input Projection for RNN full-info access ──────
     # When True, RNNOnlyModel can use x_seq (~997-dim) via a projection
     # layer: Linear(997, INPUT_PROJ_DIM) → LayerNorm → ReLU → BiGRU

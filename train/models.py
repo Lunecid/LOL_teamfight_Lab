@@ -164,10 +164,12 @@ ALIVE_IDX = pick_alive_index(NODE_IDX)
 
 def pick_temporal_seq(batch: Dict[str, torch.Tensor]) -> Tuple[torch.Tensor, str]:
     """
-    Must match main.py's seq_key priority:
-      macro_seq -> extra_seq -> x_seq
+    Sequence selection priority controlled by cfg.TEMPORAL_SEQ_PRIORITY.
+    Default: macro_seq -> x_seq -> extra_seq
     """
-    for k in ("macro_seq", "extra_seq", "x_seq"):
+    priority = getattr(cfg, "TEMPORAL_SEQ_PRIORITY",
+                       ("macro_seq", "x_seq", "extra_seq"))
+    for k in priority:
         x = batch.get(k, None)
         if x is not None:
             return x, k
