@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 
 from core.fight_types import FightRef, ref_key
-from data.labels import aligned_xy_from_maps, get_label_map
+from data.labels import aligned_xy_from_maps, get_label_map, get_label_map_from_dataset
 from core.utils import confusion_from_probs, metrics_from_probs, pretty_cm, save_json, write_log
 from train.fusion_calibration import calibrate_logits_by_patch, compute_ece, find_optimal_temperature
 from train.fusion_helpers import (
@@ -232,6 +232,9 @@ def stack_oof_meta(
     log_fp: Path,
     seed: int,
     meta_method: str = "logreg",
+    y_tr_map: Optional[Dict[str, int]] = None,
+    y_va_map: Optional[Dict[str, int]] = None,
+    y_te_map: Optional[Dict[str, int]] = None,
 ) -> StackingResult:
     """OOF-style stacking where only the meta learner is trained in folds.
 
@@ -240,9 +243,12 @@ def stack_oof_meta(
 
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    y_tr_map = get_label_map(tr_refs, feature_set, log_fp=log_fp, log_every=50000)
-    y_va_map = get_label_map(va_refs, feature_set, log_fp=log_fp, log_every=20000)
-    y_te_map = get_label_map(te_refs, feature_set, log_fp=log_fp, log_every=20000)
+    if y_tr_map is None:
+        y_tr_map = get_label_map(tr_refs, feature_set, log_fp=log_fp, log_every=50000)
+    if y_va_map is None:
+        y_va_map = get_label_map(va_refs, feature_set, log_fp=log_fp, log_every=20000)
+    if y_te_map is None:
+        y_te_map = get_label_map(te_refs, feature_set, log_fp=log_fp, log_every=20000)
 
     # OOF predictions on train for diagnostics
     oof_prob: Dict[str, float] = {}
@@ -351,6 +357,9 @@ def stack_greedy_forward(
     anchor_name: Optional[str] = None,  # NoneÃ¬ÂÂ´Ã«Â©Â´ "TRAIN Ã«â€¹Â¨Ã¬ÂÂ¼Ã«ÂªÂ¨Ã«ÂÂ¸ Ã¬ÂµÅ“ÃªÂ³Â " Ã¬Å¾ÂÃ«Ââ„¢ Ã¬â€žÂ Ã­Æ’Â
     stop_when_no_improve: bool = True,
     min_improve: float = 1e-6,
+    y_tr_map: Optional[Dict[str, int]] = None,
+    y_va_map: Optional[Dict[str, int]] = None,
+    y_te_map: Optional[Dict[str, int]] = None,
 ) -> Dict[str, Any]:
     """Greedy forward selection stacking (VAL-based).
 
@@ -413,11 +422,14 @@ def stack_greedy_forward(
         return {"ok": False, "reason": "all_pruned"}
 
     # ------------------------------------------------------------
-    # (B) Precompute labels once
+    # (B) Precompute labels once (reuse pre-computed maps if passed)
     # ------------------------------------------------------------
-    y_va_map = get_label_map(va_refs, feature_set, log_fp=log_fp, log_every=20000)
-    y_te_map = get_label_map(te_refs, feature_set, log_fp=log_fp, log_every=20000)
-    y_tr_map = get_label_map(tr_refs, feature_set, log_fp=log_fp, log_every=20000)
+    if y_va_map is None:
+        y_va_map = get_label_map(va_refs, feature_set, log_fp=log_fp, log_every=20000)
+    if y_te_map is None:
+        y_te_map = get_label_map(te_refs, feature_set, log_fp=log_fp, log_every=20000)
+    if y_tr_map is None:
+        y_tr_map = get_label_map(tr_refs, feature_set, log_fp=log_fp, log_every=20000)
 
     _log(f"[GREEDY] Dataset sizes: tr={len(tr_refs)}, va={len(va_refs)}, te={len(te_refs)}")
     if len(va_refs) < 50:
@@ -619,6 +631,9 @@ def refit_meta_trainval_predict_test(
     log_fp: Path,
     seed: int,
     meta_method: str = "logreg",
+    y_tr_map: Optional[Dict[str, int]] = None,
+    y_va_map: Optional[Dict[str, int]] = None,
+    y_te_map: Optional[Dict[str, int]] = None,
 ) -> StackingResult:
     """
     FINAL RE-FIT:
@@ -632,10 +647,13 @@ def refit_meta_trainval_predict_test(
     """
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # labels (compute once)
-    y_tr_map = get_label_map(tr_refs, feature_set, log_fp=log_fp, log_every=50000)
-    y_va_map = get_label_map(va_refs, feature_set, log_fp=log_fp, log_every=20000)
-    y_te_map = get_label_map(te_refs, feature_set, log_fp=log_fp, log_every=20000)
+    # labels (compute once; reuse pre-computed maps if passed)
+    if y_tr_map is None:
+        y_tr_map = get_label_map(tr_refs, feature_set, log_fp=log_fp, log_every=50000)
+    if y_va_map is None:
+        y_va_map = get_label_map(va_refs, feature_set, log_fp=log_fp, log_every=20000)
+    if y_te_map is None:
+        y_te_map = get_label_map(te_refs, feature_set, log_fp=log_fp, log_every=20000)
 
     # aligned meta features
     Xtr, ytr, _ = aligned_xy_from_maps(tr_refs, y_tr_map, base_maps)
@@ -660,9 +678,9 @@ def refit_meta_trainval_predict_test(
             seed=seed,
             meta_method=meta_method,
             fit_on="val",
-            # (Ã¬ÂÂ´ Ã­Å’Å’Ã¬ÂÂ¼Ã¬â€”ÂÃ¬â€žÅ“ stack_simpleÃ¬â€”Â y_map Ã¬ÂºÂÃ¬â€¹Å“ Ã¬ËœÂµÃ¬â€¦ËœÃ¬Ââ€ž Ã¬Â¶â€ÃªÂ°â‚¬Ã­â€¢Å“ Ã¬Æ’ÂÃ­Æ’Å“Ã«ÂÂ¼Ã«Â©Â´ Ã¬â€¢â€žÃ«Å¾ËœÃ«Ââ€ž ÃªÂ°â„¢Ã¬ÂÂ´ Ã«â€žÂ£Ã¬â€“Â´Ã«Ââ€ž Ã«ÂÂ¨)
-            # y_va_map=y_va_map,
-            # y_te_map=y_te_map,
+            y_tr_map=y_tr_map,
+            y_va_map=y_va_map,
+            y_te_map=y_te_map,
         )
 
     # sanitize
@@ -736,6 +754,9 @@ def stack_factorial(
     anchor_must_include: bool = True,
     max_combos: int = 300,
     k: Optional[int] = None,   # Ã¢Å“â€¦ Ã«Â Ë†ÃªÂ±Â°Ã¬â€¹Å“ Ã­ËœÂ¸Ã­â„¢Ëœ Ã¬Â¶â€ÃªÂ°â‚¬
+    y_tr_map: Optional[Dict[str, int]] = None,
+    y_va_map: Optional[Dict[str, int]] = None,
+    y_te_map: Optional[Dict[str, int]] = None,
 ) -> Dict[str, Any]:
 
     """
@@ -840,6 +861,9 @@ def stack_factorial(
             seed=seed + ci,
             meta_method=meta_method,
             fit_on="train",
+            y_tr_map=y_tr_map,
+            y_va_map=y_va_map,
+            y_te_map=y_te_map,
         )
 
         val_auc = float(rep.metrics.get("val", {}).get("auc", float("nan"))) if rep.ok else float("nan")
