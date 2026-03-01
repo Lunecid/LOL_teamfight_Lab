@@ -37,7 +37,7 @@ from data.indexing import (
     split_by_match_id_kfold,
     split_refs_patch_holdout,
 )
-from data.labels import get_label_map
+from data.labels import get_label_map, get_label_map_from_dataset
 from train.baseline import densify_logit_map, run_lgbm_baseline
 from data.dataset import InMemoryFightDataset, LogitInjectorDataset
 from train.deep import train_deep_model
@@ -586,12 +586,34 @@ def run(args) -> None:
         if results_rows:
             save_csv_rows(run_root / "ablation_summary.csv", fieldnames=list(results_rows[0].keys()), rows=results_rows)
 
+        # ── Pre-compute label maps once (O(N), zero I/O if datasets available) ──
+        # Avoids the expensive per-sample pipeline rebuild in get_label_map().
+        _y_tr_map: Optional[Dict[str, int]] = None
+        _y_va_map: Optional[Dict[str, int]] = None
+        _y_te_map: Optional[Dict[str, int]] = None
+        if _shared_base_datasets is not None:
+            _ds_tr, _ds_va, _ds_te = _shared_base_datasets
+            _y_tr_map = get_label_map_from_dataset(_ds_tr)
+            _y_va_map = get_label_map_from_dataset(_ds_va)
+            _y_te_map = get_label_map_from_dataset(_ds_te)
+            write_log(
+                f"[LABEL] fast extraction from shared datasets: "
+                f"tr={len(_y_tr_map)}, va={len(_y_va_map)}, te={len(_y_te_map)}",
+                run_log,
+            )
+        else:
+            # Fallback: compute via full pipeline (still only once)
+            write_log("[LABEL] computing label maps via full pipeline (no shared datasets)...", run_log)
+            _y_tr_map = get_label_map(tr_refs, feature_set, log_fp=run_log, log_every=50000)
+            _y_va_map = get_label_map(va_refs, feature_set, log_fp=run_log, log_every=20000)
+            _y_te_map = get_label_map(te_refs, feature_set, log_fp=run_log, log_every=20000)
+
         # Optional: post-hoc temperature scaling for fusion bases
         # Calibrate T on TRAIN (per patch), apply same T to TRAIN/VAL/TEST logits.
         if bool(getattr(cfg, "TEMP_SCALING_ENABLED", False)) and base_logit_map_full:
             try:
                 write_log("[TEMP_SCALE] start (fit on TRAIN, apply to all splits)", run_log)
-                y_tr_map = get_label_map(tr_refs, feature_set, log_fp=run_log, log_every=50000)
+                y_tr_map = _y_tr_map
                 patch_by_key: Dict[str, str] = {
                     ref_key(r): str(getattr(r, "patch", "unknown"))
                     for r in (tr_refs + va_refs + te_refs)
@@ -728,6 +750,9 @@ def run(args) -> None:
                         anchor_name=None,
                         anchor_must_include=False,
                         max_combos=max_combos,
+                        y_tr_map=_y_tr_map,
+                        y_va_map=_y_va_map,
+                        y_te_map=_y_te_map,
                     )
 
                     # Auto-adopt best factorial combo:
@@ -757,6 +782,9 @@ def run(args) -> None:
                                     log_fp=run_log,
                                     seed=seed,
                                     meta_method=meta_method,
+                                    y_tr_map=_y_tr_map,
+                                    y_va_map=_y_va_map,
+                                    y_te_map=_y_te_map,
                                 )
                                 adopt_info = {
                                     "source": "factorial_search",
@@ -847,6 +875,9 @@ def run(args) -> None:
                             log_fp=run_log,
                             seed=seed,
                             meta_method=meta_method,
+                            y_tr_map=_y_tr_map,
+                            y_va_map=_y_va_map,
+                            y_te_map=_y_te_map,
                         )
                     else:
                         combined_maps = []
@@ -870,6 +901,9 @@ def run(args) -> None:
                             seed=seed,
                             meta_method=meta_method,
                             fit_on="train",
+                            y_tr_map=_y_tr_map,
+                            y_va_map=_y_va_map,
+                            y_te_map=_y_te_map,
                         )
 
         write_log("[DONE] finished this R_core run.", run_log)

@@ -18,6 +18,27 @@ from gameplay.features import build_sequence_features
 from core.utils import write_log
 
 
+def get_label_map_from_dataset(dataset) -> Dict[str, int]:
+    """Extract label map directly from a preloaded InMemoryFightDataset.
+
+    O(N) with zero disk I/O — avoids the full pipeline rebuild that
+    get_label_map() performs.  Each sample already contains 'y' and
+    'ref_key' from the preload stage.
+    """
+    out: Dict[str, int] = {}
+    for r, s in zip(dataset.refs, dataset.samples):
+        # prefer the pre-injected ref_key, fall back to computing it
+        k = s.get("ref_key") or ref_key(r)
+        y_val = s.get("y")
+        if y_val is None:
+            continue
+        # y may be a scalar tensor (shape [1,1]) or plain int/float
+        if hasattr(y_val, "item"):
+            out[k] = int(y_val.item())
+        else:
+            out[k] = int(y_val)
+    return out
+
 
 def get_label_map(
     refs: List[FightRef],
