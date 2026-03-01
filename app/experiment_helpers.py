@@ -8,7 +8,7 @@ from core.config import cfg
 from core.utils import write_log
 
 # Memory-safe subsampling cap for tabular baseline.
-LGBM_MAX_TRAIN: int = 150_000
+LGBM_MAX_TRAIN: int = 200_000
 
 
 def subsample_refs_for_lgbm(
