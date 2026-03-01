@@ -202,8 +202,10 @@ class NodeFeatureAdapter(nn.Module):
 # Utilities / pooling
 # =========================================================
 def pick_temporal_seq(batch: Dict[str, torch.Tensor]) -> Tuple[torch.Tensor, str]:
-    """Must match your pipeline: macro_seq -> extra_seq -> x_seq."""
-    for k in ("macro_seq", "extra_seq", "x_seq"):
+    """Sequence selection priority controlled by cfg.TEMPORAL_SEQ_PRIORITY."""
+    priority = getattr(cfg, "TEMPORAL_SEQ_PRIORITY",
+                       ("macro_seq", "x_seq", "extra_seq"))
+    for k in priority:
         x = batch.get(k, None)
         if x is not None:
             return x, k
