@@ -512,10 +512,9 @@ def build_sequence_features(
     node_role = reorder_node_seq_by_role(node_seq, role_slots)  # (L,10,F_NODE)
     node_flat = node_role.reshape(node_role.shape[0], -1).astype(np.float32)
 
-    if bool(getattr(cfg, "USE_ITEMS", True)):
-        macro_base = np.concatenate([glob_seq, ev_seq, item_seq], axis=1).astype(np.float32)
-    else:
-        macro_base = np.concatenate([glob_seq, ev_seq], axis=1).astype(np.float32)
+    # Build global prefix: glob_seq (+ phase_seq if enabled).
+    # Phase must be adjacent to glob_seq so that models can slice the
+    # global prefix as [..,:F_GLOBAL+phase_dim] from extra_seq/macro_seq.
     global_base = glob_seq.astype(np.float32)
 
     if bool(getattr(cfg, "USE_GAME_PHASE", False)):
@@ -531,8 +530,14 @@ def build_sequence_features(
             total_game_minutes=game_duration_min,
             tau=float(getattr(cfg, "GAME_PHASE_TAU", 3.0)),
         ).astype(np.float32)
-        macro_base = np.concatenate([macro_base, phase_seq], axis=1).astype(np.float32)
         global_base = np.concatenate([global_base, phase_seq], axis=1).astype(np.float32)
+
+    # macro_base = [global_base | ev_seq | item_seq]
+    # Prefix is [glob_seq (| phase_seq)] so models can slice global features.
+    if bool(getattr(cfg, "USE_ITEMS", True)):
+        macro_base = np.concatenate([global_base, ev_seq, item_seq], axis=1).astype(np.float32)
+    else:
+        macro_base = np.concatenate([global_base, ev_seq], axis=1).astype(np.float32)
 
     spatial_seq = compute_spatial_seq_from_node(node_role, sample)  # (L, F_SPATIAL)
 
