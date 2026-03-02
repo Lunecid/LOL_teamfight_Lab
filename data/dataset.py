@@ -358,15 +358,11 @@ class InMemoryFightDataset(Dataset):
 
             out = {"node_seq": node_ts, "extra_seq": extra_ts, "y": y}
 
-            # [P1-2] Also include x_seq in Layout (b) so models that need
-            # full-info access (e.g., RNNOnlyModel with USE_INPUT_PROJECTION)
-            # can pick it up via pick_temporal_seq fallback.
-            x_np = feats.get("x_seq", None)
-            if x_np is not None:
-                x_ts = torch.from_numpy(x_np).float()
-                x_names = get_xseq_feature_names(self.feature_set)
-                _, x_ts = self._apply_scaler_and_restore_coords(None, x_ts, seq_names=x_names)
-                out["x_seq"] = x_ts
+            # [P1-2] Removed: x_seq is no longer stored in Layout (b).
+            # All deep models now use extra_seq/macro_seq for global features
+            # via _pick_global_src(), so x_seq (887 dims, intended for LGBM)
+            # is unnecessary here. Removing it saves ~20-40 GB RAM when using
+            # --share_datasets.
 
         else:
             x_np = feats.get("x_seq", None)

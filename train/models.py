@@ -473,23 +473,11 @@ class RNNOnlyModel(nn.Module):
         rnn_layers = int(getattr(cfg, "RNN_LAYERS", 1))
         drop = float(getattr(cfg, "DROPOUT", 0.1))
 
-        # [P0-3] Optional input projection for full-info x_seq access.
-        # When USE_INPUT_PROJECTION=True, the model can process x_seq (~997-dim)
-        # through a projection: Linear(d_in, proj_dim) → LayerNorm → ReLU
-        # This gives BiGRU access to all 10 players' individual features.
-        self._use_proj = bool(getattr(cfg, "USE_INPUT_PROJECTION", False))
-        proj_dim = int(getattr(cfg, "INPUT_PROJ_DIM", 256))
-        if self._use_proj:
-            self.input_proj = nn.Sequential(
-                nn.Linear(d_in, proj_dim),
-                nn.LayerNorm(proj_dim),
-                nn.ReLU(),
-                nn.Dropout(drop),
-            )
-            enc_d_in = proj_dim
-        else:
-            self.input_proj = None
-            enc_d_in = d_in
+        # Only use global features as RNN input.
+        # Global features are placed at the prefix of extra_seq / macro_seq.
+        phase_dim = 3 if bool(getattr(cfg, "USE_GAME_PHASE", False)) else 0
+        self.global_in_dim = F_GLOBAL + phase_dim
+        enc_d_in = self.global_in_dim
 
         if kind == "ugru":
             self.enc = RNNEncoder("gru", enc_d_in, rnn_hidden, n_layers=rnn_layers, bidirectional=False, dropout=drop)
@@ -542,11 +530,20 @@ class RNNOnlyModel(nn.Module):
         head_layers = int(getattr(cfg, "HEAD_LAYERS", 2))
         self.head = MLP(self.enc.out_dim, head_hidden, 1, dropout=drop, layers=head_layers)
 
+    @staticmethod
+    def _pick_global_src(batch: Dict[str, torch.Tensor]) -> Tuple[torch.Tensor, str]:
+        """Pick a sequence where global features are at the prefix (extra_seq > macro_seq)."""
+        for k in ("extra_seq", "macro_seq"):
+            x = batch.get(k, None)
+            if x is not None:
+                return x, k
+        # Fallback to pick_temporal_seq (x_seq only layout)
+        return pick_temporal_seq(batch)
+
     def forward(self, batch: Dict[str, torch.Tensor], return_aux: bool = False):
-        x, key = pick_temporal_seq(batch)
-        # [P0-3] Apply input projection if enabled
-        if self.input_proj is not None:
-            x = self.input_proj(x)
+        x, key = self._pick_global_src(batch)
+        # Slice global-feature prefix only
+        x = x[..., :self.global_in_dim]
         feat = self.enc(x)
         logit = self.head(feat)
         if return_aux:
@@ -593,19 +590,24 @@ class HybridRNNModel(nn.Module):
         h0_proj_dim = int(getattr(cfg, "HYBRID_H0_PROJ_DIM", 64))
         h0_dropout = float(getattr(cfg, "HYBRID_H0_DROPOUT", 0.15))
 
-        # --- RNN encoder (same as RNNOnlyModel) ---
+        # Only use global features as RNN input (same as RNNOnlyModel).
+        phase_dim = 3 if bool(getattr(cfg, "USE_GAME_PHASE", False)) else 0
+        self.global_in_dim = F_GLOBAL + phase_dim
+        enc_d_in = self.global_in_dim
+
+        # --- RNN encoder ---
         if kind in ("bigru", "hybrid_bigru"):
-            self.enc = RNNEncoder("gru", d_in, rnn_hidden, n_layers=rnn_layers, bidirectional=True, dropout=drop)
+            self.enc = RNNEncoder("gru", enc_d_in, rnn_hidden, n_layers=rnn_layers, bidirectional=True, dropout=drop)
         elif kind in ("bilstm", "hybrid_bilstm"):
-            self.enc = RNNEncoder("lstm", d_in, rnn_hidden, n_layers=rnn_layers, bidirectional=True, dropout=drop)
+            self.enc = RNNEncoder("lstm", enc_d_in, rnn_hidden, n_layers=rnn_layers, bidirectional=True, dropout=drop)
         elif kind in ("ugru", "hybrid_ugru"):
-            self.enc = RNNEncoder("gru", d_in, rnn_hidden, n_layers=rnn_layers, bidirectional=False, dropout=drop)
+            self.enc = RNNEncoder("gru", enc_d_in, rnn_hidden, n_layers=rnn_layers, bidirectional=False, dropout=drop)
         else:
             raise ValueError(f"HybridRNNModel unsupported kind: {kind}")
 
         # --- Tabular → h₀ projection MLP ---
-        # φ_tab dimension: 7 * d_in (7-way stats of each feature)
-        d_tab = len(self.TAB_SUFFIXES) * d_in
+        # φ_tab dimension: 7 * global_in_dim (7-way stats of global features)
+        d_tab = len(self.TAB_SUFFIXES) * self.global_in_dim
         self.tab_to_h0 = nn.Sequential(
             nn.LayerNorm(d_tab),
             nn.Linear(d_tab, h0_proj_dim),
@@ -620,7 +622,6 @@ class HybridRNNModel(nn.Module):
         head_layers = int(getattr(cfg, "HEAD_LAYERS", 2))
         self.head = MLP(self.enc.out_dim, head_hidden, 1, dropout=drop, layers=head_layers)
 
-        self._d_in = d_in
         self._rnn_hidden = rnn_hidden
 
     @staticmethod
@@ -656,10 +657,12 @@ class HybridRNNModel(nn.Module):
         return torch.cat([x_last, x_mean, x_std, x_min, x_max, x_delta, x_slope], dim=-1)
 
     def forward(self, batch: Dict[str, torch.Tensor], return_aux: bool = False):
-        x, key = pick_temporal_seq(batch)  # (B, L, D)
+        x, key = RNNOnlyModel._pick_global_src(batch)
+        # Slice global-feature prefix only
+        x = x[..., :self.global_in_dim]
 
         # Compute tabular features → initial hidden state
-        phi_tab = self._compute_tab_features(x)  # (B, 7*D)
+        phi_tab = self._compute_tab_features(x)  # (B, 7*global_in_dim)
         h0 = self.tab_to_h0(phi_tab)             # (B, d_h)
 
         # RNN with h₀ conditioning
@@ -1125,7 +1128,7 @@ class GatedFusion(nn.Module):
 class FusionGatedGNNBiGRU(nn.Module, DebugHookMixin):
     """
     - node_seq -> GNN(last frame) pooled -> gnn_feat
-    - macro_seq/extra_seq/x_seq -> BiGRU -> rnn_feat
+    - extra_seq/macro_seq global prefix -> BiGRU -> rnn_feat
     - optional lgbm_logit -> appended to final head
     """
 
@@ -1141,7 +1144,10 @@ class FusionGatedGNNBiGRU(nn.Module, DebugHookMixin):
         self.gnn_branch = GNNOnlyModel("graphsage", f_node=f_node)
         self.gnn_dim = 3 * gnn_dim
 
-        self.rnn_enc = RNNEncoder("gru", d_macro, rnn_hidden, n_layers=rnn_layers, bidirectional=True, dropout=drop)
+        # Only use global features as RNN input (same as RNNOnlyModel).
+        phase_dim = 3 if bool(getattr(cfg, "USE_GAME_PHASE", False)) else 0
+        self.global_in_dim = F_GLOBAL + phase_dim
+        self.rnn_enc = RNNEncoder("gru", self.global_in_dim, rnn_hidden, n_layers=rnn_layers, bidirectional=True, dropout=drop)
         self.rnn_dim = self.rnn_enc.out_dim
 
         fuse_dim = max(self.gnn_dim, self.rnn_dim)
@@ -1165,7 +1171,8 @@ class FusionGatedGNNBiGRU(nn.Module, DebugHookMixin):
         if node_seq is None:
             raise KeyError("Fusion requires node_seq")
 
-        extra_seq, seq_key = pick_temporal_seq(batch)
+        extra_seq, seq_key = RNNOnlyModel._pick_global_src(batch)
+        extra_seq = extra_seq[..., :self.global_in_dim]
 
         gnn_feat, h, A, alive = self.gnn_branch.encode_last(node_seq)
         self._maybe_store_debug(A, h)
@@ -1629,10 +1636,12 @@ class LayeredFusionGNNBiGRUXAttn(nn.Module, DebugHookMixin):
         if node_seq is None:
             raise KeyError("LayeredFusionGNNBiGRUXAttn requires node_seq")
 
-        temporal_seq, seq_key = pick_temporal_seq(batch)
-        global_src = batch.get("global_seq", None)
-        if global_src is None:
-            global_src = temporal_seq
+        # Use _pick_global_src to get extra_seq/macro_seq where global features
+        # are at the prefix, avoiding x_seq (which has node_flat at prefix).
+        global_src, seq_key = RNNOnlyModel._pick_global_src(batch)
+        global_override = batch.get("global_seq", None)
+        if global_override is not None:
+            global_src = global_override
         global_in = self._global_prefix(global_src)
 
         etype = batch.get("event_type", None)
