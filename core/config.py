@@ -19,7 +19,7 @@ Changes from original:
   [P1-PATH]    Hardcoded Windows paths → environment-variable fallbacks.
   [P1-LABEL]   Added LABEL_TIE_STRATEGY to handle score ties (was biased to 0).
   [P1-LR]      LR 2e-4→5e-4, EPOCHS 10→15, PATIENCE 4→3 (convergence).
-  [P1-DEEP]    Added DEEP_MAX_TRAIN=200K for deep model train subsampling.
+  [P1-DEEP]    Added DEEP_MAX_TRAIN cap for deep model train subsampling.
   [P1-SCALER]  SCALER_EXCLUDE_PREFIXES now includes "cs_", "ds_" to prevent
                double-normalisation of already-normalised champion/damage stats.
   [P1-NORM]    Added USE_CUMULATIVE_DELTA flag + TIME_NORM_CUMULATIVE for
@@ -743,15 +743,15 @@ class CFG:
     PATIENCE: int = 3               # [FIX P1-4] 4 → 3 (불필요한 대기 제거)
     LOG_EVERY: int = 100
     GRAD_CLIP_NORM: float = 5.0
-    DEEP_MAX_TRAIN: int = 200_000   # [FIX P1-1] deep model train 서브샘플링 한도
-    LGBM_MAX_TRAIN: int = 200_000   # [FE-CONST] LGBM train subsampling (was 150K)
+    DEEP_MAX_TRAIN: int = 100_000   # [FIX P1-1] deep model train 서브샘플링 한도
+    LGBM_MAX_TRAIN: int = 100_000   # [FE-CONST] LGBM train subsampling (was 150K)
     # [P0-6] Val/Test subsampling inside deep.py (0 = disabled).
     # Superseded by GLOBAL_SUBSAMPLE_PER_SPLIT which caps all splits uniformly.
     VAL_MAX_N: int = 0
     TEST_MAX_N: int = 0
     # Global per-split subsample applied right after train/val/test split.
     # 0 = disabled (no global cap).  Affects ALL downstream consumers.
-    GLOBAL_SUBSAMPLE_PER_SPLIT: int = 200_000
+    GLOBAL_SUBSAMPLE_PER_SPLIT: int = 100_000
     # [P1-7] Warmup epochs — explicit config (was hardcoded as ceil(0.1 * EPOCHS))
     WARMUP_EPOCHS: int = 1
 
