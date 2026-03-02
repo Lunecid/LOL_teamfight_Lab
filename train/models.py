@@ -1128,7 +1128,7 @@ class GatedFusion(nn.Module):
 class FusionGatedGNNBiGRU(nn.Module, DebugHookMixin):
     """
     - node_seq -> GNN(last frame) pooled -> gnn_feat
-    - macro_seq/extra_seq/x_seq -> BiGRU -> rnn_feat
+    - extra_seq/macro_seq global prefix -> BiGRU -> rnn_feat
     - optional lgbm_logit -> appended to final head
     """
 
@@ -1144,7 +1144,10 @@ class FusionGatedGNNBiGRU(nn.Module, DebugHookMixin):
         self.gnn_branch = GNNOnlyModel("graphsage", f_node=f_node)
         self.gnn_dim = 3 * gnn_dim
 
-        self.rnn_enc = RNNEncoder("gru", d_macro, rnn_hidden, n_layers=rnn_layers, bidirectional=True, dropout=drop)
+        # Only use global features as RNN input (same as RNNOnlyModel).
+        phase_dim = 3 if bool(getattr(cfg, "USE_GAME_PHASE", False)) else 0
+        self.global_in_dim = F_GLOBAL + phase_dim
+        self.rnn_enc = RNNEncoder("gru", self.global_in_dim, rnn_hidden, n_layers=rnn_layers, bidirectional=True, dropout=drop)
         self.rnn_dim = self.rnn_enc.out_dim
 
         fuse_dim = max(self.gnn_dim, self.rnn_dim)
@@ -1168,7 +1171,8 @@ class FusionGatedGNNBiGRU(nn.Module, DebugHookMixin):
         if node_seq is None:
             raise KeyError("Fusion requires node_seq")
 
-        extra_seq, seq_key = pick_temporal_seq(batch)
+        extra_seq, seq_key = RNNOnlyModel._pick_global_src(batch)
+        extra_seq = extra_seq[..., :self.global_in_dim]
 
         gnn_feat, h, A, alive = self.gnn_branch.encode_last(node_seq)
         self._maybe_store_debug(A, h)
@@ -1632,10 +1636,12 @@ class LayeredFusionGNNBiGRUXAttn(nn.Module, DebugHookMixin):
         if node_seq is None:
             raise KeyError("LayeredFusionGNNBiGRUXAttn requires node_seq")
 
-        temporal_seq, seq_key = pick_temporal_seq(batch)
-        global_src = batch.get("global_seq", None)
-        if global_src is None:
-            global_src = temporal_seq
+        # Use _pick_global_src to get extra_seq/macro_seq where global features
+        # are at the prefix, avoiding x_seq (which has node_flat at prefix).
+        global_src, seq_key = RNNOnlyModel._pick_global_src(batch)
+        global_override = batch.get("global_seq", None)
+        if global_override is not None:
+            global_src = global_override
         global_in = self._global_prefix(global_src)
 
         etype = batch.get("event_type", None)
