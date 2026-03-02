@@ -141,13 +141,20 @@ def build_ms_sequence(
 
     glob_seq, node_seq, ev_seq, item_seq = [], [], [], []
     glob_snap_ts_seq: List[int] = []
+    node_max_snapshot_ms: Optional[int] = None
+    if engage_ts is not None and engage_ts >= 0:
+        node_max_snapshot_ms = int(label_start_ms) - 1
 
     for i in range(L):
         b0 = start_ms + i * bin_ms
         b1 = start_ms + (i + 1) * bin_ms
         q = b0 + bin_ms // 2
 
-        node_i, glob_i = interpolate_node_global(cache, q)
+        node_i, glob_i = interpolate_node_global(
+            cache,
+            q,
+            max_snapshot_ms=node_max_snapshot_ms,
+        )
         g_ref_ms = int(q)
         if engage_ts is not None and engage_ts >= 0:
             g_ref_ms = min(int(g_ref_ms), int(label_start_ms) - 1)

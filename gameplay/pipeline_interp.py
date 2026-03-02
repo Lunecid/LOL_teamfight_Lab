@@ -63,25 +63,38 @@ def _interp_xy_guarded(
     return out
 
 
-def interpolate_node_global(cache: Dict[str, Any], q_ms: int) -> Tuple[np.ndarray, np.ndarray]:
+def interpolate_node_global(
+    cache: Dict[str, Any],
+    q_ms: int,
+    *,
+    max_snapshot_ms: Optional[int] = None,
+) -> Tuple[np.ndarray, np.ndarray]:
     ts = cache["minute_ts"]
     nm = cache["node_minute"]
     gm = cache["global_minute"]
 
     coord_div = float(getattr(cfg, "COORD_NORM_DIV", MAP_MAX))
+    q_eff = int(q_ms)
+
+    # Prevent future-frame interpolation leakage by capping query time to the
+    # last allowed snapshot (inclusive). Used for engage-anchored samples.
+    if max_snapshot_ms is not None and ts is not None and len(ts) > 0:
+        max_idx = _prev_snapshot_idx(ts, int(max_snapshot_ms), strict_before=False)
+        if max_idx >= 0:
+            q_eff = min(q_eff, int(ts[int(max_idx)]))
 
     if len(ts) == 1:
         node = nm[0].astype(np.float32)
         glob = gm[0].astype(np.float32)
     else:
-        idx = int(np.searchsorted(ts, q_ms) - 1)
+        idx = int(np.searchsorted(ts, q_eff) - 1)
         i = max(0, idx)
         j = min(len(ts) - 1, idx + 1)
 
         if ts[j] == ts[i]:
             alpha = 0.0
         else:
-            alpha = float(q_ms - ts[i]) / float(ts[j] - ts[i])
+            alpha = float(q_eff - ts[i]) / float(ts[j] - ts[i])
             alpha = float(np.clip(alpha, 0.0, 1.0))
 
         scalars_method = str(getattr(cfg, "INTERP_SCALARS_METHOD", "ffill")).lower()
@@ -145,7 +158,7 @@ def interpolate_node_global(cache: Dict[str, Any], q_ms: int) -> Tuple[np.ndarra
             t0 = float(ts[0])
             t1 = float(ts[-1])
             if t1 > t0:
-                glob[tj] = float(np.clip((float(q_ms) - t0) / (t1 - t0), 0.0, 1.0))
+                glob[tj] = float(np.clip((float(q_eff) - t0) / (t1 - t0), 0.0, 1.0))
 
     alive_idx = NODE_IDX.get("alive", None)
     if alive_idx is not None:
@@ -181,4 +194,3 @@ def global_from_prev_snapshot(cache: Dict[str, Any], ref_ms: int, *, strict_befo
     if idx < 0:
         return np.zeros((F_GLOBAL,), dtype=np.float32), -1
     return gm[int(idx)].astype(np.float32, copy=True), int(ts[int(idx)])
-
