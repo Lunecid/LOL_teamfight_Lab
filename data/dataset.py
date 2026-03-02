@@ -359,8 +359,7 @@ class InMemoryFightDataset(Dataset):
             out = {"node_seq": node_ts, "extra_seq": extra_ts, "y": y}
 
             # [P1-2] Also include x_seq in Layout (b) so models that need
-            # full-info access (e.g., RNNOnlyModel with USE_INPUT_PROJECTION)
-            # can pick it up via pick_temporal_seq fallback.
+            # full-info access can pick it up via pick_temporal_seq fallback.
             x_np = feats.get("x_seq", None)
             if x_np is not None:
                 x_ts = torch.from_numpy(x_np).float()
