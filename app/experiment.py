@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import random
 import math
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -163,6 +164,7 @@ def run(args) -> None:
 
         # 2) Build fight index (depends on R)
         write_log("[STEP] build_fight_index", run_log)
+        _t_index = time.time()
 
         max_matches_opt = int(cfg.MAX_MATCHES) if cfg.MAX_MATCHES else None
         cache_match_ids = scan_cache_match_ids(max_matches=max_matches_opt)
@@ -178,6 +180,10 @@ def run(args) -> None:
         if not refs:
             write_log("[FATAL] No fights found. Check cache / detection rules.", run_log)
             continue
+        write_log(
+            f"[STEP] build_fight_index done: n_refs={len(refs):,} elapsed={time.time() - _t_index:.1f}s",
+            run_log,
+        )
 
         fight_pc_all = count_patches_from_refs(refs)
         log_patch_block("FIGHTS(all refs)", fight_pc_all, run_log)

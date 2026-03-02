@@ -551,6 +551,9 @@ class CFG:
     DUMP_FIGHTS: bool = True
     DUMP_FIGHTS_DIRNAME: str = "fight_dumps"
     DUMP_FIGHTS_MAX_MATCHES: int = 5000
+    # Reuse build_fight_index() results across reruns with identical detector config.
+    FIGHT_INDEX_CACHE_ENABLED: bool = True
+    FIGHT_INDEX_CACHE_DIRNAME: str = "fight_index_cache"
 
     # =========================================================
     # 8) Spatial anchors + fight type tagging

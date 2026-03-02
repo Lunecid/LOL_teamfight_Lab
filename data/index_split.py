@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import gzip
+import json
 import random
 import re
 import hashlib
+import time
 from collections import defaultdict
+from pathlib import Path
 from typing import Iterable
 from core.common import Any, Dict, List, Optional, Tuple, np, dataclass, field
-from core.config import CACHE_DIR, cfg
+from core.config import CACHE_DIR, META_DIR, cfg
 
 from core.fight_types import FightRef, PruneSpec
 from data.cache_io import load_match_cache
@@ -20,6 +24,161 @@ from core.contract import TIME_CONTRACT
 def _stable_int_hash(s: str) -> int:
     h = hashlib.md5(str(s).encode("utf-8")).hexdigest()
     return int(h[:8], 16)
+
+
+_FIGHT_INDEX_CACHE_CFG_KEYS: Tuple[str, ...] = (
+    # Core detector choices
+    "FIGHT_DETECTOR",
+    "FIGHT_DETECT_ALGO",
+    "STANDOFF_RADIUS",
+    "STANDOFF_MIN_PAIRS",
+    "ENGAGE_MIN_DIST_DROP",
+    "ENGAGE_MIN_PAIR_GAIN",
+    "VERIFY_KILL_IN_HORIZON",
+    "USE_KILL_ANCHOR",
+    "KILL_ANCHOR_PRE_SEC",
+    "KILL_ANCHOR_COOLDOWN_SEC",
+    # Temporal windowing
+    "START_OFFSET_MIN",
+    "FIGHT_CONTEXT_MIN",
+    "FIGHT_MIN_GAP_MIN",
+    "FIGHT_MIN_GAP_MS",
+    "FIGHT_HORIZON_SEC",
+    # Backtrack / merge behavior
+    "USE_BACKTRACK",
+    "BACKTRACK_MAX_MS",
+    "BACKTRACK_MIN_MS",
+    "BACKTRACK_MIN_PAIRS",
+    "CONTINUOUS_FIGHT_MERGE",
+    "CONTINUOUS_FIGHT_MAX_GAP_MS",
+    "CONTINUOUS_FIGHT_MERGE_RADIUS",
+    # Spatial/cluster guards
+    "DETECT_STEP_MS",
+    "REQUIRE_ALIVE_PER_TEAM",
+    "REQUIRE_ENGAGED_PER_TEAM",
+    "REQUIRE_LCC_TOTAL",
+    "REQUIRE_LCC_PER_TEAM",
+    "CLUSTER_MAX_DIAMETER",
+    # Per-match sampling controls
+    "MAX_FIGHTS_PER_MATCH",
+    "FIGHT_SUBSAMPLE_STRATEGY",
+    "FIGHT_SUBSAMPLE_SEED_OFFSET",
+    # Versioning / split guards
+    "FEATURE_VERSION",
+    "PATCH_ALLOWLIST",
+    "PATCH_LEVEL",
+)
+
+
+def _jsonable_cfg_value(v: Any) -> Any:
+    if isinstance(v, (str, int, float, bool)) or v is None:
+        return v
+    if isinstance(v, Path):
+        return str(v)
+    if isinstance(v, (list, tuple, set)):
+        return [_jsonable_cfg_value(x) for x in list(v)]
+    if isinstance(v, dict):
+        out: Dict[str, Any] = {}
+        for k in sorted(v.keys(), key=lambda x: str(x)):
+            out[str(k)] = _jsonable_cfg_value(v[k])
+        return out
+    return str(v)
+
+
+def _fight_index_cfg_signature() -> Dict[str, Any]:
+    sig: Dict[str, Any] = {}
+    for k in _FIGHT_INDEX_CACHE_CFG_KEYS:
+        sig[k] = _jsonable_cfg_value(getattr(cfg, k, None))
+    return sig
+
+
+def _fight_index_cache_plan(mids: List[str]) -> Tuple[Optional[Path], Dict[str, Any], str]:
+    if not bool(getattr(cfg, "FIGHT_INDEX_CACHE_ENABLED", True)):
+        return None, {}, ""
+    # When explicit dumps are enabled, keep detector execution path as-is.
+    if bool(getattr(cfg, "DUMP_FIGHTS", False)):
+        return None, {}, ""
+
+    root = META_DIR / str(getattr(cfg, "FIGHT_INDEX_CACHE_DIRNAME", "fight_index_cache"))
+    try:
+        root.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        return None, {}, ""
+
+    h_mids = hashlib.blake2b(digest_size=12)
+    for mid in mids:
+        h_mids.update(str(mid).encode("utf-8"))
+        h_mids.update(b"\0")
+    mids_digest = h_mids.hexdigest()
+
+    sig = _fight_index_cfg_signature()
+    sig["n_mids"] = int(len(mids))
+    sig["mids_digest"] = mids_digest
+
+    sig_blob = json.dumps(sig, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    cache_key = hashlib.blake2b(sig_blob.encode("utf-8"), digest_size=16).hexdigest()
+    return root / f"{cache_key}.json.gz", sig, cache_key
+
+
+def _load_cached_fight_index(path: Path, cache_key: str) -> Optional[List[FightRef]]:
+    try:
+        with gzip.open(path, "rt", encoding="utf-8") as f:
+            obj = json.load(f)
+        if not isinstance(obj, dict):
+            return None
+        if str(obj.get("cache_key", "")) != str(cache_key):
+            return None
+        rows = obj.get("refs", None)
+        if not isinstance(rows, list):
+            return None
+
+        refs: List[FightRef] = []
+        for r in rows:
+            if not isinstance(r, dict):
+                continue
+            try:
+                refs.append(
+                    FightRef(
+                        match_id=str(r.get("match_id", "")),
+                        patch=str(r.get("patch", "0.0")),
+                        t_start=int(r.get("t_start", 0)),
+                        t_start_ts=int(r.get("t_start_ts", -1)),
+                        label_end_ts=int(r.get("label_end_ts", -1)),
+                    )
+                )
+            except Exception:
+                continue
+        if not refs:
+            return None
+        return refs
+    except Exception:
+        return None
+
+
+def _save_cached_fight_index(path: Path, cache_key: str, cfg_sig: Dict[str, Any], refs: List[FightRef]) -> None:
+    try:
+        rows = [
+            {
+                "match_id": str(r.match_id),
+                "patch": str(r.patch),
+                "t_start": int(r.t_start),
+                "t_start_ts": int(getattr(r, "t_start_ts", -1)),
+                "label_end_ts": int(getattr(r, "label_end_ts", -1)),
+            }
+            for r in refs
+        ]
+        payload = {
+            "cache_key": str(cache_key),
+            "created_at_unix": int(time.time()),
+            "n_refs": int(len(rows)),
+            "cfg_signature": cfg_sig,
+            "refs": rows,
+        }
+        with gzip.open(path, "wt", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False)
+    except Exception:
+        # Best-effort cache write only; never break index build.
+        return
 
 
 def _subsample_fights_in_match(fights, *args, **kwargs):
@@ -120,6 +279,12 @@ def build_fight_index(
     if max_matches:
         mids = mids[:int(max_matches)]
 
+    cache_path, cfg_sig, cache_key = _fight_index_cache_plan(mids)
+    if cache_path is not None and cache_path.exists():
+        cached_refs = _load_cached_fight_index(cache_path, cache_key)
+        if cached_refs is not None:
+            return cached_refs
+
     seed0 = int(getattr(cfg, "SEEDS", (7,))[0])
     k = getattr(cfg, "MAX_FIGHTS_PER_MATCH", None)
     strat = str(getattr(cfg, "FIGHT_SUBSAMPLE_STRATEGY", "uniform"))
@@ -218,6 +383,9 @@ def build_fight_index(
                     t_start_ts=t_start_ts,  # ✅ NEW
                     label_end_ts=label_end_ts,
                 ))
+
+    if cache_path is not None:
+        _save_cached_fight_index(cache_path, cache_key, cfg_sig, refs)
 
     return refs
 
