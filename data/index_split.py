@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import concurrent.futures
 import gzip
 import json
+import os
 import random
 import re
 import hashlib
@@ -260,6 +262,147 @@ def _subsample_fights_in_match(fights, *args, **kwargs):
     return [fights[i] for i in idx]
 
 
+def _fight_to_ref_row(
+    fight: Dict[str, Any],
+    minute_ts: np.ndarray,
+    match_id: str,
+    patch: str,
+) -> Optional[Dict[str, Any]]:
+    if not isinstance(fight, dict):
+        return None
+
+    engage_ts = fight.get("engage_ts", None)
+    if engage_ts is None:
+        engage_ts = fight.get("t_engage_ts", None)
+    label_end_raw = fight.get("horizon_end_ts", None)
+
+    t_raw = fight.get("t_engage", None)
+    if t_raw is None:
+        t_raw = fight.get("t_start", None)
+    if t_raw is None:
+        t_raw = fight.get("t_ms", None)
+
+    if engage_ts is None and t_raw is None:
+        return None
+
+    try:
+        if engage_ts is not None and len(minute_ts) > 0:
+            t_idx = int(np.searchsorted(minute_ts, engage_ts, side="right") - 1)
+            t_idx = int(np.clip(t_idx, 0, len(minute_ts) - 1))
+            t_start_ts = int(engage_ts)
+        else:
+            t_idx = int(TIME_CONTRACT.coerce_t_start_minute_idx(minute_ts, t_raw))
+            if len(minute_ts) > 0:
+                t_idx = int(np.clip(t_idx, 0, len(minute_ts) - 1))
+                t_start_ts = int(minute_ts[t_idx])
+            else:
+                t_start_ts = -1
+    except Exception:
+        try:
+            t_idx = int(t_raw) if t_raw is not None else 0
+            t_start_ts = int(engage_ts) if engage_ts is not None else -1
+        except Exception:
+            return None
+
+    try:
+        label_end_ts = int(label_end_raw) if label_end_raw is not None else -1
+    except Exception:
+        label_end_ts = -1
+
+    if t_start_ts >= 0 and label_end_ts >= 0 and label_end_ts <= t_start_ts:
+        label_end_ts = -1
+    if t_idx < 0:
+        return None
+
+    return {
+        "match_id": str(match_id),
+        "patch": str(patch),
+        "t_start": int(t_idx),
+        "t_start_ts": int(t_start_ts),
+        "label_end_ts": int(label_end_ts),
+    }
+
+
+def _build_fight_rows_for_match(
+    mid: str,
+    allow_patches: Optional[Tuple[str, ...]],
+    max_fights_per_match: Optional[int],
+    subsample_strategy: str,
+    subsample_seed: int,
+    tag: Optional[str],
+    do_dump: bool = False,
+) -> List[Dict[str, Any]]:
+    """Build FightRef rows for one match id (worker-safe, picklable output)."""
+    try:
+        pack = load_match_cache(mid)
+        if not pack:
+            return []
+
+        meta = pack.get("meta", {})
+        if not isinstance(meta, dict):
+            return []
+        patch = str(meta.get("patch", meta.get("patch_full", "0.0")))
+        allow_set = set(allow_patches) if allow_patches is not None else None
+        if allow_set is not None and patch not in allow_set:
+            return []
+
+        team_map = meta.get("team_map", {})
+        fights = detect_fights(pack, team_map)
+        fights_raw = list(fights)
+        fights = _subsample_fights_in_match(
+            fights=fights,
+            k=max_fights_per_match,
+            strategy=subsample_strategy,
+            seed=subsample_seed,
+            match_id=mid,
+        )
+        fights_kept = list(fights)
+
+        if do_dump:
+            _maybe_dump_fights_for_match(
+                match_id=mid,
+                patch=patch,
+                pack=pack,
+                fights_raw=fights_raw,
+                fights_kept=fights_kept,
+                tag=tag,
+            )
+
+        minute_ts = np.asarray(pack.get("minute_ts", np.array([])), dtype=np.int64)
+        match_id = str(meta.get("match_id", mid))
+
+        rows: List[Dict[str, Any]] = []
+        for fight in fights:
+            row = _fight_to_ref_row(fight, minute_ts, match_id=match_id, patch=patch)
+            if row is not None:
+                rows.append(row)
+        return rows
+    except Exception:
+        return []
+
+
+def _build_fight_rows_for_match_task(
+    task: Tuple[str, Optional[Tuple[str, ...]], Optional[int], str, int, Optional[str], bool]
+) -> List[Dict[str, Any]]:
+    return _build_fight_rows_for_match(*task)
+
+
+def _resolve_fight_index_workers(n_matches: int) -> int:
+    if n_matches <= 1:
+        return 1
+
+    user_n = int(getattr(cfg, "FIGHT_INDEX_NUM_WORKERS", 0) or 0)
+    if user_n > 0:
+        return max(1, min(user_n, n_matches))
+
+    cpu_n = int(os.cpu_count() or 1)
+    auto_cap = int(getattr(cfg, "FIGHT_INDEX_MAX_AUTO_WORKERS", 8) or 8)
+    # Too-small workloads are usually slower with process startup overhead.
+    if n_matches < 8:
+        return 1
+    return max(1, min(cpu_n, auto_cap, n_matches))
+
+
 def build_fight_index(
         cache_match_ids: Optional[Iterable[str]] = None,
         max_matches: Optional[int] = None,
@@ -291,98 +434,63 @@ def build_fight_index(
     seed_off = int(getattr(cfg, "FIGHT_SUBSAMPLE_SEED_OFFSET", 0))
 
     allow = getattr(cfg, "PATCH_ALLOWLIST", None)
-    allow_set = set(allow) if isinstance(allow, (tuple, list)) and len(allow) > 0 else None
+    allow_tuple = tuple(str(x) for x in allow) if isinstance(allow, (tuple, list)) and len(allow) > 0 else None
 
-    for mid in mids:
-        pack = load_match_cache(mid)
-        if not pack:
-            continue
+    dump_enabled = bool(getattr(cfg, "DUMP_FIGHTS", False))
+    dump_allow_set: set[str] = set()
+    if dump_enabled:
+        dump_candidates = list(mids)
+        dump_allowlist = getattr(cfg, "DUMP_FIGHTS_MATCH_ALLOWLIST", None)
+        if isinstance(dump_allowlist, (list, tuple, set)) and len(dump_allowlist) > 0:
+            allow_mids = {str(x) for x in dump_allowlist}
+            dump_candidates = [mid for mid in dump_candidates if mid in allow_mids]
 
-        patch = str(pack["meta"].get("patch", pack["meta"].get("patch_full", "0.0")))
+        max_dump = int(getattr(cfg, "DUMP_FIGHTS_MAX_MATCHES", 5000))
+        if max_dump > 0:
+            dump_allow_set = set(dump_candidates[:max_dump])
 
-        if allow_set is not None and patch not in allow_set:
-            continue
-
-        fights = detect_fights(pack, pack["meta"]["team_map"])
-        fights_raw = list(fights)
-
-        fights = _subsample_fights_in_match(
-            fights=fights,
-            k=k,
-            strategy=strat,
-            seed=seed0 + seed_off,
-            match_id=mid,
+    tasks: List[Tuple[str, Optional[Tuple[str, ...]], Optional[int], str, int, Optional[str], bool]] = [
+        (
+            str(mid),
+            allow_tuple,
+            k,
+            strat,
+            seed0 + seed_off,
+            tag,
+            bool(dump_enabled and str(mid) in dump_allow_set),
         )
-        fights_kept = list(fights)
+        for mid in mids
+    ]
 
-        _maybe_dump_fights_for_match(
-            match_id=mid,
-            patch=patch,
-            pack=pack,
-            fights_raw=fights_raw,
-            fights_kept=fights_kept,
-            tag=tag,
-        )
+    worker_n = _resolve_fight_index_workers(len(tasks))
+    chunk_size = max(1, int(getattr(cfg, "FIGHT_INDEX_MP_CHUNK_SIZE", 8) or 8))
 
-        minute_ts = pack.get('minute_ts', np.array([]))
-
-        for f in fights:
-            if not isinstance(f, dict):
+    def _append_rows(rows: List[Dict[str, Any]]) -> None:
+        for row in rows:
+            try:
+                refs.append(
+                    FightRef(
+                        match_id=str(row["match_id"]),
+                        patch=str(row["patch"]),
+                        t_start=int(row["t_start"]),
+                        t_start_ts=int(row.get("t_start_ts", -1)),
+                        label_end_ts=int(row.get("label_end_ts", -1)),
+                    )
+                )
+            except Exception:
                 continue
 
-            # ✅ NEW: engage_ts(ms) 우선 사용
-            engage_ts = f.get('engage_ts', None)
-            if engage_ts is None:
-                engage_ts = f.get('t_engage_ts', None)
-            label_end_raw = f.get("horizon_end_ts", None)
-
-            # legacy: t_engage (minute index)
-            t_raw = f.get('t_engage', None)
-            if t_raw is None:
-                t_raw = f.get('t_start', None)
-            if t_raw is None:
-                t_raw = f.get('t_ms', None)
-
-            if engage_ts is None and t_raw is None:
-                continue
-
-            # t_idx 계산 (legacy 호환)
-            try:
-                if engage_ts is not None and len(minute_ts) > 0:
-                    # ms -> minute index 변환
-                    t_idx = int(np.searchsorted(minute_ts, engage_ts, side="right") - 1)
-                    t_idx = int(np.clip(t_idx, 0, len(minute_ts) - 1))
-                    t_start_ts = int(engage_ts)
-                else:
-                    t_idx = int(TIME_CONTRACT.coerce_t_start_minute_idx(minute_ts, t_raw))
-                    # minute index -> ms 변환
-                    if len(minute_ts) > 0:
-                        t_idx = int(np.clip(t_idx, 0, len(minute_ts) - 1))
-                        t_start_ts = int(minute_ts[t_idx])
-                    else:
-                        t_start_ts = -1
-            except Exception:
-                try:
-                    t_idx = int(t_raw) if t_raw is not None else 0
-                    t_start_ts = int(engage_ts) if engage_ts is not None else -1
-                except Exception:
-                    continue
-
-            try:
-                label_end_ts = int(label_end_raw) if label_end_raw is not None else -1
-            except Exception:
-                label_end_ts = -1
-            if t_start_ts >= 0 and label_end_ts >= 0 and label_end_ts <= t_start_ts:
-                label_end_ts = -1
-
-            if t_idx >= 0:
-                refs.append(FightRef(
-                    match_id=pack['meta']['match_id'],
-                    patch=patch,
-                    t_start=t_idx,
-                    t_start_ts=t_start_ts,  # ✅ NEW
-                    label_end_ts=label_end_ts,
-                ))
+    if worker_n <= 1:
+        for task in tasks:
+            _append_rows(_build_fight_rows_for_match_task(task))
+    else:
+        try:
+            with concurrent.futures.ProcessPoolExecutor(max_workers=worker_n) as ex:
+                for rows in ex.map(_build_fight_rows_for_match_task, tasks, chunksize=chunk_size):
+                    _append_rows(rows)
+        except Exception:
+            for task in tasks:
+                _append_rows(_build_fight_rows_for_match_task(task))
 
     if cache_path is not None:
         _save_cached_fight_index(cache_path, cache_key, cfg_sig, refs)

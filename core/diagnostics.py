@@ -6,6 +6,11 @@ from pathlib import Path
 from core.common import Any, Dict, List, Optional, Tuple, np, dataclass
 from core.config import CACHE_DIR, RUN_DIR, cfg
 
+try:
+    import fcntl  # POSIX file lock (Linux/macOS)
+except Exception:  # pragma: no cover - unavailable on Windows
+    fcntl = None
+
 # module-level counter
 _DUMP_MATCH_COUNT = 0
 
@@ -57,6 +62,24 @@ def _json_sanitize(x: Any) -> Any:
     if isinstance(x, (list, tuple)):
         return [_json_sanitize(v) for v in x]
     return x
+
+
+def _lock_file_exclusive(fp) -> None:
+    if fcntl is None:
+        return
+    try:
+        fcntl.flock(fp.fileno(), fcntl.LOCK_EX)
+    except Exception:
+        return
+
+
+def _unlock_file(fp) -> None:
+    if fcntl is None:
+        return
+    try:
+        fcntl.flock(fp.fileno(), fcntl.LOCK_UN)
+    except Exception:
+        return
 
 
 def _get_continuous_fight_stats(fights: List[dict]) -> Dict[str, Any]:
@@ -228,7 +251,6 @@ def _maybe_dump_fights_for_match(
 
     # append summary csv
     out_csv = out_dir / "fight_summary.csv"
-    write_header = not out_csv.exists()
 
     # compute a few extra quick stats
     def _get_ts_list(fs: List[dict]) -> List[int]:
@@ -305,11 +327,18 @@ def _maybe_dump_fights_for_match(
         "max_segments": continuous_stats_kept.get("max_segments", 0),
     }
 
-    with out_csv.open("a", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=list(row.keys()))
-        if write_header:
-            w.writeheader()
-        w.writerow(row)
+    with out_csv.open("a+", newline="", encoding="utf-8") as f:
+        _lock_file_exclusive(f)
+        try:
+            f.seek(0, 2)
+            write_header = (f.tell() == 0)
+            w = csv.DictWriter(f, fieldnames=list(row.keys()))
+            if write_header:
+                w.writeheader()
+            w.writerow(row)
+            f.flush()
+        finally:
+            _unlock_file(f)
 
     _DUMP_MATCH_COUNT += 1
 

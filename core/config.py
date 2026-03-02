@@ -554,6 +554,11 @@ class CFG:
     # Reuse build_fight_index() results across reruns with identical detector config.
     FIGHT_INDEX_CACHE_ENABLED: bool = True
     FIGHT_INDEX_CACHE_DIRNAME: str = "fight_index_cache"
+    # build_fight_index parallelism (CPU multiprocessing).
+    # 0 => auto (min(cpu_count, FIGHT_INDEX_MAX_AUTO_WORKERS)).
+    FIGHT_INDEX_NUM_WORKERS: int = 0
+    FIGHT_INDEX_MAX_AUTO_WORKERS: int = 8
+    FIGHT_INDEX_MP_CHUNK_SIZE: int = 8
 
     # =========================================================
     # 8) Spatial anchors + fight type tagging
