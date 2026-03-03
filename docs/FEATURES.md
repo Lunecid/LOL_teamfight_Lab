@@ -8,9 +8,9 @@ Complete definition of all feature sets, dimensions, normalization rules, and co
 
 | Feature Group | Symbol | Dimensions | Scope |
 |---------------|--------|------------|-------|
-| Node features | F_node | **87** per player per timestep | Per-player |
-| Global features | F_global | **27** per timestep | Team-level |
-| Event features | F_event | **48** per timestep per bin | Per-bin aggregate |
+| Node features | F_node | **76** per player per timestep | Per-player |
+| Global features | F_global | **26** per timestep | Team-level |
+| Event features | F_event | **44** per timestep per bin | Per-bin aggregate |
 | Temporal bins | L | **12** (60s / 5s) | Per-sample |
 | Players | N | **10** (5 per team) | Per-sample |
 | Champion stats | F_cs | 25 | Subset of F_node |
@@ -24,7 +24,7 @@ Complete definition of all feature sets, dimensions, normalization rules, and co
 
 | Tensor | Shape | dtype | Description |
 |--------|-------|-------|-------------|
-| `node_seq` | `(B, 12, 10, 87)` | float32 | Per-player temporal sequence |
+| `node_seq` | `(B, 12, 10, 76)` | float32 | Per-player temporal sequence |
 | `extra_seq` | `(B, 12, D_extra)` | float32 | Flattened macro + spatial features |
 | `y` | `(B, 1)` | float32 | Binary label |
 | `event_type` | `(B, K)` | int64 | Event type hash (optional) |
@@ -34,7 +34,7 @@ Complete definition of all feature sets, dimensions, normalization rules, and co
 
 ---
 
-## 1. Node Features (F_node = 87)
+## 1. Node Features (F_node = 76)
 
 Per-player features extracted at each 60-second frame. Defined in `core/config.py::NODE_FEATURE_NAMES`.
 
@@ -62,7 +62,7 @@ Defined in `NODE_SNAPSHOT_FEATURE_NAMES`:
 | 15 | `mp_pct` | Continuous | [0, 1] | Current MP / Max MP (0 for manaless) |
 | 16 | `alive` | Binary | {0, 1} | 1 if champion is alive |
 
-### 1.2 Status Features (9 features)
+### 1.2 Status Features (11 features)
 
 Defined in `NODE_STATUS_FEATURE_NAMES`:
 
@@ -151,13 +151,13 @@ Defined in `DAMAGE_STATS_KEYS`, prefixed with `ds_`:
 | 74 | `ds_trueDamageTaken` | True damage taken |
 | 75 | `ds_totalDamageTaken` | Total damage taken |
 
-### Total: F_node = 17 + 9 + 11 + 25 + 12 = **74 base features**
+### Total: F_node = 17 + 11 + 11 + 25 + 12 = **76 features**
 
-Note: `F_NODE` in config computes to 87 due to additional features added at runtime (vision features, flash cooldown, additional buff features). The exact dimension is computed as `len(NODE_FEATURE_NAMES)` from the canonical list in `core/config.py`.
+The exact dimension is computed as `len(NODE_FEATURE_NAMES)` from the canonical list in `core/config.py`.
 
 ---
 
-## 2. Global Features (F_global = 27)
+## 2. Global Features (F_global = 26)
 
 Team-level features extracted at each 60-second frame. Defined in `core/config.py::GLOBAL_FEATURE_NAMES`.
 
@@ -184,7 +184,7 @@ Team-level features extracted at each 60-second frame. Defined in `core/config.p
 
 ---
 
-## 3. Event Features (F_event = 48)
+## 3. Event Features (F_event = 44)
 
 Per-bin aggregated event counts within each 5-second time bin `[b0, b1)`. Defined in `core/config.py::EVENT_FEATURE_NAMES`.
 
@@ -215,7 +215,7 @@ All features are split by team: `_t100` (Blue) and `_t200` (Red).
 | `item_sold_t100` / `item_sold_t200` | Items sold |
 | `item_undo_t100` / `item_undo_t200` | Item purchase undos |
 
-**Total:** 24 feature pairs x 2 teams = **48 features per bin**.
+**Total:** 22 feature pairs x 2 teams = **44 features per bin**.
 
 ---
 

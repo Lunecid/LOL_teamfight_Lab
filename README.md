@@ -12,7 +12,7 @@ A machine learning pipeline for predicting **League of Legends teamfight outcome
 |----------|-------------|
 | **[docs/PIPELINE.md](docs/PIPELINE.md)** | Complete 7-stage data pipeline from Riot API JSON to calibrated predictions |
 | **[docs/FEATURES.md](docs/FEATURES.md)** | Exhaustive feature sets (87 node + 27 global + 48 event), dimensions, normalization |
-| **[docs/MODELS.md](docs/MODELS.md)** | 15+ model architectures with mathematical definitions and hyperparameters |
+| **[docs/MODELS.md](docs/MODELS.md)** | 25+ model architectures with mathematical definitions and hyperparameters |
 | **[docs/EXPERIMENT.md](docs/EXPERIMENT.md)** | 7-treatment ablation protocol, statistical testing, evaluation metrics |
 | **[docs/CoG2026_Paper.md](docs/CoG2026_Paper.md)** | Full paper draft (IEEE CoG 2026) |
 
@@ -23,13 +23,13 @@ A machine learning pipeline for predicting **League of Legends teamfight outcome
 ```
 Riot API JSONs -> Cache Build -> Fight Detection -> Index & Split
     -> Sample Construction (12 bins x 5s) -> Label Computation
-    -> Model Training (15+ architectures) -> Ensemble Stacking
+    -> Model Training (25+ architectures) -> Ensemble Stacking
     -> Evaluation (AUC, AP, Brier, bootstrap CI)
 ```
 
 1. **Detect teamfights** via kill-cluster-based temporal clustering with spatial validation (radius 1800, >= 2 per team)
-2. **Extract multi-modal features**: 87-dim per-player node features, 27-dim global features, 48-dim event aggregates
-3. **Train 15+ architectures**: LightGBM, BiGRU, Transformer, TCN, Mamba, GCN, GraphSAGE, GATv2, MPNN, ST-GNN, EventXAttn, Layered Fusion
+2. **Extract multi-modal features**: 76-dim per-player node features, 26-dim global features, 44-dim event aggregates
+3. **Train 25+ architectures**: LightGBM, BiGRU, BiLSTM, Transformer, TCN, Mamba, GCN, GraphSAGE, GraphTransformer, GATv2, MPNN, ST-GNN, ST-GCN, EdgeSTGNN, ST-Mamba, EventXAttn, Gated Fusion, Layered Fusion
 4. **Ensemble predictions** through factorial stacking with meta-learner selection
 5. **Ablate 7 domain-knowledge improvements**: focal loss, game phase encoding, attention pooling, momentum features, role-aware adjacency, multi-task learning, label smoothing
 
@@ -95,12 +95,15 @@ LOL_teamfight_Lab/
 |   |-- pipeline.py                # Temporal feature building (12 bins x 5s)
 |   |-- features.py                # Feature builders & normalizers
 |-- train/                         # Model definitions & training
-|   |-- models.py                  # 15+ model architectures
+|   |-- models.py                  # 25+ model architectures
+|   |-- model_registry.py          # Model key registry & factory
 |   |-- deep.py                    # Deep learning training harness
 |   |-- baseline.py                # LightGBM tabular baseline
 |   |-- fusion.py                  # Ensemble stacking & fusion
 |   |-- graph_encoder.py           # GNN encoder implementations
 |   |-- temporal_encoders.py       # RNN/Transformer/TCN/Mamba encoders
+|   |-- node_adapter.py            # Node feature adapter (embeddings)
+|   |-- layered_spec.py            # Layered fusion spec parser
 |-- app/                           # Orchestration & analysis
 |   |-- experiment.py              # Main training loop orchestrator
 |-- tests/                         # Unit tests (100+ cases)

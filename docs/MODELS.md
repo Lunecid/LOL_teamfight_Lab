@@ -1,6 +1,6 @@
 # Model Architectures
 
-Complete specification of all 15+ model architectures, their mathematical definitions, hyperparameters, and the Layered Fusion framework.
+Complete specification of all 25+ model architectures, their mathematical definitions, hyperparameters, and the Layered Fusion framework.
 
 ---
 
@@ -71,12 +71,12 @@ Where `p_i` is the integer-encoded patch number and `tau = 2.0` controls recency
 | `learning_rate` | 0.03 | Step size shrinkage |
 | `max_depth` | 6 | Maximum tree depth |
 | `num_leaves` | 31 | Maximum number of leaves per tree |
-| `subsample` | 0.8 | Row subsampling ratio |
-| `colsample_bytree` | 0.8 | Feature subsampling ratio |
-| `reg_alpha` | 0.1 | L1 regularization |
-| `reg_lambda` | 1.0 | L2 regularization |
-| `min_child_samples` | 20 | Minimum data in a leaf |
-| `early_stopping_rounds` | 50 | Patience for early stopping |
+| `subsample` | 0.7 | Row subsampling ratio |
+| `colsample_bytree` | 0.7 | Feature subsampling ratio |
+| `reg_alpha` | 1.0 | L1 regularization |
+| `reg_lambda` | 5.0 | L2 regularization |
+| `min_data_in_leaf` | 200 | Minimum data in a leaf |
+| `early_stopping_rounds` | 200 | Patience for early stopping |
 
 ### Constant Feature Filtering
 
@@ -98,7 +98,10 @@ All sequential models process the macro feature sequence S in R^{L x D} (concate
 Input S: (B, L=12, D_input)
     |
     v
-LayerNorm(D_input)
+InputProjection(D_input, 256) [if USE_INPUT_PROJECTION]
+    |
+    v
+LayerNorm(D_proj)
     |
     v
 Bidirectional RNN (GRU or LSTM)
@@ -284,8 +287,8 @@ This provides the RNN with a global context (average gold lead, overall team str
 | Parameter | Default |
 |-----------|---------|
 | `HYBRID_H0_ENABLED` | True (for hybrid models) |
-| `HYBRID_H0_PROJ_DIM` | 128 |
-| `HYBRID_H0_DROPOUT` | 0.20 |
+| `HYBRID_H0_PROJ_DIM` | 64 |
+| `HYBRID_H0_DROPOUT` | 0.15 |
 
 ---
 
@@ -525,6 +528,8 @@ This yields a configurable combinatorial search space for architecture selection
 | `fuse_dim` | 192 | Fusion hidden dimension |
 | `gate_h` | 64 | Gate projection dimension |
 | `event_d_model` | 128 | Event encoder model dimension |
+| `FUSION_GATE_H` | 8 | Gated fusion hidden dimension |
+| `FUSION_MLP_H` | 32 | Fusion MLP hidden dimension |
 
 ---
 
@@ -645,11 +650,13 @@ epsilon = 0.05  ->  positive: 0.975, negative: 0.025
 | **Batch size** | 64 | GPU-optimized |
 | **Epochs** | 15 | Maximum training epochs |
 | **Patience** | 3 | Early stopping epochs |
+| **Warmup epochs** | 1 | Linear warmup duration |
 | **Gradient clipping** | 5.0 | Max gradient norm |
 | **Mixed precision** | AMP (bf16/fp16) | Auto-selected per GPU |
 | **Seeds** | {7, 42, 123, 256, 512} | 5-seed bootstrap |
 | **Early stop metric** | Validation AUC | |
-| **DEEP_MAX_TRAIN** | 200,000 | Maximum training samples for deep models |
+| **DEEP_MAX_TRAIN** | 100,000 | Maximum training samples for deep models |
+| **GLOBAL_SUBSAMPLE_PER_SPLIT** | 100,000 | Uniform cap on all splits |
 
 ### GPU Optimization
 
@@ -668,21 +675,27 @@ epsilon = 0.05  ->  positive: 0.975, negative: 0.025
 | Model Key | Category | Key Hyperparameters |
 |-----------|----------|---------------------|
 | `lgbm` | Baseline | n_estimators=5000, lr=0.03, max_depth=6, num_leaves=31 |
+| `rnn_ugru` | Sequential | hidden=128, layers=2, dropout=0.20, unidirectional |
 | `rnn_bigru` | Sequential | hidden=128, layers=2, dropout=0.20 |
+| `rnn_ulstm` | Sequential | hidden=128, layers=2, dropout=0.20, unidirectional |
 | `rnn_bilstm` | Sequential | hidden=128, layers=2, dropout=0.20 |
 | `rnn_transformer` | Sequential | d_model=256, nhead=4, layers=3, dropout=0.20 |
 | `rnn_tcn` | Sequential | channels=64, levels=3, kernel=3, dropout=0.20 |
 | `rnn_mamba` | Sequential | d_model=128, layers=3, d_state=16, d_conv=4 |
-| `hybrid_bigru` | Hybrid | h0_proj_dim=128, h0_dropout=0.20 |
-| `hybrid_bilstm` | Hybrid | h0_proj_dim=128, h0_dropout=0.20 |
+| `hybrid_bigru` | Hybrid | h0_proj_dim=64, h0_dropout=0.15 |
+| `hybrid_bilstm` | Hybrid | h0_proj_dim=64, h0_dropout=0.15 |
+| `hybrid_ugru` | Hybrid | h0_proj_dim=64, h0_dropout=0.15 |
 | `gnn_gcn` | Graph | dim=96, dropout=0.25, norm=LayerNorm |
 | `gnn_graphsage` | Graph | dim=96, dropout=0.25, norm=LayerNorm |
+| `gnn_graphtransformer` | Graph | dim=96, dropout=0.25, norm=LayerNorm |
 | `gnn_gatv2` | Graph | dim=96, heads=4, dropout=0.25, leaky_alpha=0.2 |
 | `gnn_mpnn` | Graph | edge_dim=4, hidden=128 |
-| `gnn_stgnn` | Spatio-Temporal | GNN per timestep + temporal attention |
-| `stgcn` | Spatio-Temporal | Interleaved graph + temporal conv |
+| `gnn_stgnn` | Spatio-Temporal | GNN per timestep + temporal GRU |
+| `gnn_stgcn` | Spatio-Temporal | GNN spatial + TCN temporal |
+| `edge_stgnn` | Spatio-Temporal | Edge-augmented MPNN spatial + GRU temporal |
 | `stgnn_mamba` | Spatio-Temporal | GNN spatial + Mamba temporal |
+| `ms_stgnn` | Spatio-Temporal | Multiscale adjacency + EdgeSTGNN |
+| `ms_stgcn` | Spatio-Temporal | Multiscale adjacency + STGCN |
 | `event_xattn` | Spatio-Temporal | Cross-attention events over graph states |
-| `ms_dyngraph` | Spatio-Temporal | Multi-scale Gaussian kernels |
-| `fusion_gated_gnn_bigru` | Fusion | fuse_dim=192, gate_h=64 |
-| `fusion_auto_best` | Fusion | Auto-selected best combination |
+| `fusion_gated_gnn_bigru` | Fusion | gate_h=8, mlp_h=32 |
+| `fusion_layered_gnn_bigru_xattn` | Fusion | fuse_dim=192, gate_h=64, event_d_model=128 |

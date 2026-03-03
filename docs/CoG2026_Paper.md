@@ -6,7 +6,7 @@
 
 ## Abstract
 
-Teamfight outcome prediction is a central challenge in competitive League of Legends (LoL) analytics, yet prior work has largely treated it as either a global-state classification problem or reduced it to post-hoc replay analysis. We present **LOL Teamfight Lab**, a comprehensive framework that formulates teamfight prediction as a spatio-temporal multivariate time-series classification task over heterogeneous player interaction graphs. Our pipeline ingests Riot API timeline data at millisecond resolution, automatically detects teamfights via a kill-cluster-based algorithm (**teamfight_v2**), and constructs multi-modal observation windows comprising (i) per-player node features (87-dim), (ii) team-level global features (27-dim), (iii) temporal event sequences (48-dim), and (iv) categorical embeddings for champions, runes, and summoner spells. We benchmark **15+ model architectures** spanning tabular gradient boosting (LightGBM), deep sequential models (BiGRU, BiLSTM, Transformer, TCN, Mamba), graph neural networks (GCN, GraphSAGE, GATv2, MPNN), spatio-temporal graph networks (ST-GNN, ST-GCN, ST-Mamba), and a novel **Layered Fusion** architecture that unifies global, graph, and event-attention streams through a gated projection. A systematic **7-treatment ablation study** isolates contributions of focal loss, game-phase encoding, temporal attention pooling, momentum features, role-aware adjacency, multi-task auxiliary losses, and label smoothing. Statistical significance is established via DeLong's test, McNemar's test, and Holm-Bonferroni correction across 5-seed bootstrap runs with 95% confidence intervals. Our layered fusion ensemble achieves state-of-the-art results on a Korean high-Elo ranked dataset, demonstrating that spatio-temporal graph structure and domain-aware feature engineering are complementary sources of predictive signal for teamfight outcomes.
+Teamfight outcome prediction is a central challenge in competitive League of Legends (LoL) analytics, yet prior work has largely treated it as either a global-state classification problem or reduced it to post-hoc replay analysis. We present **LOL Teamfight Lab**, a comprehensive framework that formulates teamfight prediction as a spatio-temporal multivariate time-series classification task over heterogeneous player interaction graphs. Our pipeline ingests Riot API timeline data at millisecond resolution, automatically detects teamfights via a kill-cluster-based algorithm (**teamfight_v2**), and constructs multi-modal observation windows comprising (i) per-player node features (76-dim), (ii) team-level global features (26-dim), (iii) temporal event sequences (44-dim), and (iv) categorical embeddings for champions, runes, and summoner spells. We benchmark **25+ model architectures** spanning tabular gradient boosting (LightGBM), deep sequential models (BiGRU, BiLSTM, Transformer, TCN, Mamba), graph neural networks (GCN, GraphSAGE, GATv2, MPNN), spatio-temporal graph networks (ST-GNN, ST-GCN, ST-Mamba), and a novel **Layered Fusion** architecture that unifies global, graph, and event-attention streams through a gated projection. A systematic **7-treatment ablation study** isolates contributions of focal loss, game-phase encoding, temporal attention pooling, momentum features, role-aware adjacency, multi-task auxiliary losses, and label smoothing. Statistical significance is established via DeLong's test, McNemar's test, and Holm-Bonferroni correction across 5-seed bootstrap runs with 95% confidence intervals. Our layered fusion ensemble achieves state-of-the-art results on a Korean high-Elo ranked dataset, demonstrating that spatio-temporal graph structure and domain-aware feature engineering are complementary sources of predictive signal for teamfight outcomes.
 
 **Keywords:** League of Legends, Teamfight Prediction, Graph Neural Networks, Spatio-Temporal Modeling, Ensemble Learning, Esports Analytics
 
@@ -40,9 +40,9 @@ We make the following contributions:
 
 - **A complete teamfight detection and prediction pipeline** operating on raw Riot API timeline data, with millisecond-precision event processing and a kill-cluster-based fight detection algorithm.
 
-- **A multi-modal feature representation** comprising 87-dimensional per-player node features (stats, buffs, cooldowns, vision, champion/damage statistics), 27-dimensional global features (team differentials, objective control), and 48-dimensional event aggregation features.
+- **A multi-modal feature representation** comprising 76-dimensional per-player node features (stats, buffs, runes, champion/damage statistics), 26-dimensional global features (team differentials, objective control), and 44-dimensional event aggregation features.
 
-- **A systematic benchmark of 15+ model architectures** spanning tabular, sequential, graph, and fusion paradigms, with careful ablation of 7 domain-knowledge-driven improvements.
+- **A systematic benchmark of 25+ model architectures** spanning tabular, sequential, graph, and fusion paradigms, with careful ablation of 7 domain-knowledge-driven improvements.
 
 - **A novel Layered Fusion architecture** that combines global temporal encoders (BiGRU/BiLSTM/Transformer/TCN/Mamba), graph neural networks (GCN/GraphSAGE/GATv2/MPNN), and event cross-attention through a gated fusion layer.
 
@@ -99,7 +99,7 @@ where `K_t` denotes kills by team `t`, `A_t` denotes alive champions on team `t`
 
 At each of the `L = 12` time bins, we construct three feature tensors:
 
-**Node features** `X^node in R^{L x N x F_node}` where `N = 10` (5 players per team) and `F_node = 87`:
+**Node features** `X^node in R^{L x N x F_node}` where `N = 10` (5 players per team) and `F_node = 76`:
 
 | Feature Group | Dims | Description |
 |---|---|---|
@@ -116,15 +116,15 @@ At each of the `L = 12` time bins, we construct three feature tensors:
 | Champion Stats | 25 | Armor, AD, AP, MR, attack speed, etc. (log1p-normalized) |
 | Damage Stats | 12 | Physical/magic/true damage done/taken (log1p-normalized) |
 | CC Time | 1 | Crowd-control time dealt |
-| **Total** | **87** | (computed dynamically from canonical name list) |
+| **Total** | **76** | (computed dynamically from canonical name list) |
 
-**Global features** `X^global in R^{L x F_global}` where `F_global = 27`:
+**Global features** `X^global in R^{L x F_global}` where `F_global = 26`:
 
-Time normalization, 10 champion ban IDs, gold/XP/level/CS/alive differentials, 9 cumulative objective differentials (kills, towers, inhibitors, dragons, barons, heralds, atakhan, plates, hordes).
+Time normalization, 10 champion ban IDs, gold/XP/level/CS/alive differentials, cumulative objective differentials (kills, towers, inhibitors, dragons, barons, heralds, atakhan, plates, hordes).
 
-**Event features** `X^event in R^{L x F_event}` where `F_event = 48`:
+**Event features** `X^event in R^{L x F_event}` where `F_event = 44`:
 
-Per-bin counts of kills, bounties, shutdowns, killstreaks, multikills, aces, objectives (dragon, baron, herald, atakhan, horde), structures (towers, inhibitors, plates), vision (wards placed/killed, control wards), and item events, separated by team (24 feature pairs x 2 teams).
+Per-bin counts of kills, bounties, shutdowns, killstreaks, multikills, aces, objectives (dragon, baron, herald, atakhan, horde), structures (towers, inhibitors, plates), vision (wards placed/killed, control wards), and item events, separated by team (22 feature pairs x 2 teams).
 
 **Event tokens** (for cross-attention models) `E in R^{K x D_e}`:
 
@@ -154,7 +154,7 @@ The data pipeline operates in seven stages (see `docs/PIPELINE.md` for complete 
 
 **Stage 5: Label Computation.** Binary label from `kill_survival` scoring (kill differential + alive count). Auxiliary regression targets for multi-task learning.
 
-**Stage 6: Model Training.** 15+ architectures trained with AdamW, gradient clipping, AMP mixed precision, early stopping on validation AUC.
+**Stage 6: Model Training.** 25+ architectures trained with AdamW, gradient clipping, AMP mixed precision, early stopping on validation AUC.
 
 **Stage 7: Evaluation.** Predictions aligned by ref_key, metrics computed with bootstrap CI.
 
@@ -164,7 +164,7 @@ We evaluate four families of models, plus hybrid and fusion variants (see `docs/
 
 #### 4.2.1 Tabular Baseline: LightGBM
 
-Temporal sequences flattened via statistical aggregation `[last, mean, std, min, max, delta, slope]` producing a high-dimensional tabular vector. Trained with 5,000 estimators, learning rate 0.03, max_depth 6. Recency weighting addresses patch covariate shift: `w_i = exp((p_i - p_min) / tau)` with `tau = 2.0`.
+Temporal sequences flattened via statistical aggregation `[last, mean, std, min, max, delta, slope]` producing a high-dimensional tabular vector. Trained with 5,000 estimators, learning rate 0.03, max_depth 6, with L1/L2 regularization (`reg_alpha=1.0`, `reg_lambda=5.0`). Recency weighting addresses patch covariate shift: `w_i = exp((p_i - p_min) / tau)` with `tau = 2.0`.
 
 #### 4.2.2 Sequential Models (RNN Family)
 
@@ -313,7 +313,7 @@ We use match data from the Korean (KR) ranked ladder, collected via the Riot API
 | Statistic | Value |
 |---|---|
 | Detected teamfights per match | ~4-6 average |
-| Feature dimensions | 87 (node) + 27 (global) + 48 (event) |
+| Feature dimensions | 76 (node) + 26 (global) + 44 (event) |
 | Temporal bins per sample | 12 (60s context / 5s bins) |
 | Players per sample | 10 (5 blue + 5 red) |
 | Label balance | Approximately 50/50 (blue/red win) |
@@ -441,7 +441,7 @@ The framework automatically generates:
 
 1. **Data availability**: Riot API rate limits constrain dataset size. Results are based on Korean ranked data and may not generalize to other regions or professional play.
 2. **Patch drift**: Despite recency weighting and patch-stratified splitting, rapid balance changes can degrade model performance on unseen patches.
-3. **Computational cost**: The full model sweep (15+ architectures x 5 seeds x 7 treatments) is computationally intensive.
+3. **Computational cost**: The full model sweep (25+ architectures x 5 seeds x 7 treatments) is computationally intensive.
 4. **Champion-specific effects**: Champion IDs are embedded, but the model does not explicitly encode champion ability interactions or team composition synergies beyond what the GNN can learn implicitly.
 5. **Temporal overlap**: 3.67% of detected fights overlap temporally, which is benign for i.i.d. models but can cause label leakage in sequential architectures.
 
@@ -504,9 +504,9 @@ We presented LOL Teamfight Lab, a comprehensive framework for predicting League 
 
 | Feature Group | Symbol | Dimensions |
 |---|---|---|
-| Node features | F_node | 87 per player per timestep |
-| Global features | F_global | 27 per timestep |
-| Event features | F_event | 48 per timestep per bin |
+| Node features | F_node | 76 per player per timestep |
+| Global features | F_global | 26 per timestep |
+| Event features | F_event | 44 per timestep per bin |
 | Temporal bins | L | 12 (60s / 5s) |
 | Players | N | 10 (5 per team) |
 | Champion stats | F_cs | 25 |
@@ -520,7 +520,7 @@ We presented LOL Teamfight Lab, a comprehensive framework for predicting League 
 
 | Model | Key Hyperparameters |
 |---|---|
-| LightGBM | n_estimators=5000, lr=0.03, max_depth=6, num_leaves=31 |
+| LightGBM | n_estimators=5000, lr=0.03, max_depth=6, num_leaves=31, reg_alpha=1.0, reg_lambda=5.0 |
 | BiGRU | hidden=128, layers=2, dropout=0.20 |
 | Transformer | d_model=256, nhead=4, layers=3, dropout=0.20 |
 | TCN | channels=64, levels=3, kernel=3, dropout=0.20 |
@@ -530,6 +530,7 @@ We presented LOL Teamfight Lab, a comprehensive framework for predicting League 
 | GATv2 | dim=96, heads=4, dropout=0.25, leaky_alpha=0.2 |
 | MPNN | edge_dim=4, hidden=128 |
 | Layered Fusion | fuse_dim=192, gate_h=64, event_d_model=128 |
+| Gated GNN-BiGRU | gate_h=8, mlp_h=32 |
 
 ## Appendix C: Fight Detection Parameters
 
@@ -568,5 +569,6 @@ We presented LOL Teamfight Lab, a comprehensive framework for predicting League 
 | CUDNN_BENCHMARK | True | cuDNN auto-tuning |
 | TORCH_COMPILE | False | Kernel fusion (optional) |
 | NUM_WORKERS | 4 | DataLoader workers |
-| DEEP_MAX_TRAIN | 200,000 | Max training samples for deep models |
+| DEEP_MAX_TRAIN | 100,000 | Max training samples for deep models |
+| GLOBAL_SUBSAMPLE_PER_SPLIT | 100,000 | Uniform cap on all splits |
 | CACHE_MATCH_PACKS_IN_RAM | True | Keep match data in memory |

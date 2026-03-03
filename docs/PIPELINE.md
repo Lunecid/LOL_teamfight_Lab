@@ -29,7 +29,7 @@ Riot API JSONs (match detail + timeline)
          |  Auxiliary regression targets
          v
    [Stage 6] Model Training & Inference
-         |  15+ architectures: tabular, sequential, graph, fusion
+         |  25+ architectures: tabular, sequential, graph, fusion
          |  Ensemble stacking with meta-learner selection
          v
    [Stage 7] Evaluation & Reporting
@@ -49,8 +49,8 @@ Riot API provides timeline frames at **60-second intervals** plus raw events at 
 
 | Field | Shape | Resolution | Description |
 |-------|-------|------------|-------------|
-| `node_minute` | `[T, 10, F_node]` | 60 s | Per-player feature vectors (F_node = 87) |
-| `global_minute` | `[T, F_global]` | 60 s | Team-level aggregated features (F_global = 27) |
+| `node_minute` | `[T, 10, F_node]` | 60 s | Per-player feature vectors (F_node = 76) |
+| `global_minute` | `[T, F_global]` | 60 s | Team-level aggregated features (F_global = 26) |
 | `gold_team_minute` | `[T, 2]` | 60 s | Total gold per team (blue, red) |
 | `xy_raw_minute` | `[T, 10, 2]` | 60 s | Raw player positions (x, y) in map units |
 | `minute_ts` | `[T]` | 60 s | Frame timestamps in milliseconds |
@@ -397,9 +397,9 @@ At each midpoint `q`:
 
 | Tensor | Source | Method | Shape |
 |--------|--------|--------|-------|
-| `node_i` | 60s frame strictly before `q` | Piecewise-constant (step-hold / ffill) | `(10, F_node)` |
-| `glob_i` | 60s frame strictly before `q` | Piecewise-constant (step-hold / ffill) | `(F_global,)` |
-| `ev_i` | Events in `[b0, b1)` | Bin-level aggregation (count) | `(F_event,)` |
+| `node_i` | 60s frame strictly before `q` | Piecewise-constant (step-hold / ffill) | `(10, 76)` |
+| `glob_i` | 60s frame strictly before `q` | Piecewise-constant (step-hold / ffill) | `(26,)` |
+| `ev_i` | Events in `[b0, b1)` | Bin-level aggregation (count) | `(44,)` |
 | `item_i` | Item purchases in `[b0, b1)` | Hash encoding | `(F_item,)` |
 
 ### Feature Handling Rules
@@ -432,9 +432,9 @@ At each midpoint `q`:
 
 ```python
 sample = {
-    "node_seq":  np.array[12, 10, F_node],   # per-player features, 12 bins
-    "glob_seq":  np.array[12, F_global],      # team-level features, 12 bins
-    "ev_seq":    np.array[12, F_event],       # event aggregations, 12 bins
+    "node_seq":  np.array[12, 10, 76],        # per-player features, 12 bins
+    "glob_seq":  np.array[12, 26],            # team-level features, 12 bins
+    "ev_seq":    np.array[12, 44],            # event aggregations, 12 bins
     "item_seq":  np.array[12, F_item],        # item hashes, 12 bins
     "y":         int,                          # label: 1=blue wins, 0=red wins
 }
@@ -654,7 +654,7 @@ MATCH: KR_7123456789, Patch 14.10, Duration 32:00
 
 [1] Cache Build
     -> 33 minute frames (0:00 -> 32:00)
-    -> node_minute: [33, 10, 87]
+    -> node_minute: [33, 10, 76]
     -> 847 raw events (kills, objectives, wards, ...)
 
 [2] Fight Detection (teamfight_v2)
