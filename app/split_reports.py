@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -9,7 +10,6 @@ from core.config import cfg
 from core.fight_types import FightRef, ref_key
 from core.utils import metrics_from_probs, save_json, write_log
 from data.cache_io import load_match_cache
-from data.labels import get_label_map
 
 
 def _sigmoid_logit_arr(z: np.ndarray) -> np.ndarray:
@@ -81,7 +81,11 @@ def _build_minutewise_report(
     }
 
 
-def _prefight_gold_state_by_key(refs: List[FightRef]) -> Dict[str, str]:
+def _prefight_gold_state_by_key(
+    refs: List[FightRef],
+    run_log: Optional[Path] = None,
+    max_unique_matches: int = 5000,
+) -> Dict[str, str]:
     from core.timeutils import gold_at_ms
 
     close_th = float(getattr(cfg, "SITUATION_CLOSE_GOLD_TH", 2000.0))
@@ -89,10 +93,14 @@ def _prefight_gold_state_by_key(refs: List[FightRef]) -> Dict[str, str]:
 
     out: Dict[str, str] = {}
     pack_cache: Dict[str, Optional[Dict[str, Any]]] = {}
+    t0 = time.time()
 
-    for r in refs:
+    for i, r in enumerate(refs):
         mid = str(r.match_id)
         if mid not in pack_cache:
+            if len(pack_cache) >= max_unique_matches:
+                # Cap disk I/O to prevent hang on large datasets
+                break
             pack_cache[mid] = load_match_cache(mid)
         pack = pack_cache[mid]
         if not pack:
@@ -122,6 +130,20 @@ def _prefight_gold_state_by_key(refs: List[FightRef]) -> Dict[str, str]:
             bucket = "stomp"
         out[ref_key(r)] = bucket
 
+        if run_log and (i + 1) % 20000 == 0:
+            write_log(
+                f"[GOLD_STATE] {i+1}/{len(refs)} refs, "
+                f"{len(pack_cache)} matches loaded, "
+                f"elapsed={time.time()-t0:.1f}s",
+                run_log,
+            )
+
+    if run_log:
+        write_log(
+            f"[GOLD_STATE] done n={len(out)}/{len(refs)} "
+            f"matches={len(pack_cache)} time={time.time()-t0:.1f}s",
+            run_log,
+        )
     return out
 
 
@@ -129,12 +151,13 @@ def _build_situation_report(
     refs: List[FightRef],
     logit_map: Dict[str, float],
     y_map: Dict[str, int],
+    run_log: Optional[Path] = None,
 ) -> Dict[str, Any]:
     phase_groups: Dict[str, List[FightRef]] = {"early": [], "mid": [], "late": []}
     patch_groups: Dict[str, List[FightRef]] = {}
     gold_state_groups: Dict[str, List[FightRef]] = {"close": [], "moderate": [], "stomp": [], "unknown": []}
 
-    gold_state_by_key = _prefight_gold_state_by_key(refs)
+    gold_state_by_key = _prefight_gold_state_by_key(refs, run_log=run_log)
 
     for r in refs:
         m = _engage_minute(r)
@@ -168,10 +191,13 @@ def emit_split_reports(
     rep: Dict[str, Any],
     run_log: Path,
 ) -> None:
+    t0 = time.time()
     pred_maps = rep.get("_pred_maps_in_memory", {}) if isinstance(rep, dict) else {}
     label_maps = rep.get("_label_maps_in_memory", {}) if isinstance(rep, dict) else {}
     if not isinstance(pred_maps, dict) or not pred_maps:
         return
+
+    tag = f"{model_name}/{variant_tag}"
 
     for split in ("val", "test"):
         refs = refs_by_split.get(split, [])
@@ -181,14 +207,27 @@ def emit_split_reports(
 
         y_map = label_maps.get(split, {}) if isinstance(label_maps, dict) else {}
         if not isinstance(y_map, dict) or not y_map:
-            y_map = get_label_map(refs, feature_set=feature_set, log_fp=run_log, log_every=50000)
+            # Skip slow disk-I/O fallback (get_label_map replays full pipeline
+            # per ref → ~100K × disk I/O causes hang). Label maps should already
+            # be in memory from train_deep_model's _predict_logit_and_label_maps.
+            write_log(
+                f"[REPORT] {tag}/{split}: label_maps not in memory, "
+                f"skipping split reports (avoid slow fallback I/O)",
+                run_log,
+            )
+            continue
 
         if bool(getattr(cfg, "ENABLE_MINUTEWISE_REPORT", True)):
+            write_log(f"[REPORT] {tag}/{split}: building minutewise report...", run_log)
             minute_rep = _build_minutewise_report(refs, logit_map, y_map)
             save_json(model_dir / f"minute_report_{split}.json", minute_rep)
 
         if bool(getattr(cfg, "ENABLE_SITUATION_REPORT", True)):
-            situation_rep = _build_situation_report(refs, logit_map, y_map)
+            write_log(f"[REPORT] {tag}/{split}: building situation report...", run_log)
+            situation_rep = _build_situation_report(refs, logit_map, y_map, run_log=run_log)
             save_json(model_dir / f"situation_report_{split}.json", situation_rep)
 
-    write_log(f"[REPORT] split reports emitted for {model_name}/{variant_tag}", run_log)
+    write_log(
+        f"[REPORT] split reports emitted for {tag} ({time.time()-t0:.1f}s)",
+        run_log,
+    )
