@@ -759,9 +759,7 @@ class CFG:
     TEST_MAX_N: int = 0
     # Global per-split subsample applied right after train/val/test split.
     # 0 = disabled (no global cap).  Affects ALL downstream consumers.
-    # NOTE: Previously 100K which unfairly capped Val/Test vs BiGRU baseline
-    # (358K val).  Disabled for fair comparison across all model types.
-    GLOBAL_SUBSAMPLE_PER_SPLIT: int = 0
+    GLOBAL_SUBSAMPLE_PER_SPLIT: int = 100_000
     # [P1-7] Warmup epochs — explicit config (was hardcoded as ceil(0.1 * EPOCHS))
     WARMUP_EPOCHS: int = 1
 
