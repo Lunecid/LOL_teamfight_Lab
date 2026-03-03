@@ -355,8 +355,9 @@ Where `p_i` is the integer-encoded patch number. Higher `tau` = weaker recency e
 
 | Parameter | Default |
 |-----------|---------|
-| `RECENCY_WEIGHT_ENABLED` | True |
+| `RECENCY_WEIGHT_ENABLED` | True (patch-drift weighting) |
 | `RECENCY_WEIGHT_TAU` | 2.0 |
+| `GLOBAL_SUBSAMPLE_PER_SPLIT` | 100,000 |
 
 ---
 
