@@ -759,7 +759,9 @@ class CFG:
     TEST_MAX_N: int = 0
     # Global per-split subsample applied right after train/val/test split.
     # 0 = disabled (no global cap).  Affects ALL downstream consumers.
-    GLOBAL_SUBSAMPLE_PER_SPLIT: int = 100_000
+    # NOTE: Previously 100K which unfairly capped Val/Test vs BiGRU baseline
+    # (358K val).  Disabled for fair comparison across all model types.
+    GLOBAL_SUBSAMPLE_PER_SPLIT: int = 0
     # [P1-7] Warmup epochs — explicit config (was hardcoded as ceil(0.1 * EPOCHS))
     WARMUP_EPOCHS: int = 1
 
@@ -902,12 +904,14 @@ class CFG:
     # =========================================================
     # 14) Multicollinearity / redundant feature removal
     # =========================================================
-    # [FE-CONST] Constant/quasi-constant temporal aggregation pruning.
-    # Removes redundant __mean/__std/__min/__max/__delta/__slope
-    # for features that are constant (or near-constant) within a fight.
+    # [FE-CONST] Constant/quasi-constant/within-fight-constant temporal
+    # aggregation pruning.  Removes redundant __mean/__std/__min/__max/
+    # __delta/__slope for features that are constant within a fight.
     # Only __last is retained for these features.
     DROP_CONSTANT_FEATURES: bool = True
     DROP_QUASI_CONSTANT_FEATURES: bool = True
+    # Dragon soul (sparse binary): constant within fight, informative across fights.
+    DROP_WITHIN_FIGHT_CONSTANT_FEATURES: bool = True
 
     DROP_CORR_FEATURES: bool = True
     CORR_THRESHOLD: float = 0.98
