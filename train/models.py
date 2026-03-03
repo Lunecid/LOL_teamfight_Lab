@@ -473,11 +473,28 @@ class RNNOnlyModel(nn.Module):
         rnn_layers = int(getattr(cfg, "RNN_LAYERS", 1))
         drop = float(getattr(cfg, "DROPOUT", 0.1))
 
-        # Only use global features as RNN input.
-        # Global features are placed at the prefix of extra_seq / macro_seq.
-        phase_dim = 3 if bool(getattr(cfg, "USE_GAME_PHASE", False)) else 0
-        self.global_in_dim = F_GLOBAL + phase_dim
-        enc_d_in = self.global_in_dim
+        # ── Input projection mode (USE_INPUT_PROJECTION) ──
+        # When True, use full sequence (e.g. x_seq ~887-dim) via projection
+        # layer to reduce dimensionality before RNN, preventing gate saturation.
+        # When False, use only global-feature prefix from extra_seq/macro_seq.
+        self._use_proj = bool(getattr(cfg, "USE_INPUT_PROJECTION", False))
+
+        if self._use_proj:
+            proj_dim = int(getattr(cfg, "INPUT_PROJ_DIM", 256))
+            self.input_proj = nn.Sequential(
+                nn.Linear(d_in, proj_dim),
+                nn.LayerNorm(proj_dim),
+                nn.ReLU(),
+                nn.Dropout(drop),
+            )
+            enc_d_in = proj_dim
+        else:
+            # Only use global features as RNN input.
+            # Global features are placed at the prefix of extra_seq / macro_seq.
+            self.input_proj = None
+            phase_dim = 3 if bool(getattr(cfg, "USE_GAME_PHASE", False)) else 0
+            self.global_in_dim = F_GLOBAL + phase_dim
+            enc_d_in = self.global_in_dim
 
         if kind == "ugru":
             self.enc = RNNEncoder("gru", enc_d_in, rnn_hidden, n_layers=rnn_layers, bidirectional=False, dropout=drop)
@@ -541,9 +558,14 @@ class RNNOnlyModel(nn.Module):
         return pick_temporal_seq(batch)
 
     def forward(self, batch: Dict[str, torch.Tensor], return_aux: bool = False):
-        x, key = self._pick_global_src(batch)
-        # Slice global-feature prefix only
-        x = x[..., :self.global_in_dim]
+        if self._use_proj:
+            # Use full sequence (x_seq preferred) via projection
+            x, key = pick_temporal_seq(batch)
+            x = self.input_proj(x)
+        else:
+            x, key = self._pick_global_src(batch)
+            # Slice global-feature prefix only
+            x = x[..., :self.global_in_dim]
         feat = self.enc(x)
         logit = self.head(feat)
         if return_aux:
