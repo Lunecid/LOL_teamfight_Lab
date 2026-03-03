@@ -199,8 +199,21 @@ REDUNDANT_SUFFIXES_FOR_CONSTANT: Tuple[str, ...] = (
 # short teamfight observation window (seconds to tens of seconds).
 
 # Node-level quasi-constants (per-player, appear with slot prefix):
-# Dragon soul is acquired only once and cannot change mid-fight.
-QUASI_CONSTANT_NODE_FEATURE_PREFIXES: Tuple[str, ...] = (
+# NOTE: Dragon soul was moved to Category C (within-fight constant).
+QUASI_CONSTANT_NODE_FEATURE_PREFIXES: Tuple[str, ...] = ()
+
+# ─── Category C: Within-fight constant (sparse binary signals) ──
+# Features that are constant within any single fight observation
+# window but carry meaningful cross-fight signal.
+#
+# Dragon soul is a *sparse binary* — 0 in ~70% of games, 1 in ~30%.
+# Once acquired, it never changes mid-fight (like `alive` being mostly
+# 1 but critically 0 at death).  The binary state IS the signal.
+#
+# Non-__last aggregations are mathematically trivial:
+#   mean = last (identical for constant), std = 0, delta = 0, slope = 0
+# Only __last preserves the actual acquisition signal → KEEP.
+WITHIN_FIGHT_CONSTANT_NODE_FEATURE_PREFIXES: Tuple[str, ...] = (
     "soul_infernal",
     "soul_ocean",
     "soul_mountain",
@@ -276,7 +289,7 @@ def _is_quasi_constant_base(base: str) -> bool:
     """Check if a base feature name refers to a quasi-constant attribute."""
     _slot, attr = _strip_slot_prefix(base)
 
-    # Slotted node features (dragon souls)
+    # Slotted node features
     if _slot:
         for pfx in QUASI_CONSTANT_NODE_FEATURE_PREFIXES:
             if attr == pfx or attr.startswith(pfx):
@@ -287,6 +300,19 @@ def _is_quasi_constant_base(base: str) -> bool:
     for pfx in QUASI_CONSTANT_EXTRA_FEATURE_PREFIXES:
         if base == pfx or base.startswith(pfx):
             return True
+
+    return False
+
+
+def _is_within_fight_constant_base(base: str) -> bool:
+    """Check if a base feature name refers to a within-fight constant (sparse binary)."""
+    _slot, attr = _strip_slot_prefix(base)
+
+    # Slotted node features (dragon souls)
+    if _slot:
+        for pfx in WITHIN_FIGHT_CONSTANT_NODE_FEATURE_PREFIXES:
+            if attr == pfx or attr.startswith(pfx):
+                return True
 
     return False
 
@@ -305,6 +331,7 @@ def classify_feature_constancy(tabular_name: str) -> str:
         One of:
         - ``"strictly_constant"`` — fixed at champion select, never changes
         - ``"quasi_constant"`` — extremely unlikely to change mid-fight
+        - ``"within_fight_constant"`` — sparse binary, constant within fight window
         - ``"time_varying"`` — genuinely varies across timesteps
     """
     base, suffix = _extract_base_and_suffix(tabular_name)
@@ -313,6 +340,8 @@ def classify_feature_constancy(tabular_name: str) -> str:
 
     if _is_strictly_constant_base(base):
         return "strictly_constant"
+    if _is_within_fight_constant_base(base):
+        return "within_fight_constant"
     if _is_quasi_constant_base(base):
         return "quasi_constant"
     return "time_varying"
@@ -336,7 +365,7 @@ def is_quasi_constant_redundant(tabular_name: str) -> bool:
     """Return True if a tabular feature is a redundant aggregation of a
     quasi-constant attribute.
 
-    Quasi-constant features (dragon soul, item hash, fight zone/position)
+    Quasi-constant features (item hash, fight zone/position)
     are extremely unlikely to change within the teamfight observation
     window. Temporal aggregation adds noise, not signal.
     """
@@ -344,6 +373,21 @@ def is_quasi_constant_redundant(tabular_name: str) -> bool:
     if not base or suffix not in REDUNDANT_SUFFIXES_FOR_CONSTANT:
         return False
     return _is_quasi_constant_base(base)
+
+
+def is_within_fight_constant_redundant(tabular_name: str) -> bool:
+    """Return True if a tabular feature is a redundant aggregation of a
+    within-fight constant (sparse binary) attribute.
+
+    Dragon soul features are sparse binary signals (0 in ~70%, 1 in ~30%).
+    Within a single fight, the value never changes, so non-__last
+    aggregations are mathematically trivial (std=0, delta=0, etc.).
+    Only __last carries the meaningful acquisition signal.
+    """
+    base, suffix = _extract_base_and_suffix(tabular_name)
+    if not base or suffix not in REDUNDANT_SUFFIXES_FOR_CONSTANT:
+        return False
+    return _is_within_fight_constant_base(base)
 
 
 def is_static_temporal_noise(tabular_name: str) -> bool:
@@ -405,11 +449,12 @@ def filter_constant_and_quasi_constant(
     *,
     drop_strictly_constant: bool = True,
     drop_quasi_constant: bool = True,
+    drop_within_fight_constant: bool = True,
 ) -> Tuple[Tuple[int, ...], Tuple[str, ...], Tuple[str, ...]]:
-    """Comprehensive filter removing redundant aggregations of constant
-    and quasi-constant features.
+    """Comprehensive filter removing redundant aggregations of constant,
+    quasi-constant, and within-fight-constant features.
 
-    For both categories, only ``__last`` is retained. All other temporal
+    For all categories, only ``__last`` is retained. All other temporal
     aggregation suffixes (mean, std, min, max, delta, slope) are dropped.
 
     Parameters
@@ -421,7 +466,10 @@ def filter_constant_and_quasi_constant(
         (champion_id, runes, summoner spells, stat perks, bans).
     drop_quasi_constant : bool
         Drop redundant aggregations of quasi-constant features
-        (dragon soul, item hash, fight zone/position).
+        (item hash, fight zone/position).
+    drop_within_fight_constant : bool
+        Drop redundant aggregations of within-fight constant features
+        (dragon soul — sparse binary signals constant within fight window).
 
     Returns
     -------
@@ -430,7 +478,8 @@ def filter_constant_and_quasi_constant(
     dropped_constant : tuple of str
         Names of dropped strictly-constant redundant features.
     dropped_quasi : tuple of str
-        Names of dropped quasi-constant redundant features.
+        Names of dropped quasi-constant and within-fight-constant
+        redundant features (combined for backward compatibility).
     """
     keep = []
     dropped_const = []
@@ -440,6 +489,8 @@ def filter_constant_and_quasi_constant(
         if drop_strictly_constant and is_constant_redundant(name):
             dropped_const.append(name)
         elif drop_quasi_constant and is_quasi_constant_redundant(name):
+            dropped_quasi.append(name)
+        elif drop_within_fight_constant and is_within_fight_constant_redundant(name):
             dropped_quasi.append(name)
         else:
             keep.append(i)

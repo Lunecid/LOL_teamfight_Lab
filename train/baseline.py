@@ -511,12 +511,14 @@ def run_lgbm_baseline(
     dropped_quasi_names: List[str] = []
     _drop_const = bool(getattr(cfg, "DROP_CONSTANT_FEATURES", True))
     _drop_quasi = bool(getattr(cfg, "DROP_QUASI_CONSTANT_FEATURES", True))
-    if (_drop_const or _drop_quasi) and Xtr.shape[1] > 1:
+    _drop_wfc = bool(getattr(cfg, "DROP_WITHIN_FIGHT_CONSTANT_FEATURES", True))
+    if (_drop_const or _drop_quasi or _drop_wfc) and Xtr.shape[1] > 1:
         from core.feature_contract import filter_constant_and_quasi_constant
         const_keep_idx, dc, dq = filter_constant_and_quasi_constant(
             feat_names,
             drop_strictly_constant=_drop_const,
             drop_quasi_constant=_drop_quasi,
+            drop_within_fight_constant=_drop_wfc,
         )
         dropped_const_names = list(dc)
         dropped_quasi_names = list(dq)

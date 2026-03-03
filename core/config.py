@@ -902,12 +902,14 @@ class CFG:
     # =========================================================
     # 14) Multicollinearity / redundant feature removal
     # =========================================================
-    # [FE-CONST] Constant/quasi-constant temporal aggregation pruning.
-    # Removes redundant __mean/__std/__min/__max/__delta/__slope
-    # for features that are constant (or near-constant) within a fight.
+    # [FE-CONST] Constant/quasi-constant/within-fight-constant temporal
+    # aggregation pruning.  Removes redundant __mean/__std/__min/__max/
+    # __delta/__slope for features that are constant within a fight.
     # Only __last is retained for these features.
     DROP_CONSTANT_FEATURES: bool = True
     DROP_QUASI_CONSTANT_FEATURES: bool = True
+    # Dragon soul (sparse binary): constant within fight, informative across fights.
+    DROP_WITHIN_FIGHT_CONSTANT_FEATURES: bool = True
 
     DROP_CORR_FEATURES: bool = True
     CORR_THRESHOLD: float = 0.98
