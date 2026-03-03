@@ -178,7 +178,9 @@ def split_refs_patch_holdout(
     If train_patches not given:
       - all except test/val -> train
     If val_patches not given:
-      - split_by_match_id from train
+      - auto: previous-to-latest patch -> val, latest patch -> test,
+              all older patches -> train (when enough distinct patches)
+      - fallback: split_by_match_id from train
     """
 
     if not refs:
@@ -225,19 +227,36 @@ def split_refs_patch_holdout(
         mode_detail = "explicit_val_patches"
 
     else:
-        # --- no explicit val patches: make TRAIN base first, excluding test
-        if train_patches:
-            tr_set = set(train_patches)
-            tr0 = [r for r in refs if (_p(r) in tr_set) and (ref_key(r) not in te_keys)]
-        else:
-            tr0 = [r for r in refs if _p(r) not in test_set]
+        # Auto patch-holdout policy (no explicit patch lists):
+        #   test = latest patch
+        #   val  = previous latest patch
+        #   train = all older patches
+        # Only apply when train_patches is also not explicitly constrained.
+        remain_patches = [p for p in all_patches if p not in test_set]
+        if not train_patches and len(remain_patches) >= 2:
+            val_patches = [remain_patches[-1]]
+            val_set = set(val_patches)
+            va = [r for r in refs if (_p(r) in val_set) and (ref_key(r) not in te_keys)]
+            va_keys = {ref_key(r) for r in va}
 
-        # split val from train by match_id
-        tr, va = split_by_match_id(tr0, val_ratio=val_ratio_from_train, seed=seed)
-        # enforce disjoint by ref_key (paranoia)
-        va_keys = {ref_key(r) for r in va}
-        tr = [r for r in tr if ref_key(r) not in va_keys]
-        mode_detail = "split_by_match_id"
+            blocked = set(test_patches) | set(val_patches)
+            tr0 = [r for r in refs if _p(r) not in blocked]
+            tr = [r for r in tr0 if (ref_key(r) not in va_keys) and (ref_key(r) not in te_keys)]
+            mode_detail = "auto_prev_patch_val"
+        else:
+            # --- no explicit val patches: make TRAIN base first, excluding test
+            if train_patches:
+                tr_set = set(train_patches)
+                tr0 = [r for r in refs if (_p(r) in tr_set) and (ref_key(r) not in te_keys)]
+            else:
+                tr0 = [r for r in refs if _p(r) not in test_set]
+
+            # split val from train by match_id
+            tr, va = split_by_match_id(tr0, val_ratio=val_ratio_from_train, seed=seed)
+            # enforce disjoint by ref_key (paranoia)
+            va_keys = {ref_key(r) for r in va}
+            tr = [r for r in tr if ref_key(r) not in va_keys]
+            mode_detail = "split_by_match_id"
 
     # --- build meta (patch lists for logging; infer train_patches if missing)
     if not train_patches:

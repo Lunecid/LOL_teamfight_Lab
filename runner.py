@@ -45,7 +45,7 @@ def _normalize_split_mode(mode: str) -> str:
         return "random"
     if m in ("patch_forward", "forward_patch", "patch_time"):
         return "patch_forward"
-    if m == "patch_holdout":
+    if m in ("patch_holdout", "holdout_patch"):
         return "patch_holdout"
     return m
 
@@ -439,6 +439,7 @@ def build_argparser() -> argparse.ArgumentParser:
             "random",
             "patch_forward",
             "patch_holdout",
+            "holdout_patch",
         ],
     )
     ap.add_argument("--train_patches", type=str, default=str(getattr(cfg, "TRAIN_PATCHES", "")))

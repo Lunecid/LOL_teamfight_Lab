@@ -142,7 +142,7 @@ def _load_cached_fight_index(path: Path, cache_key: str) -> Optional[List[FightR
                 refs.append(
                     FightRef(
                         match_id=str(r.get("match_id", "")),
-                        patch=str(r.get("patch", "0.0")),
+                        patch=str(normalize_patch(str(r.get("patch", "0.0")))),
                         t_start=int(r.get("t_start", 0)),
                         t_start_ts=int(r.get("t_start_ts", -1)),
                         label_end_ts=int(r.get("label_end_ts", -1)),
@@ -341,7 +341,7 @@ def _build_fight_rows_for_match(
         meta = pack.get("meta", {})
         if not isinstance(meta, dict):
             return []
-        patch = str(meta.get("patch", meta.get("patch_full", "0.0")))
+        patch = str(normalize_patch(str(meta.get("patch", meta.get("patch_full", "0.0")))))
         allow_set = set(allow_patches) if allow_patches is not None else None
         if allow_set is not None and patch not in allow_set:
             return []

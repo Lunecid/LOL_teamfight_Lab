@@ -252,6 +252,10 @@ def load_match_cache(match_id: str) -> Optional[Dict[str, Any]]:
         if str(m.get("feature_version", "")) != str(getattr(cfg, "FEATURE_VERSION", "")):
             return None
 
+        # Legacy/stale-cache guard: always expose normalized major.minor patch.
+        patch_raw = str(m.get("patch", "") or m.get("patch_full", "") or "0.0")
+        patch_norm = normalize_patch(patch_raw)
+
         if not isinstance(events, list):
             events = []
         events = [e for e in events if isinstance(e, dict)]
@@ -271,6 +275,8 @@ def load_match_cache(match_id: str) -> Optional[Dict[str, Any]]:
 
         meta_obj = {
             **m,
+            "patch_full": str(m.get("patch_full", "") or ""),
+            "patch": str(patch_norm or "0.0"),
             "team_map": team_map,
             "role_slots": role_slots,
             "anchors": anchors,

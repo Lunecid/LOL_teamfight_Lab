@@ -211,7 +211,7 @@ def normalize_split_mode(mode: str) -> str:
         return "random"
     if m in ("patch_forward", "forward_patch", "patch_time"):
         return "patch_forward"
-    if m == "patch_holdout":
+    if m in ("patch_holdout", "holdout_patch"):
         return "patch_holdout"
     if m in ("multi_patch", "stratified"):
         return "multi_patch"

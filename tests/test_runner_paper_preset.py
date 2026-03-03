@@ -52,3 +52,9 @@ def test_paper_preset_optimal_uses_event_xattn_stack():
     assert "layered_fusion@" in models
     assert "event=xattn" in models
     assert "rnn_transformer" not in models
+
+
+def test_split_mode_alias_holdout_patch_is_accepted():
+    ap = build_argparser()
+    args = ap.parse_args(["--split_mode", "holdout_patch"])
+    assert str(args.split_mode) == "holdout_patch"

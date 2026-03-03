@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import math
+import re
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Tuple, TypedDict
@@ -396,14 +397,28 @@ def detect_coordinate_scale(xy: np.ndarray) -> Tuple[bool, float]:
 # ============================================================================
 
 def normalize_patch(game_version: str) -> str:
-    s = str(game_version or "")
+    s = str(game_version or "").strip()
+    if not s:
+        return "0.0"
+
+    patch_level = getattr(cfg, "PATCH_LEVEL", "major_minor") if cfg else "major_minor"
+    if patch_level == "full":
+        return s
+
+    # Robust extraction: handles canonical "15.20.719.545" and noisy strings.
+    nums = re.findall(r"\d+", s)
+    if len(nums) >= 2:
+        try:
+            major = str(int(nums[0]))
+            minor = str(int(nums[1]))
+            return f"{major}.{minor}"
+        except Exception:
+            return f"{nums[0]}.{nums[1]}"
+
     parts = s.split(".")
     if len(parts) >= 2:
-        patch_level = getattr(cfg, "PATCH_LEVEL", "major_minor") if cfg else "major_minor"
-        if patch_level == "full":
-            return s
-        return f"{parts[0]}.{parts[1]}"
-    return s or "0.0"
+        return f"{parts[0].strip()}.{parts[1].strip()}"
+    return s
 
 def _event_xy(e: dict) -> Optional[Tuple[float, float]]:
     if not isinstance(e, dict):
