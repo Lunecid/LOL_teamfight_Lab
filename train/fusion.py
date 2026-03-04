@@ -132,6 +132,30 @@ def stack_simple(
     z_te = _logit_from_prob(p_te) if p_te.size else np.array([])
     pred_map_te = {k: float(z) for k, z in zip(keys_te, z_te.tolist())} if z_te.size else {}
 
+    # Bootstrap CI for AUC (val & test)
+    bootstrap_ci_results: Dict[str, Any] = {}
+    try:
+        from app.experiment_stats import bootstrap_auc_ci as _boot_auc_ci
+
+        if p_va.size and len(yva) >= 20:
+            _auc, _ci_lo, _ci_hi = _boot_auc_ci(yva, p_va, n_bootstrap=2000, alpha=0.05, seed=seed)
+            bootstrap_ci_results["val"] = {
+                "auc": float(_auc), "ci_low": float(_ci_lo), "ci_high": float(_ci_hi),
+                "ci_width": float(_ci_hi - _ci_lo), "n_samples": len(yva),
+                "method": "bootstrap_percentile", "n_bootstrap": 2000, "alpha": 0.05,
+            }
+            _log(f"[FUSION][BOOTSTRAP] val AUC={_auc:.4f} 95% CI=[{_ci_lo:.4f}, {_ci_hi:.4f}]")
+        if p_te.size and len(yte) >= 20:
+            _auc, _ci_lo, _ci_hi = _boot_auc_ci(yte, p_te, n_bootstrap=2000, alpha=0.05, seed=seed)
+            bootstrap_ci_results["test"] = {
+                "auc": float(_auc), "ci_low": float(_ci_lo), "ci_high": float(_ci_hi),
+                "ci_width": float(_ci_hi - _ci_lo), "n_samples": len(yte),
+                "method": "bootstrap_percentile", "n_bootstrap": 2000, "alpha": 0.05,
+            }
+            _log(f"[FUSION][BOOTSTRAP] test AUC={_auc:.4f} 95% CI=[{_ci_lo:.4f}, {_ci_hi:.4f}]")
+    except Exception as e:
+        _log(f"[FUSION][BOOTSTRAP] CI computation failed (ignored): {e}")
+
     rep = {
         "ok": True,
         "mode": "simple",
@@ -140,6 +164,7 @@ def stack_simple(
         "base_names": base_names,
         "metrics": {"train": met_tr, "val": met_va, "test": met_te},
         "n": {"train": int(Xtr.shape[0]), "val": int(Xva.shape[0]), "test": int(Xte.shape[0])},
+        "bootstrap_ci": bootstrap_ci_results if bootstrap_ci_results else None,
     }
     save_json(out_dir / "report.json", rep)
 
@@ -715,6 +740,30 @@ def refit_meta_trainval_predict_test(
     z_te = _logit_from_prob(p_te) if Xte.size else np.array([])
     pred_map_te = {k: float(z) for k, z in zip(keys_te, z_te.tolist())}
 
+    # Bootstrap CI for AUC (val & test)
+    bootstrap_ci_results: Dict[str, Any] = {}
+    try:
+        from app.experiment_stats import bootstrap_auc_ci as _boot_auc_ci
+
+        if p_va.size and len(yva) >= 20:
+            _auc, _ci_lo, _ci_hi = _boot_auc_ci(yva, p_va, n_bootstrap=2000, alpha=0.05, seed=seed)
+            bootstrap_ci_results["val"] = {
+                "auc": float(_auc), "ci_low": float(_ci_lo), "ci_high": float(_ci_hi),
+                "ci_width": float(_ci_hi - _ci_lo), "n_samples": len(yva),
+                "method": "bootstrap_percentile", "n_bootstrap": 2000, "alpha": 0.05,
+            }
+            write_log(f"[REFIT][BOOTSTRAP] val AUC={_auc:.4f} 95% CI=[{_ci_lo:.4f}, {_ci_hi:.4f}]", log_fp)
+        if p_te.size and len(yte) >= 20:
+            _auc, _ci_lo, _ci_hi = _boot_auc_ci(yte, p_te, n_bootstrap=2000, alpha=0.05, seed=seed)
+            bootstrap_ci_results["test"] = {
+                "auc": float(_auc), "ci_low": float(_ci_lo), "ci_high": float(_ci_hi),
+                "ci_width": float(_ci_hi - _ci_lo), "n_samples": len(yte),
+                "method": "bootstrap_percentile", "n_bootstrap": 2000, "alpha": 0.05,
+            }
+            write_log(f"[REFIT][BOOTSTRAP] test AUC={_auc:.4f} 95% CI=[{_ci_lo:.4f}, {_ci_hi:.4f}]", log_fp)
+    except Exception as e:
+        write_log(f"[REFIT][BOOTSTRAP] CI computation failed (ignored): {e}", log_fp)
+
     rep = {
         "ok": True,
         "mode": "refit_trainval",
@@ -722,6 +771,7 @@ def refit_meta_trainval_predict_test(
         "base_names": base_names,
         "metrics": {"val": met_va, "test": met_te},
         "n": {"train": int(Xtr.shape[0]), "val": int(Xva.shape[0]), "test": int(Xte.shape[0])},
+        "bootstrap_ci": bootstrap_ci_results if bootstrap_ci_results else None,
     }
     save_json(out_dir / "report.json", rep)
 

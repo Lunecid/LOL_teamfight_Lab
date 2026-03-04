@@ -51,6 +51,20 @@ from train.fusion import (
 from train.speed import apply_speed_profile, setup_torch_speed
 from core.memory import clear_memory
 
+
+def _extract_bootstrap_ci_fields(rep: Dict[str, Any]) -> Dict[str, Any]:
+    """Extract bootstrap CI fields from a report dict for results_rows."""
+    ci = rep.get("bootstrap_ci") or {}
+    out: Dict[str, Any] = {}
+    for split in ("val", "test"):
+        prefix = "va" if split == "val" else "te"
+        info = ci.get(split, {})
+        out[f"{prefix}_auc_ci_low"] = info.get("ci_low")
+        out[f"{prefix}_auc_ci_high"] = info.get("ci_high")
+        out[f"{prefix}_auc_ci_width"] = info.get("ci_width")
+    return out
+
+
 def run(args) -> None:
     """Run the pipeline according to args/cfg.
 
@@ -335,24 +349,24 @@ def run(args) -> None:
             if lgbm_pack and lgbm_pack.get("ok"):
                 lgbm_logit_map = dict(lgbm_pack.get("logit_map", {}))
                 met = lgbm_pack.get("metrics", {})
-                results_rows.append(
-                    {
-                        "run_tag": run_tag,
-                        "R_core": float(R),
-                        "model": "lgbm",
-                        "variant": "baseline",
-                        "feature_set": feature_set,
-                        "seed": seed,
-                        "tr_auc": met.get("train", {}).get("auc"),
-                        "va_auc": met.get("val", {}).get("auc"),
-                        "te_auc": met.get("test", {}).get("auc"),
-                        "tr_acc": met.get("train", {}).get("acc"),
-                        "va_acc": met.get("val", {}).get("acc"),
-                        "te_acc": met.get("test", {}).get("acc"),
-                        "artifact_dir": str(lgbm_dir),
-                        "checkpoint": lgbm_pack.get("model_path"),
-                    }
-                )
+                _row = {
+                    "run_tag": run_tag,
+                    "R_core": float(R),
+                    "model": "lgbm",
+                    "variant": "baseline",
+                    "feature_set": feature_set,
+                    "seed": seed,
+                    "tr_auc": met.get("train", {}).get("auc"),
+                    "va_auc": met.get("val", {}).get("auc"),
+                    "te_auc": met.get("test", {}).get("auc"),
+                    "tr_acc": met.get("train", {}).get("acc"),
+                    "va_acc": met.get("val", {}).get("acc"),
+                    "te_acc": met.get("test", {}).get("acc"),
+                    "artifact_dir": str(lgbm_dir),
+                    "checkpoint": lgbm_pack.get("model_path"),
+                }
+                _row.update(_extract_bootstrap_ci_fields(lgbm_pack))
+                results_rows.append(_row)
         else:
             write_log("[STEP] LGBM baseline skipped (not needed)", run_log)
 
@@ -495,24 +509,24 @@ def run(args) -> None:
                     )
 
                 met = rep.get("metrics", {})
-                results_rows.append(
-                    {
-                        "run_tag": run_tag,
-                        "R_core": float(R),
-                        "model": model_name,
-                        "variant": variant_tag,
-                        "feature_set": fs,
-                        "seed": seed,
-                        "tr_auc": met.get("train", {}).get("auc"),
-                        "va_auc": met.get("val", {}).get("auc"),
-                        "te_auc": met.get("test", {}).get("auc"),
-                        "tr_acc": met.get("train", {}).get("acc"),
-                        "va_acc": met.get("val", {}).get("acc"),
-                        "te_acc": met.get("test", {}).get("acc"),
-                        "artifact_dir": str(model_dir),
-                        "checkpoint": rep.get("checkpoint"),
-                    }
-                )
+                _row = {
+                    "run_tag": run_tag,
+                    "R_core": float(R),
+                    "model": model_name,
+                    "variant": variant_tag,
+                    "feature_set": fs,
+                    "seed": seed,
+                    "tr_auc": met.get("train", {}).get("auc"),
+                    "va_auc": met.get("val", {}).get("auc"),
+                    "te_auc": met.get("test", {}).get("auc"),
+                    "tr_acc": met.get("train", {}).get("acc"),
+                    "va_acc": met.get("val", {}).get("acc"),
+                    "te_acc": met.get("test", {}).get("acc"),
+                    "artifact_dir": str(model_dir),
+                    "checkpoint": rep.get("checkpoint"),
+                }
+                _row.update(_extract_bootstrap_ci_fields(rep))
+                results_rows.append(_row)
                 # [MEM] θ_{M_i} + B_{M_i} 해제 → 다음 모델 안전 할당
                 clear_memory(log_fp=run_log)
                 continue
@@ -574,24 +588,24 @@ def run(args) -> None:
                     )
 
                 met = rep.get("metrics", {})
-                results_rows.append(
-                    {
-                        "run_tag": run_tag,
-                        "R_core": float(R),
-                        "model": model_name,
-                        "variant": variant_tag,
-                        "feature_set": fs,
-                        "seed": seed,
-                        "tr_auc": met.get("train", {}).get("auc"),
-                        "va_auc": met.get("val", {}).get("auc"),
-                        "te_auc": met.get("test", {}).get("auc"),
-                        "tr_acc": met.get("train", {}).get("acc"),
-                        "va_acc": met.get("val", {}).get("acc"),
-                        "te_acc": met.get("test", {}).get("acc"),
-                        "artifact_dir": str(model_dir),
-                        "checkpoint": rep.get("checkpoint"),
-                    }
-                )
+                _row = {
+                    "run_tag": run_tag,
+                    "R_core": float(R),
+                    "model": model_name,
+                    "variant": variant_tag,
+                    "feature_set": fs,
+                    "seed": seed,
+                    "tr_auc": met.get("train", {}).get("auc"),
+                    "va_auc": met.get("val", {}).get("auc"),
+                    "te_auc": met.get("test", {}).get("auc"),
+                    "tr_acc": met.get("train", {}).get("acc"),
+                    "va_acc": met.get("val", {}).get("acc"),
+                    "te_acc": met.get("test", {}).get("acc"),
+                    "artifact_dir": str(model_dir),
+                    "checkpoint": rep.get("checkpoint"),
+                }
+                _row.update(_extract_bootstrap_ci_fields(rep))
+                results_rows.append(_row)
                 # [MEM] θ_{M_i} + B_{M_i} 해제 → 다음 variant/model 안전 할당
                 clear_memory(log_fp=run_log)
 

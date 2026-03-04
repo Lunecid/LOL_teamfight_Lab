@@ -631,6 +631,36 @@ def run_lgbm_baseline(
         dropped_quasi_constant=dropped_quasi_names,
     )
 
+    # --- Bootstrap CI for AUC ---
+    bootstrap_ci_results: Dict[str, Any] = {}
+    try:
+        from app.experiment_stats import bootstrap_auc_ci as _boot_auc_ci
+
+        if Xva.size and len(yva) >= 20:
+            _auc, _ci_lo, _ci_hi = _boot_auc_ci(yva, p_va, n_bootstrap=2000, alpha=0.05, seed=seed)
+            bootstrap_ci_results["val"] = {
+                "auc": float(_auc), "ci_low": float(_ci_lo), "ci_high": float(_ci_hi),
+                "ci_width": float(_ci_hi - _ci_lo), "n_samples": len(yva),
+                "method": "bootstrap_percentile", "n_bootstrap": 2000, "alpha": 0.05,
+            }
+            write_log(
+                f"[LGBM][BOOTSTRAP] val AUC={_auc:.4f} 95% CI=[{_ci_lo:.4f}, {_ci_hi:.4f}]",
+                log_fp,
+            )
+        if Xte.size and len(yte) >= 20:
+            _auc, _ci_lo, _ci_hi = _boot_auc_ci(yte, p_te, n_bootstrap=2000, alpha=0.05, seed=seed)
+            bootstrap_ci_results["test"] = {
+                "auc": float(_auc), "ci_low": float(_ci_lo), "ci_high": float(_ci_hi),
+                "ci_width": float(_ci_hi - _ci_lo), "n_samples": len(yte),
+                "method": "bootstrap_percentile", "n_bootstrap": 2000, "alpha": 0.05,
+            }
+            write_log(
+                f"[LGBM][BOOTSTRAP] test AUC={_auc:.4f} 95% CI=[{_ci_lo:.4f}, {_ci_hi:.4f}]",
+                log_fp,
+            )
+    except Exception as e:
+        write_log(f"[LGBM][BOOTSTRAP] CI computation failed (ignored): {e}", log_fp)
+
     out.update({
         "ok": True,
         "model_path": str(model_path) if model_path else None,
@@ -646,6 +676,7 @@ def run_lgbm_baseline(
         "n_used": {"train": len(tr_used), "val": len(va_used), "test": len(te_used)},
         "tab_plan": {"seq_key": tab_plan.seq_key, "base_dim": len(tab_plan.base_names)},
         "out_dir": str(out_dir),
+        "bootstrap_ci": bootstrap_ci_results if bootstrap_ci_results else None,
     })
     return out
 
