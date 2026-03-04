@@ -798,6 +798,13 @@ def _print_phase1_summary(results: List[ExperimentResult]) -> None:
     if val_aucs:
         print(f"  Val  AUC: {_safe_mean(val_aucs):.4f} ± {_safe_std(val_aucs):.4f}")
         print(f"  Test AUC: {_safe_mean(test_aucs):.4f} ± {_safe_std(test_aucs):.4f}")
+        # Bootstrap CI over seed-level AUC values
+        if len(val_aucs) >= 2:
+            _m, _lo, _hi = bootstrap_ci(val_aucs, n_bootstrap=2000, alpha=0.05)
+            print(f"  Val  AUC 95% Bootstrap CI: [{_lo:.4f}, {_hi:.4f}]")
+        if len(test_aucs) >= 2:
+            _m, _lo, _hi = bootstrap_ci(test_aucs, n_bootstrap=2000, alpha=0.05)
+            print(f"  Test AUC 95% Bootstrap CI: [{_lo:.4f}, {_hi:.4f}]")
         print(f"  Seeds: {[f'{a:.4f}' for a in val_aucs]}")
         split_known = [r for r in results if r.n_train >= 0 and r.n_val >= 0 and r.n_test >= 0]
         if split_known:
@@ -861,7 +868,11 @@ def _print_phase5_summary(results: List[ExperimentResult]) -> None:
 
     for name, values in metrics.items():
         if values:
-            print(f"  {name:<15}: {_safe_mean(values):.4f} ± {_safe_std(values):.4f}")
+            ci_str = ""
+            if len(values) >= 2:
+                _m, _lo, _hi = bootstrap_ci(values, n_bootstrap=2000, alpha=0.05)
+                ci_str = f"  95% CI=[{_lo:.4f}, {_hi:.4f}]"
+            print(f"  {name:<15}: {_safe_mean(values):.4f} ± {_safe_std(values):.4f}{ci_str}")
 
     if val_aucs and test_aucs:
         gen_gap = np.mean(val_aucs) - np.mean(test_aucs)

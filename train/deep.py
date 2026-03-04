@@ -1710,6 +1710,44 @@ def train_deep_model(
 
     train_time_sec = time.time() - train_start_time
 
+    # ------------------------------------------------------------------
+    # Bootstrap CI for AUC (val & test)
+    # ------------------------------------------------------------------
+    bootstrap_ci_results: Dict[str, Any] = {}
+    if label_maps and pred_maps:
+        try:
+            from app.experiment_stats import bootstrap_auc_ci
+
+            for _split in ("val", "test"):
+                _lm = label_maps.get(_split, {})
+                _pm = pred_maps.get(_split, {})
+                _keys = sorted(set(_lm.keys()) & set(_pm.keys()))
+                if len(_keys) >= 20:
+                    _y = np.array([_lm[k] for k in _keys], dtype=np.int32)
+                    _z = np.array([_pm[k] for k in _keys], dtype=np.float64)
+                    _p = 1.0 / (1.0 + np.exp(-np.clip(_z, -30, 30)))
+                    _auc, _ci_lo, _ci_hi = bootstrap_auc_ci(
+                        _y, _p, n_bootstrap=2000, alpha=0.05, seed=seed,
+                    )
+                    bootstrap_ci_results[_split] = {
+                        "auc": float(_auc),
+                        "ci_low": float(_ci_lo),
+                        "ci_high": float(_ci_hi),
+                        "ci_width": float(_ci_hi - _ci_lo),
+                        "n_samples": len(_keys),
+                        "method": "bootstrap_percentile",
+                        "n_bootstrap": 2000,
+                        "alpha": 0.05,
+                    }
+                    write_log(
+                        f"[BOOTSTRAP] {_split} AUC={_auc:.4f} "
+                        f"95% CI=[{_ci_lo:.4f}, {_ci_hi:.4f}] "
+                        f"(width={_ci_hi - _ci_lo:.4f}, n={len(_keys)})",
+                        log_fp,
+                    )
+        except Exception as e:
+            write_log(f"[BOOTSTRAP] CI computation failed (ignored): {e}", log_fp)
+
     rep: Dict[str, Any] = {
         "ok": True,
         "model_name": model_name,
@@ -1728,6 +1766,7 @@ def train_deep_model(
         "multi_task_enabled": bool(aux_head is not None),
         "pred_logit_maps": {k: {"size": len(v)} for k, v in pred_maps.items()} if pred_maps else None,
         "label_maps_available": bool(label_maps),
+        "bootstrap_ci": bootstrap_ci_results if bootstrap_ci_results else None,
     }
 
     save_json(out_dir / "report.json", rep)
