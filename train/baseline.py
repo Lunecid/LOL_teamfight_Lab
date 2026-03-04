@@ -403,6 +403,23 @@ def _lgbm_build_logit_map(
     return logit_map
 
 
+def _lgbm_build_split_maps(
+    refs_used: List[FightRef],
+    probs: np.ndarray,
+    labels: np.ndarray,
+) -> Tuple[Dict[str, float], Dict[str, int]]:
+    """Build per-split (logit_map, label_map) for emit_split_reports compatibility."""
+    logit_map: Dict[str, float] = {}
+    label_map: Dict[str, int] = {}
+    if probs.size == 0:
+        return logit_map, label_map
+    for r, p, y in zip(refs_used, probs, labels):
+        k = ref_key(r)
+        logit_map[k] = logit(float(p))
+        label_map[k] = int(y)
+    return logit_map, label_map
+
+
 def _lgbm_save_reports(
     out_dir: Path, clf, seed: int,
     feat_names: List[str], dropped: List[str],
@@ -620,6 +637,11 @@ def run_lgbm_baseline(
         (te_used, p_te),
     ])
 
+    # --- Build per-split pred/label maps (for minutewise/situation reports) ---
+    pred_map_tr, label_map_tr = _lgbm_build_split_maps(tr_used, p_tr, ytr)
+    pred_map_va, label_map_va = _lgbm_build_split_maps(va_used, p_va, yva)
+    pred_map_te, label_map_te = _lgbm_build_split_maps(te_used, p_te, yte)
+
     # --- Save reports ---
     model_path = _lgbm_save_reports(
         out_dir, clf, seed, feat_names, dropped, fi, shap_summary,
@@ -677,6 +699,8 @@ def run_lgbm_baseline(
         "tab_plan": {"seq_key": tab_plan.seq_key, "base_dim": len(tab_plan.base_names)},
         "out_dir": str(out_dir),
         "bootstrap_ci": bootstrap_ci_results if bootstrap_ci_results else None,
+        "_pred_maps_in_memory": {"train": pred_map_tr, "val": pred_map_va, "test": pred_map_te},
+        "_label_maps_in_memory": {"train": label_map_tr, "val": label_map_va, "test": label_map_te},
     })
     return out
 
