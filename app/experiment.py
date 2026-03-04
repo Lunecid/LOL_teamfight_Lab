@@ -367,6 +367,18 @@ def run(args) -> None:
                 }
                 _row.update(_extract_bootstrap_ci_fields(lgbm_pack))
                 results_rows.append(_row)
+
+                # Emit minutewise/situation reports for LGBM (same as deep models)
+                if lgbm_pack.get("_pred_maps_in_memory"):
+                    _emit_split_reports(
+                        model_dir=lgbm_dir,
+                        model_name="lgbm",
+                        variant_tag="baseline",
+                        feature_set=feature_set,
+                        refs_by_split={"train": tr_refs, "val": va_refs, "test": te_refs},
+                        rep=lgbm_pack,
+                        run_log=run_log,
+                    )
         else:
             write_log("[STEP] LGBM baseline skipped (not needed)", run_log)
 
