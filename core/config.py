@@ -432,8 +432,9 @@ class CFG:
     STANDOFF_MIN_PAIRS: int = 3
     CLUSTER_MAX_DIAMETER: float = 4000.0
 
+    FIGHT_CONTEXT_SEC: int = 30
     FIGHT_CONTEXT_MIN: int = 1
-    FIGHT_HORIZON_SEC: int = 60
+    FIGHT_HORIZON_SEC: int = 30
     FIGHT_HORIZON_MIN: int = 1
     # Predict earlier than engage by this gap:
     # observation window ends at (engage_ts - prediction_gap_ms),
@@ -441,7 +442,7 @@ class CFG:
     #   - horizon_end_ts (continuous merged fight), if provided
     #   - otherwise engage_ts + horizon.
     PREDICTION_GAP_MS: int = 0
-    MAX_MERGED_FIGHT_DURATION_MS = 120000
+    MAX_MERGED_FIGHT_DURATION_MS = 60000
 
     START_OFFSET_MIN: int = 2
     FIGHT_MIN_GAP_MIN: int = 0
@@ -462,7 +463,7 @@ class CFG:
     # counted as fight interactions during the fight time window.
     TF2_INTERACTION_RADIUS: float = 3000.0
     # Post-fight outcome window (ms after last kill in cluster).
-    TF2_POST_FIGHT_WINDOW_MS: int = 45000
+    TF2_POST_FIGHT_WINDOW_MS: int = 30000
     # Optional tail buffer after last kill (ms).
     TF2_TAIL_BUFFER_MS: int = 0
     # Minimum champions per team within validity radius.
@@ -494,7 +495,7 @@ class CFG:
     ADJ_SIGMA_FACTOR: float = 1.5
 
     CONTINUOUS_FIGHT_MERGE: bool = True
-    CONTINUOUS_FIGHT_MAX_GAP_MS: int = 30000
+    CONTINUOUS_FIGHT_MAX_GAP_MS: int = 15000
     CONTINUOUS_FIGHT_MERGE_RADIUS: float = 2000.0
     # If True, ward signal is valid only when ward actor(s) are inside fight radius.
     REQUIRE_WARD_ACTOR_IN_FIGHT_RADIUS: bool = True
@@ -544,8 +545,8 @@ class CFG:
     KILL_ANCHOR_COOLDOWN_SEC: int = 30
 
     USE_BACKTRACK: bool = True
-    BACKTRACK_MAX_MS: int = 30000
-    BACKTRACK_MIN_MS: int = 10000
+    BACKTRACK_MAX_MS: int = 15000
+    BACKTRACK_MIN_MS: int = 5000
     BACKTRACK_MIN_PAIRS: int = 3
 
     DUMP_FIGHTS: bool = True
@@ -591,7 +592,7 @@ class CFG:
     W_KILL: float = 1.0
     W_GOLD: float = 0.5
     W_OBJ: float = 0.25
-    GOLD_NORM: float = 1000.0
+    GOLD_NORM: float = 500.0
     LABEL_GOLD_METHOD: str = "linear"
     # rule-based attention-like label:
     # alpha_e = softmax(beta * prior_e), score = sum(alpha_e * sign_e * value_e)

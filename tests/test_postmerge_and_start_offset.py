@@ -45,7 +45,7 @@ def _make_fight(
 
 
 KILL_TS = np.array([120000, 180000, 240000, 300000], dtype=np.int64)
-HORIZON_MS = 60000
+HORIZON_MS = 30000
 
 
 # ============================================================
@@ -71,10 +71,10 @@ class TestOverlapClipping:
     def test_distant_overlap_clips_smaller_earlier_fight(self):
         """When earlier fight is smaller and overlaps with later larger fight,
         clip earlier fight's horizon_end_ts to later fight's engage_ts."""
-        # f1: small fight (prox_pairs=5), ends at 100000+60000=160000
+        # f1: small fight (prox_pairs=5), ends at 100000+30000=130000
         f1 = _make_fight(100000, centroid_x=2000, centroid_y=2000, det_prox_pairs=5)
-        # f2: big fight (prox_pairs=20), starts at 140000 (inside f1's label window)
-        f2 = _make_fight(140000, centroid_x=12000, centroid_y=12000, det_prox_pairs=20)
+        # f2: big fight (prox_pairs=20), starts at 120000 (inside f1's label window)
+        f2 = _make_fight(120000, centroid_x=12000, centroid_y=12000, det_prox_pairs=20)
         diag = {}
         result = enforce_postmerge_spacing_and_nonoverlap(
             [f1, f2], horizon_ms=HORIZON_MS, fight_min_gap_ms=0,
@@ -82,19 +82,19 @@ class TestOverlapClipping:
         )
         assert len(result) == 2
         # f1 (smaller) should be clipped to f2's engage_ts
-        assert result[0]["horizon_end_ts"] == 140000
+        assert result[0]["horizon_end_ts"] == 120000
         assert result[0].get("det_overlap_clipped") == 1
         # f2 (bigger) should be unchanged
-        assert result[1]["engage_ts"] == 140000
+        assert result[1]["engage_ts"] == 120000
         assert diag["postmerge_overlap_clipped"] == 1
 
     def test_distant_overlap_drops_smaller_later_fight(self):
         """When later fight is smaller and overlaps with earlier larger fight,
         drop the later (smaller) fight entirely."""
-        # f1: big fight (prox_pairs=20), ends at 100000+60000=160000
+        # f1: big fight (prox_pairs=20), ends at 100000+30000=130000
         f1 = _make_fight(100000, centroid_x=2000, centroid_y=2000, det_prox_pairs=20)
-        # f2: small fight (prox_pairs=3), starts at 140000 (inside f1's label window)
-        f2 = _make_fight(140000, centroid_x=12000, centroid_y=12000, det_prox_pairs=3)
+        # f2: small fight (prox_pairs=3), starts at 120000 (inside f1's label window)
+        f2 = _make_fight(120000, centroid_x=12000, centroid_y=12000, det_prox_pairs=3)
         diag = {}
         result = enforce_postmerge_spacing_and_nonoverlap(
             [f1, f2], horizon_ms=HORIZON_MS, fight_min_gap_ms=0,
@@ -108,7 +108,7 @@ class TestOverlapClipping:
         """Spatially close overlapping fights should use priority replacement (original behavior)."""
         # Both near same location
         f1 = _make_fight(100000, centroid_x=5000, centroid_y=5000, det_prox_pairs=5)
-        f2 = _make_fight(140000, centroid_x=5100, centroid_y=5100, det_prox_pairs=20)
+        f2 = _make_fight(120000, centroid_x=5100, centroid_y=5100, det_prox_pairs=20)
         diag = {}
         result = enforce_postmerge_spacing_and_nonoverlap(
             [f1, f2], horizon_ms=HORIZON_MS, fight_min_gap_ms=0,
@@ -117,14 +117,14 @@ class TestOverlapClipping:
         # Distance ~141 < 4000 → not distant → use priority replacement
         assert len(result) == 1
         # f2 has higher priority, should replace f1
-        assert result[0]["engage_ts"] == 140000
+        assert result[0]["engage_ts"] == 120000
         assert diag["postmerge_conflicts"] == 1
         assert diag["postmerge_replaced"] == 1
 
     def test_no_location_radius_uses_original_logic(self):
         """When location_radius=0, skip distance check entirely (original behavior)."""
         f1 = _make_fight(100000, centroid_x=2000, centroid_y=2000, det_prox_pairs=5)
-        f2 = _make_fight(140000, centroid_x=12000, centroid_y=12000, det_prox_pairs=20)
+        f2 = _make_fight(120000, centroid_x=12000, centroid_y=12000, det_prox_pairs=20)
         diag = {}
         result = enforce_postmerge_spacing_and_nonoverlap(
             [f1, f2], horizon_ms=HORIZON_MS, fight_min_gap_ms=0,
@@ -132,27 +132,27 @@ class TestOverlapClipping:
         )
         # No distance check → overlap → priority replacement
         assert len(result) == 1
-        assert result[0]["engage_ts"] == 140000
+        assert result[0]["engage_ts"] == 120000
         assert diag["postmerge_overlap_clipped"] == 0
         assert diag["postmerge_overlap_dropped"] == 0
 
     def test_multiple_overlaps_chain(self):
         """Three fights: A overlaps B, B overlaps C. All spatially distant."""
         fA = _make_fight(100000, centroid_x=2000, centroid_y=2000, det_prox_pairs=5)
-        fB = _make_fight(140000, centroid_x=8000, centroid_y=8000, det_prox_pairs=25)
-        fC = _make_fight(180000, centroid_x=14000, centroid_y=14000, det_prox_pairs=10)
+        fB = _make_fight(120000, centroid_x=8000, centroid_y=8000, det_prox_pairs=25)
+        fC = _make_fight(140000, centroid_x=14000, centroid_y=14000, det_prox_pairs=10)
         diag = {}
         result = enforce_postmerge_spacing_and_nonoverlap(
             [fA, fB, fC], horizon_ms=HORIZON_MS, fight_min_gap_ms=0,
             kill_ts=KILL_TS, location_radius=4000.0, diag=diag,
         )
         # A(small) vs B(big): A clipped, B kept
-        # B(big) vs C(medium): C is smaller, C's engage=180000 < B's end=200000
+        # B(big) vs C(medium): C is smaller, C's engage=140000 < B's end=150000
         #   → C dropped (smaller later fight)
         assert len(result) == 2
         assert result[0]["engage_ts"] == 100000  # A, clipped
-        assert result[0]["horizon_end_ts"] == 140000
-        assert result[1]["engage_ts"] == 140000  # B
+        assert result[0]["horizon_end_ts"] == 120000
+        assert result[1]["engage_ts"] == 120000  # B
 
     def test_empty_fights_list(self):
         """Empty input should return empty output with initialized diag."""
@@ -237,13 +237,13 @@ class TestLabelEndTs:
         """After clipping horizon_end_ts, label_end_ts should return the clipped value."""
         f = _make_fight(100000)
         # Before clipping: default horizon
-        assert label_end_ts(f, 60000) == 160000
+        assert label_end_ts(f, 30000) == 130000
 
         # After clipping
-        f["horizon_end_ts"] = 140000
-        assert label_end_ts(f, 60000) == 140000
+        f["horizon_end_ts"] = 120000
+        assert label_end_ts(f, 30000) == 120000
 
     def test_horizon_end_ts_unchanged_when_no_clip(self):
         """Explicitly set horizon_end_ts should be returned as-is."""
-        f = _make_fight(100000, horizon_end_ts=180000)
-        assert label_end_ts(f, 60000) == 180000
+        f = _make_fight(100000, horizon_end_ts=150000)
+        assert label_end_ts(f, 30000) == 150000

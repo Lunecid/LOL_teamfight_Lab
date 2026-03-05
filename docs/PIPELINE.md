@@ -21,7 +21,7 @@ Riot API JSONs (match detail + timeline)
          |  Train (70%) / Val (20%) / Test (10%)
          v
    [Stage 4] Sample Construction
-         |  12 bins x 5s observation window
+         |  6 bins x 5s observation window
          |  Node/Global/Event/Item feature tensors
          v
    [Stage 5] Label Computation
@@ -96,7 +96,7 @@ Step 1: Build 5-Second Position Grid
 Step 2: Cluster Kills by Temporal Proximity
 Step 3: Validate Each Cluster as Teamfight
 Step 4: Collect Interactions (radius 3000)
-Step 5: Post-Fight Outcome (45-second window)
+Step 5: Post-Fight Outcome (30-second window)
 Step 6: Classify, Score, Output
 ```
 
@@ -181,7 +181,7 @@ For each kill cluster:
     (clamped to game start)
 
 3b. Check context bounds
-    engage_ts must be at least FIGHT_CONTEXT_MIN * 60000 ms into the game
+    engage_ts must be at least FIGHT_CONTEXT_SEC * 1000 ms into the game
     engage_ts + horizon must not exceed game end
 
 3c. Check alive count
@@ -219,15 +219,15 @@ Non-kill events during `[engage_ts, last_kill_ts]` within **radius 3000** of fig
 
 **Important:** Objective events (`ELITE_MONSTER_KILL`, `BUILDING_KILL`, `TURRET_PLATE_DESTROYED`) are **NOT** counted as radius-3000 interactions. They are tracked only in the post-fight outcome window (Step 5). This prevents double-counting.
 
-### Step 5: Post-Fight Outcome (45-second window)
+### Step 5: Post-Fight Outcome (30-second window)
 
 **Function:** `_compute_postfight_outcome()`
 
-After the last kill in the cluster, a **45-second window** captures consequences:
+After the last kill in the cluster, a **30-second window** captures consequences:
 
 ```
-  --- fight ---                    --- post-fight window (45s) ---
-  [engage ... last_kill]           [last_kill ... last_kill + 45000ms]
+  --- fight ---                    --- post-fight window (30s) ---
+  [engage ... last_kill]           [last_kill ... last_kill + 30000ms]
                     |                              |
                     |  Collect:                    |
                     |    * objectives taken         |
@@ -268,7 +268,7 @@ Counts kills, deaths, assists, gold swing, towers, and objectives in the label w
     "centroid_y":         float,  # fight center Y (from first kill)
     "fight_type":         str,    # teamfight / skirmish / objective_baron / ...
     "outcome":            dict,   # kills, deaths, gold, towers per team
-    "post_fight_outcome": dict,   # 45s window: objectives, towers, gold swing
+    "post_fight_outcome": dict,   # 30s window: objectives, towers, gold swing
 }
 ```
 
@@ -280,13 +280,13 @@ Counts kills, deaths, assists, gold swing, towers, and objectives in the label w
 | `TF2_ENGAGE_PRE_KILL_MS` | 10,000 | ms | Offset before first kill = engage time |
 | `TF2_VALIDITY_RADIUS` | 1,800 | map units | Radius for teamfight validation (>= 2 per team) |
 | `TF2_INTERACTION_RADIUS` | 3,000 | map units | Radius for counting fight interactions |
-| `TF2_POST_FIGHT_WINDOW_MS` | 45,000 | ms | Post-fight outcome window duration |
+| `TF2_POST_FIGHT_WINDOW_MS` | 30,000 | ms | Post-fight outcome window duration |
 | `TF2_MIN_PER_TEAM` | 2 | count | Minimum champions per team in validity radius |
 | `FIGHT_MIN_GAP_MS` | 60,000 | ms | Minimum spacing between detected fights |
-| `MAX_MERGED_FIGHT_DURATION_MS` | 120,000 | ms | Maximum allowed fight duration (reject if exceeded) |
-| `FIGHT_CONTEXT_MIN` | 1 | minutes | Minimum game time before first fight |
-| `FIGHT_HORIZON_SEC` | 60 | seconds | Label window duration |
-| `CONTINUOUS_FIGHT_MAX_GAP_MS` | 30,000 | ms | Max gap for fight merging in post-merge |
+| `MAX_MERGED_FIGHT_DURATION_MS` | 60,000 | ms | Maximum allowed fight duration (reject if exceeded) |
+| `FIGHT_CONTEXT_SEC` | 30 | seconds | Context window before fight |
+| `FIGHT_HORIZON_SEC` | 30 | seconds | Label window duration |
+| `CONTINUOUS_FIGHT_MAX_GAP_MS` | 15,000 | ms | Max gap for fight merging in post-merge |
 | `CONTINUOUS_FIGHT_MERGE_RADIUS` | 2,000 | map units | Spatial threshold for merging |
 | `START_OFFSET_MIN` | 2 | minutes | Minimum game-time offset (config-defined but not enforced in detection) |
 | `DETECT_STEP_MS` | 10,000 | ms | Detection scanning step size |
@@ -354,38 +354,38 @@ This key is used throughout the pipeline for sample identification, prediction a
 ### Timeline Layout
 
 ```
-  <------------ observation window (60s) ------------->
-  |                                                    |
-  |  bin0   bin1   bin2   ...   bin10  bin11            |
-  | [0-5s] [5-10s] [10-15s]         [50-55s] [55-60s] |
-  |                                                    |
-  start_ms                                          end_ms = engage_ts
-  (engage_ts - 60s)                                    |
-                                                       |
-                                       <--- label window (60s) --->
-                                       |                           |
-                                   engage_ts               label_end_ts
-                                  (= fight start)      (= engage + horizon)
-                                       |                           |
-                                       |   kills, deaths, gold     |
-                                       |   counted here -> label   |
+  <-------- observation window (30s) -------->
+  |                                           |
+  |  bin0   bin1   bin2   bin3  bin4   bin5    |
+  | [0-5s] [5-10s] [10-15s] [15-20s] [20-25s] [25-30s] |
+  |                                           |
+  start_ms                                 end_ms = engage_ts
+  (engage_ts - 30s)                           |
+                                              |
+                              <--- label window (30s) --->
+                              |                           |
+                          engage_ts               label_end_ts
+                         (= fight start)      (= engage + horizon)
+                              |                           |
+                              |   kills, deaths, gold     |
+                              |   counted here -> label   |
 ```
 
-**Key principle:** The model sees 60 seconds of game state **before the fight starts**. It never sees the fight outcome -- that is the label.
+**Key principle:** The model sees 30 seconds of game state **before the fight starts**. It never sees the fight outcome -- that is the label.
 
 ### Time Parameters
 
 | Parameter | Value | Description |
 |-----------|-------|-------------|
-| `CONTEXT_MS` (ctx_ms) | 60,000 ms | Observation window duration |
+| `CONTEXT_MS` (ctx_ms) | 30,000 ms | Observation window duration |
 | `BIN_MS` (bin_ms) | 5,000 ms | Time bin size |
-| `HORIZON_MS` (horizon_ms) | 60,000 ms | Label window duration |
+| `HORIZON_MS` (horizon_ms) | 30,000 ms | Label window duration |
 | `PREDICTION_GAP_MS` | 0 ms | Gap between observation end and engage_ts |
-| **Derived: L** | **12** | Number of temporal bins = ctx_ms / bin_ms |
+| **Derived: L** | **6** | Number of temporal bins = ctx_ms / bin_ms |
 
 ### Per-Bin Computation
 
-For each of the 12 bins, the midpoint timestamp `q` is computed:
+For each of the 6 bins, the midpoint timestamp `q` is computed:
 
 ```
 bin_i:  b0 = start_ms + i * 5000
@@ -432,10 +432,10 @@ At each midpoint `q`:
 
 ```python
 sample = {
-    "node_seq":  np.array[12, 10, 76],        # per-player features, 12 bins
-    "glob_seq":  np.array[12, 26],            # team-level features, 12 bins
-    "ev_seq":    np.array[12, 44],            # event aggregations, 12 bins
-    "item_seq":  np.array[12, F_item],        # item hashes, 12 bins
+    "node_seq":  np.array[6, 10, 76],         # per-player features, 6 bins
+    "glob_seq":  np.array[6, 26],             # team-level features, 6 bins
+    "ev_seq":    np.array[6, 44],             # event aggregations, 6 bins
+    "item_seq":  np.array[6, F_item],         # item hashes, 6 bins
     "y":         int,                          # label: 1=blue wins, 0=red wins
 }
 ```
@@ -475,7 +475,7 @@ tie -> LABEL_TIE_STRATEGY = "random" (seeded for reproducibility)
 **Example:**
 
 ```
-Label window [420000, 480000]:
+Label window [420000, 450000]:
   Blue kills: 3, Red kills: 1  ->  kill_diff = +2
   Blue alive at end: 4, Red alive at end: 2  ->  alive_diff = +2
 
@@ -487,12 +487,12 @@ Label window [420000, 480000]:
 | Target | Source Window | Normalization | Description |
 |--------|-------------|---------------|-------------|
 | `y_kill_diff` | Fight window | kill_diff / 5.0 | Normalized kill differential |
-| `y_gold_diff` | Fight window | gold_diff / 1000.0 | Normalized gold swing |
+| `y_gold_diff` | Fight window | gold_diff / 500.0 | Normalized gold swing |
 | `y_obj_diff` | Fight window | obj_diff / 5.0 | Normalized objective differential |
 | `y_alive_diff_raw` | Fight window | Raw count | Alive count differential |
-| `post_gold_diff` | 45s outcome | Raw gold | Gold swing after fight |
-| `post_tower_diff` | 45s outcome | Raw count | Towers taken after fight |
-| `post_obj_diff` | 45s outcome | Raw count | Objectives taken after fight |
+| `post_gold_diff` | 30s outcome | Raw gold | Gold swing after fight |
+| `post_tower_diff` | 30s outcome | Raw count | Towers taken after fight |
+| `post_obj_diff` | 30s outcome | Raw count | Objectives taken after fight |
 
 ### Label Configuration
 
@@ -614,15 +614,15 @@ for batch in dataloader:
   |     | check   |                                     |
   |     +---------+                                     |
   |               |                                     |
-  |               |<--- observation window (60s) --->|  |
-  |               |                                  |  |
-  |               |<--- label window (60s) --------->|  |
-  |               |     [engage_ts, +60s]            |  |
+  |               |<-- observation window (30s) -->|  |
+  |               |                                |  |
+  |               |<-- label window (30s) -------->|  |
+  |               |     [engage_ts, +30s]          |  |
   |               |                            last_kill_ts
   |               |                                  |  |
-  |               |                                  |<-- 45s -->|
-  |               |                                  | post-fight |
-  |               |                                  | outcome    |
+  |               |                                |<-- 30s -->|
+  |               |                                | post-fight |
+  |               |                                | outcome    |
   |                                                     |
   =====================================================================
 ```
@@ -642,7 +642,7 @@ for batch in dataloader:
 | **Ref-key alignment** | Predictions matched by `match_id|t_start_ts=<ms>`, not by batch position |
 | **Match-grouped splits** | All fights from one match stay in the same split partition |
 | **Patch stratification** | Each split has proportional representation of game patches |
-| **Post-fight conversion** | 45-second window captures objective/tower/gold conversion after fight |
+| **Post-fight conversion** | 30-second window captures objective/tower/gold conversion after fight |
 
 ---
 
@@ -678,15 +678,15 @@ MATCH: KR_7123456789, Patch 14.10, Duration 32:00
     -> Split: match grouped into "train" partition
 
 [4] Sample Build (Fight 1: engage_ts = 420000)
-    -> Observation window: [360000, 420000] (6:00 -> 7:00)
-    -> 12 bins x 5s each
+    -> Observation window: [390000, 420000] (6:30 -> 7:00)
+    -> 6 bins x 5s each
     -> Per bin: snapshot node+global (strict-before 60s frame),
                aggregate events, hash items
     -> XY zeroed in all bins
-    -> node_seq: [12, 10, 87], glob_seq: [12, 27], ev_seq: [12, 48]
+    -> node_seq: [6, 10, 87], glob_seq: [6, 27], ev_seq: [6, 48]
 
 [5] Label (Fight 1)
-    -> Label window: [420000, 480000] (7:00 -> 8:00)
+    -> Label window: [420000, 450000] (7:00 -> 7:30)
     -> Events in window: 3 blue kills, 1 red kill
     -> Blue alive at 8:00: 4, Red alive: 2
     -> Score = 1.0 * 2 + 0.3 * 2 = 2.6 -> y = 1 (blue wins)

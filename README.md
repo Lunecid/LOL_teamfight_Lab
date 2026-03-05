@@ -22,7 +22,7 @@ A machine learning pipeline for predicting **League of Legends teamfight outcome
 
 ```
 Riot API JSONs -> Cache Build -> Fight Detection -> Index & Split
-    -> Sample Construction (12 bins x 5s) -> Label Computation
+    -> Sample Construction (6 bins x 5s) -> Label Computation
     -> Model Training (25+ architectures) -> Ensemble Stacking
     -> Evaluation (AUC, AP, Brier, bootstrap CI)
 ```
@@ -92,7 +92,7 @@ LOL_teamfight_Lab/
 |   |-- index_split.py             # Match-grouped, patch-stratified splits
 |-- gameplay/                      # Fight detection & feature engineering
 |   |-- fights.py                  # teamfight_v2 detection algorithm
-|   |-- pipeline.py                # Temporal feature building (12 bins x 5s)
+|   |-- pipeline.py                # Temporal feature building (6 bins x 5s)
 |   |-- features.py                # Feature builders & normalizers
 |-- train/                         # Model definitions & training
 |   |-- models.py                  # 25+ model architectures
