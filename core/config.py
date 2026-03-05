@@ -433,7 +433,7 @@ class CFG:
     CLUSTER_MAX_DIAMETER: float = 4000.0
 
     FIGHT_CONTEXT_MIN: int = 1
-    FIGHT_HORIZON_SEC: int = 60
+    FIGHT_HORIZON_SEC: int = 30
     FIGHT_HORIZON_MIN: int = 1
     # Predict earlier than engage by this gap:
     # observation window ends at (engage_ts - prediction_gap_ms),
@@ -591,7 +591,7 @@ class CFG:
     W_KILL: float = 1.0
     W_GOLD: float = 0.5
     W_OBJ: float = 0.25
-    GOLD_NORM: float = 1000.0
+    GOLD_NORM: float = 500.0
     LABEL_GOLD_METHOD: str = "linear"
     # rule-based attention-like label:
     # alpha_e = softmax(beta * prior_e), score = sum(alpha_e * sign_e * value_e)
