@@ -255,8 +255,9 @@ class CFG:
     STANDOFF_MIN_PAIRS = 3
     CLUSTER_MAX_DIAMETER = 4000.0  # (옵션) LCC 플레이어들 최대 지름 제한 (좌표가 raw일 때)
 
+    FIGHT_CONTEXT_SEC: int = 30
     FIGHT_CONTEXT_MIN: int = 1
-    FIGHT_HORIZON_SEC: int = 60
+    FIGHT_HORIZON_SEC: int = 30
     FIGHT_HORIZON_MIN: int = 1
 
     START_OFFSET_MIN: int = 1

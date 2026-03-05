@@ -463,7 +463,7 @@ class CFG:
     # counted as fight interactions during the fight time window.
     TF2_INTERACTION_RADIUS: float = 3000.0
     # Post-fight outcome window (ms after last kill in cluster).
-    TF2_POST_FIGHT_WINDOW_MS: int = 45000
+    TF2_POST_FIGHT_WINDOW_MS: int = 20000
     # Optional tail buffer after last kill (ms).
     TF2_TAIL_BUFFER_MS: int = 0
     # Minimum champions per team within validity radius.
@@ -495,7 +495,7 @@ class CFG:
     ADJ_SIGMA_FACTOR: float = 1.5
 
     CONTINUOUS_FIGHT_MERGE: bool = True
-    CONTINUOUS_FIGHT_MAX_GAP_MS: int = 30000
+    CONTINUOUS_FIGHT_MAX_GAP_MS: int = 15000
     CONTINUOUS_FIGHT_MERGE_RADIUS: float = 2000.0
     # If True, ward signal is valid only when ward actor(s) are inside fight radius.
     REQUIRE_WARD_ACTOR_IN_FIGHT_RADIUS: bool = True
@@ -545,8 +545,8 @@ class CFG:
     KILL_ANCHOR_COOLDOWN_SEC: int = 30
 
     USE_BACKTRACK: bool = True
-    BACKTRACK_MAX_MS: int = 30000
-    BACKTRACK_MIN_MS: int = 10000
+    BACKTRACK_MAX_MS: int = 15000
+    BACKTRACK_MIN_MS: int = 5000
     BACKTRACK_MIN_PAIRS: int = 3
 
     DUMP_FIGHTS: bool = True

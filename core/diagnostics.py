@@ -168,6 +168,7 @@ def _maybe_dump_fights_for_match(
         # 기본 탐지 설정
         "FIGHT_DETECTOR": str(getattr(cfg, "FIGHT_DETECTOR", getattr(cfg, "FIGHT_DETECT_ALGO", "engage_v2"))),
         "START_OFFSET_MIN": int(getattr(cfg, "START_OFFSET_MIN", 1)),
+        "FIGHT_CONTEXT_SEC": int(getattr(cfg, "FIGHT_CONTEXT_SEC", 30)),
         "FIGHT_CONTEXT_MIN": int(getattr(cfg, "FIGHT_CONTEXT_MIN", 1)),
         "FIGHT_MIN_GAP_MIN": int(getattr(cfg, "FIGHT_MIN_GAP_MIN", 3)),
         "FIGHT_MIN_GAP_MS": int(getattr(cfg, "FIGHT_MIN_GAP_MS", int(getattr(cfg, "FIGHT_MIN_GAP_MIN", 3)) * 60000)),
@@ -187,13 +188,13 @@ def _maybe_dump_fights_for_match(
 
         # ✅ NEW: Backtrack 설정
         "USE_BACKTRACK": bool(getattr(cfg, "USE_BACKTRACK", True)),
-        "BACKTRACK_MAX_MS": int(getattr(cfg, "BACKTRACK_MAX_MS", 60000)),
-        "BACKTRACK_MIN_MS": int(getattr(cfg, "BACKTRACK_MIN_MS", 10000)),
+        "BACKTRACK_MAX_MS": int(getattr(cfg, "BACKTRACK_MAX_MS", 15000)),
+        "BACKTRACK_MIN_MS": int(getattr(cfg, "BACKTRACK_MIN_MS", 5000)),
         "BACKTRACK_MIN_PAIRS": int(getattr(cfg, "BACKTRACK_MIN_PAIRS", 3)),
 
         # ✅ NEW: 연속 교전 merge 설정
         "CONTINUOUS_FIGHT_MERGE": bool(getattr(cfg, "CONTINUOUS_FIGHT_MERGE", True)),
-        "CONTINUOUS_FIGHT_MAX_GAP_MS": int(getattr(cfg, "CONTINUOUS_FIGHT_MAX_GAP_MS", 60000)),
+        "CONTINUOUS_FIGHT_MAX_GAP_MS": int(getattr(cfg, "CONTINUOUS_FIGHT_MAX_GAP_MS", 15000)),
         "CONTINUOUS_FIGHT_MERGE_RADIUS": float(getattr(cfg, "CONTINUOUS_FIGHT_MERGE_RADIUS", 2000.0)),
 
         # Dense detection

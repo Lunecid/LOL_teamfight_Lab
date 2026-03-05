@@ -85,7 +85,7 @@ def _load_all_fight_refs(cache_dir: Path) -> List[Dict[str, Any]]:
             if horizon_end_ts > engage_ts:
                 label_end = horizon_end_ts
             else:
-                label_end = engage_ts + 60000  # default horizon
+                label_end = engage_ts + 30000  # default horizon
 
             duration_ms = label_end - engage_ts
 
@@ -347,22 +347,22 @@ def analyze_early_fights(records: List[Dict[str, Any]]) -> Dict[str, Any]:
 
     The actual filter in gameplay/fights.py:1223-1225:
 
-        ctx_ms = fight_context_min * 60000   # = 1 * 60000 = 60000
+        ctx_ms = fight_context_sec * 1000   # = 30 * 1000 = 30000
         if engage_ts - ctx_ms < t_min_ms:
             continue
 
-    This only requires engage_ts >= t_min_ms + 60,000ms (60s into game).
+    This only requires engage_ts >= t_min_ms + 30,000ms (30s into game).
 
     engage_ts = first_kill_ts - TF2_ENGAGE_PRE_KILL_MS (10,000ms)
 
-    So a kill at 70,000ms → engage at 60,000ms → passes the filter.
-    t_start_min = 60,000 / 60,000 = 1.0 minute.
+    So a kill at 40,000ms → engage at 30,000ms → passes the filter.
+    t_start_min = 30,000 / 60,000 = 0.5 minute.
 
     START_OFFSET_MIN is only logged in diagnostics.py:147 for reporting,
     but NOT used as a filter condition anywhere in the pipeline.
 
     VERDICT: Bug — configuration intent (min 2 minutes) is not enforced.
-    The 3,598 early fights are accepted because only FIGHT_CONTEXT_MIN=1
+    The early fights are accepted because only FIGHT_CONTEXT_SEC=30
     is checked, not START_OFFSET_MIN=2.
     """
     start_offset_min = int(getattr(cfg, "START_OFFSET_MIN", 2)) if cfg else 2
@@ -395,8 +395,8 @@ def analyze_early_fights(records: List[Dict[str, Any]]) -> Dict[str, Any]:
         "root_cause": (
             "START_OFFSET_MIN=2 is defined in config.py:446 but NEVER "
             "enforced in the detection pipeline. The only time filter is "
-            "FIGHT_CONTEXT_MIN=1 (gameplay/fights.py:1223), which requires "
-            "engage_ts >= t_min + 60s. START_OFFSET_MIN is only logged in "
+            "FIGHT_CONTEXT_SEC=30 (gameplay/fights.py), which requires "
+            "engage_ts >= t_min + 30s. START_OFFSET_MIN is only logged in "
             "diagnostics.py:147 — it is a dead configuration parameter."
         ),
         "code_path": (

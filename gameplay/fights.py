@@ -197,11 +197,9 @@ class FightDetectorConfig:
 
     # 병합 관련
     continuous_fight_merge: bool = True
-    continuous_fight_max_gap_ms: int = 30000
+    continuous_fight_max_gap_ms: int = 15000
     continuous_fight_merge_radius: float = 2000.0
-    # [P2-2 FIX] 기본값을 config.py의 MAX_MERGED_FIGHT_DURATION_MS = 120000과 일치시킴.
-    # 이전 값 300000ms(5분)는 config.py 값 120000ms(2분)과 불일치했음.
-    # from_cfg() 없이 직접 dataclass를 생성하면 재현성이 흔들릴 수 있었음.
+    # [P2-2 FIX] 기본값을 config.py의 MAX_MERGED_FIGHT_DURATION_MS = 60000과 일치시킴.
     max_merged_fight_duration_ms: int = 60000
 
     # kill-anchor / backtrack
@@ -216,8 +214,8 @@ class FightDetectorConfig:
     min_summoner_spells_in_horizon: int = 1
     use_backtrack: bool = True
     # [P3-BT] 60s â†’ 30s: reduces noise, Phase 1 already covers long-range signals
-    backtrack_max_ms: int = 30000
-    backtrack_min_ms: int = 10000
+    backtrack_max_ms: int = 15000
+    backtrack_min_ms: int = 5000
     backtrack_min_pairs: int = 3
 
     # 구조적 가드
@@ -308,9 +306,9 @@ class FightDetectorConfig:
             detect_step_ms=int(getattr(cfg_obj, "DETECT_STEP_MS", int(getattr(cfg_obj, "BIN_MS", 5000)))),
             frame_ms=int(getattr(cfg_obj, "FRAME_MS", 60000)),
             continuous_fight_merge=bool(getattr(cfg_obj, "CONTINUOUS_FIGHT_MERGE", True)),
-            continuous_fight_max_gap_ms=int(getattr(cfg_obj, "CONTINUOUS_FIGHT_MAX_GAP_MS", 30000)),
+            continuous_fight_max_gap_ms=int(getattr(cfg_obj, "CONTINUOUS_FIGHT_MAX_GAP_MS", 15000)),
             continuous_fight_merge_radius=float(getattr(cfg_obj, "CONTINUOUS_FIGHT_MERGE_RADIUS", 2000.0)),
-            max_merged_fight_duration_ms=int(getattr(cfg_obj, "MAX_MERGED_FIGHT_DURATION_MS", 120000)),
+            max_merged_fight_duration_ms=int(getattr(cfg_obj, "MAX_MERGED_FIGHT_DURATION_MS", 60000)),
             use_kill_anchor=bool(getattr(cfg_obj, "USE_KILL_ANCHOR", False)),
             kill_anchor_pre_sec=int(getattr(cfg_obj, "KILL_ANCHOR_PRE_SEC", 15)),
             kill_anchor_cooldown_sec=int(getattr(cfg_obj, "KILL_ANCHOR_COOLDOWN_SEC", 30)),
@@ -319,8 +317,8 @@ class FightDetectorConfig:
             min_damage_norm_in_horizon=float(getattr(cfg_obj, "MIN_DAMAGE_NORM_IN_HORIZON", 0.02)),
             min_summoner_spells_in_horizon=int(getattr(cfg_obj, "MIN_SUMMONER_SPELLS_IN_HORIZON", 1)),
             use_backtrack=bool(getattr(cfg_obj, "USE_BACKTRACK", True)),
-            backtrack_max_ms=int(getattr(cfg_obj, "BACKTRACK_MAX_MS", 30000)),
-            backtrack_min_ms=int(getattr(cfg_obj, "BACKTRACK_MIN_MS", 10000)),
+            backtrack_max_ms=int(getattr(cfg_obj, "BACKTRACK_MAX_MS", 15000)),
+            backtrack_min_ms=int(getattr(cfg_obj, "BACKTRACK_MIN_MS", 5000)),
             backtrack_min_pairs=int(getattr(cfg_obj, "BACKTRACK_MIN_PAIRS", 3)),
             require_alive_per_team=int(getattr(cfg_obj, "REQUIRE_ALIVE_PER_TEAM", 2) or 0),
             require_engaged_per_team=int(getattr(cfg_obj, "REQUIRE_ENGAGED_PER_TEAM", 2) or 0),
@@ -345,9 +343,9 @@ from core.common import safe_float
 def _get_horizon_ms() -> int:
     """cfg에서 horizon_ms 가져오기"""
     if cfg is None:
-        return 60000
+        return 30000
     if hasattr(cfg, "FIGHT_HORIZON_SEC"):
-        return int(getattr(cfg, "FIGHT_HORIZON_SEC", 60)) * 1000
+        return int(getattr(cfg, "FIGHT_HORIZON_SEC", 30)) * 1000
     return int(getattr(cfg, "FIGHT_HORIZON_MIN", 1)) * 60000
 
 # ============================================================================
@@ -1165,7 +1163,7 @@ def detect_fights_teamfight_v2(
     engage_pre_kill_ms = int(getattr(cfg, "TF2_ENGAGE_PRE_KILL_MS", 10000)) if cfg else 10000
     validity_radius = float(getattr(cfg, "TF2_VALIDITY_RADIUS", 1800.0)) if cfg else 1800.0
     interaction_radius = float(getattr(cfg, "TF2_INTERACTION_RADIUS", 3000.0)) if cfg else 3000.0
-    post_fight_window_ms = int(getattr(cfg, "TF2_POST_FIGHT_WINDOW_MS", 45000)) if cfg else 45000
+    post_fight_window_ms = int(getattr(cfg, "TF2_POST_FIGHT_WINDOW_MS", 20000)) if cfg else 20000
     tail_buffer_ms = int(getattr(cfg, "TF2_TAIL_BUFFER_MS", 0)) if cfg else 0
     min_per_team = int(getattr(cfg, "TF2_MIN_PER_TEAM", 2)) if cfg else 2
 

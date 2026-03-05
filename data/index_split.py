@@ -42,6 +42,7 @@ _FIGHT_INDEX_CACHE_CFG_KEYS: Tuple[str, ...] = (
     "KILL_ANCHOR_COOLDOWN_SEC",
     # Temporal windowing
     "START_OFFSET_MIN",
+    "FIGHT_CONTEXT_SEC",
     "FIGHT_CONTEXT_MIN",
     "FIGHT_MIN_GAP_MIN",
     "FIGHT_MIN_GAP_MS",
