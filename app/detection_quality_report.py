@@ -705,7 +705,7 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
         mode=str(args.sample_mode),
     )
 
-    default_horizon_ms = int(getattr(cfg, "FIGHT_HORIZON_SEC", 60)) * 1000
+    default_horizon_ms = int(getattr(cfg, "FIGHT_HORIZON_SEC", 30)) * 1000
 
     variant_fights: Dict[str, Dict[str, List[FightDigest]]] = {v: {} for v in variants}
     variant_diags: Dict[str, List[Dict[str, Any]]] = {v: [] for v in variants}

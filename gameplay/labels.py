@@ -564,7 +564,7 @@ def compute_label_targets(
     evs = _events_in_window(cache, s_ms, e_ms)
     raw = _compute_window_targets(evs, tm, cache, s_ms, e_ms, interp_node_global=interp_node_global)
 
-    gold_norm = float(max(1e-6, float(getattr(cfg, "GOLD_NORM", 1000.0))))
+    gold_norm = float(max(1e-6, float(getattr(cfg, "GOLD_NORM", 500.0))))
     kill_norm = float(max(1e-6, float(getattr(cfg, "MTL_KILL_NORM", 5.0))))
     obj_norm = float(max(1e-6, float(getattr(cfg, "MTL_OBJ_NORM", 5.0))))
 

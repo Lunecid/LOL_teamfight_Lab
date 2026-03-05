@@ -8,7 +8,7 @@ from core.interpolation import remap_alpha
 def _get_horizon_ms() -> int:
     """Prefer cfg.FIGHT_HORIZON_SEC if exists; fallback to cfg.FIGHT_HORIZON_MIN."""
     if hasattr(cfg, "FIGHT_HORIZON_SEC"):
-        sec = int(getattr(cfg, "FIGHT_HORIZON_SEC", 60))
+        sec = int(getattr(cfg, "FIGHT_HORIZON_SEC", 30))
         return max(1, sec) * 1000
     horizon_min = int(getattr(cfg, "FIGHT_HORIZON_MIN", 1))
     return max(1, horizon_min) * 60_000
