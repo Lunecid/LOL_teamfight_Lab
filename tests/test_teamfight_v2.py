@@ -434,5 +434,5 @@ class TestTeamfightV2Config:
         assert cfg.TF2_ENGAGE_PRE_KILL_MS == 10000
         assert cfg.TF2_VALIDITY_RADIUS == 1800.0
         assert cfg.TF2_INTERACTION_RADIUS == 3000.0
-        assert cfg.TF2_POST_FIGHT_WINDOW_MS == 20000
+        assert cfg.TF2_POST_FIGHT_WINDOW_MS == 30000
         assert cfg.TF2_MIN_PER_TEAM == 2

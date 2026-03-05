@@ -1163,7 +1163,7 @@ def detect_fights_teamfight_v2(
     engage_pre_kill_ms = int(getattr(cfg, "TF2_ENGAGE_PRE_KILL_MS", 10000)) if cfg else 10000
     validity_radius = float(getattr(cfg, "TF2_VALIDITY_RADIUS", 1800.0)) if cfg else 1800.0
     interaction_radius = float(getattr(cfg, "TF2_INTERACTION_RADIUS", 3000.0)) if cfg else 3000.0
-    post_fight_window_ms = int(getattr(cfg, "TF2_POST_FIGHT_WINDOW_MS", 20000)) if cfg else 20000
+    post_fight_window_ms = int(getattr(cfg, "TF2_POST_FIGHT_WINDOW_MS", 30000)) if cfg else 30000
     tail_buffer_ms = int(getattr(cfg, "TF2_TAIL_BUFFER_MS", 0)) if cfg else 0
     min_per_team = int(getattr(cfg, "TF2_MIN_PER_TEAM", 2)) if cfg else 2
 

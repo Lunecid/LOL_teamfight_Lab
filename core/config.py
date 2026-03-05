@@ -463,7 +463,7 @@ class CFG:
     # counted as fight interactions during the fight time window.
     TF2_INTERACTION_RADIUS: float = 3000.0
     # Post-fight outcome window (ms after last kill in cluster).
-    TF2_POST_FIGHT_WINDOW_MS: int = 20000
+    TF2_POST_FIGHT_WINDOW_MS: int = 30000
     # Optional tail buffer after last kill (ms).
     TF2_TAIL_BUFFER_MS: int = 0
     # Minimum champions per team within validity radius.
