@@ -15,7 +15,10 @@ def _get_horizon_ms() -> int:
 
 
 def _get_context_ms() -> int:
-    """Context window in ms."""
+    """Context window in ms. Prefer FIGHT_CONTEXT_SEC if exists."""
+    if hasattr(cfg, "FIGHT_CONTEXT_SEC"):
+        sec = int(getattr(cfg, "FIGHT_CONTEXT_SEC", 30))
+        return max(1, sec) * 1000
     ctx_min = int(getattr(cfg, "FIGHT_CONTEXT_MIN", 1))
     return max(1, ctx_min) * 60_000
 

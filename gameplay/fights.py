@@ -190,6 +190,7 @@ class FightDetectorConfig:
     engage_min_dist_drop: float = 250.0
     engage_min_pair_gain: int = 2
     fight_min_gap_ms: int = 0
+    fight_context_sec: int = 30
     fight_context_min: int = 1
     detect_step_ms: int = 10000
     frame_ms: int = 60000
@@ -201,7 +202,7 @@ class FightDetectorConfig:
     # [P2-2 FIX] 기본값을 config.py의 MAX_MERGED_FIGHT_DURATION_MS = 120000과 일치시킴.
     # 이전 값 300000ms(5분)는 config.py 값 120000ms(2분)과 불일치했음.
     # from_cfg() 없이 직접 dataclass를 생성하면 재현성이 흔들릴 수 있었음.
-    max_merged_fight_duration_ms: int = 120000
+    max_merged_fight_duration_ms: int = 60000
 
     # kill-anchor / backtrack
     # Project rule: start-point must be engage-based, not kill-based.
@@ -302,6 +303,7 @@ class FightDetectorConfig:
             fight_min_gap_ms=int(
                 getattr(cfg_obj, "FIGHT_MIN_GAP_MS", int(getattr(cfg_obj, "FIGHT_MIN_GAP_MIN", 1)) * 60000)
             ),
+            fight_context_sec=int(getattr(cfg_obj, "FIGHT_CONTEXT_SEC", 30)),
             fight_context_min=int(getattr(cfg_obj, "FIGHT_CONTEXT_MIN", 1)),
             detect_step_ms=int(getattr(cfg_obj, "DETECT_STEP_MS", int(getattr(cfg_obj, "BIN_MS", 5000)))),
             frame_ms=int(getattr(cfg_obj, "FRAME_MS", 60000)),
@@ -1169,7 +1171,10 @@ def detect_fights_teamfight_v2(
 
     t_min_ms = int(minute_ts[0])
     t_max_ms = int(minute_ts[-1])
-    ctx_ms = int(config.fight_context_min) * 60000
+    if hasattr(config, "fight_context_sec") and int(config.fight_context_sec) > 0:
+        ctx_ms = int(config.fight_context_sec) * 1000
+    else:
+        ctx_ms = int(config.fight_context_min) * 60000
     start_offset_ms = int(getattr(cfg, "START_OFFSET_MIN", 2)) * 60000 if cfg else 120000
     alive_idx = NODE_IDX.get("alive", None)
 

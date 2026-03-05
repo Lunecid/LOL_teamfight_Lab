@@ -432,6 +432,7 @@ class CFG:
     STANDOFF_MIN_PAIRS: int = 3
     CLUSTER_MAX_DIAMETER: float = 4000.0
 
+    FIGHT_CONTEXT_SEC: int = 30
     FIGHT_CONTEXT_MIN: int = 1
     FIGHT_HORIZON_SEC: int = 30
     FIGHT_HORIZON_MIN: int = 1
@@ -441,7 +442,7 @@ class CFG:
     #   - horizon_end_ts (continuous merged fight), if provided
     #   - otherwise engage_ts + horizon.
     PREDICTION_GAP_MS: int = 0
-    MAX_MERGED_FIGHT_DURATION_MS = 120000
+    MAX_MERGED_FIGHT_DURATION_MS = 60000
 
     START_OFFSET_MIN: int = 2
     FIGHT_MIN_GAP_MIN: int = 0
