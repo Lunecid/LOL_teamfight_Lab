@@ -138,11 +138,11 @@ def analyze_long_duration(records: List[Dict[str, Any]]) -> Dict[str, Any]:
          but total cluster span exceeds 50s)
 
     Duration cap (gameplay/fights.py:1253):
-      fight_end_ts - engage_ts > MAX_MERGED_FIGHT_DURATION_MS (120,000ms)
-      → cluster_span + 10,000 > 120,000  →  cluster_span > 110,000ms
+      fight_end_ts - engage_ts > MAX_MERGED_FIGHT_DURATION_MS (60,000ms)
+      → cluster_span + 10,000 > 60,000  →  cluster_span > 50,000ms
 
-    So any cluster spanning 50s-110s produces a fight with duration 60s-120s.
-    The maximum observed 111,497ms implies a cluster_span of ~101,497ms.
+    So any cluster spanning 50s+ produces a fight that hits the 60s cap.
+    Clusters exceeding 50s are rejected by the duration cap.
 
     VERDICT: Intended behavior — extended kill clusters naturally extend
     the label window. The 120s cap is enforced correctly.
@@ -201,12 +201,12 @@ def analyze_long_duration(records: List[Dict[str, Any]]) -> Dict[str, Any]:
                       "within TF2_KILL_CLUSTER_GAP_MS=18s each",
         "code_path": "gameplay/fights.py:1250 — horizon_end_ts = max(fight_end_ts, engage_ts + horizon_ms)",
         "verdict": "INTENDED — label window correctly extends to include all cluster kills; "
-                   "cap at MAX_MERGED_FIGHT_DURATION_MS=120s is enforced",
+                   "cap at MAX_MERGED_FIGHT_DURATION_MS=60s is enforced",
         "recommendation": (
             "Keep in training data. These represent legitimate extended teamfights "
             "(e.g., baron dance, base siege). For models sensitive to fixed-length "
             "windows, normalize by actual duration or add duration as a feature. "
-            "Exclude only if model assumes i.i.d. 60s windows."
+            "Exclude only if model assumes i.i.d. 30s windows."
         ),
     }
 

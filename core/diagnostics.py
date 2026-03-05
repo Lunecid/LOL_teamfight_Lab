@@ -172,7 +172,7 @@ def _maybe_dump_fights_for_match(
         "FIGHT_CONTEXT_MIN": int(getattr(cfg, "FIGHT_CONTEXT_MIN", 1)),
         "FIGHT_MIN_GAP_MIN": int(getattr(cfg, "FIGHT_MIN_GAP_MIN", 3)),
         "FIGHT_MIN_GAP_MS": int(getattr(cfg, "FIGHT_MIN_GAP_MS", int(getattr(cfg, "FIGHT_MIN_GAP_MIN", 3)) * 60000)),
-        "FIGHT_HORIZON_SEC": int(getattr(cfg, "FIGHT_HORIZON_SEC", getattr(cfg, "FIGHT_HORIZON_MIN", 1) * 60)),
+        "FIGHT_HORIZON_SEC": int(getattr(cfg, "FIGHT_HORIZON_SEC", 30)),
 
         # 근접 판정
         "STANDOFF_RADIUS": float(getattr(cfg, "STANDOFF_RADIUS", 1800.0)),
