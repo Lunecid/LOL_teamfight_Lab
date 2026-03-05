@@ -401,7 +401,7 @@ The framework automatically generates:
 - **Severity:** P3 (Low)
 - **Verdict:** Intended behavior
 - **Cause:** Kill clusters form when consecutive kills are within 18s, but total cluster span can exceed 50s (e.g., Baron dance, base siege). Duration = cluster_span + 10s pre-kill offset.
-- **Cap:** Fights exceeding `MAX_MERGED_FIGHT_DURATION_MS = 120,000 ms` are rejected.
+- **Cap:** Fights exceeding `MAX_MERGED_FIGHT_DURATION_MS = 60,000 ms` are rejected.
 - **Action:** None required. These represent legitimate extended teamfights.
 
 ### 9.2 Engagement Overlap (3.67%)

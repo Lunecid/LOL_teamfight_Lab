@@ -11,7 +11,7 @@ Complete definition of all feature sets, dimensions, normalization rules, and co
 | Node features | F_node | **76** per player per timestep | Per-player |
 | Global features | F_global | **26** per timestep | Team-level |
 | Event features | F_event | **44** per timestep per bin | Per-bin aggregate |
-| Temporal bins | L | **12** (60s / 5s) | Per-sample |
+| Temporal bins | L | **6** (30s / 5s) | Per-sample |
 | Players | N | **10** (5 per team) | Per-sample |
 | Champion stats | F_cs | 25 | Subset of F_node |
 | Damage stats | F_ds | 12 | Subset of F_node |
@@ -24,8 +24,8 @@ Complete definition of all feature sets, dimensions, normalization rules, and co
 
 | Tensor | Shape | dtype | Description |
 |--------|-------|-------|-------------|
-| `node_seq` | `(B, 12, 10, 76)` | float32 | Per-player temporal sequence |
-| `extra_seq` | `(B, 12, D_extra)` | float32 | Flattened macro + spatial features |
+| `node_seq` | `(B, 6, 10, 76)` | float32 | Per-player temporal sequence |
+| `extra_seq` | `(B, 6, D_extra)` | float32 | Flattened macro + spatial features |
 | `y` | `(B, 1)` | float32 | Binary label |
 | `event_type` | `(B, K)` | int64 | Event type hash (optional) |
 | `event_actor` | `(B, K)` | int64 | Participant ID (optional) |
@@ -284,7 +284,7 @@ Defined in `core/feature_contract.py::TABULAR_SUFFIXES`:
 [last, mean, std, min, max, delta, slope]
 ```
 
-For each base feature `x` over the L=12 timesteps:
+For each base feature `x` over the L=6 timesteps:
 
 | Suffix | Computation | Description |
 |--------|-------------|-------------|

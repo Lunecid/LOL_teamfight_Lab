@@ -95,7 +95,7 @@ All sequential models process the macro feature sequence S in R^{L x D} (concate
 **Architecture:**
 
 ```
-Input S: (B, L=12, D_input)
+Input S: (B, L=6, D_input)
     |
     v
 InputProjection(D_input, 256) [if USE_INPUT_PROJECTION]
@@ -152,7 +152,7 @@ h_t = o_t . tanh(c_t)                              (hidden state)
 **Architecture:**
 
 ```
-Input S: (B, L=12, D_input)
+Input S: (B, L=6, D_input)
     |
     v
 Linear(D_input, d_model=256)
@@ -206,7 +206,7 @@ where head_i = Attention(Q W_Q^i, K W_K^i, V W_V^i)
 **Architecture:**
 
 ```
-Input S: (B, L=12, D_input)
+Input S: (B, L=6, D_input)
     |
     v
 Linear(D_input, channels=64) + transpose to (B, C, L)
@@ -235,7 +235,7 @@ y_t = sum_{k=0}^{K-1} w_k * x_{t - d*k}
 where d = dilation factor, K = kernel_size
 ```
 
-Dilations `[1, 2, 4]` give receptive field = `2 * (K-1) * sum(dilations) + 1 = 2 * 2 * 7 + 1 = 29 > L=12`.
+Dilations `[1, 2, 4]` give receptive field = `2 * (K-1) * sum(dilations) + 1 = 2 * 2 * 7 + 1 = 29 > L=6`.
 
 | Parameter | Value |
 |-----------|-------|

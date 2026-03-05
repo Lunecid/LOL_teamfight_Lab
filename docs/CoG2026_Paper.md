@@ -87,7 +87,7 @@ where `c` is the fight centroid (position of the first kill), `r_val = 1,800` ga
 
 ### 3.2 Prediction Task
 
-Given a validated teamfight with engage time `t_e`, we observe the game state over a context window `[t_e - ctx, t_e]` where `ctx = 60,000 ms` (60 seconds), discretized into `L = 12` bins of `bin = 5,000 ms` each. The model predicts the binary outcome `y in {0, 1}` computed over the label window `[t_e, t_e + horizon]` where `horizon = 60,000 ms`:
+Given a validated teamfight with engage time `t_e`, we observe the game state over a context window `[t_e - ctx, t_e]` where `ctx = 30,000 ms` (30 seconds), discretized into `L = 6` bins of `bin = 5,000 ms` each. The model predicts the binary outcome `y in {0, 1}` computed over the label window `[t_e, t_e + horizon]` where `horizon = 30,000 ms`:
 
 ```
 y = 1[ w_k * (K_blue - K_red) + w_a * (A_blue - A_red) > 0 ]
@@ -97,7 +97,7 @@ where `K_t` denotes kills by team `t`, `A_t` denotes alive champions on team `t`
 
 ### 3.3 Feature Representation
 
-At each of the `L = 12` time bins, we construct three feature tensors:
+At each of the `L = 6` time bins, we construct three feature tensors:
 
 **Node features** `X^node in R^{L x N x F_node}` where `N = 10` (5 players per team) and `F_node = 76`:
 
@@ -145,12 +145,12 @@ The data pipeline operates in seven stages (see `docs/PIPELINE.md` for complete 
 2. Cluster kills temporally (gap <= 18s)
 3. Validate spatial co-location (>= 2 per team within 1800 units at engage time)
 4. Collect interactions within 3000 units during fight
-5. Compute post-fight outcome (45-second window)
+5. Compute post-fight outcome (30-second window)
 6. Classify fight type (teamfight/skirmish/objective/tower_dive/base_fight/pick)
 
 **Stage 3: Index and Split.** Each detected fight produces a `FightRef` with unique key `match_id|t_start_ts=<ms>`. Splits are match-grouped and patch-stratified: 70% train / 20% validation / 10% test.
 
-**Stage 4: Sample Construction.** 60-second observation window divided into 12 bins of 5 seconds. Node/global features use piecewise-constant snapshots (strict-before 60s frame, no interpolation). Events are bin-aggregated counts. XY positions are zeroed in model input.
+**Stage 4: Sample Construction.** 30-second observation window divided into 6 bins of 5 seconds. Node/global features use piecewise-constant snapshots (strict-before 60s frame, no interpolation). Events are bin-aggregated counts. XY positions are zeroed in model input.
 
 **Stage 5: Label Computation.** Binary label from `kill_survival` scoring (kill differential + alive count). Auxiliary regression targets for multi-task learning.
 
@@ -314,7 +314,7 @@ We use match data from the Korean (KR) ranked ladder, collected via the Riot API
 |---|---|
 | Detected teamfights per match | ~4-6 average |
 | Feature dimensions | 76 (node) + 26 (global) + 44 (event) |
-| Temporal bins per sample | 12 (60s context / 5s bins) |
+| Temporal bins per sample | 6 (30s context / 5s bins) |
 | Players per sample | 10 (5 blue + 5 red) |
 | Label balance | Approximately 50/50 (blue/red win) |
 
@@ -507,7 +507,7 @@ We presented LOL Teamfight Lab, a comprehensive framework for predicting League 
 | Node features | F_node | 76 per player per timestep |
 | Global features | F_global | 26 per timestep |
 | Event features | F_event | 44 per timestep per bin |
-| Temporal bins | L | 12 (60s / 5s) |
+| Temporal bins | L | 6 (30s / 5s) |
 | Players | N | 10 (5 per team) |
 | Champion stats | F_cs | 25 |
 | Damage stats | F_ds | 12 |
@@ -540,14 +540,15 @@ We presented LOL Teamfight Lab, a comprehensive framework for predicting League 
 | TF2_ENGAGE_PRE_KILL_MS | 10,000 | Pre-first-kill engage offset |
 | TF2_VALIDITY_RADIUS | 1,800 | Spatial validation radius |
 | TF2_INTERACTION_RADIUS | 3,000 | Interaction collection radius |
-| TF2_POST_FIGHT_WINDOW_MS | 45,000 | Post-fight outcome window |
+| TF2_POST_FIGHT_WINDOW_MS | 30,000 | Post-fight outcome window |
 | TF2_MIN_PER_TEAM | 2 | Min players per team for validity |
-| FIGHT_HORIZON_SEC | 60 | Label window duration |
+| FIGHT_HORIZON_SEC | 30 | Label window duration |
+| FIGHT_CONTEXT_SEC | 30 | Context window before fight |
 | BIN_MS | 5,000 | Temporal bin size |
 | DETECT_STEP_MS | 10,000 | Detection scanning step |
-| CONTINUOUS_FIGHT_MAX_GAP_MS | 30,000 | Max gap for fight merging |
+| CONTINUOUS_FIGHT_MAX_GAP_MS | 15,000 | Max gap for fight merging |
 | CONTINUOUS_FIGHT_MERGE_RADIUS | 2,000 | Spatial threshold for merging |
-| MAX_MERGED_FIGHT_DURATION_MS | 120,000 | Maximum fight duration cap |
+| MAX_MERGED_FIGHT_DURATION_MS | 60,000 | Maximum fight duration cap |
 
 ## Appendix D: Ablation Treatment Configuration
 
