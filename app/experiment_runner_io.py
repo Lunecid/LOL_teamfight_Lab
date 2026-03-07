@@ -49,7 +49,15 @@ Examples:
 
     parser.add_argument("--feature-set", type=str, default="full", dest="feature_set")
     parser.add_argument("--seed", type=int, default=7)
-    parser.add_argument("--split-mode", type=str, default="patch_holdout", dest="split_mode")
+    parser.add_argument("--split-mode", "--split_mode", type=str, default="patch_holdout", dest="split_mode")
+    parser.add_argument("--max-matches", "--max_matches", type=int, default=0, dest="max_matches",
+                        help="Max number of cached matches to load (0 = no limit)")
+    parser.add_argument("--train-patches", "--train_patches", type=str, default="", dest="train_patches",
+                        help="Comma-separated train patch versions (e.g. '15.14')")
+    parser.add_argument("--val-patches", "--val_patches", type=str, default="", dest="val_patches",
+                        help="Comma-separated val patch versions (e.g. '15.15')")
+    parser.add_argument("--test-patches", "--test_patches", type=str, default="", dest="test_patches",
+                        help="Comma-separated test patch versions (e.g. '15.16')")
 
     parser.add_argument(
         "--speed",
