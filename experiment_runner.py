@@ -578,32 +578,13 @@ def run_phase6_feature_ablation(
         print("            parsimonious_model, logit_pipeline_check")
         return
 
-    # Build data references (same as baseline)
+    # Build data references using the same pipeline as the main experiment
     try:
-        from app.experiment import _build_refs_for_phase6
-        tr_refs, va_refs, te_refs = _build_refs_for_phase6(
-            feature_set=feature_set,
-            split_mode=args.split_mode,
-            seed=seed,
-            log_fp=log_fp,
-        )
-    except (ImportError, AttributeError):
-        # Fallback: build refs directly
-        write_log("[PHASE 6] Falling back to direct ref building", log_fp)
-        try:
-            from data.index_split import build_split_refs
-            from data.cache_io import load_dataset_index
-            idx = load_dataset_index()
-            if not idx:
-                print("[PHASE 6 ERROR] No dataset index. Run cache builder first.")
-                return
-            tr_refs, va_refs, te_refs = build_split_refs(
-                idx, mode=args.split_mode, seed=seed,
-            )
-        except Exception as e:
-            print(f"[PHASE 6 ERROR] Cannot build refs: {e}")
-            write_log(f"[PHASE 6] Cannot build refs: {e}", log_fp)
-            return
+        tr_refs, va_refs, te_refs = _build_refs_for_ablation(args, log_fp, phase_label="PHASE 6")
+    except Exception as e:
+        print(f"[PHASE 6 ERROR] Cannot build refs: {e}")
+        write_log(f"[PHASE 6] Cannot build refs: {e}", log_fp)
+        return
 
     write_log(
         f"[PHASE 6] Refs: train={len(tr_refs)} val={len(va_refs)} test={len(te_refs)}",
@@ -891,6 +872,66 @@ def _print_phase5_summary(results: List[ExperimentResult]) -> None:
 # 7. Main Entry Point
 # ──────────────────────────────────────────────────────────────
 
+def _build_refs_for_ablation(
+    args: argparse.Namespace,
+    log_fp: Path,
+    phase_label: str = "PHASE",
+) -> tuple:
+    """Build fight refs + split for Phase 6/7 ablation experiments.
+
+    Uses the same pipeline as the main experiment: build_fight_index →
+    split_refs_patch_holdout (or split_refs for other modes).
+
+    Returns (tr_refs, va_refs, te_refs) or raises on failure.
+    """
+    from core.config import cfg
+    from core.common import parse_csv_str
+    from core.utils import write_log
+    from data.indexing import scan_cache_match_ids, split_refs_patch_holdout
+    from data.index_split import build_fight_index, split_refs
+
+    seed = args.seed
+    max_matches = int(getattr(args, "max_matches", 0)) or 0
+    max_matches_opt = max_matches if max_matches > 0 else None
+
+    # Propagate to cfg so build_fight_index respects the limit
+    cfg.MAX_MATCHES = max_matches_opt
+
+    train_patches = parse_csv_str(getattr(args, "train_patches", ""))
+    val_patches = parse_csv_str(getattr(args, "val_patches", ""))
+    test_patches = parse_csv_str(getattr(args, "test_patches", ""))
+
+    write_log(f"[{phase_label}] Building fight index (max_matches={max_matches_opt})", log_fp)
+    cache_match_ids = scan_cache_match_ids(max_matches=max_matches_opt)
+    if not cache_match_ids:
+        raise RuntimeError("No cached matches found. Run cache builder first.")
+
+    refs = build_fight_index(cache_match_ids, max_matches=max_matches_opt)
+    if not refs:
+        raise RuntimeError("No fights detected. Check cache / detection rules.")
+
+    write_log(f"[{phase_label}] Fight index: {len(refs)} refs from {len(cache_match_ids)} matches", log_fp)
+
+    split_mode = getattr(args, "split_mode", "patch_holdout")
+    if split_mode == "patch_holdout":
+        tr_refs, va_refs, te_refs, split_info = split_refs_patch_holdout(
+            refs=refs,
+            seed=seed,
+            train_patches=train_patches if train_patches else None,
+            test_patches=test_patches if test_patches else None,
+            val_patches=val_patches if val_patches else None,
+            log_fp=log_fp,
+        )
+    else:
+        tr_refs, va_refs, te_refs, split_info = split_refs(refs, mode=split_mode, seed=seed)
+
+    write_log(
+        f"[{phase_label}] Split: train={len(tr_refs)} val={len(va_refs)} test={len(te_refs)} info={split_info}",
+        log_fp,
+    )
+    return tr_refs, va_refs, te_refs
+
+
 def run_phase7_mlp_ablation(
     args: argparse.Namespace,
     output_dir: Path,
@@ -929,31 +970,13 @@ def run_phase7_mlp_ablation(
         print("  Architecture: Linear(D,256)->ReLU->Drop->Linear(256,256)->ReLU->Drop->Linear(256,1)")
         return
 
-    # Build data references (same as baseline)
+    # Build data references using the same pipeline as the main experiment
     try:
-        from app.experiment import _build_refs_for_phase6
-        tr_refs, va_refs, te_refs = _build_refs_for_phase6(
-            feature_set=feature_set,
-            split_mode=args.split_mode,
-            seed=seed,
-            log_fp=log_fp,
-        )
-    except (ImportError, AttributeError):
-        write_log("[PHASE 7] Falling back to direct ref building", log_fp)
-        try:
-            from data.index_split import build_split_refs
-            from data.cache_io import load_dataset_index
-            idx = load_dataset_index()
-            if not idx:
-                print("[PHASE 7 ERROR] No dataset index. Run cache builder first.")
-                return
-            tr_refs, va_refs, te_refs = build_split_refs(
-                idx, mode=args.split_mode, seed=seed,
-            )
-        except Exception as e:
-            print(f"[PHASE 7 ERROR] Cannot build refs: {e}")
-            write_log(f"[PHASE 7] Cannot build refs: {e}", log_fp)
-            return
+        tr_refs, va_refs, te_refs = _build_refs_for_ablation(args, log_fp, phase_label="PHASE 7")
+    except Exception as e:
+        print(f"[PHASE 7 ERROR] Cannot build refs: {e}")
+        write_log(f"[PHASE 7] Cannot build refs: {e}", log_fp)
+        return
 
     write_log(
         f"[PHASE 7] Refs: train={len(tr_refs)} val={len(va_refs)} test={len(te_refs)}",
@@ -1042,6 +1065,10 @@ def run_phase_cli(args: argparse.Namespace) -> None:
     print(f"Output: {output_dir}")
     print(f"Seeds: {SEEDS}")
     print(f"Dry-run: {args.dry_run}")
+    print(f"Max matches: {getattr(args, 'max_matches', 0) or 'unlimited'}")
+    print(f"Train patches: {getattr(args, 'train_patches', '') or 'auto'}")
+    print(f"Val patches: {getattr(args, 'val_patches', '') or 'auto'}")
+    print(f"Test patches: {getattr(args, 'test_patches', '') or 'auto'}")
     print(f"Isolate (subprocess): {getattr(args, 'isolate', False)}")
 
     # [SPEED] Propagate speed settings via environment for run_single_experiment
