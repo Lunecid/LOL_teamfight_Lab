@@ -352,9 +352,10 @@ def run_mlp_ablation(
         write_log(f"[MLP-ABLATION] Not enough training samples: {len(tr_used)}", log_fp)
         return out
 
+    n_features_raw = Xtr.shape[1]
     write_log(
         f"[MLP-ABLATION] Data: train={Xtr.shape} val={Xva.shape} test={Xte.shape} "
-        f"n_features={Xtr.shape[1]}",
+        f"n_features_raw={n_features_raw}",
         log_fp,
     )
 
@@ -383,6 +384,25 @@ def run_mlp_ablation(
                 f"[MLP-ABLATION] const-prune: dropped={n_dropped} kept={len(const_keep)}",
                 log_fp,
             )
+
+    # ── 2b. Apply same correlation pruning as LightGBM ──
+    if bool(getattr(cfg, "DROP_CORR_FEATURES", False)) and Xtr.shape[1] > 1:
+        from train.baseline import corr_prune_tabular
+        from core.utils import sanitize_feature_names
+        corr_keep_idx, corr_dropped = corr_prune_tabular(
+            Xtr, feat_names, seed=seed,
+            threshold=float(getattr(cfg, "CORR_THRESHOLD", 0.98)),
+        )
+        Xtr = Xtr[:, corr_keep_idx]
+        if Xva.size:
+            Xva = Xva[:, corr_keep_idx]
+        if Xte.size:
+            Xte = Xte[:, corr_keep_idx]
+        feat_names = sanitize_feature_names([feat_names[i] for i in corr_keep_idx])
+        write_log(
+            f"[MLP-ABLATION] corr-prune: kept={len(corr_keep_idx)} dropped={len(corr_dropped)}",
+            log_fp,
+        )
 
     # ── 3. Standardize features (critical for MLP, not needed for trees) ──
     Xtr_s, Xva_s, Xte_s = _standardize(Xtr, Xva, Xte)
@@ -514,7 +534,13 @@ def run_mlp_ablation(
             "test": met_te,
         },
         "bootstrap_ci": bootstrap_ci_results if bootstrap_ci_results else None,
-        "n_features": Xtr_s.shape[1],
+        "n_features_raw": n_features_raw,
+        "n_features_after_pruning": Xtr_s.shape[1],
+        "feature_pipeline_note": (
+            "Identical to LightGBM: build_tabular_Xy -> "
+            "constant/quasi-constant pruning -> correlation pruning. "
+            "Only additional step is z-score standardization for MLP."
+        ),
         "n_samples": {
             "train": len(tr_used),
             "val": len(va_used),
