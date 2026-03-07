@@ -20,6 +20,7 @@ Phase descriptions:
   4  Hyperparameter sensitivity analysis
   5  Final test set evaluation (ONE-TIME)
   6  Feature ablation analysis (SHAP, static-attribute validation, parsimonious model)
+  7  MLP-on-same-features ablation (representation vs architecture)
 
 Examples:
   python experiment_runner.py --phase 1
@@ -31,7 +32,7 @@ Examples:
         """,
     )
 
-    parser.add_argument("--phase", type=int, required=True, choices=[1, 2, 3, 4, 5, 6], help="Experiment phase to execute (6=feature ablation analysis)")
+    parser.add_argument("--phase", type=int, required=True, choices=[1, 2, 3, 4, 5, 6, 7], help="Experiment phase to execute (7=MLP ablation)")
     parser.add_argument(
         "--treatment",
         type=str,
@@ -69,6 +70,27 @@ Examples:
         choices=["none", "auto", "rtx50", "rtx5080", "aggressive"],
         help="Runtime speed profile to combine with overlay (default: auto)",
     )
+    # Phase 7: MLP ablation arguments
+    mlp_group = parser.add_argument_group("Phase 7: MLP ablation")
+    mlp_group.add_argument("--mlp-seeds", type=str, default=None, dest="mlp_seeds",
+                           help="Comma-separated seeds for multi-seed MLP run (e.g. '42,123,456')")
+    mlp_group.add_argument("--mlp-hidden-dim", type=int, default=256, dest="mlp_hidden_dim",
+                           help="MLP hidden layer dimension (default: 256)")
+    mlp_group.add_argument("--mlp-dropout", type=float, default=0.3, dest="mlp_dropout",
+                           help="MLP dropout rate (default: 0.3)")
+    mlp_group.add_argument("--mlp-lr", type=float, default=1e-3, dest="mlp_lr",
+                           help="MLP learning rate (default: 1e-3)")
+    mlp_group.add_argument("--mlp-weight-decay", type=float, default=1e-4, dest="mlp_weight_decay",
+                           help="MLP weight decay (default: 1e-4)")
+    mlp_group.add_argument("--mlp-batch-size", type=int, default=512, dest="mlp_batch_size",
+                           help="MLP batch size (default: 512)")
+    mlp_group.add_argument("--mlp-max-epochs", type=int, default=100, dest="mlp_max_epochs",
+                           help="MLP max epochs (default: 100)")
+    mlp_group.add_argument("--mlp-patience", type=int, default=15, dest="mlp_patience",
+                           help="MLP early stopping patience (default: 15)")
+    mlp_group.add_argument("--max-samples", type=int, default=None, dest="max_samples",
+                           help="Max samples per split for quick testing")
+
     parser.add_argument(
         "--isolate",
         action="store_true",
