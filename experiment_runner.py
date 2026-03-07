@@ -891,6 +891,145 @@ def _print_phase5_summary(results: List[ExperimentResult]) -> None:
 # 7. Main Entry Point
 # ──────────────────────────────────────────────────────────────
 
+def run_phase7_mlp_ablation(
+    args: argparse.Namespace,
+    output_dir: Path,
+) -> None:
+    """Phase 7: MLP-on-Same-Features Ablation (Representation vs Architecture).
+
+    Feeds the same engineered time-statistics features used by LightGBM
+    into a 2-layer MLP. Tests whether representation design matters
+    independently of the model architecture.
+
+    If MLP ≈ LightGBM → representation is the key driver.
+    If MLP << LightGBM → tree splitting adds benefit beyond features.
+    """
+    from app.experiment_runtime import reset_config_to_baseline
+    from core.config import cfg
+
+    print("=" * 70)
+    print("PHASE 7: MLP-on-Same-Features Ablation")
+    print("  Purpose: Test representation design vs architecture")
+    print("=" * 70)
+
+    reset_config_to_baseline(cfg)
+
+    seed = args.seed
+    feature_set = args.feature_set
+
+    phase7_dir = output_dir / "phase7_mlp_ablation"
+    phase7_dir.mkdir(parents=True, exist_ok=True)
+    log_fp = phase7_dir / "phase7.log"
+
+    from core.utils import write_log
+    write_log("[PHASE 7] Starting MLP-on-same-features ablation", log_fp)
+
+    if args.dry_run:
+        print("  [DRY-RUN] Would run MLP ablation on same tabular features")
+        print("  Architecture: Linear(D,256)->ReLU->Drop->Linear(256,256)->ReLU->Drop->Linear(256,1)")
+        return
+
+    # Build data references (same as baseline)
+    try:
+        from app.experiment import _build_refs_for_phase6
+        tr_refs, va_refs, te_refs = _build_refs_for_phase6(
+            feature_set=feature_set,
+            split_mode=args.split_mode,
+            seed=seed,
+            log_fp=log_fp,
+        )
+    except (ImportError, AttributeError):
+        write_log("[PHASE 7] Falling back to direct ref building", log_fp)
+        try:
+            from data.index_split import build_split_refs
+            from data.cache_io import load_dataset_index
+            idx = load_dataset_index()
+            if not idx:
+                print("[PHASE 7 ERROR] No dataset index. Run cache builder first.")
+                return
+            tr_refs, va_refs, te_refs = build_split_refs(
+                idx, mode=args.split_mode, seed=seed,
+            )
+        except Exception as e:
+            print(f"[PHASE 7 ERROR] Cannot build refs: {e}")
+            write_log(f"[PHASE 7] Cannot build refs: {e}", log_fp)
+            return
+
+    write_log(
+        f"[PHASE 7] Refs: train={len(tr_refs)} val={len(va_refs)} test={len(te_refs)}",
+        log_fp,
+    )
+
+    # Parse seeds for multi-seed run
+    seeds_str = getattr(args, "mlp_seeds", None)
+    if seeds_str:
+        seeds = [int(s.strip()) for s in str(seeds_str).split(",")]
+    else:
+        seeds = [seed]
+
+    from analysis.mlp_ablation import run_mlp_ablation, run_mlp_ablation_multi_seed
+
+    mlp_kwargs = {
+        "hidden_dim": int(getattr(args, "mlp_hidden_dim", 256)),
+        "dropout": float(getattr(args, "mlp_dropout", 0.3)),
+        "lr": float(getattr(args, "mlp_lr", 1e-3)),
+        "weight_decay": float(getattr(args, "mlp_weight_decay", 1e-4)),
+        "batch_size": int(getattr(args, "mlp_batch_size", 512)),
+        "max_epochs": int(getattr(args, "mlp_max_epochs", 100)),
+        "patience": int(getattr(args, "mlp_patience", 15)),
+    }
+
+    max_samples = getattr(args, "max_samples", None)
+
+    if len(seeds) > 1:
+        result = run_mlp_ablation_multi_seed(
+            feature_set=feature_set,
+            tr_refs=tr_refs,
+            va_refs=va_refs,
+            te_refs=te_refs,
+            seeds=seeds,
+            log_fp=log_fp,
+            out_dir=phase7_dir,
+            max_samples=max_samples,
+            **mlp_kwargs,
+        )
+    else:
+        result = run_mlp_ablation(
+            feature_set=feature_set,
+            tr_refs=tr_refs,
+            va_refs=va_refs,
+            te_refs=te_refs,
+            seed=seeds[0],
+            log_fp=log_fp,
+            out_dir=phase7_dir,
+            max_samples=max_samples,
+            **mlp_kwargs,
+        )
+
+    # Print summary
+    print("\n" + "=" * 70)
+    print("PHASE 7 SUMMARY: MLP-on-Same-Features Ablation")
+    print("=" * 70)
+
+    if result.get("ok"):
+        metrics = result.get("metrics", {})
+        if metrics.get("val"):
+            print(f"  MLP Val AUC:  {metrics['val'].get('auc', 'N/A')}")
+        if metrics.get("test"):
+            print(f"  MLP Test AUC: {metrics['test'].get('auc', 'N/A')}")
+        if "val_auc_mean" in result:
+            print(f"  Val AUC (mean±std):  {result['val_auc_mean']:.4f}±{result.get('val_auc_std', 0):.4f}")
+            print(f"  Test AUC (mean±std): {result.get('test_auc_mean', 0):.4f}±{result.get('test_auc_std', 0):.4f}")
+        ci = result.get("bootstrap_ci", {})
+        if ci and "val" in ci:
+            print(f"  Val 95% CI:   [{ci['val']['ci_low']:.4f}, {ci['val']['ci_high']:.4f}]")
+        print("\n  Compare these numbers against LightGBM baseline (Phase 1) to determine:")
+        print("    - If MLP ≈ LightGBM → representation design is the key, not architecture")
+        print("    - If MLP << LightGBM → tree splitting adds benefit beyond features")
+    else:
+        print("  [FAILED] MLP ablation did not complete successfully")
+
+
 def run_phase_cli(args: argparse.Namespace) -> None:
     """Execute the ablation workflow from an already-parsed namespace."""
 
@@ -982,6 +1121,10 @@ def run_phase_cli(args: argparse.Namespace) -> None:
     elif args.phase == 6:
         print("[Phase 6] Feature ablation analysis (SHAP, static-attr validation, parsimonious model, logit pipeline)")
         run_phase6_feature_ablation(args, output_dir)
+
+    elif args.phase == 7:
+        print("[Phase 7] MLP-on-same-features ablation (representation vs architecture)")
+        run_phase7_mlp_ablation(args, output_dir)
 
     print("\n[DONE] Experiment phase completed.")
 
