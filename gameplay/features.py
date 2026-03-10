@@ -365,8 +365,8 @@ def seq_to_tabular(x_seq: np.ndarray) -> np.ndarray:
 # Feature names
 # ---------------------------------------------------------------------
 def _macro_base_names() -> List[str]:
-    items = list(ITEM_HASH_NAMES) if bool(getattr(cfg, "USE_ITEMS", True)) else []
-    return _global_base_names() + list(EVENT_FEATURE_NAMES) + items
+    # item hash는 노드 수준으로 이동 — macro에서 제거
+    return _global_base_names() + list(EVENT_FEATURE_NAMES)
 
 
 def _global_base_names() -> List[str]:
@@ -391,7 +391,15 @@ def get_xseq_feature_names(feature_set: str) -> List[str]:
         return node_names + list(NODE_PERSONAL_EVENT_KEEP) + spatial
 
     if feature_set == "full":
-        return node_names + _macro_base_names() + spatial
+        node_item_names: List[str] = []
+        if bool(getattr(cfg, "USE_PER_PLAYER_ITEMS", False)):
+            item_dim = int(getattr(cfg, "ITEM_HASH_DIM_PER_PLAYER", 16))
+            node_item_names = [
+                f"{slot}_itemhash{i}"
+                for slot in SLOT_NAMES
+                for i in range(item_dim)
+            ]
+        return node_names + node_item_names + _macro_base_names() + spatial
 
     if feature_set == "tri_modal":
         raise ValueError("tri_modal has no x_seq; use get_tabular_feature_names_tri_modal().")
@@ -512,6 +520,15 @@ def build_sequence_features(
     node_role = reorder_node_seq_by_role(node_seq, role_slots)  # (L,10,F_NODE)
     node_flat = node_role.reshape(node_role.shape[0], -1).astype(np.float32)
 
+    # per-player item hash를 node_flat에 병합 (x_seq/LightGBM용)
+    if bool(getattr(cfg, "USE_PER_PLAYER_ITEMS", False)):
+        node_item = sample.get("node_item_seq", None)
+        if node_item is not None:
+            # node_item: (L, 10, 16) → (L, 160)
+            node_item_flat = np.asarray(node_item, dtype=np.float32).reshape(
+                node_item.shape[0], -1)
+            node_flat = np.concatenate([node_flat, node_item_flat], axis=1).astype(np.float32)
+
     # Build global prefix: glob_seq (+ phase_seq if enabled).
     # Phase must be adjacent to glob_seq so that models can slice the
     # global prefix as [..,:F_GLOBAL+phase_dim] from extra_seq/macro_seq.
@@ -532,12 +549,9 @@ def build_sequence_features(
         ).astype(np.float32)
         global_base = np.concatenate([global_base, phase_seq], axis=1).astype(np.float32)
 
-    # macro_base = [global_base | ev_seq | item_seq]
-    # Prefix is [glob_seq (| phase_seq)] so models can slice global features.
-    if bool(getattr(cfg, "USE_ITEMS", True)):
-        macro_base = np.concatenate([global_base, ev_seq, item_seq], axis=1).astype(np.float32)
-    else:
-        macro_base = np.concatenate([global_base, ev_seq], axis=1).astype(np.float32)
+    # macro_base = [global_base | ev_seq]
+    # item_seq(팀수준)은 macro에서 제거 — 아이템은 노드 수준으로만 전달 (node_item_seq)
+    macro_base = np.concatenate([global_base, ev_seq], axis=1).astype(np.float32)
 
     spatial_seq = compute_spatial_seq_from_node(node_role, sample)  # (L, F_SPATIAL)
 

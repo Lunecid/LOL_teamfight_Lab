@@ -200,7 +200,10 @@ REDUNDANT_SUFFIXES_FOR_CONSTANT: Tuple[str, ...] = (
 
 # Node-level quasi-constants (per-player, appear with slot prefix):
 # NOTE: Dragon soul was moved to Category C (within-fight constant).
-QUASI_CONSTANT_NODE_FEATURE_PREFIXES: Tuple[str, ...] = ()
+# itemhash: per-player item hash — item purchase requires recall, impossible mid-fight
+QUASI_CONSTANT_NODE_FEATURE_PREFIXES: Tuple[str, ...] = (
+    "itemhash",
+)
 
 # ─── Category C: Within-fight constant (sparse binary signals) ──
 # Features that are constant within any single fight observation
@@ -223,11 +226,10 @@ WITHIN_FIGHT_CONSTANT_NODE_FEATURE_PREFIXES: Tuple[str, ...] = (
 )
 
 # Non-slotted quasi-constants (global/spatial/item features):
-# - itemhash: item purchase requires recall, impossible mid-fight
+# - itemhash moved to node-level (QUASI_CONSTANT_NODE_FEATURE_PREFIXES)
 # - zone_*: fight anchor zone is fixed for the engagement
 # - pos_fight_*: fight centroid is anchored to the engagement location
 QUASI_CONSTANT_EXTRA_FEATURE_PREFIXES: Tuple[str, ...] = (
-    "itemhash",
     "zone_top_lane",
     "zone_mid_lane",
     "zone_bot_lane",
