@@ -68,11 +68,17 @@ def get_label_map(
         except Exception:
             le = -1
 
+        # Cluster kill timestamps for cluster-scoped labels
+        fk = int(getattr(r, "first_kill_ts", -1))
+        lk = int(getattr(r, "last_kill_ts", -1))
+
         # except 블록 바깥으로 이동
         raw = build_ms_sequence(
             pack, pack["meta"]["team_map"], r.t_start,
             engage_ts=(ts if ts >= 0 else None),
             label_end_ts=(le if le >= 0 else None),
+            first_kill_ts=(fk if fk >= 0 else None),
+            last_kill_ts=(lk if lk >= 0 else None),
         )
         if not raw:
             continue

@@ -359,7 +359,7 @@ def validate_static_temporal_aggregation(
     from gameplay.pipeline import build_ms_sequence
     from gameplay.features import build_sequence_features, seq_to_tabular
     from train.baseline import (
-        _choose_tab_seq_key_and_names, _ref_engage_ts, _ref_label_end_ts,
+        _choose_tab_seq_key_and_names, _ref_engage_ts, _ref_label_end_ts, _ref_first_kill_ts, _ref_last_kill_ts,
         _tabular_feature_names_from_base, infer_tabular_plan,
     )
 
@@ -404,6 +404,8 @@ def validate_static_temporal_aggregation(
             -1,
             engage_ts=_ref_engage_ts(r),
             label_end_ts=_ref_label_end_ts(r),
+            first_kill_ts=_ref_first_kill_ts(r),
+            last_kill_ts=_ref_last_kill_ts(r),
         )
         if not raw:
             continue

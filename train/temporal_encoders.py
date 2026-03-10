@@ -105,24 +105,30 @@ class TransformerTemporalEncoder(nn.Module):
     def __init__(self, d_in: int, d_model: int, nhead: int, n_layers: int, dropout: float = 0.1, max_len: int = 512):
         super().__init__()
         self.proj = nn.Linear(d_in, d_model) if d_in != d_model else nn.Identity()
-        self.pos = PositionalEncoding(d_model, max_len=max_len)
+        self.cls_token = nn.Parameter(torch.randn(1, 1, d_model) * 0.02)
+        self.pos = PositionalEncoding(d_model, max_len=max_len + 1)
         enc_layer = nn.TransformerEncoderLayer(
             d_model=d_model,
             nhead=nhead,
-            dim_feedforward=d_model * int(getattr(cfg, "TRANS_FF_MULT", 4)),
+            dim_feedforward=d_model * int(getattr(cfg, "TRANS_FF_MULT", 2)),
             dropout=dropout,
             batch_first=True,
             activation="relu",
             norm_first=True,
         )
         self.enc = nn.TransformerEncoder(enc_layer, num_layers=n_layers)
-        self.out_dim = d_model
+        self.out_dim = d_model * 2  # CLS + mean pool
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         h = self.proj(x)
+        B = h.shape[0]
+        cls = self.cls_token.expand(B, -1, -1)
+        h = torch.cat([cls, h], dim=1)
         h = self.pos(h)
         h = self.enc(h)
-        return h[:, -1, :]
+        cls_out = h[:, 0, :]
+        mean_out = h[:, 1:, :].mean(dim=1)
+        return torch.cat([cls_out, mean_out], dim=-1)
 
 
 class _Chomp1d(nn.Module):

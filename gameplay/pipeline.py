@@ -49,6 +49,8 @@ def compute_label(
     engage_ts: Optional[int] = None,
     label_end_ts: Optional[int] = None,
     horizon_ms: Optional[int] = None,
+    first_kill_ts: Optional[int] = None,
+    last_kill_ts: Optional[int] = None,
 ) -> Optional[int]:
     return _compute_label(
         cache,
@@ -57,6 +59,8 @@ def compute_label(
         engage_ts=engage_ts,
         label_end_ts=label_end_ts,
         horizon_ms=horizon_ms,
+        first_kill_ts=first_kill_ts,
+        last_kill_ts=last_kill_ts,
         interp_node_global=interpolate_node_global,
     )
 
@@ -69,6 +73,8 @@ def compute_label_targets(
     engage_ts: Optional[int] = None,
     label_end_ts: Optional[int] = None,
     horizon_ms: Optional[int] = None,
+    first_kill_ts: Optional[int] = None,
+    last_kill_ts: Optional[int] = None,
 ) -> Optional[Dict[str, float]]:
     return _compute_label_targets(
         cache,
@@ -77,6 +83,8 @@ def compute_label_targets(
         engage_ts=engage_ts,
         label_end_ts=label_end_ts,
         horizon_ms=horizon_ms,
+        first_kill_ts=first_kill_ts,
+        last_kill_ts=last_kill_ts,
         interp_node_global=interpolate_node_global,
     )
 
@@ -88,6 +96,8 @@ def build_ms_sequence(
     *,
     engage_ts: Optional[int] = None,
     label_end_ts: Optional[int] = None,
+    first_kill_ts: Optional[int] = None,
+    last_kill_ts: Optional[int] = None,
     ctx_ms: Optional[int] = None,
     bin_ms: Optional[int] = None,
     horizon_ms: Optional[int] = None,
@@ -175,6 +185,8 @@ def build_ms_sequence(
             engage_ts=label_start_ms,
             label_end_ts=label_end_ms,
             horizon_ms=horizon_ms,
+            first_kill_ts=first_kill_ts,
+            last_kill_ts=last_kill_ts,
         )
     else:
         y_pack = compute_label_targets(
@@ -184,6 +196,8 @@ def build_ms_sequence(
             engage_ts=label_start_ms,
             label_end_ts=label_end_ms,
             horizon_ms=horizon_ms,
+            first_kill_ts=first_kill_ts,
+            last_kill_ts=last_kill_ts,
         )
 
     if y_pack is None:

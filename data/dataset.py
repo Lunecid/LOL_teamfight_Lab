@@ -296,6 +296,12 @@ class InMemoryFightDataset(Dataset):
         except Exception:
             label_end_ts = -1
 
+        # Cluster kill timestamps for cluster-scoped labels
+        _fk = int(getattr(r, "first_kill_ts", -1))
+        _lk = int(getattr(r, "last_kill_ts", -1))
+        _first_kill = _fk if _fk >= 0 else None
+        _last_kill = _lk if _lk >= 0 else None
+
         if r.t_start_ts >= 0:
             raw = build_ms_sequence(
                 pack,
@@ -303,9 +309,15 @@ class InMemoryFightDataset(Dataset):
                 -1,
                 engage_ts=r.t_start_ts,
                 label_end_ts=(label_end_ts if label_end_ts >= 0 else None),
+                first_kill_ts=_first_kill,
+                last_kill_ts=_last_kill,
             )
         else:
-            raw = build_ms_sequence(pack, tm, r.t_start)
+            raw = build_ms_sequence(
+                pack, tm, r.t_start,
+                first_kill_ts=_first_kill,
+                last_kill_ts=_last_kill,
+            )
 
         if not raw:
             return None

@@ -206,6 +206,8 @@ def infer_tabular_plan(
             -1,
             engage_ts=_ref_engage_ts(r),
             label_end_ts=_ref_label_end_ts(r),
+            first_kill_ts=_ref_first_kill_ts(r),
+            last_kill_ts=_ref_last_kill_ts(r),
         )
         if not raw:
             continue
@@ -235,6 +237,24 @@ def _ref_engage_ts(r):
 
 def _ref_label_end_ts(r):
     ts = getattr(r, "label_end_ts", -1)
+    try:
+        ts = int(ts)
+    except Exception:
+        ts = -1
+    return ts if ts >= 0 else None
+
+
+def _ref_first_kill_ts(r):
+    ts = getattr(r, "first_kill_ts", -1)
+    try:
+        ts = int(ts)
+    except Exception:
+        ts = -1
+    return ts if ts >= 0 else None
+
+
+def _ref_last_kill_ts(r):
+    ts = getattr(r, "last_kill_ts", -1)
     try:
         ts = int(ts)
     except Exception:
@@ -271,6 +291,8 @@ def build_tabular_Xy(
             -1,
             engage_ts=_ref_engage_ts(r),
             label_end_ts=_ref_label_end_ts(r),
+            first_kill_ts=_ref_first_kill_ts(r),
+            last_kill_ts=_ref_last_kill_ts(r),
         )
         if not raw:
             continue

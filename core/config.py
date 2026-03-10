@@ -823,13 +823,16 @@ class CFG:
 
     SAGE_DEG_EPS: float = 1e-6
 
-    # Transformer temporal
-    TRANS_D_MODEL: int = 256
+    # Transformer temporal (L=6 stability: reduced from 256/3/4/0.2)
+    TRANS_D_MODEL: int = 64
     TRANS_NHEAD: int = 4
-    TRANS_LAYERS: int = 3
-    TRANS_DROPOUT: float = 0.2
-    TRANS_FF_MULT: int = 4
+    TRANS_LAYERS: int = 2
+    TRANS_DROPOUT: float = 0.1
+    TRANS_FF_MULT: int = 2
     TRANS_MAX_LEN: int = 512
+    TRANS_LR: float = 1e-4
+    TRANS_WARMUP_EPOCHS: int = 3
+    TRANS_WARMUP_START_FACTOR: float = 0.1
 
     # TCN temporal
     TCN_CHANNELS: int = 64
