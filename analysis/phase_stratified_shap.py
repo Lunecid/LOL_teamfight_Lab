@@ -2,15 +2,25 @@
 
 Runs SHAP on existing LightGBM model separately for Early/Mid/Late game phases,
 producing a Feature Importance Transition Table.
+
+Usage:
+    python -m analysis.phase_stratified_shap \
+        --run_dir outputs/runs_.../run_..._seed=42 \
+        --output_dir outputs/phase_shap
 """
 from __future__ import annotations
 
+import argparse
 import json
 import logging
+import sys
+import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 logger = logging.getLogger(__name__)
 
@@ -19,13 +29,15 @@ def load_lgbm_model(run_dir: Path):
     """Load a saved LightGBM model from a run directory."""
     import lightgbm as lgb
 
-    model_path = run_dir / "models" / "lgbm_model.txt"
-    if not model_path.exists():
-        candidates = list(run_dir.rglob("lgbm*.txt")) + list(run_dir.rglob("lgbm*.bin"))
-        if candidates:
-            model_path = candidates[0]
-        else:
-            raise FileNotFoundError(f"No LightGBM model found in {run_dir}")
+    candidates = (
+        list(run_dir.rglob("lgbm_baseline_seed*.txt"))
+        + list(run_dir.rglob("lgbm*.txt"))
+        + list(run_dir.rglob("lgbm*.bin"))
+    )
+    if not candidates:
+        raise FileNotFoundError(f"No LightGBM model found in {run_dir}")
+    model_path = candidates[0]
+    logger.info("[LOAD] LightGBM model: %s", model_path)
     return lgb.Booster(model_file=str(model_path))
 
 
@@ -102,7 +114,7 @@ def run_phase_stratified_shap(
 
         phase_results[phase_name] = {
             "n_samples": int(n),
-            "mean_abs_shap": mean_abs.tolist(),
+            "mean_abs_shap_full": mean_abs.tolist(),
             "top_10": top_features,
         }
 
@@ -110,39 +122,54 @@ def run_phase_stratified_shap(
         logger.info("[SHAP] %s top-3: %s", phase_name, top_features[:3])
 
     # Build Transition Table
-    all_top_feats: set = set()
+    all_top: set = set()
     for pr in phase_results.values():
         for fn, _ in pr["top_10"]:
-            all_top_feats.add(fn)
+            all_top.add(fn)
 
-    transition_table: List[Dict[str, Any]] = []
-    for feat in sorted(all_top_feats):
+    transition: List[Dict[str, Any]] = []
+    for feat in sorted(all_top):
         if feat not in feat_names:
             continue
         fidx = feat_names.index(feat)
         row: Dict[str, Any] = {"feature": feat}
-        for pname in ["early", "mid", "late"]:
-            if pname not in phase_results:
-                row[f"{pname}_shap"] = None
-                row[f"{pname}_rank"] = None
+        for pn in ["early", "mid", "late"]:
+            if pn not in phase_results:
+                row[f"{pn}_shap"] = None
+                row[f"{pn}_rank"] = None
                 continue
-            mas = np.array(phase_results[pname]["mean_abs_shap"])
+            mas = np.array(phase_results[pn]["mean_abs_shap_full"])
             val = mas[fidx]
             rank = int((mas > val).sum()) + 1
-            row[f"{pname}_shap"] = round(float(val), 4)
-            row[f"{pname}_rank"] = rank
-        transition_table.append(row)
+            row[f"{pn}_shap"] = round(float(val), 4)
+            row[f"{pn}_rank"] = rank
+        transition.append(row)
 
-    # Save results (exclude raw mean_abs_shap arrays for JSON readability)
+    # Save results (exclude raw arrays for JSON readability)
     result = {
         "phase_results": {
-            k: {kk: vv for kk, vv in v.items() if kk != "mean_abs_shap"}
+            k: {kk: vv for kk, vv in v.items() if kk != "mean_abs_shap_full"}
             for k, v in phase_results.items()
         },
-        "transition_table": transition_table,
+        "transition_table": transition,
     }
     with open(output_dir / "phase_shap_results.json", "w") as f:
         json.dump(result, f, indent=2, ensure_ascii=False)
 
     logger.info("[DONE] Results saved to %s", output_dir)
     return result
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    ap = argparse.ArgumentParser(description="Phase-Stratified SHAP Analysis")
+    ap.add_argument("--run_dir", type=str, required=True, help="LightGBM run directory")
+    ap.add_argument("--output_dir", type=str, default="outputs/phase_shap")
+    ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--n_samples", type=int, default=2000)
+    args = ap.parse_args()
+
+    # NOTE: X_test, feat_names, fight_minutes must be loaded from the run directory.
+    # This requires rebuilding the tabular dataset from the saved feature plan and refs.
+    print("[NOTE] To run this script, load X_test, feat_names, fight_minutes from your run.")
+    print("       Example: reconstruct from LightGBM's pred_test.csv and tabular plan.")

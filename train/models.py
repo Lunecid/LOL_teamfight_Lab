@@ -762,13 +762,13 @@ class GNNOnlyModel(nn.Module, DebugHookMixin):
         drop = float(getattr(cfg, "DROPOUT", 0.1))
         self.head = MLP(3 * gnn_dim, head_hidden, 1, dropout=drop, layers=head_layers)
 
-    def encode_last(self, node_seq: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
+    def encode_last(self, node_seq: torch.Tensor, node_item: torch.Tensor = None) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         x_raw = node_seq[:, -1, :, :]          # (B,N,Fraw)
         xy = x_raw[:, :, [X_IDX, Y_IDX]]       # (B,N,2)
 
         alive = _extract_alive_from_raw(x_raw)
 
-        x = self.node_adapter(x_raw)           # (B,N,gnn_dim)
+        x = self.node_adapter(x_raw, node_item=node_item)  # (B,N,gnn_dim)
         if alive is not None:
             x = x * alive.unsqueeze(-1)
 
@@ -787,7 +787,12 @@ class GNNOnlyModel(nn.Module, DebugHookMixin):
         if node_seq is None:
             raise KeyError("GNNOnlyModel requires node_seq")
 
-        pooled, h, A, alive = self.encode_last(node_seq)
+        node_item_last = None
+        node_item_full = batch.get("node_item_seq", None)
+        if node_item_full is not None:
+            node_item_last = node_item_full[:, -1, :, :]
+
+        pooled, h, A, alive = self.encode_last(node_seq, node_item=node_item_last)
         self._maybe_store_debug(A, h)
 
         logit = self.head(pooled)
@@ -839,6 +844,7 @@ class STGNNModel(nn.Module, DebugHookMixin):
             raise KeyError("STGNNModel requires node_seq")
 
         B, L, N, Fraw = node_seq.shape
+        node_item_full = batch.get("node_item_seq", None)
         pooled_list = []
         last_A = None
         last_h = None
@@ -850,7 +856,8 @@ class STGNNModel(nn.Module, DebugHookMixin):
 
             alive = _extract_alive_from_raw(x_raw)
 
-            x = self.node_adapter(x_raw)
+            node_item_t = node_item_full[:, t, :, :] if node_item_full is not None else None
+            x = self.node_adapter(x_raw, node_item=node_item_t)
             if alive is not None:
                 x = x * alive.unsqueeze(-1)
 
@@ -926,6 +933,7 @@ class STGCNModel(nn.Module, DebugHookMixin):
             raise KeyError("STGCNModel requires node_seq")
 
         B, L, N, Fraw = node_seq.shape
+        node_item_full = batch.get("node_item_seq", None)
         pooled_list = []
         last_A = None
         last_h = None
@@ -936,7 +944,8 @@ class STGCNModel(nn.Module, DebugHookMixin):
 
             alive = _extract_alive_from_raw(x_raw)
 
-            x = self.node_adapter(x_raw)
+            node_item_t = node_item_full[:, t, :, :] if node_item_full is not None else None
+            x = self.node_adapter(x_raw, node_item=node_item_t)
             if alive is not None:
                 x = x * alive.unsqueeze(-1)
 
@@ -1005,6 +1014,7 @@ class EdgeSTGNNModel(nn.Module, DebugHookMixin):
             raise KeyError("EdgeSTGNNModel requires node_seq")
 
         B, L, N, Fraw = node_seq.shape
+        node_item_full = batch.get("node_item_seq", None)
         pooled_list = []
         last_A = None
         last_h = None
@@ -1015,7 +1025,8 @@ class EdgeSTGNNModel(nn.Module, DebugHookMixin):
 
             alive = _extract_alive_from_raw(x_raw)
 
-            x = self.node_adapter(x_raw)
+            node_item_t = node_item_full[:, t, :, :] if node_item_full is not None else None
+            x = self.node_adapter(x_raw, node_item=node_item_t)
             if alive is not None:
                 x = x * alive.unsqueeze(-1)
 
@@ -1093,6 +1104,7 @@ class STMambaModel(nn.Module, DebugHookMixin):
             raise KeyError("STMambaModel requires node_seq")
 
         B, L, N, Fraw = node_seq.shape
+        node_item_full = batch.get("node_item_seq", None)
         pooled_list = []
         last_A, last_h = None, None
 
@@ -1101,7 +1113,8 @@ class STMambaModel(nn.Module, DebugHookMixin):
             xy = x_raw[:, :, [X_IDX, Y_IDX]]
             alive = _extract_alive_from_raw(x_raw)
 
-            x = self.node_adapter(x_raw)
+            node_item_t = node_item_full[:, t, :, :] if node_item_full is not None else None
+            x = self.node_adapter(x_raw, node_item=node_item_t)
             if alive is not None:
                 x = x * alive.unsqueeze(-1)
 
@@ -1328,6 +1341,7 @@ class EventXAttnSTModel(nn.Module, DebugHookMixin):
             raise KeyError("EventXAttnSTModel requires event_type/event_actor/event_team/event_cont/event_mask")
 
         B, L, N, Fraw = node_seq.shape
+        node_item_full = batch.get("node_item_seq", None)
         pooled_list = []
         last_A = None
         last_h = None
@@ -1338,7 +1352,8 @@ class EventXAttnSTModel(nn.Module, DebugHookMixin):
 
             alive = _extract_alive_from_raw(x_raw)
 
-            x = self.node_adapter(x_raw)
+            node_item_t = node_item_full[:, t, :, :] if node_item_full is not None else None
+            x = self.node_adapter(x_raw, node_item=node_item_t)
             if alive is not None:
                 x = x * alive.unsqueeze(-1)
 
@@ -1591,12 +1606,12 @@ class LayeredFusionGNNBiGRUXAttn(nn.Module, DebugHookMixin):
         pad = temporal_seq.new_zeros((*temporal_seq.shape[:-1], pad_dim))
         return torch.cat([temporal_seq, pad], dim=-1)
 
-    def _encode_node_gnn(self, node_seq: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def _encode_node_gnn(self, node_seq: torch.Tensor, node_item: torch.Tensor = None) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         x_raw = node_seq[:, -1, :, :]
         xy = x_raw[:, :, [X_IDX, Y_IDX]]
         alive = _extract_alive_from_raw(x_raw)
 
-        x = self.node_adapter(x_raw)
+        x = self.node_adapter(x_raw, node_item=node_item)
         if alive is not None:
             x = x * alive.unsqueeze(-1)
 
@@ -1674,7 +1689,11 @@ class LayeredFusionGNNBiGRUXAttn(nn.Module, DebugHookMixin):
         if any(x is None for x in (etype, eactor, eteam, econt, emask)):
             raise KeyError("LayeredFusionGNNBiGRUXAttn requires event_type/event_actor/event_team/event_cont/event_mask")
 
-        gnn_feat, h, A = self._encode_node_gnn(node_seq)
+        node_item_last = None
+        node_item_full = batch.get("node_item_seq", None)
+        if node_item_full is not None:
+            node_item_last = node_item_full[:, -1, :, :]
+        gnn_feat, h, A = self._encode_node_gnn(node_seq, node_item=node_item_last)
         self._maybe_store_debug(A, h)
         global_feat = self.global_temporal(global_in)
         event_feat, event_alpha = self._encode_event_attention(etype, eactor, eteam, econt, emask)

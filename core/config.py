@@ -658,6 +658,11 @@ class CFG:
     USE_ITEMS: bool = True
     ITEM_HASH_DIM: int = 32
 
+    # Per-player item hash (node-level item features for GNN)
+    USE_PER_PLAYER_ITEMS: bool = True
+    ITEM_HASH_DIM_PER_PLAYER: int = 16
+    ITEM_PLAYER_PROJ_HIDDEN: int = 32
+
     # =========================================================
     # 11) Models / Ablation
     # =========================================================
