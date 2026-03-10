@@ -559,6 +559,8 @@ def build_sequence_features(
         out["y_kill_diff"] = float(sample.get("y_kill_diff", 0.0))
         out["y_gold_diff"] = float(sample.get("y_gold_diff", 0.0))
         out["y_obj_diff"] = float(sample.get("y_obj_diff", 0.0))
+        if "node_item_seq" in sample:
+            out["node_item_seq"] = sample["node_item_seq"]
         return out
 
     if feature_set == "global_only":

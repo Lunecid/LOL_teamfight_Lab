@@ -207,6 +207,15 @@ def build_ms_sequence(
     y_e = int(y_pack.get("label_end_ms", label_end_ms))
     y_dur = max(0, y_e - y_s)
 
+    # Per-player cumulative item features
+    node_item_seq_data = None
+    if bool(getattr(cfg, "USE_PER_PLAYER_ITEMS", False)):
+        from gameplay.event_aggregation import compute_per_player_items_all_bins
+        item_dim = int(getattr(cfg, "ITEM_HASH_DIM_PER_PLAYER", 16))
+        node_item_seq_data = compute_per_player_items_all_bins(
+            cache, tm, start_ms, end_ms, bin_ms, L, item_hash_dim=item_dim,
+        )
+
     sample = {
         "node_seq": np.stack(node_seq, axis=0).astype(np.float32),
         "glob_seq": np.stack(glob_seq, axis=0).astype(np.float32),
@@ -233,6 +242,9 @@ def build_ms_sequence(
         "global_snap_last_ts": int(glob_snap_ts_seq[-1]) if glob_snap_ts_seq else -1,
         "game_duration_min": float(max(1.0, (int(cache["minute_ts"][-1]) - int(cache["minute_ts"][0])) / 60000.0)),
     }
+
+    if node_item_seq_data is not None:
+        sample["node_item_seq"] = node_item_seq_data.astype(np.float32)
 
     if bool(getattr(cfg, "USE_EVENT_TOKENS", True)):
         tok = build_event_tokens_for_xattn(

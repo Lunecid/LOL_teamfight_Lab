@@ -109,13 +109,26 @@ class NodeFeatureAdapter(nn.Module):
 
         self.norm = nn.LayerNorm(self.d_out) if bool(getattr(cfg, "NODE_CAT_EMB_NORM", True)) else None
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # Per-player item feature fusion
+        self.use_player_items = bool(getattr(cfg, "USE_PER_PLAYER_ITEMS", False))
+        if self.use_player_items:
+            item_dim = int(getattr(cfg, "ITEM_HASH_DIM_PER_PLAYER", 16))
+            item_hidden = int(getattr(cfg, "ITEM_PLAYER_PROJ_HIDDEN", 32))
+            self.item_proj = nn.Sequential(
+                nn.Linear(item_dim, item_hidden),
+                nn.ReLU(),
+                nn.Dropout(float(getattr(cfg, "DROPOUT", 0.1))),
+            )
+            self.item_fuse = nn.Linear(self.d_out + item_hidden, self.d_out)
+
+    def forward(self, x: torch.Tensor, node_item: torch.Tensor = None) -> torch.Tensor:
         if (not self.use_cat) or (len(self._cat_table) == 0):
             h = self.proj(_nan_to_num_(x.float()))
             h = F.relu(h)
             h = self.drop(h)
             if self.norm is not None:
                 h = self.norm(h)
+            h = self._fuse_items(h, node_item)
             return h.to(dtype=x.dtype)
 
         with _autocast_disabled():
@@ -145,4 +158,15 @@ class NodeFeatureAdapter(nn.Module):
         h = self.drop(h.to(dtype=x.dtype))
         if self.norm is not None:
             h = self.norm(h)
+        h = self._fuse_items(h, node_item)
+        return h
+
+    def _fuse_items(self, h: torch.Tensor, node_item: torch.Tensor = None) -> torch.Tensor:
+        """Fuse per-player item features into node embeddings."""
+        if self.use_player_items and node_item is not None:
+            h_item = self.item_proj(node_item.float())
+            h = self.item_fuse(torch.cat([h, h_item], dim=-1))
+            h = F.relu(h)
+            if self.norm is not None:
+                h = self.norm(h)
         return h

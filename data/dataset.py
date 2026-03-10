@@ -392,6 +392,13 @@ class InMemoryFightDataset(Dataset):
 
         _inject_aux_targets(out)
 
+        # 3b) Per-player item features (for GNN node-level item fusion)
+        node_item_np = feats.get("node_item_seq", None)
+        if node_item_np is not None:
+            out["node_item_seq"] = torch.from_numpy(
+                np.asarray(node_item_np, dtype=np.float32)
+            ).float()
+
         # 4) Event tokens (for EventXAttnSTModel)
         self._inject_event_tokens(out, raw)
 
@@ -622,6 +629,12 @@ def collate_batch(batch: List[Optional[Dict[str, Any]]]) -> Optional[Dict[str, A
 
     else:
         out["x_seq"] = torch.stack([b["x_seq"] for b in batch], dim=0)
+
+    # ---- per-player item features ----
+    if all("node_item_seq" in b for b in batch):
+        out["node_item_seq"] = torch.stack(
+            [b["node_item_seq"] for b in batch], dim=0,
+        )  # (B, L, 10, item_hash_dim)
 
     # ---- event tokens ----
     for ek in _EVENT_TOKEN_KEYS:

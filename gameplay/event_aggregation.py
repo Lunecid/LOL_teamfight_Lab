@@ -154,3 +154,78 @@ def aggregate_events(events_or_pack: Any, tm: Dict[int, int], s_ms: int, e_ms: i
                         ev[EVENT_IDX[k]] += 1.0
 
     return ev, h
+
+
+def compute_per_player_items_all_bins(
+    events_or_pack: Any,
+    tm: Dict[int, int],
+    start_ms: int,
+    end_ms: int,
+    bin_ms: int,
+    L: int,
+    item_hash_dim: int = 16,
+) -> np.ndarray:
+    """Compute per-player cumulative item hash for all bins in one event scan.
+
+    Accumulates ITEM_PURCHASED/SOLD/DESTROYED/UNDO events from game start (0ms)
+    through each bin end, producing a per-player hash vector.
+
+    Parameters
+    ----------
+    events_or_pack : dict (cache pack) or list (raw events)
+    tm : participantId -> teamId mapping
+    start_ms : observation window start
+    end_ms : observation window end
+    bin_ms : bin size in ms
+    L : number of bins
+    item_hash_dim : per-player hash dimension
+
+    Returns
+    -------
+    np.ndarray : shape (L, 10, item_hash_dim)
+    """
+    h = np.zeros((10, item_hash_dim), dtype=np.float32)
+    result = np.zeros((L, 10, item_hash_dim), dtype=np.float32)
+
+    # Collect item events from game start to observation window end
+    if isinstance(events_or_pack, dict):
+        all_evs = _events_in_window(events_or_pack, 0, end_ms)
+    else:
+        all_evs = [
+            e for e in (events_or_pack or [])
+            if isinstance(e, dict) and 0 <= int(e.get("timestamp", -1) or -1) < end_ms
+        ]
+
+    # Filter to item events and sort by timestamp
+    item_events = []
+    for e in all_evs:
+        et = str(e.get("type", "")).upper()
+        if et in ("ITEM_PURCHASED", "ITEM_SOLD", "ITEM_DESTROYED", "ITEM_UNDO"):
+            ts = int(e.get("timestamp", -1) or -1)
+            if ts >= 0:
+                item_events.append((ts, e))
+    item_events.sort(key=lambda x: x[0])
+
+    # Bin end timestamps
+    bin_ends = [start_ms + (i + 1) * bin_ms for i in range(L)]
+
+    ev_idx = 0
+    for bin_i in range(L):
+        b_end = bin_ends[bin_i]
+        while ev_idx < len(item_events) and item_events[ev_idx][0] < b_end:
+            ts, e = item_events[ev_idx]
+            pid = int(e.get("participantId", 0) or 0)
+            if 1 <= pid <= 10:
+                item_id = int(e.get("itemId", 0) or 0)
+                if item_id > 0:
+                    et = str(e.get("type", "")).upper()
+                    hash_idx = int(item_id * 2654435761) % item_hash_dim
+                    player_idx = pid - 1
+                    if et == "ITEM_PURCHASED":
+                        h[player_idx, hash_idx] += 1.0
+                    elif et in ("ITEM_SOLD", "ITEM_DESTROYED", "ITEM_UNDO"):
+                        h[player_idx, hash_idx] = max(0.0, h[player_idx, hash_idx] - 1.0)
+            ev_idx += 1
+        result[bin_i] = h.copy()
+
+    return result
