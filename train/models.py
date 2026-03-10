@@ -463,6 +463,69 @@ class TabLogitModel(nn.Module):
 
 
 # =========================================================
+# Model: MLP-only (tabular aggregation of temporal sequence)
+# =========================================================
+class MLPTabularModel(nn.Module):
+    """Standalone MLP that aggregates temporal sequences into tabular features.
+
+    Concatenates last-frame and mean-pool of the temporal sequence,
+    then passes through an MLP head. Simple but effective baseline
+    that bridges tabular and deep approaches.
+    """
+
+    def __init__(self, d_in: int):
+        super().__init__()
+        drop = float(getattr(cfg, "DROPOUT", 0.1))
+        hidden = int(getattr(cfg, "MLP_HIDDEN", 256))
+        layers = int(getattr(cfg, "MLP_LAYERS", 3))
+
+        self._use_proj = bool(getattr(cfg, "USE_INPUT_PROJECTION", False))
+        if self._use_proj:
+            proj_dim = int(getattr(cfg, "INPUT_PROJ_DIM", 256))
+            self.input_proj = nn.Sequential(
+                nn.Linear(d_in, proj_dim),
+                nn.LayerNorm(proj_dim),
+                nn.ReLU(),
+                nn.Dropout(drop),
+            )
+            agg_dim = proj_dim * 2  # last + mean
+        else:
+            phase_dim = 3 if bool(getattr(cfg, "USE_GAME_PHASE", False)) else 0
+            self.input_proj = None
+            self.global_in_dim = F_GLOBAL + phase_dim
+            agg_dim = self.global_in_dim * 2  # last + mean
+
+        self.norm = nn.LayerNorm(agg_dim)
+        self.head = MLP(agg_dim, hidden, 1, dropout=drop, layers=layers)
+
+    @staticmethod
+    def _pick_global_src(batch: Dict[str, torch.Tensor]) -> Tuple[torch.Tensor, str]:
+        for k in ("extra_seq", "macro_seq"):
+            x = batch.get(k, None)
+            if x is not None:
+                return x, k
+        return pick_temporal_seq(batch)
+
+    def forward(self, batch: Dict[str, torch.Tensor], return_aux: bool = False):
+        if self._use_proj:
+            x, key = pick_temporal_seq(batch)
+            x = self.input_proj(x)
+        else:
+            x, key = self._pick_global_src(batch)
+            x = x[..., :self.global_in_dim]
+
+        # Aggregate: last frame + mean pool → (B, 2*D)
+        last = x[:, -1, :]
+        mean = x.mean(dim=1)
+        feat = torch.cat([last, mean], dim=-1)
+        feat = self.norm(feat)
+        logit = self.head(feat)
+        if return_aux:
+            return logit, {"agg_feat": feat, "seq_key": key}
+        return logit
+
+
+# =========================================================
 # Model: RNN-only
 # =========================================================
 class RNNOnlyModel(nn.Module):

@@ -56,6 +56,11 @@ def _build_tab(f_node, d_seq, use_lgbm_logit):
     return _M().TabLogitModel(prefer_key="lgbm_logit", allow_missing=True)
 
 
+@register_model("mlp", "mlp_tab", "mlp_tabular")
+def _build_mlp(f_node, d_seq, use_lgbm_logit):
+    return _M().MLPTabularModel(d_in=d_seq)
+
+
 @register_model("rnn_ugru", "ugru")
 def _build_ugru(f_node, d_seq, use_lgbm_logit):
     return _M().RNNOnlyModel("ugru", d_in=d_seq)
