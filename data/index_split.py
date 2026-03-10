@@ -147,6 +147,8 @@ def _load_cached_fight_index(path: Path, cache_key: str) -> Optional[List[FightR
                         t_start=int(r.get("t_start", 0)),
                         t_start_ts=int(r.get("t_start_ts", -1)),
                         label_end_ts=int(r.get("label_end_ts", -1)),
+                        first_kill_ts=int(r.get("first_kill_ts", -1)),
+                        last_kill_ts=int(r.get("last_kill_ts", -1)),
                     )
                 )
             except Exception:
@@ -167,6 +169,8 @@ def _save_cached_fight_index(path: Path, cache_key: str, cfg_sig: Dict[str, Any]
                 "t_start": int(r.t_start),
                 "t_start_ts": int(getattr(r, "t_start_ts", -1)),
                 "label_end_ts": int(getattr(r, "label_end_ts", -1)),
+                "first_kill_ts": int(getattr(r, "first_kill_ts", -1)),
+                "last_kill_ts": int(getattr(r, "last_kill_ts", -1)),
             }
             for r in refs
         ]
@@ -315,12 +319,17 @@ def _fight_to_ref_row(
     if t_idx < 0:
         return None
 
+    first_kill_ts_val = int(fight.get("first_kill_ts", -1) or -1)
+    last_kill_ts_val = int(fight.get("last_kill_ts", -1) or -1)
+
     return {
         "match_id": str(match_id),
         "patch": str(patch),
         "t_start": int(t_idx),
         "t_start_ts": int(t_start_ts),
         "label_end_ts": int(label_end_ts),
+        "first_kill_ts": int(first_kill_ts_val),
+        "last_kill_ts": int(last_kill_ts_val),
     }
 
 
@@ -476,6 +485,8 @@ def build_fight_index(
                         t_start=int(row["t_start"]),
                         t_start_ts=int(row.get("t_start_ts", -1)),
                         label_end_ts=int(row.get("label_end_ts", -1)),
+                        first_kill_ts=int(row.get("first_kill_ts", -1)),
+                        last_kill_ts=int(row.get("last_kill_ts", -1)),
                     )
                 )
             except Exception:
@@ -892,6 +903,10 @@ def estimate_seq_keep_indices(
         except Exception:
             label_end_ts = -1
 
+        # Cluster kill timestamps for cluster-scoped labels
+        _fk = int(getattr(r, "first_kill_ts", -1))
+        _lk = int(getattr(r, "last_kill_ts", -1))
+
         # ✅ ms 기반 호출
         if r.t_start_ts >= 0:
             raw = build_ms_sequence(
@@ -900,9 +915,15 @@ def estimate_seq_keep_indices(
                 -1,
                 engage_ts=r.t_start_ts,
                 label_end_ts=(label_end_ts if label_end_ts >= 0 else None),
+                first_kill_ts=(_fk if _fk >= 0 else None),
+                last_kill_ts=(_lk if _lk >= 0 else None),
             )
         else:
-            raw = build_ms_sequence(pack, pack["meta"]["team_map"], r.t_start)
+            raw = build_ms_sequence(
+                pack, pack["meta"]["team_map"], r.t_start,
+                first_kill_ts=(_fk if _fk >= 0 else None),
+                last_kill_ts=(_lk if _lk >= 0 else None),
+            )
 
         if not raw:
             continue

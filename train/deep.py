@@ -1393,7 +1393,12 @@ def train_deep_model(
         finally:
             model.train()
 
-    lr = float(getattr(cfg, "LR", 1e-3))
+    # Transformer-specific LR override
+    _is_transformer = ("transformer" in model_name.lower())
+    if _is_transformer:
+        lr = float(getattr(cfg, "TRANS_LR", getattr(cfg, "LR", 1e-3)))
+    else:
+        lr = float(getattr(cfg, "LR", 1e-3))
     wd = float(getattr(cfg, "WEIGHT_DECAY", 1e-5))
     params = list(model.parameters())
     if aux_head is not None:
@@ -1449,13 +1454,17 @@ def train_deep_model(
     # ------------------------------------------------------------------
     max_epochs = int(getattr(cfg, "EPOCHS", 10))
     # [P1-7] Warmup epochs from config (was hardcoded as ceil(0.1 * EPOCHS))
-    warmup_epochs = int(getattr(cfg, "WARMUP_EPOCHS", max(1, int(math.ceil(0.1 * max_epochs)))))
+    if _is_transformer:
+        warmup_epochs = int(getattr(cfg, "TRANS_WARMUP_EPOCHS", max(1, int(math.ceil(0.1 * max_epochs)))))
+    else:
+        warmup_epochs = int(getattr(cfg, "WARMUP_EPOCHS", max(1, int(math.ceil(0.1 * max_epochs)))))
     scheduler = None
     try:
         from torch.optim.lr_scheduler import LinearLR, CosineAnnealingLR, SequentialLR
+        _warmup_start = float(getattr(cfg, "TRANS_WARMUP_START_FACTOR", 0.1)) if _is_transformer else (1.0 / max(warmup_epochs, 1))
         warmup_sched = LinearLR(
             opt,
-            start_factor=1.0 / max(warmup_epochs, 1),
+            start_factor=_warmup_start,
             end_factor=1.0,
             total_iters=warmup_epochs,
         )
@@ -1600,6 +1609,38 @@ def train_deep_model(
 
         met_va = _eval_loop(model, ld_va, device, use_amp=use_amp, threshold=threshold)
         auc_va = float(met_va.get("auc", -1.0))
+
+        # Collapse detection for Transformer: if epoch-1 val AUC near chance, restart with different seed
+        _collapse_threshold = float(getattr(cfg, "TRANS_COLLAPSE_AUC_THRESHOLD", 0.52))
+        if _is_transformer and epoch == 1 and auc_va < _collapse_threshold:
+            _collapse_retries = int(getattr(cfg, "TRANS_COLLAPSE_MAX_RETRIES", 3))
+            _collapse_attempt = getattr(train_deep_model, "_collapse_attempt", 0)
+            if _collapse_attempt < _collapse_retries:
+                train_deep_model._collapse_attempt = _collapse_attempt + 1
+                new_seed = seed + (_collapse_attempt + 1) * 1000
+                write_log(
+                    f"[DEEP][COLLAPSE] Transformer epoch-1 AUC={auc_va:.3f} < {_collapse_threshold} "
+                    f"— restarting with seed={new_seed} (attempt {_collapse_attempt + 1}/{_collapse_retries})",
+                    log_fp,
+                )
+                set_seed(new_seed)
+                model = build_model(
+                    model_name=model_name, f_node=f_node, d_seq=d_seq,
+                    use_lgbm_logit=bool(lgbm_logit_map),
+                ).to(device)
+                opt = torch.optim.AdamW(
+                    list(model.parameters()),
+                    lr=lr, weight_decay=wd,
+                )
+                continue
+            else:
+                write_log(
+                    f"[DEEP][COLLAPSE] All {_collapse_retries} retries exhausted — continuing with AUC={auc_va:.3f}",
+                    log_fp,
+                )
+        # Reset collapse counter on successful first epoch
+        if _is_transformer and epoch == 1:
+            train_deep_model._collapse_attempt = 0
 
         # [FIX P0-2] Step the LR scheduler
         current_lr = opt.param_groups[0]["lr"]

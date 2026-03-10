@@ -278,6 +278,8 @@ def compute_label(
     engage_ts: Optional[int] = None,
     label_end_ts: Optional[int] = None,
     horizon_ms: Optional[int] = None,
+    first_kill_ts: Optional[int] = None,
+    last_kill_ts: Optional[int] = None,
     interp_node_global: InterpNodeGlobalFn,
 ) -> Optional[int]:
     win = _resolve_label_window(
@@ -304,17 +306,31 @@ def compute_label(
     label_type = str(getattr(cfg, "LABEL_TYPE", "micro_win")).lower()
 
     if label_type == "micro_win":
-        return _compute_label_micro_win(evs, tm)
+        return _compute_label_micro_win(evs, tm, first_kill_ts=first_kill_ts, last_kill_ts=last_kill_ts)
     if label_type == "kill_survival":
-        return _compute_label_kill_survival(evs, tm, cache, e_ms, interp_node_global=interp_node_global)
+        return _compute_label_kill_survival(
+            evs, tm, cache, e_ms,
+            interp_node_global=interp_node_global,
+            first_kill_ts=first_kill_ts, last_kill_ts=last_kill_ts,
+        )
     if label_type in ("attention_value_win", "attention_value", "attn_value", "attn"):
         return _compute_label_attention_value_win(evs, tm)
     if label_type in ("weighted", "composite", "weight"):
         return _compute_label_weighted(evs, tm, cache, s_ms, e_ms)
-    return _compute_label_kill_survival(evs, tm, cache, e_ms, interp_node_global=interp_node_global)
+    return _compute_label_kill_survival(
+        evs, tm, cache, e_ms,
+        interp_node_global=interp_node_global,
+        first_kill_ts=first_kill_ts, last_kill_ts=last_kill_ts,
+    )
 
 
-def _compute_label_micro_win(evs: List[dict], tm: Dict[int, int]) -> Optional[int]:
+def _compute_label_micro_win(
+    evs: List[dict],
+    tm: Dict[int, int],
+    *,
+    first_kill_ts: Optional[int] = None,
+    last_kill_ts: Optional[int] = None,
+) -> Optional[int]:
     tie_policy = str(getattr(cfg, "LABEL_TIE_POLICY", getattr(cfg, "LABEL_TIE_STRATEGY", "drop"))).lower()
 
     blue_kills = 0
@@ -322,6 +338,11 @@ def _compute_label_micro_win(evs: List[dict], tm: Dict[int, int]) -> Optional[in
     for e in evs:
         et = str(e.get("type", "")).upper()
         if et == "CHAMPION_KILL":
+            # Cluster-scoped kill filtering
+            if first_kill_ts is not None and last_kill_ts is not None:
+                kill_ts = int(e.get("timestamp", 0) or 0)
+                if kill_ts < first_kill_ts or kill_ts > last_kill_ts:
+                    continue
             killer = int(e.get("killerId", 0) or 0)
             if tm.get(killer, 0) == 100:
                 blue_kills += 1
@@ -349,6 +370,8 @@ def _compute_label_kill_survival(
     e_ms: int,
     *,
     interp_node_global: InterpNodeGlobalFn,
+    first_kill_ts: Optional[int] = None,
+    last_kill_ts: Optional[int] = None,
 ) -> Optional[int]:
     w_kill = float(getattr(cfg, "LABEL_W_KILL", 1.0))
     w_alive = float(getattr(cfg, "LABEL_W_ALIVE", 0.3))
@@ -362,6 +385,11 @@ def _compute_label_kill_survival(
     for e in evs:
         et = str(e.get("type", "")).upper()
         if et == "CHAMPION_KILL":
+            # Cluster-scoped kill filtering
+            if first_kill_ts is not None and last_kill_ts is not None:
+                kill_ts = int(e.get("timestamp", 0) or 0)
+                if kill_ts < first_kill_ts or kill_ts > last_kill_ts:
+                    continue
             killer = int(e.get("killerId", 0) or 0)
             if tm.get(killer, 0) == 100:
                 blue_kills += 1
@@ -370,7 +398,12 @@ def _compute_label_kill_survival(
 
     kill_diff = blue_kills - red_kills
 
-    node_end, _ = interp_node_global(cache, e_ms)
+    # Measure alive state at last_kill_ts if available (cluster end)
+    alive_measure_ts = e_ms
+    if last_kill_ts is not None and last_kill_ts > 0:
+        alive_measure_ts = last_kill_ts
+
+    node_end, _ = interp_node_global(cache, alive_measure_ts)
     alive_idx = NODE_IDX.get("alive", None)
 
     alive_diff = 0.0
@@ -468,6 +501,8 @@ def _compute_window_targets(
     e_ms: int,
     *,
     interp_node_global: InterpNodeGlobalFn,
+    first_kill_ts: Optional[int] = None,
+    last_kill_ts: Optional[int] = None,
 ) -> Dict[str, float]:
     kill_diff = 0.0
     obj_diff = 0.0
@@ -477,6 +512,11 @@ def _compute_window_targets(
         et = str(e.get("type", "")).upper()
 
         if et == "CHAMPION_KILL":
+            # Cluster-scoped kill filtering
+            if first_kill_ts is not None and last_kill_ts is not None:
+                kill_ts = int(e.get("timestamp", 0) or 0)
+                if kill_ts < first_kill_ts or kill_ts > last_kill_ts:
+                    continue
             killer = int(e.get("killerId", 0) or 0)
             if tm.get(killer, 0) == 100:
                 kill_diff += 1.0
@@ -536,6 +576,8 @@ def compute_label_targets(
     engage_ts: Optional[int] = None,
     label_end_ts: Optional[int] = None,
     horizon_ms: Optional[int] = None,
+    first_kill_ts: Optional[int] = None,
+    last_kill_ts: Optional[int] = None,
     interp_node_global: InterpNodeGlobalFn,
 ) -> Optional[Dict[str, float]]:
     win = _resolve_label_window(
@@ -556,13 +598,20 @@ def compute_label_targets(
         engage_ts=engage_ts,
         label_end_ts=e_ms,
         horizon_ms=horizon_ms,
+        first_kill_ts=first_kill_ts,
+        last_kill_ts=last_kill_ts,
         interp_node_global=interp_node_global,
     )
     if y is None:
         return None
 
     evs = _events_in_window(cache, s_ms, e_ms)
-    raw = _compute_window_targets(evs, tm, cache, s_ms, e_ms, interp_node_global=interp_node_global)
+    raw = _compute_window_targets(
+        evs, tm, cache, s_ms, e_ms,
+        interp_node_global=interp_node_global,
+        first_kill_ts=first_kill_ts,
+        last_kill_ts=last_kill_ts,
+    )
 
     gold_norm = float(max(1e-6, float(getattr(cfg, "GOLD_NORM", 500.0))))
     kill_norm = float(max(1e-6, float(getattr(cfg, "MTL_KILL_NORM", 5.0))))

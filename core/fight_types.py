@@ -37,6 +37,8 @@ class FightRef:
     t_start: int              # minute index (legacy)
     t_start_ts: int = -1      # engage timestamp in ms (primary anchor)
     label_end_ts: int = -1    # label window end ts in ms (exclusive)
+    first_kill_ts: int = -1   # cluster first kill timestamp in ms
+    last_kill_ts: int = -1    # cluster last kill timestamp in ms
 
     def __post_init__(self) -> None:
         # t_start_ts가 설정되지 않았으면 -1 유지 (legacy 모드)
