@@ -163,13 +163,77 @@ def run_phase_stratified_shap(
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     ap = argparse.ArgumentParser(description="Phase-Stratified SHAP Analysis")
-    ap.add_argument("--run_dir", type=str, required=True, help="LightGBM run directory")
+    ap.add_argument("--run_dir", type=str, required=True, help="Run root directory (contains meta/ and models/)")
     ap.add_argument("--output_dir", type=str, default="outputs/phase_shap")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--n_samples", type=int, default=2000)
+    ap.add_argument("--feature_set", type=str, default="full")
     args = ap.parse_args()
 
-    # NOTE: X_test, feat_names, fight_minutes must be loaded from the run directory.
-    # This requires rebuilding the tabular dataset from the saved feature plan and refs.
-    print("[NOTE] To run this script, load X_test, feat_names, fight_minutes from your run.")
-    print("       Example: reconstruct from LightGBM's pred_test.csv and tabular plan.")
+    import csv
+    from core.fight_types import FightRef
+    from train.baseline import build_tabular_Xy, infer_tabular_plan
+
+    run_dir = Path(args.run_dir)
+
+    # 1) Load test FightRefs from CSV
+    refs_csv = run_dir / "meta" / "fight_refs_test.csv"
+    if not refs_csv.exists():
+        # fallback: search recursively
+        candidates = list(run_dir.rglob("fight_refs_test.csv"))
+        if not candidates:
+            raise FileNotFoundError(f"fight_refs_test.csv not found under {run_dir}")
+        refs_csv = candidates[0]
+
+    te_refs = []
+    with open(refs_csv, "r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            te_refs.append(FightRef(
+                match_id=str(row["match_id"]),
+                patch=str(row["patch"]),
+                t_start=int(row["t_start"]),
+                t_start_ts=int(row.get("t_start_ts", -1)),
+                label_end_ts=int(row.get("label_end_ts", -1)),
+                first_kill_ts=int(row.get("first_kill_ts", -1)),
+                last_kill_ts=int(row.get("last_kill_ts", -1)),
+            ))
+    logger.info("[LOAD] %d test refs from %s", len(te_refs), refs_csv)
+
+    # 2) Rebuild X_test via the same tabular pipeline as baseline
+    plan = infer_tabular_plan(te_refs, args.feature_set)
+    if plan is None:
+        raise RuntimeError("Failed to infer tabular plan from test refs")
+
+    X_test, y_test, feat_names, used_refs = build_tabular_Xy(
+        te_refs, args.feature_set, plan=plan,
+    )
+    logger.info("[DATA] X_test shape=%s, feat_names=%d", X_test.shape, len(feat_names))
+
+    # 3) Compute fight_minutes from t_start_ts
+    fight_minutes = np.array([
+        r.t_start_ts / 60000.0 if r.t_start_ts >= 0 else r.t_start * 1.0
+        for r in used_refs
+    ], dtype=np.float64)
+    logger.info("[DATA] fight_minutes: min=%.1f, max=%.1f, mean=%.1f",
+                fight_minutes.min(), fight_minutes.max(), fight_minutes.mean())
+
+    # 4) Load LightGBM model
+    model = load_lgbm_model(run_dir)
+
+    # 5) Run phase-stratified SHAP
+    result = run_phase_stratified_shap(
+        model=model,
+        X_test=X_test,
+        feat_names=feat_names,
+        fight_minutes=fight_minutes,
+        n_samples_per_phase=args.n_samples,
+        seed=args.seed,
+        output_dir=Path(args.output_dir),
+    )
+
+    # Print summary
+    for phase, pr in result.get("phase_results", {}).items():
+        print(f"\n=== {phase.upper()} (n={pr['n_samples']}) ===")
+        for fname, val in pr["top_10"]:
+            print(f"  {fname}: {val:.4f}")
