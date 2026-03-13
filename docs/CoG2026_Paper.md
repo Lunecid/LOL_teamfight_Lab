@@ -150,9 +150,9 @@ The data pipeline operates in seven stages (see `docs/PIPELINE.md` for complete 
 
 **Stage 3: Index and Split.** Each detected fight produces a `FightRef` with unique key `match_id|t_start_ts=<ms>`. Splits are match-grouped and patch-stratified: 70% train / 20% validation / 10% test.
 
-**Stage 4: Sample Construction.** 30-second observation window divided into 6 bins of 5 seconds. Node/global features use piecewise-constant snapshots (strict-before 60s frame, no interpolation). Events are bin-aggregated counts. XY positions are zeroed in model input.
+**Stage 4: Sample Construction.** 30-second observation window divided into 6 bins of 5 seconds. Node/global features use piecewise-constant snapshots (strict-before 60s frame, no interpolation). Events are bin-aggregated counts. XY positions are preserved in node_seq for GNN/spatial models but zeroed in extra_seq to prevent map-position bias.
 
-**Stage 5: Label Computation.** Binary label from `kill_survival` scoring (kill differential + alive count). Auxiliary regression targets for multi-task learning.
+**Stage 5: Label Computation.** Binary label from `attention_value_win` scoring (attention-weighted event values with kill/alive fallback). Auxiliary regression targets for multi-task learning.
 
 **Stage 6: Model Training.** 25+ architectures trained with AdamW, gradient clipping, AMP mixed precision, early stopping on validation AUC.
 
@@ -171,7 +171,7 @@ Temporal sequences flattened via statistical aggregation `[last, mean, std, min,
 The macro feature sequence `S in R^{L x D}` is processed by:
 
 - **BiGRU / BiLSTM**: 2-layer bidirectional, hidden=128, dropout=0.20
-- **Transformer**: 3-layer self-attention, d_model=256, nhead=4, sinusoidal positional encoding
+- **Transformer**: 2-layer self-attention, d_model=64, nhead=4, sinusoidal positional encoding
 - **TCN**: 3-level causal dilated convolution, channels=64, kernel=3, dilations=[1,2,4]
 - **Mamba**: 3-layer selective state-space model, d_state=16, d_conv=4
 
@@ -429,7 +429,7 @@ The framework automatically generates:
 
 ### 8.1 Key Design Decisions
 
-**Why zero XY in model input?** Player positions are used for fight detection and adjacency construction but zeroed in model features. This prevents the model from memorizing map-position bias (e.g., "fights near Baron pit favor blue team") and forces it to learn from game-state dynamics.
+**Why selectively zero XY?** Player positions are preserved in node_seq for GNN/spatial models (where spatial relationships are meaningful), but zeroed in extra_seq (`ZERO_XY_IN_EXTRA_SEQ=True`) to prevent sequential models from memorizing map-position bias. This allows graph models to leverage spatial structure while preventing overfitting to map positions.
 
 **Why piecewise-constant for scalar features?** Interpolating champion stats between 60s frames would create artificial smoothness not present in the true game state (items are purchased discretely, buffs expire abruptly). Step-hold (forward-fill) preserves the discrete nature of state transitions.
 
@@ -522,7 +522,7 @@ We presented LOL Teamfight Lab, a comprehensive framework for predicting League 
 |---|---|
 | LightGBM | n_estimators=5000, lr=0.03, max_depth=6, num_leaves=31, reg_alpha=1.0, reg_lambda=5.0 |
 | BiGRU | hidden=128, layers=2, dropout=0.20 |
-| Transformer | d_model=256, nhead=4, layers=3, dropout=0.20 |
+| Transformer | d_model=64, nhead=4, layers=2, dropout=0.10 |
 | TCN | channels=64, levels=3, kernel=3, dropout=0.20 |
 | Mamba | d_model=128, layers=3, d_state=16, d_conv=4 |
 | GCN | dim=96, dropout=0.25, norm=LayerNorm |

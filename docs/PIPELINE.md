@@ -41,7 +41,7 @@ Riot API JSONs (match detail + timeline)
 
 ## Stage 1: Cache Build
 
-**Entry point:** `data/cache_io.py::prebuild_cache()` -> `gameplay/pipeline.py::parse_timeline_to_minute_cache()`
+**Entry point:** `data/cache_io.py::prebuild_cache()` -> `gameplay/pipeline_cache.py::parse_timeline_to_minute_cache()`
 
 Riot API provides timeline frames at **60-second intervals** plus raw events at **millisecond precision**. The cache pre-parses these into NumPy arrays stored as `.npz` files with JSON metadata.
 
@@ -79,7 +79,7 @@ Role assignment uses `core/roles.py` based on Riot API `teamPosition` field.
 
 ### Cache Versioning
 
-`CACHE_VERSION` (in `core/config.py`) is incremented whenever feature extraction logic changes. Cached files with stale versions are automatically invalidated and rebuilt.
+`FEATURE_VERSION` and `CACHE_DIRNAME` (in `core/config.py`) are updated whenever feature extraction logic changes. Cached files with stale versions are automatically invalidated and rebuilt.
 
 ---
 
@@ -282,7 +282,7 @@ Counts kills, deaths, assists, gold swing, towers, and objectives in the label w
 | `TF2_INTERACTION_RADIUS` | 3,000 | map units | Radius for counting fight interactions |
 | `TF2_POST_FIGHT_WINDOW_MS` | 30,000 | ms | Post-fight outcome window duration |
 | `TF2_MIN_PER_TEAM` | 2 | count | Minimum champions per team in validity radius |
-| `FIGHT_MIN_GAP_MS` | 60,000 | ms | Minimum spacing between detected fights |
+| `FIGHT_MIN_GAP_MS` | 0 | ms | Minimum spacing between detected fights |
 | `MAX_MERGED_FIGHT_DURATION_MS` | 60,000 | ms | Maximum allowed fight duration (reject if exceeded) |
 | `FIGHT_CONTEXT_SEC` | 30 | seconds | Context window before fight |
 | `FIGHT_HORIZON_SEC` | 30 | seconds | Label window duration |
@@ -418,9 +418,10 @@ At each midpoint `q`:
 |     INTERP_SCALARS_METHOD = "ffill"                                |
 |                                                                    |
 |  3. Model Input -- XY:                                             |
-|     XY is ZEROED (x_norm=0, y_norm=0 in every bin)                |
-|     Prevents model from memorizing map-position bias               |
-|     Config: ZERO_XY_NODE_FEATURES = True                           |
+|     XY is preserved in node_seq by default for GNN/spatial models  |
+|     but zeroed in extra_seq to prevent map-position bias           |
+|     Config: ZERO_XY_NODE_FEATURES = False (default)                |
+|             ZERO_XY_IN_EXTRA_SEQ = True (default)                  |
 |                                                                    |
 |  4. Events/Items:                                                  |
 |     Bin-level aggregation [b0, b1) -- NOT interpolation            |
@@ -447,7 +448,7 @@ sample = {
 | `INTERP_XY_METHOD` | `"linear_guard_midstep"` | XY interpolation method for position grid |
 | `INTERP_XY_CURVE` | `"exponential"` | Curve shape (k=3.0) |
 | `INTERP_SCALARS_METHOD` | `"ffill"` | Scalar feature interpolation (= no interpolation) |
-| `ZERO_XY_NODE_FEATURES` | `True` | Zero XY in model node features |
+| `ZERO_XY_NODE_FEATURES` | `False` | Zero XY in model node features (preserved for GNN/spatial) |
 | `ZERO_XY_IN_EXTRA_SEQ` | `True` | Zero XY in extra sequence (for RNN) |
 | `USE_RELATIVE_XY` | `True` | Use centroid-relative coordinates |
 
@@ -455,17 +456,29 @@ sample = {
 
 ## Stage 5: Label Computation
 
-**Entry point:** `gameplay/pipeline.py::compute_label_targets()`
+**Entry point:** `gameplay/pipeline.py::compute_label_targets()` (delegates to `gameplay/labels.py`)
 
-### Primary Label: `kill_survival` (default)
+### Primary Label: `attention_value_win` (default)
 
-Events within the label window `[engage_ts, engage_ts + horizon_ms)` determine the fight outcome:
+Events within the label window `[engage_ts, engage_ts + horizon_ms)` determine the fight outcome using attention-weighted event values:
 
 ```
-Score = W_KILL * (blue_kills - red_kills) + W_ALIVE * (blue_alive - red_alive)
+LABEL_TYPE = "attention_value_win"
 
-W_KILL  = 1.0   (kill differential weight)
-W_ALIVE = 0.3   (alive-at-end differential weight)
+The attention_value_win method computes weighted event importance scores:
+  LABEL_ATTN_W_KILL      = 1.0    (kill events)
+  LABEL_ATTN_W_SHUTDOWN  = 1.6    (shutdown kills)
+  LABEL_ATTN_W_STREAK    = 0.35   (kill streaks)
+  LABEL_ATTN_W_ASSIST    = 0.20   (assists)
+  LABEL_ATTN_W_BOUNTY    = 0.30   (bounty gold)
+  LABEL_ATTN_W_OBJECTIVE = 1.10   (objective events)
+  LABEL_ATTN_W_LANE      = 0.25   (lane events)
+  LABEL_ATTN_BETA        = 2.0    (attention sharpness)
+
+Fallback scoring uses kill_survival formula:
+  Score = LABEL_W_KILL * (blue_kills - red_kills) + LABEL_W_ALIVE * (blue_alive - red_alive)
+  LABEL_W_KILL  = 1.0
+  LABEL_W_ALIVE = 0.3
 
 y = 1  if Score > 0   -> blue team wins the fight
 y = 0  if Score < 0   -> red team wins the fight
@@ -498,9 +511,9 @@ Label window [420000, 450000]:
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `LABEL_MODE` | `"kill_survival"` | Label computation method |
-| `W_KILL` | 1.0 | Kill differential weight |
-| `W_ALIVE` | 0.3 | Alive count weight |
+| `LABEL_TYPE` | `"attention_value_win"` | Label computation method |
+| `LABEL_W_KILL` | 1.0 | Kill differential weight |
+| `LABEL_W_ALIVE` | 0.3 | Alive count weight |
 | `LABEL_TIE_STRATEGY` | `"random"` | Tie handling: `"random"`, `"drop"`, `"blue"`, `"red"` |
 
 ---
@@ -636,7 +649,7 @@ for batch in dataloader:
 | **Kills-only creation** | Only `CHAMPION_KILL` events create fights -- no ward/objective triggers |
 | **Snapshot features (no interpolation)** | Node/global use strict-before 60s snapshot (ffill); only XY is interpolated (for spatial checks) |
 | **No future leakage** | Node + global features from strictly-before snapshots; label window starts at engage_ts |
-| **XY excluded from model** | Positions used only for spatial detection and adjacency, zeroed in model input |
+| **XY handling** | XY preserved in node_seq for GNN/spatial models (`ZERO_XY_NODE_FEATURES=False`), zeroed in extra_seq (`ZERO_XY_IN_EXTRA_SEQ=True`) |
 | **No double-counting** | Objectives/towers tracked only in post-fight outcome (Step 5), not in radius-3000 interactions (Step 4) |
 | **Millisecond anchoring** | All timestamps in ms; sub-minute fight precision via 5s grid |
 | **Ref-key alignment** | Predictions matched by `match_id|t_start_ts=<ms>`, not by batch position |
@@ -683,7 +696,7 @@ MATCH: KR_7123456789, Patch 14.10, Duration 32:00
     -> Per bin: snapshot node+global (strict-before 60s frame),
                aggregate events, hash items
     -> XY zeroed in all bins
-    -> node_seq: [6, 10, 87], glob_seq: [6, 27], ev_seq: [6, 48]
+    -> node_seq: [6, 10, 76], glob_seq: [6, 26], ev_seq: [6, 44]
 
 [5] Label (Fight 1)
     -> Label window: [420000, 450000] (7:00 -> 7:30)

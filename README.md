@@ -11,7 +11,7 @@ A machine learning pipeline for predicting **League of Legends teamfight outcome
 | Document | Description |
 |----------|-------------|
 | **[docs/PIPELINE.md](docs/PIPELINE.md)** | Complete 7-stage data pipeline from Riot API JSON to calibrated predictions |
-| **[docs/FEATURES.md](docs/FEATURES.md)** | Exhaustive feature sets (87 node + 27 global + 48 event), dimensions, normalization |
+| **[docs/FEATURES.md](docs/FEATURES.md)** | Exhaustive feature sets (76 node + 26 global + 44 event), dimensions, normalization |
 | **[docs/MODELS.md](docs/MODELS.md)** | 25+ model architectures with mathematical definitions and hyperparameters |
 | **[docs/EXPERIMENT.md](docs/EXPERIMENT.md)** | 7-treatment ablation protocol, statistical testing, evaluation metrics |
 | **[docs/CoG2026_Paper.md](docs/CoG2026_Paper.md)** | Full paper draft (IEEE CoG 2026) |
@@ -29,7 +29,7 @@ Riot API JSONs -> Cache Build -> Fight Detection -> Index & Split
 
 1. **Detect teamfights** via kill-cluster-based temporal clustering with spatial validation (radius 1800, >= 2 per team)
 2. **Extract multi-modal features**: 76-dim per-player node features, 26-dim global features, 44-dim event aggregates
-3. **Train 25+ architectures**: LightGBM, BiGRU, BiLSTM, Transformer, TCN, Mamba, GCN, GraphSAGE, GraphTransformer, GATv2, MPNN, ST-GNN, ST-GCN, EdgeSTGNN, ST-Mamba, EventXAttn, Gated Fusion, Layered Fusion
+3. **Train 25+ architectures**: LightGBM, MLP, BiGRU, BiLSTM, Transformer, TCN, Mamba, GCN, GraphSAGE, GraphTransformer, GATv2, MPNN, ST-GNN, ST-GCN, EdgeSTGNN, MultiScale-STGNN, MultiScale-STGCN, ST-Mamba, EventXAttn, Gated Fusion, Layered Fusion
 4. **Ensemble predictions** through factorial stacking with meta-learner selection
 5. **Ablate 7 domain-knowledge improvements**: focal loss, game phase encoding, attention pooling, momentum features, role-aware adjacency, multi-task learning, label smoothing
 

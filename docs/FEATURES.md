@@ -29,7 +29,7 @@ Complete definition of all feature sets, dimensions, normalization rules, and co
 | `y` | `(B, 1)` | float32 | Binary label |
 | `event_type` | `(B, K)` | int64 | Event type hash (optional) |
 | `event_actor` | `(B, K)` | int64 | Participant ID (optional) |
-| `event_cont` | `(B, K, 5)` | float32 | [t_rel, dt_end, x, y, val] (optional) |
+| `event_cont` | `(B, K, 12)` | float32 | Continuous features per event token (optional) |
 | `event_mask` | `(B, K)` | float32 | 1=real event, 0=padding (optional) |
 
 ---

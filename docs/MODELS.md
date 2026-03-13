@@ -9,6 +9,7 @@ Complete specification of all 25+ model architectures, their mathematical defini
 ```
 +-- Tabular Baseline
 |   +-- LightGBM
+|   +-- MLP (Tabular)
 |
 +-- Sequential (RNN Family)
 |   +-- BiGRU
@@ -155,18 +156,18 @@ h_t = o_t . tanh(c_t)                              (hidden state)
 Input S: (B, L=6, D_input)
     |
     v
-Linear(D_input, d_model=256)
+Linear(D_input, d_model=64)
     |
     v
 + Sinusoidal Positional Encoding (L, d_model)
     |
     v
 TransformerEncoder(
-  num_layers=3,
-  d_model=256,
+  num_layers=2,
+  d_model=64,
   nhead=4,
-  dim_feedforward=1024,
-  dropout=0.20
+  dim_feedforward=128,
+  dropout=0.10
 )
     |
     v
@@ -193,11 +194,11 @@ where head_i = Attention(Q W_Q^i, K W_K^i, V W_V^i)
 
 | Parameter | Value |
 |-----------|-------|
-| `d_model` | 256 |
-| `nhead` | 4 |
-| `num_layers` | 3 |
-| `dim_feedforward` | 1024 |
-| `dropout` | 0.20 |
+| `TRANS_D_MODEL` | 64 |
+| `TRANS_NHEAD` | 4 |
+| `TRANS_LAYERS` | 2 |
+| `TRANS_FF_MULT` | 2 (dim_feedforward = d_model * ff_mult = 128) |
+| `TRANS_DROPOUT` | 0.10 |
 
 ### 2.3 TCN (Temporal Convolutional Network)
 
@@ -675,11 +676,12 @@ epsilon = 0.05  ->  positive: 0.975, negative: 0.025
 | Model Key | Category | Key Hyperparameters |
 |-----------|----------|---------------------|
 | `lgbm` | Baseline | n_estimators=5000, lr=0.03, max_depth=6, num_leaves=31 |
+| `mlp` | Baseline | Tabular MLP classifier |
 | `rnn_ugru` | Sequential | hidden=128, layers=2, dropout=0.20, unidirectional |
 | `rnn_bigru` | Sequential | hidden=128, layers=2, dropout=0.20 |
 | `rnn_ulstm` | Sequential | hidden=128, layers=2, dropout=0.20, unidirectional |
 | `rnn_bilstm` | Sequential | hidden=128, layers=2, dropout=0.20 |
-| `rnn_transformer` | Sequential | d_model=256, nhead=4, layers=3, dropout=0.20 |
+| `rnn_transformer` | Sequential | d_model=64, nhead=4, layers=2, dropout=0.10 |
 | `rnn_tcn` | Sequential | channels=64, levels=3, kernel=3, dropout=0.20 |
 | `rnn_mamba` | Sequential | d_model=128, layers=3, d_state=16, d_conv=4 |
 | `hybrid_bigru` | Hybrid | h0_proj_dim=64, h0_dropout=0.15 |
@@ -694,7 +696,7 @@ epsilon = 0.05  ->  positive: 0.975, negative: 0.025
 | `gnn_stgcn` | Spatio-Temporal | GNN spatial + TCN temporal |
 | `edge_stgnn` | Spatio-Temporal | Edge-augmented MPNN spatial + GRU temporal |
 | `stgnn_mamba` | Spatio-Temporal | GNN spatial + Mamba temporal |
-| `ms_stgnn` | Spatio-Temporal | Multiscale adjacency + EdgeSTGNN |
+| `ms_stgnn` | Spatio-Temporal | Multiscale adjacency + STGNN |
 | `ms_stgcn` | Spatio-Temporal | Multiscale adjacency + STGCN |
 | `event_xattn` | Spatio-Temporal | Cross-attention events over graph states |
 | `fusion_gated_gnn_bigru` | Fusion | gate_h=8, mlp_h=32 |
