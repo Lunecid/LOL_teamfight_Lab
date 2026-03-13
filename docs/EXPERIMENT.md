@@ -121,7 +121,7 @@ output = [h_T || c]                    (concatenation)
 | Parameter | Default | HP Grid |
 |-----------|---------|---------|
 | `USE_ATTENTION_POOL` | False | - |
-| `ATTN_DIM` | 64 | - |
+| `ATTENTION_POOL_DIM` | 64 | - |
 
 **Implementation:** `core/improvements.py::TemporalAttentionPooling`
 
@@ -212,9 +212,9 @@ lambda_o = 0.05   (objective differential weight)
 | Parameter | Default | HP Grid |
 |-----------|---------|---------|
 | `USE_MULTI_TASK` | False | - |
-| `MT_LAMBDA_GOLD` | 0.1 | {0.05, 0.1, 0.2} |
-| `MT_LAMBDA_KILL` | 0.05 | - |
-| `MT_LAMBDA_OBJ` | 0.05 | - |
+| `MTL_LAMBDA_GOLD` | 0.1 | {0.05, 0.1, 0.2} |
+| `MTL_LAMBDA_KILL` | 0.05 | - |
+| `MTL_LAMBDA_OBJ` | 0.05 | - |
 
 **Implementation:** `core/improvements.py::MultiTaskHead`, `MultiTaskLoss`
 
@@ -446,7 +446,7 @@ The framework automatically generates:
 | Fixed random seeds | Yes | {7, 42, 123, 256, 512} via `core/utils.py::seed_everything()` |
 | Deterministic operations | Partial | `torch.use_deterministic_algorithms()` not enforced (some ops non-deterministic on GPU) |
 | Match-grouped splits | Yes | All fights from one match in same partition |
-| Cache versioning | Yes | `CACHE_VERSION` invalidates stale caches |
+| Cache versioning | Yes | `FEATURE_VERSION` and `CACHE_DIRNAME` invalidate stale caches |
 | Singleton reset | Yes | `reset_model_singletons()` between experiments |
 | Environment variables | Yes | Data paths via env vars, no hardcoded paths |
 | Configuration snapshot | Yes | `CFG` dataclass serialized with experiment results |
