@@ -148,7 +148,7 @@ h_t = o_t . tanh(c_t)                              (hidden state)
 
 ### 2.2 Transformer
 
-3-layer self-attention with sinusoidal positional encoding.
+2-layer self-attention with sinusoidal positional encoding.
 
 **Architecture:**
 
