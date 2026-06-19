@@ -205,7 +205,7 @@ TREATMENT_GROUPS: Dict[str, Tuple[int, ...]] = {
 }
 
 
-SEEDS: Tuple[int, ...] = (7, 42, 123, 256, 512)
+SEEDS: Tuple[int, ...] = (7, 42, 123)
 
 
 @dataclass

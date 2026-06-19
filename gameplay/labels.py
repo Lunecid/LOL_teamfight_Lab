@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import random
+import hashlib
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from core.config import cfg, NODE_IDX, OBJ_SCORE
@@ -9,6 +9,52 @@ from core.timeutils import _get_horizon_ms, gold_at_ms
 from data.events_index import _events_in_window
 
 InterpNodeGlobalFn = Callable[[Dict[str, Any], int], Tuple[np.ndarray, np.ndarray]]
+
+
+_TIE_EVENT_FIELDS: Tuple[str, ...] = (
+    "timestamp",
+    "type",
+    "killerId",
+    "victimId",
+    "killerTeamId",
+    "teamId",
+    "monsterType",
+    "monsterSubType",
+    "buildingType",
+    "towerType",
+    "laneType",
+    "shutdownBounty",
+    "killStreakLength",
+    "bounty",
+    "multiKillLength",
+    "assistingParticipantIds",
+)
+
+
+def _tie_repr(v: Any) -> Any:
+    if isinstance(v, dict):
+        return tuple(sorted((str(k), _tie_repr(val)) for k, val in v.items()))
+    if isinstance(v, (list, tuple)):
+        return tuple(_tie_repr(x) for x in v)
+    return v
+
+
+def _seeded_tie_coin(evs: List[dict], tm: Dict[int, int], tie_key: str = "") -> int:
+    """Deterministic replacement for the paper's seeded tie coin flip."""
+    try:
+        seed = int(getattr(cfg, "LABEL_TIE_SEED", 7))
+    except Exception:
+        seed = 7
+
+    h = hashlib.blake2b(digest_size=8)
+    h.update(f"{seed}|{tie_key}".encode("utf-8", errors="ignore"))
+    for e in evs:
+        if not isinstance(e, dict):
+            continue
+        sign = _label_event_team_sign(e, tm)
+        payload = tuple((k, _tie_repr(e.get(k, None))) for k in _TIE_EVENT_FIELDS)
+        h.update(repr((sign, payload)).encode("utf-8", errors="backslashreplace"))
+    return int(int.from_bytes(h.digest(), byteorder="little", signed=False) & 1)
 
 
 def _label_lane_tag(e: dict) -> str:
@@ -145,7 +191,7 @@ def _label_event_team_sign(e: dict, tm: Dict[int, int]) -> int:
     return 0
 
 
-def _compute_label_attention_value_win(evs: List[dict], tm: Dict[int, int]) -> Optional[int]:
+def _compute_label_attention_value_win(evs: List[dict], tm: Dict[int, int], *, tie_key: str = "") -> Optional[int]:
     tie_policy = str(getattr(cfg, "LABEL_TIE_POLICY", getattr(cfg, "LABEL_TIE_STRATEGY", "drop"))).lower()
     eps = float(getattr(cfg, "LABEL_TIE_EPS", 1e-8))
 
@@ -228,7 +274,7 @@ def _compute_label_attention_value_win(evs: List[dict], tm: Dict[int, int]) -> O
         if tie_policy in ("drop", "exclude", "none"):
             return None
         if tie_policy in ("random", "stochastic", "coinflip"):
-            return int(random.random() < 0.5)
+            return _seeded_tie_coin(evs, tm, tie_key)
         if tie_policy == "blue":
             return 1
         if tie_policy == "red":
@@ -304,19 +350,26 @@ def compute_label(
             return None
 
     label_type = str(getattr(cfg, "LABEL_TYPE", "micro_win")).lower()
+    tie_key = f"{s_ms}:{e_ms}:{first_kill_ts if first_kill_ts is not None else -1}:{last_kill_ts if last_kill_ts is not None else -1}"
 
     if label_type == "micro_win":
-        return _compute_label_micro_win(evs, tm, first_kill_ts=first_kill_ts, last_kill_ts=last_kill_ts)
+        return _compute_label_micro_win(
+            evs, tm,
+            first_kill_ts=first_kill_ts,
+            last_kill_ts=last_kill_ts,
+            tie_key=tie_key,
+        )
     if label_type == "kill_survival":
         return _compute_label_kill_survival(
             evs, tm, cache, e_ms,
             interp_node_global=interp_node_global,
             first_kill_ts=first_kill_ts, last_kill_ts=last_kill_ts,
+            tie_key=tie_key,
         )
     if label_type in ("attention_value_win", "attention_value", "attn_value", "attn"):
-        return _compute_label_attention_value_win(evs, tm)
+        return _compute_label_attention_value_win(evs, tm, tie_key=tie_key)
     if label_type in ("weighted", "composite", "weight"):
-        return _compute_label_weighted(evs, tm, cache, s_ms, e_ms)
+        return _compute_label_weighted(evs, tm, cache, s_ms, e_ms, tie_key=tie_key)
     return _compute_label_kill_survival(
         evs, tm, cache, e_ms,
         interp_node_global=interp_node_global,
@@ -330,6 +383,7 @@ def _compute_label_micro_win(
     *,
     first_kill_ts: Optional[int] = None,
     last_kill_ts: Optional[int] = None,
+    tie_key: str = "",
 ) -> Optional[int]:
     tie_policy = str(getattr(cfg, "LABEL_TIE_POLICY", getattr(cfg, "LABEL_TIE_STRATEGY", "drop"))).lower()
 
@@ -353,7 +407,7 @@ def _compute_label_micro_win(
         if tie_policy in ("drop", "exclude", "none"):
             return None
         if tie_policy in ("random", "stochastic", "coinflip"):
-            return int(random.random() < 0.5)
+            return _seeded_tie_coin(evs, tm, tie_key)
         if tie_policy == "blue":
             return 1
         if tie_policy == "red":
@@ -372,6 +426,7 @@ def _compute_label_kill_survival(
     interp_node_global: InterpNodeGlobalFn,
     first_kill_ts: Optional[int] = None,
     last_kill_ts: Optional[int] = None,
+    tie_key: str = "",
 ) -> Optional[int]:
     w_kill = float(getattr(cfg, "LABEL_W_KILL", 1.0))
     w_alive = float(getattr(cfg, "LABEL_W_ALIVE", 0.3))
@@ -422,7 +477,7 @@ def _compute_label_kill_survival(
             return None
 
         if tie_policy in ("random", "stochastic", "coinflip"):
-            return int(random.random() < 0.5)
+            return _seeded_tie_coin(evs, tm, tie_key)
 
         return None
 
@@ -435,6 +490,8 @@ def _compute_label_weighted(
     cache: Dict[str, Any],
     s_ms: int,
     e_ms: int,
+    *,
+    tie_key: str = "",
 ) -> Optional[int]:
     eps = float(getattr(cfg, "LABEL_TIE_EPS", 1e-8))
     tie_policy = str(getattr(cfg, "LABEL_TIE_POLICY", getattr(cfg, "LABEL_TIE_STRATEGY", "drop"))).lower()
@@ -483,7 +540,7 @@ def _compute_label_weighted(
         if tie_policy in ("drop", "exclude", "none"):
             return None
         if tie_policy in ("random", "stochastic", "coinflip"):
-            return int(random.random() < 0.5)
+            return _seeded_tie_coin(evs, tm, tie_key)
         if tie_policy == "blue":
             return 1
         if tie_policy == "red":

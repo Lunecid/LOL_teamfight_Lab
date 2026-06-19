@@ -69,7 +69,7 @@ SHARED_FLAGS = [
     "--amp",
     "--tf32",
     "--cache_match_packs_in_ram",
-    "--batch_size", "384",
+    "--batch_size", "64",
 ]
 
 
@@ -99,9 +99,9 @@ def build_command(
 def run_command(cmd: List[str], dry_run: bool = False, label: str = "") -> int:
     """Execute command with logging."""
     cmd_str = " ".join(cmd)
-    print(f"\n{'═' * 72}")
+    print(f"\n{'=' * 72}")
     print(f"  {label}")
-    print(f"{'═' * 72}")
+    print(f"{'=' * 72}")
     print(f"  [CMD] {cmd_str}\n")
 
     if dry_run:
@@ -113,7 +113,7 @@ def run_command(cmd: List[str], dry_run: bool = False, label: str = "") -> int:
     elapsed = time.time() - t0
 
     status = "OK" if result.returncode == 0 else f"FAILED (exit={result.returncode})"
-    print(f"\n  [{status}] {label} — {elapsed / 60:.1f} min\n")
+    print(f"\n  [{status}] {label} -> {elapsed / 60:.1f} min\n")
     return result.returncode
 
 
@@ -123,7 +123,7 @@ def run_command(cmd: List[str], dry_run: bool = False, label: str = "") -> int:
 
 def main() -> None:
     ap = argparse.ArgumentParser(
-        description="Paper experiment: 3-seed × 2-phase unified runner",
+        description="Paper experiment: 3-seed x 2-phase unified runner",
     )
     ap.add_argument(
         "--seeds", type=str, default=",".join(str(s) for s in SEEDS),
@@ -152,18 +152,18 @@ def main() -> None:
     total_fail = 0
     t_start = time.time()
 
-    print(f"\n{'█' * 72}")
+    print(f"\n{'=' * 72}")
     print(f"  PAPER EXPERIMENT: Full Pipeline")
     print(f"  Seeds: {seeds}")
     print(f"  Phase A (as_is):        {'SKIP' if args.skip_phase_a else 'RUN'}")
     print(f"  Phase B (baseline_plus): {'SKIP' if args.skip_phase_b else 'RUN'}")
     print(f"  Max matches: {args.max_matches}")
-    print(f"{'█' * 72}\n")
+    print(f"{'=' * 72}\n")
 
     for si, seed in enumerate(seeds):
-        print(f"\n{'▓' * 72}")
+        print(f"\n{'=' * 72}")
         print(f"  SEED {seed} ({si + 1}/{len(seeds)})")
-        print(f"{'▓' * 72}")
+        print(f"{'=' * 72}")
 
         # ─── Phase A: Deep-only models (as_is) ───────────────
         if not args.skip_phase_a:
@@ -176,7 +176,7 @@ def main() -> None:
             rc = run_command(
                 cmd,
                 dry_run=args.dry_run,
-                label=f"Seed {seed} — Phase A: Deep-only (as_is)",
+                label=f"Seed {seed} - Phase A: Deep-only (as_is)",
             )
             total_runs += 1
             if rc == 0:
@@ -195,7 +195,7 @@ def main() -> None:
             rc = run_command(
                 cmd,
                 dry_run=args.dry_run,
-                label=f"Seed {seed} — Phase B: LightGBM + Logit Fusion (baseline_plus)",
+                label=f"Seed {seed} - Phase B: LightGBM + Logit Fusion (baseline_plus)",
             )
             total_runs += 1
             if rc == 0:
@@ -205,17 +205,17 @@ def main() -> None:
 
     # ─── Summary ──────────────────────────────────────────────
     elapsed = time.time() - t_start
-    print(f"\n{'█' * 72}")
+    print(f"\n{'=' * 72}")
     print(f"  EXPERIMENT COMPLETE")
-    print(f"{'█' * 72}")
+    print(f"{'=' * 72}")
     print(f"  Total runs:  {total_runs}")
     print(f"  Succeeded:   {total_ok}")
     print(f"  Failed:      {total_fail}")
     print(f"  Total time:  {elapsed / 60:.1f} min ({elapsed / 3600:.2f} hours)")
-    print(f"{'█' * 72}\n")
+    print(f"{'=' * 72}\n")
 
     if total_fail > 0:
-        print(f"  ⚠ {total_fail} run(s) failed. Check logs above.")
+        print(f"  [WARN] {total_fail} run(s) failed. Check logs above.")
         sys.exit(1)
 
 

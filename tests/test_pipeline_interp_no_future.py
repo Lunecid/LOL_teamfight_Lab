@@ -60,7 +60,17 @@ def test_build_ms_sequence_passes_engage_guard_to_node_interp(monkeypatch):
         it = np.zeros((len(ITEM_HASH_NAMES),), dtype=np.float32)
         return ev, it
 
-    def _fake_label_targets(cache, tm, t_start, *, engage_ts=None, label_end_ts=None, horizon_ms=None):
+    def _fake_label_targets(
+        cache,
+        tm,
+        t_start,
+        *,
+        engage_ts=None,
+        label_end_ts=None,
+        horizon_ms=None,
+        first_kill_ts=None,
+        last_kill_ts=None,
+    ):
         st = int(engage_ts if engage_ts is not None else 0)
         ed = int(label_end_ts if label_end_ts is not None else st + 30_000)
         return {

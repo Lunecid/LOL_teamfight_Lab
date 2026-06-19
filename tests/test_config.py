@@ -38,9 +38,9 @@ class TestKeyAttributes:
         assert isinstance(cfg.SEEDS, tuple)
         assert len(cfg.SEEDS) >= 1
 
-    def test_seeds_has_five(self):
-        """SEEDS expanded to 5 seeds for statistical significance."""
-        assert len(cfg.SEEDS) == 5
+    def test_seeds_match_paper_protocol(self):
+        """Paper protocol uses three seeds: 7, 42, 123."""
+        assert cfg.SEEDS == (7, 42, 123)
 
     def test_epochs_exists(self):
         assert hasattr(cfg, "EPOCHS")
@@ -135,12 +135,16 @@ class TestP06ValTestSubsampling:
     def test_val_max_n_exists(self):
         assert hasattr(cfg, "VAL_MAX_N")
         assert isinstance(cfg.VAL_MAX_N, int)
-        assert cfg.VAL_MAX_N > 0
+        assert cfg.VAL_MAX_N >= 0
 
     def test_test_max_n_exists(self):
         assert hasattr(cfg, "TEST_MAX_N")
         assert isinstance(cfg.TEST_MAX_N, int)
-        assert cfg.TEST_MAX_N > 0
+        assert cfg.TEST_MAX_N >= 0
+
+    def test_global_subsample_per_split_matches_paper_cap(self):
+        assert hasattr(cfg, "GLOBAL_SUBSAMPLE_PER_SPLIT")
+        assert cfg.GLOBAL_SUBSAMPLE_PER_SPLIT == 100_000
 
 
 class TestP03InputProjection:

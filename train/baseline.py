@@ -382,7 +382,7 @@ def _lgbm_evaluate_splits(
 
 def _lgbm_feature_analysis(
     clf, feat_names: List[str],
-    Xva_in, Xva_size: bool,
+    Xva_in, yva: np.ndarray, Xva_size: bool, seed: int,
     log_fp: Path,
 ) -> Tuple[List, Optional[List]]:
     """Extract feature importance and optional SHAP values."""
@@ -399,13 +399,34 @@ def _lgbm_feature_analysis(
             import shap  # type: ignore
             expl = shap.TreeExplainer(clf.booster_)
             n = min(2000, Xva_in.shape[0] if hasattr(Xva_in, "shape") else len(Xva_in))
-            Xs = Xva_in.iloc[:n] if HAS_PANDAS and hasattr(Xva_in, "iloc") else Xva_in[:n]
+            y_arr = np.asarray(yva).reshape(-1)
+            rng = np.random.RandomState(int(seed))
+            if y_arr.shape[0] == n and n > 0:
+                idx = np.arange(n)
+            elif y_arr.shape[0] > 0 and np.unique(y_arr).size > 1:
+                idx_parts = []
+                for cls in np.unique(y_arr):
+                    cls_idx = np.flatnonzero(y_arr == cls)
+                    take = int(round(n * (len(cls_idx) / max(1, len(y_arr)))))
+                    take = max(1, min(take, len(cls_idx)))
+                    idx_parts.append(rng.choice(cls_idx, size=take, replace=False))
+                idx = np.concatenate(idx_parts)
+                if len(idx) < n:
+                    rest = np.setdiff1d(np.arange(len(y_arr)), idx, assume_unique=False)
+                    extra = rng.choice(rest, size=min(n - len(idx), len(rest)), replace=False) if len(rest) else np.array([], dtype=int)
+                    idx = np.concatenate([idx, extra])
+                elif len(idx) > n:
+                    idx = rng.choice(idx, size=n, replace=False)
+                rng.shuffle(idx)
+            else:
+                idx = rng.choice(np.arange(n), size=n, replace=False)
+            Xs = Xva_in.iloc[idx] if HAS_PANDAS and hasattr(Xva_in, "iloc") else Xva_in[idx]
             sv = expl.shap_values(Xs)
             if isinstance(sv, list) and len(sv) == 2:
                 sv = sv[1]
             mean_abs = np.mean(np.abs(sv), axis=0)
             shap_summary = sorted(zip(feat_names, mean_abs.tolist()), key=lambda x: x[1], reverse=True)
-            write_log(f"[LGBM] SHAP computed on n={n}", log_fp)
+            write_log(f"[LGBM] SHAP computed on stratified validation n={len(idx)} seed={seed}", log_fp)
         except Exception as e:
             write_log(f"[LGBM] SHAP skipped/failed: {e}", log_fp)
 
@@ -650,7 +671,7 @@ def run_lgbm_baseline(
         write_log(f"[LGBM] dump_predictions_csv failed: {e}", log_fp)
 
     # --- Feature analysis ---
-    fi, shap_summary = _lgbm_feature_analysis(clf, feat_names, Xva_in, bool(Xva.size), log_fp)
+    fi, shap_summary = _lgbm_feature_analysis(clf, feat_names, Xva_in, yva, bool(Xva.size), seed, log_fp)
 
     # --- Build logit map ---
     logit_map = _lgbm_build_logit_map([
@@ -723,6 +744,58 @@ def run_lgbm_baseline(
         "bootstrap_ci": bootstrap_ci_results if bootstrap_ci_results else None,
         "_pred_maps_in_memory": {"train": pred_map_tr, "val": pred_map_va, "test": pred_map_te},
         "_label_maps_in_memory": {"train": label_map_tr, "val": label_map_va, "test": label_map_te},
+    })
+    return out
+
+
+def run_mlp_baseline(
+    feature_set: str,
+    tr_refs: List[FightRef],
+    va_refs: List[FightRef],
+    te_refs: List[FightRef],
+    seed: int,
+    log_fp: Path,
+    out_dir: Path,
+) -> Dict[str, Any]:
+    """Matched-input MLP baseline (RQ3 diagnostic).
+
+    Trains a 2-layer MLP on the SAME engineered tabular representation as
+    ``run_lgbm_baseline`` — i.e. ``build_tabular_Xy`` (full feature set,
+    1015×7 stats) -> constant/quasi-constant prune -> correlation prune ->
+    z-score standardisation. Because the input is matched to LightGBM
+    (~2,980-D X_tab, NOT the 95-D macro sequence that the deep ``mlp``
+    registry model consumes), the MLP-vs-LightGBM gap isolates the learner
+    effect under a fixed representation (paper RQ3).
+
+    Delegates to :func:`analysis.mlp_ablation.run_mlp_ablation` with the
+    paper's hyperparameters (H=256, dropout 0.3, lr 1e-3, wd 1e-4) and
+    returns a pack compatible with ``run_lgbm_baseline``'s contract
+    (``ok``, ``metrics={train,val,test}``, ``bootstrap_ci``).
+    """
+    out: Dict[str, Any] = {"ok": False, "model_path": None, "logit_map": {}}
+    try:
+        from analysis.mlp_ablation import run_mlp_ablation
+    except Exception as e:  # pragma: no cover - import guard
+        write_log(f"[MLP] cannot import mlp_ablation -> skip baseline ({e})", log_fp)
+        return out
+
+    rep = run_mlp_ablation(
+        feature_set, tr_refs, va_refs, te_refs, seed, log_fp, out_dir,
+        hidden_dim=256, dropout=0.3, lr=1e-3, weight_decay=1e-4,
+        batch_size=512, max_epochs=100, patience=15,
+    )
+    if not rep or not rep.get("ok"):
+        write_log("[MLP] matched-input baseline did not complete", log_fp)
+        return out
+
+    out.update({
+        "ok": True,
+        "model_path": None,
+        "logit_map": {},
+        "metrics": rep.get("metrics", {}),
+        "bootstrap_ci": rep.get("bootstrap_ci"),
+        "n_features": rep.get("n_features_after_pruning"),
+        "out_dir": str(out_dir),
     })
     return out
 

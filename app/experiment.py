@@ -390,6 +390,41 @@ def run(args) -> None:
         all_split_refs = list(tr_refs) + list(va_refs) + list(te_refs)
         base_logit_map_full = densify_logit_map(all_split_refs, base_logit_map, default_logit=0.0) if base_logit_map else {}
 
+        # ─── MLP matched-input tabular baseline (RQ3) ───────────────
+        # The diagnostic MLP must consume the SAME engineered ~2,980-D X_tab as
+        # LightGBM (build_tabular_Xy), so the MLP-vs-LGBM gap isolates the
+        # learner effect on a fixed representation. Routed through the tabular
+        # baseline path here — NOT the deep loop below, which would feed the
+        # registry MLP the 95-D macro sequence and break the matched-input
+        # premise of RQ3.
+        if any((m or "").lower() == "mlp" for m in model_list):
+            from train.baseline import run_mlp_baseline
+            mlp_dir = ensure_dir(models_root / "mlp" / "baseline")
+            mlp_log = mlp_dir / "run.log"
+            write_log("[STEP] MLP matched-input tabular baseline (same X_tab as LGBM)", run_log)
+            mlp_pack = run_mlp_baseline(feature_set, tr_refs, va_refs, te_refs, seed, mlp_log, out_dir=mlp_dir)
+            clear_memory(log_fp=run_log)
+            if mlp_pack and mlp_pack.get("ok"):
+                met = mlp_pack.get("metrics", {})
+                _row = {
+                    "run_tag": run_tag,
+                    "R_core": float(R),
+                    "model": "mlp",
+                    "variant": "baseline",
+                    "feature_set": feature_set,
+                    "seed": seed,
+                    "tr_auc": met.get("train", {}).get("auc"),
+                    "va_auc": met.get("val", {}).get("auc"),
+                    "te_auc": met.get("test", {}).get("auc"),
+                    "tr_acc": met.get("train", {}).get("acc"),
+                    "va_acc": met.get("val", {}).get("acc"),
+                    "te_acc": met.get("test", {}).get("acc"),
+                    "artifact_dir": str(mlp_dir),
+                    "checkpoint": mlp_pack.get("model_path"),
+                }
+                _row.update(_extract_bootstrap_ci_fields(mlp_pack))
+                results_rows.append(_row)
+
         # ─── Dataset sharing: build once, reuse across models ────────
         share_datasets = bool(getattr(args, "share_datasets", False))
         _shared_base_datasets = None  # (ds_tr, ds_va, ds_te) without logits
@@ -443,7 +478,10 @@ def run(args) -> None:
 
         # 5) Deep models
         for model_name in model_list:
-            if (model_name or "").lower() == "lgbm":
+            # lgbm + mlp are handled above via the matched-input tabular
+            # baseline path (build_tabular_Xy). Skip them here so the deep
+            # loader does not also run the 95-D macro registry variants.
+            if (model_name or "").lower() in ("lgbm", "mlp"):
                 continue
 
             fs = _infer_feature_set_for_model(model_name, feature_set)

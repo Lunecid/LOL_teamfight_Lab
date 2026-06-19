@@ -56,7 +56,19 @@ def set_seed(seed: int):
 def write_log(msg: str, fp: Optional[Path] = None):
     line = str(msg)
     # Keep logs visible even when logging handlers are not configured.
-    print(line, flush=True)
+    try:
+        print(line, flush=True)
+    except UnicodeEncodeError:
+        # Legacy Windows consoles (e.g. cp949) cannot encode emoji/unicode in
+        # some log lines. Degrade only the un-encodable characters for the
+        # console; the full UTF-8 text still reaches the log file below.
+        import sys
+        enc = getattr(sys.stdout, "encoding", None) or "utf-8"
+        safe = line.encode(enc, errors="replace").decode(enc, errors="replace")
+        try:
+            print(safe, flush=True)
+        except Exception:
+            pass
     if fp is not None:
         fp.parent.mkdir(parents=True, exist_ok=True)
         with open(fp, "a", encoding="utf-8") as f:

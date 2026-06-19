@@ -13,7 +13,7 @@
 
 Changes from original:
   [P0-RULE]    VERIFY_KILL_IN_HORIZON default → True; USE_KILL_ANCHOR → False.
-  [P0-SEED]    SEEDS expanded to 5 seeds for statistical significance.
+  [P0-SEED]    Paper protocol uses 3 seeds (7, 42, 123).
   [P0-CAP]     DROPOUT 0.35→0.20, RNN_HIDDEN 64→128, GNN_DIM 64→96,
                GNN_DROPOUT 0.35→0.25, TCN_DROPOUT 0.35→0.20 (underfitting fix).
   [P1-PATH]    Hardcoded Windows paths → environment-variable fallbacks.
@@ -298,8 +298,8 @@ class CFG:
     VAL_FRAC: float = 0.20
     TEST_FRAC: float = 0.10
 
-    # [P0-SEED] 5 seeds for bootstrap CI / McNemar significance
-    SEEDS: Tuple[int, ...] = (7, 42, 123, 256, 512)
+    # Paper protocol seeds for three-seed mean/std.
+    SEEDS: Tuple[int, ...] = (7, 42, 123)
 
     SPLIT_GROUP_BY_MATCH_ID: bool = True
 
@@ -585,8 +585,9 @@ class CFG:
     #   "exclude" — drop ties from training (recommended).
     #   "blue"    — ties → blue win (original behaviour, biased).
     #   "red"     — ties → red win.
-    #   "random"  — ties → random class (per sample, seeded).
+    #   "random"  — ties → seeded deterministic coin flip per label window.
     LABEL_TIE_STRATEGY: str = "random"
+    LABEL_TIE_SEED: int = 7
 
     # weighted label
     W_KILL: float = 1.0
