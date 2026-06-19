@@ -93,33 +93,50 @@ def split_kill_cluster_spatial(cluster: dict, max_diameter: float) -> List[dict]
     r = float(max_diameter)
     r2 = r * r
     n = len(with_pos)
-    adj: List[List[int]] = [[] for _ in range(n)]
+
+    # [A3] Split by TRUE spatial diameter (complete-linkage), not single-
+    # linkage. The paper splits any cluster whose spatial diameter (max
+    # pairwise distance) exceeds max_diameter; single-linkage could keep a
+    # chain of kills whose endpoints are far apart. Fast path: if the whole
+    # cluster already fits, keep it as one (the common case for a localized
+    # fight).
+    max_d2 = 0.0
     for i in range(n):
         _, _, xi, yi = with_pos[i]
         for j in range(i + 1, n):
             _, _, xj, yj = with_pos[j]
             dx = xi - xj
             dy = yi - yj
-            if (dx * dx + dy * dy) <= r2:
-                adj[i].append(j)
-                adj[j].append(i)
+            d2 = dx * dx + dy * dy
+            if d2 > max_d2:
+                max_d2 = d2
+    if max_d2 <= r2 and not without_pos:
+        return [finalize_kill_cluster(kills)]
 
+    # Greedy diameter-bounded grouping, time-ordered for determinism: place
+    # each kill into the first group that keeps it within max_diameter of ALL
+    # current members; otherwise start a new group. Guarantees every resulting
+    # group has spatial diameter <= max_diameter.
+    order = sorted(range(n), key=lambda idx: int(with_pos[idx][1].get("timestamp", 0)))
     comp_nodes: List[List[int]] = []
-    seen = [False] * n
-    for s in range(n):
-        if seen[s]:
-            continue
-        stack = [s]
-        seen[s] = True
-        comp: List[int] = []
-        while stack:
-            v = stack.pop()
-            comp.append(v)
-            for nx in adj[v]:
-                if not seen[nx]:
-                    seen[nx] = True
-                    stack.append(nx)
-        comp_nodes.append(comp)
+    for idx in order:
+        _, _, xi, yi = with_pos[idx]
+        placed = False
+        for comp in comp_nodes:
+            ok = True
+            for m in comp:
+                _, _, xm, ym = with_pos[m]
+                dx = xi - xm
+                dy = yi - ym
+                if (dx * dx + dy * dy) > r2:
+                    ok = False
+                    break
+            if ok:
+                comp.append(idx)
+                placed = True
+                break
+        if not placed:
+            comp_nodes.append([idx])
 
     if len(comp_nodes) <= 1 and not without_pos:
         return [finalize_kill_cluster(kills)]

@@ -804,9 +804,15 @@ def _validate_teamfight_at_engage(
     min_per_team: int,
     is_norm: bool,
     scale_factor: float,
+    alive_mask: Optional[np.ndarray] = None,
 ) -> bool:
     """Check teamfight validity: at engage time, require min_per_team
-    champions from each team within validity_radius of fight center.
+    ALIVE champions from each team within validity_radius of fight center.
+
+    [A1] When ``alive_mask`` (a per-player 0/1 vector of length 10 at the
+    engage minute) is provided, only living players count toward the in-radius
+    totals, enforcing the paper's "≥2 alive players per team within 1,800
+    units" conjunction rather than two independent marginal checks.
 
     Uses the 5-second dense XY grid for spatial checks.
     """
@@ -826,19 +832,80 @@ def _validate_teamfight_at_engage(
     blue_in = 0
     red_in = 0
 
+    def _alive(pi: int) -> bool:
+        if alive_mask is None:
+            return True
+        try:
+            return float(alive_mask[pi]) > 0.5
+        except Exception:
+            return True
+
     for bi in b:
+        if not _alive(int(bi)):
+            continue
         dx = float(xy_dense[d_idx, int(bi), 0]) - cx
         dy = float(xy_dense[d_idx, int(bi), 1]) - cy
         if dx * dx + dy * dy <= R_sq:
             blue_in += 1
 
     for ri in r:
+        if not _alive(int(ri)):
+            continue
         dx = float(xy_dense[d_idx, int(ri), 0]) - cx
         dy = float(xy_dense[d_idx, int(ri), 1]) - cy
         if dx * dx + dy * dy <= R_sq:
             red_in += 1
 
     return blue_in >= min_per_team and red_in >= min_per_team
+
+
+def _merge_adjacent_candidates(
+    cands: List[dict],
+    max_gap_ms: int,
+    merge_radius: float,
+    max_duration_ms: int,
+) -> List[dict]:
+    """[A2] Algorithm 1 Phase III: merge adjacent validated candidates.
+
+    Two consecutive (time-ordered) validated candidates are merged when the
+    later one's onset falls within ``max_gap_ms`` of the earlier one's window
+    end (gap may be negative when the windows overlap) AND their fight
+    centroids are within ``merge_radius`` (both in the candidates' coordinate
+    space). This consolidates an engagement that briefly pauses and re-engages
+    at the same site into a single instance, as specified by the paper's
+    Phase III. A merge is skipped when it would push the combined span beyond
+    ``max_duration_ms`` (the 60 s engagement cap), so the onset stays the
+    earlier engagement's onset.
+    """
+    if not cands:
+        return cands
+    ordered = sorted(cands, key=lambda c: int(c.get("engage_ts", 0)))
+    merged: List[dict] = [dict(ordered[0])]
+    r2 = float(merge_radius) * float(merge_radius)
+    for b in ordered[1:]:
+        a = merged[-1]
+        gap = int(b.get("engage_ts", 0)) - int(a.get("horizon_end_ts", 0))
+        dx = float(b.get("centroid_x", 0.0)) - float(a.get("centroid_x", 0.0))
+        dy = float(b.get("centroid_y", 0.0)) - float(a.get("centroid_y", 0.0))
+        close = (dx * dx + dy * dy) <= r2
+        new_end = max(int(a.get("horizon_end_ts", 0)), int(b.get("horizon_end_ts", 0)))
+        span = new_end - int(a.get("engage_ts", 0))
+        if gap <= int(max_gap_ms) and close and span <= int(max_duration_ms):
+            a["first_kill_ts"] = min(int(a.get("first_kill_ts", 0)), int(b.get("first_kill_ts", 0)))
+            a["last_kill_ts"] = max(int(a.get("last_kill_ts", 0)), int(b.get("last_kill_ts", 0)))
+            a["horizon_end_ts"] = new_end
+            a["n_segments"] = int(a.get("n_segments", 1)) + int(b.get("n_segments", 1))
+            a["det_event_count"] = int(a.get("det_event_count", 0)) + int(b.get("det_event_count", 0))
+            a["det_kill_count_window"] = int(a.get("det_kill_count_window", 0)) + int(b.get("det_kill_count_window", 0))
+            a["det_event_score"] = float(a.get("det_event_score", 0.0)) + float(b.get("det_event_score", 0.0))
+            a["det_interaction_count"] = int(a.get("det_interaction_count", 0)) + int(b.get("det_interaction_count", 0))
+            a["det_prox_pairs"] = max(int(a.get("det_prox_pairs", 0)), int(b.get("det_prox_pairs", 0)))
+            a["det_cluster_participants"] = max(int(a.get("det_cluster_participants", 0)), int(b.get("det_cluster_participants", 0)))
+            a["det_cluster_duration_ms"] = int(a["last_kill_ts"]) - int(a["first_kill_ts"])
+        else:
+            merged.append(dict(b))
+    return merged
+
 
 def _collect_interactions_in_radius(
     events: List[dict],
@@ -1226,6 +1293,18 @@ def detect_fights_teamfight_v2(
             return True
         return True
 
+    def _alive_vec_at_ts(ts_val: int):
+        # [A1] Per-player alive vector (length 10) at the engage minute, used
+        # to require >=2 ALIVE players per team WITHIN the validity radius
+        # (the conjunction the paper specifies), not just >=2 present.
+        if alive_idx is None:
+            return None
+        try:
+            m_idx = _map_ts_to_minute_idx(minute_ts, ts_val)
+            return np.asarray(cache["node_minute"][m_idx, :, alive_idx]).astype(float)
+        except Exception:
+            return None
+
     # --- Step 3: Convert clusters to fight candidates ---
     blue_set = set(int(x + 1) for x in b.tolist())
     red_set = set(int(x + 1) for x in r.tolist())
@@ -1256,7 +1335,7 @@ def detect_fights_teamfight_v2(
             diag["rejected_alive"] += 1
             continue
 
-        # §4A: Validate teamfight — at least 2 per team within 1800 of fight center
+        # §4A: Validate teamfight — at least 2 ALIVE per team within 1800 of fight center
         if not _validate_teamfight_at_engage(
             xy_dense=xy_dense,
             dense_ts=dense_ts,
@@ -1267,6 +1346,7 @@ def detect_fights_teamfight_v2(
             min_per_team=min_per_team,
             is_norm=is_norm,
             scale_factor=scale_factor,
+            alive_mask=_alive_vec_at_ts(engage_ts_val),
         ):
             diag["rejected_too_few_per_team"] += 1
             continue
@@ -1342,6 +1422,22 @@ def detect_fights_teamfight_v2(
         _pack_diagnostics()
         cache["fight_detect_diag"] = diag
         return fights
+
+    # [A2] Algorithm 1 Phase III: merge adjacent validated candidates within
+    # continuous_fight_max_gap_ms (15 s) and continuous_fight_merge_radius
+    # (2000 u). These config values were previously loaded but never used.
+    if bool(getattr(config, "continuous_fight_merge", True)):
+        _merge_radius = float(getattr(config, "continuous_fight_merge_radius", 2000.0))
+        if is_norm and scale_factor > 0:
+            _merge_radius /= scale_factor
+        _n_before = len(candidates_out)
+        candidates_out = _merge_adjacent_candidates(
+            candidates_out,
+            max_gap_ms=int(getattr(config, "continuous_fight_max_gap_ms", 15000)),
+            merge_radius=_merge_radius,
+            max_duration_ms=int(config.max_merged_fight_duration_ms),
+        )
+        diag["merged_candidates"] = int(_n_before - len(candidates_out))
 
     # --- Enforce minimum gap between fights ---
     candidates_out.sort(key=lambda f: int(f["engage_ts"]))
