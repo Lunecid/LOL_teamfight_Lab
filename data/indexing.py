@@ -192,6 +192,14 @@ def split_refs_patch_holdout(
 
     all_patches = sorted(list({_p(r) for r in refs}), key=patch_sort_key)
 
+    # [GUARD] Capture which splits the caller EXPLICITLY requested, so we can
+    # fail-fast below if an explicitly requested patch yields zero refs. This
+    # is almost always a missing-patch cache; without the guard the run would
+    # train/evaluate on an empty split silently (the val=0/test=0 incident).
+    _explicit_train = bool(train_patches)
+    _explicit_val = bool(val_patches)
+    _explicit_test = bool(test_patches)
+
     train_patches = list(train_patches or [])
     test_patches  = list(test_patches or [])
     val_patches   = list(val_patches or [])
@@ -288,6 +296,28 @@ def split_refs_patch_holdout(
         log_patch_block("train", meta["patch_counts"]["train"], log_fp)
         log_patch_block("val", meta["patch_counts"]["val"], log_fp)
         log_patch_block("test", meta["patch_counts"]["test"], log_fp)
+
+    # [GUARD] Fail-fast: an explicitly requested split that ends up empty almost
+    # always means the cache does not contain that patch. Training/evaluating on
+    # an empty split silently produces meaningless results (e.g. val_auc=-1),
+    # which is unacceptable for paper runs. Override with cfg.ALLOW_EMPTY_SPLITS.
+    if not bool(getattr(cfg, "ALLOW_EMPTY_SPLITS", False)):
+        _empty = []
+        if _explicit_train and len(tr) == 0:
+            _empty.append(f"train(requested {train_patches})")
+        if _explicit_val and len(va) == 0:
+            _empty.append(f"val(requested {val_patches})")
+        if _explicit_test and len(te) == 0:
+            _empty.append(f"test(requested {test_patches})")
+        if _empty:
+            raise RuntimeError(
+                "[SPLIT] Explicitly requested patch split(s) are EMPTY: "
+                + ", ".join(_empty)
+                + f"; patches available in cache = {all_patches}. The cache "
+                "likely does not contain the requested patch(es); this would "
+                "otherwise train/evaluate on an empty split silently. Set "
+                "cfg.ALLOW_EMPTY_SPLITS=True to override."
+            )
 
     return tr, va, te, meta
 

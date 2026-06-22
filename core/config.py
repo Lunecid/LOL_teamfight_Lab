@@ -303,6 +303,10 @@ class CFG:
 
     SPLIT_GROUP_BY_MATCH_ID: bool = True
 
+    # [GUARD] Fail-fast when an explicitly requested patch split (train/val/test)
+    # yields zero refs (almost always a missing-patch cache). True to bypass.
+    ALLOW_EMPTY_SPLITS: bool = False
+
     # None => keep all detected fights per match (no per-match cap).
     MAX_FIGHTS_PER_MATCH: Optional[int] = None
     FIGHT_SUBSAMPLE_STRATEGY: str = "uniform"
