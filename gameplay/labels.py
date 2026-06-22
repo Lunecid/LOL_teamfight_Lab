@@ -216,6 +216,18 @@ def _compute_label_attention_value_win(evs: List[dict], tm: Dict[int, int], *, t
         if sign == 0:
             continue
 
+        # [B1] Special-kill markers (ace / multi-kill / first-blood) are a BONUS
+        # on the underlying CHAMPION_KILL (paper Eq. 3, s(u)), not a second kill.
+        # Riot emits a CHAMPION_SPECIAL_KILL alongside the CHAMPION_KILL for the
+        # same death; scoring it as is_kill=1.0 double-counted the kill. Score
+        # the special marker as the bonus only.
+        if et == "CHAMPION_SPECIAL_KILL":
+            sb = float(_label_special_kill_bonus(et, e))
+            values.append(float(max(0.0, sb)))
+            priors.append(float(sb))
+            signs.append(float(sign))
+            continue
+
         shutdown = max(0.0, safe_float(e.get("shutdownBounty", 0.0)))
         shutdown_norm = float(np.clip(np.log1p(shutdown) / np.log1p(1500.0), 0.0, 1.0))
         streak_norm = float(np.clip(safe_float(e.get("killStreakLength", 0.0)) / 10.0, 0.0, 1.0))
@@ -227,7 +239,7 @@ def _compute_label_attention_value_win(evs: List[dict], tm: Dict[int, int], *, t
         obj_tier = float(_label_objective_tier(et, e))
         lane_pri = float(_label_lane_priority(et, e))
         special_bonus = float(_label_special_kill_bonus(et, e))
-        is_kill = 1.0 if et in ("CHAMPION_KILL", "CHAMPION_SPECIAL_KILL") else 0.0
+        is_kill = 1.0 if et == "CHAMPION_KILL" else 0.0
 
         value_e = (
             w_kill * is_kill
