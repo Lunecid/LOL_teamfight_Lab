@@ -166,9 +166,14 @@ class TestOverlapClipping:
         assert diag.get("postmerge_overlap_dropped", 0) == 0
 
     def test_equal_priority_drops_later(self):
-        """When priority scores are equal, the later (smaller-or-equal) fight is dropped."""
+        """Equal-priority OVERLAPPING fights: the later one is dropped.
+
+        f2.engage (120000) falls inside f1's label window [100000, 130000] and
+        the two are spatially distant (>location_radius), so the FIX-6.2
+        spatial-overlap branch applies; equal priority (sc>sp is False) drops f2.
+        """
         f1 = _make_fight(100000, centroid_x=2000, centroid_y=2000, det_prox_pairs=10)
-        f2 = _make_fight(140000, centroid_x=12000, centroid_y=12000, det_prox_pairs=10)
+        f2 = _make_fight(120000, centroid_x=12000, centroid_y=12000, det_prox_pairs=10)
         diag = {}
         result = enforce_postmerge_spacing_and_nonoverlap(
             [f1, f2], horizon_ms=HORIZON_MS, fight_min_gap_ms=0,

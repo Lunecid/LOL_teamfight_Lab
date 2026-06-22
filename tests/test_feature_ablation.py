@@ -178,16 +178,16 @@ class TestIsQuasiConstantRedundant:
         assert is_quasi_constant_redundant("rBOT_soul_chemtech__slope") is False
 
     def test_itemhash_delta_is_redundant(self):
-        assert is_quasi_constant_redundant("itemhash0__delta") is True
+        assert is_quasi_constant_redundant("bTOP_itemhash0__delta") is True
 
     def test_itemhash_std_is_redundant(self):
-        assert is_quasi_constant_redundant("itemhash15__std") is True
+        assert is_quasi_constant_redundant("bTOP_itemhash15__std") is True
 
     def test_itemhash_mean_is_redundant(self):
-        assert is_quasi_constant_redundant("itemhash31__mean") is True
+        assert is_quasi_constant_redundant("bTOP_itemhash31__mean") is True
 
     def test_itemhash_last_is_kept(self):
-        assert is_quasi_constant_redundant("itemhash0__last") is False
+        assert is_quasi_constant_redundant("bTOP_itemhash0__last") is False
 
     def test_zone_delta_is_redundant(self):
         assert is_quasi_constant_redundant("zone_top_lane__delta") is True
@@ -215,7 +215,7 @@ class TestIsQuasiConstantRedundant:
         assert is_quasi_constant_redundant("bJNG_champion_id__delta") is False
 
     def test_no_suffix_returns_false(self):
-        assert is_quasi_constant_redundant("itemhash0") is False
+        assert is_quasi_constant_redundant("bTOP_itemhash0") is False
 
 
 # ─────────────────────────────────────────────────────────────
@@ -262,7 +262,7 @@ class TestIsWithinFightConstantRedundant:
 
     def test_non_soul_not_within_fight_constant(self):
         assert is_within_fight_constant_redundant("bJNG_hp_pct__delta") is False
-        assert is_within_fight_constant_redundant("itemhash0__delta") is False
+        assert is_within_fight_constant_redundant("bTOP_itemhash0__delta") is False
         assert is_within_fight_constant_redundant("zone_river__std") is False
 
     def test_no_suffix_returns_false(self):
@@ -285,7 +285,7 @@ class TestClassifyFeatureConstancy:
         assert classify_feature_constancy("rJNG_soul_ocean__std") == "within_fight_constant"
 
     def test_quasi_constant(self):
-        assert classify_feature_constancy("itemhash5__std") == "quasi_constant"
+        assert classify_feature_constancy("bTOP_itemhash5__std") == "quasi_constant"
         assert classify_feature_constancy("zone_river__mean") == "quasi_constant"
 
     def test_time_varying(self):
@@ -297,7 +297,7 @@ class TestClassifyFeatureConstancy:
         # Even with __last suffix, classification should work
         assert classify_feature_constancy("bJNG_champion_id__last") == "strictly_constant"
         assert classify_feature_constancy("bTOP_soul_infernal__last") == "within_fight_constant"
-        assert classify_feature_constancy("itemhash0__last") == "quasi_constant"
+        assert classify_feature_constancy("bTOP_itemhash0__last") == "quasi_constant"
         assert classify_feature_constancy("goldDiff__last") == "time_varying"
 
     def test_no_suffix(self):
@@ -372,10 +372,10 @@ class TestFilterConstantAndQuasiConstant:
 
     def test_drops_quasi_constant_suffixes(self):
         names = [
-            "itemhash0__last",     # keep
-            "itemhash0__mean",     # drop (quasi)
-            "itemhash0__std",      # drop (quasi)
-            "itemhash0__delta",    # drop (quasi)
+            "bTOP_itemhash0__last",     # keep
+            "bTOP_itemhash0__mean",     # drop (quasi)
+            "bTOP_itemhash0__std",      # drop (quasi)
+            "bTOP_itemhash0__delta",    # drop (quasi)
         ]
         keep_idx, dc, dq = filter_constant_and_quasi_constant(names)
         assert keep_idx == (0,)
@@ -398,8 +398,8 @@ class TestFilterConstantAndQuasiConstant:
         names = [
             "bJNG_champion_id__last",      # keep (constant, last)
             "bJNG_champion_id__delta",     # drop (constant)
-            "itemhash5__last",              # keep (quasi, last)
-            "itemhash5__std",              # drop (quasi)
+            "bTOP_itemhash5__last",              # keep (quasi, last)
+            "bTOP_itemhash5__std",              # drop (quasi)
             "goldDiff__delta",             # keep (time-varying)
             "blue_ban_0__mean",            # drop (constant)
             "zone_river__slope",           # drop (quasi)
@@ -413,7 +413,7 @@ class TestFilterConstantAndQuasiConstant:
     def test_disable_constant_drop(self):
         names = [
             "bJNG_champion_id__delta",     # kept when constant drop disabled
-            "itemhash5__std",              # still dropped (quasi)
+            "bTOP_itemhash5__std",              # still dropped (quasi)
         ]
         keep_idx, dc, dq = filter_constant_and_quasi_constant(
             names, drop_strictly_constant=False, drop_quasi_constant=True,
@@ -425,7 +425,7 @@ class TestFilterConstantAndQuasiConstant:
     def test_disable_quasi_drop(self):
         names = [
             "bJNG_champion_id__delta",     # dropped (constant)
-            "itemhash5__std",              # kept when quasi drop disabled
+            "bTOP_itemhash5__std",              # kept when quasi drop disabled
         ]
         keep_idx, dc, dq = filter_constant_and_quasi_constant(
             names, drop_strictly_constant=True, drop_quasi_constant=False,
@@ -455,7 +455,7 @@ class TestFilterConstantAndQuasiConstant:
         # NOTE: Dragon soul moved to within-fight-constant (tested separately).
         # Quasi-constant node features list is now empty; this test verifies
         # that non-slotted quasi-constants (itemhash, zone, pos) still work.
-        for pfx in ("itemhash0", "zone_top_lane", "pos_fight_x_norm"):
+        for pfx in ("bTOP_itemhash0", "zone_top_lane", "pos_fight_x_norm"):
             name = f"{pfx}__delta"
             assert is_quasi_constant_redundant(name), f"Failed for {name}"
 
@@ -511,7 +511,7 @@ class TestTabularStaticIntegration:
     def test_quasi_constant_in_tabular(self):
         """Quasi-constant features correctly identified in tabular names."""
         base_names = [
-            "itemhash0",
+            "bTOP_itemhash0",
             "zone_river",
             "goldDiff",
         ]
@@ -618,13 +618,15 @@ class TestReductionEstimate:
         )
         from gameplay.feature_spatial import SPATIAL_FEATURE_NAMES
 
-        # node_flat base names (slotted)
+        # node_flat base names (slotted), including per-player item hash (16-D
+        # per player) — the real X_tab carries slotted per-player items, not the
+        # legacy global 32-D ITEM_HASH_NAMES.
         node_base = [f"{slot}_{f}" for slot in SLOT_NAMES for f in NODE_FEATURE_NAMES]
+        node_base += [f"{slot}_itemhash{i}" for slot in SLOT_NAMES for i in range(16)]
         # macro + spatial base names (non-slotted)
         macro_base = (
             list(GLOBAL_FEATURE_NAMES)
             + list(EVENT_FEATURE_NAMES)
-            + list(ITEM_HASH_NAMES)
             + list(SPATIAL_FEATURE_NAMES)
         )
         all_base = node_base + macro_base
@@ -658,9 +660,9 @@ class TestReductionEstimate:
         assert reduction_pct > 15, f"Expected >15% total reduction, got {reduction_pct:.1f}%"
         # dq combines quasi-constant + within-fight-constant drops:
         assert len(dq) > 0, "Should drop quasi + within-fight-constant features"
-        # 6 soul features × 10 slots × 6 suffixes = 360 (within-fight-constant)
-        # + 32 itemhash × 6 suffixes = 192 (quasi-constant)
-        # + 5 zone features × 6 suffixes = 30 (quasi-constant)
-        # + 2 pos_fight features × 6 suffixes = 12 (quasi-constant)
-        # Total = 594
-        assert len(dq) == 594, f"Expected 594 quasi+wfc dropped, got {len(dq)}"
+        # 6 soul × 10 slots × 6 suffixes = 360 (within-fight-constant)
+        # + 16 per-player itemhash × 10 slots × 6 suffixes = 960 (quasi-constant)
+        # + 5 zone × 6 suffixes = 30 (quasi-constant)
+        # + 2 pos_fight × 6 suffixes = 12 (quasi-constant)
+        # Total = 1362
+        assert len(dq) == 1362, f"Expected 1362 quasi+wfc dropped, got {len(dq)}"
