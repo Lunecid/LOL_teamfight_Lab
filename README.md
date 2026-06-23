@@ -37,7 +37,7 @@ baselines) and all qualitative conclusions are unchanged.
 | Document | Description |
 |----------|-------------|
 | **[docs/PIPELINE.md](docs/PIPELINE.md)** | Complete 7-stage data pipeline from Riot API JSON to calibrated predictions |
-| **[docs/FEATURES.md](docs/FEATURES.md)** | Exhaustive feature sets (87 node + 27 global + 48 event), dimensions, normalization |
+| **[docs/FEATURES.md](docs/FEATURES.md)** | Exhaustive feature sets (76 node + 26 global + 44 event), dimensions, normalization |
 | **[docs/MODELS.md](docs/MODELS.md)** | 25+ model architectures with mathematical definitions and hyperparameters |
 | **[docs/EXPERIMENT.md](docs/EXPERIMENT.md)** | 7-treatment ablation protocol, statistical testing, evaluation metrics |
 | **[docs/CoG2026_Paper.md](docs/CoG2026_Paper.md)** | Full paper draft (IEEE CoG 2026) |

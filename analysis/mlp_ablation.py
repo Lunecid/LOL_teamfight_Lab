@@ -689,19 +689,51 @@ def main(argv=None):
     out_dir.mkdir(parents=True, exist_ok=True)
     log_fp = out_dir / "mlp_ablation.log"
 
-    # Build refs
+    # NOTE: This standalone CLI is deprecated. The supported entry point for the
+    # MLP-on-same-features ablation is `experiment_runner.py` phase7, which builds
+    # refs via the canonical pipeline (scan_cache_match_ids -> build_fight_index ->
+    # split_refs_patch_holdout). The run_mlp_ablation* functions in this module are
+    # still used directly by that runner. Keep all heavy/optional imports inside
+    # this function so importing the module never fails.
+    print(
+        "[DEPRECATED] analysis/mlp_ablation.py standalone CLI is deprecated; "
+        "use `experiment_runner.py phase7` instead. Attempting best-effort run via "
+        "the canonical ref-building pipeline..."
+    )
+
+    # Build refs using the same pipeline as experiment_runner.py phase7.
     try:
-        from data.index_split import build_split_refs
-        from data.cache_io import load_dataset_index
-        idx = load_dataset_index()
-        if not idx:
-            print("[ERROR] No dataset index. Run cache builder first.")
-            return
-        tr_refs, va_refs, te_refs = build_split_refs(
-            idx, mode=args.split_mode, seed=args.seed,
-        )
+        from data.indexing import scan_cache_match_ids, split_refs_patch_holdout
+        from data.index_split import build_fight_index, split_refs
     except Exception as e:
-        print(f"[ERROR] Cannot build refs: {e}")
+        print(
+            f"[ERROR] Ref-building pipeline unavailable ({e}). "
+            "This standalone CLI is deprecated; use `experiment_runner.py phase7`."
+        )
+        return
+
+    try:
+        cache_match_ids = scan_cache_match_ids()
+        if not cache_match_ids:
+            print("[ERROR] No cached matches found. Run cache builder first.")
+            return
+        refs = build_fight_index(cache_match_ids)
+        if not refs:
+            print("[ERROR] No fights detected. Check cache / detection rules.")
+            return
+        if args.split_mode == "patch_holdout":
+            tr_refs, va_refs, te_refs, _ = split_refs_patch_holdout(
+                refs=refs, seed=args.seed, log_fp=log_fp,
+            )
+        else:
+            tr_refs, va_refs, te_refs, _ = split_refs(
+                refs, mode=args.split_mode, seed=args.seed,
+            )
+    except Exception as e:
+        print(
+            f"[ERROR] Cannot build refs: {e}. "
+            "This standalone CLI is deprecated; use `experiment_runner.py phase7`."
+        )
         return
 
     if args.seeds:

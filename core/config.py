@@ -261,6 +261,11 @@ class CFG:
     # =========================================================
     # 1) Data Paths  [FIX-PATH] env var override 가능, 기본값은 원본 경로
     # =========================================================
+    # NOTE: The hardcoded Windows paths below (DETAIL_DIR / TIMELINE_DIR, and
+    # OUTPUT_ROOT in section 2) are the original author's LOCAL defaults. They are
+    # intentionally kept as-is. For portability, set the LOL_DETAIL_DIR /
+    # LOL_TIMELINE_DIR / LOL_OUTPUT_ROOT environment variables, which override
+    # these defaults (see _path_from_env_or_default).
     DETAIL_DIR: Path = field(default_factory=lambda: _path_from_env_or_default(
         "LOL_DETAIL_DIR",
         r"C:\Users\todtj\PycharmProjects\Lol_project\data\raw\matches\kr\detail",
@@ -1042,14 +1047,24 @@ class CFG:
 # -------------------------------------------------------------------
 cfg = CFG()
 
-cfg.OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
+# Directory creation is best-effort: on a machine where OUTPUT_ROOT lives on a
+# missing/read-only drive, mkdir() would raise at import time and make the whole
+# package unimportable. Wrap each mkdir in try/except so importing config NEVER
+# raises; the dirs are still created whenever the filesystem allows it.
+try:
+    cfg.OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
+except OSError:
+    pass
 CACHE_DIR = cfg.OUTPUT_ROOT / "cache" / cfg.CACHE_DIRNAME
 RUN_DIR = cfg.OUTPUT_ROOT / cfg.RUN_DIRNAME
 META_DIR = cfg.OUTPUT_ROOT / cfg.META_DIRNAME
 DATASET_DIR = cfg.OUTPUT_ROOT / "dataset" / cfg.DATASET_DIRNAME
 
 for d in (CACHE_DIR, RUN_DIR, META_DIR, DATASET_DIR):
-    d.mkdir(parents=True, exist_ok=True)
+    try:
+        d.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        pass
 
 # -------------------------------------------------------------------
 # Export baseline params as module-level dicts
