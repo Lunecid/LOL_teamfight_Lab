@@ -20,12 +20,14 @@ implements the paper's described methods exactly:
   contribute only the bonus `s(u)`, not a second kill.
 
 On the corrected code the corpus is **994,365** validated engagements
-(approximately one million, about 4.8 per match; the paper reports 1,115,123).
-Each split (train / validation / test) is uniformly subsampled to **100,000
-instances per seed** for training and evaluation. LightGBM reaches test
-**AUC ≈ 0.669** (seed 7, patch 15.16), about **0.006** below the reported
-**0.675**. The relative ordering of paradigms (engineered tabular ≫ deep
-baselines) and all qualitative conclusions are unchanged.
+(about 4.8 per match) — the paper's "approximately one million" (the
+pre-correction construction was 1,115,123, ~5.4 per match). Each split
+(train / validation / test) is uniformly subsampled to **100,000 instances
+per seed** for training and evaluation. LightGBM reaches test **AUC ≈ 0.669**
+(seed 7, patch 15.16), about **0.006** below the **0.675** the paper reports
+and retains; this note is the record of the corrected figure. The relative
+ordering of paradigms (engineered tabular ≫ deep baselines) and all
+qualitative conclusions are unchanged.
 
 > Raw match data is not redistributed (Riot API terms of service); the corpus is
 > rebuilt from Match-V5 / Timeline records by the pipeline described below.

@@ -86,20 +86,19 @@ episodes and duplicate re-engages). LightGBM test AUC contribution **−0.0017**
 
 ## Paper-text edits for the 308 camera-ready
 
-The code matches the paper's **methods**. **Decision:** the paper keeps the
-**as-reviewed numbers** (1,115,123 engagements, ≈5.4/match, LightGBM .675); the
-released code's corrected numbers (994,365, ≈.669) are documented in `README.md`
-("Reproducibility note") — **not** in the paper. The reported corpus and AUC
-come from the same (pre-correction) commit, so they stay together as one
-consistent set, and **no paper edit is needed for them** ("more than one
-million" remains true at 1,115,123).
+The code matches the paper's **methods**. **Decision:**
 
-The only independent disclosure — true regardless of the corrections, since the
-100k subsample was always active — is **optional**:
-
-- **Subsample (optional, recommended):** add one sentence, e.g. "each split is
-  uniformly subsampled to **100,000 instances per seed** for training and
-  evaluation; reported metrics are computed on these subsamples."
+1. **Corpus → "approximately one million" labeled engagements.** This phrasing
+   is true for both the pre-correction construction (1,115,123) and the released
+   code (994,365), so it contradicts neither. (Drop the exact "1,115,123" /
+   "more than one million" / "about 5.4 per match"; "≈ 1 M" covers both — the
+   released code is ≈ 4.8 per match.)
+2. **LightGBM AUC: keep 0.675, no footnote in the paper.** The released code's
+   corrected figure (≈ 0.669) is recorded **only** in `README.md`
+   ("Reproducibility note").
+3. **Subsample disclosure: optional** (true regardless of the corrections, since
+   the 100 k cap was always active): "each split is uniformly subsampled to
+   **100,000 instances per seed** for training and evaluation."
 
 Everything else (206,442 matches; per-patch 73,331/73,484/59,627; localization
 constants; Table I label weights; model hyperparameters) is already consistent
