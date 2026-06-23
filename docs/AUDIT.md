@@ -84,22 +84,26 @@ episodes and duplicate re-engages). LightGBM test AUC contribution **−0.0017**
 
 ---
 
-## Paper-text edits to apply in the 308 camera-ready
+## Paper-text edits for the 308 camera-ready
 
-The code now matches the paper's **methods**; only two numbers and one
-disclosure changed. (Decision: keep the reported metrics + a provenance note —
-see the repo `README.md` "Reproducibility note".)
+The code matches the paper's **methods**. **Decision:** the paper keeps the
+**as-reviewed numbers** (1,115,123 engagements, ≈5.4/match, LightGBM .675); the
+released code's corrected numbers (994,365, ≈.669) are documented in `README.md`
+("Reproducibility note") — **not** in the paper. The reported corpus and AUC
+come from the same (pre-correction) commit, so they stay together as one
+consistent set, and **no paper edit is needed for them** ("more than one
+million" remains true at 1,115,123).
 
-1. **Corpus:** "1,115,123 … about 5.4 per match" → **"approximately one million
-   (994,365) … about 4.8 per match"**. Replace **"more than one million"** with
-   **"approximately one million"** (994,365 < 1,000,000).
-2. **Subsample (add a sentence):** "each split is uniformly subsampled to
-   **100,000 instances per seed** for training and evaluation; reported metrics
-   are computed on these subsamples."
-3. **AUC (provenance footnote, keeping .675):** "Reported metrics were generated
-   with the commit prior to the localization/label corrections; the released
-   code yields LightGBM test AUC ≈ 0.669, within ~0.006 of 0.675, with the same
-   paradigm ordering and conclusions."
+The only independent disclosure — true regardless of the corrections, since the
+100k subsample was always active — is **optional**:
+
+- **Subsample (optional, recommended):** add one sentence, e.g. "each split is
+  uniformly subsampled to **100,000 instances per seed** for training and
+  evaluation; reported metrics are computed on these subsamples."
+
+Everything else (206,442 matches; per-patch 73,331/73,484/59,627; localization
+constants; Table I label weights; model hyperparameters) is already consistent
+between the paper and the released code.
 
 ---
 
