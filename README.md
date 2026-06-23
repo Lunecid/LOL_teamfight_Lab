@@ -6,6 +6,32 @@ A machine learning pipeline for predicting **League of Legends teamfight outcome
 
 ---
 
+## Reproducibility note (relationship to the paper)
+
+The metrics reported in the paper were generated with the experiment commit
+**prior to** the localization/labeling corrections below. This released code
+implements the paper's described methods exactly:
+
+- **Localization (Algorithm 1):** kill clusters are split by their true spatial
+  *diameter* (> 4000 u), validity requires **≥ 2 *alive* players per team within
+  1800 u** of the earliest kill (a single conjunction), and Phase III **merges
+  adjacent validated candidates within 15 s and 2000 u**.
+- **Label (Eq. 3):** special-kill markers (ace / multi-kill / first-blood)
+  contribute only the bonus `s(u)`, not a second kill.
+
+On the corrected code the corpus is **994,365** validated engagements
+(approximately one million, about 4.8 per match; the paper reports 1,115,123).
+Each split (train / validation / test) is uniformly subsampled to **100,000
+instances per seed** for training and evaluation. LightGBM reaches test
+**AUC ≈ 0.669** (seed 7, patch 15.16), about **0.006** below the reported
+**0.675**. The relative ordering of paradigms (engineered tabular ≫ deep
+baselines) and all qualitative conclusions are unchanged.
+
+> Raw match data is not redistributed (Riot API terms of service); the corpus is
+> rebuilt from Match-V5 / Timeline records by the pipeline described below.
+
+---
+
 ## Documentation
 
 | Document | Description |
