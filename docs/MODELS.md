@@ -9,6 +9,7 @@ Complete specification of all 25+ model architectures, their mathematical defini
 ```
 +-- Tabular Baseline
 |   +-- LightGBM
+|   +-- MLP (matched-input tabular; see Section 1.1)
 |
 +-- Sequential (RNN Family)
 |   +-- BiGRU
@@ -82,6 +83,13 @@ Where `p_i` is the integer-encoded patch number and `tau = 2.0` controls recency
 
 Before training, the `filter_constant_and_quasi_constant()` function removes redundant tabular features (see `docs/FEATURES.md` Section 7), reducing dimensionality by ~26%.
 
+### 1.1 MLP Baselines
+
+Two MLP baselines exist and must not be confused:
+
+- **Matched-input tabular MLP** (`analysis/mlp_ablation.py::run_mlp_baseline`) — the paper's MLP. It consumes the **same ~2,980-D tabular vector** as LightGBM (built via `build_tabular_Xy`), isolating the learner-family effect from the input representation (paper: MLP .626 vs LightGBM .675).
+- **Registry `mlp`** (`train/models.py::MLPTabularModel`, keys `mlp` / `mlp_tab` / `mlp_tabular`) — a diagnostic model inside the deep-training harness. It aggregates the temporal sequence into `[last ‖ mean]` (optionally after an input projection), then applies an MLP head (hidden=256, layers=3 — in-code defaults, overridable via `cfg.MLP_HIDDEN` / `cfg.MLP_LAYERS`). Its input is the 95-D macro sequence, so its scores are **not** comparable to the paper's matched-input MLP.
+
 ---
 
 ## 2. Sequential Models (RNN Family)
@@ -147,7 +155,7 @@ h_t = o_t . tanh(c_t)                              (hidden state)
 
 ### 2.2 Transformer
 
-3-layer self-attention with sinusoidal positional encoding.
+2-layer self-attention with sinusoidal positional encoding.
 
 **Architecture:**
 
@@ -155,18 +163,18 @@ h_t = o_t . tanh(c_t)                              (hidden state)
 Input S: (B, L=6, D_input)
     |
     v
-Linear(D_input, d_model=256)
+Linear(D_input, d_model=64)
     |
     v
 + Sinusoidal Positional Encoding (L, d_model)
     |
     v
 TransformerEncoder(
-  num_layers=3,
-  d_model=256,
+  num_layers=2,
+  d_model=64,
   nhead=4,
-  dim_feedforward=1024,
-  dropout=0.20
+  dim_feedforward=128,   # d_model x TRANS_FF_MULT (2)
+  dropout=0.1
 )
     |
     v
@@ -193,11 +201,11 @@ where head_i = Attention(Q W_Q^i, K W_K^i, V W_V^i)
 
 | Parameter | Value |
 |-----------|-------|
-| `d_model` | 256 |
+| `d_model` | 64 |
 | `nhead` | 4 |
-| `num_layers` | 3 |
-| `dim_feedforward` | 1024 |
-| `dropout` | 0.20 |
+| `num_layers` | 2 |
+| `dim_feedforward` | 128 |
+| `dropout` | 0.1 |
 
 ### 2.3 TCN (Temporal Convolutional Network)
 
@@ -653,7 +661,7 @@ epsilon = 0.05  ->  positive: 0.975, negative: 0.025
 | **Warmup epochs** | 1 | Linear warmup duration |
 | **Gradient clipping** | 5.0 | Max gradient norm |
 | **Mixed precision** | AMP (bf16/fp16) | Auto-selected per GPU |
-| **Seeds** | {7, 42, 123, 256, 512} | 5-seed bootstrap |
+| **Seeds** | {7, 42, 123} | 3-seed replication (`CFG.SEEDS`) |
 | **Early stop metric** | Validation AUC | |
 | **DEEP_MAX_TRAIN** | 100,000 | Maximum training samples for deep models |
 | **GLOBAL_SUBSAMPLE_PER_SPLIT** | 100,000 | Uniform cap on all splits |
@@ -675,11 +683,12 @@ epsilon = 0.05  ->  positive: 0.975, negative: 0.025
 | Model Key | Category | Key Hyperparameters |
 |-----------|----------|---------------------|
 | `lgbm` | Baseline | n_estimators=5000, lr=0.03, max_depth=6, num_leaves=31 |
+| `mlp` | Baseline (diagnostic) | [last ‖ mean] aggregation, hidden=256, layers=3 (see Section 1.1) |
 | `rnn_ugru` | Sequential | hidden=128, layers=2, dropout=0.20, unidirectional |
 | `rnn_bigru` | Sequential | hidden=128, layers=2, dropout=0.20 |
 | `rnn_ulstm` | Sequential | hidden=128, layers=2, dropout=0.20, unidirectional |
 | `rnn_bilstm` | Sequential | hidden=128, layers=2, dropout=0.20 |
-| `rnn_transformer` | Sequential | d_model=256, nhead=4, layers=3, dropout=0.20 |
+| `rnn_transformer` | Sequential | d_model=64, nhead=4, layers=2, dropout=0.1 |
 | `rnn_tcn` | Sequential | channels=64, levels=3, kernel=3, dropout=0.20 |
 | `rnn_mamba` | Sequential | d_model=128, layers=3, d_state=16, d_conv=4 |
 | `hybrid_bigru` | Hybrid | h0_proj_dim=64, h0_dropout=0.15 |

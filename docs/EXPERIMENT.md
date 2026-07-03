@@ -1,6 +1,6 @@
 # Experimental Protocol
 
-Complete specification of the ablation study framework, 7 domain-knowledge treatments, statistical testing methodology, evaluation metrics, and known data quality issues.
+Complete specification of the ablation study framework, 7 domain-knowledge treatments (T1–T7) plus 3 interpolation/detector ablations (T8–T10), statistical testing methodology, evaluation metrics, and known data quality issues.
 
 ---
 
@@ -10,8 +10,8 @@ A rigorous 5-phase experimental protocol isolates the contribution of each domai
 
 | Phase | Description | Inputs | Outputs |
 |-------|-------------|--------|---------|
-| **Phase 1: Baseline** | Reproduce baseline across 5 seeds | All models, default config | AUC_baseline +/- CI |
-| **Phase 2: Single-Factor** | For each T_i (i=1..7): measure Delta_i | Baseline + one treatment | Delta_i = AUC(baseline + T_i) - AUC(baseline) |
+| **Phase 1: Baseline** | Reproduce baseline across 3 seeds | All models, default config | AUC_baseline +/- CI |
+| **Phase 2: Single-Factor** | For each T_i (i=1..10): measure Delta_i | Baseline + one treatment | Delta_i = AUC(baseline + T_i) - AUC(baseline) |
 | **Phase 3: Interactions** | Test pairwise interactions of significant treatments | Significant pairs | Delta_{i,j} - (Delta_i + Delta_j) |
 | **Phase 4: Sensitivity** | Sweep hyperparameters of significant treatments | HP grids per treatment | Optimal HP per treatment |
 | **Phase 5: Final Test** | Best configuration on held-out test set | Best config from Phase 4 | Final AUC, AP, Brier, ECE |
@@ -25,8 +25,9 @@ python experiment_runner.py --phase 1
 # Phase 2: Single-factor treatments
 python experiment_runner.py --phase 2 --treatment all
 
-# Phase 2: Specific treatment
-python experiment_runner.py --phase 2 --treatment T1
+# Phase 2: Specific treatment(s) — integer ids or a study group
+python experiment_runner.py --phase 2 --treatment 1
+python experiment_runner.py --phase 2 --treatment 1,3,5
 
 # Paper presets
 python runner.py --paper_preset core4_1seed --split_mode patch_holdout
@@ -35,7 +36,12 @@ python runner.py --paper_preset core4_optimal --split_mode patch_holdout
 
 ---
 
-## 2. Seven Domain-Knowledge Treatments
+## 2. Seven Domain-Knowledge Treatments (T1–T7)
+
+> In addition to T1–T7 below, the runner registers three interpolation/detector
+> ablations — **T8** (no interpolation, 60 s baseline), **T9** (detector without
+> kill-trajectory interpolation), **T10** (detector on the 60 s grid only) — see
+> `app/experiment_types.py::TREATMENTS`.
 
 ### Treatment T1: Focal Loss
 
@@ -113,7 +119,7 @@ output = [h_T || c]                    (concatenation)
 
 **Properties:**
 - Attention weights `alpha_t` are interpretable (reveal which timesteps matter)
-- Output dimension doubles when `concat_last=True`
+- Output dimension doubles via the module-internal `concat_last` flag (an architecture detail, not a treatment-configurable option)
 - Supports padding masks for variable-length sequences
 
 **Configuration:**
@@ -121,7 +127,7 @@ output = [h_T || c]                    (concatenation)
 | Parameter | Default | HP Grid |
 |-----------|---------|---------|
 | `USE_ATTENTION_POOL` | False | - |
-| `ATTN_DIM` | 64 | - |
+| `ATTENTION_POOL_DIM` | 64 | - |
 
 **Implementation:** `core/improvements.py::TemporalAttentionPooling`
 
@@ -212,9 +218,9 @@ lambda_o = 0.05   (objective differential weight)
 | Parameter | Default | HP Grid |
 |-----------|---------|---------|
 | `USE_MULTI_TASK` | False | - |
-| `MT_LAMBDA_GOLD` | 0.1 | {0.05, 0.1, 0.2} |
-| `MT_LAMBDA_KILL` | 0.05 | - |
-| `MT_LAMBDA_OBJ` | 0.05 | - |
+| `MTL_LAMBDA_GOLD` | 0.1 | {0.05, 0.1, 0.2} |
+| `MTL_LAMBDA_KILL` | 0.05 | - |
+| `MTL_LAMBDA_OBJ` | 0.05 | - |
 
 **Implementation:** `core/improvements.py::MultiTaskHead`, `MultiTaskLoss`
 
@@ -271,7 +277,7 @@ Under H0 (equal accuracy), `chi^2 ~ chi^2(1)`.
 
 ### 3.3 Holm-Bonferroni Correction
 
-For family-wise error rate control across `m = 7` treatments at significance level `alpha = 0.05`:
+For family-wise error rate control across the `m` treatments actually tested (set dynamically per run) at significance level `alpha = 0.05`:
 
 1. Sort p-values: `p_(1) <= p_(2) <= ... <= p_(m)`
 2. Reject H_{(i)} if `p_(i) <= alpha / (m - i + 1)`
@@ -281,10 +287,10 @@ This is uniformly more powerful than Bonferroni while maintaining FWER control.
 
 ### 3.4 Bootstrap Confidence Intervals
 
-- **Seeds:** {7, 42, 123, 256, 512} (5 independent runs)
+- **Seeds:** {7, 42, 123} (3 independent runs)
 - **Resamples:** 1,000 per seed
 - **Method:** Percentile (2.5th and 97.5th percentile)
-- **Reported:** Mean +/- 95% CI across 5 seeds
+- **Reported:** Mean +/- 95% CI across 3 seeds
 
 ---
 
@@ -443,7 +449,7 @@ The framework automatically generates:
 
 | Item | Status | Details |
 |------|--------|---------|
-| Fixed random seeds | Yes | {7, 42, 123, 256, 512} via `core/utils.py::seed_everything()` |
+| Fixed random seeds | Yes | {7, 42, 123} via `core/utils.py::seed_everything()` |
 | Deterministic operations | Partial | `torch.use_deterministic_algorithms()` not enforced (some ops non-deterministic on GPU) |
 | Match-grouped splits | Yes | All fights from one match in same partition |
 | Cache versioning | Yes | `CACHE_VERSION` invalidates stale caches |

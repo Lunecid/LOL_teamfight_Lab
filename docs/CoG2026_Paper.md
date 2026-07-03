@@ -1,12 +1,19 @@
 # Predicting League of Legends Teamfight Outcomes via Spatio-Temporal Graph Neural Networks and Multi-Modal Ensemble Learning
 
-**Target Venue:** IEEE Conference on Games (CoG) 2026
+**Status:** Extended technical report accompanying our IEEE Conference on Games (CoG) 2026 paper.
+
+> This document provides fuller methodology than the 4-page conference version —
+> all 25+ model architectures, the complete ablation protocol, and design
+> rationale. For the published algorithm specification, label definition, and
+> final numbers, the conference paper is authoritative; the released code's
+> corrected figures are recorded in the repository `README.md`
+> ("Reproducibility Note") and `docs/AUDIT.md`.
 
 ---
 
 ## Abstract
 
-Teamfight outcome prediction is a central challenge in competitive League of Legends (LoL) analytics, yet prior work has largely treated it as either a global-state classification problem or reduced it to post-hoc replay analysis. We present **LOL Teamfight Lab**, a comprehensive framework that formulates teamfight prediction as a spatio-temporal multivariate time-series classification task over heterogeneous player interaction graphs. Our pipeline ingests Riot API timeline data at millisecond resolution, automatically detects teamfights via a kill-cluster-based algorithm (**teamfight_v2**), and constructs multi-modal observation windows comprising (i) per-player node features (76-dim), (ii) team-level global features (26-dim), (iii) temporal event sequences (44-dim), and (iv) categorical embeddings for champions, runes, and summoner spells. We benchmark **25+ model architectures** spanning tabular gradient boosting (LightGBM), deep sequential models (BiGRU, BiLSTM, Transformer, TCN, Mamba), graph neural networks (GCN, GraphSAGE, GATv2, MPNN), spatio-temporal graph networks (ST-GNN, ST-GCN, ST-Mamba), and a novel **Layered Fusion** architecture that unifies global, graph, and event-attention streams through a gated projection. A systematic **7-treatment ablation study** isolates contributions of focal loss, game-phase encoding, temporal attention pooling, momentum features, role-aware adjacency, multi-task auxiliary losses, and label smoothing. Statistical significance is established via DeLong's test, McNemar's test, and Holm-Bonferroni correction across 5-seed bootstrap runs with 95% confidence intervals. Our layered fusion ensemble achieves state-of-the-art results on a Korean high-Elo ranked dataset, demonstrating that spatio-temporal graph structure and domain-aware feature engineering are complementary sources of predictive signal for teamfight outcomes.
+Teamfight outcome prediction is a central challenge in competitive League of Legends (LoL) analytics, yet prior work has largely treated it as either a global-state classification problem or reduced it to post-hoc replay analysis. We present **LOL Teamfight Lab**, a comprehensive framework that formulates teamfight prediction as a spatio-temporal multivariate time-series classification task over heterogeneous player interaction graphs. Our pipeline ingests Riot API timeline data at millisecond resolution, automatically detects teamfights via a kill-cluster-based algorithm (**teamfight_v2**), and constructs multi-modal observation windows comprising (i) per-player node features (76-dim), (ii) team-level global features (26-dim), (iii) temporal event sequences (44-dim), and (iv) categorical embeddings for champions, runes, and summoner spells. We benchmark **25+ model architectures** spanning tabular gradient boosting (LightGBM), deep sequential models (BiGRU, BiLSTM, Transformer, TCN, Mamba), graph neural networks (GCN, GraphSAGE, GATv2, MPNN), spatio-temporal graph networks (ST-GNN, ST-GCN, ST-Mamba), and a novel **Layered Fusion** architecture that unifies global, graph, and event-attention streams through a gated projection. A systematic **7-treatment ablation study** isolates contributions of focal loss, game-phase encoding, temporal attention pooling, momentum features, role-aware adjacency, multi-task auxiliary losses, and label smoothing. Statistical significance is established via DeLong's test, McNemar's test, and Holm-Bonferroni correction across seed-replicated bootstrap runs with 95% confidence intervals. Our layered fusion ensemble achieves state-of-the-art results on a Korean high-Elo ranked dataset, demonstrating that spatio-temporal graph structure and domain-aware feature engineering are complementary sources of predictive signal for teamfight outcomes.
 
 **Keywords:** League of Legends, Teamfight Prediction, Graph Neural Networks, Spatio-Temporal Modeling, Ensemble Learning, Esports Analytics
 
@@ -46,7 +53,7 @@ We make the following contributions:
 
 - **A novel Layered Fusion architecture** that combines global temporal encoders (BiGRU/BiLSTM/Transformer/TCN/Mamba), graph neural networks (GCN/GraphSAGE/GATv2/MPNN), and event cross-attention through a gated fusion layer.
 
-- **Rigorous experimental methodology** with match-grouped splitting, patch-stratified validation, 5-seed bootstrap confidence intervals, and family-wise error rate control via Holm-Bonferroni correction.
+- **Rigorous experimental methodology** with match-grouped splitting, patch-stratified validation, 3-seed bootstrap confidence intervals, and family-wise error rate control via Holm-Bonferroni correction.
 
 ---
 
@@ -76,24 +83,24 @@ We define a **teamfight** as a temporally clustered sequence of champion kills s
 for all i in {1, ..., m-1}:  t(k_{i+1}) - t(k_i) <= delta_gap
 ```
 
-where `delta_gap = 18,000 ms` (18 seconds). Each cluster is validated as a teamfight if, at the computed engage time `t_engage = t(k_1) - 10,000 ms`:
+where `delta_gap = 18,000 ms` (18 seconds). Temporal clusters are then split by their true spatial **diameter** (complete-linkage): any cluster whose maximum pairwise kill distance exceeds 4,000 units is divided into diameter-bounded sub-clusters. Each candidate is validated as a teamfight if, at the computed engage time `t_engage = t(k_1) - 10,000 ms`:
 
 ```
-|{p in Blue : ||pos(p, t_engage) - c|| <= r_val}| >= 2
-|{p in Red  : ||pos(p, t_engage) - c|| <= r_val}| >= 2
+|{p in Blue : alive(p, t_engage) and ||pos(p, t_engage) - c|| <= r_val}| >= 2
+|{p in Red  : alive(p, t_engage) and ||pos(p, t_engage) - c|| <= r_val}| >= 2
 ```
 
-where `c` is the fight centroid (position of the first kill), `r_val = 1,800` game units, and `pos(p, t)` is the interpolated position of player `p` at time `t` on a 5-second dense grid.
+where `c` is the fight centroid (position of the first kill), `r_val = 1,800` game units, and `pos(p, t)` is the interpolated position of player `p` at time `t` on a 5-second dense grid. Only **alive** players count toward the in-radius totals (a single conjunction of both conditions). Finally, adjacent validated candidates within 15 s and 2,000 units are merged into one engagement.
 
 ### 3.2 Prediction Task
 
 Given a validated teamfight with engage time `t_e`, we observe the game state over a context window `[t_e - ctx, t_e]` where `ctx = 30,000 ms` (30 seconds), discretized into `L = 6` bins of `bin = 5,000 ms` each. The model predicts the binary outcome `y in {0, 1}` computed over the label window `[t_e, t_e + horizon]` where `horizon = 30,000 ms`:
 
 ```
-y = 1[ w_k * (K_blue - K_red) + w_a * (A_blue - A_red) > 0 ]
+y = 1[ sum_u alpha_u * sigma_u * v_u > 0 ],   alpha_u = softmax_u(beta * p_u)
 ```
 
-where `K_t` denotes kills by team `t`, `A_t` denotes alive champions on team `t` at the end of the label window, `w_k = 1.0`, and `w_a = 0.3`. Ties are handled via random assignment (seeded for reproducibility) or exclusion.
+an **exchange-value** label (`LABEL_TYPE = "attention_value_win"`): each label-window event `u` carries a domain-grounded composite value `v_u` (kill value, shutdown, streak, assists, bounty, objective tier, lane priority, special bonuses), a side `sigma_u in {+1, -1}`, and a priority `p_u`; softmax attention (`beta = 2.0`) weights high-importance events. Special-kill markers (ace / multi-kill / first-blood) contribute **only their bonus** `s(u)` — the paired `CHAMPION_KILL` Riot emits for the same death carries the kill itself. Ties are handled via seeded random assignment or exclusion.
 
 ### 3.3 Feature Representation
 
@@ -140,19 +147,20 @@ The data pipeline operates in seven stages (see `docs/PIPELINE.md` for complete 
 
 **Stage 1: Cache Build.** Raw Riot API JSON files are preprocessed into structured NumPy arrays: `node_minute` (per-player features at 60s resolution), `global_minute` (team-level aggregates), `events` (millisecond-precision event list), and position data.
 
-**Stage 2: Fight Detection (teamfight_v2).** The detection algorithm proceeds in six steps:
+**Stage 2: Fight Detection (teamfight_v2).** The detection algorithm proceeds in seven steps:
 1. Build 5-second position grid (interpolate from 60s frames using exponential curve, k=3)
 2. Cluster kills temporally (gap <= 18s)
-3. Validate spatial co-location (>= 2 per team within 1800 units at engage time)
-4. Collect interactions within 3000 units during fight
-5. Compute post-fight outcome (30-second window)
-6. Classify fight type (teamfight/skirmish/objective/tower_dive/base_fight/pick)
+3. Split clusters by spatial diameter (> 4000 units; complete-linkage)
+4. Validate at-onset co-location (>= 2 **alive** players per team within 1800 units)
+5. Merge adjacent validated candidates (within 15s and 2000 units)
+6. Collect interactions within 3000 units during fight; compute post-fight outcome (30-second window)
+7. Classify fight type (teamfight/skirmish/objective/tower_dive/base_fight/pick)
 
 **Stage 3: Index and Split.** Each detected fight produces a `FightRef` with unique key `match_id|t_start_ts=<ms>`. Splits are match-grouped and patch-stratified: 70% train / 20% validation / 10% test.
 
 **Stage 4: Sample Construction.** 30-second observation window divided into 6 bins of 5 seconds. Node/global features use piecewise-constant snapshots (strict-before 60s frame, no interpolation). Events are bin-aggregated counts. XY positions are zeroed in model input.
 
-**Stage 5: Label Computation.** Binary label from `kill_survival` scoring (kill differential + alive count). Auxiliary regression targets for multi-task learning.
+**Stage 5: Label Computation.** Binary label from exchange-value scoring (`attention_value_win`, Section 3.2). Auxiliary regression targets for multi-task learning.
 
 **Stage 6: Model Training.** 25+ architectures trained with AdamW, gradient clipping, AMP mixed precision, early stopping on validation AUC.
 
@@ -171,7 +179,7 @@ Temporal sequences flattened via statistical aggregation `[last, mean, std, min,
 The macro feature sequence `S in R^{L x D}` is processed by:
 
 - **BiGRU / BiLSTM**: 2-layer bidirectional, hidden=128, dropout=0.20
-- **Transformer**: 3-layer self-attention, d_model=256, nhead=4, sinusoidal positional encoding
+- **Transformer**: 2-layer self-attention, d_model=64, nhead=4, sinusoidal positional encoding
 - **TCN**: 3-level causal dilated convolution, channels=64, kernel=3, dilations=[1,2,4]
 - **Mamba**: 3-layer selective state-space model, d_state=16, d_conv=4
 
@@ -308,11 +316,13 @@ Soft labels reduce overconfidence and act as KL-regularization toward the unifor
 
 ### 6.1 Dataset
 
-We use match data from the Korean (KR) ranked ladder, collected via the Riot API. Matches span multiple patches (approximately patch 14.x-15.x), with detailed timelines providing 60-second player state snapshots and millisecond-precision events.
+We use match data from the Korean (KR) ranked ladder, collected via the Riot API. Matches span three consecutive patches — 15.14 (train), 15.15 (validation), 15.16 (test) — with detailed timelines providing 60-second player state snapshots and millisecond-precision events.
 
 | Statistic | Value |
 |---|---|
-| Detected teamfights per match | ~4-6 average |
+| Total matches | 206,442 (73,331 / 73,484 / 59,627 per patch) |
+| Validated engagements | 994,365 (~4.8 per match, corrected code) |
+| Per-model sample | 100,000 instances per split per seed (uniform subsample) |
 | Feature dimensions | 76 (node) + 26 (global) + 44 (event) |
 | Temporal bins per sample | 6 (30s context / 5s bins) |
 | Players per sample | 10 (5 blue + 5 red) |
@@ -320,7 +330,7 @@ We use match data from the Korean (KR) ranked ladder, collected via the Riot API
 
 ### 6.2 Data Splitting
 
-Splits are **match-grouped** (all fights from one match stay together) and **patch-stratified** (proportional representation of game versions). Default: 70% train / 20% validation / 10% test.
+Splits are **match-grouped** (all fights from one match stay together). The paper experiments use **chronological patch holdout** (`--split_mode patch_holdout`): patch 15.14 for training, 15.15 for validation, 15.16 for testing. A patch-stratified random split (70/20/10) is also supported (`--split_mode random`).
 
 ### 6.3 Training Configuration
 
@@ -333,7 +343,7 @@ Splits are **match-grouped** (all fights from one match stay together) and **pat
 | Epochs | 15 |
 | Patience (early stopping) | 3 epochs |
 | Gradient clipping | Max norm 5.0 |
-| Seeds | {7, 42, 123, 256, 512} |
+| Seeds | {7, 42, 123} |
 | Mixed precision | AMP (bf16/fp16 auto-selected) |
 | Early stop metric | Validation AUC |
 
@@ -343,7 +353,7 @@ We follow a 5-phase protocol:
 
 | Phase | Description |
 |---|---|
-| **Phase 1**: Baseline | Reproduce baseline across 5 seeds |
+| **Phase 1**: Baseline | Reproduce baseline across 3 seeds |
 | **Phase 2**: Single-factor | Delta_i = AUC(baseline + T_i) - AUC(baseline) for each treatment |
 | **Phase 3**: Interactions | Test pairwise: Delta_{i,j} - (Delta_i + Delta_j) |
 | **Phase 4**: Sensitivity | Sweep hyperparameters of significant treatments |
@@ -353,8 +363,8 @@ We follow a 5-phase protocol:
 
 - **DeLong's test** for AUC comparison (correlated samples)
 - **McNemar's test** for classification disagreement (continuity-corrected)
-- **Holm-Bonferroni correction** for multiple comparisons (m=7 treatments, alpha=0.05)
-- **Bootstrap CI**: 5 seeds x 1000 resamples, percentile method
+- **Holm-Bonferroni correction** for multiple comparisons (m = number of treatments tested, alpha=0.05)
+- **Bootstrap CI**: 3 seeds x 1000 resamples, percentile method
 
 ### 6.6 Evaluation Metrics
 
@@ -373,34 +383,28 @@ We follow a 5-phase protocol:
 
 ## 7. Results
 
-*[Note: This section will be populated with experimental results once training is complete. The framework supports automatic generation of the following analyses.]*
+Headline numbers below are the paper-reported figures (three-seed means, chronological patch holdout: train 15.14 / val 15.15 / test 15.16). The released code's corrected corpus yields LightGBM test AUC ≈ 0.669 — see the repository `README.md` "Reproducibility Note".
 
-### 7.1 Baseline Performance
+### 7.1 Baseline Performance (held-out test AUC, patch 15.16)
 
-| Model | Val AUC | Val AP | Test AUC | Test AP |
-|---|---|---|---|---|
-| LightGBM | -- | -- | -- | -- |
-| BiGRU | -- | -- | -- | -- |
-| Transformer | -- | -- | -- | -- |
-| TCN | -- | -- | -- | -- |
-| Mamba | -- | -- | -- | -- |
-| GraphSAGE | -- | -- | -- | -- |
-| GATv2 | -- | -- | -- | -- |
-| ST-GNN | -- | -- | -- | -- |
-| Layered Fusion | -- | -- | -- | -- |
-| Ensemble (best) | -- | -- | -- | -- |
+| Model and input view | Test AUC |
+|---|---|
+| **LightGBM** (engineered tabular) | **.675** |
+| MLP (same tabular input, matched 2,980-D) | .626 |
+| BiGRU (macro sequence) | .581 |
+| Layered Fusion | .581 |
+| Transformer (macro sequence) | .576 |
+| Cross-Attn (event-player) | .571 |
+| ST-GNN (spatio-temporal graph) | .569 |
+| GraphSAGE (player graph) | .569 |
+
+The non-tabular neural views cluster at AUC .569–.581: under 30 s windows built from 60 s snapshots and sparse events, these views expose less recoverable signal than engineered macro-state summaries. The LightGBM–MLP gap (.675 vs .626) on the *same* input isolates an additional learner-family effect.
+
+**Conditional predictability.** AUC rises sharply with game phase (LightGBM early .616 / mid .712 / late .807) and with pre-engagement gold imbalance (close .621 / moderate .680 / one-sided .796). In close-gold engagements several neural views approach chance level — consistent with an information-granularity limit of public telemetry.
 
 ### 7.2 Ablation Study Results
 
-| Treatment | Delta Val AUC (mean) | 95% CI | DeLong p | Significant |
-|---|---|---|---|---|
-| T1: Focal Loss | -- | -- | -- | -- |
-| T2: Game Phase | -- | -- | -- | -- |
-| T3: Attention Pool | -- | -- | -- | -- |
-| T4: Momentum | -- | -- | -- | -- |
-| T5: Role Adjacency | -- | -- | -- | -- |
-| T6: Multi-Task | -- | -- | -- | -- |
-| T7: Label Smoothing | -- | -- | -- | -- |
+Per-treatment deltas (T1–T7) with 95% CIs, DeLong p-values, and Holm-Bonferroni significance flags are produced by `experiment_runner.py --phase 2 --treatment all`; see `docs/EXPERIMENT.md` for the protocol.
 
 ### 7.3 Fusion Architecture Comparison
 
@@ -441,7 +445,7 @@ The framework automatically generates:
 
 1. **Data availability**: Riot API rate limits constrain dataset size. Results are based on Korean ranked data and may not generalize to other regions or professional play.
 2. **Patch drift**: Despite recency weighting and patch-stratified splitting, rapid balance changes can degrade model performance on unseen patches.
-3. **Computational cost**: The full model sweep (25+ architectures x 5 seeds x 7 treatments) is computationally intensive.
+3. **Computational cost**: The full model sweep (25+ architectures x 3 seeds x 10 treatments) is computationally intensive.
 4. **Champion-specific effects**: Champion IDs are embedded, but the model does not explicitly encode champion ability interactions or team composition synergies beyond what the GNN can learn implicitly.
 5. **Temporal overlap**: 3.67% of detected fights overlap temporally, which is benign for i.i.d. models but can cause label leakage in sequential architectures.
 
@@ -522,7 +526,7 @@ We presented LOL Teamfight Lab, a comprehensive framework for predicting League 
 |---|---|
 | LightGBM | n_estimators=5000, lr=0.03, max_depth=6, num_leaves=31, reg_alpha=1.0, reg_lambda=5.0 |
 | BiGRU | hidden=128, layers=2, dropout=0.20 |
-| Transformer | d_model=256, nhead=4, layers=3, dropout=0.20 |
+| Transformer | d_model=64, nhead=4, layers=2, dropout=0.1 |
 | TCN | channels=64, levels=3, kernel=3, dropout=0.20 |
 | Mamba | d_model=128, layers=3, d_state=16, d_conv=4 |
 | GCN | dim=96, dropout=0.25, norm=LayerNorm |

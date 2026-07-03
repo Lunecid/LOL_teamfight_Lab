@@ -1,36 +1,20 @@
 # LOL Teamfight Lab
 
-A machine learning pipeline for predicting **League of Legends teamfight outcomes** using match timeline data from the Riot API. The project formulates teamfight prediction as a **spatio-temporal multivariate time-series classification** task over heterogeneous player interaction graphs.
+A research codebase for **predicting League of Legends teamfight outcomes** from Riot Match-V5 timeline data. Teamfight prediction is formulated as a **spatio-temporal multivariate time-series classification** task over heterogeneous player-interaction graphs: fights are detected from kill clusters with spatial validation, featurized into per-player / global / event streams, and classified by 25+ model architectures ranging from LightGBM to graph-temporal deep networks.
 
-**Target Venue:** IEEE Conference on Games (CoG) 2026
+Companion code for our IEEE Conference on Games (CoG) 2026 paper:
+
+> Seongeun Baek and Joonho Kwon, **"Kill-Conditioned Engagement Outcome Prediction in League of Legends Under Minute-Resolution Public Telemetry,"** IEEE Conference on Games (CoG), 2026.
 
 ---
 
-## Reproducibility note (relationship to the paper)
+## Highlights
 
-The metrics reported in the paper were generated with the experiment commit
-**prior to** the localization/labeling corrections below. This released code
-implements the paper's described methods exactly:
-
-- **Localization (Algorithm 1):** kill clusters are split by their true spatial
-  *diameter* (> 4000 u), validity requires **≥ 2 *alive* players per team within
-  1800 u** of the earliest kill (a single conjunction), and Phase III **merges
-  adjacent validated candidates within 15 s and 2000 u**.
-- **Label (Eq. 3):** special-kill markers (ace / multi-kill / first-blood)
-  contribute only the bonus `s(u)`, not a second kill.
-
-On the corrected code the corpus is **994,365** validated engagements
-(about 4.8 per match) — the paper's "approximately one million" (the
-pre-correction construction was 1,115,123, ~5.4 per match). Each split
-(train / validation / test) is uniformly subsampled to **100,000 instances
-per seed** for training and evaluation. LightGBM reaches test **AUC ≈ 0.669**
-(seed 7, patch 15.16), about **0.006** below the **0.675** the paper reports
-and retains; this note is the record of the corrected figure. The relative
-ordering of paradigms (engineered tabular ≫ deep baselines) and all
-qualitative conclusions are unchanged.
-
-> Raw match data is not redistributed (Riot API terms of service); the corpus is
-> rebuilt from Match-V5 / Timeline records by the pipeline described below.
+- **Teamfight corpus construction** — a kill-cluster detection algorithm (temporal clustering + spatial diameter splitting + alive-player validation + adjacent-candidate merging) that builds ~1M validated engagements from ~200k ranked matches. No manual annotation required.
+- **Multi-modal feature extraction** — 76-dim per-player node features, 26-dim global features, and 44-dim event aggregates over a 6-bin × 5-second pre-fight window, with strict no-future-leakage interpolation contracts.
+- **25+ architectures under one harness** — LightGBM tabular baseline, recurrent (BiGRU/BiLSTM), attention (Transformer, EventXAttn), convolutional (TCN), state-space (Mamba), graph (GCN, GraphSAGE, GATv2, GraphTransformer, MPNN), spatio-temporal graph (ST-GNN, ST-GCN, EdgeSTGNN, ST-Mamba), and fusion/stacking ensembles.
+- **7-treatment ablation protocol** — focal loss, game-phase encoding, attention pooling, momentum features, role-aware adjacency, multi-task learning, label smoothing; with bootstrap CIs and statistical testing.
+- **Interpretability** — SHAP phase-stratified analysis, role/signal rollups, and optional LLM-assisted strategic interpretation.
 
 ---
 
@@ -38,11 +22,12 @@ qualitative conclusions are unchanged.
 
 | Document | Description |
 |----------|-------------|
-| **[docs/PIPELINE.md](docs/PIPELINE.md)** | Complete 7-stage data pipeline from Riot API JSON to calibrated predictions |
-| **[docs/FEATURES.md](docs/FEATURES.md)** | Exhaustive feature sets (76 node + 26 global + 44 event), dimensions, normalization |
-| **[docs/MODELS.md](docs/MODELS.md)** | 25+ model architectures with mathematical definitions and hyperparameters |
-| **[docs/EXPERIMENT.md](docs/EXPERIMENT.md)** | 7-treatment ablation protocol, statistical testing, evaluation metrics |
-| **[docs/CoG2026_Paper.md](docs/CoG2026_Paper.md)** | Full paper draft (IEEE CoG 2026) |
+| [docs/PIPELINE.md](docs/PIPELINE.md) | Complete 7-stage data pipeline from Riot API JSON to calibrated predictions |
+| [docs/FEATURES.md](docs/FEATURES.md) | Exhaustive feature sets (76 node + 26 global + 44 event), dimensions, normalization |
+| [docs/MODELS.md](docs/MODELS.md) | 25+ model architectures with mathematical definitions and hyperparameters |
+| [docs/EXPERIMENT.md](docs/EXPERIMENT.md) | 7-treatment ablation protocol, statistical testing, evaluation metrics |
+| [docs/CoG2026_Paper.md](docs/CoG2026_Paper.md) | Extended technical report (companion to the IEEE CoG 2026 paper) |
+| [docs/AUDIT.md](docs/AUDIT.md) | Pre-submission code↔paper audit record |
 
 ---
 
@@ -55,31 +40,35 @@ Riot API JSONs -> Cache Build -> Fight Detection -> Index & Split
     -> Evaluation (AUC, AP, Brier, bootstrap CI)
 ```
 
-1. **Detect teamfights** via kill-cluster-based temporal clustering with spatial validation (radius 1800, >= 2 per team)
+1. **Detect teamfights** via kill-cluster temporal clustering with spatial validation (≥ 2 alive players per team within 1800 u; clusters split at 4000 u diameter; adjacent candidates merged within 15 s / 2000 u)
 2. **Extract multi-modal features**: 76-dim per-player node features, 26-dim global features, 44-dim event aggregates
-3. **Train 25+ architectures**: LightGBM, BiGRU, BiLSTM, Transformer, TCN, Mamba, GCN, GraphSAGE, GraphTransformer, GATv2, MPNN, ST-GNN, ST-GCN, EdgeSTGNN, ST-Mamba, EventXAttn, Gated Fusion, Layered Fusion
+3. **Train 25+ architectures** with match-grouped, patch-stratified splits (random or patch-holdout)
 4. **Ensemble predictions** through factorial stacking with meta-learner selection
-5. **Ablate 7 domain-knowledge improvements**: focal loss, game phase encoding, attention pooling, momentum features, role-aware adjacency, multi-task learning, label smoothing
+5. **Ablate 7 domain-knowledge treatments** with seed-replicated runs and bootstrap confidence intervals
 
 ---
 
-## Quick Start
+## Getting Started
 
 ### Prerequisites
 
 - Python 3.8+
-- CUDA-compatible GPU (recommended)
-- League of Legends match data in JSON format (detail + timeline files)
+- CUDA-compatible GPU (recommended for deep models; LightGBM runs on CPU)
+- League of Legends match data collected via the [Riot API](https://developer.riotgames.com/) — Match-V5 **detail** and **timeline** JSON files
+
+> **Note:** Raw match data is **not** included in this repository (Riot API Terms of Service). The full corpus is rebuilt deterministically from your own Match-V5 / Timeline records by the pipeline.
 
 ### Install
 
 ```bash
-pip install -e ".[all]"
-# or
+pip install -e ".[all]"      # everything (dev + analysis extras)
+# or minimal:
 pip install -r requirements.txt
 ```
 
 ### Configure Data Paths
+
+Defaults are repo-relative (`data/raw/matches/kr/{detail,timeline}`, `outputs/`). Override with environment variables:
 
 ```bash
 export LOL_DETAIL_DIR="/path/to/match/details"
@@ -90,7 +79,7 @@ export LOL_OUTPUT_ROOT="/path/for/outputs"
 ### Run
 
 ```bash
-# Full pipeline
+# Full pipeline (cache -> detect -> split -> train -> report)
 python main.py --mode all --seed 42
 
 # Paper presets
@@ -98,8 +87,15 @@ python runner.py --paper_preset core4_1seed --split_mode patch_holdout
 python runner.py --paper_preset core4_optimal --split_mode patch_holdout
 
 # Ablation studies
-python experiment_runner.py --phase 1   # Baseline reproduction
-python experiment_runner.py --phase 2 --treatment all  # Single-factor
+python experiment_runner.py --phase 1                  # Baseline reproduction
+python experiment_runner.py --phase 2 --treatment all  # Single-factor ablations
+```
+
+### Test
+
+```bash
+pytest          # 376 tests
+pytest --cov    # with coverage
 ```
 
 ---
@@ -107,7 +103,7 @@ python experiment_runner.py --phase 2 --treatment all  # Single-factor
 ## Project Structure
 
 ```
-LOL_teamfight_Lab/
+LOL_teamfight/
 |-- main.py / runner.py            # Entry points
 |-- experiment_runner.py           # Ablation study runner
 |-- core/                          # Configuration, contracts, utilities
@@ -128,41 +124,43 @@ LOL_teamfight_Lab/
 |   |-- deep.py                    # Deep learning training harness
 |   |-- baseline.py                # LightGBM tabular baseline
 |   |-- fusion.py                  # Ensemble stacking & fusion
-|   |-- graph_encoder.py           # GNN encoder implementations
-|   |-- temporal_encoders.py       # RNN/Transformer/TCN/Mamba encoders
-|   |-- node_adapter.py            # Node feature adapter (embeddings)
-|   |-- layered_spec.py            # Layered fusion spec parser
-|-- app/                           # Orchestration & analysis
-|   |-- experiment.py              # Main training loop orchestrator
-|-- tests/                         # Unit tests (100+ cases)
+|-- analysis/                      # SHAP, ablation reports, interpretation
+|-- app/                           # Orchestration & analysis reporting
+|-- tests/                         # Unit tests (376 cases)
 |-- docs/                          # Documentation
 ```
 
 ---
 
-## Technologies
+## Reproducibility Note (relationship to the paper)
 
-| Category | Tools |
-|----------|-------|
-| **Language** | Python 3.8+ |
-| **Deep Learning** | PyTorch (CUDA, AMP, torch.compile) |
-| **Gradient Boosting** | LightGBM |
-| **Numerical** | NumPy |
-| **ML Utilities** | scikit-learn |
-| **Hardware** | CUDA GPU, TF32 on Ampere, bf16/fp16 mixed precision |
+The metrics reported in the paper were generated with the experiment commit **prior to** the localization/labeling corrections recorded in [docs/AUDIT.md](docs/AUDIT.md). This released code implements the paper's described methods exactly:
+
+- **Localization (Algorithm 1):** kill clusters are split by their true spatial *diameter* (> 4000 u), validity requires **≥ 2 *alive* players per team within 1800 u** of the earliest kill (a single conjunction), and Phase III **merges adjacent validated candidates within 15 s and 2000 u**.
+- **Label (Eq. 3):** special-kill markers (ace / multi-kill / first-blood) contribute only the bonus `s(u)`, not a second kill.
+
+On the corrected code the corpus is **994,365** validated engagements (about 4.8 per match) — the paper's "approximately one million" (the pre-correction construction was 1,115,123, ~5.4 per match). Each split (train / validation / test) is uniformly subsampled to **100,000 instances per seed** for training and evaluation. LightGBM reaches test **AUC ≈ 0.669** (seed 7, patch 15.16), about **0.006** below the **0.675** the paper reports and retains; this note is the record of the corrected figure. The relative ordering of paradigms (engineered tabular ≫ deep baselines) and all qualitative conclusions are unchanged.
 
 ---
 
-## Testing
+## Citation
 
-```bash
-pytest                    # Run all tests
-pytest --cov              # With coverage
-pytest tests/test_utils.py  # Specific file
+If you use this code in your research, please cite our IEEE CoG 2026 paper:
+
+```bibtex
+@inproceedings{baek2026killconditioned,
+  author    = {Baek, Seongeun and Kwon, Joonho},
+  title     = {Kill-Conditioned Engagement Outcome Prediction in League of
+               Legends Under Minute-Resolution Public Telemetry},
+  booktitle = {IEEE Conference on Games (CoG)},
+  year      = {2026}
+}
 ```
 
 ---
 
-## License
+## Legal
 
-This project is for research and educational purposes.
+This project is licensed under the [MIT License](LICENSE).
+
+*LOL Teamfight Lab* is not endorsed by Riot Games and does not reflect the views or opinions of Riot Games or anyone officially involved in producing or managing League of Legends. League of Legends and Riot Games are trademarks or registered trademarks of Riot Games, Inc.

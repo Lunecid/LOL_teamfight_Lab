@@ -34,7 +34,7 @@ Riot API JSONs (match detail + timeline)
          v
    [Stage 7] Evaluation & Reporting
          AUC, AP, Brier, ECE, minutewise, situation-aware metrics
-         5-seed bootstrap CI, DeLong/McNemar significance tests
+         3-seed bootstrap CI, DeLong/McNemar significance tests
 ```
 
 ---
@@ -187,10 +187,11 @@ For each kill cluster:
 3c. Check alive count
     At engage_ts: both teams must have >= TF2_MIN_PER_TEAM (2) alive champions
 
-3d. SPATIAL VALIDATION: Radius 1800 check
+3d. SPATIAL VALIDATION: Radius 1800 check (alive players only)
     At engage_ts, look up all 10 positions from the 5s grid.
-    Count how many are within radius = TF2_VALIDITY_RADIUS (1800) of fight_center.
-    Require: >= 2 blue AND >= 2 red within radius.
+    Count how many ALIVE players are within radius = TF2_VALIDITY_RADIUS (1800)
+    of fight_center (dead players never count toward the in-radius totals).
+    Require: >= 2 alive blue AND >= 2 alive red within radius.
 ```
 
 ```
@@ -574,10 +575,10 @@ for batch in dataloader:
 
 ### Statistical Testing
 
-- **Bootstrap CI:** 5 seeds {7, 42, 123, 256, 512}, 1000 resamples, percentile method
+- **Bootstrap CI:** 3 seeds {7, 42, 123}, 1000 resamples, percentile method
 - **DeLong's test:** AUC comparison (correlated samples)
 - **McNemar's test:** Classification disagreement (continuity-corrected)
-- **Holm-Bonferroni:** Multiple comparison correction (alpha = 0.05, m = 7 treatments)
+- **Holm-Bonferroni:** Multiple comparison correction (alpha = 0.05, m = number of treatments tested)
 
 ---
 
@@ -683,7 +684,7 @@ MATCH: KR_7123456789, Patch 14.10, Duration 32:00
     -> Per bin: snapshot node+global (strict-before 60s frame),
                aggregate events, hash items
     -> XY zeroed in all bins
-    -> node_seq: [6, 10, 87], glob_seq: [6, 27], ev_seq: [6, 48]
+    -> node_seq: [6, 10, 76], glob_seq: [6, 26], ev_seq: [6, 44]
 
 [5] Label (Fight 1)
     -> Label window: [420000, 450000] (7:00 -> 7:30)

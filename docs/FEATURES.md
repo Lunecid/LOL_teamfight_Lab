@@ -336,12 +336,19 @@ Extremely unlikely to change within the short teamfight observation window:
 
 | Category | Features | Reason |
 |----------|----------|--------|
-| **Dragon Soul** | `soul_infernal..chemtech` | Acquired once, permanent |
 | **Item hash** | `itemhash*` | Requires recall (impossible mid-fight) |
 | **Fight zone** | `zone_top_lane..zone_jungle` | Anchor zone is fixed per engagement |
 | **Fight position** | `pos_fight_x_norm`, `pos_fight_y_norm` | Centroid is fixed per engagement |
 
-**Additional reduction:** ~26.2% total when combining with strictly constant removal.
+### Within-Fight Constant Features
+
+Sparse binary signals that are constant within any single observation window but carry meaningful cross-fight signal (handled as a separate category, `WITHIN_FIGHT_CONSTANT_NODE_FEATURE_PREFIXES`):
+
+| Category | Features | Reason |
+|----------|----------|--------|
+| **Dragon Soul** | `soul_infernal..chemtech` | Once acquired, never changes mid-fight; sparse binary across games |
+
+**Additional reduction:** ~26.2% total when combining all three categories with strictly constant removal.
 
 ### Redundancy Removal API
 
@@ -352,6 +359,7 @@ keep_indices, dropped_const, dropped_quasi = filter_constant_and_quasi_constant(
     feature_names,
     drop_strictly_constant=True,
     drop_quasi_constant=True,
+    drop_within_fight_constant=True,
 )
 ```
 
