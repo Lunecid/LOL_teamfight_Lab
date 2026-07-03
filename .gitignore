@@ -2,8 +2,9 @@
 # Edit at https://www.toptal.com/developers/gitignore?templates=pycharm,python
 
 ### Project-specific ###
-# IDE settings (entire folder)
+# IDE / assistant settings (entire folders)
 .idea/
+.claude/
 
 # Generated experiment artifacts
 output/
