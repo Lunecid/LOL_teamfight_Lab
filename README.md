@@ -42,7 +42,7 @@ Riot API JSONs -> Cache Build -> Fight Detection -> Index & Split
 
 1. **Detect teamfights** via kill-cluster temporal clustering with spatial validation (≥ 2 alive players per team within 1800 u; clusters split at 4000 u diameter; adjacent candidates merged within 15 s / 2000 u)
 2. **Extract multi-modal features**: 76-dim per-player node features, 26-dim global features, 44-dim event aggregates
-3. **Train 25+ architectures** with match-grouped, patch-stratified splits (random or patch-holdout)
+3. **Train 25+ architectures** with match-grouped splits (random patch-stratified or chronological patch-holdout)
 4. **Ensemble predictions** through factorial stacking with meta-learner selection
 5. **Ablate 7 domain-knowledge treatments** with seed-replicated runs and bootstrap confidence intervals
 

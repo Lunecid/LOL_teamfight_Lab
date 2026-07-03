@@ -174,7 +174,7 @@ TransformerEncoder(
   d_model=64,
   nhead=4,
   dim_feedforward=128,   # d_model x TRANS_FF_MULT (2)
-  dropout=0.1
+  dropout=0.10
 )
     |
     v
@@ -201,11 +201,11 @@ where head_i = Attention(Q W_Q^i, K W_K^i, V W_V^i)
 
 | Parameter | Value |
 |-----------|-------|
-| `d_model` | 64 |
-| `nhead` | 4 |
-| `num_layers` | 2 |
-| `dim_feedforward` | 128 |
-| `dropout` | 0.1 |
+| `TRANS_D_MODEL` | 64 |
+| `TRANS_NHEAD` | 4 |
+| `TRANS_LAYERS` | 2 |
+| `TRANS_FF_MULT` | 2 (dim_feedforward = d_model * ff_mult = 128) |
+| `TRANS_DROPOUT` | 0.10 |
 
 ### 2.3 TCN (Temporal Convolutional Network)
 
@@ -688,7 +688,7 @@ epsilon = 0.05  ->  positive: 0.975, negative: 0.025
 | `rnn_bigru` | Sequential | hidden=128, layers=2, dropout=0.20 |
 | `rnn_ulstm` | Sequential | hidden=128, layers=2, dropout=0.20, unidirectional |
 | `rnn_bilstm` | Sequential | hidden=128, layers=2, dropout=0.20 |
-| `rnn_transformer` | Sequential | d_model=64, nhead=4, layers=2, dropout=0.1 |
+| `rnn_transformer` | Sequential | d_model=64, nhead=4, layers=2, dropout=0.10 |
 | `rnn_tcn` | Sequential | channels=64, levels=3, kernel=3, dropout=0.20 |
 | `rnn_mamba` | Sequential | d_model=128, layers=3, d_state=16, d_conv=4 |
 | `hybrid_bigru` | Hybrid | h0_proj_dim=64, h0_dropout=0.15 |

@@ -29,7 +29,7 @@ Complete definition of all feature sets, dimensions, normalization rules, and co
 | `y` | `(B, 1)` | float32 | Binary label |
 | `event_type` | `(B, K)` | int64 | Event type hash (optional) |
 | `event_actor` | `(B, K)` | int64 | Participant ID (optional) |
-| `event_cont` | `(B, K, 5)` | float32 | [t_rel, dt_end, x, y, val] (optional) |
+| `event_cont` | `(B, K, 12)` | float32 | Continuous features per event token (optional) |
 | `event_mask` | `(B, K)` | float32 | 1=real event, 0=padding (optional) |
 
 ---
@@ -48,8 +48,8 @@ Defined in `NODE_SNAPSHOT_FEATURE_NAMES`:
 | 1 | `champion_name_id` | Categorical | Integer hash | Champion name hash (-> embedding) |
 | 2 | `summoner_spell_1_id` | Categorical | Integer ID | First summoner spell (-> embedding) |
 | 3 | `summoner_spell_2_id` | Categorical | Integer ID | Second summoner spell (-> embedding) |
-| 4 | `x_norm` | Continuous | [0, 1] | Normalized X position (x / MAP_MAX, **zeroed in model**) |
-| 5 | `y_norm` | Continuous | [0, 1] | Normalized Y position (y / MAP_MAX, **zeroed in model**) |
+| 4 | `x_norm` | Continuous | [0, 1] | Normalized X position (x / MAP_MAX; kept in node_seq, **zeroed in extra_seq**) |
+| 5 | `y_norm` | Continuous | [0, 1] | Normalized Y position (y / MAP_MAX; kept in node_seq, **zeroed in extra_seq**) |
 | 6 | `level_norm` | Continuous | [0, 1] | Champion level / 18 |
 | 7 | `xp_norm` | Continuous | [0, ~1] | Experience normalized |
 | 8 | `curGold_norm` | Continuous | [0, ~1] | Current (unspent) gold normalized |
@@ -251,7 +251,7 @@ Continuous features per event token include:
 | Champion stats (`cs_*`) | Pre-normalized | Deterministic denominators from game knowledge |
 | Damage stats (`ds_*`) | log1p | `log(1 + v)` then z-score |
 | Categorical IDs (champion, runes, spells) | Preserved as integers | Fed to embedding layers |
-| Spatial (x_norm, y_norm) | `v / MAP_MAX` | Then **zeroed** in model input |
+| Spatial (x_norm, y_norm) | `v / MAP_MAX` | Kept in node_seq; **zeroed in extra_seq** (`ZERO_XY_IN_EXTRA_SEQ=True`) |
 | Binary (alive, has_baron, soul_*) | No normalization | Already in {0, 1} |
 | Buff duration (baron_remain, elder_remain) | `remaining_sec / total_duration_sec` | See BUFF_DUR_SEC |
 

@@ -452,7 +452,7 @@ The framework automatically generates:
 | Fixed random seeds | Yes | {7, 42, 123} via `core/utils.py::seed_everything()` |
 | Deterministic operations | Partial | `torch.use_deterministic_algorithms()` not enforced (some ops non-deterministic on GPU) |
 | Match-grouped splits | Yes | All fights from one match in same partition |
-| Cache versioning | Yes | `CACHE_VERSION` invalidates stale caches |
+| Cache versioning | Yes | `FEATURE_VERSION` and `CACHE_DIRNAME` invalidate stale caches |
 | Singleton reset | Yes | `reset_model_singletons()` between experiments |
 | Environment variables | Yes | Data paths via env vars, no hardcoded paths |
 | Configuration snapshot | Yes | `CFG` dataclass serialized with experiment results |
