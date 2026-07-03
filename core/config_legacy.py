@@ -166,13 +166,13 @@ class CFG:
     # =========================================================
     # 1) Data Paths
     # =========================================================
-    DETAIL_DIR: Path = Path(r"C:\Users\todtj\PycharmProjects\Lol_project\data\raw\matches\kr\detail")
-    TIMELINE_DIR: Path = Path(r"C:\Users\todtj\PycharmProjects\Lol_project\data\raw\matches\kr\timeline")
+    DETAIL_DIR: Path = Path("data/raw/matches/kr/detail")
+    TIMELINE_DIR: Path = Path("data/raw/matches/kr/timeline")
 
     # =========================================================
     # 2) Output Paths
     # =========================================================
-    OUTPUT_ROOT: Path = Path(r"D:\LOL_Project")
+    OUTPUT_ROOT: Path = Path("outputs")
     CACHE_DIRNAME: str = "match_cache_fresh_v3_engage_status5"
     RUN_DIRNAME: str = "runs_teamfight_fresh_v3_engage_status9"
     META_DIRNAME: str = "meta"

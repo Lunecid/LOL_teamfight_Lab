@@ -47,20 +47,12 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def _path_from_env_or_default(env_key: str, windows_default: str, posix_rel_default: str) -> Path:
-    """Return env override when set; otherwise platform-aware default path.
-
-    Why this exists:
-      - Previous defaults used hardcoded Windows paths on all platforms.
-      - On macOS/Linux those strings become literal relative directory names
-        (for example, `D:\\LOL_Project`) inside the workspace.
-    """
+def _path_from_env_or_default(env_key: str, rel_default: str) -> Path:
+    """Return env override when set; otherwise a repo-relative default."""
     raw = str(os.environ.get(env_key, "")).strip()
     if raw:
         return Path(raw)
-    if os.name == "nt":
-        return Path(windows_default)
-    return (_repo_root() / posix_rel_default).resolve()
+    return (_repo_root() / rel_default).resolve()
 
 
 # -------------------------------------------------------------------
@@ -259,30 +251,25 @@ class CFG:
     FEATURE_VERSION: str = "featV7_schema_pruned_status_runes_bans_spells_styles_bin5s"
 
     # =========================================================
-    # 1) Data Paths  [FIX-PATH] env var override 가능, 기본값은 원본 경로
+    # 1) Data Paths
     # =========================================================
-    # NOTE: The hardcoded Windows paths below (DETAIL_DIR / TIMELINE_DIR, and
-    # OUTPUT_ROOT in section 2) are the original author's LOCAL defaults. They are
-    # intentionally kept as-is. For portability, set the LOL_DETAIL_DIR /
-    # LOL_TIMELINE_DIR / LOL_OUTPUT_ROOT environment variables, which override
-    # these defaults (see _path_from_env_or_default).
+    # Set LOL_DETAIL_DIR / LOL_TIMELINE_DIR / LOL_OUTPUT_ROOT environment
+    # variables to override the repo-relative defaults below
+    # (see _path_from_env_or_default).
     DETAIL_DIR: Path = field(default_factory=lambda: _path_from_env_or_default(
         "LOL_DETAIL_DIR",
-        r"C:\Users\todtj\PycharmProjects\Lol_project\data\raw\matches\kr\detail",
         "data/raw/matches/kr/detail",
     ))
     TIMELINE_DIR: Path = field(default_factory=lambda: _path_from_env_or_default(
         "LOL_TIMELINE_DIR",
-        r"C:\Users\todtj\PycharmProjects\Lol_project\data\raw\matches\kr\timeline",
         "data/raw/matches/kr/timeline",
     ))
 
     # =========================================================
-    # 2) Output Paths  [FIX-PATH]
+    # 2) Output Paths
     # =========================================================
     OUTPUT_ROOT: Path = field(default_factory=lambda: _path_from_env_or_default(
         "LOL_OUTPUT_ROOT",
-        r"D:\LOL_Project",
         "outputs",
     ))
     CACHE_DIRNAME: str = "match_cache_fresh_v3_engage_status13"
