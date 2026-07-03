@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>한타 어노테이션 뷰어</title>
+<style>
+  :root {
+    --bg:#101418; --panel:#1a2027; --line:#2b333d; --text:#dfe6ee; --dim:#8b98a5;
+    --blue:#4aa3ff; --red:#ff5a5a; --gold:#f5c542; --green:#39d98a;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text); font:14px/1.5 "Segoe UI", "Malgun Gothic", sans-serif; padding:14px; }
+  h1 { font-size:17px; margin-bottom:10px; }
+  .layout { display:flex; gap:14px; flex-wrap:wrap; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px; }
+  #mapWrap { position:relative; }
+  #map { background:#0d1f14; border-radius:6px; display:block; cursor:crosshair; }
+  .side { width:340px; display:flex; flex-direction:column; gap:12px; }
+  button, select, input[type=text] {
+    background:#232c36; color:var(--text); border:1px solid var(--line);
+    border-radius:5px; padding:5px 10px; font-size:13px; cursor:pointer;
+  }
+  button:hover { background:#2d3945; }
+  button.primary { background:#1f5f3f; border-color:#2c8a5b; }
+  button.danger { background:#5f1f1f; border-color:#8a2c2c; }
+  input[type=text] { cursor:text; width:130px; }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
+  .muted { color:var(--dim); font-size:12px; }
+  #timeline { width:100%; height:64px; background:#141a20; border:1px solid var(--line); border-radius:6px; cursor:pointer; display:block; margin-top:10px; }
+  #clock { font-size:20px; font-variant-numeric:tabular-nums; min-width:88px; }
+  #pending { color:var(--gold); font-weight:600; }
+  #annotList { max-height:300px; overflow-y:auto; }
+  .annot { display:flex; gap:6px; align-items:center; padding:5px 6px; border-bottom:1px solid var(--line); font-size:13px; }
+  .annot .t { font-variant-numeric:tabular-nums; cursor:pointer; text-decoration:underline dotted; }
+  .annot select { padding:2px 4px; font-size:12px; }
+  .annot button { padding:1px 7px; font-size:12px; }
+  #killfeed { max-height:150px; overflow-y:auto; font-size:12px; }
+  #killfeed div { padding:2px 0; border-bottom:1px dotted var(--line); }
+  .b { color:var(--blue); } .r { color:var(--red); }
+  #matchList { max-height:140px; overflow-y:auto; font-size:12px; }
+  #matchList div { padding:3px 6px; cursor:pointer; border-radius:4px; }
+  #matchList div:hover { background:#2d3945; }
+  #matchList div.cur { background:#1f5f3f; }
+  #matchList .done { color:var(--green); }
+  kbd { background:#232c36; border:1px solid var(--line); border-radius:3px; padding:0 5px; font-size:11px; }
+</style>
+</head>
+<body>
+<h1>한타 어노테이션 뷰어 <span class="muted">— 교전 구간을 시작~종료로 마킹하세요</span></h1>
+
+<div class="layout">
+  <div class="panel" id="mapWrap">
+    <canvas id="map" width="560" height="560"></canvas>
+    <canvas id="timeline" width="560" height="64"></canvas>
+    <div class="row" style="margin-top:8px">
+      <span id="clock">00:00</span>
+      <button id="btnPlay" class="primary">▶ 재생</button>
+      <select id="speed">
+        <option value="1">1×</option><option value="2">2×</option>
+        <option value="4" selected>4×</option><option value="8">8×</option>
+        <option value="16">16×</option>
+      </select>
+      <button id="btnBack">−5s</button>
+      <button id="btnFwd">+5s</button>
+      <span class="muted"><kbd>Space</kbd> 재생 <kbd>←</kbd><kbd>→</kbd> ±5s (<kbd>Shift</kbd>=±30s)</span>
+    </div>
+  </div>
+
+  <div class="side">
+    <div class="panel">
+      <div class="row">
+        <label>어노테이터 ID</label>
+        <input type="text" id="annotator" placeholder="예: annot1">
+      </div>
+      <div class="row">
+        <input type="file" id="filePicker" multiple accept=".json">
+      </div>
+      <div id="matchList"></div>
+      <div class="muted" id="matchInfo"></div>
+    </div>
+
+    <div class="panel">
+      <div class="row">
+        <button id="btnStart">구간 시작 <kbd>[</kbd></button>
+        <button id="btnEnd" class="primary">구간 종료·저장 <kbd>]</kbd></button>
+        <button id="btnCancel">취소 <kbd>Esc</kbd></button>
+      </div>
+      <div class="row"><span id="pending"></span></div>
+      <div id="annotList"></div>
+      <div class="row" style="margin-top:8px">
+        <button id="btnExport" class="primary">전체 내보내기 (JSON)</button>
+        <span class="muted">자동 저장됨 (브라우저 localStorage)</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="muted" style="margin-bottom:4px">킬 피드 (현재 시각 이전 8개)</div>
+      <div id="killfeed"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const MAP_MAX = 16000;
+const $ = id => document.getElementById(id);
+const map = $("map"), mctx = map.getContext("2d");
+const tl = $("timeline"), tctx = tl.getContext("2d");
+
+let matches = {};        // match_id -> payload
+let order = [];          // match_id display order
+let cur = null;          // current match_id
+let t = 0;               // current time (ms)
+let playing = false;
+let pendingStart = null;
+let lastFrame = performance.now();
+
+// ---------- persistence ----------
+const storeKey = () => "tf_annot_v1_" + ($("annotator").value.trim() || "anon");
+function loadStore() {
+  try { return JSON.parse(localStorage.getItem(storeKey())) || { matches:{} }; }
+  catch(e) { return { matches:{} }; }
+}
+function saveStore(s) { localStorage.setItem(storeKey(), JSON.stringify(s)); }
+function annots() { const s = loadStore(); return (s.matches[cur] || []); }
+function setAnnots(list) {
+  const s = loadStore(); s.annotator = $("annotator").value.trim() || "anon";
+  s.matches[cur] = list; saveStore(s); renderAnnots(); renderMatchList();
+}
+
+// ---------- helpers ----------
+const fmt = ms => {
+  const s = Math.max(0, Math.round(ms/1000));
+  return String(Math.floor(s/60)).padStart(2,"0") + ":" + String(s%60).padStart(2,"0");
+};
+const X = x => x / MAP_MAX * map.width;
+const Y = y => map.height - y / MAP_MAX * map.height;
+
+function posAt(m, ms) {
+  const fr = m.frames;
+  if (ms <= fr[0].ts) return fr[0].pos;
+  for (let i = 1; i < fr.length; i++) {
+    if (ms <= fr[i].ts) {
+      const a = fr[i-1], b = fr[i], w = (ms - a.ts) / (b.ts - a.ts);
+      return a.pos.map((p, k) => [p[0] + (b.pos[k][0]-p[0])*w, p[1] + (b.pos[k][1]-p[1])*w]);
+    }
+  }
+  return fr[fr.length-1].pos;
+}
+
+// ---------- map rendering ----------
+function drawMapBase() {
+  mctx.fillStyle = "#0d1f14"; mctx.fillRect(0,0,map.width,map.height);
+  // river band (anti-diagonal through baron/dragon pits)
+  mctx.save();
+  mctx.strokeStyle = "#123247"; mctx.lineWidth = 46; mctx.lineCap="round";
+  mctx.beginPath(); mctx.moveTo(X(1800), Y(14200)); mctx.lineTo(X(14200), Y(1800)); mctx.stroke();
+  // lanes
+  mctx.strokeStyle = "#1d3326"; mctx.lineWidth = 26;
+  mctx.beginPath(); mctx.moveTo(X(900), Y(900)); mctx.lineTo(X(15100), Y(15100)); mctx.stroke(); // mid
+  mctx.beginPath(); mctx.moveTo(X(900), Y(1500)); mctx.lineTo(X(900), Y(14500)); mctx.lineTo(X(1500), Y(15100)); mctx.lineTo(X(15100), Y(15100)); mctx.stroke(); // top
+  mctx.beginPath(); mctx.moveTo(X(900), Y(900)); mctx.lineTo(X(14500), Y(900)); mctx.lineTo(X(15100), Y(1500)); mctx.lineTo(X(15100), Y(14500)); mctx.stroke(); // bot
+  // pits
+  mctx.strokeStyle = "#3d2f6b"; mctx.lineWidth = 2;
+  mctx.beginPath(); mctx.arc(X(5000), Y(10400), 13, 0, 7); mctx.stroke(); // baron
+  mctx.strokeStyle = "#6b3d2f";
+  mctx.beginPath(); mctx.arc(X(9850), Y(4400), 13, 0, 7); mctx.stroke(); // dragon
+  mctx.restore();
+  // bases
+  mctx.fillStyle = "rgba(74,163,255,.25)"; mctx.fillRect(X(0), Y(2200), 2200/MAP_MAX*map.width, 2200/MAP_MAX*map.height);
+  mctx.fillStyle = "rgba(255,90,90,.25)"; mctx.fillRect(X(13800), Y(16000), 2200/MAP_MAX*map.width, 2200/MAP_MAX*map.height);
+}
+
+function drawScene() {
+  drawMapBase();
+  const m = matches[cur]; if (!m) return;
+  const pos = posAt(m, t);
+
+  // recent kill bursts (8s fade) + death dim (15s)
+  const dead = new Set();
+  for (const k of m.kills) {
+    const age = t - k.ts;
+    if (age >= 0 && age < 15000) dead.add(k.victim);
+    if (age >= 0 && age < 8000) {
+      const a = 1 - age/8000;
+      mctx.strokeStyle = `rgba(245,197,66,${a})`; mctx.lineWidth = 2;
+      mctx.beginPath(); mctx.arc(X(k.x), Y(k.y), 6 + age/8000*14, 0, 7); mctx.stroke();
+    }
+  }
+  // objective flashes (10s)
+  for (const o of [...m.objectives, ...m.buildings]) {
+    const age = t - o.ts;
+    if (age >= 0 && age < 10000) {
+      const a = 1 - age/10000;
+      mctx.fillStyle = `rgba(57,217,138,${a*0.9})`;
+      mctx.font = "bold 11px sans-serif"; mctx.textAlign = "center";
+      const label = {dragon:"용", elder:"장로", baron:"바론", herald:"전령", atakhan:"아타칸", horde:"유충", tower:"타워", inhib:"억제기", monster:"몹"}[o.kind] || o.kind;
+      mctx.fillText(label, X(o.x), Y(o.y) - 10);
+      mctx.beginPath(); mctx.arc(X(o.x), Y(o.y), 4, 0, 7); mctx.fill();
+    }
+  }
+  // players
+  m.participants.forEach((p, i) => {
+    const [x, y] = pos[i];
+    const isDead = dead.has(p.pid);
+    const col = p.team === 100 ? "#4aa3ff" : "#ff5a5a";
+    mctx.globalAlpha = isDead ? 0.25 : 1;
+    mctx.fillStyle = col;
+    mctx.beginPath(); mctx.arc(X(x), Y(y), 8, 0, 7); mctx.fill();
+    mctx.fillStyle = "#fff"; mctx.font = "bold 9px sans-serif"; mctx.textAlign = "center";
+    mctx.fillText(p.champ.slice(0,2), X(x), Y(y)+3);
+    if (isDead) {
+      mctx.globalAlpha = 0.9; mctx.fillStyle = "#ccc"; mctx.font = "10px sans-serif";
+      mctx.fillText("✕", X(x), Y(y)-10);
+    }
+    mctx.globalAlpha = 1;
+  });
+}
+
+// ---------- timeline rendering ----------
+function drawTimeline() {
+  const m = matches[cur];
+  tctx.fillStyle = "#141a20"; tctx.fillRect(0,0,tl.width,tl.height);
+  if (!m) return;
+  const W = tl.width, D = m.duration_ms;
+  const px = ms => ms / D * W;
+  // annotated bands
+  for (const a of annots()) {
+    tctx.fillStyle = a.type === "unsure" ? "rgba(245,197,66,.35)" : "rgba(57,217,138,.35)";
+    tctx.fillRect(px(a.start_ms), 8, Math.max(2, px(a.end_ms) - px(a.start_ms)), 26);
+  }
+  // pending
+  if (pendingStart !== null) {
+    tctx.fillStyle = "rgba(245,197,66,.5)";
+    tctx.fillRect(px(pendingStart), 8, Math.max(2, px(t) - px(pendingStart)), 26);
+  }
+  // kill ticks
+  tctx.fillStyle = "#c46a6a";
+  for (const k of m.kills) tctx.fillRect(px(k.ts), 40, 1.5, 14);
+  // objective ticks
+  tctx.fillStyle = "#39d98a";
+  for (const o of m.objectives) tctx.fillRect(px(o.ts), 56, 1.5, 6);
+  // minute grid
+  tctx.fillStyle = "#2b333d";
+  for (let ms = 0; ms <= D; ms += 300000) tctx.fillRect(px(ms), 0, 1, tl.height);
+  // cursor
+  tctx.fillStyle = "#fff"; tctx.fillRect(px(t), 0, 2, tl.height);
+}
+
+// ---------- kill feed ----------
+function renderKillfeed() {
+  const m = matches[cur]; if (!m) return;
+  const past = m.kills.filter(k => k.ts <= t).slice(-8).reverse();
+  const name = pid => {
+    const p = m.participants.find(q => q.pid === pid);
+    return p ? `<span class="${p.team===100?"b":"r"}">${p.champ}</span>` : "?";
+  };
+  $("killfeed").innerHTML = past.map(k =>
+    `<div>${fmt(k.ts)} — ${name(k.killer)} ⚔ ${name(k.victim)}</div>`).join("");
+}
+
+// ---------- annotation UI ----------
+function renderAnnots() {
+  const list = annots().slice().sort((a,b) => a.start_ms - b.start_ms);
+  $("annotList").innerHTML = "";
+  list.forEach((a, i) => {
+    const div = document.createElement("div"); div.className = "annot";
+    div.innerHTML =
+      `<span class="t" data-ms="${a.start_ms}">${fmt(a.start_ms)}</span>~` +
+      `<span class="t" data-ms="${a.end_ms}">${fmt(a.end_ms)}</span>` +
+      `<select data-i="${i}">
+        <option value="teamfight"${a.type==="teamfight"?" selected":""}>한타(3v3+)</option>
+        <option value="skirmish"${a.type==="skirmish"?" selected":""}>소규모 교전</option>
+        <option value="unsure"${a.type==="unsure"?" selected":""}>불확실</option>
+      </select>
+      <button class="danger" data-del="${i}">삭제</button>`;
+    $("annotList").appendChild(div);
+  });
+  $("annotList").querySelectorAll(".t").forEach(el =>
+    el.onclick = () => { t = +el.dataset.ms; refresh(); });
+  $("annotList").querySelectorAll("select").forEach(el =>
+    el.onchange = () => { const l = annots(); l[+el.dataset.i].type = el.value; setAnnots(l); });
+  $("annotList").querySelectorAll("[data-del]").forEach(el =>
+    el.onclick = () => { const l = annots(); l.splice(+el.dataset.del, 1); setAnnots(l); });
+}
+
+function commitInterval() {
+  if (pendingStart === null || !cur) return;
+  const s = Math.min(pendingStart, t), e = Math.max(pendingStart, t);
+  if (e - s < 1500) { alert("구간이 너무 짧습니다 (1.5초 미만)"); return; }
+  const l = annots(); l.push({ start_ms: Math.round(s), end_ms: Math.round(e), type: "teamfight" });
+  pendingStart = null; $("pending").textContent = "";
+  setAnnots(l);
+}
+
+// ---------- match list ----------
+function renderMatchList() {
+  const s = loadStore();
+  $("matchList").innerHTML = "";
+  order.forEach(id => {
+    const n = (s.matches[id] || []).length;
+    const div = document.createElement("div");
+    div.className = (id === cur ? "cur" : "") + (n > 0 ? " done" : "");
+    div.textContent = `${id}  (${n}개 구간)`;
+    div.onclick = () => selectMatch(id);
+    $("matchList").appendChild(div);
+  });
+}
+
+function selectMatch(id) {
+  cur = id; t = 0; playing = false; pendingStart = null;
+  $("btnPlay").textContent = "▶ 재생"; $("pending").textContent = "";
+  const m = matches[id];
+  $("matchInfo").textContent =
+    `${id} | 패치 ${m.patch} | ${fmt(m.duration_ms)} | 킬 ${m.kills.length}개`;
+  renderMatchList(); refresh();
+}
+
+// ---------- file loading ----------
+$("filePicker").onchange = async ev => {
+  for (const f of ev.target.files) {
+    try {
+      const data = JSON.parse(await f.text());
+      if (data.match_id && data.frames) {
+        matches[data.match_id] = data;
+        if (!order.includes(data.match_id)) order.push(data.match_id);
+      }
+    } catch(e) { console.warn("파일 로드 실패:", f.name, e); }
+  }
+  if (!cur && order.length) selectMatch(order[0]);
+  renderMatchList();
+};
+
+// ---------- export ----------
+$("btnExport").onclick = () => {
+  const s = loadStore();
+  s.annotator = $("annotator").value.trim() || "anon";
+  s.exported_at = new Date().toISOString();
+  const blob = new Blob([JSON.stringify(s, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `annotations_${s.annotator}.json`;
+  a.click();
+};
+
+// ---------- controls ----------
+function refresh() { drawScene(); drawTimeline(); renderKillfeed(); $("clock").textContent = fmt(t); }
+function togglePlay() {
+  if (!cur) return;
+  playing = !playing;
+  $("btnPlay").textContent = playing ? "⏸ 정지" : "▶ 재생";
+  lastFrame = performance.now();
+}
+$("btnPlay").onclick = togglePlay;
+$("btnBack").onclick = () => { t = Math.max(0, t - 5000); refresh(); };
+$("btnFwd").onclick = () => { t = Math.min(matches[cur]?.duration_ms || 0, t + 5000); refresh(); };
+$("btnStart").onclick = () => { if (cur) { pendingStart = t; $("pending").textContent = `시작 마킹: ${fmt(t)} — 종료 시점에서 ] 를 누르세요`; drawTimeline(); } };
+$("btnEnd").onclick = commitInterval;
+$("btnCancel").onclick = () => { pendingStart = null; $("pending").textContent = ""; drawTimeline(); };
+$("annotator").onchange = () => { renderAnnots(); renderMatchList(); };
+
+tl.onmousedown = ev => {
+  const seek = e => {
+    const r = tl.getBoundingClientRect();
+    t = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * (matches[cur]?.duration_ms || 0);
+    refresh();
+  };
+  seek(ev);
+  const mv = e => seek(e);
+  const up = () => { window.removeEventListener("mousemove", mv); window.removeEventListener("mouseup", up); };
+  window.addEventListener("mousemove", mv); window.addEventListener("mouseup", up);
+};
+
+window.addEventListener("keydown", ev => {
+  if (ev.target.tagName === "INPUT" || ev.target.tagName === "SELECT") return;
+  const step = ev.shiftKey ? 30000 : 5000;
+  if (ev.code === "Space") { ev.preventDefault(); togglePlay(); }
+  else if (ev.key === "ArrowLeft") { t = Math.max(0, t - step); refresh(); }
+  else if (ev.key === "ArrowRight") { t = Math.min(matches[cur]?.duration_ms || 0, t + step); refresh(); }
+  else if (ev.key === "[") $("btnStart").onclick();
+  else if (ev.key === "]") commitInterval();
+  else if (ev.key === "Escape") $("btnCancel").onclick();
+});
+
+// ---------- main loop ----------
+function loop(now) {
+  if (playing && cur) {
+    t += (now - lastFrame) * (+$("speed").value);
+    const D = matches[cur].duration_ms;
+    if (t >= D) { t = D; playing = false; $("btnPlay").textContent = "▶ 재생"; }
+    refresh();
+  }
+  lastFrame = now;
+  requestAnimationFrame(loop);
+}
+drawMapBase(); drawTimeline();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
