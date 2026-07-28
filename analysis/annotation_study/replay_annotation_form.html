@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Full-ROFL Blind Annotation</title>
+  <style>
+    :root { color-scheme: light dark; --ink:#172033; --muted:#667085; --line:#cfd5df; --blue:#2457c5; --paper:#fff; --soft:#f5f7fb; }
+    @media (prefers-color-scheme:dark){:root{--ink:#eef2ff;--muted:#aeb8ca;--line:#3a465d;--blue:#84a9ff;--paper:#111827;--soft:#192235}}
+    *{box-sizing:border-box} body{font:15px/1.5 system-ui,sans-serif;margin:0;background:var(--soft);color:var(--ink)}
+    main{max-width:960px;margin:32px auto;padding:0 20px}.card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:22px;margin:14px 0}
+    h1{font-size:24px;margin:0 0 8px}h2{font-size:18px;margin:0 0 12px}.muted{color:var(--muted)}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}.grow{flex:1 1 240px}label{display:block;font-weight:650;margin-bottom:4px}
+    input,select,button{font:inherit;border:1px solid var(--line);border-radius:8px;padding:9px 11px;background:var(--paper);color:var(--ink)}
+    button{cursor:pointer}button.primary{background:var(--blue);border-color:var(--blue);color:white}.path{word-break:break-all;font-family:ui-monospace,monospace;background:var(--soft);padding:10px;border-radius:8px}
+    table{width:100%;border-collapse:collapse;margin-top:12px}th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line)}
+    .nav{display:flex;justify-content:space-between;gap:8px}.status{font-weight:700}.danger{color:#c2413a}.ok{color:#237a57}
+  </style>
+</head>
+<body>
+<main>
+  <section class="card">
+    <h1>Full-ROFL Blind Annotation</h1>
+    <p class="muted">League Client에서 전체 리플레이를 보고 교전 시작·종료 시각을 입력하세요. 이 도구에는 탐지기 구간이 포함되어 있지 않습니다.</p>
+    <div class="row"><div class="grow"><label for="annotator">Annotator ID</label><input id="annotator" placeholder="예: A01"></div><button id="export" class="primary">JSON 내보내기</button></div>
+  </section>
+  <section class="card">
+    <div class="nav"><button id="prev">← 이전</button><span id="position" class="status"></span><button id="next">다음 →</button></div>
+    <h2 id="code"></h2><div id="meta" class="muted"></div><p id="path" class="path"></p><button id="copy">경로 복사</button>
+  </section>
+  <section class="card">
+    <h2>교전 구간 추가</h2>
+    <div class="row">
+      <div><label for="start">시작 (mm:ss)</label><input id="start" placeholder="12:34"></div>
+      <div><label for="end">종료 (mm:ss)</label><input id="end" placeholder="12:58"></div>
+      <div><label for="type">유형</label><select id="type"><option value="teamfight">teamfight (3v3+)</option><option value="skirmish">skirmish (~2v2)</option><option value="uncertain">uncertain</option></select></div>
+      <button id="add" class="primary">추가</button>
+    </div>
+    <div id="message" class="muted"></div>
+    <table><thead><tr><th>시작</th><th>종료</th><th>유형</th><th></th></tr></thead><tbody id="intervals"></tbody></table>
+  </section>
+</main>
+<script>
+const queue=__QUEUE_JSON__;
+let index=0; const key='rofl-full-match-v1';
+let state=JSON.parse(localStorage.getItem(key)||'{"annotator":"","matches":{}}');
+const $=id=>document.getElementById(id); $('annotator').value=state.annotator||'';
+function msToClock(ms){const s=Math.floor(ms/1000);return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`}
+function clockToMs(text){const m=/^(\d{1,3}):(\d{2})$/.exec(text.trim());if(!m||+m[2]>59)return null;return(+m[1]*60 + +m[2])*1000}
+function save(){state.annotator=$('annotator').value.trim();localStorage.setItem(key,JSON.stringify(state))}
+function current(){return queue[index]}
+function render(){const q=current(), list=state.matches[q.match_id]||[];$('position').textContent=`${index+1} / ${queue.length}`;$('code').textContent=q.match_code;$('meta').textContent=`patch ${q.patch} · ${q.game_creation_utc} · duration ${msToClock(q.duration_ms)}`;$('path').textContent=q.replay_path;$('intervals').innerHTML='';list.forEach((iv,i)=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${msToClock(iv.start_ms)}</td><td>${msToClock(iv.end_ms)}</td><td>${iv.type}</td><td><button data-i="${i}">삭제</button></td>`;tr.querySelector('button').onclick=()=>{list.splice(i,1);state.matches[q.match_id]=list;save();render()};$('intervals').appendChild(tr)});$('message').textContent=`저장된 구간 ${list.length}개`;}
+$('annotator').onchange=save;$('prev').onclick=()=>{index=Math.max(0,index-1);render()};$('next').onclick=()=>{index=Math.min(queue.length-1,index+1);render()};
+$('copy').onclick=async()=>{await navigator.clipboard.writeText(current().replay_path);$('message').textContent='경로를 복사했습니다.'};
+$('add').onclick=()=>{const s=clockToMs($('start').value),e=clockToMs($('end').value),q=current();if(s===null||e===null||s>=e||e>q.duration_ms+60000){$('message').innerHTML='<span class="danger">시각 형식·순서를 확인하세요.</span>';return}const list=state.matches[q.match_id]||[];list.push({start_ms:s,end_ms:e,type:$('type').value});list.sort((a,b)=>a.start_ms-b.start_ms);state.matches[q.match_id]=list;save();$('start').value='';$('end').value='';render()};
+$('export').onclick=()=>{save();if(!state.annotator){alert('Annotator ID를 입력하세요.');return}const payload={annotator:state.annotator,protocol_version:'rofl_full_match_v1',matches:state.matches};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`annotations_${state.annotator}.json`;a.click();URL.revokeObjectURL(a.href)};
+render();
+</script>
+</body>
+</html>
