@@ -4,6 +4,9 @@ numpy>=1.21.0
 scikit-learn>=1.0.0
 lightgbm>=3.3.0
 
+# Optional: current-season Riot API acquisition agent
+# httpx>=0.24.0
+
 # Optional: analysis & visualization
 # shap>=0.41.0
 # matplotlib>=3.5.0

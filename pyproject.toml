@@ -28,8 +28,11 @@ analysis = [
     "scipy>=1.7.0",
     "anthropic>=0.40.0",
 ]
+acquisition = [
+    "httpx>=0.24.0",
+]
 all = [
-    "lol-teamfight-lab[dev,analysis]",
+    "lol-teamfight-lab[dev,analysis,acquisition]",
 ]
 
 [tool.pytest.ini_options]
@@ -37,6 +40,19 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
 addopts = "-v --tb=short"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = [
+    "acquisition*",
+    "analysis*",
+    "app*",
+    "core*",
+    "data*",
+    "gameplay*",
+    "train*",
+]
+exclude = ["tests*", "docs*", "paper*", "output*", "outputs*"]
 
 [tool.mypy]
 python_version = "3.8"
