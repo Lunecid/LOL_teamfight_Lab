@@ -134,6 +134,8 @@ LOL_teamfight/
 
 ## Reproducibility Note (relationship to the paper)
 
+**Paper version:** the exact code state corresponding to the camera-ready paper is tagged [`v1.0-cog2026`](https://github.com/Lunecid/LOL_teamfight_Lab/releases/tag/v1.0-cog2026). `master` continues with post-paper work (human annotation study, current-season data acquisition, replay-based validation).
+
 The metrics reported in the paper were generated with the experiment commit **prior to** the localization/labeling corrections recorded in [docs/AUDIT.md](docs/AUDIT.md). This released code implements the paper's described methods exactly:
 
 - **Localization (Algorithm 1):** kill clusters are split by their true spatial *diameter* (> 4000 u), validity requires **≥ 2 *alive* players per team within 1800 u** of the earliest kill (a single conjunction), and Phase III **merges adjacent validated candidates within 15 s and 2000 u**.
