@@ -609,7 +609,10 @@ def compute_distances_chunked(
         del diff
 
     return dists
-def classify_fight_type(fight: dict, anchors: Dict[str, Any], is_norm: bool, scale_factor: float) -> str:
+def classify_fight_context(
+    fight: dict, anchors: Dict[str, Any], is_norm: bool, scale_factor: float
+) -> str:
+    """Classify encounter location without conflating it with encounter scale."""
     cx = fight.get("centroid_x", 0.0)
     cy = fight.get("centroid_y", 0.0)
 
@@ -646,12 +649,33 @@ def classify_fight_type(fight: dict, anchors: Dict[str, Any], is_norm: bool, sca
     ):
         return FightType.BASE_FIGHT.value
 
-    prox_pairs = int(fight.get("det_prox_pairs", 0) or 0)
-    if prox_pairs >= 8:
+    return "lane_or_jungle"
+
+
+def classify_fight_scale(fight: dict) -> str:
+    """Classify encounter scale from observed event participants per team.
+
+    Kill participants and in-window interaction actors form the observed
+    participant counts. This is stricter than spatial validity, which only
+    confirms that nearby champions are alive.
+    """
+    blue = int(fight.get("det_cluster_blue", 0) or 0)
+    red = int(fight.get("det_cluster_red", 0) or 0)
+    if min(blue, red) >= 3:
         return FightType.TEAMFIGHT.value
-    if prox_pairs >= 4:
+    if min(blue, red) >= 2:
         return FightType.SKIRMISH.value
     return FightType.PICK.value
+
+
+def classify_fight_type(fight: dict, anchors: Dict[str, Any], is_norm: bool, scale_factor: float) -> str:
+    """Return the legacy one-axis type used by existing analyses.
+
+    New consumers should use ``fight_scale`` and ``fight_context``. Location
+    (for example tower dive) and scale (for example teamfight) can coexist.
+    """
+    context = classify_fight_context(fight, anchors, is_norm, scale_factor)
+    return context if context != "lane_or_jungle" else classify_fight_scale(fight)
 
 
 def _team_of_pid(pid: int, tm: Dict[int, int]) -> int:
@@ -1471,6 +1495,12 @@ def detect_fights_teamfight_v2(
     game_duration_ms = int(minute_ts[-1]) if len(minute_ts) > 0 else 0
     for fight in fights:
         try:
+            fight["fight_context"] = classify_fight_context(
+                fight, anchors, is_norm, scale_factor
+            )
+            fight["fight_scale"] = classify_fight_scale(fight)
+            fight["fight_label"] = f"{fight['fight_scale']} · {fight['fight_context']}"
+            # Kept for compatibility with analyses that expect one field.
             fight["fight_type"] = classify_fight_type(fight, anchors, is_norm, scale_factor)
             outcome = compute_fight_outcome(fight, kill_events, tm, cache=cache, events=events)
             fight["outcome"] = outcome

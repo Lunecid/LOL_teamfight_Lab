@@ -226,8 +226,13 @@ def _digest_fights(fights: List[dict]) -> List[dict]:
             "first_kill_ts": int(f.get("first_kill_ts", engage)),
             "last_kill_ts": int(f.get("last_kill_ts", engage)),
             "fight_type": str(f.get("fight_type", "unknown")),
+            "fight_scale": str(f.get("fight_scale", f.get("fight_type", "unknown"))),
+            "fight_context": str(f.get("fight_context", "unknown")),
+            "fight_label": str(f.get("fight_label", f.get("fight_type", "unknown"))),
             "centroid_x": float(f.get("centroid_x", 0.0)),
             "centroid_y": float(f.get("centroid_y", 0.0)),
+            "blue_participants": int(f.get("det_cluster_blue", 0)),
+            "red_participants": int(f.get("det_cluster_red", 0)),
             "n_kills": int(f.get("det_kill_count_window", 0)),
         })
     return out

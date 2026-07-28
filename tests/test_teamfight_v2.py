@@ -23,6 +23,7 @@ from gameplay.fights import (
     _validate_teamfight_at_engage,
     _collect_interactions_in_radius,
     _finalize_kill_cluster,
+    classify_fight_scale,
     detect_fights_teamfight_v2,
     FightDetectorConfig,
     safe_int,
@@ -294,6 +295,17 @@ class TestFinalizeKillCluster:
         assert cluster["first_kill_ts"] == 100000
         assert cluster["last_kill_ts"] == 110000
         assert cluster["n_kills"] == 2
+
+
+class TestFightScaleClassification:
+    def test_pick_when_only_one_team_has_fewer_than_two_observed_participants(self):
+        assert classify_fight_scale({"det_cluster_blue": 2, "det_cluster_red": 1}) == "pick"
+
+    def test_skirmish_for_two_by_two_observed_participants(self):
+        assert classify_fight_scale({"det_cluster_blue": 2, "det_cluster_red": 2}) == "skirmish"
+
+    def test_teamfight_for_at_least_three_observed_participants_per_team(self):
+        assert classify_fight_scale({"det_cluster_blue": 3, "det_cluster_red": 5}) == "teamfight"
 
 
 # ============================================================
