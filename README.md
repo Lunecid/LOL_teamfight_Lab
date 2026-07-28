@@ -82,6 +82,9 @@ export LOL_OUTPUT_ROOT="/path/for/outputs"
 # Full pipeline (cache -> detect -> split -> train -> report)
 python main.py --mode all --seed 42
 
+# Full paper experiment: 3 seeds x 2 phases (deep-only, then tabular + logit fusion)
+python run_paper_full.py
+
 # Paper presets
 python runner.py --paper_preset core4_1seed --split_mode patch_holdout
 python runner.py --paper_preset core4_optimal --split_mode patch_holdout
@@ -105,6 +108,7 @@ pytest --cov    # with coverage
 ```
 LOL_teamfight/
 |-- main.py / runner.py            # Entry points
+|-- run_paper_full.py              # Full paper experiment (3 seeds x 2 phases)
 |-- experiment_runner.py           # Ablation study runner
 |-- core/                          # Configuration, contracts, utilities
 |   |-- config.py                  # Central CFG dataclass (single source of truth)
