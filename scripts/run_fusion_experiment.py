@@ -55,14 +55,42 @@ def vision_matrix(rows: list[dict], window: str) -> tuple[np.ndarray, list[str]]
     return out, names
 
 
+# One shared regularization grid for every modality: at ~420 training rows a
+# 7,105-D representation memorizes noise with light regularization, so each
+# outer fold selects its config by inner grouped CV -- identically for
+# telemetry, vision, and fusion, keeping the comparison fair.
+PARAM_GRID = (
+    {"n_estimators": 100, "num_leaves": 7, "max_depth": 3,
+     "colsample_bytree": 0.2, "min_child_samples": 30},
+    {"n_estimators": 200, "num_leaves": 15, "max_depth": 4,
+     "colsample_bytree": 0.5, "min_child_samples": 20},
+    {"n_estimators": 400, "num_leaves": 31, "max_depth": -1,
+     "colsample_bytree": 0.9, "min_child_samples": 20},
+)
+
+
+def _fit(params, X, y):
+    model = LGBMClassifier(
+        learning_rate=0.05, subsample=0.9, random_state=SEED, verbose=-1, **params
+    )
+    model.fit(X, y)
+    return model
+
+
 def oof_predictions(X: np.ndarray, y: np.ndarray, groups: np.ndarray) -> np.ndarray:
     oof = np.full(len(y), np.nan)
     for train, test in GroupKFold(n_splits=5).split(X, y, groups):
-        model = LGBMClassifier(
-            n_estimators=400, learning_rate=0.05, num_leaves=31,
-            subsample=0.9, colsample_bytree=0.9, random_state=SEED, verbose=-1,
-        )
-        model.fit(X[train], y[train])
+        best_params, best_auc = None, -1.0
+        for params in PARAM_GRID:
+            inner_oof = np.full(len(train), np.nan)
+            inner = GroupKFold(n_splits=3).split(X[train], y[train], groups[train])
+            for fit_idx, val_idx in inner:
+                model = _fit(params, X[train][fit_idx], y[train][fit_idx])
+                inner_oof[val_idx] = model.predict_proba(X[train][val_idx])[:, 1]
+            auc = roc_auc_score(y[train], inner_oof)
+            if auc > best_auc:
+                best_params, best_auc = params, auc
+        model = _fit(best_params, X[train], y[train])
         oof[test] = model.predict_proba(X[test])[:, 1]
     assert not np.isnan(oof).any()
     return oof
@@ -133,12 +161,19 @@ def main(argv=None) -> int:
         pred_vis = oof_predictions(X_vis, y, groups)
         X_fus = np.hstack([X_tel, X_vis])
         pred_fus = oof_predictions(X_fus, y, groups)
+        # late fusion: rank-average of the two modality predictions
+        from scipy.stats import rankdata
+
+        pred_late = (rankdata(pred_tel) + rankdata(pred_vis)) / (2.0 * len(y))
         stats = cluster_bootstrap_delta(y, pred_tel, pred_fus, groups)
+        stats_late = cluster_bootstrap_delta(y, pred_tel, pred_late, groups)
         results[window] = {
             "n_vision_features": len(names),
             "vision_auc": float(roc_auc_score(y, pred_vis)),
             "fusion_auc": float(roc_auc_score(y, pred_fus)),
+            "late_fusion_auc": float(roc_auc_score(y, pred_late)),
             "delta_fusion_minus_telemetry": stats,
+            "delta_late_fusion_minus_telemetry": stats_late,
         }
         print(
             f"{window}: vision AUC={results[window]['vision_auc']:.4f}"

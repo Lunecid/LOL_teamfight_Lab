@@ -44,8 +44,18 @@ def load_fusion_module():
     return module
 
 
-def corrected_names(stored_names: list[str]) -> list[str]:
-    """Rebuild column names in the suffix-major order the values use."""
+def resolve_names(stored_names: list[str]) -> tuple[list[str], list[str]]:
+    """Return (names, bases) in the suffix-major order the values use.
+
+    Exports made before the feature-contract fix stored feature-major names
+    against suffix-major values; later exports store suffix-major names
+    directly.  Detect which case this file is: in suffix-major order the
+    first ``len/7`` names all share the ``__last`` suffix.
+    """
+    k = len(stored_names) // len(SUFFIXES)
+    first_block = {n.rsplit("__", 1)[1] for n in stored_names[:k]}
+    if first_block == {SUFFIXES[0]}:  # already suffix-major: use as stored
+        return list(stored_names), [n.rsplit("__", 1)[0] for n in stored_names[:k]]
     base = [n.rsplit("__", 1)[0] for n in stored_names[:: len(SUFFIXES)]]
     return [f"{n}__{s}" for s in SUFFIXES for n in base], base
 
@@ -103,7 +113,7 @@ def main(argv=None) -> int:
     rfe = load_fusion_module()
     blob = np.load(args.telemetry)
     meta = json.loads(args.telemetry.with_suffix(".keys.json").read_text(encoding="utf-8"))
-    names, base = corrected_names(meta["feature_names"])
+    names, base = resolve_names(meta["feature_names"])
     keys = meta["keys"]
     vision = rfe.load_vision(args.vision)
 
