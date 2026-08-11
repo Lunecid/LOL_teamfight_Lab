@@ -27,6 +27,7 @@ import json
 from pathlib import Path
 
 import numpy as np
+from scipy.stats import rankdata
 from sklearn.metrics import roc_auc_score
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -145,6 +146,9 @@ def main(argv=None) -> int:
     pred_tel = rfe.oof_predictions(X_tel, y, groups)
     pred_vis = rfe.oof_predictions(X_vis, y, groups)
     pred_fus = rfe.oof_predictions(np.hstack([X_tel, X_vis]), y, groups)
+    # late fusion: rank-average of the two frozen modality predictions -- no
+    # extra fit, so the stratum evaluation stays a frozen-OOF comparison
+    pred_late = (rankdata(pred_tel) + rankdata(pred_vis)) / (2.0 * len(y))
 
     results: dict[str, object] = {
         "window": args.window,
@@ -155,6 +159,7 @@ def main(argv=None) -> int:
             "telemetry_auc": float(roc_auc_score(y, pred_tel)),
             "vision_auc": float(roc_auc_score(y, pred_vis)),
             "fusion_auc": float(roc_auc_score(y, pred_fus)),
+            "late_fusion_auc": float(roc_auc_score(y, pred_late)),
         },
     }
     for name, mask in masks.items():
@@ -164,12 +169,27 @@ def main(argv=None) -> int:
             "telemetry_auc": stratum_auc(y, pred_tel, mask),
             "vision_auc": stratum_auc(y, pred_vis, mask),
             "fusion_auc": stratum_auc(y, pred_fus, mask),
+            "late_fusion_auc": stratum_auc(y, pred_late, mask),
         }
     results["bootstrap_vision_minus_telemetry"] = cluster_bootstrap_stratified(
         y, pred_tel, pred_vis, groups, masks
     )
     results["bootstrap_fusion_minus_telemetry"] = cluster_bootstrap_stratified(
         y, pred_tel, pred_fus, groups, masks
+    )
+    results["bootstrap_late_fusion_minus_telemetry"] = cluster_bootstrap_stratified(
+        y, pred_tel, pred_late, groups, masks
+    )
+    # the honest fusion question: does combining beat the best single
+    # modality where that modality already wins?
+    results["bootstrap_late_fusion_minus_vision"] = cluster_bootstrap_stratified(
+        y, pred_vis, pred_late, groups, masks
+    )
+    np.savez_compressed(
+        args.output.with_suffix(".preds.npz"),
+        y=y, gold=gold, groups=groups,
+        pred_telemetry=pred_tel, pred_vision=pred_vis,
+        pred_fusion=pred_fus, pred_late=pred_late,
     )
 
     print(json.dumps({k: results[k] for k in ("overall", "close", "one_sided")}, indent=2))
