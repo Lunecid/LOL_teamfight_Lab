@@ -43,8 +43,24 @@ def load_vision(path: Path) -> dict[tuple[str, int], dict]:
     }
 
 
-def vision_matrix(rows: list[dict], window: str) -> tuple[np.ndarray, list[str]]:
+# The fight centroid recorded by the capture tool is the position of the
+# *first kill*, which happens 10 s after the prediction cutoff.  It was used
+# to aim the spectator camera (documented as navigation-only), but any
+# feature measuring distance to it reads future information, so those
+# columns are excluded from every model by default.
+NON_CAUSAL_TOKENS = ("dist_to_fight",)
+
+
+def causal_feature_names(names: list[str]) -> list[str]:
+    return [n for n in names if not any(t in n for t in NON_CAUSAL_TOKENS)]
+
+
+def vision_matrix(
+    rows: list[dict], window: str, include_non_causal: bool = False
+) -> tuple[np.ndarray, list[str]]:
     names = sorted({k for row in rows for k in row["features"][window]})
+    if not include_non_causal:
+        names = causal_feature_names(names)
     out = np.full((len(rows), len(names)), np.nan)
     for i, row in enumerate(rows):
         feats = row["features"][window]

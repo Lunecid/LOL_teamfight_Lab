@@ -41,9 +41,10 @@ from sklearn.metrics import roc_auc_score
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 ROLES = ("TOP", "JNG", "MID", "BOT", "SUP")
-# minimap-derived feature name fragments; everything else in the row is HUD panel
-MINIMAP_TOKENS = ("spread", "components", "mass", "dist_to_fight",
-                  "team_distance", "closing_speed")
+# minimap-derived feature name fragments; everything else in the row is HUD
+# panel.  Distance-to-fight is absent by construction -- vision_matrix drops
+# the non-causal columns -- so it is not listed here.
+MINIMAP_TOKENS = ("spread", "components", "mass", "team_distance", "closing_speed")
 
 
 def load_fusion_module():
