@@ -48,15 +48,23 @@ measurements are the defensible material.
 
 | # | Review point | Response | Status |
 |---|---|---|---|
-| R2-1 | Eq.3 hand-set weights: "model may learn the labelling heuristic"; wants alternative labels + weight sensitivity | `scripts/run_label_ablation.py`: same X, same folds, y under {attention_value_win (Eq.3), micro_win (raw kill advantage), kill_survival, weighted}; pairwise agreement; AUC stability; then weight perturbation on Eq.3 coefficients | pilot running |
+| R2-1 | Eq.3 hand-set weights: "model may learn the labelling heuristic"; wants alternative labels + weight sensitivity | `run_label_ablation.py` + `run_label_weight_sensitivity.py` | **done** — Eq.3 (0.595) is the *hardest* target of the four schemes (micro_win 0.652, kill_survival 0.662, weighted 0.675); schemes agree 87–98%; coefficient perturbations flip ≤4% of labels and move AUC monotonically along an interpretable attention↔material axis |
 | R2-2 | DL baselines underpowered (FT-Transformer/TabNet/SAINT absent, no shared feature engineering) | Reframe: paradigm comparison is no longer the claim. Add one modern tabular DL (FT-Transformer) **on the same engineered tabular features** as due diligence | planned |
-| R2-3 | 6 timesteps × 60 s resolution starves sequential models | Measured: window-length sweep + trajectory-vs-snapshot ablation show static state carries the signal; discuss as data property | done (write-up) |
-| R2-4 | No anonymised code/data link | Prepare anonymised repo + derived-data release (respect Riot ToS: derived features, not raw dumps) | planned |
-| Meta | "What about teamfights with no kills?" | Acknowledge kill-anchored detection bound; quantify prevalence of kill-less proximity encounters from the 5 s position grid on a corpus sample; discuss as scope limit | planned |
+| R2-3 | 6 timesteps × 60 s resolution starves sequential models | Measured: window-length sweep (w10/20/30 within 0.02) + trajectory-vs-snapshot ablation (0.53 vs 0.58) show static state carries the signal | **done** — write-up pending |
+| R2-4 | No anonymised code/data link | Anonymised repo + derived-data release (Riot ToS: derived features, not raw dumps) | planned |
+| Meta | "What about teamfights with no kills?" | `run_killless_encounters.py`: proximity encounters from the 5 s grid under the detector's own validity condition minus the kill requirement | script ready, run pending |
 | R1-1 | Contribution statement restates RQs | Rewrite around community impact (esports narrative/broadcast tooling; R1's six references) | writing |
-| R1-2 | Arbitrary thresholds (18 s kill-cluster window, 4,000-unit spatial split) | Sensitivity sweep over both thresholds on a corpus sample: engagement counts, label stability, AUC | planned |
-| R1-3 | LoL terminology opaque | Background section with formal definitions (engagement, pick/skirmish/teamfight via observed participants, engage backtrack, Eq.3) | writing |
+| R1-2 | Arbitrary thresholds (18 s kill-cluster window, 4,000-unit spatial split) | `run_threshold_sensitivity.py` | **done** — 12/18/24/30 s × 3k/4k/5k units: engagement counts move ±12%, AUC spread 0.008, positive rate 50.5–50.9% |
+| R1-3 | LoL terminology opaque | `docs/ENGAGEMENT_SCALE_DEFINITION.md` formalizes engagement, both scale definitions, the class cutoff with its joint distribution, and the asymmetry covariate | **done** — paper prose pending |
 | R1-4/R3 | Limitations/future work thin; methods not self-contained (diagnostic MLP, Layered+Logit, TreeSHAP unmotivated) | Dedicated limitations section; motivate or drop each diagnostic; SHAP re-run required anyway after the name-order fix (5ed2585) | writing |
+
+### Headline experiment
+
+`build_corpus_shard.py` (32 shards, ~12.5 matches/s each) + `run_scale_decomposition.py`
+over the full paper corpus: 210,000 matches → **994,365 engagements**, 4,888
+non-constant features of 7,105, matrix held as a 19.4 GB disk memmap so only
+the per-fold training slice is resident. One fit under match-grouped folds,
+frozen out-of-fold predictions scored inside each scale class.
 
 ## Definitions to formalize (with citations)
 
