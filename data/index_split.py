@@ -139,6 +139,10 @@ def _load_cached_fight_index(path: Path, cache_key: str) -> Optional[List[FightR
         for r in rows:
             if not isinstance(r, dict):
                 continue
+            if "det_cluster_blue" not in r:
+                # entry predates the scale fields: treat as a miss so the
+                # index is rebuilt once with participant counts populated
+                return None
             try:
                 refs.append(
                     FightRef(
@@ -149,6 +153,8 @@ def _load_cached_fight_index(path: Path, cache_key: str) -> Optional[List[FightR
                         label_end_ts=int(r.get("label_end_ts", -1)),
                         first_kill_ts=int(r.get("first_kill_ts", -1)),
                         last_kill_ts=int(r.get("last_kill_ts", -1)),
+                        det_cluster_blue=int(r.get("det_cluster_blue", -1)),
+                        det_cluster_red=int(r.get("det_cluster_red", -1)),
                     )
                 )
             except Exception:
@@ -171,6 +177,8 @@ def _save_cached_fight_index(path: Path, cache_key: str, cfg_sig: Dict[str, Any]
                 "label_end_ts": int(getattr(r, "label_end_ts", -1)),
                 "first_kill_ts": int(getattr(r, "first_kill_ts", -1)),
                 "last_kill_ts": int(getattr(r, "last_kill_ts", -1)),
+                "det_cluster_blue": int(getattr(r, "det_cluster_blue", -1)),
+                "det_cluster_red": int(getattr(r, "det_cluster_red", -1)),
             }
             for r in refs
         ]
@@ -330,6 +338,8 @@ def _fight_to_ref_row(
         "label_end_ts": int(label_end_ts),
         "first_kill_ts": int(first_kill_ts_val),
         "last_kill_ts": int(last_kill_ts_val),
+        "det_cluster_blue": int(fight.get("det_cluster_blue", -1) or -1),
+        "det_cluster_red": int(fight.get("det_cluster_red", -1) or -1),
     }
 
 
@@ -487,6 +497,8 @@ def build_fight_index(
                         label_end_ts=int(row.get("label_end_ts", -1)),
                         first_kill_ts=int(row.get("first_kill_ts", -1)),
                         last_kill_ts=int(row.get("last_kill_ts", -1)),
+                        det_cluster_blue=int(row.get("det_cluster_blue", -1)),
+                        det_cluster_red=int(row.get("det_cluster_red", -1)),
                     )
                 )
             except Exception:

@@ -39,6 +39,20 @@ class FightRef:
     label_end_ts: int = -1    # label window end ts in ms (exclusive)
     first_kill_ts: int = -1   # cluster first kill timestamp in ms
     last_kill_ts: int = -1    # cluster last kill timestamp in ms
+    det_cluster_blue: int = -1  # observed event participants, blue (-1 unknown)
+    det_cluster_red: int = -1   # observed event participants, red (-1 unknown)
+
+    @property
+    def fight_scale(self) -> Optional[str]:
+        """Scale class from observed participants (same rule as classify_fight_scale)."""
+        if self.det_cluster_blue < 0 or self.det_cluster_red < 0:
+            return None
+        smaller = min(self.det_cluster_blue, self.det_cluster_red)
+        if smaller >= 3:
+            return "teamfight"
+        if smaller >= 2:
+            return "skirmish"
+        return "pick"
 
     def __post_init__(self) -> None:
         # t_start_ts가 설정되지 않았으면 -1 유지 (legacy 모드)
