@@ -41,18 +41,50 @@ class FightRef:
     last_kill_ts: int = -1    # cluster last kill timestamp in ms
     det_cluster_blue: int = -1  # observed event participants, blue (-1 unknown)
     det_cluster_red: int = -1   # observed event participants, red (-1 unknown)
+    det_present_blue: int = -1  # alive champions near the anchor at the cutoff
+    det_present_red: int = -1   # same, red (-1 unknown)
 
-    @property
-    def fight_scale(self) -> Optional[str]:
-        """Scale class from observed participants (same rule as classify_fight_scale)."""
-        if self.det_cluster_blue < 0 or self.det_cluster_red < 0:
+    @staticmethod
+    def _scale_class(blue: int, red: int) -> Optional[str]:
+        if blue < 0 or red < 0:
             return None
-        smaller = min(self.det_cluster_blue, self.det_cluster_red)
+        smaller = min(blue, red)
         if smaller >= 3:
             return "teamfight"
         if smaller >= 2:
             return "skirmish"
         return "pick"
+
+    @property
+    def fight_scale(self) -> Optional[str]:
+        """Scale from *observed participation* (post-hoc; known only after the fight).
+
+        Same rule as ``classify_fight_scale``: a player counts once they appear
+        in the cluster's kill/assist/death records or trigger a positioned
+        event inside the fight window.
+        """
+        return self._scale_class(self.det_cluster_blue, self.det_cluster_red)
+
+    @property
+    def presence_scale(self) -> Optional[str]:
+        """Scale from *presence at the prediction cutoff* (pre-fight, operational).
+
+        Counts alive champions per team within the validity radius of the
+        engagement anchor at the cutoff, so it is available to a predictor.
+        Detection requires at least two per team, so this never yields
+        ``"pick"`` -- a pick is an engagement where bodies were present but
+        only one side's player traded.
+        """
+        return self._scale_class(self.det_present_blue, self.det_present_red)
+
+    @property
+    def commitment_gap(self) -> Optional[int]:
+        """Champions that were present at the cutoff but never participated."""
+        if self.det_present_blue < 0 or self.det_cluster_blue < 0:
+            return None
+        present = self.det_present_blue + self.det_present_red
+        engaged = self.det_cluster_blue + self.det_cluster_red
+        return present - engaged
 
     def __post_init__(self) -> None:
         # t_start_ts가 설정되지 않았으면 -1 유지 (legacy 모드)

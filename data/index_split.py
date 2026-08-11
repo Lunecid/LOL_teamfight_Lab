@@ -139,7 +139,7 @@ def _load_cached_fight_index(path: Path, cache_key: str) -> Optional[List[FightR
         for r in rows:
             if not isinstance(r, dict):
                 continue
-            if "det_cluster_blue" not in r:
+            if "det_present_blue" not in r:
                 # entry predates the scale fields: treat as a miss so the
                 # index is rebuilt once with participant counts populated
                 return None
@@ -155,6 +155,8 @@ def _load_cached_fight_index(path: Path, cache_key: str) -> Optional[List[FightR
                         last_kill_ts=int(r.get("last_kill_ts", -1)),
                         det_cluster_blue=int(r.get("det_cluster_blue", -1)),
                         det_cluster_red=int(r.get("det_cluster_red", -1)),
+                        det_present_blue=int(r.get("det_present_blue", -1)),
+                        det_present_red=int(r.get("det_present_red", -1)),
                     )
                 )
             except Exception:
@@ -179,6 +181,8 @@ def _save_cached_fight_index(path: Path, cache_key: str, cfg_sig: Dict[str, Any]
                 "last_kill_ts": int(getattr(r, "last_kill_ts", -1)),
                 "det_cluster_blue": int(getattr(r, "det_cluster_blue", -1)),
                 "det_cluster_red": int(getattr(r, "det_cluster_red", -1)),
+                "det_present_blue": int(getattr(r, "det_present_blue", -1)),
+                "det_present_red": int(getattr(r, "det_present_red", -1)),
             }
             for r in refs
         ]
@@ -340,6 +344,8 @@ def _fight_to_ref_row(
         "last_kill_ts": int(last_kill_ts_val),
         "det_cluster_blue": int(fight.get("det_cluster_blue", -1) or -1),
         "det_cluster_red": int(fight.get("det_cluster_red", -1) or -1),
+        "det_present_blue": int(fight.get("det_present_blue", -1) or -1),
+        "det_present_red": int(fight.get("det_present_red", -1) or -1),
     }
 
 
@@ -499,6 +505,8 @@ def build_fight_index(
                         last_kill_ts=int(row.get("last_kill_ts", -1)),
                         det_cluster_blue=int(row.get("det_cluster_blue", -1)),
                         det_cluster_red=int(row.get("det_cluster_red", -1)),
+                        det_present_blue=int(row.get("det_present_blue", -1)),
+                        det_present_red=int(row.get("det_present_red", -1)),
                     )
                 )
             except Exception:

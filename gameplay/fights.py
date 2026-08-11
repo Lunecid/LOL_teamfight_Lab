@@ -829,9 +829,16 @@ def _validate_teamfight_at_engage(
     is_norm: bool,
     scale_factor: float,
     alive_mask: Optional[np.ndarray] = None,
-) -> bool:
-    """Check teamfight validity: at engage time, require min_per_team
-    ALIVE champions from each team within validity_radius of fight center.
+) -> Tuple[bool, int, int]:
+    """Check teamfight validity and report the at-cutoff presence counts.
+
+    Returns ``(ok, blue_in, red_in)``: whether min_per_team ALIVE champions
+    from each team sit within validity_radius of the fight center at engage
+    time, plus the raw per-team counts.  The counts read positions at the
+    prediction cutoff only, so they are usable as a *pre-fight* scale
+    measure -- unlike participation counts, which are known only once the
+    fight has resolved.  The anchor itself comes from the conditioning kill,
+    the same retrospective conditioning that defines the corpus.
 
     [A1] When ``alive_mask`` (a per-player 0/1 vector of length 10 at the
     engage minute) is provided, only living players count toward the in-radius
@@ -880,7 +887,8 @@ def _validate_teamfight_at_engage(
         if dx * dx + dy * dy <= R_sq:
             red_in += 1
 
-    return blue_in >= min_per_team and red_in >= min_per_team
+    ok = blue_in >= min_per_team and red_in >= min_per_team
+    return ok, blue_in, red_in
 
 
 def _merge_adjacent_candidates(
@@ -1360,7 +1368,7 @@ def detect_fights_teamfight_v2(
             continue
 
         # §4A: Validate teamfight — at least 2 ALIVE per team within 1800 of fight center
-        if not _validate_teamfight_at_engage(
+        valid, present_blue, present_red = _validate_teamfight_at_engage(
             xy_dense=xy_dense,
             dense_ts=dense_ts,
             engage_ts=engage_ts_val,
@@ -1371,7 +1379,8 @@ def detect_fights_teamfight_v2(
             is_norm=is_norm,
             scale_factor=scale_factor,
             alive_mask=_alive_vec_at_ts(engage_ts_val),
-        ):
+        )
+        if not valid:
             diag["rejected_too_few_per_team"] += 1
             continue
 
@@ -1435,6 +1444,9 @@ def detect_fights_teamfight_v2(
             "det_cluster_participants": int(len(all_participants)),
             "det_cluster_blue": int(blue_cnt),
             "det_cluster_red": int(red_cnt),
+            # presence at the prediction cutoff (pre-fight scale measure)
+            "det_present_blue": int(present_blue),
+            "det_present_red": int(present_red),
             "det_cluster_duration_ms": int(last_kill_ts - first_kill_ts),
             "det_interaction_count": int(len(interactions)),
         })

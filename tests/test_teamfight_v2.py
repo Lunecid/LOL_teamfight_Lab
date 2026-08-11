@@ -247,7 +247,11 @@ class TestValidateTeamfightAtEngage:
             is_norm=False,
             scale_factor=16000.0,
         )
-        assert result is True
+        ok, present_blue, present_red = result
+        assert ok is True
+        # presence counts are reported alongside the gate so the pre-fight
+        # scale of the engagement can be measured at the cutoff
+        assert present_blue >= 2 and present_red >= 2
 
     def test_pick_fails(self):
         """1v1 pick should fail the 2-per-team check."""
@@ -276,7 +280,9 @@ class TestValidateTeamfightAtEngage:
             is_norm=False,
             scale_factor=16000.0,
         )
-        assert result is False
+        ok, present_blue, present_red = result
+        assert ok is False
+        assert present_blue == 1 and present_red == 1
 
 
 # ============================================================
