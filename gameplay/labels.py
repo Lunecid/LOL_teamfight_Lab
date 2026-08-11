@@ -252,13 +252,13 @@ def _compute_label_attention_value_win(evs: List[dict], tm: Dict[int, int], *, t
             + special_bonus
         )
         prior_e = (
-            0.25 * is_kill
-            + 0.30 * shutdown_norm
-            + 0.15 * streak_norm
-            + 0.10 * assist_norm
-            + 0.20 * bounty_norm
-            + 0.35 * obj_tier
-            + 0.15 * lane_pri
+            float(getattr(cfg, "LABEL_ATTN_PRIOR_W_KILL", 0.25)) * is_kill
+            + float(getattr(cfg, "LABEL_ATTN_PRIOR_W_SHUTDOWN", 0.30)) * shutdown_norm
+            + float(getattr(cfg, "LABEL_ATTN_PRIOR_W_STREAK", 0.15)) * streak_norm
+            + float(getattr(cfg, "LABEL_ATTN_PRIOR_W_ASSIST", 0.10)) * assist_norm
+            + float(getattr(cfg, "LABEL_ATTN_PRIOR_W_BOUNTY", 0.20)) * bounty_norm
+            + float(getattr(cfg, "LABEL_ATTN_PRIOR_W_OBJECTIVE", 0.35)) * obj_tier
+            + float(getattr(cfg, "LABEL_ATTN_PRIOR_W_LANE", 0.15)) * lane_pri
             + special_bonus
         )
 
