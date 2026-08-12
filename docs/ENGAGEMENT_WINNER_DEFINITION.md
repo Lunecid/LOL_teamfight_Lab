@@ -95,37 +95,49 @@ say that demotion is not free:
 
 ## Recommendation for the ToG extension
 
-**Primary label — the `weighted` material composite** (already implemented):
-`W_KILL·kill_diff + W_GOLD·(window gold swing) + W_OBJ·(objective/tower
-score)` over the label window.
+A weighted composite was considered and rejected: its coefficients are
+exactly the arbitrariness the review objected to, and perturbation sweeps
+defend a choice rather than remove it. The resolution is to stop choosing.
 
-Rationale, in the order that matters:
+**Primary label — market-priced material outcome (`weighted` with the
+researcher coefficients removed: `W_KILL=0, W_OBJ=0, W_GOLD=1`, i.e. the
+sign of the window team-gold-swing difference).**
 
-1. **It considers every phenomenon at once** — kills, gold swing,
-   objectives, turret destruction — which is the engagement-winner concept
-   the study actually intends, and it takes no side in the 7.5% of fights
-   where kills and structures disagree.
-2. **It has zero ties.** No seeded coin, no dropped rows, no
-   class-asymmetric distortion — the cleanest statistical hygiene of any
-   scheme (0.6746 on the pilot, unchanged when "decided-only").
-3. Its three coefficients are defended the same way Eq.3's were: a
-   perturbation sweep (×0.5/×2 on `W_KILL`, `W_GOLD`, `W_OBJ` — to run) plus
-   agreement with the coefficient-free lexicographic rule below.
-4. Caveat to state in the paper: window gold already contains objective and
-   turret bounties, so `W_OBJ` intentionally double-weights structures; and
-   the window includes the immediate aftermath, so this label scores the
-   exchange *and its conversion*.
+The game's economy already prices every phenomenon this label must weigh:
+kills pay 300 g plus bounties, turrets pay local and global gold, plates
+pay 175 g, and monsters pay kill gold — all of it accrues into the
+timeline's team gold. The paper's sentence is: *we set no weights; the
+relative value of kills, turrets and objectives is the game's own
+exchange rate, and the label reads it.*
+
+Measured on the pilot (2,551 engagements):
+
+- **Ties: 0.** No coin, no drops, no class-asymmetric distortion.
+- **OOF AUC 0.6915** — above every researcher-weighted scheme (Eq.3
+  0.5946, micro 0.6520, kill_survival 0.6618, weighted 0.6746).
+- Agreement 90.6% with the weighted composite: the hand coefficients were
+  mostly redundant with gold — removing them changes ~9% of labels and
+  *raises* AUC.
+- Per class: pick 0.7105 / skirmish 0.6591 / teamfight 0.7073.
+
+**Stated limitation:** gold under-prices pure-buff value (Baron/Elder
+buffs, dragon souls, tempo). The structure-explicit robustness columns
+cover that gap, and the limitation section says so.
 
 **Robustness labels, reported alongside:**
 
 - **Lexicographic material rule** (kills → survivors → structures+plates →
-  gold ±200 g → genuine draw excluded, ~4%): the coefficient-free
-  cross-check. Where it and the primary agree (label agreement ~90%), the
-  coefficients demonstrably do not drive conclusions; the 7.5% conflict set
-  is reported as the definitional gray zone.
+  gold → genuine draw excluded, ~4%): the ordering-based cross-check; its
+  kill-vs-structure conflict set (7.5%) is the definitional gray zone.
 - **Eq.3** for CoG continuity — the *attention-value* outcome whose
   unpredictability is a finding, not the material target.
 - **micro_win under tie-drop** as the simplest-possible column.
+
+**Class-ordering honesty under the label family:** teamfight is at or near
+the top under every label; skirmish is at or near the bottom under every
+label; **pick is the label-sensitive class** (0.576 → 0.711 across the five
+schemes — its kill outcome is noisy, its gold consequence is predictable).
+Scale claims in the paper are stated at that robust level.
 
 **Secondary labels, reported alongside:**
 
