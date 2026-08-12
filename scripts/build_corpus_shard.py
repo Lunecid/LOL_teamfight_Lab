@@ -38,10 +38,19 @@ def main(argv=None) -> int:
                         help="sample this many matches from the cache (default: all)")
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--feature-set", default="full")
+    parser.add_argument("--label-type", default=None,
+                        help="override cfg.LABEL_TYPE (e.g. market_lex)")
+    parser.add_argument("--tie-policy", default=None,
+                        help="override cfg.LABEL_TIE_POLICY; with 'drop', "
+                             "genuine draws are excluded from the shard")
     parser.add_argument("--out-dir", required=True, type=Path)
     args = parser.parse_args(argv)
 
     from core.config import CACHE_DIR, cfg
+    if args.label_type:
+        cfg.LABEL_TYPE = args.label_type
+    if args.tie_policy:
+        cfg.LABEL_TIE_POLICY = args.tie_policy
     # every shard indexes a different match set, so the shared index cache
     # would only churn; dumps are irrelevant here
     cfg.FIGHT_INDEX_CACHE_ENABLED = False
