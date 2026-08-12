@@ -185,6 +185,182 @@ def build_ft_transformer(n_tokens: int, n_stats: int, d_token: int, n_layers: in
     return FTTransformer()
 
 
+def build_saint(n_tokens: int, n_stats: int, d_token: int, n_layers: int,
+                n_heads: int, dropout: float, d_misa: int = 128):
+    torch, nn = _torch_bits()
+
+    class SelfAttention(nn.Module):
+        """Attention across a row's feature tokens (SAINT's MSA)."""
+
+        def __init__(self):
+            super().__init__()
+            self.norm = nn.LayerNorm(d_token)
+            self.qkv = nn.Linear(d_token, 3 * d_token)
+            self.proj = nn.Linear(d_token, d_token)
+            self.drop = nn.Dropout(dropout)
+
+        def forward(self, x):
+            b, t, d = x.shape
+            q, k, v = self.qkv(self.norm(x)).reshape(
+                b, t, 3, n_heads, d // n_heads).permute(2, 0, 3, 1, 4)
+            out = nn.functional.scaled_dot_product_attention(
+                q, k, v, dropout_p=dropout if self.training else 0.0)
+            return x + self.drop(self.proj(out.transpose(1, 2).reshape(b, t, d)))
+
+    class IntersampleAttention(nn.Module):
+        """Attention across the rows of a batch (SAINT's MISA).
+
+        SAINT flattens each row's tokens into one vector before attending
+        across rows.  With 1,015 tokens that vector is ~32k wide and its
+        projections alone would exceed the GPU, so rows are summarized by
+        pooling their tokens into ``d_misa`` dimensions first; the resulting
+        per-row context is broadcast back onto every token.  Documented
+        deviation, forced by the feature count.
+        """
+
+        def __init__(self):
+            super().__init__()
+            self.norm = nn.LayerNorm(d_token)
+            self.summary = nn.Linear(d_token, d_misa)
+            self.qkv = nn.Linear(d_misa, 3 * d_misa)
+            self.proj = nn.Linear(d_misa, d_token)
+            self.drop = nn.Dropout(dropout)
+
+        def forward(self, x):
+            b, t, d = x.shape
+            pooled = self.summary(self.norm(x).mean(dim=1))          # (B, d_misa)
+            q, k, v = self.qkv(pooled).reshape(b, 3, n_heads, d_misa // n_heads
+                                               ).permute(1, 0, 2, 3)
+            out = nn.functional.scaled_dot_product_attention(
+                q.unsqueeze(0).transpose(1, 2), k.unsqueeze(0).transpose(1, 2),
+                v.unsqueeze(0).transpose(1, 2),
+                dropout_p=dropout if self.training else 0.0,
+            )
+            context = self.proj(out.transpose(1, 2).reshape(b, d_misa))  # (B, d_token)
+            return x + self.drop(context).unsqueeze(1)
+
+    class SAINT(nn.Module):
+        """SAINT (Somepalli et al., 2021): alternating row and column attention."""
+
+        def __init__(self):
+            super().__init__()
+            self.weight = nn.Parameter(torch.empty(n_tokens, n_stats, d_token))
+            self.bias = nn.Parameter(torch.zeros(n_tokens, d_token))
+            self.cls = nn.Parameter(torch.zeros(1, 1, d_token))
+            nn.init.kaiming_uniform_(self.weight, a=5 ** 0.5)
+            nn.init.normal_(self.cls, std=0.02)
+            self.self_attn = nn.ModuleList(SelfAttention() for _ in range(n_layers))
+            self.inter_attn = nn.ModuleList(IntersampleAttention() for _ in range(n_layers))
+            self.ff = nn.ModuleList(
+                nn.Sequential(nn.LayerNorm(d_token), nn.Linear(d_token, d_token * 2),
+                              nn.GELU(), nn.Dropout(dropout), nn.Linear(d_token * 2, d_token))
+                for _ in range(n_layers)
+            )
+            self.head = nn.Sequential(nn.LayerNorm(d_token), nn.GELU(), nn.Linear(d_token, 1))
+
+        def forward(self, x):
+            tokens = torch.einsum("bts,tsd->btd", x, self.weight) + self.bias
+            tokens = torch.cat([self.cls.expand(tokens.shape[0], -1, -1), tokens], dim=1)
+            for msa, misa, ff in zip(self.self_attn, self.inter_attn, self.ff):
+                tokens = msa(tokens)
+                tokens = misa(tokens)
+                tokens = tokens + ff(tokens)
+            return self.head(tokens[:, 0]).squeeze(-1)
+
+    return SAINT()
+
+
+def build_tabnet(d_in: int, n_steps: int, n_d: int, n_a: int, gamma: float,
+                 dropout: float):
+    torch, nn = _torch_bits()
+
+    def sparsemax(logits, dim=-1):
+        """Euclidean projection onto the simplex (Martins & Astudillo, 2016)."""
+        sorted_logits, _ = torch.sort(logits, dim=dim, descending=True)
+        cumsum = sorted_logits.cumsum(dim) - 1
+        rank = torch.arange(1, logits.shape[dim] + 1, device=logits.device,
+                            dtype=logits.dtype)
+        shape = [1] * logits.dim()
+        shape[dim] = -1
+        rank = rank.view(shape)
+        support = rank * sorted_logits > cumsum
+        k = support.sum(dim=dim, keepdim=True)
+        tau = cumsum.gather(dim, k - 1) / k.to(logits.dtype)
+        return torch.clamp(logits - tau, min=0)
+
+    class GLUBlock(nn.Module):
+        def __init__(self, d_input, d_output):
+            super().__init__()
+            self.fc = nn.Linear(d_input, 2 * d_output, bias=False)
+            self.bn = nn.BatchNorm1d(2 * d_output, momentum=0.02)
+
+        def forward(self, x):
+            return nn.functional.glu(self.bn(self.fc(x)), dim=-1)
+
+    class FeatureTransformer(nn.Module):
+        """Two shared blocks then two step-specific ones, residual-scaled."""
+
+        def __init__(self, shared, d_input, d_output):
+            super().__init__()
+            self.shared = shared
+            self.specific = nn.ModuleList(
+                [GLUBlock(d_output, d_output), GLUBlock(d_output, d_output)]
+            )
+            self.scale = 0.5 ** 0.5
+
+        def forward(self, x):
+            out = self.shared[0](x)
+            out = (out + self.shared[1](out)) * self.scale
+            for block in self.specific:
+                out = (out + block(out)) * self.scale
+            return out
+
+    class TabNet(nn.Module):
+        """TabNet (Arik & Pfister, 2021): sequential sparse feature selection.
+
+        Operates on the flat feature vector, so all 7,105 engineered columns
+        enter directly -- no token budget to respect.  Each decision step picks
+        a sparse feature mask with sparsemax, and the prior scale discourages
+        reusing features across steps.
+        """
+
+        def __init__(self):
+            super().__init__()
+            self.bn = nn.BatchNorm1d(d_in, momentum=0.02)
+            width = n_d + n_a
+            self.shared = nn.ModuleList([GLUBlock(d_in, width), GLUBlock(width, width)])
+            self.initial = FeatureTransformer(self.shared, d_in, width)
+            self.steps = nn.ModuleList(
+                FeatureTransformer(self.shared, d_in, width) for _ in range(n_steps)
+            )
+            self.attention = nn.ModuleList(
+                nn.Sequential(nn.Linear(n_a, d_in, bias=False),
+                              nn.BatchNorm1d(d_in, momentum=0.02))
+                for _ in range(n_steps)
+            )
+            self.drop = nn.Dropout(dropout)
+            self.head = nn.Linear(n_d, 1)
+            self.entropy = torch.zeros(())
+
+        def forward(self, x):
+            x = self.bn(x)
+            prior = torch.ones_like(x)
+            attended = self.initial(x)[:, n_d:]
+            decision = torch.zeros(x.shape[0], n_d, device=x.device, dtype=x.dtype)
+            entropy = torch.zeros((), device=x.device, dtype=x.dtype)
+            for step, attn in zip(self.steps, self.attention):
+                mask = sparsemax(attn(attended) * prior)
+                entropy = entropy + (-mask * torch.log(mask + 1e-10)).sum(dim=1).mean()
+                prior = prior * (gamma - mask)
+                out = step(x * mask)
+                decision = decision + nn.functional.relu(out[:, :n_d])
+                attended = out[:, n_d:]
+            self.entropy = entropy / max(1, n_steps)
+            return self.head(self.drop(decision)).squeeze(-1)
+
+    return TabNet()
+
+
 def build_mlp(d_in: int, hidden: int, layers: int, dropout: float):
     torch, nn = _torch_bits()
 
@@ -202,7 +378,8 @@ def build_mlp(d_in: int, hidden: int, layers: int, dropout: float):
 
 
 def train_torch(model, X_tr, y_tr, X_va, y_va, X_te, y_te, *, epochs, batch_size,
-                lr, weight_decay, patience, tokenized, label) -> dict:
+                lr, weight_decay, patience, tokenized, label,
+                sparsity_lambda: float = 0.0) -> dict:
     torch, nn = _torch_bits()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
@@ -236,6 +413,9 @@ def train_torch(model, X_tr, y_tr, X_va, y_va, X_te, y_te, *, epochs, batch_size
             yb = as_tensor(y_tr[idx].astype(np.float32)).to(device, non_blocking=True)
             opt.zero_grad(set_to_none=True)
             loss = loss_fn(model(xb), yb)
+            if sparsity_lambda:
+                # TabNet's mask-entropy regularizer, exposed by the module
+                loss = loss - sparsity_lambda * getattr(model, "entropy", 0.0)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             opt.step()
@@ -276,7 +456,13 @@ def main(argv=None) -> int:
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--patience", type=int, default=5)
     parser.add_argument("--skip-ft", action="store_true")
+    parser.add_argument(
+        "--models", default="lightgbm,mlp,ft_transformer,tabnet,saint",
+        help="comma-separated subset to run; the split and preprocessing are "
+             "seed-deterministic, so subsets are comparable across invocations",
+    )
     args = parser.parse_args(argv)
+    wanted = {m.strip() for m in args.models.split(",") if m.strip()}
 
     data = load_subsample(args.shards, args.n_matches, SEED)
     X, y, groups = data["X"], data["y"], data["groups"]
@@ -306,25 +492,40 @@ def main(argv=None) -> int:
     }
     preds: dict[str, np.ndarray] = {}
 
-    print("[lightgbm] identical rows, split, and features")
-    lgbm = run_lightgbm(Xz, y, tr, va, te)
-    preds["lightgbm"] = lgbm.pop("_pred")
-    results["models"]["lightgbm"] = lgbm
-    print(f"  test AUC={lgbm['test_auc']:.4f} ({lgbm['seconds']}s,"
-          f" {lgbm['best_iteration']} trees)")
+    if "lightgbm" in wanted:
+        print("[lightgbm] identical rows, split, and features")
+        lgbm = run_lightgbm(Xz, y, tr, va, te)
+        preds["lightgbm"] = lgbm.pop("_pred")
+        results["models"]["lightgbm"] = lgbm
+        print(f"  test AUC={lgbm['test_auc']:.4f} ({lgbm['seconds']}s,"
+              f" {lgbm['best_iteration']} trees)")
 
-    print("[mlp] same flat feature vector")
-    mlp = train_torch(
-        build_mlp(Xz.shape[1], hidden=512, layers=3, dropout=0.1),
-        Xz[tr], y[tr], Xz[va], y[va], Xz[te], y[te],
-        epochs=args.epochs, batch_size=max(args.batch_size, 256), lr=1e-3,
-        weight_decay=1e-4, patience=args.patience, tokenized=False, label="mlp",
-    )
-    preds["mlp"] = mlp.pop("_pred")
-    results["models"]["mlp"] = mlp
-    print(f"  test AUC={mlp['test_auc']:.4f} ({mlp['seconds']}s)")
+    if "mlp" in wanted:
+        print("[mlp] same flat feature vector")
+        mlp = train_torch(
+            build_mlp(Xz.shape[1], hidden=512, layers=3, dropout=0.1),
+            Xz[tr], y[tr], Xz[va], y[va], Xz[te], y[te],
+            epochs=args.epochs, batch_size=max(args.batch_size, 256), lr=1e-3,
+            weight_decay=1e-4, patience=args.patience, tokenized=False, label="mlp",
+        )
+        preds["mlp"] = mlp.pop("_pred")
+        results["models"]["mlp"] = mlp
+        print(f"  test AUC={mlp['test_auc']:.4f} ({mlp['seconds']}s)")
 
-    if not args.skip_ft:
+    if "tabnet" in wanted:
+        print("[tabnet] flat feature vector, sequential sparse selection")
+        tabnet = train_torch(
+            build_tabnet(Xz.shape[1], n_steps=4, n_d=64, n_a=64, gamma=1.3, dropout=0.1),
+            Xz[tr], y[tr], Xz[va], y[va], Xz[te], y[te],
+            epochs=args.epochs, batch_size=max(args.batch_size, 256), lr=2e-3,
+            weight_decay=1e-5, patience=args.patience, tokenized=False,
+            label="tabnet", sparsity_lambda=1e-4,
+        )
+        preds["tabnet"] = tabnet.pop("_pred")
+        results["models"]["tabnet"] = tabnet
+        print(f"  test AUC={tabnet['test_auc']:.4f} ({tabnet['seconds']}s)")
+
+    if not args.skip_ft and ({"ft_transformer", "saint"} & wanted):
         # names are suffix-major: column j holds base (j % n_bases) under
         # statistic (j // n_bases), so the token view is a pure reshape --
         # (rows, 7, bases) -> (rows, bases, 7).  Nothing is dropped or
@@ -333,21 +534,31 @@ def main(argv=None) -> int:
         print(f"[ft_transformer] {n_bases} tokens x {N_SUFFIXES} statistics"
               f" (suffixes: {suffixes})")
         tokens = Xz.reshape(len(y), N_SUFFIXES, n_bases).transpose(0, 2, 1)
-        ft = train_torch(
-            build_ft_transformer(n_bases, N_SUFFIXES, args.d_token, args.n_layers,
-                                 args.n_heads, dropout=0.1),
-            tokens[tr], y[tr], tokens[va], y[va], tokens[te], y[te],
-            epochs=args.epochs, batch_size=args.batch_size, lr=args.lr,
-            weight_decay=1e-5, patience=args.patience, tokenized=True,
-            label="ft_transformer",
-        )
-        preds["ft_transformer"] = ft.pop("_pred")
-        results["models"]["ft_transformer"] = ft
-        results["ft_config"] = {
+        results["token_config"] = {
             "d_token": args.d_token, "n_layers": args.n_layers,
             "n_heads": args.n_heads, "batch_size": args.batch_size, "lr": args.lr,
         }
-        print(f"  test AUC={ft['test_auc']:.4f} ({ft['seconds']}s)")
+        builders = {
+            "ft_transformer": lambda: build_ft_transformer(
+                n_bases, N_SUFFIXES, args.d_token, args.n_layers, args.n_heads,
+                dropout=0.1),
+            "saint": lambda: build_saint(
+                n_bases, N_SUFFIXES, args.d_token, args.n_layers, args.n_heads,
+                dropout=0.1),
+        }
+        for name in ("ft_transformer", "saint"):
+            if name not in wanted:
+                continue
+            entry = train_torch(
+                builders[name](),
+                tokens[tr], y[tr], tokens[va], y[va], tokens[te], y[te],
+                epochs=args.epochs, batch_size=args.batch_size, lr=args.lr,
+                weight_decay=1e-5, patience=args.patience, tokenized=True,
+                label=name,
+            )
+            preds[name] = entry.pop("_pred")
+            results["models"][name] = entry
+            print(f"  test AUC={entry['test_auc']:.4f} ({entry['seconds']}s)")
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(results, indent=2), encoding="utf-8")
