@@ -26,3 +26,12 @@ Sensitivity already measured: gap 12-30 s x diameter 3,000-5,000 -> AUC spread
 0.008; dead zone {150,300,600} reported as a column. The spatial trio is
 additionally ordered by role: presence (1,800, strict, causal gate) <
 interaction (3,000, permissive, evidence-based) < split (4,000, separator).
+
+## Named anchors per band (patch 16.16.1)
+
+- Longest basic attacks: Ashe 600, Senna 600, Annie 625, Caitlyn 650.
+- hook/engage class (inside validity): n=93 spells; e.g. Anivia W 'Crystallize' 1000; Aphelios E 'Weapon Queue System' 1000; Braum Q 'Winter's Bite' 1000; Draven W 'Blood Rush' 1000; Gangplank E 'Powder Keg' 1000; Gragas R 'Explosive Cask' 1000.
+- longest direct-engagement casts (validity boundary 1,800): n=16 spells; e.g. Lucian R 'The Culling' 1400; Yasuo R 'Last Breath' 1400; Aphelios Q 'Weapon Abilites' 1450; Jinx W 'Zap!' 1450; Aurelion Sol W 'Astral Flight' 1500; Nidalee Q 'Javelin Toss / Takedown' 1500.
+- semi-global tier (between validity and interaction 3,000): n=14 spells; e.g. Renata Glasc R 'Hostile Takeover' 2000; Xayah E 'Bladecaller' 2000; Quinn W 'Heightened Senses' 2100; Tahm Kench E 'Thick Skin' 2400; Akshan R 'Comeuppance' 2500; Ornn R 'Call of the Forge God' 2500.
+- between interaction and cluster split 4,000: n=6 spells; e.g. Lux R 'Final Spark' 3340; Bard R 'Tempered Fate' 3400; Caitlyn R 'Ace in the Hole' 3500; Rengar R 'Thrill of the Hunt' 3500; Nocturne R 'Paranoia' 4000; Warwick W 'Blood Hunt' 4000.
+- global class (beyond every radius): n=52 spells; e.g. Smolder R 'MMOOOMMMM!' 4200; Kled R 'Chaaaaaaaarge!!!' 4500; Kalista W 'Sentinel' 5000; Xerath R 'Rite of the Arcane' 5000; Ziggs R 'Mega Inferno Bomb' 5000; Akshan W 'Going Rogue' 5500.
