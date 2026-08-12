@@ -76,23 +76,56 @@ lowest AUC; the hardness comes from the attention weighting itself, which
 deliberately upweights upsets (the attention↔material axis established by
 the weight-perturbation sweep).
 
+## Structures are not peripheral — measured
+
+A first draft of this document proposed a kills→survivors→gold ordering,
+implicitly demoting objectives and turrets to their gold value. The dumps
+say that demotion is not free:
+
+- **Objective/tower events occur in 25.3% of fight windows** (37.0% with
+  plates) — these phenomena are in a quarter of engagements, not a tail.
+- **In 7.54% of all fights the kill winner and the structure winner are
+  opposite sides** (picks 6.99%, skirmishes 6.45%, teamfights 8.74%). Any
+  *ordering* of kills vs structures decides those 1,959 labels by fiat — a
+  lexicographic rule is not assumption-free, it is an extreme weighting.
+- In the tiebreak chain kills → survivors → structures(+plates) → gold ±200:
+  15.7% are kill-tied, 9.4% still tied after survivors, structures break
+  32.2% of those, and **4.0% remain genuine draws** (pick 3.2 / skirmish
+  5.5 / teamfight 3.2).
+
 ## Recommendation for the ToG extension
 
-**Primary label — lexicographic material outcome (new `LABEL_TYPE`,
-to be implemented):**
+**Primary label — the `weighted` material composite** (already implemented):
+`W_KILL·kill_diff + W_GOLD·(window gold swing) + W_OBJ·(objective/tower
+score)` over the label window.
 
-    1. more cluster kills wins;
-    2. else more survivors at the last kill wins;
-    3. else the side with the window gold swing beyond ±200 g wins;
-    4. else the engagement is a genuine draw → excluded, with the excluded
-       fraction (≈ 5%) reported per scale class.
+Rationale, in the order that matters:
 
-Rationale: it is a pure *ordering* — no coefficients to justify, which
-answers R2's objection at the root; it uses only material quantities a
-player would accept as "winning the fight"; it needs no coin; and its
-exclusions are principled (a binary win label has no honest value for a
-fight that is materially even). Steps 1–2 agree with `kill_survival` by
-construction; the dumps bound step 3–4 behaviour.
+1. **It considers every phenomenon at once** — kills, gold swing,
+   objectives, turret destruction — which is the engagement-winner concept
+   the study actually intends, and it takes no side in the 7.5% of fights
+   where kills and structures disagree.
+2. **It has zero ties.** No seeded coin, no dropped rows, no
+   class-asymmetric distortion — the cleanest statistical hygiene of any
+   scheme (0.6746 on the pilot, unchanged when "decided-only").
+3. Its three coefficients are defended the same way Eq.3's were: a
+   perturbation sweep (×0.5/×2 on `W_KILL`, `W_GOLD`, `W_OBJ` — to run) plus
+   agreement with the coefficient-free lexicographic rule below.
+4. Caveat to state in the paper: window gold already contains objective and
+   turret bounties, so `W_OBJ` intentionally double-weights structures; and
+   the window includes the immediate aftermath, so this label scores the
+   exchange *and its conversion*.
+
+**Robustness labels, reported alongside:**
+
+- **Lexicographic material rule** (kills → survivors → structures+plates →
+  gold ±200 g → genuine draw excluded, ~4%): the coefficient-free
+  cross-check. Where it and the primary agree (label agreement ~90%), the
+  coefficients demonstrably do not drive conclusions; the 7.5% conflict set
+  is reported as the definitional gray zone.
+- **Eq.3** for CoG continuity — the *attention-value* outcome whose
+  unpredictability is a finding, not the material target.
+- **micro_win under tie-drop** as the simplest-possible column.
 
 **Secondary labels, reported alongside:**
 
@@ -116,8 +149,13 @@ construction; the dumps bound step 3–4 behaviour.
 
 ## Open items
 
-- Implement `lexicographic` in `gameplay/labels.py` (compose existing
-  pieces; ±200 g threshold gets a one-line sensitivity note), then re-run
-  the full-corpus decomposition and the deep-baseline table under it.
-- The ±200 g gold threshold is the one new constant this introduces; sweep
-  {100, 200, 400} on the pilot when implementing.
+- Perturbation sweep on the primary's coefficients (`W_KILL`, `W_GOLD`,
+  `W_OBJ` at ×0.5/×2) on the pilot, mirroring the Eq.3 sweep.
+- Implement `lexicographic` in `gameplay/labels.py` as the robustness
+  column (compose existing pieces; the ±200 g constant gets a {100, 200,
+  400} sensitivity line).
+- Re-score the full-corpus decomposition and the deep-baseline table with
+  `weighted` as primary; keep the Eq.3 columns for comparison.
+- Note for the write-up: dump-based structure counts use the post-fight
+  outcome window, which approximates but does not equal the label window;
+  recompute exactly if a reviewer asks.
