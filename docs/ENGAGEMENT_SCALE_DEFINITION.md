@@ -47,9 +47,22 @@ position. In descending frequency those are `ITEM_PURCHASED`, `WARD_PLACED`,
 events are genuine combat signals. The shop events (`ITEM_PURCHASED`,
 `ITEM_SOLD`, `ITEM_UNDO`) are not: they fire at the fountain and are normally
 excluded by the radius test, but a fight inside the base can count a shopping
-player as a participant. **Open sensitivity check:** recompute the classes
-with shop events excluded from `extra_pids` and report how many engagements
-change class.
+player as a participant.
+
+**Measured** (`run_shop_event_sensitivity.py`, 3,000 matches detected twice,
+14,209 engagements in both runs; switch: `TF2_EXCLUDE_SHOP_INTERACTIONS`):
+excluding shop events removes a participant from **1.7% of team-sides**
+(mean 0.017 per side, never more than 2) and moves **1.59% of engagements**
+one class down — 132 skirmish→pick, 92 teamfight→skirmish, 2 teamfight→pick.
+Class shares shift from 21.1/37.0/42.0 to 22.0/36.7/41.3
+(pick/skirmish/teamfight). Every transition is downward, as expected for a
+rule that only ever removes participants, and the engagement set itself is
+untouched (14,211 vs 14,210 detected).
+
+The default stays `False` so the published detector is reproduced, and the
+1.6% figure is reported as the definition's contamination bound. The
+inflation is real but an order of magnitude too small to affect the scale
+decomposition, whose class gaps are ~0.05 AUC with intervals of ±0.002.
 
 **Known only after the fight resolves.** It also inherits Match-V5's event
 sparsity: the timeline carries no damage events, so a champion who fought but
