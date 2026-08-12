@@ -29,10 +29,27 @@ rate stays at 50.5–50.9%, so the operating point sits on a plateau.
 Champions per team that appear in the resolved fight:
 
 - every killer, victim, and assister of the cluster's kills, **plus**
-- actors of positioned non-kill events inside the fight window and within
-  `TF2_INTERACTION_RADIUS` (3,000 units) of the anchor. Objective and building
-  events are excluded here so the post-fight outcome window does not
-  double-count them.
+- actors of non-kill events inside `[engage_ts, last_kill_ts + TF2_TAIL_BUFFER_MS]`
+  (tail buffer defaults to 0, so the window opens at the *prediction cutoff*
+  and closes at the last kill) and within `TF2_INTERACTION_RADIUS` (3,000
+  units) of the anchor. `CHAMPION_KILL` is handled above;
+  `ELITE_MONSTER_KILL`, `BUILDING_KILL` and `TURRET_PLATE_DESTROYED` are
+  excluded so the post-fight outcome window does not double-count them.
+
+Which event types can actually contribute (measured over 25 matches): only
+`CHAMPION_KILL` and the objective/building types carry positions, so every
+remaining contributor is located by interpolating the actor's own 5 s
+position. In descending frequency those are `ITEM_PURCHASED`, `WARD_PLACED`,
+`ITEM_DESTROYED`, `SKILL_LEVEL_UP`, `LEVEL_UP`, `WARD_KILL`, `ITEM_SOLD`,
+`ITEM_UNDO`, `CHAMPION_SPECIAL_KILL`.
+
+`LEVEL_UP`, `SKILL_LEVEL_UP`, `ITEM_DESTROYED` (consumables) and the ward
+events are genuine combat signals. The shop events (`ITEM_PURCHASED`,
+`ITEM_SOLD`, `ITEM_UNDO`) are not: they fire at the fountain and are normally
+excluded by the radius test, but a fight inside the base can count a shopping
+player as a participant. **Open sensitivity check:** recompute the classes
+with shop events excluded from `extra_pids` and report how many engagements
+change class.
 
 **Known only after the fight resolves.** It also inherits Match-V5's event
 sparsity: the timeline carries no damage events, so a champion who fought but
@@ -52,11 +69,15 @@ kill-conditioned retrospective analysis, and the paper says so.
 
 With `n_min = min(blue, red)`:
 
-| class | rule | share (participation) |
+| class | rule | share, full corpus (993,484 engagements) |
 |---|---|---|
-| teamfight | `n_min ≥ 3` | 40.7% |
-| skirmish | `n_min = 2` | 37.8% |
-| pick | `n_min ≤ 1` | 21.5% |
+| teamfight | `n_min ≥ 3` | 42.0% (416,956) |
+| skirmish | `n_min = 2` | 36.9% (366,948) |
+| pick | `n_min ≤ 1` | 21.1% (209,527) |
+
+Presence classes over the same corpus: teamfight 184,981, skirmish 808,503,
+pick 0. Mean participation asymmetry by class: pick 1.67, skirmish 0.90,
+teamfight 0.56.
 
 The cutoff is reported rather than tuned. The joint distribution of
 (smaller, larger) participant counts, in % of the corpus:
