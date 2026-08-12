@@ -975,6 +975,13 @@ def _collect_interactions_in_radius(
         "ELITE_MONSTER_KILL", "BUILDING_KILL", "TURRET_PLATE_DESTROYED",
     }
 
+    # Shop events fire at the fountain and carry no position, so they are
+    # placed by interpolating the actor's own 5 s position. A fight inside the
+    # base can therefore count a shopping player as a participant. Excluding
+    # them is a config switch so the effect can be measured.
+    shop_types = {"ITEM_PURCHASED", "ITEM_SOLD", "ITEM_UNDO"}
+    exclude_shop = bool(getattr(cfg, "TF2_EXCLUDE_SHOP_INTERACTIONS", False)) if cfg else False
+
     for ev in events or []:
         if not isinstance(ev, dict):
             continue
@@ -996,6 +1003,9 @@ def _collect_interactions_in_radius(
         # Objectives/towers tracked only in post-fight outcome (Step 5),
         # NOT counted as radius-3000 interactions (prevents double-counting).
         if et in obj_building_types:
+            continue
+
+        if exclude_shop and et in shop_types:
             continue
 
         # Check spatial constraint (radius 3000)

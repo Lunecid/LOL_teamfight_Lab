@@ -464,6 +464,11 @@ class CFG:
     TF2_TAIL_BUFFER_MS: int = 0
     # Minimum champions per team within validity radius.
     TF2_MIN_PER_TEAM: int = 2
+    # Shop events (ITEM_PURCHASED/SOLD/UNDO) have no position and are placed
+    # by the actor's interpolated location, so a base fight can count a
+    # shopping player as an interaction participant. False reproduces the
+    # published detector; see scripts/run_shop_event_sensitivity.py.
+    TF2_EXCLUDE_SHOP_INTERACTIONS: bool = False
     # Dense XY grid step used by teamfight_v2 detector.
     # Default 5s preserves current behavior.
     TF2_GRID_STEP_MS: int = 5000
