@@ -152,7 +152,41 @@ the meta-reviewer's question about what "counts" as a teamfight.
 4. Any AUC broken out by class carries its bootstrap interval over match
    clusters, and the accompanying `|blue − red|` asymmetry.
 
-## Open items
+## Kill-less encounters: what the corpus omits
+
+The corpus is kill-anchored, so engagements resolved without a kill are absent
+entirely. `run_killless_encounters.py` bounds the omission by scanning the 5 s
+position grid for sustained localized clusters under the detector's own
+validity condition minus the kill requirement — each alive champion is tried
+as an anchor, and a frame counts when some anchor has `min_per_team` alive
+champions of *both* sides within the radius. 2,000 matches per setting:
+
+| radius | duration | per team | encounters/match | kill-less share |
+|---|---|---|---|---|
+| 1,800 | 10 s | 2 | 13.28 | **12.2%** |
+| 1,200 | 10 s | 2 | 10.34 | 12.0% |
+| 2,500 | 10 s | 2 | 14.03 | 12.7% |
+| 1,800 | 5 s | 2 | 15.87 | 16.0% |
+| 1,800 | 20 s | 2 | 9.71 | 8.5% |
+| 1,800 | 10 s | **3** | 5.26 | **7.7%** |
+| 1,800 | 20 s | **3** | 3.10 | **4.9%** |
+
+Two things follow. **The omission is modest and shrinks exactly where the
+question was aimed:** the meta-reviewer asked about *teamfights* without
+kills, and at teamfight scale (3+ per side) sustained for 20 s only 4.9% of
+encounters end without a kill — 0.15 per match, against 2.03 teamfight-class
+engagements per match that the corpus does capture. Loosening the duration to
+5 s triples the kill-less share (16.0%), confirming that most kill-less
+"encounters" are brief passes rather than resolved fights.
+
+**The share is insensitive to the radius** (12.0–12.7% across 1,200–2,500
+units) and sensitive to duration and party size, which is the expected
+signature: a proximity threshold decides *how many* encounters exist, while
+duration and size decide *which* of them are fights.
+
+This is an upper bound on what kill-anchored detection misses, not a corpus
+extension: proximity is not commitment, and without a kill there is no
+outcome to label, so these encounters remain outside the prediction task.
 
 - Presence at radii other than 1,800 units (the detector's gate value) has not
   been measured; a 3,000-unit presence count would likely track participation
