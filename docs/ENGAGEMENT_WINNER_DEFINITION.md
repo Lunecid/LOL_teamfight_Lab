@@ -124,11 +124,25 @@ Measured on the pilot (2,551 engagements):
 buffs, dragon souls, tempo). The structure-explicit robustness columns
 cover that gap, and the limitation section says so.
 
+## Adopted primary: `market_lex` (market verdict + dead-zone refinement)
+
+Implemented as `LABEL_TYPE="market_lex"` (commit 99c29fb): the gold swing
+decides when it exceeds `LABEL_GOLD_DEADZONE` (300 g = one base kill
+bounty); inside the dead zone — where any gold sign would be noise —
+discrete facts refine in a fixed order (cluster kills → survivors →
+structures), and an engagement even on all of them is a genuine draw. The
+ordering only ever adjudicates materially-even fights, so the 7.5%
+kill-vs-structure conflict set is priced by gold before the ordering is
+consulted. Pilot (2,551): at ε=300 the market decides 54.9%, facts refine
+39.5%, genuine draws 5.61%; ε∈{150,600} shifts the split (76/20/3.7 and
+27/66/6.6) — sensitivity column for the paper. Agreement: weighted 94.3%,
+micro 93.1%, Eq.3 89.9%. **OOF AUC 0.6879** (pick 0.686 / skirmish 0.645 /
+teamfight 0.720), statistically indistinguishable from pure gold (0.6915)
+with the noise-sign weakness removed.
+
 **Robustness labels, reported alongside:**
 
-- **Lexicographic material rule** (kills → survivors → structures+plates →
-  gold → genuine draw excluded, ~4%): the ordering-based cross-check; its
-  kill-vs-structure conflict set (7.5%) is the definitional gray zone.
+- **Pure gold swing** (ε=0): the zero-constant end of the family.
 - **Eq.3** for CoG continuity — the *attention-value* outcome whose
   unpredictability is a finding, not the material target.
 - **micro_win under tie-drop** as the simplest-possible column.
