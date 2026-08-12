@@ -49,7 +49,32 @@ measurements are the defensible material.
 | # | Review point | Response | Status |
 |---|---|---|---|
 | R2-1 | Eq.3 hand-set weights: "model may learn the labelling heuristic"; wants alternative labels + weight sensitivity | `run_label_ablation.py` + `run_label_weight_sensitivity.py` | **done** — Eq.3 (0.595) is the *hardest* target of the four schemes (micro_win 0.652, kill_survival 0.662, weighted 0.675); schemes agree 87–98%; coefficient perturbations flip ≤4% of labels and move AUC monotonically along an interpretable attention↔material axis |
-| R2-2 | DL baselines underpowered (FT-Transformer/TabNet/SAINT absent, no shared feature engineering) | `run_deep_tabular_baselines.py` — LightGBM / MLP / FT-Transformer on identical rows, split, features and early-stopping budget | **done** — LightGBM 0.6767, FT-Transformer 0.6578, MLP 0.6335 (n=192,727 / 40k matches). LightGBM−FT +0.019 CI[+0.014,+0.024]; FT−MLP +0.024 CI[+0.019,+0.030]. The gap narrows from the CoG submission's ~0.10 to 0.019 once the deep model gets the same features and a modern architecture, but does not close |
+| R2-2 | DL baselines underpowered (FT-Transformer/TabNet/SAINT absent, no shared feature engineering) | `run_deep_tabular_baselines.py` — all three named architectures plus an MLP, on identical rows, split, features and early-stopping budget | **done** — see table below; all three named architectures were run and none reaches LightGBM |
+
+### Equitable deep-learning comparison
+
+192,727 engagements from 40,000 matches; identical match-level 70/15/15 split,
+identical 7,105 engineered features, identical early-stopping budget.
+
+| model | test AUC | val AUC | train seconds | budget |
+|---|---|---|---|---|
+| LightGBM | **0.6767** | 0.6681 | 85 | 270 trees |
+| FT-Transformer | 0.6578 | 0.6487 | 8,769 | epoch 30 |
+| SAINT | 0.6427 | 0.6376 | 7,062 | epoch 25 |
+| MLP | 0.6335 | 0.6254 | 25 | epoch 4 |
+| TabNet | 0.6052 | 0.5981 | 91 | epoch 8 |
+
+Match-clustered bootstrap, all intervals excluding zero: LightGBM−FT +0.019
+CI[+0.014,+0.024]; LightGBM−SAINT +0.034 CI[+0.029,+0.039]; FT−SAINT +0.015
+CI[+0.011,+0.019]; SAINT−MLP +0.009 CI[+0.004,+0.014]; MLP−TabNet +0.028
+CI[+0.022,+0.034]. R2 was right that the submitted comparison was unfair — a
+modern architecture on the same features recovers most of the ~0.10 gap — and
+right that it does not overturn the ordering. LightGBM also trains 100×
+faster than the transformer variants.
+
+The scale decomposition reproduces inside every learner (teamfight highest,
+skirmish lowest), so the headline is a property of the task rather than of
+gradient boosting.
 | R2-3 | 6 timesteps × 60 s resolution starves sequential models | Measured: window-length sweep (w10/20/30 within 0.02) + trajectory-vs-snapshot ablation (0.53 vs 0.58) show static state carries the signal | **done** — write-up pending |
 | R2-4 | No anonymised code/data link | Anonymised repo + derived-data release (Riot ToS: derived features, not raw dumps) | planned |
 | Meta | "What about teamfights with no kills?" | `run_killless_encounters.py`: proximity encounters from the 5 s grid under the detector's own validity condition minus the kill requirement | script ready, run pending |
