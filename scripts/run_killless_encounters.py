@@ -50,26 +50,37 @@ def encounters_for_match(
     min_duration_s: float,
     grace_ms: int,
 ) -> list[dict]:
-    """Contiguous runs of frames where both teams have min_per_team nearby."""
+    """Contiguous runs of frames holding a localized both-team cluster.
+
+    The detector anchors its validity test at the first kill's position.  A
+    kill-less encounter has no such anchor, so every alive champion is tried
+    as one and the best is taken: a frame is active when some champion has at
+    least ``min_per_team`` alive champions of *each* side within ``radius``.
+    Using the centroid of all survivors instead would place the anchor near
+    mid-lane whenever the teams are spread across the map.
+    """
     n_frames = len(dense_ts)
     active = np.zeros(n_frames, dtype=bool)
     r_sq = radius * radius
     for t in range(n_frames):
-        pts, teams = [], []
-        for side, ids in (("blue", blue), ("red", red)):
-            for pid in ids:
-                if alive is not None and not bool(alive[t, int(pid)]):
-                    continue
-                pts.append(xy_dense[t, int(pid), :2])
-                teams.append(side)
-        if len(pts) < 2 * min_per_team:
+        blue_pts = np.array(
+            [xy_dense[t, int(p), :2] for p in blue
+             if alive is None or bool(alive[t, int(p)])], dtype=float
+        ).reshape(-1, 2)
+        red_pts = np.array(
+            [xy_dense[t, int(p), :2] for p in red
+             if alive is None or bool(alive[t, int(p)])], dtype=float
+        ).reshape(-1, 2)
+        if len(blue_pts) < min_per_team or len(red_pts) < min_per_team:
             continue
-        arr = np.asarray(pts, dtype=float)
-        centroid = arr.mean(axis=0)
-        near = ((arr - centroid) ** 2).sum(axis=1) <= r_sq
-        blue_near = sum(1 for i, s in enumerate(teams) if s == "blue" and near[i])
-        red_near = sum(1 for i, s in enumerate(teams) if s == "red" and near[i])
-        active[t] = blue_near >= min_per_team and red_near >= min_per_team
+        anchors = np.vstack([blue_pts, red_pts])
+        d_blue = ((anchors[:, None, :] - blue_pts[None, :, :]) ** 2).sum(axis=2)
+        d_red = ((anchors[:, None, :] - red_pts[None, :, :]) ** 2).sum(axis=2)
+        blue_near = (d_blue <= r_sq).sum(axis=1)
+        red_near = (d_red <= r_sq).sum(axis=1)
+        active[t] = bool(
+            np.any((blue_near >= min_per_team) & (red_near >= min_per_team))
+        )
 
     out: list[dict] = []
     t = 0
