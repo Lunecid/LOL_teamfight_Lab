@@ -380,6 +380,13 @@ def compute_label(
         )
     if label_type in ("attention_value_win", "attention_value", "attn_value", "attn"):
         return _compute_label_attention_value_win(evs, tm, tie_key=tie_key)
+    if label_type in ("market_lex", "market_lexicographic", "gold_lex"):
+        return _compute_label_market_lex(
+            evs, tm, cache, s_ms, e_ms,
+            interp_node_global=interp_node_global,
+            first_kill_ts=first_kill_ts, last_kill_ts=last_kill_ts,
+            tie_key=tie_key,
+        )
     if label_type in ("weighted", "composite", "weight"):
         return _compute_label_weighted(evs, tm, cache, s_ms, e_ms, tie_key=tie_key)
     return _compute_label_kill_survival(
@@ -494,6 +501,82 @@ def _compute_label_kill_survival(
         return None
 
     return 1 if score > 0 else 0
+
+
+def _compute_label_market_lex(
+    evs: List[dict],
+    tm: Dict[int, int],
+    cache: Dict[str, Any],
+    s_ms: int,
+    e_ms: int,
+    *,
+    interp_node_global: InterpNodeGlobalFn,
+    first_kill_ts: Optional[int] = None,
+    last_kill_ts: Optional[int] = None,
+    tie_key: str = "",
+) -> Optional[int]:
+    """Market verdict first, lexicographic refinement inside the dead zone.
+
+    The window team-gold-swing difference decides whenever it exceeds
+    LABEL_GOLD_DEADZONE (default 300 g, one base kill bounty): kills,
+    turrets, plates and monsters are already priced in gold by the game,
+    so no researcher weights are involved.  When the market is silent
+    (|swing| within the dead zone), discrete material facts refine in a
+    fixed order -- cluster kills, then survivors at the last kill, then
+    structure events in the window -- and an engagement even on all of
+    them is a genuine draw handled by the tie policy.
+    """
+    tie_policy = str(getattr(cfg, "LABEL_TIE_POLICY", getattr(cfg, "LABEL_TIE_STRATEGY", "drop"))).lower()
+    deadzone = float(getattr(cfg, "LABEL_GOLD_DEADZONE", 300.0))
+
+    gold_method = str(getattr(cfg, "LABEL_GOLD_METHOD", "linear")).lower()
+    g0 = gold_at_ms(cache, s_ms, method=gold_method)
+    g1 = gold_at_ms(cache, e_ms, method=gold_method)
+    gd = float((g1[0] - g0[0]) - (g1[1] - g0[1]))
+    if gd > deadzone:
+        return 1
+    if gd < -deadzone:
+        return 0
+
+    kd = 0
+    struct = 0
+    for e in evs:
+        et = str(e.get("type", "")).upper()
+        if et == "CHAMPION_KILL":
+            if first_kill_ts is not None and last_kill_ts is not None:
+                kill_ts = int(e.get("timestamp", 0) or 0)
+                if kill_ts < first_kill_ts or kill_ts > last_kill_ts:
+                    continue
+            killer = int(e.get("killerId", 0) or 0)
+            if tm.get(killer, 0) == 100:
+                kd += 1
+            elif tm.get(killer, 0) == 200:
+                kd -= 1
+        elif et in ("ELITE_MONSTER_KILL", "BUILDING_KILL", "TURRET_PLATE_DESTROYED"):
+            struct += _label_event_team_sign(e, tm)
+    if kd != 0:
+        return 1 if kd > 0 else 0
+
+    alive_measure_ts = e_ms if not (last_kill_ts and last_kill_ts > 0) else last_kill_ts
+    node_end, _ = interp_node_global(cache, alive_measure_ts)
+    alive_idx = NODE_IDX.get("alive", None)
+    if alive_idx is not None:
+        tids = np.array([tm.get(i, 100 if i <= 5 else 200) for i in range(1, 11)])
+        blue_alive = float(node_end[np.where(tids == 100)[0], alive_idx].sum())
+        red_alive = float(node_end[np.where(tids == 200)[0], alive_idx].sum())
+        if blue_alive != red_alive:
+            return 1 if blue_alive > red_alive else 0
+
+    if struct != 0:
+        return 1 if struct > 0 else 0
+
+    if tie_policy in ("random", "stochastic", "coinflip"):
+        return _seeded_tie_coin(evs, tm, tie_key)
+    if tie_policy == "blue":
+        return 1
+    if tie_policy == "red":
+        return 0
+    return None
 
 
 def _compute_label_weighted(

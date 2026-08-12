@@ -588,6 +588,9 @@ class CFG:
     #   "red"     — ties → red win.
     #   "random"  — ties → seeded deterministic coin flip per label window.
     LABEL_TIE_STRATEGY: str = "random"
+    # market_lex label: gold-swing differences within this dead zone (one base
+    # kill bounty) are "materially even" and refined by discrete facts instead.
+    LABEL_GOLD_DEADZONE: float = 300.0
     LABEL_TIE_SEED: int = 7
 
     # weighted label
