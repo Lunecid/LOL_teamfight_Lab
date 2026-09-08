@@ -48,3 +48,17 @@ stratified files.
 Regeneration: shards `build_corpus_shard.py --label-type market_lex --tie-policy drop`
 (env selects corpus), then `run_scale_decomposition.py`. Seeds fixed (7); all
 sampling deterministic.
+
+## Corpus v3 (2026-09-09, definition of `docs/DEFINITION_EVIDENCE.md` section 17)
+
+| file | what | how |
+|---|---|---|
+| `corpus_shards_v3_mlex/shard_*.npz` (+`v3_definition.json`, `build.log`) | 541,767 engagements x 7,105 features; labels `y` (market_lex, draws dropped), `y_market_event`, `y_attention_value_win` | `scripts/build_corpus_v3.py` (32 shards, `LOL_CFG_OVERRIDES` = G 13.7 s, D 4,264 u, R 1,600 u, B 15 s, H 35 s) |
+| `features/scale_decomposition_v3_mlex.json` (+preds, matrix) | ToG protocol on v3, market_lex: overall .7364, pick .709 / skirmish .719 / teamfight(>=4) .805 | `run_scale_decomposition.py --teamfight-min 4` |
+| `features/scale_decomposition_v3_market_event.json` (+preds, matrix) | same, event-priced label: .7024, .673 / .686 / .770 | `--y-key y_market_event` |
+| `features/scale_decomposition_v3_attention_value_win.json` (+preds, matrix) | same, Eq.3 label: .6815, .657 / .666 / .744 | `--y-key y_attention_value_win` |
+| `runs_corpus_v3/v3_G13.7_D4264_R1600_B15/` | CoG protocol on v3 (patch holdout, 100k/split, Eq.3): 574,312 engagements, test AUC .6590 [.6556, .6624] | `runner.py --mode train --models lgbm` with `LOL_CFG_OVERRIDES` |
+| `runs_presence_gate/` | presence-gate two-point comparison (1,800 u/10 s vs 1,600 u/15 s at G 18/D 4,000): .6687 vs .6598 | `scripts/run_presence_gate_points.py` |
+| `features/prediction_situation_pilot.json` | 553-match pilot: context 15/30/60 s, horizon 35/45/60 s, labels, frame age | `scripts/run_prediction_situation_pilot.py` |
+
+Regenerable: the three `*.matrix.npy` memmaps (~10.6 GB each) are rebuilt by the decomposition from the shards.
