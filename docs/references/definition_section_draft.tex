@@ -99,34 +99,30 @@ boundary is a property of how fights move, not of terrain.
 
 \subsection{Presence gate, anchor and lead}
 
-An episode becomes an \emph{engagement} when, at the cutoff $\tau$ placed $B=10$\,s before
+An episode becomes an \emph{engagement} when, at the cutoff $\tau$ placed $B$ before
 its first kill, at least $M=2$ alive champions of each team stand within $R$ of the first
 kill's position, mirroring Ke et al.'s requirement that a team fight involve at least two
 players on a side \cite{ke2022}. Neither $R$ nor $B$ can be estimated from Match-V5,
-whose positions are interpolated between 60\,s frames, so both are set inside brackets
-defined by the game's own rules. For $R$ the game offers three proximity constants:
-champions see each other within 1,350 units, a dying champion shares experience with
-allies within 1,600 units, and the longest non-ultimate engage ability (Zac's Elastic
-Slingshot at rank five) reaches 1,800 units; beyond that only semi-global ultimates such
-as Ornn's (2,500 units) close the distance. We use the upper end, $R = 1{,}800$, the same
-logic by which Schubert et al.\ set their combat range at the distance covering most
-observed damage \cite{schubert2016encounter}. For $B$ the game credits a kill or an
-assist to every champion who contributed within the preceding 15\,s and drops a champion
-out of combat 5\,s after the last exchange; OpenDota's team-fight label, used by Tot et
-al.\ \cite{tot2021camera}, likewise starts 15\,s before the first death. We use
-$B = 10$\,s inside that bracket and call it a lead, not a fight onset. Because the gate
-is a convention inside a bracket, we report its leverage. On 81,914 kill episodes from
-2,971 matches, the share that qualifies as an engagement is 19.1\% at (1,800 units,
-10\,s); it is 14.7\% at 1,600 units, 9.6\% at 1,350 and 34.2\% at 2,500, and 26.5\% at
-5\,s and 13.8\% at 15\,s, monotone in both constants; the fully rule-anchored point
-(1,600 units, 15\,s) keeps 54\% of the reference set. The presence gate, not $G$ or $D$,
-is therefore the constant that decides how many engagements a match contains, so we
-re-ran the tabular baseline at the rule-anchored point with every other constant fixed:
-the corpus shrinks from 994,365 to 531,984 engagements and the held-out test AUC moves
-from 0.669 (95\% CI 0.665--0.672) to 0.660 (0.656--0.663), while on the 32,820 test
-engagements that both gates accept the two models are indistinguishable (0.659 vs 0.658)
-and the engagements only the reference gate accepts are the more predictable ones
-(0.673). The gate changes how many engagements there are, not how predictable they are.
+whose positions are interpolated between 60\,s frames, so we take the two constants the
+game itself uses for the same purpose. $R = 1{,}600$ units is the radius within which the
+game credits an ally with proximity to a champion's death (it shares the death's
+experience that far); $B = 15$\,s is the window within which the game credits a champion
+with contribution to a kill, and it is also the offset at which OpenDota's team-fight
+label, used by Tot et al.\ \cite{tot2021camera}, starts before the first death. Both are
+rules rather than estimates: they apply to every champion and every patch, and a change
+would appear in the patch notes. The bracket around them is narrow -- champions see each
+other within 1,350 units, the longest non-ultimate engage ability (Zac's Elastic
+Slingshot at rank five) reaches 1,800, and a champion leaves combat 5\,s after the last
+exchange -- and $B$ is a lead, not a fight onset. Because the gate is a rule-anchored
+convention, we report its leverage (Appendix~\ref{app:gate}). On 81,914 kill episodes
+from 2,971 matches the share that qualifies as an engagement is 10.3\% at (1,600 units,
+15\,s) and 19.1\% at the point used in our CoG paper (1,800 units, 10\,s), monotone in
+both constants; the gate, not $G$ or $D$, decides how many engagements a match contains.
+Re-running the tabular baseline at both points with every other constant fixed gives
+531,984 engagements at a held-out test AUC of 0.660 (95\% CI 0.656--0.663) against
+994,365 at 0.669 (0.665--0.672), and on the 32,820 test engagements both gates accept
+the two models are indistinguishable (0.658 vs 0.659). The gate changes how many
+engagements there are, not how predictable they are.
 Moving the anchor from the first kill to the episode's kill centroid (median shift 663
 units) changes the verdict for 6\% of episodes with no directional bias in presence
 counts or scale classes.
@@ -137,8 +133,8 @@ Because esport rules change with every patch and models built on one iteration o
 game decay on the next \cite{chitayat2023beyond}, the constants are not fixed once. A
 pipeline re-estimates $G$, $D$ and the coverage of $R$ for each patch and applies a
 pre-registered drift rule: a patch keeps the pooled definition if its $G$ lies inside the
-pooled plateau, its $D$ within 10\% of the pooled value with overlapping intervals, and its
-$R$ coverage within two points. For patches 15.14--15.16 the per-patch values are
+pooled plateau, its $D$ within 10\% of the pooled value with overlapping intervals, and the
+game rules behind $R$ and $B$ unchanged in its patch notes. For patches 15.14--15.16 the per-patch values are
 $G = 14.0, 13.5, 13.7$\,s and $D = 4{,}285, 4{,}265, 4{,}241$ units (within 0.5\% of the
 pooled value), all inside, and one definition serves the corpus. A pilot on 3,000 matches
 per patch had placed patch 15.15 at 12.6\,s and 4,146 units; on the full corpus that
