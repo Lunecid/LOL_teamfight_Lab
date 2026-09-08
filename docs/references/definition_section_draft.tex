@@ -1,0 +1,141 @@
+% Draft: engagement-definition section for the ToG extension (2026-09-08).
+% Citation keys follow docs/references/definition_refs.bib plus the CoG paper's refer.tex
+% (ke2022, tot2021camera, riotapi2024timeline). Numbers come from docs/DEFINITION_EVIDENCE.md;
+% every figure is traceable to a script under features/fight_boundary/.
+
+\section{Defining the Engagement}\label{sec:definition}
+
+\subsection{The construct and its operationalisation}
+
+``Teamfight'' is a player concept, not a measurement unit. Neither the publisher nor the
+literature provides a formal definition: the official wiki describes a teamfight as
+``multiple (e.g.\ the entire team) champions gather[ing] in one area to battle'', and the
+formal definitions that exist -- Schubert et al.'s \emph{encounter}
+\cite{schubert2016encounter}, Ke et al.'s \emph{team fight} \cite{ke2022}, and the
+OpenDota labels used by Tot et al.\ \cite{tot2021camera} -- share one atom (champions of
+both teams within range of each other at the same time) and differ in whether a kill is
+required and how many champions must take part. We therefore treat the engagement as an
+operationalised construct in the sense of measurement modelling
+\cite{jacobs2021measurement}: a rule that maps observable telemetry to instances of an
+unobservable concept, whose assumptions must be made explicit and \emph{tested} for
+reliability (can it be repeated?) and validity (is it right?) rather than asserted. The
+rest of this section states the rule, derives its constants from the corpus, and reports
+the tests.
+
+\subsection{Kill episodes and the temporal boundary}
+
+Public Match-V5 telemetry \cite{riotapi2024timeline} records no damage events; the only
+combat event with a millisecond timestamp and a position is the champion kill. The unit is
+therefore built from kills, as in Ke et al.\ \cite{ke2022}, and the population is
+explicitly the set of combat episodes that resolve with at least one death. This is a
+\emph{case definition} in the epidemiological sense: encounters without a kill exist but
+are outside the observable population. Schubert et al.\ report that even with complete
+damage logs 81.1\% of proximity encounters contained no kill, half of those no damage at
+all, and they restricted outcome analysis to encounters with kills
+\cite{schubert2016encounter}; in our corpus, encounters with three or more alive champions
+per side sustained for 20\,s but no kill amount to 4.9\% of engagements.
+
+Consecutive kills of a match are chained into an episode when their gap is at most $G$.
+Rather than fixing $G$ by hand we follow the practice established for session
+identification from inter-activity times \cite{halfaker2015session,mehrzadi2012session}
+and for earthquake declustering from nearest-neighbour space--time distances
+\cite{zaliapin2013clusters}: on a logarithmic scale the distribution of inter-kill
+intervals is bimodal, with a within-fight mode near 6\,s and a between-fight mode near
+62\,s, and the boundary is placed at the antimode. Halfaker et al.\ locate the valley by
+the crossing of a two-component Gaussian mixture; Mehrzadi and Feitelson search for the
+deepest minimum inside a bounded range because global thresholds imprint artefacts on the
+resulting session-length distribution. We combine the two: a mixture locates the
+components, and the valley is the minimum of a kernel density estimate between them
+\cite{silverman1981multimodality}. Across 9,903 matches (497,575 intervals) the valley is
+at 13.3\,s (match-level bootstrap 95\% CI 11.8--15.7), stable under a four-fold change of
+bandwidth (12.6--13.6\,s), across the three patches (13.0--14.1\,s), and across match
+intensity terciles (11.4--14.5\,s). The mixture crossing gives 14.3\,s. Clustering
+agreement (adjusted Rand index $\geq 0.9$) holds for $G \in [10, 18]$\,s, so the value is
+reported together with this plateau, in the spirit of stability-based cluster selection
+\cite{campello2013hdbscan}.
+
+Two honest qualifications follow from the same analysis. First, the valley is a mid-game
+feature: after 20 minutes the interval density is unimodal, a continuum from 3\,s to 60\,s
+filled by chases, staggered deaths and respawn returns, so in the late game $G$ is a
+convention justified only by the plateau. Second, Mehrzadi and Feitelson warn that using
+activity gaps both to place boundaries and to judge them is circular
+\cite{mehrzadi2012session}; the spatial boundary below is therefore validated against an
+independent signal.
+
+\subsection{The spatial boundary}
+
+An episode is split when two of its kills are more than $D$ apart (complete linkage), so
+that simultaneous fights on different parts of the map are not merged. $D$ is estimated
+from an independent signal: whether the two kills involve the same champion (as killer,
+victim or assister). Two kills within seconds that share a champion belong to one fight
+by construction, and a champion cannot be in two places, so within the temporal window
+the sharing rate as a function of distance traces where ``same fight'' ends. Its 50\%
+crossing -- the Bayes decision point that misclassifies the fewest pairs -- is at
+4,263 units (95\% CI 4,224--4,302) for pairs within $G$; it lies between 4,351 and
+4,921 units in every map region (lanes, river, jungle, both pits, bases), so a single
+$D$ suffices. Pairs within 7\,s but farther than 4,000 units share a champion only 3--5\%
+of the time: these are simultaneous fights elsewhere. The sharing rate is 93.6\% for pairs
+the rule links and 10.9\% for the simultaneous-but-distant pairs it separates.
+
+The seismological scalar proximity $\eta = \Delta t\,\Delta d^{\,d}$
+\cite{zaliapin2013clusters,zaliapin2022perspectives} applied to the same kill pairs is
+bimodal for every $d$ we tried, and at $d=2$ its partition agrees with ours on 92\% of
+pairs with a marginally lower separation of shared from unshared pairs (93.3\% vs 93.7\%
+sharing among linked pairs at equal link rate); the rectangular rule is thus a slightly
+sharper special case of an established space--time clustering criterion. Walkable-path
+distance computed on the minimap's terrain mask did not improve the separation
+(AUC 0.939 vs 0.940), and 91\% of consecutive pairs are not separated by walls; the
+boundary is a property of how fights move, not of terrain.
+
+\subsection{Presence gate, anchor and lead}
+
+An episode becomes an \emph{engagement} when, at the cutoff $\tau$ placed $B=10$\,s before
+its first kill, at least $M=2$ alive champions of each team stand within $R$ of the first
+kill's position, mirroring Ke et al.'s requirement that a team fight involve at least two
+players on a side \cite{ke2022}. $R = 1{,}800$ units is a mechanics anchor: 89.3\% of the
+673 ability casts in the patch's Data Dragon fall within it, the same construction by which
+Schubert et al.\ set their combat range at the distance covering about 85\% of observed
+damage \cite{schubert2016encounter}. $R$ cannot be estimated from Match-V5 because the
+positions of non-participating champions at kill time are not recorded; presence is
+therefore an estimate from interpolated 60\,s frames, and we report its sensitivity: moving
+the anchor to the episode's kill centroid (median shift 663 units) changes the verdict for
+6\% of episodes with no directional bias in presence counts or scale classes. $B$ has no
+data-driven estimate and is reported as a fixed lead, not as a fight onset.
+
+\subsection{Re-estimation per patch}
+
+Because esport rules change with every patch and models built on one iteration of the
+game decay on the next \cite{chitayat2023beyond}, the constants are not fixed once. A
+pipeline re-estimates $G$, $D$ and the coverage of $R$ for each patch and applies a
+pre-registered drift rule: a patch keeps the pooled definition if its $G$ lies inside the
+pooled plateau, its $D$ within 10\% of the pooled value with overlapping intervals, and its
+$R$ coverage within two points. For patches 15.14--15.16 the per-patch values are
+$G = 13.9, 12.6, 13.9$\,s and $D = 4{,}309, 4{,}146, 4{,}296$ units, all inside, and one
+definition serves the corpus. This mirrors the stability analysis of Zaliapin and
+Ben-Zion, who report their cluster measure moving within $\pm0.1$ when catalogue
+parameters are varied by orders of magnitude \cite{zaliapin2013clusters}.
+
+\subsection{Scale classes}
+
+Scale is a post-hoc attribute (participation is known only when the fight resolves) and is
+used only for reporting. Its classes follow modes of the data, as behavioural states are
+read from density peaks in unsupervised ethology \cite{berman2014mapping}: on the diagonal
+of the per-team participation distribution 2v2 (12.2\%) and 5v5 (8.1\%) are modes with a
+trough at 4v4, and the block with four or more on each side is 22.4\% of engagements. The
+smaller side's count alone has no antimode (21.9, 36.0, 19.7, 14.2, 8.1\% for 1--5), so
+the cut between two and three per side is a convention and is labelled as such. We use
+\emph{pick} (smaller side $\leq 1$; 83\% of these are one champion caught by two or three),
+\emph{skirmish} (2--3) and \emph{teamfight} ($\geq 4$, matching the community sense of
+``the entire team'').
+
+\subsection{Validity summary}
+
+Following \cite{jacobs2021measurement}: content validity -- the rule instantiates the
+shared atom of all published definitions and states what it excludes; convergent validity
+-- it coincides with Ke et al.'s team fight and with the seismological proximity
+partition on 92\% of pairs; discriminant validity -- linked pairs share a champion at 94\%
+against 51\% for separated pairs; test--retest reliability -- three patches, bootstrap
+intervals and the ARI plateau; predictive validity -- the engagement label is predictable
+at AUC 0.746 from pre-cutoff state (Section~\ref{sec:results}). Construct validity is a
+matter of degree; the pipeline and its verdicts are released so that the degree can be
+re-assessed on new patches.

@@ -441,3 +441,142 @@ LOL_OUTPUT_ROOT=D:/LOL_Project python scripts/run_fight_boundary_pipeline.py ^
 D가 3절의 4,609 u(창 18 s)보다 낮은 4,263 u인 이유: 파이프라인은 슬라이스 자신의
 G(13.6 s)를 창으로 쓴다. 공유율 50% 교차 거리는 창이 짧을수록 낮아진다(3.2절의
 시간 기울기). 즉 D는 G에 종속된 양이고 spec에는 그 쌍으로 기록된다.
+
+---
+
+## 11. 경로 거리 실험: 직선 거리를 유지한다 (2026-09-08)
+
+**가설.** D가 벽을 가로질러 재어지므로, 미니맵의 보행 가능 영역에서 잰 최단 경로
+거리가 같은 싸움과 다른 싸움을 더 잘 가르고, 라인 비등방성은 지형의 결과일 것이다.
+
+**방법.** 사용자가 준 미니맵(map.png)을 타워 아이콘 22개로 보정(잔차 중앙 0.9 px,
+1,000 u = 36.2 px)하고, 남색(지형 벽) 이외 영역을 100 u 격자로 만들어(보행 가능
+62%, 노드 13,507) 8-연결 Dijkstra로 연속 킬 쌍 341,734개의 경로 거리를 계산했다.
+같은 쌍에서 직선 거리와 비교. 산출물 `features/fight_boundary/geodesic_experiment.*`,
+`walk_grid.png`.
+
+| 지표 (Δt ≤ 13.6 s) | 직선 | 경로 |
+|---|---|---|
+| 공유율 50% 교차 | 4,263 u | 5,005 u |
+| 거리→공유 구분 AUC | 0.940 | 0.939 |
+| 공유 75%→25% 대역 폭 | 1,927 u | 2,166 u |
+| 라인 along / across 교차 | 5,123 / 3,602 | 5,765 / 4,444 |
+| 영역별 교차 흩어짐 | 449 u | 971 u |
+| 경로/직선 비율 중앙 · p90 · >1.5 비중 | | 1.09 · 1.44 · 8.6% |
+
+- 구분력은 같고(AUC 차 0.001) 곡선은 오히려 덜 가파르다. 같은 직선 거리에서
+  우회 비율이 커도 공유율은 거의 변하지 않는다(3,000~4,000 u: 0.72 / 0.66 / 0.64).
+- 연속 킬 쌍의 91%는 벽으로 갈라지지 않는다. 같은 싸움의 킬은 같은 통로에 있고,
+  벽 너머의 킬은 어차피 동시 발생한 다른 싸움이다.
+- **라인 비등방성은 지형이 아니라 행동이다.** 경로 거리에서도 along과 across 교차
+  차이가 1,300 u 남는다. 추격이 라인 방향으로 흐르기 때문이다.
+- 타원을 채택하지 않을 때의 손실: 창 안 쌍의 0.16%(381쌍, 공유 57%)만이 D 밖
+  along 방향에 있다. 등방 D를 유지해도 잃는 것이 없다.
+
+**결정.** D는 직선 거리, 단일 값으로 유지. 라인 타원은 정의에 넣지 않고 행동
+특성으로 보고한다. 지형은 경계가 아니라 (필요하면) 존재 게이트 R의 검증에서
+다룬다.
+
+---
+
+## 12. 앵커 실험: 첫 킬 위치 vs 킬 중심 (2026-09-08)
+
+**질문.** 존재 게이트(컷오프에 팀당 2명 이상 생존, 앵커에서 R 이내)의 앵커를 첫 킬
+위치에서 에피소드 킬들의 중심(centroid) 또는 중심에 가장 가까운 실제 킬(medoid)로
+옮기면 적격 판정과 존재 인원이 얼마나 바뀌는가.
+
+**방법.** 시드 7, 2,971경기, 킬 에피소드 79,408개(발표 상수 18 s / 4,000 u, 리드
+10 s, R 1,800, 팀당 2명). 탐지기의 5 s 격자, 분 프레임 생존 마스크, 적격 함수를 그대로
+써서 세 앵커로 각각 계산. 산출물 `features/fight_boundary/anchor_experiment.*`.
+
+| 항목 | centroid | medoid |
+|---|---|---|
+| 적격 비율 첫 킬 → 대안 | 18.6% → 19.4% | 18.6% → 18.6% |
+| 판정 바뀐 에피소드, 전체 / 다중 킬 | 6.1% / 14.3% | 3.5% / 8.2% |
+| 첫 킬만 적격 / 대안만 적격 | 2,104 / 2,700 (순 +4%) | 1,392 / 1,385 (순 0) |
+| 둘 다 적격일 때 존재 인원 변화 평균 | +0.018 (83% 불변) | +0.007 (92% 불변) |
+| 존재 클래스 변화(둘 다 적격) | 7.7%, skirmish↔teamfight 534 / 445 | 3.7%, 274 / 224 |
+
+- 단일 킬 에피소드(57.6%)는 앵커가 같으므로 변화 0. 다중 킬에서 첫 킬과 중심의
+  거리는 중앙 663 u, p75 1,117, p90 1,600 u. 36%가 900 u 이상.
+- 판정 변화는 거리와 함께 커진다: 이동 0~300 u에서 3.5%, 900~1,800 u에서 23%,
+  1,800 u 이상에서 26%. 킬 수로는 2킬 10%, 6킬 이상 22%.
+- 방향성 없음: 존재 인원 변화 분포와 클래스 전이가 대칭이다. 중심 앵커가 챔피언을
+  더 많이 찾는 것이 아니라, 임계값 근처의 에피소드가 앵커 위치에 따라 이쪽저쪽으로
+  넘어갈 뿐이다.
+
+**해석과 결정.** 첫 킬은 싸움의 가장자리에서 나는 경우가 많다(중심에서 중앙 663 u).
+그러나 컷오프는 첫 킬 10초 전이고 그때 챔피언은 첫 킬 위치 쪽으로 접근 중이므로,
+나중 킬까지 포함한 중심이 컷오프 시점의 존재를 더 잘 대변한다는 근거는 없다.
+데이터도 그렇다. 평균 존재 인원 차이가 0.02명이고 전이가 대칭이다. **앵커는 첫 킬
+위치로 유지**하고, "앵커를 700 u 옮기면 판정의 6%가 바뀐다"를 존재 게이트의
+민감도로 보고한다. 이 6%는 게이트가 경계 근처에서 무른 정도이며, 보간 위치와 분
+프레임 생존이라는 추정 오차와 같은 성격이다. 검증 대상은 annotation study.
+
+---
+
+## 13. "정의를 데이터에서 읽는다"는 태도의 문헌 선례 (2026-09-08 확인)
+
+리뷰어에게 "임의 정의가 아니라 확립된 방법론"임을 보이기 위한 인용 묶음. 각 항목에
+논문에서 인용할 자리를 적었다. 별표(*)는 이번에 원문·서지를 직접 확인한 것.
+
+### A. 경계를 분포의 골짜기에서 읽는 선례 — 시간·공간 경계 절
+- *Zaliapin & Ben-Zion 2013, JGR Solid Earth 118(6):2847–2864. 지진 쌍의 시공간
+  최근접 거리 분포가 쌍봉이고, 골짜기가 군집(여진)과 배경 사건을 가른다. 111,981개
+  사건에 적용, 매개변수·규모 하한·위치 오차에 대한 안정성 검증. **우리 (Δt, Δd)
+  쌍봉과 골짜기 경계의 가장 가까운 유사물.**
+- *Halfaker et al. 2015, WWW: 활동 간 시간의 쌍봉에서 세션 경계. 여러 도메인에서
+  같은 규칙성 → "일반성" 주장의 형식.
+- *Mehrzadi & Feitelson 2012, SYSTOR: 활동 로그의 세션 경계, 전역 임계값 대신
+  간격 분포에서 유도. Catledge & Pitkow 1995(25.5분 = 평균+1.5σ)는 데이터에서 나온
+  값이 재추정 없이 관례로 굳은 반례 → 우리가 파이프라인으로 피하려는 것.
+- *Kulldorff 2001, JRSS A 164(1):61–72: 시공간 스캔 통계. 고정 창 대신 가변
+  원통 창의 우도로 군집을 찾고 Monte Carlo로 유의성. 우리 직사각형 규칙의 형식적 대안.
+- Kleinberg 2002, KDD "Bursty and hierarchical structure in streams": 버스트 경계를
+  임계값이 아니라 생성 모형의 상태 전이로 추론.
+- Ester et al. 1996 (DBSCAN의 k-distance 무릎), Campello et al. 2013 (HDBSCAN,
+  안정성 기반 군집 선택): 데이터 구조에서 매개변수를 고르고 **안정성을 기준**으로
+  삼음 → 우리 ARI 평원의 정신.
+- Silverman 1981 JRSS B(KDE 다봉성), Hartigan & Hartigan 1985 (dip test), Otsu 1979
+  (쌍봉 히스토그램 임계): "골짜기 = 경계"의 통계적 기초.
+
+### B. 데이터가 범주를 정하게 하는 선례 — 규모 클래스 절
+- *Berman, Choi, Bialek, Shaevitz 2014, J R Soc Interface 11(99): 행동 상태를 밀도
+  봉우리(watershed)로 정의, 100개 이상의 정형 행동 발견. Wiltschko et al. 2015 Neuron
+  (MoSeq): AR-HMM으로 행동 음절. **"자연 종류 = 분포의 봉우리"** → 2v2·5v5 봉우리 →
+  skirmish / teamfight.
+- *McQueen, Wiens, Guttag 2014, MIT SSAC: 온볼 스크린을 손 규칙 대신 추적 데이터로
+  학습한 분류기로 인식(민감도 82%). 사건 정의를 데이터로 배우는 스포츠 선례.
+
+### C. 정의가 패치를 따라 움직여야 한다는 esports 선례 — 파이프라인 절
+- *Pedrassoli Chitayat, Block, Walker, Drachen 2023, AIIDE 19(1):116–125 "Beyond the
+  Meta": 패치가 잦아 모델 수명이 짧고 문헌이 이를 무시한다고 지적, 게임 디자인
+  파라미터(패치 노트)로 패치 불변 표현 구성. **우리 패치별 spec + drift 판정 +
+  Data Dragon 커버리지 점검의 직접 선례.**
+- *Tot et al. 2021, CoG: 산업 라벨(OpenDota)의 시작·끝 불일치 → 점검 가능한 형식
+  정의의 필요.
+- *Schubert, Drachen, Mahlmann 2016, MIT SSAC: 정의 안의 상수(combat range)를 관측
+  피해거리의 85% 분위로 둠 → 정의 상수의 데이터 유도.
+
+### D. 조작적 정의의 타당성 틀 — 정의 절 도입부
+- *Jacobs & Wallach 2021, FAccT: 측정 모형(measurement modeling). 이론적 구성개념과
+  조작화의 불일치를 신뢰도·타당도(내용·수렴·판별·예측·결과 타당도)로 점검. 우리
+  네 가지 검사(커뮤니티 의미와의 부합 = 내용, Schubert/Ke와의 동형 = 수렴,
+  부트스트랩·패치 안정성 = 신뢰도, 경기 결과 정보량 = 예측 타당도)가 이 틀에 맞음.
+- Cronbach & Meehl 1955 (construct validity) 고전.
+
+### 인용 문장 초안
+- 정의 절 도입: "We treat the engagement as an operationalised construct in the sense
+  of measurement modelling [Jacobs & Wallach 2021] and test its reliability and validity
+  rather than assert them."
+- 시간 경계: "As in session identification from inter-activity times [Halfaker 2015;
+  Mehrzadi & Feitelson 2012] and earthquake declustering from nearest-neighbour
+  space-time distances [Zaliapin & Ben-Zion 2013], the boundary is placed at the antimode
+  of an empirically bimodal distribution [Silverman 1981]."
+- 안정성: "Agreement of the resulting segmentation across gap values (ARI) serves as the
+  plateau criterion, in the spirit of stability-based cluster selection [Campello 2013]."
+- 패치: "Because esport rules change every patch [Pedrassoli Chitayat 2023], the
+  boundaries are re-estimated per patch and a pre-registered drift rule decides whether
+  one definition serves the corpus."
+- 규모 클래스: "Classes follow modes of the participation distribution, as behavioural
+  states follow density peaks in unsupervised ethology [Berman 2014]."
