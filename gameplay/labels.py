@@ -387,6 +387,13 @@ def compute_label(
             first_kill_ts=first_kill_ts, last_kill_ts=last_kill_ts,
             tie_key=tie_key,
         )
+    if label_type in ("market_event", "event_market", "kill_bounty_lex"):
+        return _compute_label_market_event(
+            evs, tm, cache, s_ms, e_ms,
+            interp_node_global=interp_node_global,
+            first_kill_ts=first_kill_ts, last_kill_ts=last_kill_ts,
+            tie_key=tie_key,
+        )
     if label_type in ("weighted", "composite", "weight"):
         return _compute_label_weighted(evs, tm, cache, s_ms, e_ms, tie_key=tie_key)
     return _compute_label_kill_survival(
@@ -538,6 +545,25 @@ def _compute_label_market_lex(
     if gd < -deadzone:
         return 0
 
+    return _lex_refine(evs, tm, cache, e_ms, interp_node_global=interp_node_global,
+                       first_kill_ts=first_kill_ts, last_kill_ts=last_kill_ts, tie_key=tie_key, tie_policy=tie_policy)
+
+
+def _lex_refine(
+    evs: List[dict],
+    tm: Dict[int, int],
+    cache: Dict[str, Any],
+    e_ms: int,
+    *,
+    interp_node_global: InterpNodeGlobalFn,
+    first_kill_ts: Optional[int] = None,
+    last_kill_ts: Optional[int] = None,
+    tie_key: str = "",
+    tie_policy: str = "drop",
+) -> Optional[int]:
+    """Refinement inside the market's dead zone: cluster kills -> survivors at the
+    last kill -> structure events in the window -> tie policy (shared by the
+    market_lex and market_event labels)."""
     kd = 0
     struct = 0
     for e in evs:
@@ -577,6 +603,46 @@ def _compute_label_market_lex(
     if tie_policy == "red":
         return 0
     return None
+
+
+
+def _compute_label_market_event(
+    evs: List[dict],
+    tm: Dict[int, int],
+    cache: Dict[str, Any],
+    s_ms: int,
+    e_ms: int,
+    *,
+    interp_node_global: InterpNodeGlobalFn,
+    first_kill_ts: Optional[int] = None,
+    last_kill_ts: Optional[int] = None,
+    tie_key: str = "",
+) -> Optional[int]:
+    """Market verdict priced by the events themselves, millisecond-exact.
+
+    Kill events carry the gold the game actually paid (``bounty`` +
+    ``shutdownBounty``); structure and monster events carry no usable bounty
+    in Match-V5 and stay in the refinement tier.  Same dead zone and same
+    order as market_lex, so the only difference is the currency: paid kill
+    gold at event resolution instead of minute-frame team gold interpolated
+    linearly across the window.
+    """
+    tie_policy = str(getattr(cfg, "LABEL_TIE_POLICY", getattr(cfg, "LABEL_TIE_STRATEGY", "drop"))).lower()
+    deadzone = float(getattr(cfg, "LABEL_GOLD_DEADZONE", 300.0))
+    gd = 0.0
+    for e in evs:
+        if str(e.get("type", "")).upper() != "CHAMPION_KILL":
+            continue
+        sign = _label_event_team_sign(e, tm)
+        if sign == 0:
+            continue
+        gd += float(sign) * (max(0.0, safe_float(e.get("bounty", 0.0))) + max(0.0, safe_float(e.get("shutdownBounty", 0.0))))
+    if gd > deadzone:
+        return 1
+    if gd < -deadzone:
+        return 0
+    return _lex_refine(evs, tm, cache, e_ms, interp_node_global=interp_node_global,
+                       first_kill_ts=first_kill_ts, last_kill_ts=last_kill_ts, tie_key=tie_key, tie_policy=tie_policy)
 
 
 def _compute_label_weighted(
