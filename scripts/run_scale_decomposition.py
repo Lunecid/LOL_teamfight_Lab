@@ -179,8 +179,11 @@ def main(argv=None) -> int:
     if not valid.all():
         idx = np.flatnonzero(valid)
         print(f"label {args.y_key}: dropping {int((~valid).sum())} rows without a label (draws)", flush=True)
+        n_rows = int(len(data["y"]))
         for k in list(data):
-            data[k] = np.asarray(data[k][idx])
+            v = data[k]
+            if hasattr(v, "shape") and len(v.shape) >= 1 and int(v.shape[0]) == n_rows:
+                data[k] = np.asarray(v[idx])   # row-aligned arrays only; X is materialised from the memmap
     X, y, groups = data["X"], data["y"], data["groups"]
     classes = scale_class(data["cluster_blue"], data["cluster_red"], teamfight_min=args.teamfight_min)
     presence = scale_class(data["present_blue"], data["present_red"], teamfight_min=args.teamfight_min)
