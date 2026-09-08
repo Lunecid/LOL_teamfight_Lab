@@ -46,19 +46,32 @@ def main(argv=None) -> int:
     ap.add_argument("--train-patches", default="15.14")
     ap.add_argument("--val-patches", default="15.15")
     ap.add_argument("--test-patches", default="15.16")
+    ap.add_argument("--group", default="runs_presence_gate", help="output folder under LOL_OUTPUT_ROOT")
+    ap.add_argument("--set", action="append", default=[], metavar="KEY=VALUE",
+                    help="extra CFG override applied to every point, e.g. --set TF2_KILL_CLUSTER_GAP_MS=13700 "
+                         "--set CLUSTER_MAX_DIAMETER=4264 (corpus v3: G 13.7 s, D 4,264 u)")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args(argv)
 
+    extra = {}
+    for kv in args.set:
+        k, v = kv.split("=", 1)
+        try:
+            v = json.loads(v)
+        except json.JSONDecodeError:
+            pass
+        extra[k.strip()] = v
+
     out_root = Path(os.environ.get("LOL_OUTPUT_ROOT", str(PROJECT_ROOT / "outputs")))
-    group = out_root / "runs_presence_gate"
+    group = out_root / args.group
     group.mkdir(parents=True, exist_ok=True)
     manifest_path = group / "manifest.json"
     manifest = json.load(open(manifest_path, encoding="utf-8")) if manifest_path.exists() else {"points": {}}
 
     for spec in args.points:
         name, R, B = parse_point(spec)
-        overrides = {"RUN_DIRNAME": f"runs_presence_gate/{name}", "TF2_VALIDITY_RADIUS": R,
-                     "TF2_ENGAGE_PRE_KILL_MS": B, "FIGHT_INDEX_NUM_WORKERS": int(args.workers)}
+        overrides = {"RUN_DIRNAME": f"{args.group}/{name}", "TF2_VALIDITY_RADIUS": R,
+                     "TF2_ENGAGE_PRE_KILL_MS": B, "FIGHT_INDEX_NUM_WORKERS": int(args.workers), **extra}
         env = dict(os.environ)
         env["LOL_CFG_OVERRIDES"] = json.dumps(overrides)
         env.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")

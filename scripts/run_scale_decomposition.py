@@ -35,12 +35,17 @@ SEED = 7
 CLASSES = ("pick", "skirmish", "teamfight")
 
 
-def scale_class(blue: np.ndarray, red: np.ndarray) -> np.ndarray:
+def scale_class(blue: np.ndarray, red: np.ndarray, teamfight_min: int = 3) -> np.ndarray:
+    """pick: smaller side <= 1; skirmish: 2 .. teamfight_min-1; teamfight: >= teamfight_min.
+
+    The published decomposition used teamfight_min = 3; the v3 definition
+    (docs/DEFINITION_EVIDENCE.md section 17) uses 4, the {4,5}x{4,5} block.
+    """
     smaller = np.minimum(blue, red)
     out = np.full(len(smaller), "unknown", dtype=object)
     out[smaller <= 1] = "pick"
-    out[smaller == 2] = "skirmish"
-    out[smaller >= 3] = "teamfight"
+    out[(smaller >= 2) & (smaller < teamfight_min)] = "skirmish"
+    out[smaller >= teamfight_min] = "teamfight"
     out[(blue < 0) | (red < 0)] = "unknown"
     return out
 
@@ -160,6 +165,8 @@ def main(argv=None) -> int:
     parser.add_argument("--shards", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--n-boot", type=int, default=1000)
+    parser.add_argument("--teamfight-min", type=int, default=3,
+                        help="smaller side's participation at which an engagement is a teamfight (3 = published, 4 = v3)")
     parser.add_argument("--matrix", type=Path, default=None,
                         help="path for the merged memmap (default: alongside --output)")
     args = parser.parse_args(argv)
@@ -167,8 +174,8 @@ def main(argv=None) -> int:
     matrix_path = args.matrix or args.output.with_suffix(".matrix.npy")
     data = merge_shards(args.shards, matrix_path)
     X, y, groups = data["X"], data["y"], data["groups"]
-    classes = scale_class(data["cluster_blue"], data["cluster_red"])
-    presence = scale_class(data["present_blue"], data["present_red"])
+    classes = scale_class(data["cluster_blue"], data["cluster_red"], teamfight_min=args.teamfight_min)
+    presence = scale_class(data["present_blue"], data["present_red"], teamfight_min=args.teamfight_min)
     print(f"matches={len(np.unique(groups))} positives={y.mean():.3f}")
     for name in CLASSES:
         share = float(np.mean(classes == name))
@@ -188,6 +195,7 @@ def main(argv=None) -> int:
         "patch_distribution": {
             str(p): int(c) for p, c in zip(*np.unique(data["patch"], return_counts=True))
         },
+        "teamfight_min": int(args.teamfight_min),
         "by_participation_scale": {},
         "by_presence_scale": {},
     }
