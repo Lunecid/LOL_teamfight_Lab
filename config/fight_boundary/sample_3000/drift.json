@@ -1,22 +1,22 @@
 {
  "verdict": "pooled",
- "pooled_gap_s": 13.724609610075618,
+ "pooled_gap_s": 13.567505302998619,
  "pooled_plateau_s": [
   10.0,
   18.0
  ],
- "pooled_diameter_u": 4263.868841984671,
+ "pooled_diameter_u": 4262.552448375993,
  "diameter_rel_tol": 0.1,
  "radius_coverage_tol": 0.02,
  "plateau_ari": 0.9,
  "patches": {
   "15.14": {
-   "gap_s": 13.963683610559377,
+   "gap_s": 13.883533099290457,
    "gap_source": "valley",
    "gap_inside_pooled_plateau": true,
-   "diameter_u": 4285.264316413361,
+   "diameter_u": 4309.4311677879305,
    "diameter_source": "crossover",
-   "diameter_rel_diff": 0.005017854728085526,
+   "diameter_rel_diff": 0.01099780471435565,
    "diameter_ci_overlap": true,
    "diameter_inside": true,
    "radius_coverage": 0.890881913303438,
@@ -24,12 +24,12 @@
    "inside": true
   },
   "15.15": {
-   "gap_s": 13.48962882591654,
+   "gap_s": 12.589254117941675,
    "gap_source": "valley",
    "gap_inside_pooled_plateau": true,
-   "diameter_u": 4265.273386041981,
+   "diameter_u": 4146.016358679188,
    "diameter_source": "crossover",
-   "diameter_rel_diff": 0.00032940601818704494,
+   "diameter_rel_diff": 0.02733950868832231,
    "diameter_ci_overlap": true,
    "diameter_inside": true,
    "radius_coverage": 0.890881913303438,
@@ -37,12 +37,12 @@
    "inside": true
   },
   "15.16": {
-   "gap_s": 13.724609610075618,
+   "gap_s": 13.883533099290457,
    "gap_source": "valley",
    "gap_inside_pooled_plateau": true,
-   "diameter_u": 4241.468147321947,
+   "diameter_u": 4296.032587959162,
    "diameter_source": "crossover",
-   "diameter_rel_diff": 0.005253607813203156,
+   "diameter_rel_diff": 0.007854481555042188,
    "diameter_ci_overlap": true,
    "diameter_inside": true,
    "radius_coverage": 0.890881913303438,

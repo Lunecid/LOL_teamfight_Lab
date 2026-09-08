@@ -46,12 +46,14 @@ the crossing of a two-component Gaussian mixture; Mehrzadi and Feitelson search 
 deepest minimum inside a bounded range because global thresholds imprint artefacts on the
 resulting session-length distribution. We combine the two: a mixture locates the
 components, and the valley is the minimum of a kernel density estimate between them
-\cite{silverman1981multimodality}. Across 9,903 matches (497,575 intervals) the valley is
-at 13.3\,s (match-level bootstrap 95\% CI 11.8--15.7), stable under a four-fold change of
-bandwidth (12.6--13.6\,s), across the three patches (13.0--14.1\,s), and across match
-intensity terciles (11.4--14.5\,s). The mixture crossing gives 14.3\,s. Clustering
-agreement (adjusted Rand index $\geq 0.9$) holds for $G \in [10, 18]$\,s, so the value is
-reported together with this plateau, in the spirit of stability-based cluster selection
+\cite{silverman1981multimodality}. Across the full corpus of 208,141 matches
+(10.4 million intervals) the valley is at 13.7\,s (match-level bootstrap 95\% CI
+12.2--15.7, computed on 100,000-interval replicates and therefore conservative), stable
+under a three-fold change of bandwidth (13.6--14.1\,s), across the three patches
+(13.5--14.0\,s), and, in a 9,903-match subsample, across match intensity terciles
+(11.4--14.5\,s). The mixture crossing gives 14.5\,s. Clustering agreement (adjusted Rand
+index $\geq 0.9$) holds for $G \in [10, 18]$\,s, so the value is reported together with
+this plateau, in the spirit of stability-based cluster selection
 \cite{campello2013hdbscan}.
 
 Two honest qualifications follow from the same analysis. First, the valley is a mid-game
@@ -71,11 +73,19 @@ victim or assister). Two kills within seconds that share a champion belong to on
 by construction, and a champion cannot be in two places, so within the temporal window
 the sharing rate as a function of distance traces where ``same fight'' ends. Its 50\%
 crossing -- the Bayes decision point that misclassifies the fewest pairs -- is at
-4,263 units (95\% CI 4,224--4,302) for pairs within $G$; it lies between 4,351 and
-4,921 units in every map region (lanes, river, jungle, both pits, bases), so a single
-$D$ suffices. Pairs within 7\,s but farther than 4,000 units share a champion only 3--5\%
+4,264 units (95\% CI 4,256--4,274) over the 5.46 million consecutive pairs within $G$;
+it lies between 3,974 (top lane) and 4,412 units (bases) in every map region (lanes,
+river, jungle, both pits, bases), within 7\% of the pooled value, so a single $D$
+suffices. Pairs within 7\,s but farther than 4,000 units share a champion only 3--5\%
 of the time: these are simultaneous fights elsewhere. The sharing rate is 93.6\% for pairs
-the rule links and 10.9\% for the simultaneous-but-distant pairs it separates.
+the rule links and 10.9\% for the simultaneous-but-distant pairs it separates. Inside
+lanes the boundary is anisotropic: holding the offset across the lane below 500 units,
+the crossing along the lane lies at 5,200--5,900 units, whereas holding the along-lane
+offset below 1,000 units the crossing across the lane lies at 3,450--3,730 units, a
+ratio of about 1.5 that recurs in every patch. We keep the isotropic rule: an elliptical
+boundary would relabel 0.16\% of in-window pairs, and the anisotropy survives when
+walkable-path distance replaces Euclidean distance (below), so it describes how fights
+move along a lane rather than the terrain.
 
 The seismological scalar proximity $\eta = \Delta t\,\Delta d^{\,d}$
 \cite{zaliapin2013clusters,zaliapin2022perspectives} applied to the same kill pairs is
@@ -92,8 +102,9 @@ boundary is a property of how fights move, not of terrain.
 An episode becomes an \emph{engagement} when, at the cutoff $\tau$ placed $B=10$\,s before
 its first kill, at least $M=2$ alive champions of each team stand within $R$ of the first
 kill's position, mirroring Ke et al.'s requirement that a team fight involve at least two
-players on a side \cite{ke2022}. $R = 1{,}800$ units is a mechanics anchor: 89.3\% of the
-673 ability casts in the patch's Data Dragon fall within it, the same construction by which
+players on a side \cite{ke2022}. $R = 1{,}800$ units is a mechanics anchor: 89.1\% of the
+669 ability ranges listed for the patch's 171 champions in Data Dragon fall within it, the
+same construction by which
 Schubert et al.\ set their combat range at the distance covering about 85\% of observed
 damage \cite{schubert2016encounter}. $R$ cannot be estimated from Match-V5 because the
 positions of non-participating champions at kill time are not recorded; presence is
@@ -110,8 +121,12 @@ pipeline re-estimates $G$, $D$ and the coverage of $R$ for each patch and applie
 pre-registered drift rule: a patch keeps the pooled definition if its $G$ lies inside the
 pooled plateau, its $D$ within 10\% of the pooled value with overlapping intervals, and its
 $R$ coverage within two points. For patches 15.14--15.16 the per-patch values are
-$G = 13.9, 12.6, 13.9$\,s and $D = 4{,}309, 4{,}146, 4{,}296$ units, all inside, and one
-definition serves the corpus. This mirrors the stability analysis of Zaliapin and
+$G = 14.0, 13.5, 13.7$\,s and $D = 4{,}285, 4{,}265, 4{,}241$ units (within 0.5\% of the
+pooled value), all inside, and one definition serves the corpus. A pilot on 3,000 matches
+per patch had placed patch 15.15 at 12.6\,s and 4,146 units; on the full corpus that
+difference vanishes, so the tolerances of the drift rule are wide relative to the
+between-patch variation actually observed, and a genuine change of pace would be
+unmistakable. This mirrors the stability analysis of Zaliapin and
 Ben-Zion, who report their cluster measure moving within $\pm0.1$ when catalogue
 parameters are varied by orders of magnitude \cite{zaliapin2013clusters}.
 

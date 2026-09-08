@@ -5,29 +5,29 @@
   "15.15",
   "15.16"
  ],
- "n_matches": 8927,
- "n_intervals": 447809,
- "n_pairs_in_window": 233758,
- "gap_s": 13.567505302998619,
+ "n_matches": 208141,
+ "n_intervals": 10417458,
+ "n_pairs_in_window": 5460008,
+ "gap_s": 13.724609610075618,
  "gap_source": "valley",
  "gap_ci_s": [
-  12.302687708123818,
-  15.313084382914669
+  12.160114802037889,
+  15.667510701081493
  ],
- "gap_depth": 0.8728183568022138,
+ "gap_depth": 0.8659863557385548,
  "gap_ok": true,
  "gap_plateau_s": [
   10.0,
   18.0
  ],
  "plateau_ari": 0.9,
- "diameter_u": 4262.552448375993,
+ "diameter_u": 4263.868841984671,
  "diameter_source": "crossover",
  "diameter_ci_u": [
-  4223.506761586811,
-  4302.201988605233
+  4256.0475062103815,
+  4273.967703556964
  ],
- "diameter_mass_near": 0.016867871901710317,
+ "diameter_mass_near": 0.017330926987652765,
  "validity_radius_u": 1800.0,
  "radius_source": "mechanics:1800u; coverage from datadragon:15.14.1",
  "radius_coverage": 0.890881913303438,
@@ -37,7 +37,7 @@
  "pick_max_min": 1,
  "skirmish_max_min": 3,
  "provenance": {
-  "created": "2026-09-08T00:16:45",
+  "created": "2026-09-08T17:54:59",
   "seed": 7,
   "n_boot": 200,
   "bandwidth": 0.08,
