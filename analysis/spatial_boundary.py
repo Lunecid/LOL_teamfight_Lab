@@ -47,16 +47,26 @@ def crossover(dd: np.ndarray, sh: np.ndarray, level: float = 0.5, min_n: int = 4
 
 
 def bootstrap_crossover(dd: np.ndarray, sh: np.ndarray, match_idx: np.ndarray, n_boot: int = 200, seed: int = 7) -> Optional[dict]:
+    """Match-level bootstrap of the crossover.
+
+    Pairs are grouped by match through one argsort; each replicate resamples matches
+    with replacement and gathers their pair index ranges (no per-match searches).
+    """
     rng = np.random.default_rng(seed)
-    mids = np.unique(match_idx)
-    if mids.size == 0:
+    if match_idx.size == 0:
         return None
-    by = {m: np.where(match_idx == m)[0] for m in mids}
+    order = np.argsort(match_idx, kind="stable")
+    mi_sorted = match_idx[order]
+    uniq, starts = np.unique(mi_sorted, return_index=True)
+    ends = np.append(starts[1:], mi_sorted.size)
+    dd_s, sh_s = dd[order], sh[order]
+    m = uniq.size
     vals = []
     for _ in range(n_boot):
-        pick = rng.choice(mids, mids.size, replace=True)
-        idx = np.concatenate([by[m] for m in pick])
-        c, _ = crossover(dd[idx], sh[idx])
+        pick = rng.integers(0, m, m)
+        lengths = ends[pick] - starts[pick]
+        idx = np.repeat(starts[pick] - np.cumsum(np.concatenate([[0], lengths[:-1]])), lengths) + np.arange(lengths.sum())
+        c, _ = crossover(dd_s[idx], sh_s[idx])
         if c is not None:
             vals.append(c)
     if not vals:

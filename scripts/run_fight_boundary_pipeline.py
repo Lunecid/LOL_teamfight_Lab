@@ -33,7 +33,7 @@ from analysis.kill_pairs import extract_kill_pairs, group_by_patch, list_cache_m
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--n-matches-per-patch", type=int, default=3000)
+    ap.add_argument("--n-matches-per-patch", type=int, default=3000, help="0 = every match of the patch")
     ap.add_argument("--patches", nargs="*", default=None, help="default: every patch in the cache")
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--n-boot", type=int, default=200)

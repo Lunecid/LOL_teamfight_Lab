@@ -72,9 +72,12 @@ class ValleyEstimate:
         return asdict(self)
 
 
+MAX_POINTS = 1_000_000   # subsample size for KDE / mixture fits on very large corpora
+
+
 def kde_valley(log_dt: np.ndarray, bandwidth: float = 0.08,
                grid: tuple = (-0.5, 3.0, 1401), bounds_log10: Optional[tuple] = None,
-               seed: int = 7) -> ValleyEstimate:
+               seed: int = 7, max_points: Optional[int] = MAX_POINTS) -> ValleyEstimate:
     """Non-parametric antimode of log10-intervals between the two mixture components.
 
     Two steps.  A two-component Gaussian mixture on log10-intervals locates the
@@ -102,9 +105,11 @@ def kde_valley(log_dt: np.ndarray, bandwidth: float = 0.08,
     nan = float("nan")
     if n < 50:
         return ValleyEstimate(nan, nan, nan, nan, n, bandwidth, False)
+    if max_points and n > max_points:   # KDE cost is O(n x grid); a seeded subsample is statistically ample
+        x = np.random.default_rng(seed).choice(x, max_points, replace=False)
 
     if bounds_log10 is None:
-        mix = mixture_crossing(x, seed=seed)
+        mix = mixture_crossing(x, seed=seed, max_points=max_points)
         if "means_s" not in mix:
             return ValleyEstimate(nan, nan, nan, nan, n, bandwidth, False)
         lo_b, hi_b = np.log10(mix["means_s"][0]), np.log10(mix["means_s"][1])
@@ -137,7 +142,7 @@ def kde_valley(log_dt: np.ndarray, bandwidth: float = 0.08,
                           depth, n, bandwidth, ok, float(10 ** lo_b), float(10 ** hi_b))
 
 
-def mixture_crossing(log_dt: np.ndarray, seed: int = 7) -> dict:
+def mixture_crossing(log_dt: np.ndarray, seed: int = 7, max_points: Optional[int] = MAX_POINTS) -> dict:
     """Two-component Gaussian mixture on log10-intervals.
 
     Returns the component means (seconds), weights, and the point between the
@@ -147,9 +152,13 @@ def mixture_crossing(log_dt: np.ndarray, seed: int = 7) -> dict:
     from sklearn.mixture import GaussianMixture
 
     x = np.asarray(log_dt, dtype=np.float64)
-    x = x[np.isfinite(x)].reshape(-1, 1)
-    if x.shape[0] < 50:
-        return {"ok": False, "n": int(x.shape[0])}
+    x = x[np.isfinite(x)]
+    if x.size < 50:
+        return {"ok": False, "n": int(x.size)}
+    n_all = int(x.size)
+    if max_points and x.size > max_points:
+        x = np.random.default_rng(seed).choice(x, max_points, replace=False)
+    x = x.reshape(-1, 1)
     gm = GaussianMixture(2, random_state=seed, n_init=3).fit(x)
     order = np.argsort(gm.means_.ravel())
     means = gm.means_.ravel()[order]
@@ -159,7 +168,7 @@ def mixture_crossing(log_dt: np.ndarray, seed: int = 7) -> dict:
     post = gm.predict_proba(grid)[:, order[0]]
     below = np.where(post < 0.5)[0]
     crossing = float(10 ** grid[below[0], 0]) if below.size else float("nan")
-    return {"ok": bool(below.size > 0), "n": int(x.shape[0]),
+    return {"ok": bool(below.size > 0), "n": n_all, "n_fit": int(x.shape[0]),
             "means_s": [float(10 ** m) for m in means], "sigmas_log10": [float(s) for s in sigmas],
             "weights": [float(w) for w in weights], "crossing_s": crossing}
 
@@ -182,42 +191,48 @@ def temporal_clusters(kill_ts_s: Sequence[float], gap_s: float) -> np.ndarray:
     return labels
 
 
+def _concat_with_boundaries(per_match_ts):
+    """All kill times in one array plus a boolean marking the first kill of each match."""
+    arrs = [np.sort(np.asarray(t, dtype=np.float64)) for t in per_match_ts]
+    arrs = [a for a in arrs if a.size]
+    if not arrs:
+        return np.empty(0), np.empty(0, dtype=bool)
+    ts = np.concatenate(arrs)
+    first = np.zeros(ts.size, dtype=bool)
+    first[np.cumsum([0] + [a.size for a in arrs[:-1]])] = True
+    return ts, first
+
+
+def _labels_at_gap(ts: np.ndarray, first: np.ndarray, gap_s: float) -> np.ndarray:
+    """Episode label per kill: a new episode starts at each match boundary or gap > gap_s."""
+    new = first.copy()
+    new[1:] |= np.diff(ts) > gap_s
+    return np.cumsum(new) - 1
+
+
 def plateau_ari(per_match_ts: Iterable[Sequence[float]], gaps_s: Sequence[float],
                 ref_gap_s: float) -> Dict[str, float]:
     """Adjusted Rand Index between the clustering at each gap and at ``ref_gap_s``.
 
-    Matches are concatenated with disjoint label offsets so cross-match pairs
-    never count as co-clustered.
+    Matches never share an episode: a match boundary always starts a new label.
     """
     from sklearn.metrics import adjusted_rand_score
 
-    per_match_ts = [np.asarray(t, dtype=np.float64) for t in per_match_ts]
-    ref_all, offset = [], 0
-    for t in per_match_ts:
-        lab = temporal_clusters(t, ref_gap_s)
-        ref_all.append(lab + offset)
-        offset += int(lab.max()) + 1 if lab.size else 0
-    ref_all = np.concatenate(ref_all) if ref_all else np.empty(0, dtype=np.int64)
-    out: Dict[str, float] = {}
-    for g in gaps_s:
-        cand, offset = [], 0
-        for t in per_match_ts:
-            lab = temporal_clusters(t, g)
-            cand.append(lab + offset)
-            offset += int(lab.max()) + 1 if lab.size else 0
-        cand = np.concatenate(cand) if cand else np.empty(0, dtype=np.int64)
-        out[f"{g:g}"] = float(adjusted_rand_score(ref_all, cand)) if ref_all.size else float("nan")
-    return out
+    ts, first = _concat_with_boundaries(per_match_ts)
+    if ts.size == 0:
+        return {f"{g:g}": float("nan") for g in gaps_s}
+    ref = _labels_at_gap(ts, first, ref_gap_s)
+    return {f"{g:g}": float(adjusted_rand_score(ref, _labels_at_gap(ts, first, g))) for g in gaps_s}
 
 
 def episode_counts(per_match_ts: Iterable[Sequence[float]], gaps_s: Sequence[float]) -> Dict[str, float]:
     """Mean number of temporal episodes per match at each gap."""
     per_match_ts = [np.asarray(t, dtype=np.float64) for t in per_match_ts]
-    out = {}
-    for g in gaps_s:
-        counts = [int(temporal_clusters(t, g).max()) + 1 if t.size else 0 for t in per_match_ts]
-        out[f"{g:g}"] = float(np.mean(counts)) if counts else float("nan")
-    return out
+    n_matches = sum(1 for t in per_match_ts if t.size)
+    ts, first = _concat_with_boundaries(per_match_ts)
+    if ts.size == 0:
+        return {f"{g:g}": float("nan") for g in gaps_s}
+    return {f"{g:g}": float((_labels_at_gap(ts, first, g).max() + 1) / n_matches) for g in gaps_s}
 
 
 # --------------------------------------------------------------------------

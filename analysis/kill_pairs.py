@@ -118,12 +118,16 @@ def _participants(kill: dict) -> set:
 
 def extract_kill_pairs(match_ids: Sequence[str], progress: Optional[Callable[[str], None]] = None,
                        ) -> Tuple[List[MatchRecord], Dict[str, np.ndarray]]:
-    """Read kills for ``match_ids`` from the cache; return records and pairs."""
+    """Read kills for ``match_ids`` from the cache; return records and pairs.
+
+    Per-match arrays are accumulated and concatenated once, so a 75k-match slice
+    (about 3.5M pairs) stays within a few hundred MB.
+    """
     from data.cache_io import load_match_cache
     from gameplay.fights import _extract_kill_events
 
     records: List[MatchRecord] = []
-    pairs: Dict[str, list] = {k: [] for k in PAIR_KEYS}
+    chunks: Dict[str, list] = {k: [] for k in PAIR_KEYS}
     t0 = time.time()
     for done, mid in enumerate(match_ids, 1):
         pack = load_match_cache(mid)
@@ -134,32 +138,36 @@ def extract_kill_pairs(match_ids: Sequence[str], progress: Optional[Callable[[st
             continue
         tm = pack["meta"].get("team_map", {}) or {}
         patch = str(pack["meta"].get("patch", "?"))
-        ts = np.sort(np.array([k["timestamp"] for k in kills], dtype=np.float64) / 1000.0)
         kills = sorted(kills, key=lambda k: int(k["timestamp"]))
+        ts = np.array([k["timestamp"] for k in kills], dtype=np.float64) / 1000.0
         mi = len(records)
         records.append(MatchRecord(mid, patch, ts, len(kills)))
+        pos = np.array([k["position"] if k.get("position") else (np.nan, np.nan) for k in kills], dtype=np.float64)
         parts = [_participants(k) for k in kills]
-        vteam = [tm.get(str(k.get("victim_id", 0)), tm.get(k.get("victim_id", 0), -1)) for k in kills]
-        for i in range(len(kills) - 1):
-            j = i + 1
-            p1, p2 = kills[i].get("position"), kills[j].get("position")
-            d = ts[j] - ts[i]
-            if not p1 or not p2 or d <= 0:
-                continue
-            pairs["match_idx"].append(mi); pairs["dt"].append(d)
-            pairs["dd"].append(float(np.hypot(p2[0] - p1[0], p2[1] - p1[1])))
-            pairs["shared"].append(len(parts[i] & parts[j]) > 0)
-            pairs["x1"].append(p1[0]); pairs["y1"].append(p1[1]); pairs["x2"].append(p2[0]); pairs["y2"].append(p2[1])
-            pairs["minute"].append(ts[i] / 60.0)
-            pairs["same_victim_team"].append(vteam[i] == vteam[j])
-        if progress and done % 1000 == 0:
-            progress(f"  {done}/{len(match_ids)} matches, {len(pairs['dt']):,} pairs, {time.time() - t0:.0f}s")
-    P = {k: np.asarray(v) for k, v in pairs.items()}
+        vteam = np.array([tm.get(str(k.get("victim_id", 0)), tm.get(k.get("victim_id", 0), -1)) or -1 for k in kills])
+        n = len(kills)
+        d = np.diff(ts)
+        ok = (d > 0) & np.isfinite(pos[:-1, 0]) & np.isfinite(pos[1:, 0])
+        if not ok.any():
+            continue
+        i = np.where(ok)[0]
+        chunks["match_idx"].append(np.full(i.size, mi, dtype=np.int32))
+        chunks["dt"].append(d[i])
+        chunks["dd"].append(np.hypot(pos[i + 1, 0] - pos[i, 0], pos[i + 1, 1] - pos[i, 1]))
+        chunks["shared"].append(np.array([len(parts[j] & parts[j + 1]) > 0 for j in i], dtype=bool))
+        chunks["x1"].append(pos[i, 0].astype(np.float32)); chunks["y1"].append(pos[i, 1].astype(np.float32))
+        chunks["x2"].append(pos[i + 1, 0].astype(np.float32)); chunks["y2"].append(pos[i + 1, 1].astype(np.float32))
+        chunks["minute"].append((ts[i] / 60.0).astype(np.float32))
+        chunks["same_victim_team"].append(vteam[i] == vteam[i + 1])
+        if progress and done % 5000 == 0:
+            progress(f"  {done}/{len(match_ids)} matches, {sum(a.size for a in chunks['dt']):,} pairs, {time.time() - t0:.0f}s")
+    P = {k: (np.concatenate(v) if v else np.empty(0)) for k, v in chunks.items()}
     if P["dt"].size:
-        P["region1"], P["tangent1"] = classify_points(np.stack([P["x1"], P["y1"]], axis=1))
-        P["region2"], _ = classify_points(np.stack([P["x2"], P["y2"]], axis=1))
+        r1, t1 = classify_points(np.stack([P["x1"], P["y1"]], axis=1).astype(np.float64))
+        r2, _ = classify_points(np.stack([P["x2"], P["y2"]], axis=1).astype(np.float64))
+        P["region1"], P["region2"], P["tangent1"] = r1.astype("<U10"), r2.astype("<U10"), t1.astype(np.float32)
     else:
-        P["region1"] = np.empty(0, dtype=str); P["region2"] = np.empty(0, dtype=str); P["tangent1"] = np.empty((0, 2))
+        P["region1"] = np.empty(0, dtype="<U10"); P["region2"] = np.empty(0, dtype="<U10"); P["tangent1"] = np.empty((0, 2), dtype=np.float32)
     P["patch_per_match"] = np.asarray([r.patch for r in records])
     return records, P
 
