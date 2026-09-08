@@ -75,6 +75,10 @@ def main(argv=None) -> int:
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--n-matches", type=int, default=None, help="sample size (default: every cached match)")
     ap.add_argument("--n-boot", type=int, default=1000)
+    ap.add_argument("--label-type", default=V3_LABEL["label_type"], help="primary label stored as y")
+    ap.add_argument("--extra-labels", default="market_event,attention_value_win",
+                    help="additional labels stored as y_<type> so the decomposition can be re-run per label")
+    ap.add_argument("--y-key", default="y", help="label column for the decomposition")
     ap.add_argument("--wait-for-glob", default=None)
     ap.add_argument("--wait-pattern", default="[DONE]")
     ap.add_argument("--wait-timeout-h", type=float, default=6.0)
@@ -93,7 +97,8 @@ def main(argv=None) -> int:
         print(wait_for(args.wait_for_glob, args.wait_pattern, args.wait_timeout_h * 3600), flush=True)
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
-    json.dump({"detector": V3_DETECTOR, "label": V3_LABEL, "scale": V3_SCALE, "seed": args.seed,
+    json.dump({"detector": V3_DETECTOR, "label": {**V3_LABEL, "label_type": args.label_type, "extra_labels": args.extra_labels},
+               "scale": V3_SCALE, "seed": args.seed,
                "num_shards": args.num_shards, "n_matches": args.n_matches,
                "definition": "docs/DEFINITION_EVIDENCE.md section 17"},
               open(args.out_dir / "v3_definition.json", "w", encoding="utf-8"), indent=1)
@@ -107,8 +112,10 @@ def main(argv=None) -> int:
             while pending and len(running) < args.parallel:
                 i = pending.pop(0)
                 cmd = [sys.executable, "scripts/build_corpus_shard.py", "--shard", str(i), "--num-shards", str(args.num_shards),
-                       "--seed", str(args.seed), "--label-type", V3_LABEL["label_type"], "--tie-policy", V3_LABEL["tie_policy"],
+                       "--seed", str(args.seed), "--label-type", args.label_type, "--tie-policy", V3_LABEL["tie_policy"],
                        "--out-dir", str(args.out_dir)]
+                if args.extra_labels:
+                    cmd += ["--extra-labels", args.extra_labels]
                 if args.n_matches:
                     cmd += ["--n-matches", str(args.n_matches)]
                 running.append((i, subprocess.Popen(cmd, cwd=str(PROJECT_ROOT), env=env, stdout=log, stderr=subprocess.STDOUT)))
@@ -127,7 +134,7 @@ def main(argv=None) -> int:
 
     if not args.skip_decomposition:
         cmd = [sys.executable, "scripts/run_scale_decomposition.py", "--shards", str(args.out_dir), "--output", str(args.output),
-               "--teamfight-min", str(V3_SCALE["teamfight_min"]), "--n-boot", str(args.n_boot)]
+               "--teamfight-min", str(V3_SCALE["teamfight_min"]), "--n-boot", str(args.n_boot), "--y-key", args.y_key]
         print(" ".join(cmd), flush=True)
         t0 = time.time()
         rc = subprocess.run(cmd, cwd=str(PROJECT_ROOT), env=env).returncode

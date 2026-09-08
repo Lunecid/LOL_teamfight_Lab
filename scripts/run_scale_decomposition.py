@@ -50,7 +50,7 @@ def scale_class(blue: np.ndarray, red: np.ndarray, teamfight_min: int = 3) -> np
     return out
 
 
-def merge_shards(shard_dir: Path, matrix_path: Path) -> dict:
+def merge_shards(shard_dir: Path, matrix_path: Path, y_key: str = "y") -> dict:
     paths = sorted(shard_dir.glob("shard_*.npz"))
     if not paths:
         raise SystemExit(f"no shards under {shard_dir}")
@@ -90,7 +90,7 @@ def merge_shards(shard_dir: Path, matrix_path: Path) -> dict:
             X = blob["X"]
             rows = X.shape[0]
             X_all[offset:offset + rows] = X[:, keep]
-            y_all[offset:offset + rows] = blob["y"]
+            y_all[offset:offset + rows] = blob[y_key]
             for name in parts:
                 parts[name].append(blob[name])
             offset += rows
@@ -165,6 +165,8 @@ def main(argv=None) -> int:
     parser.add_argument("--shards", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--n-boot", type=int, default=1000)
+    parser.add_argument("--y-key", default="y",
+                        help="label column in the shards: y (the build's LABEL_TYPE) or y_<type> from --extra-labels")
     parser.add_argument("--teamfight-min", type=int, default=3,
                         help="smaller side's participation at which an engagement is a teamfight (3 = published, 4 = v3)")
     parser.add_argument("--matrix", type=Path, default=None,
@@ -172,7 +174,13 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
 
     matrix_path = args.matrix or args.output.with_suffix(".matrix.npy")
-    data = merge_shards(args.shards, matrix_path)
+    data = merge_shards(args.shards, matrix_path, y_key=args.y_key)
+    valid = data["y"] >= 0
+    if not valid.all():
+        idx = np.flatnonzero(valid)
+        print(f"label {args.y_key}: dropping {int((~valid).sum())} rows without a label (draws)", flush=True)
+        for k in list(data):
+            data[k] = np.asarray(data[k][idx])
     X, y, groups = data["X"], data["y"], data["groups"]
     classes = scale_class(data["cluster_blue"], data["cluster_red"], teamfight_min=args.teamfight_min)
     presence = scale_class(data["present_blue"], data["present_red"], teamfight_min=args.teamfight_min)
@@ -196,6 +204,7 @@ def main(argv=None) -> int:
             str(p): int(c) for p, c in zip(*np.unique(data["patch"], return_counts=True))
         },
         "teamfight_min": int(args.teamfight_min),
+        "y_key": str(args.y_key),
         "by_participation_scale": {},
         "by_presence_scale": {},
     }

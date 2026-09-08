@@ -43,6 +43,9 @@ def main(argv=None) -> int:
     parser.add_argument("--tie-policy", default=None,
                         help="override cfg.LABEL_TIE_POLICY; with 'drop', "
                              "genuine draws are excluded from the shard")
+    parser.add_argument("--extra-labels", default="",
+                        help="comma-separated LABEL_TYPEs computed on the same rows and stored as "
+                             "y_<type> (-1 where that label is a draw), e.g. market_event,attention_value_win")
     parser.add_argument("--out-dir", required=True, type=Path)
     args = parser.parse_args(argv)
 
@@ -75,10 +78,49 @@ def main(argv=None) -> int:
     print(f"[shard {args.shard}] X={X.shape} in {elapsed:.0f}s "
           f"({len(mine) / max(elapsed, 1e-9):.1f} matches/s)", flush=True)
 
+    extra = [s.strip() for s in str(args.extra_labels or "").split(",") if s.strip()]
+    extra_cols: dict[str, np.ndarray] = {}
+    if extra:
+        from data.cache_io import load_match_cache
+        from gameplay.labels import compute_label
+        from gameplay.pipeline_interp import interpolate_node_global
+        default_type = str(cfg.LABEL_TYPE)
+        by_match: dict[str, list[int]] = {}
+        for i, r in enumerate(used):
+            by_match.setdefault(r.match_id, []).append(i)
+        for lt in extra:
+            extra_cols[lt] = np.full(len(used), -1, dtype=np.int8)
+        for mid_, idxs in by_match.items():
+            pack = load_match_cache(mid_)
+            if not pack:
+                continue
+            tm = {int(k): int(v) for k, v in (pack["meta"].get("team_map") or {}).items()}
+            for lt in extra:
+                cfg.LABEL_TYPE = lt
+                for i in idxs:
+                    r = used[i]
+                    lab = compute_label(
+                        pack, tm, -1,
+                        engage_ts=int(r.t_start_ts),
+                        label_end_ts=(int(r.label_end_ts) if int(r.label_end_ts) >= 0 else None),
+                        first_kill_ts=(int(r.first_kill_ts) if int(getattr(r, "first_kill_ts", -1)) >= 0 else None),
+                        last_kill_ts=(int(r.last_kill_ts) if int(getattr(r, "last_kill_ts", -1)) >= 0 else None),
+                        interp_node_global=interpolate_node_global,
+                    )
+                    extra_cols[lt][i] = -1 if lab is None else int(lab)
+        cfg.LABEL_TYPE = default_type
+        for lt, col in extra_cols.items():
+            ok = col >= 0
+            share = float(ok.mean()) * 100.0
+            pos = float((col[ok] == 1).mean()) if ok.any() else float("nan")
+            agree = float((col[ok] == y[ok]).mean()) if ok.any() else float("nan")
+            print(f"[shard {args.shard}] y_{lt}: labelled {share:.1f}% positives {pos:.3f} agreement with y {agree:.3f}", flush=True)
+
     args.out_dir.mkdir(parents=True, exist_ok=True)
     out = args.out_dir / f"shard_{args.shard:03d}.npz"
     np.savez_compressed(
         out,
+        **{f"y_{lt}": col for lt, col in extra_cols.items()},
         X=X.astype(np.float32),
         y=y.astype(np.int8),
         groups=np.array([r.match_id for r in used]),
