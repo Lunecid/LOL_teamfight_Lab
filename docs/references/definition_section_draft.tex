@@ -120,9 +120,13 @@ is a convention inside a bracket, we report its leverage. On 81,914 kill episode
 10\,s); it is 14.7\% at 1,600 units, 9.6\% at 1,350 and 34.2\% at 2,500, and 26.5\% at
 5\,s and 13.8\% at 15\,s, monotone in both constants; the fully rule-anchored point
 (1,600 units, 15\,s) keeps 54\% of the reference set. The presence gate, not $G$ or $D$,
-is therefore the constant that decides how many engagements a match contains, and any
-claim about predicting them has to be shown at both ends of the bracket.
-% TODO: report the model at (1,600 u, 15 s) alongside the reference point.
+is therefore the constant that decides how many engagements a match contains, so we
+re-ran the tabular baseline at the rule-anchored point with every other constant fixed:
+the corpus shrinks from 994,365 to 531,984 engagements and the held-out test AUC moves
+from 0.669 (95\% CI 0.665--0.672) to 0.660 (0.656--0.663), while on the 32,820 test
+engagements that both gates accept the two models are indistinguishable (0.659 vs 0.658)
+and the engagements only the reference gate accepts are the more predictable ones
+(0.673). The gate changes how many engagements there are, not how predictable they are.
 Moving the anchor from the first kill to the episode's kill centroid (median shift 663
 units) changes the verdict for 6\% of episodes with no directional bias in presence
 counts or scale classes.
