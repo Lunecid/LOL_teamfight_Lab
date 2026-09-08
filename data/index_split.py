@@ -62,6 +62,18 @@ _FIGHT_INDEX_CACHE_CFG_KEYS: Tuple[str, ...] = (
     "REQUIRE_LCC_TOTAL",
     "REQUIRE_LCC_PER_TEAM",
     "CLUSTER_MAX_DIAMETER",
+    # teamfight_v2 kill-cluster detector constants (presence gate, chaining, merge)
+    "TF2_KILL_CLUSTER_GAP_MS",
+    "TF2_ENGAGE_PRE_KILL_MS",
+    "TF2_VALIDITY_RADIUS",
+    "TF2_INTERACTION_RADIUS",
+    "TF2_POST_FIGHT_WINDOW_MS",
+    "TF2_TAIL_BUFFER_MS",
+    "TF2_MIN_PER_TEAM",
+    "TF2_EXCLUDE_SHOP_INTERACTIONS",
+    "TF2_GRID_STEP_MS",
+    "TF2_USE_FRAME_INTERP",
+    "TF2_USE_KILL_TRAJECTORY_INTERP",
     # Per-match sampling controls
     "MAX_FIGHTS_PER_MATCH",
     "FIGHT_SUBSAMPLE_STRATEGY",

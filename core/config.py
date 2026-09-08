@@ -36,6 +36,7 @@ Changes from original:
 """
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -1041,6 +1042,43 @@ class CFG:
 # Singleton instance + directory creation
 # -------------------------------------------------------------------
 cfg = CFG()
+
+
+def _apply_env_overrides(c: "CFG") -> None:
+    """Apply ``LOL_CFG_OVERRIDES`` (a JSON object of CFG field -> value) on top of the defaults.
+
+    The environment is inherited by multiprocessing workers, so this is the one way to change
+    detector constants (``TF2_*``), ``RUN_DIRNAME`` etc. for a whole run, including the
+    ``build_fight_index`` worker processes that re-import this module.  Values are coerced to
+    the type of the default; unknown fields raise so a typo cannot silently run the defaults.
+    """
+    raw = str(os.environ.get("LOL_CFG_OVERRIDES", "")).strip()
+    if not raw:
+        return
+    try:
+        overrides = json.loads(raw)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"LOL_CFG_OVERRIDES is not valid JSON: {e}") from e
+    if not isinstance(overrides, dict):
+        raise ValueError("LOL_CFG_OVERRIDES must be a JSON object")
+    for key, val in overrides.items():
+        if not hasattr(c, key):
+            raise KeyError(f"LOL_CFG_OVERRIDES: unknown CFG field {key!r}")
+        cur = getattr(c, key)
+        if isinstance(cur, bool):
+            val = bool(val)
+        elif isinstance(cur, int):
+            val = int(val)
+        elif isinstance(cur, float):
+            val = float(val)
+        elif isinstance(cur, Path):
+            val = Path(str(val))
+        elif isinstance(cur, tuple) and isinstance(val, list):
+            val = tuple(val)
+        setattr(c, key, val)
+
+
+_apply_env_overrides(cfg)
 
 # Directory creation is best-effort: on a machine where OUTPUT_ROOT lives on a
 # missing/read-only drive, mkdir() would raise at import time and make the whole
