@@ -70,6 +70,9 @@ def merge_shards(shard_dir: Path, matrix_path: Path, y_key: str = "y") -> dict:
                 np.minimum(col_min, X.min(axis=0), out=col_min)
                 np.maximum(col_max, X.max(axis=0), out=col_max)
     keep = np.flatnonzero(col_max > col_min)
+    names_path = shard_dir / "feature_names.json"
+    all_names = json.load(open(names_path, encoding="utf-8"))["names"] if names_path.exists() else None
+    kept_names = [all_names[j] for j in keep] if all_names and len(all_names) == n_features else None
     print(f"rows={total} features={n_features} non-constant={len(keep)}"
           f" ({len(keep) / n_features * 100:.1f}%)")
 
@@ -98,11 +101,12 @@ def merge_shards(shard_dir: Path, matrix_path: Path, y_key: str = "y") -> dict:
     X_all.flush()
     merged = {name: np.concatenate(chunks) for name, chunks in parts.items()}
     merged["X"] = np.load(matrix_path, mmap_mode="r")
+    merged["feature_names"] = kept_names
     merged["y"], merged["keep"] = y_all, keep
     return merged
 
 
-def oof_predictions(X, y, groups, n_splits=5) -> np.ndarray:
+def oof_predictions(X, y, groups, n_splits=5, categorical=None) -> np.ndarray:
     """Paper's tabular learner, one config: at ~10^6 rows the small-sample
     regularization search that the fusion study needed is unnecessary."""
     oof = np.full(len(y), np.nan, dtype=np.float64)
@@ -113,7 +117,10 @@ def oof_predictions(X, y, groups, n_splits=5) -> np.ndarray:
             n_jobs=-1, verbose=-1,
         )
         X_train = np.ascontiguousarray(X[train])  # materialize once, free early
-        model.fit(X_train, y[train])
+        if categorical:
+            model.fit(X_train, y[train], categorical_feature=list(categorical))
+        else:
+            model.fit(X_train, y[train])
         del X_train
         oof[test] = model.predict_proba(np.ascontiguousarray(X[test]))[:, 1]
         print(f"  fold {fold}/{n_splits}: train={len(train)} test={len(test)}"
@@ -167,6 +174,9 @@ def main(argv=None) -> int:
     parser.add_argument("--n-boot", type=int, default=1000)
     parser.add_argument("--y-key", default="y",
                         help="label column in the shards: y (the build's LABEL_TYPE) or y_<type> from --extra-labels")
+    parser.add_argument("--categorical", action="store_true",
+                        help="treat identifier columns (champion / spell / rune / item-hash / ban ids, __last only) "
+                             "as LightGBM categorical features instead of numbers")
     parser.add_argument("--teamfight-min", type=int, default=3,
                         help="smaller side's participation at which an engagement is a teamfight (3 = published, 4 = v3)")
     parser.add_argument("--matrix", type=Path, default=None,
@@ -192,7 +202,23 @@ def main(argv=None) -> int:
         share = float(np.mean(classes == name))
         print(f"  participation {name:10s} n={int((classes == name).sum()):7d} ({share*100:5.1f}%)")
 
-    pred = oof_predictions(X, y, groups)
+    cat_idx = []
+    if args.categorical and data.get("feature_names"):
+        import re as _re
+        role_re = _re.compile(r"^(b|r)(TOP|JNG|MID|BOT|SUP)_(.+)$")
+        cat_bases = {"champion_id", "champion_name_id", "summoner_spell_1_id", "summoner_spell_2_id", "primary_style_id",
+                     "sub_style_id", "primary_rune_1", "primary_rune_2", "primary_rune_3", "primary_rune_4", "sub_rune_1",
+                     "sub_rune_2", "stat_perk_offense", "stat_perk_flex", "stat_perk_defense"} | {f"itemhash{i}" for i in range(16)} \
+                    | {f"{tm}_ban_{i}" for tm in ("blue", "red") for i in range(5)}
+        for i, n in enumerate(data["feature_names"]):
+            if not n.endswith("__last"):
+                continue
+            b = n[: -len("__last")]
+            m = role_re.match(b)
+            if (m and m.group(3) in cat_bases) or (b in cat_bases):
+                cat_idx.append(i)
+        print(f"categorical columns: {len(cat_idx)}", flush=True)
+    pred = oof_predictions(X, y, groups, categorical=cat_idx or None)
     overall = float(roc_auc_score(y, pred))
     print(f"overall AUC: {overall:.4f}")
 
@@ -208,6 +234,7 @@ def main(argv=None) -> int:
         },
         "teamfight_min": int(args.teamfight_min),
         "y_key": str(args.y_key),
+        "categorical_columns": int(len(cat_idx)),
         "by_participation_scale": {},
         "by_presence_scale": {},
     }

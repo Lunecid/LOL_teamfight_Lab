@@ -1170,3 +1170,13 @@ v3 전체 행을 두 라벨이 같은 행(94.5%, 505,889)과 다른 행(5.5%, 29
 - market_event에 가격을 붙였다(`gameplay/labels.py`). 스모크에서 market_lex 일치 96.4%.
 - 코퍼스 v3.1(수정 특징 + 가격 라벨)을 재구축 중: `corpus_shards_v31_mevent/`,
   `features/scale_decomposition_v31_*.json`. v3 대비 AUC 변화가 누수의 크기다.
+
+### 20.1 표현 감사: 원천 필드 → 모델 입력 (2026-09-09, `docs/REPRESENTATION_AUDIT_V3.md`)
+
+`scripts/audit_representation.py`로 캐시 건강·탭 열·학습기 입력·정렬 검증을 돌렸다. 원천 필드는
+의도한 것이 모두 들어가고, 안 쓰는 것은 경기 후 집계(challenges 등, 컷오프에서 알 수 없음)뿐이다.
+API가 항상 0으로 주는 챔피언 스탯 6개는 죽은 열(420열). 정렬 검증이 결함 2개를 찾았다: 프레임
+유지 특징이 한 프레임 더 오래된 값을 읽던 것(searchsorted side)과 절대 time_norm이 실제 경로에서
+스냅숏 전역 벡터에 덮이던 것. 수정 후 프레임 특징 98.7% 정확(나머지는 τ 전 2.5 s 안의 프레임),
+이벤트·time_norm·라벨 100%. 식별자 2,240열이 숫자로 들어가므로 v3.2 분해에서 LightGBM 범주형
+변형(`--categorical`)을 잰다. v3.1 샤드는 폐기, v3.2 재구축 중.
