@@ -62,3 +62,18 @@ sampling deterministic.
 | `features/prediction_situation_pilot.json` | 553-match pilot: context 15/30/60 s, horizon 35/45/60 s, labels, frame age | `scripts/run_prediction_situation_pilot.py` |
 
 Regenerable: the three `*.matrix.npy` memmaps (~10.6 GB each) are rebuilt by the decomposition from the shards.
+
+## Corpus v3.3 (2026-09-09, audit-fixed; supersedes v3 for every headline number)
+
+| file | what | how |
+|---|---|---|
+| `corpus_shards_v33/shard_*.npz` (+`manifest.json`, `feature_names.json`, `build.log`) | 566,452 engagements x 7,106 features on the common population; labels `y_market_event`, `y_market_event@window`, `y_market_lex`, `y_market_lex@window`, `y_attention_value_win` (-1 = draw) | `scripts/build_corpus_v3.py` (preset v3.3, 32 shards) |
+| `features/scale_decomposition_v33_market_event.json` (+preds, matrix) | headline: .670, pick .679 / skirmish .663 / teamfight .681 | `run_scale_decomposition.py --y-key y_market_event --teamfight-min 4` |
+| `features/scale_decomposition_v33_{market_event_cat,market_event_window,market_lex,market_lex_window,attention_value_win}.json` | variants: .661 / .669 / .694 / .693 / .624 | `--categorical`, `--y-key ...` |
+| `features/leak_ablation_v33.json` | same label, leak flags toggled on 5,000 matches: clean .620 -> time_norm leak .639 (teamfight .642 -> .691) | `scripts/run_leak_ablation.py` |
+| `features/label_window_fixes.json` | endpoint fix flips 1.8%, attribution flips 3.0% (553 matches) | `scripts/measure_label_window_fixes.py` |
+| `features/representation_audit_v31*.json` | four-level representation audit before / after the frame-index fix | `scripts/audit_representation.py` |
+| `features/event_prices.json` | event-price regression with match-level bootstrap | `scripts/estimate_event_prices.py --n-boot 200` |
+| `features/fight_boundary_full/` | boundary specs with rule-anchored R 1,600 u / B 15 s (copied to `config/fight_boundary/`) | `run_fight_boundary_pipeline.py --reuse-pairs --validity-radius-u 1600 --lead-s 15` |
+
+Superseded and deleted: `corpus_shards_v31_mevent/`, `corpus_shards_v32_mevent/` (built with defects found by the audits).
