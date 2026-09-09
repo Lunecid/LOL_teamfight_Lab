@@ -40,6 +40,9 @@ def main(argv=None) -> int:
     ap.add_argument("--bandwidth", type=float, default=0.08)
     ap.add_argument("--datadragon", action="store_true", help="estimate R per patch from Data Dragon (network)")
     ap.add_argument("--reuse-pairs", action="store_true", help="load pairs_<patch>.npz from out-dir instead of the cache")
+    ap.add_argument("--validity-radius-u", type=float, default=None,
+                    help="pin R to a game-rule constant (v3.3: 1600 = champion-death XP share radius) instead of the Data Dragon reference")
+    ap.add_argument("--lead-s", type=float, default=None, help="pin B to a game-rule constant (v3.3: 15 = kill/assist credit window)")
     ap.add_argument("--out-dir", type=Path, required=True)
     args = ap.parse_args(argv)
     args.out_dir.mkdir(parents=True, exist_ok=True)
@@ -93,7 +96,7 @@ def main(argv=None) -> int:
     pooled_pairs = {k: np.concatenate(v) for k, v in pooled_pairs.items()}
     pooled_radius = next((r for r in radius.values() if r.get("ok")), None)
     pooled, pooled_details = build_spec("pooled", sorted(slices), all_records, pooled_pairs,
-                                        n_boot=args.n_boot, seed=args.seed, bandwidth=args.bandwidth,
+                                        n_boot=args.n_boot, seed=args.seed, rule_radius_u=args.validity_radius_u, rule_lead_s=args.lead_s, bandwidth=args.bandwidth,
                                         radius_info=pooled_radius)
     pooled.to_json(args.out_dir / "spec_pooled.json")
     json.dump(pooled_details, open(args.out_dir / "details_pooled.json", "w"), indent=1, default=_json_default)
@@ -102,7 +105,7 @@ def main(argv=None) -> int:
     # ---- 4. per patch ----
     per_patch = {}
     for patch, (recs, pairs) in slices.items():
-        spec, details = build_spec(f"patch:{patch}", [patch], recs, pairs, n_boot=args.n_boot, seed=args.seed,
+        spec, details = build_spec(f"patch:{patch}", [patch], recs, pairs, n_boot=args.n_boot, seed=args.seed, rule_radius_u=args.validity_radius_u, rule_lead_s=args.lead_s,
                                    bandwidth=args.bandwidth, pooled=pooled, radius_info=radius.get(patch))
         spec.to_json(args.out_dir / f"spec_{patch}.json")
         json.dump(details, open(args.out_dir / f"details_{patch}.json", "w"), indent=1, default=_json_default)

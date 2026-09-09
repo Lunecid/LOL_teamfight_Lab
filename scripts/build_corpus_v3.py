@@ -91,6 +91,7 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
 
     env = dict(os.environ)
+    env["LOL_CFG_PRESET"] = "v3.3"
     inherited = {}
     if env.get("LOL_CFG_OVERRIDES"):
         try:
@@ -135,7 +136,7 @@ def main(argv=None) -> int:
             return _hl.sha1(open(path, "rb").read()).hexdigest()
         except OSError:
             return None
-    manifest = {"run_id": run_id, "git_commit": git_commit, "git_dirty": git_dirty, "detector": V3_DETECTOR, "effective_overrides": effective,
+    manifest = {"run_id": run_id, "git_commit": git_commit, "git_dirty": git_dirty, "preset": "v3.3", "detector": V3_DETECTOR, "effective_overrides": effective,
                 "label": {"row_label": args.label_type, "row_tie_policy": args.tie_policy,
                           "extra_labels": args.extra_labels, "extra_tie_policy": args.extra_tie_policy,
                           "gold_deadzone": V3_LABEL["gold_deadzone"], "price_table_sha1": _sha(PROJECT_ROOT / "config/game_rules/event_prices.json"),

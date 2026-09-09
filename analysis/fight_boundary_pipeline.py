@@ -77,8 +77,13 @@ def estimate_temporal(records: Sequence[MatchRecord], n_boot: int, seed: int, ba
 
 def build_spec(scope: str, patches: List[str], records: Sequence[MatchRecord], pairs: Dict[str, np.ndarray],
                n_boot: int = 200, seed: int = 7, bandwidth: float = 0.08,
-               pooled: Optional[BoundarySpec] = None, radius_info: Optional[dict] = None) -> tuple:
-    """Estimate every boundary for one slice; returns (spec, details)."""
+               pooled: Optional[BoundarySpec] = None, radius_info: Optional[dict] = None,
+               rule_radius_u: Optional[float] = None, rule_lead_s: Optional[float] = None) -> tuple:
+    """Estimate every boundary for one slice; returns (spec, details).
+
+    ``rule_radius_u`` / ``rule_lead_s`` pin R and B to game-rule constants (the v3.3 choice:
+    champion-death XP share radius, kill-credit window) instead of the Data Dragon reference.
+    """
     T = estimate_temporal(records, n_boot=n_boot, seed=seed, bandwidth=bandwidth)
     # --- G ---
     if T.get("ok"):
@@ -101,8 +106,13 @@ def build_spec(scope: str, patches: List[str], records: Sequence[MatchRecord], p
         D, D_src, D_ci, D_mass = pooled.diameter_u, "pooled", pooled.diameter_ci_u, None
     else:
         D, D_src, D_ci, D_mass = DEFAULTS["diameter_u"], "default", None, None
-    # --- R ---
-    if radius_info and radius_info.get("ok"):
+    # --- R (and B) ---
+    lead_s, lead_src = DEFAULTS["lead_s"], "fixed"
+    if rule_lead_s is not None:
+        lead_s, lead_src = float(rule_lead_s), "rule:kill/assist credit window (Summoner's Rift)"
+    if rule_radius_u is not None:
+        R, R_src, R_cov = float(rule_radius_u), "rule:champion-death experience share radius", None
+    elif radius_info and radius_info.get("ok"):
         R, R_src, R_cov = float(radius_info["radius_u"]), f"mechanics:{radius_info['radius_u']:.0f}u; coverage from datadragon:{radius_info['version']}", float(radius_info["coverage_at_reference"])
     elif pooled is not None and pooled.radius_source != "default":
         R, R_src, R_cov = pooled.validity_radius_u, pooled.radius_source, pooled.radius_coverage
@@ -116,6 +126,7 @@ def build_spec(scope: str, patches: List[str], records: Sequence[MatchRecord], p
         gap_plateau_s=plateau, plateau_ari=PLATEAU_ARI,
         diameter_u=D, diameter_source=D_src, diameter_ci_u=D_ci, diameter_mass_near=D_mass,
         validity_radius_u=R, radius_source=R_src, radius_coverage=R_cov,
+        lead_s=lead_s, lead_source=lead_src,
         provenance={"created": _dt.datetime.now().isoformat(timespec="seconds"), "seed": seed, "n_boot": n_boot,
                     "bandwidth": bandwidth, "gaps_swept_s": GAPS},
     )

@@ -1103,6 +1103,10 @@ def _apply_env_overrides(c: "CFG") -> None:
         setattr(c, key, val)
 
 
+_PRESET_NAME = str(os.environ.get("LOL_CFG_PRESET", "")).strip()
+if _PRESET_NAME:
+    from core.presets import apply_preset as _apply_preset  # noqa: E402
+    _apply_preset(cfg, _PRESET_NAME)
 _apply_env_overrides(cfg)
 
 # Directory creation is best-effort: on a machine where OUTPUT_ROOT lives on a
