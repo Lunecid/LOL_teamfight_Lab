@@ -1,0 +1,102 @@
+{
+  "status": "passed",
+  "sampled_matches": 14993,
+  "one_minute_per_match": true,
+  "split_overlap": 0,
+  "source_and_model_hashes": "matched",
+  "saved_test_metrics": "recomputed",
+  "engagement_rows": 26712,
+  "source_rebuilt_examples": 4,
+  "clock_age_only_max_probability_spread": 0.0,
+  "display_selection": "deterministic IDs within event categories; illustrative, not a representative effect estimate",
+  "examples": [
+    {
+      "match": "KR_7772079162",
+      "engagement_id": "KR_7772079162:1829211",
+      "category": "Baron",
+      "query_ms": [
+        1829210,
+        1851604,
+        1881604,
+        1911604
+      ],
+      "expanded_probabilities": [
+        0.9866420780653522,
+        0.9915125237340617,
+        0.9919344963778145,
+        0.9946727762838028
+      ],
+      "delta_pp": [
+        0.4870445668709533,
+        0.5292418312462299,
+        0.8030698218450594
+      ]
+    },
+    {
+      "match": "KR_7762478058",
+      "engagement_id": "KR_7762478058:1213083",
+      "category": "Dragon",
+      "query_ms": [
+        1213082,
+        1228083,
+        1258083,
+        1288083
+      ],
+      "expanded_probabilities": [
+        0.9800442411945938,
+        0.9898443614788952,
+        0.9919738186755815,
+        0.9954895288237889
+      ],
+      "delta_pp": [
+        0.9800120284301439,
+        1.1929577480987774,
+        1.544528762919517
+      ]
+    },
+    {
+      "match": "KR_7724550632",
+      "engagement_id": "KR_7724550632:2304974",
+      "category": "Elder",
+      "query_ms": [
+        2304973,
+        2330635,
+        2360635,
+        2390635
+      ],
+      "expanded_probabilities": [
+        0.280200789318863,
+        0.3301153721212453,
+        0.3544745415416332,
+        0.43129861167369715
+      ],
+      "delta_pp": [
+        4.9914582802382315,
+        7.427375222277021,
+        15.109782235483415
+      ]
+    },
+    {
+      "match": "KR_7772807885",
+      "engagement_id": "KR_7772807885:623887",
+      "category": "Unfiltered",
+      "query_ms": [
+        623886,
+        641794,
+        671794,
+        701794
+      ],
+      "expanded_probabilities": [
+        0.3512796946175558,
+        0.344414795406121,
+        0.2879141686611122,
+        0.5102610003669309
+      ],
+      "delta_pp": [
+        -0.6864899211434794,
+        -6.3365525956443625,
+        15.898130574937507
+      ]
+    }
+  ]
+}
