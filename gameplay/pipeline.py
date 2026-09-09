@@ -19,6 +19,7 @@ from gameplay.pipeline_cache import (
     parse_timeline_to_minute_cache,
 )
 from gameplay.pipeline_interp import (
+    interpolate_abs_xy,
     _interp_xy_guarded,
     _prev_snapshot_idx,
     global_from_prev_snapshot,
@@ -150,6 +151,7 @@ def build_ms_sequence(
         return None
 
     glob_seq, node_seq, ev_seq, item_seq = [], [], [], []
+    xy_abs_seq = []
     glob_snap_ts_seq: List[int] = []
     node_max_snapshot_ms: Optional[int] = None
     if engage_ts is not None and engage_ts >= 0:
@@ -165,6 +167,7 @@ def build_ms_sequence(
             q,
             max_snapshot_ms=node_max_snapshot_ms,
         )
+        xy_abs_seq.append(interpolate_abs_xy(cache, q, max_snapshot_ms=node_max_snapshot_ms))
         g_ref_ms = int(q)
         if engage_ts is not None and engage_ts >= 0:
             g_ref_ms = min(int(g_ref_ms), int(label_start_ms) - 1)
@@ -256,7 +259,14 @@ def build_ms_sequence(
         )
         sample.update(tok)
 
-    anchors = cache.get("meta", {}).get("anchors", None)
-    if isinstance(anchors, dict):
-        sample["anchors"] = anchors
+    sample["xy_abs_seq"] = np.stack(xy_abs_seq, axis=0).astype(np.float32)   # (L, 10, 2), absolute, normalised
+    if bool(getattr(cfg, "ANCHORS_CAUSAL", True)):
+        from gameplay.anchors import causal_anchors
+        cutoff_ms = int(label_start_ms) - 1 if (engage_ts is not None and engage_ts >= 0) else int(end_ms)
+        sample["anchors"] = causal_anchors(cache, cutoff_ms)
+        sample["anchor_is_norm"] = False
+    else:
+        anchors = cache.get("meta", {}).get("anchors", None)
+        if isinstance(anchors, dict):
+            sample["anchors"] = anchors
     return sample

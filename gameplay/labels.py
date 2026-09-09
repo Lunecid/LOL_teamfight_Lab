@@ -167,7 +167,7 @@ def _label_event_team_sign(e: dict, tm: Dict[int, int]) -> int:
     et = str(e.get("type", "")).upper()
     tid = 0
     try:
-        if et in ("CHAMPION_KILL", "CHAMPION_SPECIAL_KILL"):
+        if et in ("CHAMPION_KILL", "CHAMPION_SPECIAL_KILL", "WARD_KILL"):
             tid = int(tm.get(int(e.get("killerId", 0) or 0), 0) or 0)
         elif et == "ELITE_MONSTER_KILL":
             tid = int(e.get("killerTeamId", 0) or 0)
@@ -606,6 +606,62 @@ def _lex_refine(
 
 
 
+_EVENT_PRICE_CACHE: Dict[str, Any] = {}
+
+
+def _event_price_table() -> Dict[str, float]:
+    """Team gold per priced event (pooled regression table), loaded once; {} = kills only."""
+    rel = str(getattr(cfg, "LABEL_EVENT_PRICE_TABLE", "") or "").strip()
+    if not rel:
+        return {}
+    if rel in _EVENT_PRICE_CACHE:
+        return _EVENT_PRICE_CACHE[rel]
+    from pathlib import Path as _P
+    path = _P(rel)
+    if not path.is_absolute():
+        path = _P(__file__).resolve().parents[1] / rel
+    table: Dict[str, float] = {}
+    if path.exists():
+        import json as _json
+        blob = _json.load(open(path, encoding="utf-8"))
+        table = {str(k): float(v) for k, v in (blob.get("pooled") or {}).items()}
+    _EVENT_PRICE_CACHE[rel] = table
+    return table
+
+
+def _priced_event_gold(e: dict, table: Dict[str, float], first_tower_ts: Optional[int]) -> float:
+    """Team gold the game paid for a non-kill event, from the price table (0 if unpriced)."""
+    if not table:
+        return 0.0
+    et = str(e.get("type", "")).upper()
+    if et == "TURRET_PLATE_DESTROYED":
+        return float(table.get("plates", 0.0))
+    if et == "BUILDING_KILL":
+        if str(e.get("buildingType", "")).upper() == "INHIBITOR_BUILDING":
+            return float(table.get("inhibitor", 0.0))
+        g = float(table.get(f"tower_{str(e.get('towerType', '')).lower()}", 0.0))
+        if first_tower_ts is not None and int(e.get("timestamp", -1) or -1) == int(first_tower_ts):
+            g += float(table.get("first_tower", 0.0))
+        return g
+    if et == "ELITE_MONSTER_KILL":
+        mt = str(e.get("monsterType", "")).upper()
+        st = str(e.get("monsterSubType", "")).upper()
+        key = "elder_dragon" if (mt == "DRAGON" and st == "ELDER_DRAGON") else mt.lower()
+        return float(table.get(key, 0.0))
+    if et == "WARD_KILL":
+        return float(table.get("ward_kills", 0.0))
+    return 0.0
+
+
+def _first_tower_ts(cache: Dict[str, Any]) -> Optional[int]:
+    best = None
+    for e in cache.get("events") or []:
+        if str(e.get("type", "")).upper() == "BUILDING_KILL" and str(e.get("buildingType", "")).upper() != "INHIBITOR_BUILDING":
+            ts = int(e.get("timestamp", 0) or 0)
+            best = ts if best is None or ts < best else best
+    return best
+
+
 def _compute_label_market_event(
     evs: List[dict],
     tm: Dict[int, int],
@@ -629,14 +685,21 @@ def _compute_label_market_event(
     """
     tie_policy = str(getattr(cfg, "LABEL_TIE_POLICY", getattr(cfg, "LABEL_TIE_STRATEGY", "drop"))).lower()
     deadzone = float(getattr(cfg, "LABEL_GOLD_DEADZONE", 300.0))
+    table = _event_price_table()
+    first_tower = _first_tower_ts(cache) if table else None
     gd = 0.0
     for e in evs:
-        if str(e.get("type", "")).upper() != "CHAMPION_KILL":
-            continue
+        et = str(e.get("type", "")).upper()
         sign = _label_event_team_sign(e, tm)
         if sign == 0:
             continue
-        gd += float(sign) * (max(0.0, safe_float(e.get("bounty", 0.0))) + max(0.0, safe_float(e.get("shutdownBounty", 0.0))))
+        if et == "CHAMPION_KILL":
+            g = max(0.0, safe_float(e.get("bounty", 0.0))) + max(0.0, safe_float(e.get("shutdownBounty", 0.0)))
+            assists = e.get("assistingParticipantIds", [])
+            g += float(table.get("kills", 0.0)) + float(table.get("assists", 0.0)) * (len(assists) if isinstance(assists, list) else 0)
+            gd += float(sign) * g
+        else:
+            gd += float(sign) * _priced_event_gold(e, table, first_tower)
     if gd > deadzone:
         return 1
     if gd < -deadzone:

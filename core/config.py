@@ -432,6 +432,20 @@ class CFG:
     FIGHT_CONTEXT_SEC: int = 30
     FIGHT_CONTEXT_MIN: int = 1
     FIGHT_HORIZON_SEC: int = 30
+    # time_norm as cached is t / (T - 1), i.e. normalised by the match's own length, which
+    # is not known at the cutoff (short games are stomps).  With TIME_NORM_ABSOLUTE the
+    # feature path rewrites it as min(t / TIME_NORM_DENOM_MIN, 1) and the phase encoding
+    # recovers minutes with the same constant.  False reproduces the CoG corpus.
+    TIME_NORM_ABSOLUTE: bool = True
+    TIME_NORM_DENOM_MIN: float = 45.0
+    # Spatial anchors (towers, objective pits) for the fight-position features.  The cache's
+    # meta["anchors"] holds the positions of every tower that fell and every objective killed
+    # anywhere in the match; with ANCHORS_CAUSAL the sample instead uses the static map and
+    # only the buildings destroyed at or before the cutoff (gameplay/anchors.py).
+    ANCHORS_CAUSAL: bool = True
+    # Tabular representation: append the age of the last frame before the cutoff (seconds,
+    # 0-60).  Frame-held features are up to a minute stale and the model should know by how much.
+    TAB_FRAME_AGE_FEATURE: bool = True
     FIGHT_HORIZON_MIN: int = 1
     # Predict earlier than engage by this gap:
     # observation window ends at (engage_ts - prediction_gap_ms),
@@ -592,6 +606,10 @@ class CFG:
     # market_lex label: gold-swing differences within this dead zone (one base
     # kill bounty) are "materially even" and refined by discrete facts instead.
     LABEL_GOLD_DEADZONE: float = 300.0
+    # market_event: team gold per event for structures / monsters / assists / ward kills,
+    # recovered by regression on the frames (scripts/estimate_event_prices.py).  Kill gold is
+    # read from the event itself.  Empty string = kills only (the unpriced pilot variant).
+    LABEL_EVENT_PRICE_TABLE: str = "config/game_rules/event_prices.json"
     LABEL_TIE_SEED: int = 7
 
     # weighted label

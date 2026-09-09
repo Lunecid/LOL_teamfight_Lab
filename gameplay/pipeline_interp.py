@@ -63,6 +63,44 @@ def _interp_xy_guarded(
     return out
 
 
+def interpolate_abs_xy(
+    cache: Dict[str, Any],
+    q_ms: int,
+    *,
+    max_snapshot_ms: Optional[int] = None,
+) -> np.ndarray:
+    """Absolute normalised XY (10, 2) at ``q_ms`` with the same snapshot cap and
+    discontinuity guards as ``interpolate_node_global`` but *before* the centroid-relative
+    conversion, for the spatial (zone / tower / objective) features."""
+    ts = cache["minute_ts"]
+    nm = cache["node_minute"]
+    coord_div = float(getattr(cfg, "COORD_NORM_DIV", MAP_MAX))
+    q_eff = int(q_ms)
+    if max_snapshot_ms is not None and ts is not None and len(ts) > 0:
+        max_idx = _prev_snapshot_idx(ts, int(max_snapshot_ms), strict_before=False)
+        if max_idx >= 0:
+            q_eff = min(q_eff, int(ts[int(max_idx)]))
+    xj_idx = NODE_IDX.get("x_norm", None)
+    yj_idx = NODE_IDX.get("y_norm", None)
+    if len(ts) == 1:
+        i = j = 0
+        alpha = 0.0
+    else:
+        idx = int(np.searchsorted(ts, q_eff) - 1)
+        i = max(0, idx)
+        j = min(len(ts) - 1, idx + 1)
+        alpha = 0.0 if ts[j] == ts[i] else float(np.clip(float(q_eff - ts[i]) / float(ts[j] - ts[i]), 0.0, 1.0))
+    xy = None
+    if bool(getattr(cfg, "INTERP_XY", True)):
+        xy = _interp_xy_guarded(cache, i, j, alpha, coord_div=coord_div)
+    if xy is None:
+        xy = np.zeros((10, 2), np.float32)
+        if xj_idx is not None and yj_idx is not None:
+            xy[:, 0] = nm[i][:, xj_idx]
+            xy[:, 1] = nm[i][:, yj_idx]
+    return xy.astype(np.float32)
+
+
 def interpolate_node_global(
     cache: Dict[str, Any],
     q_ms: int,
@@ -151,10 +189,15 @@ def interpolate_node_global(
             node[:, xj_idx] -= centroid[0]
             node[:, yj_idx] -= centroid[1]
 
-    # Ensure time_norm is set properly when XY is zeroed
-    if bool(getattr(cfg, "ZERO_XY_NODE_FEATURES", False)):
-        tj = GLOBAL_IDX.get("time_norm", None)
-        if tj is not None:
+    # time_norm: the cached value is t / (T - 1), normalised by the match's total length,
+    # which is future information at the cutoff.  Rewrite it as absolute game time over a
+    # fixed denominator (the phase encoding uses the same constant to recover minutes).
+    tj = GLOBAL_IDX.get("time_norm", None)
+    if tj is not None:
+        if bool(getattr(cfg, "TIME_NORM_ABSOLUTE", True)):
+            denom_ms = float(getattr(cfg, "TIME_NORM_DENOM_MIN", 45.0)) * 60000.0
+            glob[tj] = float(np.clip(float(q_ms) / max(1.0, denom_ms), 0.0, 1.0))
+        elif bool(getattr(cfg, "ZERO_XY_NODE_FEATURES", False)):
             t0 = float(ts[0])
             t1 = float(ts[-1])
             if t1 > t0:

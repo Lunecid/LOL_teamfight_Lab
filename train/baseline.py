@@ -304,6 +304,8 @@ def build_tabular_Xy(
             if seq_key is None:
                 continue
             feat_names = _tabular_feature_names_from_base(base_names)
+            if bool(getattr(cfg, "TAB_FRAME_AGE_FEATURE", True)):
+                feat_names = list(feat_names) + ["frame_age_s"]
 
         seq = feats.get(seq_key, None)
         if seq is None:
@@ -316,6 +318,11 @@ def build_tabular_Xy(
             x_tab = np.concatenate([x_tab, mom], axis=0)
         if x_tab.ndim != 1:
             x_tab = x_tab.reshape(-1)
+        if bool(getattr(cfg, "TAB_FRAME_AGE_FEATURE", True)):
+            snap = int(raw.get("global_snap_last_ts", -1))
+            cut = int(raw.get("label_start_ts", -1))
+            age_s = float(np.clip((cut - snap) / 1000.0, 0.0, 60.0)) if (snap >= 0 and cut >= 0) else 30.0
+            x_tab = np.concatenate([x_tab, np.asarray([age_s], dtype=np.float32)], axis=0)
 
         Xs.append(x_tab)
         ys.append(int(feats["y"]))

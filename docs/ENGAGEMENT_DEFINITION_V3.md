@@ -143,3 +143,11 @@ D 4,285/4,265/4,241 → verdict pooled.
 | 게이트·라벨 실험 | `scripts/run_presence_gate_points.py`, `summarize_presence_gate_points.py`, `run_prediction_situation_pilot.py` |
 | v3 구축 | `scripts/build_corpus_v3.py` → `build_corpus_shard.py --extra-labels` → `run_scale_decomposition.py --y-key --teamfight-min 4` |
 | 산출물 | `D:/LOL_Project/fusion_2615/corpus_shards_v3_mlex/`, `features/scale_decomposition_v3_*.json`, `runs_corpus_v3/`, `runs_presence_gate/`, `features/fight_boundary*/` (목록: `docs/DATA_MANIFEST.md`) |
+
+## 9. 변경 이력
+
+- **2026-09-09 입력 전수조사 (`docs/INPUT_FEATURE_AUDIT_V3.md`)**: 3절의 표에서 time_norm은
+  절대 시간/45분으로, 공간 블록(구역·타워·오브젝트 14개)은 절대 좌표 + 정적 지도 + τ 이전
+  파괴 기록으로 바뀌었고 frame_age_s가 추가됐다(7,106차원). 4절의 market_event는 회귀로
+  복원한 게임 가격표(플레이트·타워·억제기·몬스터·어시스트·와드)를 붙인 판이 됐다.
+  코퍼스 v3.1로 재구축 중이며 6절의 v3 숫자는 v3.1 결과로 대체될 예정.

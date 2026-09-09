@@ -1,0 +1,327 @@
+{
+ "source": "median BUILDING_KILL / ELITE_MONSTER_KILL positions over 2,000 matches (seed 7), game units; nexus turrets and Atakhan split by 2-means",
+ "towers": [
+  {
+   "team": 100,
+   "lane": "BOT_LANE",
+   "building": "INHIBITOR_BUILDING",
+   "tower": null,
+   "slot": 0,
+   "x": 3468,
+   "y": 1230,
+   "n": 274
+  },
+  {
+   "team": 100,
+   "lane": "BOT_LANE",
+   "building": "TOWER_BUILDING",
+   "tower": "BASE_TURRET",
+   "slot": 0,
+   "x": 4281,
+   "y": 1253,
+   "n": 320
+  },
+  {
+   "team": 100,
+   "lane": "BOT_LANE",
+   "building": "TOWER_BUILDING",
+   "tower": "INNER_TURRET",
+   "slot": 0,
+   "x": 6919,
+   "y": 1483,
+   "n": 744
+  },
+  {
+   "team": 100,
+   "lane": "BOT_LANE",
+   "building": "TOWER_BUILDING",
+   "tower": "OUTER_TURRET",
+   "slot": 0,
+   "x": 10504,
+   "y": 1029,
+   "n": 1545
+  },
+  {
+   "team": 100,
+   "lane": "MID_LANE",
+   "building": "INHIBITOR_BUILDING",
+   "tower": null,
+   "slot": 0,
+   "x": 3210,
+   "y": 3217,
+   "n": 622
+  },
+  {
+   "team": 100,
+   "lane": "MID_LANE",
+   "building": "TOWER_BUILDING",
+   "tower": "BASE_TURRET",
+   "slot": 0,
+   "x": 3651,
+   "y": 3696,
+   "n": 646
+  },
+  {
+   "team": 100,
+   "lane": "MID_LANE",
+   "building": "TOWER_BUILDING",
+   "tower": "INNER_TURRET",
+   "slot": 0,
+   "x": 5048,
+   "y": 4812,
+   "n": 961
+  },
+  {
+   "team": 100,
+   "lane": "MID_LANE",
+   "building": "TOWER_BUILDING",
+   "tower": "NEXUS_TURRET",
+   "slot": 0,
+   "x": 2177,
+   "y": 1807,
+   "n": 578
+  },
+  {
+   "team": 100,
+   "lane": "MID_LANE",
+   "building": "TOWER_BUILDING",
+   "tower": "NEXUS_TURRET",
+   "slot": 1,
+   "x": 1748,
+   "y": 2270,
+   "n": 581
+  },
+  {
+   "team": 100,
+   "lane": "MID_LANE",
+   "building": "TOWER_BUILDING",
+   "tower": "OUTER_TURRET",
+   "slot": 0,
+   "x": 5846,
+   "y": 6396,
+   "n": 1419
+  },
+  {
+   "team": 100,
+   "lane": "TOP_LANE",
+   "building": "INHIBITOR_BUILDING",
+   "tower": null,
+   "slot": 0,
+   "x": 1172,
+   "y": 3583,
+   "n": 184
+  },
+  {
+   "team": 100,
+   "lane": "TOP_LANE",
+   "building": "TOWER_BUILDING",
+   "tower": "BASE_TURRET",
+   "slot": 0,
+   "x": 1169,
+   "y": 4287,
+   "n": 251
+  },
+  {
+   "team": 100,
+   "lane": "TOP_LANE",
+   "building": "TOWER_BUILDING",
+   "tower": "INNER_TURRET",
+   "slot": 0,
+   "x": 1512,
+   "y": 6699,
+   "n": 689
+  },
+  {
+   "team": 100,
+   "lane": "TOP_LANE",
+   "building": "TOWER_BUILDING",
+   "tower": "OUTER_TURRET",
+   "slot": 0,
+   "x": 981,
+   "y": 10441,
+   "n": 1559
+  },
+  {
+   "team": 200,
+   "lane": "BOT_LANE",
+   "building": "INHIBITOR_BUILDING",
+   "tower": null,
+   "slot": 0,
+   "x": 13594,
+   "y": 11319,
+   "n": 327
+  },
+  {
+   "team": 200,
+   "lane": "BOT_LANE",
+   "building": "TOWER_BUILDING",
+   "tower": "BASE_TURRET",
+   "slot": 0,
+   "x": 13624,
+   "y": 10572,
+   "n": 373
+  },
+  {
+   "team": 200,
+   "lane": "BOT_LANE",
+   "building": "TOWER_BUILDING",
+   "tower": "INNER_TURRET",
+   "slot": 0,
+   "x": 13327,
+   "y": 8226,
+   "n": 792
+  },
+  {
+   "team": 200,
+   "lane": "BOT_LANE",
+   "building": "TOWER_BUILDING",
+   "tower": "OUTER_TURRET",
+   "slot": 0,
+   "x": 13866,
+   "y": 4505,
+   "n": 1575
+  },
+  {
+   "team": 200,
+   "lane": "MID_LANE",
+   "building": "INHIBITOR_BUILDING",
+   "tower": null,
+   "slot": 0,
+   "x": 11593,
+   "y": 11669,
+   "n": 738
+  },
+  {
+   "team": 200,
+   "lane": "MID_LANE",
+   "building": "TOWER_BUILDING",
+   "tower": "BASE_TURRET",
+   "slot": 0,
+   "x": 11134,
+   "y": 11207,
+   "n": 735
+  },
+  {
+   "team": 200,
+   "lane": "MID_LANE",
+   "building": "TOWER_BUILDING",
+   "tower": "INNER_TURRET",
+   "slot": 0,
+   "x": 9767,
+   "y": 10113,
+   "n": 1039
+  },
+  {
+   "team": 200,
+   "lane": "MID_LANE",
+   "building": "TOWER_BUILDING",
+   "tower": "NEXUS_TURRET",
+   "slot": 0,
+   "x": 13052,
+   "y": 12612,
+   "n": 667
+  },
+  {
+   "team": 200,
+   "lane": "MID_LANE",
+   "building": "TOWER_BUILDING",
+   "tower": "NEXUS_TURRET",
+   "slot": 1,
+   "x": 12611,
+   "y": 13084,
+   "n": 619
+  },
+  {
+   "team": 200,
+   "lane": "MID_LANE",
+   "building": "TOWER_BUILDING",
+   "tower": "OUTER_TURRET",
+   "slot": 0,
+   "x": 8955,
+   "y": 8510,
+   "n": 1460
+  },
+  {
+   "team": 200,
+   "lane": "TOP_LANE",
+   "building": "INHIBITOR_BUILDING",
+   "tower": null,
+   "slot": 0,
+   "x": 11275,
+   "y": 13663,
+   "n": 244
+  },
+  {
+   "team": 200,
+   "lane": "TOP_LANE",
+   "building": "TOWER_BUILDING",
+   "tower": "BASE_TURRET",
+   "slot": 0,
+   "x": 10481,
+   "y": 13650,
+   "n": 307
+  },
+  {
+   "team": 200,
+   "lane": "TOP_LANE",
+   "building": "TOWER_BUILDING",
+   "tower": "INNER_TURRET",
+   "slot": 0,
+   "x": 7943,
+   "y": 13411,
+   "n": 768
+  },
+  {
+   "team": 200,
+   "lane": "TOP_LANE",
+   "building": "TOWER_BUILDING",
+   "tower": "OUTER_TURRET",
+   "slot": 0,
+   "x": 4318,
+   "y": 13875,
+   "n": 1589
+  }
+ ],
+ "objectives": {
+  "ATAKHAN": [
+   {
+    "x": 3141,
+    "y": 11542,
+    "n": 345
+   },
+   {
+    "x": 11671,
+    "y": 3559,
+    "n": 1147
+   }
+  ],
+  "BARON_NASHOR": [
+   {
+    "x": 5007,
+    "y": 10471,
+    "n": 1121
+   }
+  ],
+  "DRAGON": [
+   {
+    "x": 9837,
+    "y": 4401,
+    "n": 6532
+   }
+  ],
+  "HORDE": [
+   {
+    "x": 4791,
+    "y": 10182,
+    "n": 5910
+   }
+  ],
+  "RIFTHERALD": [
+   {
+    "x": 4752,
+    "y": 9986,
+    "n": 1752
+   }
+  ]
+ }
+}

@@ -1,0 +1,77 @@
+{
+ "unit": "team gold per event (local + global, killer + assisters), regression on frame gold; monsters corrected for one jungle CS; first-tower bonus excluded",
+ "patches": [
+  "15.14",
+  "15.15",
+  "15.16"
+ ],
+ "pooled": {
+  "kills": 20.0,
+  "assists": 45.0,
+  "plates": 120.0,
+  "tower_outer_turret": 540.0,
+  "tower_inner_turret": 730.0,
+  "tower_base_turret": 510.0,
+  "tower_nexus_turret": 185.0,
+  "inhibitor": 85.0,
+  "dragon": 0.0,
+  "elder_dragon": 1390.0,
+  "baron_nashor": 1555.0,
+  "riftherald": 170.0,
+  "horde": 40.0,
+  "atakhan": 240.0,
+  "ward_kills": 25.0
+ },
+ "per_patch": {
+  "15.14": {
+   "kills": 20.0,
+   "assists": 45.0,
+   "plates": 120.0,
+   "tower_outer_turret": 535.0,
+   "tower_inner_turret": 730.0,
+   "tower_base_turret": 505.0,
+   "tower_nexus_turret": 185.0,
+   "inhibitor": 85.0,
+   "dragon": 0.0,
+   "baron_nashor": 1555.0,
+   "riftherald": 170.0,
+   "horde": 40.0,
+   "atakhan": 240.0,
+   "ward_kills": 25.0
+  },
+  "15.15": {
+   "kills": 20.0,
+   "assists": 45.0,
+   "plates": 120.0,
+   "tower_outer_turret": 540.0,
+   "tower_inner_turret": 730.0,
+   "tower_base_turret": 510.0,
+   "tower_nexus_turret": 185.0,
+   "inhibitor": 85.0,
+   "dragon": 0.0,
+   "baron_nashor": 1555.0,
+   "riftherald": 170.0,
+   "horde": 40.0,
+   "atakhan": 240.0,
+   "ward_kills": 25.0
+  },
+  "15.16": {
+   "kills": 20.0,
+   "assists": 45.0,
+   "plates": 120.0,
+   "tower_outer_turret": 540.0,
+   "tower_inner_turret": 730.0,
+   "tower_base_turret": 505.0,
+   "tower_nexus_turret": 180.0,
+   "inhibitor": 85.0,
+   "dragon": 0.0,
+   "baron_nashor": 1555.0,
+   "riftherald": 170.0,
+   "horde": 40.0,
+   "atakhan": 235.0,
+   "ward_kills": 25.0
+  }
+ },
+ "source": "D:/LOL_Project/fusion_2615/features/event_prices.json (scripts/estimate_event_prices.py, 8,000 matches per patch, seed 7)",
+ "note": "kill gold = bounty + shutdownBounty from the event + kills + assists x n_assisters"
+}
