@@ -3,6 +3,9 @@
 This opt-in experiment adds a small match-outcome value model to the v3.3
 engagement pipeline. It does not replace the released labels or detector defaults.
 The baseline is Claude's completed audit release, commit `d607e3a`.
+The completed 50,000-match experiment and its limitations are recorded in
+`STATE_VALUE_50K_RESULTS_20260909.md`; it does not demonstrate added match-win
+prediction benefit from the engagement probability.
 
 ## Research questions and precise output
 
