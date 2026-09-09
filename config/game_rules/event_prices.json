@@ -1,5 +1,5 @@
 {
- "unit": "team gold per event (local + global, killer + assisters), regression on frame gold; monsters corrected for one jungle CS; first-tower bonus excluded",
+ "unit": "regression-estimated average team gold per event (local + global, killer + assisters), from frame gold; not the rule payout",
  "patches": [
   "15.14",
   "15.15",
@@ -72,6 +72,6 @@
    "ward_kills": 25.0
   }
  },
- "source": "D:/LOL_Project/fusion_2615/features/event_prices.json (scripts/estimate_event_prices.py, 8,000 matches per patch, seed 7)",
- "note": "kill gold = bounty + shutdownBounty from the event + kills + assists x n_assisters"
+ "source": "D:\\LOL_Project\\fusion_2615\\features\\event_prices.json",
+ "note": "kill gold is read from the event (bounty + shutdownBounty); 'assists' is gold per assist beyond the bounty"
 }
