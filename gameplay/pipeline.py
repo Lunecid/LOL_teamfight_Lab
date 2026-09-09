@@ -52,6 +52,7 @@ def compute_label(
     horizon_ms: Optional[int] = None,
     first_kill_ts: Optional[int] = None,
     last_kill_ts: Optional[int] = None,
+    anchor_xy=None,
 ) -> Optional[int]:
     return _compute_label(
         cache,
@@ -63,6 +64,7 @@ def compute_label(
         first_kill_ts=first_kill_ts,
         last_kill_ts=last_kill_ts,
         interp_node_global=interpolate_node_global,
+        anchor_xy=anchor_xy,
     )
 
 
@@ -76,6 +78,7 @@ def compute_label_targets(
     horizon_ms: Optional[int] = None,
     first_kill_ts: Optional[int] = None,
     last_kill_ts: Optional[int] = None,
+    anchor_xy=None,
 ) -> Optional[Dict[str, float]]:
     return _compute_label_targets(
         cache,
@@ -87,6 +90,7 @@ def compute_label_targets(
         first_kill_ts=first_kill_ts,
         last_kill_ts=last_kill_ts,
         interp_node_global=interpolate_node_global,
+        anchor_xy=anchor_xy,
     )
 
 
@@ -103,6 +107,7 @@ def build_ms_sequence(
     bin_ms: Optional[int] = None,
     horizon_ms: Optional[int] = None,
     prediction_gap_ms: Optional[int] = None,
+    anchor_xy=None,
 ) -> Optional[Dict[str, Any]]:
     if ctx_ms is None:
         ctx_ms = _get_context_ms()
@@ -197,6 +202,7 @@ def build_ms_sequence(
             horizon_ms=horizon_ms,
             first_kill_ts=first_kill_ts,
             last_kill_ts=last_kill_ts,
+            anchor_xy=anchor_xy,
         )
     else:
         y_pack = compute_label_targets(
@@ -208,6 +214,7 @@ def build_ms_sequence(
             horizon_ms=horizon_ms,
             first_kill_ts=first_kill_ts,
             last_kill_ts=last_kill_ts,
+            anchor_xy=anchor_xy,
         )
 
     if y_pack is None:

@@ -328,6 +328,49 @@ def _resolve_label_window(
     return s_ms, e_ms, int(horizon_ms)
 
 
+def _event_xy(e: dict):
+    pos = e.get("position", None)
+    if isinstance(pos, dict) and "x" in pos and "y" in pos:
+        return float(pos["x"]), float(pos["y"])
+    if isinstance(pos, (list, tuple)) and len(pos) >= 2:
+        return float(pos[0]), float(pos[1])
+    return None
+
+
+def _split_label_type(label_type: str):
+    """'market_event@window' -> ('market_event', 'window'); no suffix -> cfg default."""
+    lt = str(label_type or "").lower()
+    if "@" in lt:
+        base, attr = lt.split("@", 1)
+        return base.strip(), attr.strip()
+    return lt, str(getattr(cfg, "LABEL_EVENT_ATTRIBUTION", "engagement")).lower()
+
+
+def attribute_events(evs: List[dict], anchor_xy, attribution: str) -> List[dict]:
+    """Keep the events the engagement may claim.
+
+    "engagement": events with a position within the attribution radius of the fight centre
+    (kills, buildings, plates, monsters); events without a position (ward kills) are dropped.
+    "window": every event.  Without an anchor the filter cannot be applied and all events are kept.
+    """
+    if str(attribution).lower() != "engagement" or anchor_xy is None:
+        return list(evs)
+    ax, ay = float(anchor_xy[0]), float(anchor_xy[1])
+    if ax < 0 or ay < 0:
+        return list(evs)
+    radius = float(getattr(cfg, "LABEL_ATTRIBUTION_RADIUS_U", 0.0) or 0.0)
+    if radius <= 0:
+        radius = float(getattr(cfg, "CLUSTER_MAX_DIAMETER", 4000.0) or 4000.0)
+    out = []
+    for e in evs:
+        xy = _event_xy(e)
+        if xy is None:
+            continue
+        if (xy[0] - ax) ** 2 + (xy[1] - ay) ** 2 <= radius * radius:
+            out.append(e)
+    return out
+
+
 def compute_label(
     cache: Dict[str, Any],
     tm: Dict[int, int],
@@ -339,6 +382,7 @@ def compute_label(
     first_kill_ts: Optional[int] = None,
     last_kill_ts: Optional[int] = None,
     interp_node_global: InterpNodeGlobalFn,
+    anchor_xy=None,
 ) -> Optional[int]:
     win = _resolve_label_window(
         cache,
@@ -352,6 +396,8 @@ def compute_label(
     s_ms, e_ms, _ = win
 
     evs = _events_in_window(cache, s_ms, e_ms)
+    label_type, attribution = _split_label_type(str(getattr(cfg, "LABEL_TYPE", "micro_win")))
+    evs = attribute_events(evs, anchor_xy, attribution)
 
     if getattr(cfg, "REQUIRE_SIGNAL_IN_HORIZON", False):
         has_sig = any(
@@ -361,7 +407,6 @@ def compute_label(
         if not has_sig:
             return None
 
-    label_type = str(getattr(cfg, "LABEL_TYPE", "micro_win")).lower()
     tie_key = f"{s_ms}:{e_ms}:{first_kill_ts if first_kill_ts is not None else -1}:{last_kill_ts if last_kill_ts is not None else -1}"
 
     if label_type == "micro_win":
@@ -860,6 +905,7 @@ def compute_label_targets(
     first_kill_ts: Optional[int] = None,
     last_kill_ts: Optional[int] = None,
     interp_node_global: InterpNodeGlobalFn,
+    anchor_xy=None,
 ) -> Optional[Dict[str, float]]:
     win = _resolve_label_window(
         cache,
@@ -882,11 +928,13 @@ def compute_label_targets(
         first_kill_ts=first_kill_ts,
         last_kill_ts=last_kill_ts,
         interp_node_global=interp_node_global,
+        anchor_xy=anchor_xy,
     )
     if y is None:
         return None
 
     evs = _events_in_window(cache, s_ms, e_ms)
+    evs = attribute_events(evs, anchor_xy, _split_label_type(str(getattr(cfg, "LABEL_TYPE", "micro_win")))[1])
     raw = _compute_window_targets(
         evs, tm, cache, s_ms, e_ms,
         interp_node_global=interp_node_global,

@@ -50,6 +50,44 @@ def scale_class(blue: np.ndarray, red: np.ndarray, teamfight_min: int = 3) -> np
     return out
 
 
+def verify_shard_manifest(shard_dir: Path, allow_partial: bool = False) -> dict:
+    """Refuse to evaluate an incomplete or mixed corpus.
+
+    The build writes manifest.json with the expected shard count, every child's return code
+    and the feature-name hash; the shard files on disk must match it exactly.
+    """
+    paths = sorted(shard_dir.glob("shard_*.npz"))
+    mp = shard_dir / "manifest.json"
+    if not mp.exists():
+        if allow_partial:
+            print("WARNING: no manifest.json; evaluating whatever shards are present", flush=True)
+            return {}
+        raise SystemExit(f"{shard_dir} has no manifest.json (pass --allow-partial to evaluate anyway)")
+    m = json.load(open(mp, encoding="utf-8"))
+    problems = []
+    if not m.get("complete", False):
+        problems.append("manifest marks the build incomplete")
+    expected = {f"shard_{int(i):03d}.npz" for i in range(int(m.get("num_shards", 0)))}
+    found = {p.name for p in paths}
+    if found != expected:
+        problems.append(f"shard files differ from manifest: missing={sorted(expected - found)} extra={sorted(found - expected)}")
+    bad = [i for i, s in (m.get("shards") or {}).items() if int(s.get("rc", 1)) != 0]
+    if bad:
+        problems.append(f"shards with non-zero rc: {bad}")
+    names_path = shard_dir / "feature_names.json"
+    if m.get("feature_names_sha1") and names_path.exists():
+        import hashlib
+        if hashlib.sha1(open(names_path, "rb").read()).hexdigest() != m["feature_names_sha1"]:
+            problems.append("feature_names.json hash differs from manifest")
+    if problems:
+        msg = "; ".join(problems)
+        if allow_partial:
+            print("WARNING: " + msg, flush=True)
+        else:
+            raise SystemExit("corpus integrity: " + msg)
+    return m
+
+
 def merge_shards(shard_dir: Path, matrix_path: Path, y_key: str = "y") -> dict:
     paths = sorted(shard_dir.glob("shard_*.npz"))
     if not paths:
@@ -172,6 +210,7 @@ def main(argv=None) -> int:
     parser.add_argument("--shards", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--n-boot", type=int, default=1000)
+    parser.add_argument("--allow-partial", action="store_true", help="evaluate even if the manifest check fails")
     parser.add_argument("--y-key", default="y",
                         help="label column in the shards: y (the build's LABEL_TYPE) or y_<type> from --extra-labels")
     parser.add_argument("--categorical", action="store_true",
@@ -184,6 +223,7 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
 
     matrix_path = args.matrix or args.output.with_suffix(".matrix.npy")
+    manifest = verify_shard_manifest(args.shards, allow_partial=args.allow_partial)
     data = merge_shards(args.shards, matrix_path, y_key=args.y_key)
     valid = data["y"] >= 0
     if not valid.all():
@@ -208,8 +248,9 @@ def main(argv=None) -> int:
         role_re = _re.compile(r"^(b|r)(TOP|JNG|MID|BOT|SUP)_(.+)$")
         cat_bases = {"champion_id", "champion_name_id", "summoner_spell_1_id", "summoner_spell_2_id", "primary_style_id",
                      "sub_style_id", "primary_rune_1", "primary_rune_2", "primary_rune_3", "primary_rune_4", "sub_rune_1",
-                     "sub_rune_2", "stat_perk_offense", "stat_perk_flex", "stat_perk_defense"} | {f"itemhash{i}" for i in range(16)} \
+                     "sub_rune_2", "stat_perk_offense", "stat_perk_flex", "stat_perk_defense"} \
                     | {f"{tm}_ban_{i}" for tm in ("blue", "red") for i in range(5)}
+        # item hashes (itemhash0..15) are bucket COUNTS of the inventory, not identifiers: never categorical
         for i, n in enumerate(data["feature_names"]):
             if not n.endswith("__last"):
                 continue
@@ -234,7 +275,9 @@ def main(argv=None) -> int:
         },
         "teamfight_min": int(args.teamfight_min),
         "y_key": str(args.y_key),
+        "corpus_manifest": {k: manifest.get(k) for k in ("run_id", "git_commit", "num_shards", "complete", "feature_names_sha1")} if manifest else None,
         "categorical_columns": int(len(cat_idx)),
+        "categorical_column_names": [data["feature_names"][i] for i in cat_idx] if cat_idx else [],
         "by_participation_scale": {},
         "by_presence_scale": {},
     }

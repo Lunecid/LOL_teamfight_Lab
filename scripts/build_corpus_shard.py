@@ -43,6 +43,9 @@ def main(argv=None) -> int:
     parser.add_argument("--tie-policy", default=None,
                         help="override cfg.LABEL_TIE_POLICY; with 'drop', "
                              "genuine draws are excluded from the shard")
+    parser.add_argument("--extra-tie-policy", default=None,
+                        help="tie policy while computing --extra-labels (default: same as --tie-policy); "
+                             "'drop' stores -1 for draws so every label keeps its own draw mask on the common rows")
     parser.add_argument("--extra-labels", default="",
                         help="comma-separated LABEL_TYPEs computed on the same rows and stored as "
                              "y_<type> (-1 where that label is a draw), e.g. market_event,attention_value_win")
@@ -85,6 +88,9 @@ def main(argv=None) -> int:
         from gameplay.labels import compute_label
         from gameplay.pipeline_interp import interpolate_node_global
         default_type = str(cfg.LABEL_TYPE)
+        default_tie = getattr(cfg, "LABEL_TIE_POLICY", None)
+        if args.extra_tie_policy:
+            cfg.LABEL_TIE_POLICY = args.extra_tie_policy
         by_match: dict[str, list[int]] = {}
         for i, r in enumerate(used):
             by_match.setdefault(r.match_id, []).append(i)
@@ -106,9 +112,18 @@ def main(argv=None) -> int:
                         first_kill_ts=(int(r.first_kill_ts) if int(getattr(r, "first_kill_ts", -1)) >= 0 else None),
                         last_kill_ts=(int(r.last_kill_ts) if int(getattr(r, "last_kill_ts", -1)) >= 0 else None),
                         interp_node_global=interpolate_node_global,
+                        anchor_xy=((float(r.anchor_x), float(r.anchor_y)) if float(getattr(r, "anchor_x", -1.0)) >= 0 else None),
                     )
                     extra_cols[lt][i] = -1 if lab is None else int(lab)
         cfg.LABEL_TYPE = default_type
+        if args.extra_tie_policy:
+            if default_tie is None:
+                try:
+                    delattr(cfg, "LABEL_TIE_POLICY")
+                except Exception:
+                    pass
+            else:
+                cfg.LABEL_TIE_POLICY = default_tie
         for lt, col in extra_cols.items():
             ok = col >= 0
             share = float(ok.mean()) * 100.0

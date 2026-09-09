@@ -610,6 +610,13 @@ class CFG:
     # recovered by regression on the frames (scripts/estimate_event_prices.py).  Kill gold is
     # read from the event itself.  Empty string = kills only (the unpriced pilot variant).
     LABEL_EVENT_PRICE_TABLE: str = "config/game_rules/event_prices.json"
+    # Which events the outcome label may read: "engagement" = only events with a position
+    # within LABEL_ATTRIBUTION_RADIUS_U of the fight centre (0 = CLUSTER_MAX_DIAMETER), so a
+    # kill or tower on the other side of the map cannot decide this fight; "window" = every
+    # event in the time window (the CoG / v3 behaviour).  A label type may carry "@window"
+    # or "@engagement" to override per label (e.g. "market_event@window").
+    LABEL_EVENT_ATTRIBUTION: str = "engagement"
+    LABEL_ATTRIBUTION_RADIUS_U: float = 0.0
     LABEL_TIE_SEED: int = 7
 
     # weighted label

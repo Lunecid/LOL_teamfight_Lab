@@ -208,6 +208,7 @@ def infer_tabular_plan(
             label_end_ts=_ref_label_end_ts(r),
             first_kill_ts=_ref_first_kill_ts(r),
             last_kill_ts=_ref_last_kill_ts(r),
+            anchor_xy=_ref_anchor_xy(r),
         )
         if not raw:
             continue
@@ -217,6 +218,8 @@ def infer_tabular_plan(
         if seq_key is None:
             continue
         feat_names = _tabular_feature_names_from_base(base_names)
+        if bool(getattr(cfg, "TAB_FRAME_AGE_FEATURE", True)):
+            feat_names = list(feat_names) + ["frame_age_s"]
 
         if log_fp:
             write_log(f"[TAB PLAN] decided seq_key={seq_key} base_dim={len(base_names)} tab_dim={len(feat_names)}", log_fp)
@@ -261,6 +264,14 @@ def _ref_last_kill_ts(r):
         ts = -1
     return ts if ts >= 0 else None
 
+def _ref_anchor_xy(r):
+    try:
+        x, y = float(getattr(r, "anchor_x", -1.0)), float(getattr(r, "anchor_y", -1.0))
+    except Exception:
+        return None
+    return (x, y) if (x >= 0 and y >= 0) else None
+
+
 def build_tabular_Xy(
     refs: List[FightRef],
     feature_set: str,
@@ -274,6 +285,8 @@ def build_tabular_Xy(
 
     seq_key: Optional[str] = plan.seq_key if plan else None
     feat_names: List[str] = list(plan.feat_names) if plan else []
+    if plan and bool(getattr(cfg, "TAB_FRAME_AGE_FEATURE", True)) and feat_names and feat_names[-1] != "frame_age_s":
+        feat_names = list(feat_names) + ["frame_age_s"]
 
     t0 = time.time()
     for i, r in enumerate(refs):
@@ -293,6 +306,7 @@ def build_tabular_Xy(
             label_end_ts=_ref_label_end_ts(r),
             first_kill_ts=_ref_first_kill_ts(r),
             last_kill_ts=_ref_last_kill_ts(r),
+            anchor_xy=_ref_anchor_xy(r),
         )
         if not raw:
             continue
@@ -319,9 +333,14 @@ def build_tabular_Xy(
         if x_tab.ndim != 1:
             x_tab = x_tab.reshape(-1)
         if bool(getattr(cfg, "TAB_FRAME_AGE_FEATURE", True)):
-            snap = int(raw.get("global_snap_last_ts", -1))
+            # age of the last frame at or before the cutoff (the frame the held features come from)
             cut = int(raw.get("label_start_ts", -1))
-            age_s = float(np.clip((cut - snap) / 1000.0, 0.0, 60.0)) if (snap >= 0 and cut >= 0) else 30.0
+            mts = np.asarray(pack.get("minute_ts", []), dtype=np.int64)
+            if cut >= 0 and mts.size:
+                k = int(np.searchsorted(mts, cut - 1, side="right") - 1)
+                age_s = float(np.clip((cut - int(mts[max(0, k)])) / 1000.0, 0.0, 120.0)) if k >= 0 else 60.0
+            else:
+                age_s = 60.0
             x_tab = np.concatenate([x_tab, np.asarray([age_s], dtype=np.float32)], axis=0)
 
         Xs.append(x_tab)
@@ -344,8 +363,11 @@ def build_tabular_Xy(
         write_log(f"[TAB DONE] key={seq_key} N={len(used)} D={X.shape[1]} time={time.time()-t0:.1f}s", log_fp)
 
     if len(feat_names) != X.shape[1]:
+        msg = f"[TAB] feature-name mismatch: names={len(feat_names)} vs columns={X.shape[1]}"
         if log_fp:
-            write_log(f"[TAB WARN] feat_name_mismatch names={len(feat_names)} vs D={X.shape[1]} -> fallback f0..", log_fp)
+            write_log(msg, log_fp)
+        if not bool(getattr(cfg, "TAB_ALLOW_UNNAMED_COLUMNS", False)):
+            raise ValueError(msg + " (set TAB_ALLOW_UNNAMED_COLUMNS to fall back to f0..)")
         feat_names = [f"f{i}" for i in range(X.shape[1])]
 
     return X, y, feat_names, used

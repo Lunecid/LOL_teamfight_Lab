@@ -75,10 +75,14 @@ def main(argv=None) -> int:
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--n-matches", type=int, default=None, help="sample size (default: every cached match)")
     ap.add_argument("--n-boot", type=int, default=1000)
-    ap.add_argument("--label-type", default=V3_LABEL["label_type"], help="primary label stored as y")
-    ap.add_argument("--extra-labels", default="market_event,attention_value_win",
-                    help="additional labels stored as y_<type> so the decomposition can be re-run per label")
-    ap.add_argument("--y-key", default="y", help="label column for the decomposition")
+    ap.add_argument("--label-type", default="market_event",
+                    help="label used to build the rows (with --tie-policy random no row is dropped: common population)")
+    ap.add_argument("--tie-policy", default="random", help="tie policy for the row-building label")
+    ap.add_argument("--extra-labels", default="market_event,market_event@window,market_lex,market_lex@window,attention_value_win",
+                    help="labels stored as y_<type> on the common rows (draws = -1 under --extra-tie-policy drop)")
+    ap.add_argument("--extra-tie-policy", default="drop")
+    ap.add_argument("--y-key", default="y_market_event", help="label column for the decomposition")
+    ap.add_argument("--overwrite", action="store_true", help="remove existing shard files in --out-dir first")
     ap.add_argument("--wait-for-glob", default=None)
     ap.add_argument("--wait-pattern", default="[DONE]")
     ap.add_argument("--wait-timeout-h", type=float, default=6.0)
@@ -87,7 +91,18 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
 
     env = dict(os.environ)
-    env["LOL_CFG_OVERRIDES"] = json.dumps(V3_DETECTOR)
+    inherited = {}
+    if env.get("LOL_CFG_OVERRIDES"):
+        try:
+            inherited = json.loads(env["LOL_CFG_OVERRIDES"])
+        except json.JSONDecodeError as e:
+            raise SystemExit(f"inherited LOL_CFG_OVERRIDES is not JSON: {e}")
+    conflicts = {k: (inherited[k], V3_DETECTOR[k]) for k in inherited if k in V3_DETECTOR and inherited[k] != V3_DETECTOR[k]}
+    if conflicts:
+        raise SystemExit(f"LOL_CFG_OVERRIDES conflicts with the v3 definition: {conflicts}")
+    effective = {**inherited, **V3_DETECTOR}
+    env["LOL_CFG_OVERRIDES"] = json.dumps(effective)
+    print("effective overrides:", json.dumps(effective), flush=True)
     env.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
     env.setdefault("PYTHONIOENCODING", "utf-8")
     env.setdefault("LOKY_MAX_CPU_COUNT", "8")
@@ -97,11 +112,36 @@ def main(argv=None) -> int:
         print(wait_for(args.wait_for_glob, args.wait_pattern, args.wait_timeout_h * 3600), flush=True)
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
-    json.dump({"detector": V3_DETECTOR, "label": {**V3_LABEL, "label_type": args.label_type, "extra_labels": args.extra_labels},
-               "scale": V3_SCALE, "seed": args.seed,
-               "num_shards": args.num_shards, "n_matches": args.n_matches,
-               "definition": "docs/DEFINITION_EVIDENCE.md section 17"},
-              open(args.out_dir / "v3_definition.json", "w", encoding="utf-8"), indent=1)
+    existing = sorted(args.out_dir.glob("shard_*.npz"))
+    if existing and not args.skip_shards:
+        if not args.overwrite:
+            raise SystemExit(f"{args.out_dir} already holds {len(existing)} shard files; pass --overwrite or a fresh --out-dir")
+        for f in existing:
+            f.unlink()
+        for f in ("manifest.json", "feature_names.json"):
+            if (args.out_dir / f).exists():
+                (args.out_dir / f).unlink()
+    run_id = time.strftime("%Y%m%d_%H%M%S")
+    try:
+        git_commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=str(PROJECT_ROOT), capture_output=True, text=True).stdout.strip()
+    except Exception:
+        git_commit = ""
+    import hashlib as _hl
+
+    def _sha(path):
+        try:
+            return _hl.sha1(open(path, "rb").read()).hexdigest()
+        except OSError:
+            return None
+    manifest = {"run_id": run_id, "git_commit": git_commit, "detector": V3_DETECTOR, "effective_overrides": effective,
+                "label": {"row_label": args.label_type, "row_tie_policy": args.tie_policy,
+                          "extra_labels": args.extra_labels, "extra_tie_policy": args.extra_tie_policy,
+                          "gold_deadzone": V3_LABEL["gold_deadzone"], "price_table_sha1": _sha(PROJECT_ROOT / "config/game_rules/event_prices.json"),
+                          "map_anchors_sha1": _sha(PROJECT_ROOT / "config/game_rules/map_anchors.json")},
+                "scale": V3_SCALE, "seed": args.seed, "num_shards": args.num_shards, "n_matches": args.n_matches,
+                "definition": "docs/DEFINITION_EVIDENCE.md section 17", "shards": {}, "complete": False}
+    manifest_path = args.out_dir / "manifest.json"
+    json.dump(manifest, open(manifest_path, "w", encoding="utf-8"), indent=1)
 
     if not args.skip_shards:
         log = open(args.out_dir / "build.log", "a", encoding="utf-8")
@@ -112,10 +152,10 @@ def main(argv=None) -> int:
             while pending and len(running) < args.parallel:
                 i = pending.pop(0)
                 cmd = [sys.executable, "scripts/build_corpus_shard.py", "--shard", str(i), "--num-shards", str(args.num_shards),
-                       "--seed", str(args.seed), "--label-type", args.label_type, "--tie-policy", V3_LABEL["tie_policy"],
+                       "--seed", str(args.seed), "--label-type", args.label_type, "--tie-policy", args.tie_policy,
                        "--out-dir", str(args.out_dir)]
                 if args.extra_labels:
-                    cmd += ["--extra-labels", args.extra_labels]
+                    cmd += ["--extra-labels", args.extra_labels, "--extra-tie-policy", args.extra_tie_policy]
                 if args.n_matches:
                     cmd += ["--n-matches", str(args.n_matches)]
                 running.append((i, subprocess.Popen(cmd, cwd=str(PROJECT_ROOT), env=env, stdout=log, stderr=subprocess.STDOUT)))
@@ -128,9 +168,20 @@ def main(argv=None) -> int:
                     still.append((i, proc))
                 else:
                     print(f"[shard {i}] rc={rc} at {(time.time() - t0) / 60:.1f} min", flush=True)
+                    f = args.out_dir / f"shard_{i:03d}.npz"
+                    manifest["shards"][str(i)] = {"rc": int(rc), "file": f.name, "exists": f.exists(),
+                                                  "bytes": (f.stat().st_size if f.exists() else 0)}
+                    json.dump(manifest, open(manifest_path, "w", encoding="utf-8"), indent=1)
             running = still
         log.close()
-        print(f"shards done in {(time.time() - t0) / 60:.1f} min", flush=True)
+        failed = [i for i, s in manifest["shards"].items() if s["rc"] != 0 or not s["exists"]]
+        missing = [i for i in range(args.num_shards) if str(i) not in manifest["shards"]]
+        manifest["feature_names_sha1"] = _sha(args.out_dir / "feature_names.json")
+        manifest["complete"] = not failed and not missing
+        json.dump(manifest, open(manifest_path, "w", encoding="utf-8"), indent=1)
+        print(f"shards done in {(time.time() - t0) / 60:.1f} min; failed {failed} missing {missing}", flush=True)
+        if failed or missing:
+            raise SystemExit(f"shard build incomplete: failed={failed} missing={missing}; not decomposing")
 
     if not args.skip_decomposition:
         cmd = [sys.executable, "scripts/run_scale_decomposition.py", "--shards", str(args.out_dir), "--output", str(args.output),

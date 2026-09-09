@@ -10,7 +10,7 @@ import hashlib
 import time
 from collections import defaultdict
 from pathlib import Path
-from typing import Iterable
+from typing import Tuple, Iterable
 from core.common import Any, Dict, List, Optional, Tuple, np, dataclass, field
 from core.config import CACHE_DIR, META_DIR, cfg
 
@@ -151,7 +151,7 @@ def _load_cached_fight_index(path: Path, cache_key: str) -> Optional[List[FightR
         for r in rows:
             if not isinstance(r, dict):
                 continue
-            if "det_present_blue" not in r:
+            if "det_present_blue" not in r or "anchor_x" not in r:
                 # entry predates the scale fields: treat as a miss so the
                 # index is rebuilt once with participant counts populated
                 return None
@@ -169,6 +169,8 @@ def _load_cached_fight_index(path: Path, cache_key: str) -> Optional[List[FightR
                         det_cluster_red=int(r.get("det_cluster_red", -1)),
                         det_present_blue=int(r.get("det_present_blue", -1)),
                         det_present_red=int(r.get("det_present_red", -1)),
+                        anchor_x=float(r.get("anchor_x", -1.0)),
+                        anchor_y=float(r.get("anchor_y", -1.0)),
                     )
                 )
             except Exception:
@@ -195,6 +197,8 @@ def _save_cached_fight_index(path: Path, cache_key: str, cfg_sig: Dict[str, Any]
                 "det_cluster_red": int(getattr(r, "det_cluster_red", -1)),
                 "det_present_blue": int(getattr(r, "det_present_blue", -1)),
                 "det_present_red": int(getattr(r, "det_present_red", -1)),
+                "anchor_x": float(getattr(r, "anchor_x", -1.0)),
+                "anchor_y": float(getattr(r, "anchor_y", -1.0)),
             }
             for r in refs
         ]
@@ -358,7 +362,24 @@ def _fight_to_ref_row(
         "det_cluster_red": int(fight.get("det_cluster_red", -1) or -1),
         "det_present_blue": int(fight.get("det_present_blue", -1) or -1),
         "det_present_red": int(fight.get("det_present_red", -1) or -1),
+        "anchor_x": float(_fight_anchor(fight)[0]),
+        "anchor_y": float(_fight_anchor(fight)[1]),
     }
+
+
+def _fight_anchor(fight: Dict[str, Any]) -> Tuple[float, float]:
+    """Fight centre in game units: the detector stores it as centroid_x / centroid_y
+    (the first kill's position); older dumps used a fight_center pair."""
+    try:
+        cx, cy = fight.get("centroid_x", None), fight.get("centroid_y", None)
+        if cx is not None and cy is not None and float(cx) >= 0 and float(cy) >= 0:
+            return float(cx), float(cy)
+        fc = fight.get("fight_center", None)
+        if fc is not None and len(fc) >= 2:
+            return float(fc[0]), float(fc[1])
+    except Exception:
+        pass
+    return -1.0, -1.0
 
 
 def _build_fight_rows_for_match(
@@ -519,6 +540,8 @@ def build_fight_index(
                         det_cluster_red=int(row.get("det_cluster_red", -1)),
                         det_present_blue=int(row.get("det_present_blue", -1)),
                         det_present_red=int(row.get("det_present_red", -1)),
+                        anchor_x=float(row.get("anchor_x", -1.0)),
+                        anchor_y=float(row.get("anchor_y", -1.0)),
                     )
                 )
             except Exception:

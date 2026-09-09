@@ -43,6 +43,8 @@ class FightRef:
     det_cluster_red: int = -1   # observed event participants, red (-1 unknown)
     det_present_blue: int = -1  # alive champions near the anchor at the cutoff
     det_present_red: int = -1   # same, red (-1 unknown)
+    anchor_x: float = -1.0      # fight centre (first kill position), game units; -1 unknown
+    anchor_y: float = -1.0
 
     @staticmethod
     def _scale_class(blue: int, red: int) -> Optional[str]:

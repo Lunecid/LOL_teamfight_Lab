@@ -433,6 +433,16 @@ def _event_xy(e: dict) -> Optional[Tuple[float, float]]:
         return (safe_float(e.get("x")), safe_float(e.get("y")))
     return None
 
+def label_window_end_ts(fight_end_ts: int, engage_ts: int, horizon_ms: int) -> int:
+    """Exclusive end of the label window.
+
+    Events are read from the half-open interval [engage, end), so the end must sit one
+    millisecond past the fight's last kill for that kill to count; the minimum horizon
+    (engage + horizon_ms) is unchanged.
+    """
+    return int(max(int(fight_end_ts) + 1, int(engage_ts) + int(horizon_ms)))
+
+
 def build_anchors_from_events(events: List[dict]) -> Dict[str, Any]:
     obj = {k: [] for k in ["DRAGON", "BARON", "RIFTHERALD", "ATAKHAN", "HORDE"]}
     tower = {"TOWER_T100": [], "TOWER_T200": []}
@@ -1396,7 +1406,7 @@ def detect_fights_teamfight_v2(
 
         # §5: fight time window
         fight_end_ts = last_kill_ts + tail_buffer_ms
-        horizon_end_ts = int(max(fight_end_ts, engage_ts_val + horizon_ms))
+        horizon_end_ts = label_window_end_ts(fight_end_ts, engage_ts_val, horizon_ms)
 
         # Duration cap
         if fight_end_ts - engage_ts_val > int(config.max_merged_fight_duration_ms):
