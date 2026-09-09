@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from core.config import cfg
+from core.config import GLOBAL_IDX, cfg
 from core.common import Any, Dict, List, Optional, Tuple, np
 from core.timeutils import _get_bin_ms, _get_context_ms, _get_horizon_ms
 from gameplay.event_aggregation import aggregate_events as _aggregate_events
@@ -173,6 +173,13 @@ def build_ms_sequence(
             g_ref_ms = min(int(g_ref_ms), int(label_start_ms) - 1)
         glob_i, g_ts = global_from_prev_snapshot(cache, g_ref_ms, strict_before=True)
         glob_snap_ts_seq.append(int(g_ts))
+        if bool(getattr(cfg, "TIME_NORM_ABSOLUTE", True)):
+            # the snapshot carries the cached t / (T - 1); rewrite as absolute game time
+            tj = GLOBAL_IDX.get("time_norm", None)
+            if tj is not None and int(tj) < len(glob_i):
+                denom_ms = float(getattr(cfg, "TIME_NORM_DENOM_MIN", 45.0)) * 60000.0
+                glob_i = np.asarray(glob_i, dtype=np.float32).copy()
+                glob_i[int(tj)] = float(np.clip(float(q) / max(1.0, denom_ms), 0.0, 1.0))
         ev_i, it_i = aggregate_events(cache, tm, b0, b1)
 
         node_seq.append(node_i)

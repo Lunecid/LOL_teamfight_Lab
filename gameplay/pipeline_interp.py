@@ -86,7 +86,7 @@ def interpolate_abs_xy(
         i = j = 0
         alpha = 0.0
     else:
-        idx = int(np.searchsorted(ts, q_eff) - 1)
+        idx = int(np.searchsorted(ts, q_eff, side="right") - 1)
         i = max(0, idx)
         j = min(len(ts) - 1, idx + 1)
         alpha = 0.0 if ts[j] == ts[i] else float(np.clip(float(q_eff - ts[i]) / float(ts[j] - ts[i]), 0.0, 1.0))
@@ -125,7 +125,9 @@ def interpolate_node_global(
         node = nm[0].astype(np.float32)
         glob = gm[0].astype(np.float32)
     else:
-        idx = int(np.searchsorted(ts, q_eff) - 1)
+        # side="right": a query exactly at a frame timestamp (the capped case) belongs to that
+        # frame, so ffill reads it rather than the frame before.
+        idx = int(np.searchsorted(ts, q_eff, side="right") - 1)
         i = max(0, idx)
         j = min(len(ts) - 1, idx + 1)
 
