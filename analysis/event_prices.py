@@ -8,8 +8,10 @@ event type can be recovered by regression: for every team and frame interval
     dGold_team = a + sum_e price_e * n_e + c_lane * dLaneCS + c_jg * dJgCS + eps
 
 with the event counts of that team inside the interval as regressors.  The coefficient
-of an event is the average total gold the team received for it (local + global, killer
-+ assisters), which is exactly the currency the ``market_event`` label needs.  Kill
+of an event is the *regression-estimated average* team gold associated with it (local +
+global, killer + assisters), conditional on the other regressors; it is not the rule's payout
+and it absorbs co-occurring income the regressors do not capture.  It is the currency the
+``market_event`` label uses, and the rule values are quoted alongside for the cross-check.  Kill
 bounties are entered as their own regressor (coefficient ~1 if the frames agree with the
 events) and the assist share as a count of assists.
 
@@ -134,6 +136,27 @@ def fit_prices(X: np.ndarray, y: np.ndarray) -> dict:
            "se": {name: float(se[i + 1]) for i, name in enumerate(REGRESSORS)},
            "count": {name: float(X[:, i].sum()) for i, name in enumerate(REGRESSORS)}}
     return out
+
+
+def cluster_bootstrap(blocks: Sequence, n_boot: int = 200, seed: int = 7) -> Dict[str, dict]:
+    """Match-level bootstrap of the OLS coefficients.
+
+    ``blocks`` are per-match (X, y) pairs; each replicate resamples matches with replacement
+    and refits, so the interval reflects between-match variation instead of the within-match
+    interval correlation that the plain OLS standard error ignores.
+    """
+    rng = np.random.default_rng(seed)
+    m = len(blocks)
+    coefs = []
+    for _ in range(n_boot):
+        pick = rng.integers(0, m, m)
+        X = np.concatenate([blocks[i][0] for i in pick]); y = np.concatenate([blocks[i][1] for i in pick])
+        A = np.hstack([np.ones((len(y), 1)), X])
+        beta, *_ = np.linalg.lstsq(A, y, rcond=None)
+        coefs.append(beta[1:])
+    C = np.asarray(coefs)
+    return {name: {"p2.5": float(np.percentile(C[:, i], 2.5)), "p50": float(np.percentile(C[:, i], 50)),
+                   "p97.5": float(np.percentile(C[:, i], 97.5))} for i, name in enumerate(REGRESSORS)}
 
 
 def price_table(fit: dict, min_count: float = 200.0) -> Dict[str, float]:

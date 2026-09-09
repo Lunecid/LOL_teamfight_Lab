@@ -54,16 +54,18 @@ def main(argv=None) -> int:
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--output", type=Path, required=True)
     ap.add_argument("--table", type=Path, default=None, help="write the rounded price table here (JSON)")
+    ap.add_argument("--n-boot", type=int, default=200, help="match-level bootstrap replicates for the pooled fit (0 = off)")
     args = ap.parse_args(argv)
 
     from data.cache_io import load_match_cache
     from analysis.kill_pairs import list_cache_match_ids, group_by_patch, sample_ids
-    from analysis.event_prices import REGRESSORS, fit_prices, match_rows, price_table
+    from analysis.event_prices import REGRESSORS, cluster_bootstrap, fit_prices, match_rows, price_table
 
     mids = list_cache_match_ids()
     by_patch = group_by_patch(mids, progress=lambda s: print(s, flush=True))
     fits = {}
     X_all, Y_all = [], []
+    blocks = []
     t0 = time.time()
     for patch in sorted(by_patch):
         ids = sample_ids(by_patch[patch], args.n_matches_per_patch, args.seed)
@@ -74,7 +76,7 @@ def main(argv=None) -> int:
                 continue
             X, Y = match_rows(pack)
             if X is not None and len(Y):
-                Xs.append(X); Ys.append(Y)
+                Xs.append(X); Ys.append(Y); blocks.append((X, Y))
             if i % 2000 == 0:
                 print(f"  [{patch}] {i}/{len(ids)} matches, {sum(len(y) for y in Ys):,} intervals, {time.time() - t0:.0f}s", flush=True)
         X = np.concatenate(Xs); Y = np.concatenate(Ys)
@@ -85,13 +87,18 @@ def main(argv=None) -> int:
     X = np.concatenate(X_all); Y = np.concatenate(Y_all)
     fits["pooled"] = fit_prices(X, Y)
     fits["pooled"]["n_matches"] = int(sum(f["n_matches"] for p, f in fits.items() if p != "pooled"))
+    if args.n_boot > 0:
+        print(f"cluster bootstrap over {len(blocks):,} matches x {args.n_boot} ...", flush=True)
+        fits["pooled"]["cluster_bootstrap"] = cluster_bootstrap(blocks, n_boot=args.n_boot, seed=args.seed)
 
     print("\n| event | " + " | ".join(sorted(p for p in fits if p != "pooled")) + " | pooled (SE) | count | wiki |")
     print("|---|" + "---|" * (len(fits) + 2))
     for name in REGRESSORS:
         cells = [f"{fits[p]['coef'][name]:.1f}" for p in sorted(fits) if p != "pooled"]
         f = fits["pooled"]
-        print(f"| {name} | " + " | ".join(cells) + f" | {f['coef'][name]:.1f} ({f['se'][name]:.1f}) | {f['count'][name]:,.0f} | {WIKI_TEAM_TOTAL.get(name, '')} |")
+        cb = f.get("cluster_bootstrap", {}).get(name)
+        ci = f" [{cb['p2.5']:.1f}, {cb['p97.5']:.1f}]" if cb else ""
+        print(f"| {name} | " + " | ".join(cells) + f" | {f['coef'][name]:.1f} ({f['se'][name]:.1f}){ci} | {f['count'][name]:,.0f} | {WIKI_TEAM_TOTAL.get(name, '')} |")
     print(f"| intercept (passive gold / min) | " + " | ".join(f"{fits[p]['intercept']:.1f}" for p in sorted(fits) if p != "pooled")
           + f" | {fits['pooled']['intercept']:.1f} ({fits['pooled']['intercept_se']:.1f}) | | ~20.4 g / 10 s x 5 = 612 |")
 
@@ -105,7 +112,7 @@ def main(argv=None) -> int:
         per_patch = {p: price_table(f) for p, f in fits.items() if p != "pooled"}
         args.table.parent.mkdir(parents=True, exist_ok=True)
         args.table.write_text(json.dumps({
-            "unit": "team gold per event (local + global, killer + assisters), regression on frame gold",
+            "unit": "regression-estimated average team gold per event (local + global, killer + assisters), from frame gold; not the rule payout",
             "patches": sorted(p for p in fits if p != "pooled"),
             "pooled": table, "per_patch": per_patch,
             "source": str(args.output), "note": "kill gold is read from the event (bounty + shutdownBounty); "
