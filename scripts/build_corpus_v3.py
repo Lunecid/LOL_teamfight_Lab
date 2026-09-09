@@ -124,8 +124,10 @@ def main(argv=None) -> int:
     run_id = time.strftime("%Y%m%d_%H%M%S")
     try:
         git_commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=str(PROJECT_ROOT), capture_output=True, text=True).stdout.strip()
+        git_dirty = bool(subprocess.run(["git", "status", "--porcelain", "--untracked-files=no"], cwd=str(PROJECT_ROOT),
+                                        capture_output=True, text=True).stdout.strip())
     except Exception:
-        git_commit = ""
+        git_commit, git_dirty = "", None
     import hashlib as _hl
 
     def _sha(path):
@@ -133,7 +135,7 @@ def main(argv=None) -> int:
             return _hl.sha1(open(path, "rb").read()).hexdigest()
         except OSError:
             return None
-    manifest = {"run_id": run_id, "git_commit": git_commit, "detector": V3_DETECTOR, "effective_overrides": effective,
+    manifest = {"run_id": run_id, "git_commit": git_commit, "git_dirty": git_dirty, "detector": V3_DETECTOR, "effective_overrides": effective,
                 "label": {"row_label": args.label_type, "row_tie_policy": args.tie_policy,
                           "extra_labels": args.extra_labels, "extra_tie_policy": args.extra_tie_policy,
                           "gold_deadzone": V3_LABEL["gold_deadzone"], "price_table_sha1": _sha(PROJECT_ROOT / "config/game_rules/event_prices.json"),

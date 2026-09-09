@@ -95,12 +95,12 @@ Match-V5는 킬의 bounty·shutdownBounty만 기록하고 건물·몬스터는 0
 무승부 제외. 보간 없음. 스모크(1,104행)에서 market_lex와 일치 96.4%(무가격판 94.7%),
 Eq.3와 91.5%.
 
-## 4. 코퍼스 v3.1
+## 4. 코퍼스 v3.3
 
-위 수정본으로 샤드를 다시 만든다(`scripts/build_corpus_v3.py --label-type market_event
---extra-labels market_lex,attention_value_win`, `corpus_shards_v31_mevent/`). 분해는 세
-라벨 각각(`features/scale_decomposition_v31_{market_event,market_lex,attention_value_win}.json`).
-v3(누수 포함) 대비 AUC 변화가 누수의 크기다.
+위 수정본에 외부 감사 대응(라벨 창 끝, 사건 귀속, 공통 모집단, 무결성 manifest; `DEFINITION_EVIDENCE.md`
+21절)까지 더해 샤드를 다시 만들었다(`scripts/build_corpus_v3.py`, `corpus_shards_v33/`, 566,452행,
+라벨 6열). v3.1·v3.2는 결함이 발견돼 폐기했다. 분해는 `features/scale_decomposition_v33_*.json`.
+같은 라벨 위에서 누수 플래그만 토글하는 절제(`scripts/run_leak_ablation.py`)가 누수의 크기를 잰다.
 
 ## 5. 남은 점검
 
