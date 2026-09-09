@@ -19,8 +19,8 @@
    "diameter_rel_diff": 0.005017854728085526,
    "diameter_ci_overlap": true,
    "diameter_inside": true,
-   "radius_coverage": 0.890881913303438,
-   "radius_inside": true,
+   "radius_coverage": null,
+   "radius_inside": null,
    "inside": true
   },
   "15.15": {
@@ -32,8 +32,8 @@
    "diameter_rel_diff": 0.00032940601818704494,
    "diameter_ci_overlap": true,
    "diameter_inside": true,
-   "radius_coverage": 0.890881913303438,
-   "radius_inside": true,
+   "radius_coverage": null,
+   "radius_inside": null,
    "inside": true
   },
   "15.16": {
@@ -45,8 +45,8 @@
    "diameter_rel_diff": 0.005253607813203156,
    "diameter_ci_overlap": true,
    "diameter_inside": true,
-   "radius_coverage": 0.890881913303438,
-   "radius_inside": true,
+   "radius_coverage": null,
+   "radius_inside": null,
    "inside": true
   }
  }

@@ -1402,20 +1402,5 @@
    "shared_rate_diff_region_le_4000": 0.8961078787448915
   }
  },
- "radius": {
-  "ok": true,
-  "patch": "15.16",
-  "version": "15.16.1",
-  "n_champions": 171,
-  "n_spells": 669,
-  "radius_u": 1800.0,
-  "coverage_at_reference": 0.890881913303438,
-  "reference_radius_u": 1800.0,
-  "quantile_all_spells_at_target": 2500.0,
-  "quantile_nonglobal_at_target": 1250.0,
-  "coverage_target": 0.9,
-  "attack_range_max": 650.0,
-  "spell_range_median": 700.0,
-  "global_share": 0.05082212257100149
- }
+ "radius": null
 }

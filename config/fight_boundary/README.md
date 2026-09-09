@@ -14,9 +14,12 @@ temporal window), seed 7, 200 bootstrap replicates, 2026-09-08, 82 min on 16 CPU
 | `fight_boundary.png` | per-patch G and D against the pooled plateau and the +-10% band |
 | `sample_3000/` | the 3,000-matches-per-patch pilot (same seed) kept for comparison |
 
-Definition in force (`spec_pooled.json`): G = 13.7 s (ARI >= 0.9 plateau 10-18 s),
-D = 4,264 u (95% CI 4,256-4,274), R = 1,800 u (89.1% Data Dragon range coverage),
-B = 10 s, M = 2, pick <= 1 / skirmish <= 3 / teamfight >= 4 on the smaller side.
+Definition in force (`spec_pooled.json`, corpus v3.3): G = 13.7 s (ARI >= 0.9 plateau
+10-18 s), D = 4,264 u (95% CI 4,256-4,274), R = 1,600 u (game rule: champion-death
+experience share radius), B = 15 s (game rule: kill/assist credit window), M = 2,
+pick <= 1 / skirmish 2-3 / teamfight >= 4 on the smaller side. R and B are pinned with
+`--validity-radius-u 1600 --lead-s 15`; the earlier Data Dragon coverage reference
+(R = 1,800 u, B = 10 s) is kept only in `sample_3000/`.
 Verdict **pooled**: per-patch G = 14.0 / 13.5 / 13.7 s, D = 4,285 / 4,265 / 4,241 u.
 
 Pilot vs full (`python scripts/compare_boundary_specs.py config/fight_boundary/sample_3000
