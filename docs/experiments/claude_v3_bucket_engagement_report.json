@@ -1,0 +1,94 @@
+{
+  "engagements": {
+    "n": 26712,
+    "matches": 9198,
+    "boundary_exclusions": {}
+  },
+  "changes": {
+    "maymin": {
+      "last_kill_proxy": {
+        "n": 26712,
+        "mean_percentage_points": -0.07928729900965295,
+        "blue_increase_fraction": 0.4416367175801138,
+        "tie_fraction": 0.0,
+        "absolute_change_pp_quantiles": [
+          1.778937087899848,
+          4.346199200164014,
+          7.016731178888292,
+          9.207742090697161
+        ]
+      },
+      "plus_30s": {
+        "n": 26095,
+        "mean_percentage_points": -0.07443108753094893,
+        "blue_increase_fraction": 0.4448744970300824,
+        "tie_fraction": 0.0,
+        "absolute_change_pp_quantiles": [
+          2.092795731814995,
+          4.476932323204324,
+          8.686462832759652,
+          12.546968515761192
+        ]
+      },
+      "plus_60s": {
+        "n": 25350,
+        "mean_percentage_points": -0.11532355533249879,
+        "blue_increase_fraction": 0.4532544378698225,
+        "tie_fraction": 0.0,
+        "absolute_change_pp_quantiles": [
+          2.5415267540888213,
+          4.771544232508251,
+          9.190282238743894,
+          13.717915795790756
+        ]
+      }
+    },
+    "expanded": {
+      "last_kill_proxy": {
+        "n": 26712,
+        "mean_percentage_points": 0.19253512808338694,
+        "blue_increase_fraction": 0.5093965259059599,
+        "tie_fraction": 0.0,
+        "absolute_change_pp_quantiles": [
+          3.533735372444671,
+          8.449709607802756,
+          14.220607333627065,
+          22.340181241676724
+        ]
+      },
+      "plus_30s": {
+        "n": 26095,
+        "mean_percentage_points": 0.059408257033970124,
+        "blue_increase_fraction": 0.503659704924315,
+        "tie_fraction": 0.0,
+        "absolute_change_pp_quantiles": [
+          3.34400618916698,
+          7.935982785872908,
+          14.91276754822145,
+          22.45001041282316
+        ]
+      },
+      "plus_60s": {
+        "n": 25350,
+        "mean_percentage_points": -0.3032131795824807,
+        "blue_increase_fraction": 0.49061143984220906,
+        "tie_fraction": 0.0,
+        "absolute_change_pp_quantiles": [
+          3.7285687148902387,
+          8.791810498310193,
+          16.292294915683943,
+          24.676996773362617
+        ]
+      }
+    }
+  },
+  "model_direction_agreement": 0.8921084156933213,
+  "observed_objective_windows": {
+    "baron": 225,
+    "dragons": 1060,
+    "elder": 18,
+    "soul_event_recorded": 63
+  },
+  "elapsed_seconds": 183.04,
+  "status": "complete"
+}

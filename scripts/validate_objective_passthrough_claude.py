@@ -212,7 +212,8 @@ def run(args):
     # ---------------- C2: t-1ms vs t through the same StateBuilder ----------------
     status("running", step="C2_state_transition")
     import joblib
-    models = {f: joblib.load(args.v2_dir / f"{f}_model.joblib") for f in FAMILIES}
+    models_dir = args.models_dir or args.v2_dir
+    models = {f: joblib.load(models_dir / f"{f}_model.joblib") for f in FAMILIES}
     names = json.loads(io.open(args.dataset / "schema.json", encoding="utf-8").read())["state_names"]
     inspected, builders = [], {}
     for rec in selected:
@@ -318,6 +319,7 @@ def run(args):
         "platform": platform.platform(),
         "packages": {p: version(p) for p in ("numpy", "scikit-learn", "joblib")},
         "source_cache": str(args.cache_dir), "cache_written": False,
+        "models_dir": str(args.models_dir or args.v2_dir),
         "inputs": {"engagement_rows.npz": sha256(args.rows)},
         "source": {"scripts/validate_objective_passthrough_claude.py": sha256(Path(__file__)),
                    "gameplay/state_value.py": sha256(ROOT / "gameplay/state_value.py")},
@@ -337,6 +339,8 @@ def main():
     ap.add_argument("--rows", type=Path,
                     default=ROOT / "outputs/temporal_winprob_claude_validation/engagement_rows.npz")
     ap.add_argument("--v2-dir", type=Path, default=ROOT / "outputs/temporal_winprob_v2")
+    ap.add_argument("--models-dir", type=Path, default=None,
+                    help="score with models from this directory instead of --v2-dir")
     ap.add_argument("--dataset", type=Path, default=ROOT / "outputs/state_value_main_50k")
     ap.add_argument("--out-dir", type=Path,
                     default=ROOT / "outputs/temporal_winprob_claude_validation")
