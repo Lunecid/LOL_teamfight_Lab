@@ -17,9 +17,10 @@ input is its 7 statistics.  No information is dropped -- every column
 LightGBM sees reaches the transformer, just grouped by the base it
 summarizes.
 
-Split is by match (70/15/15): the deep models need a validation set for
-early stopping, and LightGBM uses exactly the same one, so no learner sees
-an advantage in data or tuning budget.
+Split is by PATCH by default (train 15.14, validate 15.15, test 15.16): the deep models need a
+validation set for early stopping, LightGBM uses exactly the same one, and holding out a patch
+means no learner is tested on the patch it was fitted on.  --split match restores the old random
+70/15/15 match split for comparison.
 
     LOL_OUTPUT_ROOT=D:/LOL_Project python scripts/run_deep_tabular_baselines.py ^
         --shards D:/LOL_Project/fusion_2615/corpus_shards ^
@@ -41,7 +42,7 @@ SEED = 7
 N_SUFFIXES = 7
 
 
-def load_subsample(shard_dir: Path, n_matches: int | None, seed: int) -> dict:
+def load_subsample(shard_dir: Path, n_matches: int | None, seed: int, y_key: str = "y") -> dict:
     paths = sorted(shard_dir.glob("shard_*.npz"))
     if not paths:
         raise SystemExit(f"no shards under {shard_dir}")
@@ -57,7 +58,7 @@ def load_subsample(shard_dir: Path, n_matches: int | None, seed: int) -> dict:
                                       replace=False).tolist())
         print(f"matches available={len(every)} sampled={len(keep_matches)}")
 
-    X_parts, y_parts, g_parts, s_parts = [], [], [], []
+    X_parts, y_parts, g_parts, s_parts, p_parts = [], [], [], [], []
     for path in paths:
         with np.load(path, allow_pickle=True) as blob:
             groups = blob["groups"]
@@ -66,8 +67,9 @@ def load_subsample(shard_dir: Path, n_matches: int | None, seed: int) -> dict:
             if not mask.any():
                 continue
             X_parts.append(blob["X"][mask])
-            y_parts.append(blob["y"][mask])
+            y_parts.append(blob[y_key][mask])
             g_parts.append(groups[mask])
+            p_parts.append(blob["patch"][mask])
             s_parts.append(np.minimum(blob["cluster_blue"][mask], blob["cluster_red"][mask]))
     X = np.concatenate(X_parts).astype(np.float32)
     del X_parts
@@ -75,8 +77,18 @@ def load_subsample(shard_dir: Path, n_matches: int | None, seed: int) -> dict:
         "X": X,
         "y": np.concatenate(y_parts).astype(np.int64),
         "groups": np.concatenate(g_parts),
+        "patch": np.concatenate(p_parts),
         "min_participants": np.concatenate(s_parts),
     }
+
+
+def split_by_patch(patch: np.ndarray, train: str, val: str, test: str):
+    """Hold a whole patch out: the learner never sees the patch it is scored on."""
+    tr, va, te = patch == train, patch == val, patch == test
+    missing = [n for n, m in ((train, tr), (val, va), (test, te)) if not m.any()]
+    if missing:
+        raise SystemExit(f"patches {missing} absent; present: {sorted(set(patch.tolist()))}")
+    return tr, va, te
 
 
 def split_by_match(groups: np.ndarray, seed: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -461,17 +473,32 @@ def main(argv=None) -> int:
         help="comma-separated subset to run; the split and preprocessing are "
              "seed-deterministic, so subsets are comparable across invocations",
     )
+    parser.add_argument("--split", choices=("patch", "match"), default="patch")
+    parser.add_argument("--train-patch", default="15.14")
+    parser.add_argument("--val-patch", default="15.15")
+    parser.add_argument("--test-patch", default="15.16")
+    parser.add_argument("--y-key", default="y_market_event",
+                        help="row label; -1 rows (draws under the drop policy) are removed")
     args = parser.parse_args(argv)
     wanted = {m.strip() for m in args.models.split(",") if m.strip()}
 
-    data = load_subsample(args.shards, args.n_matches, SEED)
+    data = load_subsample(args.shards, args.n_matches, SEED, y_key=args.y_key)
+    keep = data["y"] >= 0
+    if not keep.all():
+        print(f"label {args.y_key}: dropping {int((~keep).sum())} rows without a label (draws)")
+        for k in ("X", "y", "groups", "patch", "min_participants"):
+            data[k] = data[k][keep]
     X, y, groups = data["X"], data["y"], data["groups"]
     names = json.loads((args.shards / "feature_names.json").read_text(encoding="utf-8"))["names"]
     n_bases = len(names) // N_SUFFIXES
     print(f"rows={len(y)} matches={len(np.unique(groups))} features={X.shape[1]}"
           f" bases={n_bases} positives={y.mean():.3f}")
 
-    tr, va, te = split_by_match(groups, SEED)
+    if args.split == "patch":
+        tr, va, te = split_by_patch(data["patch"], args.train_patch, args.val_patch, args.test_patch)
+        print(f"patch split: train={args.train_patch} val={args.val_patch} test={args.test_patch}")
+    else:
+        tr, va, te = split_by_match(groups, SEED)
     print(f"split rows: train={tr.sum()} val={va.sum()} test={te.sum()}")
 
     # standardize on train only; constant-on-train columns collapse to zero
@@ -486,7 +513,10 @@ def main(argv=None) -> int:
         "n_matches": int(len(np.unique(groups))),
         "n_features": int(Xz.shape[1]),
         "n_bases": int(n_bases),
-        "split": {"train": int(tr.sum()), "val": int(va.sum()), "test": int(te.sum())},
+        "n_columns_seen_by_every_model": int(len(names)),
+        "split": {"kind": args.split, "train_patch": args.train_patch, "val_patch": args.val_patch,
+                  "test_patch": args.test_patch, "y_key": args.y_key,
+                  "train": int(tr.sum()), "val": int(va.sum()), "test": int(te.sum())},
         "positive_rate": float(y.mean()),
         "models": {},
     }
@@ -530,20 +560,35 @@ def main(argv=None) -> int:
         # statistic (j // n_bases), so the token view is a pure reshape --
         # (rows, 7, bases) -> (rows, bases, 7).  Nothing is dropped or
         # reordered; the transformer sees exactly LightGBM's columns.
+        #
+        # v3.3 appends unstructured columns after the 7 x n_bases block (frame_age_s, added by
+        # TAB_FRAME_AGE_FEATURE).  Those have no suffix family, so the plain reshape fails.  Each
+        # one becomes its own token whose statistic vector is [value, 0, ..., 0]; the tokenizer is
+        # linear per token, so this is exactly "one more feature, one more token" and the flat
+        # learners still see the identical columns.
+        structured = N_SUFFIXES * n_bases
+        extras = [names[j] for j in range(structured, len(names))]
         suffixes = [names[i * n_bases].rsplit("__", 1)[1] for i in range(N_SUFFIXES)]
         print(f"[ft_transformer] {n_bases} tokens x {N_SUFFIXES} statistics"
-              f" (suffixes: {suffixes})")
-        tokens = Xz.reshape(len(y), N_SUFFIXES, n_bases).transpose(0, 2, 1)
+              f" (suffixes: {suffixes})" + (f" + {len(extras)} unstructured token(s): {extras}"
+                                            if extras else ""))
+        tokens = Xz[:, :structured].reshape(len(y), N_SUFFIXES, n_bases).transpose(0, 2, 1)
+        if extras:
+            pad = np.zeros((len(y), len(extras), N_SUFFIXES), dtype=tokens.dtype)
+            pad[:, :, 0] = Xz[:, structured:]
+            tokens = np.concatenate([tokens, pad], axis=1)
+        n_tokens = tokens.shape[1]
+        assert n_tokens == n_bases + len(extras)
         results["token_config"] = {
             "d_token": args.d_token, "n_layers": args.n_layers,
             "n_heads": args.n_heads, "batch_size": args.batch_size, "lr": args.lr,
         }
         builders = {
             "ft_transformer": lambda: build_ft_transformer(
-                n_bases, N_SUFFIXES, args.d_token, args.n_layers, args.n_heads,
+                n_tokens, N_SUFFIXES, args.d_token, args.n_layers, args.n_heads,
                 dropout=0.1),
             "saint": lambda: build_saint(
-                n_bases, N_SUFFIXES, args.d_token, args.n_layers, args.n_heads,
+                n_tokens, N_SUFFIXES, args.d_token, args.n_layers, args.n_heads,
                 dropout=0.1),
         }
         for name in ("ft_transformer", "saint"):
