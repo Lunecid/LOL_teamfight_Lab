@@ -1,0 +1,34 @@
+{
+  "n_rows": 532547,
+  "n_matches": 191940,
+  "n_features": 7106,
+  "n_bases": 1015,
+  "n_columns_seen_by_every_model": 7106,
+  "split": {
+    "kind": "patch",
+    "train_patch": "15.14",
+    "val_patch": "15.15",
+    "test_patch": "15.16",
+    "y_key": "y_market_event",
+    "train": 187547,
+    "val": 191184,
+    "test": 153816
+  },
+  "positive_rate": 0.5078537668975696,
+  "models": {
+    "ft_transformer": {
+      "test_auc": 0.6560558835622627,
+      "val_auc": 0.6577311127597256,
+      "best_epoch": 6,
+      "seconds": 4145.7,
+      "tokenized": true
+    }
+  },
+  "token_config": {
+    "d_token": 32,
+    "n_layers": 3,
+    "n_heads": 8,
+    "batch_size": 64,
+    "lr": 0.0001
+  }
+}
