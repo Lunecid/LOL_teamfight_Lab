@@ -1,0 +1,39 @@
+{
+  "n_rows": 532547,
+  "n_matches": 191940,
+  "n_features": 7106,
+  "n_bases": 1015,
+  "split": {
+    "kind": "patch",
+    "train_patch": "15.14",
+    "val_patch": "15.15",
+    "test_patch": "15.16",
+    "y_key": "y_market_event",
+    "train": 187547,
+    "val": 191184,
+    "test": 153816
+  },
+  "positive_rate": 0.5078537668975696,
+  "models": {
+    "lightgbm": {
+      "test_auc": 0.6660893639173766,
+      "val_auc": 0.6665928722250316,
+      "best_iteration": 306,
+      "seconds": 254.8
+    },
+    "mlp": {
+      "test_auc": 0.6552225640293285,
+      "val_auc": 0.6569971075348753,
+      "best_epoch": 2,
+      "seconds": 41.9,
+      "tokenized": false
+    },
+    "tabnet": {
+      "test_auc": 0.618793939387132,
+      "val_auc": 0.6194247125675305,
+      "best_epoch": 5,
+      "seconds": 179.2,
+      "tokenized": false
+    }
+  }
+}

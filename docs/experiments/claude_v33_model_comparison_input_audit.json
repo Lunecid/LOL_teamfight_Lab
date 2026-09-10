@@ -1,0 +1,115 @@
+{
+  "truth": {
+    "rows_total": 566452,
+    "rows_labelled": 532547,
+    "matches": 191940,
+    "positive_rate": 0.5078537668975696,
+    "patches": {
+      "15.14": 187547,
+      "15.15": 191184,
+      "15.16": 153816
+    },
+    "columns_total": 7106,
+    "columns_constant": 942,
+    "columns_non_constant": 6164
+  },
+  "checks": [
+    {
+      "name": "tree pipeline row count",
+      "pass": true,
+      "detail": "532547 vs 532547"
+    },
+    {
+      "name": "tree pipeline match count",
+      "pass": true,
+      "detail": "191940 vs 191940"
+    },
+    {
+      "name": "deep pipeline row count",
+      "pass": true,
+      "detail": "532547 vs 532547"
+    },
+    {
+      "name": "deep pipeline match count",
+      "pass": true,
+      "detail": "191940 vs 191940"
+    },
+    {
+      "name": "deep pipeline label key",
+      "pass": true,
+      "detail": "y_market_event"
+    },
+    {
+      "name": "train rows identical",
+      "pass": true,
+      "detail": "tree 187547 vs deep 187547"
+    },
+    {
+      "name": "val rows identical",
+      "pass": true,
+      "detail": "tree 191184 vs deep 191184"
+    },
+    {
+      "name": "test rows identical",
+      "pass": true,
+      "detail": "tree 153816 vs deep 153816"
+    },
+    {
+      "name": "train patch rows match the shards",
+      "pass": true,
+      "detail": "187547 vs shard count 187547 for 15.14"
+    },
+    {
+      "name": "val patch rows match the shards",
+      "pass": true,
+      "detail": "191184 vs shard count 191184 for 15.15"
+    },
+    {
+      "name": "test patch rows match the shards",
+      "pass": true,
+      "detail": "153816 vs shard count 153816 for 15.16"
+    },
+    {
+      "name": "tree pipeline column count equals non-constant columns",
+      "pass": true,
+      "detail": "6164 vs 6164"
+    },
+    {
+      "name": "deep pipeline uses every column",
+      "pass": true,
+      "detail": "7106 vs 7106"
+    },
+    {
+      "name": "columns dropped by the tree pipeline are constant across the corpus",
+      "pass": true,
+      "detail": "942 constant columns, e.g. ['bTOP_cs_abilityHaste__last', 'bTOP_cs_armorPen__last', 'bTOP_cs_bonusMagicPenPercent__last']"
+    },
+    {
+      "name": "suffix families are contiguous and suffix-major",
+      "pass": true,
+      "detail": "['last', 'mean', 'std', 'min', 'max', 'delta', 'slope']"
+    },
+    {
+      "name": "unstructured columns get their own token, none dropped",
+      "pass": true,
+      "detail": "1015 structured tokens + 1 extra ['frame_age_s']"
+    },
+    {
+      "name": "token 0 carries base 0 under all 7 statistics",
+      "pass": true,
+      "detail": "[0.0, 1015.0, 2030.0, 3045.0, 4060.0, 5075.0, 6090.0] vs [0, 1015, 2030, 3045, 4060, 5075, 6090]"
+    },
+    {
+      "name": "every column reaches exactly one token",
+      "pass": true,
+      "detail": "1016 tokens x 7"
+    },
+    {
+      "name": "same learner, both column sets, AUC within 0.002",
+      "pass": true,
+      "detail": "0.6665 (6164 cols) vs 0.6661 (7106 cols), diff +0.0004"
+    }
+  ],
+  "verdict": "PASS",
+  "note": "the tree pipeline drops columns that are constant across the whole corpus; a constant column is uninformative for every learner, and the two independent LightGBM runs confirm it changes nothing measurable"
+}
