@@ -188,3 +188,61 @@ def test_immediate_delta_reproduces_the_frozen_v2_headline():
     ok = np.isfinite(recomputed)
     assert float(np.mean(recomputed[ok]) * 100) == pytest.approx(
         stored["last_kill_proxy"]["mean_percentage_points"], abs=1e-9)
+
+
+# --------------------------------------------------------------- validation C
+
+from scripts.validate_objective_passthrough_claude import objective_events  # noqa: E402
+
+TEAM_MAP = {i: (100 if i <= 5 else 200) for i in range(1, 11)}
+
+
+def _pack(events):
+    return {"events": events}
+
+
+def test_objective_events_separates_elder_from_elemental_dragons():
+    got = objective_events(_pack([
+        {"type": "ELITE_MONSTER_KILL", "timestamp": 100, "killerTeamId": 100,
+         "monsterType": "DRAGON", "monsterSubType": "FIRE_DRAGON"},
+        {"type": "ELITE_MONSTER_KILL", "timestamp": 200, "killerTeamId": 200,
+         "monsterType": "DRAGON", "monsterSubType": "ELDER_DRAGON"},
+    ]), TEAM_MAP)
+    assert got == [(100, 100, "dragon", "FIRE"), (200, 200, "elder", "DRAGON")]
+
+
+def test_objective_events_maps_soul_aliases_and_falls_back_to_the_team_map():
+    got = objective_events(_pack([
+        {"type": "DRAGON_SOUL_GIVEN", "timestamp": 300, "teamId": 100, "dragonSoul": "Infernal"},
+        {"type": "ELITE_MONSTER_KILL", "timestamp": 400, "killerId": 7,
+         "monsterType": "BARON_NASHOR"},          # no killerTeamId -> resolve via team map
+    ]), TEAM_MAP)
+    assert got == [(300, 100, "soul", "FIRE"), (400, 200, "baron", "BARON_NASHOR")]
+
+
+def test_objective_events_flags_unresolvable_teams_instead_of_guessing():
+    got = objective_events(_pack([
+        {"type": "ELITE_MONSTER_KILL", "timestamp": 500, "killerId": 0, "monsterType": "HORDE"},
+    ]), {})
+    assert got == [(500, 0, "unknown_team", "HORDE")]
+
+
+def test_objective_events_are_sorted_and_ignore_unrelated_types():
+    got = objective_events(_pack([
+        {"type": "ELITE_MONSTER_KILL", "timestamp": 900, "killerTeamId": 100, "monsterType": "RIFTHERALD"},
+        {"type": "CHAMPION_KILL", "timestamp": 800, "killerId": 1},
+        {"type": "ELITE_MONSTER_KILL", "timestamp": 700, "killerTeamId": 200, "monsterType": "ATAKHAN"},
+    ]), TEAM_MAP)
+    assert [g[0] for g in got] == [700, 900]
+    assert [g[2] for g in got] == ["atakhan", "herald"]
+
+
+VAL = ROOT / "outputs/temporal_winprob_claude_validation/results_c.json"
+
+
+@pytest.mark.skipif(not VAL.exists(), reason="validation C has not been run")
+def test_source_events_reproduce_the_frozen_objective_window_counts():
+    got = json.loads(VAL.read_text(encoding="utf-8"))["C1_event_census"]
+    assert got["reproduction_of_frozen_immediate_counts"]["matches"] == {
+        "baron": True, "dragons": True, "elder": True, "soul_event_recorded": True}
+    assert got["matches_missing_from_cache"] == []
