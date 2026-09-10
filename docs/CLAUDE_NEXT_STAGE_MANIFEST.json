@@ -1,0 +1,161 @@
+{
+  "base_commit": "ece1168",
+  "workspace": "C:\\Users\\todtj\\문서\\LOL_Teamfight\\worktrees\\engagement-state-value",
+  "files": [
+    {
+      "path": "docs\\CLAUDE_NEXT_STAGE_HANDOFF.md",
+      "bytes": 13753,
+      "sha256": "44abfceffbb8def52e5d51d0ccc6d7c7da6addf863b36bf23b7d29c6f909f772"
+    },
+    {
+      "path": "docs\\TEMPORAL_WINPROB_RESTART.md",
+      "bytes": 8779,
+      "sha256": "7a20e7ae7680b2f04ceab0d783bc2446175675d3c5721da442b2d4ad027d56e9"
+    },
+    {
+      "path": "docs\\TEMPORAL_WINPROB_RESULTS.md",
+      "bytes": 11537,
+      "sha256": "e8326ca55947a284768414c166ebfe0d90491cfc8620ebdb077c5eb8b018e99c"
+    },
+    {
+      "path": "docs\\ENGAGEMENT_DEFINITION_V3.md",
+      "bytes": 12721,
+      "sha256": "bea4774374628a796eff7699912d18ffdb5eab8225e29a26a38d0d9c38a16ae8"
+    },
+    {
+      "path": "docs\\DEFINITION_EVIDENCE.md",
+      "bytes": 90931,
+      "sha256": "f3004b0fa3e38d0db690becac93def25f692e3b9dc7ad1348a366cff483047ba"
+    },
+    {
+      "path": "docs\\DEFINITION_LITERATURE.md",
+      "bytes": 18302,
+      "sha256": "be048a8417ccf787c7956e05d8980280a0f1f9a9725de87fd26dba8662641ac4"
+    },
+    {
+      "path": "docs\\references\\definition_refs.bib",
+      "bytes": 10108,
+      "sha256": "ac13e8c789e874d63887af6e798e6a1741ed63d0d72af4112fcfbde08df6d78a"
+    },
+    {
+      "path": "docs\\RELEASE_REPORT_V3.md",
+      "bytes": 20746,
+      "sha256": "fef963ca461fd40fb6721f1bb1111fd754d60356dddc277f6a371c592e9d746b"
+    },
+    {
+      "path": "docs\\ENGAGEMENT_WINNER_DEFINITION.md",
+      "bytes": 9862,
+      "sha256": "1ce9b1c15becb93b688afc82352b8cf1acde42ccbe1511bd396ce6634ce9d3f0"
+    },
+    {
+      "path": "docs\\ENGAGEMENT_SCALE_DEFINITION.md",
+      "bytes": 10131,
+      "sha256": "bfaddc70ba8ff67d70a38be605f36c4a22499f93a5e086807200dc84d76756b5"
+    },
+    {
+      "path": "gameplay\\state_value.py",
+      "bytes": 9605,
+      "sha256": "c9092265634db41cca40657407087cdf365c0f0ed73cd335afb1b473d038e752"
+    },
+    {
+      "path": "train\\temporal_winprob.py",
+      "bytes": 3853,
+      "sha256": "b48b20770c497f402260e4d4350e38ad3c50673d8ed67dbfdea3294a837ec6f6"
+    },
+    {
+      "path": "scripts\\run_temporal_winprob.py",
+      "bytes": 13894,
+      "sha256": "8a2deec1e0735b920a243b51462a14bd0b7b71ee4c77ff0da95fedceb8b6c1c1"
+    },
+    {
+      "path": "scripts\\audit_temporal_winprob.py",
+      "bytes": 7635,
+      "sha256": "ccf0b158c500661e5fddc1e49faeab811ebc4f5dd4939b6157bbeb1f3771ce38"
+    },
+    {
+      "path": "outputs\\state_value_main_50k\\schema.json",
+      "bytes": 243878,
+      "sha256": "f57d52cc22755e1d30e0ed81ab40ee909f025daaf418152c13ae83a847bf5dfd"
+    },
+    {
+      "path": "outputs\\state_value_main_50k\\manifest.json",
+      "bytes": 1109113,
+      "sha256": "031c5c8f3767816f11a4d505b9d2cffe1dc3717829e31f4e91d9a0d1e5dc089d"
+    },
+    {
+      "path": "outputs\\state_value_main_50k_eval\\match_splits.json",
+      "bytes": 1093005,
+      "sha256": "0934dc6e25dc5afc60adfdb30c4cebafec6921bf93e108053426a4d39d8bc554"
+    },
+    {
+      "path": "outputs\\temporal_winprob_v2\\audit.json",
+      "bytes": 2457,
+      "sha256": "4a2601e7488efc58a87941560f5e5527fd6fc92f76acb4881bc1e6f7c8bc4d50"
+    },
+    {
+      "path": "outputs\\temporal_winprob_v2\\clock_diagnostic.json",
+      "bytes": 380,
+      "sha256": "b7de2e98c21cd425bd011efeb0ef6286d97502a8f82634a673f2f6bb4f118f14"
+    },
+    {
+      "path": "outputs\\temporal_winprob_v2\\engagement_changes.npz",
+      "bytes": 3683015,
+      "sha256": "e8c0349fce844234e28ef411803a8dbd4ee803b3e484ee0344ba912f4c34b6b7"
+    },
+    {
+      "path": "outputs\\temporal_winprob_v2\\expanded_model.joblib",
+      "bytes": 40000,
+      "sha256": "35995d6938e9f900d6b0bfd70fe10439e49489e8e03554a6b5c5bcea66560a1b"
+    },
+    {
+      "path": "outputs\\temporal_winprob_v2\\expanded_training_cv.json",
+      "bytes": 553001,
+      "sha256": "42c73d7e9af20d31790ff81007abd98953997a831b95d49ef29f969232e47441"
+    },
+    {
+      "path": "outputs\\temporal_winprob_v2\\independent_time_curves.npz",
+      "bytes": 1772330,
+      "sha256": "0ce9b6ba57121e45778356f31ef9d7fbbc6f3c0d646eaf1284fe2aed98a92ab4"
+    },
+    {
+      "path": "outputs\\temporal_winprob_v2\\maymin_model.joblib",
+      "bytes": 10324,
+      "sha256": "9a4cfab323fbf74c9eaeb5e42eaadcf07672833b4bc2a5c1d8b0c03b57e58d9d"
+    },
+    {
+      "path": "outputs\\temporal_winprob_v2\\protocol.json",
+      "bytes": 597321,
+      "sha256": "1aba793287409c2dd0135e82efd9859e429abcd766d2f563bb33eb7ce88afc68"
+    },
+    {
+      "path": "outputs\\temporal_winprob_v2\\results.json",
+      "bytes": 20404,
+      "sha256": "1fadd3053bee9075f777ef1d6a8ed9199791c2a2c4bc101c520283860f683b17"
+    },
+    {
+      "path": "outputs\\temporal_winprob_v2\\sampled_minutes.json",
+      "bytes": 1298159,
+      "sha256": "6135f6b157d023a3641a1e394cc8d6ca3dc9bed7b20a3296ad4ff87447cf3d45"
+    },
+    {
+      "path": "outputs\\temporal_winprob_v2\\selection.json",
+      "bytes": 9358,
+      "sha256": "d4fb6873f1905047f9cc27648fd9a5329d5d04a338928affa367906f804c2f61"
+    },
+    {
+      "path": "outputs\\temporal_winprob_v2\\status.json",
+      "bytes": 44,
+      "sha256": "5fcc0cf5304b3e31dc6ec50b6e7c03592278c10aa8d69da8eff1b231d85cf4cb"
+    },
+    {
+      "path": "outputs\\temporal_winprob_v2\\value_validation.json",
+      "bytes": 17718,
+      "sha256": "30b2879ea7e4d72b00eff6747e8d028db6b67f5e011058936f04e98e17b270fc"
+    },
+    {
+      "path": "outputs\\temporal_winprob_v2\\win_probability_examples.png",
+      "bytes": 364201,
+      "sha256": "738befd832f87837fca5fd63bfea1271bc3ba56203c82b4f9e87153795616312"
+    }
+  ]
+}
