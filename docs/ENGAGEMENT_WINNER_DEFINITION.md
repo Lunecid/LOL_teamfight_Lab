@@ -124,7 +124,14 @@ Measured on the pilot (2,551 engagements):
 buffs, dragon souls, tempo). The structure-explicit robustness columns
 cover that gap, and the limitation section says so.
 
-## Adopted primary: `market_lex` (market verdict + dead-zone refinement)
+## Adopted primary at the time of writing: `market_lex` (market verdict + dead-zone refinement)
+
+> **SUPERSEDED (2026-09-09).** The v3.3 corpus adopts `market_event` as the primary label -
+> the same market verdict and dead zone, but events priced from the regression table and
+> attributed to the engagement anchor. See `docs/ENGAGEMENT_DEFINITION_V3.md` and the
+> `v3.3` preset (`LABEL_TYPE="market_event"`). `market_lex` remains a robustness column
+> (0.694 against 0.670). The rest of this section documents how the family was designed
+> and why the dead zone exists; that reasoning is unchanged.
 
 Implemented as `LABEL_TYPE="market_lex"` (commit 99c29fb): the gold swing
 decides when it exceeds `LABEL_GOLD_DEADZONE` (300 g = one base kill

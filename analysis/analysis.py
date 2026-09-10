@@ -457,7 +457,10 @@ def compute_paper_statistics(match_rows: List[dict],
         "n_matches": N_matches,
         "n_fights_total": N_fights,
         "patches": patches,
-        "server_tier": "KR Master+",
+        # Collection constraint, not a measured composition: the collector queried the
+        # Master/Grandmaster/Challenger ladders, but per-match tier is not retained in the
+        # cache and the main corpus raw JSON was deleted, so no tier statistic can be computed.
+        "sampling_frame": "KR Master+ ladder (collection constraint; per-match tier not retained)",
         "fights_per_match_mean": float(np.mean(n_kept_list)),
         "fights_per_match_std": float(np.std(n_kept_list)),
         "fights_per_match_median": float(np.median(n_kept_list)),
@@ -670,7 +673,7 @@ def generate_latex_tables(stats: dict) -> str:
     lines.append(r"\toprule")
     lines.append(r"\textbf{Metric} & \textbf{Value} \\")
     lines.append(r"\midrule")
-    lines.append(f"Server / Tier & {t1['server_tier']} \\\\")
+    lines.append(f"Sampling frame & {t1['sampling_frame']} \\\\")
     lines.append(f"Patch & {', '.join(str(p) for p in t1['patches'])} \\\\")
     lines.append(f"Total matches & {t1['n_matches']:,} \\\\")
     lines.append(f"Total teamfights & {t1['n_fights_total']:,} \\\\")
@@ -803,7 +806,7 @@ def generate_markdown_tables(stats: dict) -> str:
     lines.append("## Table 1: Dataset Overview")
     lines.append("| Metric | Value |")
     lines.append("|--------|-------|")
-    lines.append(f"| Server / Tier | {t1['server_tier']} |")
+    lines.append(f"| Sampling frame | {t1['sampling_frame']} |")
     lines.append(f"| Patch | {', '.join(str(p) for p in t1['patches'])} |")
     lines.append(f"| Total matches | {t1['n_matches']:,} |")
     lines.append(f"| Total teamfights | {t1['n_fights_total']:,} |")
