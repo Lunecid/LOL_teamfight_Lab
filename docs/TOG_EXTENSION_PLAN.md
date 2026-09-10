@@ -1,5 +1,16 @@
 # ToG Extension Plan — Decomposed Engagement Outcome Prediction
 
+> **SUPERSEDED 2026-09-11 — read `docs/CLAUDE_TOG_PAPER_PLAN.md` instead.**
+> This plan predates the `time_norm` leak discovery. Its thesis ("predictability decomposes by
+> engagement scale") is **retracted**: on clean features pick − teamfight is −0.0019 [−0.0065,
+> +0.0028] at n_min ≥ 4, not the −0.068 the scale story was built on. Every number below comes
+> from the v2 corpus, the v2 detector constants (18 s / 4,000 u / 1,800 u / 10 s), the Eq.3 or
+> market_lex label, and — for the deep table — a random 40,000-match split rather than the patch
+> holdout. In particular do NOT reuse: the equitable-deep-comparison table and its five paired
+> CIs (the current run reverses SAINT−MLP's sign), the "R2-3 done" claim (withdrawn below), the
+> 553-match label and threshold sweeps quoted as full answers, or the vision-fusion figures.
+> Kept for provenance and for the reviewer-response ledger structure, which is still useful.
+
 Decision (2026-08-11, after the CoG 2026 result): the CoG submission scored
 +1/−1/+1 with an explicit meta-reviewer *accept* recommendation and was cut on
 capacity (89/239). We therefore sharpen rather than rebuild: extend the same
@@ -75,9 +86,9 @@ faster than the transformer variants.
 The scale decomposition reproduces inside every learner (teamfight highest,
 skirmish lowest), so the headline is a property of the task rather than of
 gradient boosting.
-| R2-3 | 6 timesteps × 60 s resolution starves sequential models | Measured: window-length sweep (w10/20/30 within 0.02) + trajectory-vs-snapshot ablation (0.53 vs 0.58) show static state carries the signal | **done** — write-up pending |
-| R2-4 | No anonymised code/data link | Anonymised repo + derived-data release (Riot ToS: derived features, not raw dumps) | planned |
-| Meta | "What about teamfights with no kills?" | `run_killless_encounters.py`: proximity encounters from the 5 s grid under the detector's own validity condition minus the kill requirement | script ready, run pending |
+| R2-3 | 6 timesteps × 60 s resolution starves sequential models | ~~window-length sweep (w10/20/30 within 0.02)~~ **WITHDRAWN 2026-09-11: never run.** `causal_stratified_w{10,20,30}.json` report `telemetry_auc` = 0.5463352952517039 identically to 16 digits across all three windows — the window parameter varied only the replay-vision channel, never the telemetry model. The trajectory-vs-snapshot ablation (0.53 vs 0.58) stands but answers a different question. | **NOT DONE** — see `CLAUDE_TOG_PAPER_PLAN.md` §7.6 |
+| R2-4 | No anonymised code/data link | Anonymised repo + derived-data release (Riot ToS: derived features, not raw dumps) | planned — repo is public and MIT, but the default branch README is still v2 |
+| Meta | "What about teamfights with no kills?" | `run_killless_encounters.py`: proximity encounters from the 5 s grid under the detector's own validity condition minus the kill requirement | **run** (2026-08-12, 7 settings, 2,000 matches) under **v2 constants**; needs a v3.3 re-run (~1 min/setting) |
 | R1-1 | Contribution statement restates RQs | Rewrite around community impact (esports narrative/broadcast tooling; R1's six references) | writing |
 | R1-2 | Arbitrary thresholds (18 s kill-cluster window, 4,000-unit spatial split) | `run_threshold_sensitivity.py` | **done** — 12/18/24/30 s × 3k/4k/5k units: engagement counts move ±12%, AUC spread 0.008, positive rate 50.5–50.9% |
 | R1-3 | LoL terminology opaque | `docs/ENGAGEMENT_SCALE_DEFINITION.md` formalizes engagement, both scale definitions, the class cutoff with its joint distribution, and the asymmetry covariate | **done** — paper prose pending |
