@@ -142,3 +142,49 @@ def test_query_times_are_ordered_and_snapshots_never_come_from_the_future():
     assert age_s.max() > pre_end.max()
     ordered = query[:, 1] > query[:, 0]
     assert ordered.all()                                          # end strictly after pre
+
+
+# --------------------------------------------------------------- validation B
+
+from scripts.validate_boundary_sensitivity_claude import (  # noqa: E402
+    NEUTRAL_BANDS, describe, scale_class,
+)
+
+
+def test_scale_class_never_puts_the_unknown_sentinel_in_pick():
+    """-1 means 'participants unknown', not 'one participant'; it must stay separate."""
+    classes = scale_class(np.array([-1, 0, 1, 2, 3, 4, 5]))
+    assert list(classes) == ["unknown(-1)", "pick(<=1)", "pick(<=1)", "skirmish(2-3)",
+                             "skirmish(2-3)", "teamfight(>=4)", "teamfight(>=4)"]
+    assert (classes == "pick(<=1)").sum() == 2          # 0 and 1 only, never -1
+
+
+def test_describe_sign_fractions_partition_and_match_weighting_differs():
+    delta = np.array([.10, -.05, .02, -.02, .00])
+    groups = np.array(["a", "a", "a", "a", "b"])        # match a dominates the raw mean
+    got = describe(delta, groups)
+    assert got["blue_increase_fraction"] + got["red_increase_fraction"] + got["exact_zero_fraction"] == 1.0
+    assert got["n"] == 5 and got["matches"] == 2
+    assert got["mean_pp_unweighted"] != got["mean_pp_match_weighted"]
+    assert got["median_abs_pp"] == pytest.approx(2.0)
+
+
+def test_neutral_band_share_is_monotone_in_the_threshold():
+    rng = np.random.default_rng(3)
+    delta = rng.normal(0, .08, 5000)
+    shares = [float((np.abs(delta) <= t).mean()) for t in NEUTRAL_BANDS]
+    assert shares == sorted(shares)
+    assert shares[0] == 0.0                            # exact zeros do not occur in practice
+
+
+@pytest.mark.skipif(not (V2 / "engagement_changes.npz").exists(), reason="frozen v2 artifacts absent")
+def test_immediate_delta_reproduces_the_frozen_v2_headline():
+    """Validation B must not silently redefine the delta it is characterising."""
+    with np.load(V2 / "engagement_changes.npz", allow_pickle=False) as z:
+        recomputed = z["expanded"][:, 1] - z["expanded"][:, 0]
+        stored_delta = z["expanded_delta"][:, 0]
+    assert np.allclose(recomputed, stored_delta, equal_nan=True)
+    stored = json.loads((V2 / "results.json").read_text(encoding="utf-8"))["changes"]["expanded"]
+    ok = np.isfinite(recomputed)
+    assert float(np.mean(recomputed[ok]) * 100) == pytest.approx(
+        stored["last_kill_proxy"]["mean_percentage_points"], abs=1e-9)
