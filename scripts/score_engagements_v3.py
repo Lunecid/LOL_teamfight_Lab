@@ -36,7 +36,16 @@ def run(a):
     write_json(out / 'status_engagement.json', {'stage': 'running', 'pid': os.getpid()})
 
     protocol = json.loads((out / 'protocol.json').read_text(encoding='utf-8'))
-    engagement_ids = protocol['splits']['engagement']
+    if a.split == 'engagement':
+        engagement_ids = protocol['splits']['engagement']          # = predict_test
+    else:
+        # predict_train is disjoint from every value-model partition, so labels scored here can
+        # train the engagement predictor without the value model ever having seen those matches.
+        old_splits = json.loads((a.previous_eval / 'match_splits.json').read_text(encoding='utf-8'))
+        engagement_ids = old_splits[a.split]
+        for role, ids in protocol['splits'].items():
+            if set(ids) & set(engagement_ids):
+                raise ValueError(f'{a.split} overlaps value partition {role}')
     models = {f: joblib.load(out / f'{f}_model.joblib') for f in ('maymin', 'expanded')}
 
     os.environ['LOL_OUTPUT_ROOT'] = str(out / 'runtime_engagement')
@@ -106,7 +115,7 @@ def run(a):
     assert len(set(table['id'])) == len(table['id'])
     for family in models:
         table[family + '_delta'] = table[family][:, 1:] - table[family][:, :1]
-    np.savez_compressed(out / 'engagement_changes.npz', **table)
+    np.savez_compressed(out / a.output_name, **table)
 
     report = {'engagements': {'n': len(table['id']), 'matches': len(set(table['match'])),
                               'boundary_exclusions': dict(excluded)}, 'changes': {}}
@@ -126,11 +135,15 @@ def run(a):
     report['observed_objective_windows'] = {
         obj: int(np.any(table['objectives'][:, i, :] > 0, axis=1).sum())
         for i, obj in enumerate(('baron', 'dragons', 'elder', 'soul_event_recorded'))}
+    report['split'] = a.split
+    report['output'] = a.output_name
     report['elapsed_seconds'] = round(time.time() - started, 2)
     report['status'] = 'complete'
-    write_json(out / 'engagement_report.json', report)
+    suffix = '' if a.split == 'engagement' else '_' + a.split
+    write_json(out / f'engagement_report{suffix}.json', report)
     write_json(out / 'status_engagement.json',
-               {'stage': 'complete', 'pid': os.getpid(), 'elapsed_seconds': report['elapsed_seconds']})
+               {'stage': 'complete', 'pid': os.getpid(), 'split': a.split,
+                'elapsed_seconds': report['elapsed_seconds']})
     print(json.dumps(report, indent=2), flush=True)
 
 
@@ -140,6 +153,10 @@ def main():
     ap.add_argument('--dataset', type=Path, default=ROOT / 'outputs/state_value_main_50k')
     ap.add_argument('--cache-dir', type=Path,
                     default=Path('D:/LOL_Project/cache/match_cache_fresh_v3_engage_status13'))
+    ap.add_argument('--previous-eval', type=Path, default=ROOT / 'outputs/state_value_main_50k_eval')
+    ap.add_argument('--split', default='engagement', choices=('engagement', 'predict_train'),
+                    help="'engagement' = predict_test (v2 population); 'predict_train' = predictor training matches")
+    ap.add_argument('--output-name', default='engagement_changes.npz')
     args = ap.parse_args()
     try:
         run(args)

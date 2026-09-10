@@ -1,8 +1,13 @@
 # Core dependencies
 torch>=2.0.0
-numpy>=1.21.0
-scikit-learn>=1.0.0
-lightgbm>=3.3.0
+# The frozen win-probability models (outputs/temporal_winprob_v2, _v3_buckets) are pickled
+# scikit-learn Pipelines. They fail to unpickle under scikit-learn 1.8 (SimpleImputer has no
+# _fill_dtype), so the four packages below are pinned to the versions the artefacts were
+# produced with (outputs/state_value_main_50k_eval/run_configuration.json).
+numpy==2.1.3
+scikit-learn==1.6.1
+lightgbm==4.6.0
+joblib==1.4.2
 
 # Optional: current-season Riot API acquisition agent
 # httpx>=0.24.0

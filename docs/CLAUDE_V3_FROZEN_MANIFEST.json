@@ -1,0 +1,190 @@
+{
+  "frozen_value_model": "v3 (independent_wp_v3_bucket_sampling)",
+  "supersedes": "outputs/temporal_winprob_v2 (kept as the documented predecessor)",
+  "base_commit": "18e0e9b",
+  "workspace": "C:\\Users\\todtj\\문서\\LOL_Teamfight\\worktrees\\engagement-state-value",
+  "label_contract": {
+    "label": "sign(V3(S_end) - V3(S_pre))",
+    "boundary": "end = last cluster kill",
+    "weight": "|delta-V_end| x match weight",
+    "comparison": "y_market_event on the same rows"
+  },
+  "environment": {
+    "python": "3.13.5",
+    "packages": {
+      "numpy": "2.1.3",
+      "scikit-learn": "1.6.1",
+      "lightgbm": "4.6.0",
+      "joblib": "1.4.2"
+    },
+    "note": "the joblib pickles do not load under scikit-learn 1.8; use these versions"
+  },
+  "files": [
+    {
+      "path": "outputs\\temporal_winprob_v3_buckets\\protocol.json",
+      "bytes": 597402,
+      "sha256": "6df920c6f8767e25c257e7cb292cdc5b3785e2f82df3a5a1cd41312788efe180"
+    },
+    {
+      "path": "outputs\\temporal_winprob_v3_buckets\\sampled_minutes.json",
+      "bytes": 5421058,
+      "sha256": "75f08e68fc5dd3d6f0d74fb500795cdb65da7fb6a74e2e0f835aeb3ceee31309"
+    },
+    {
+      "path": "outputs\\temporal_winprob_v3_buckets\\sampling_census.json",
+      "bytes": 811,
+      "sha256": "6e4c858d69133c9e020ece27bfb45840fe303ca3a5fcb1eef1b1771c36b0cecf"
+    },
+    {
+      "path": "outputs\\temporal_winprob_v3_buckets\\expanded_training_cv.json",
+      "bytes": 553035,
+      "sha256": "e1726ec452fc03a13e530c5b73e89eabfdb99e64c72701acd6dff67ea393dc8f"
+    },
+    {
+      "path": "outputs\\temporal_winprob_v3_buckets\\selection.json",
+      "bytes": 9536,
+      "sha256": "f4d8cdfd6e10202a811514c7f357fa6c3cf03c0aded7be85fac21d11eb19d185"
+    },
+    {
+      "path": "outputs\\temporal_winprob_v3_buckets\\maymin_model.joblib",
+      "bytes": 10324,
+      "sha256": "d1cea75d73d49c028ec35a309941c2ad951cac5e1ac9251d87add6ed6f32cc31"
+    },
+    {
+      "path": "outputs\\temporal_winprob_v3_buckets\\expanded_model.joblib",
+      "bytes": 40000,
+      "sha256": "8a28717d9af0abd7649d98a13685f16d9535163540a9f337a8baed6c9258d7c0"
+    },
+    {
+      "path": "outputs\\temporal_winprob_v3_buckets\\results.json",
+      "bytes": 19041,
+      "sha256": "05fadddbdc190ffa16fa07581e211798b378e0580c8d0693c47f6fb1c9f905c6"
+    },
+    {
+      "path": "outputs\\temporal_winprob_v3_buckets\\independent_time_curves.npz",
+      "bytes": 1770526,
+      "sha256": "def12d88c5674bb5fd2d02ec5262d4f6859f0db37deb5bcefc83b6f19cc59bfd"
+    },
+    {
+      "path": "outputs\\temporal_winprob_v3_buckets\\engagement_changes.npz",
+      "bytes": 3661788,
+      "sha256": "030e45c54ca5e0b2dd53f7bb1c9bea82ffe1ed7a6da361cdc7cf1385b8f782c3"
+    },
+    {
+      "path": "outputs\\temporal_winprob_v3_buckets\\engagement_report.json",
+      "bytes": 2629,
+      "sha256": "02e58e62b99de567449a51986ee79c9f8478923451bd1d1e865a437911ed0e25"
+    },
+    {
+      "path": "outputs\\temporal_winprob_v3_buckets\\engagement_changes_predict_train.npz",
+      "bytes": 9239957,
+      "sha256": "d79870a5a5781fa66e2bd55fd0c634d178e23bfc79c52ee9976aef3259b9c62f"
+    },
+    {
+      "path": "outputs\\temporal_winprob_v3_buckets\\engagement_report_predict_train.json",
+      "bytes": 2715,
+      "sha256": "dc25043fb3bf262b3ed48613a7173d9c4c575e1cde9ef80d1466658fd5ec01f0"
+    },
+    {
+      "path": "outputs\\temporal_winprob_v3_buckets\\validation_a\\results.json",
+      "bytes": 629061,
+      "sha256": "9f58ab2df251e5ede16afefe50ee4175e9188b41443076a001156683b4b3f616"
+    },
+    {
+      "path": "outputs\\temporal_winprob_v3_buckets\\validation_b\\results_b.json",
+      "bytes": 98259,
+      "sha256": "e45d24c04d3962cef8ba681182affdf2993e1469bc45a68a4aac21272dbd54ae"
+    },
+    {
+      "path": "outputs\\temporal_winprob_v3_buckets\\validation_c\\results_c.json",
+      "bytes": 483193,
+      "sha256": "e3d504a113b4fc753d628ab1cbc25d9a4f40bbd6610731f72a64e4a5d30e183d"
+    },
+    {
+      "path": "outputs\\engagement_predictor_v3\\results.json",
+      "bytes": 22195,
+      "sha256": "08d270d479f8fe438c49e683ee239241b81da0bc331b1e76dc0065bf982acc02"
+    },
+    {
+      "path": "outputs\\engagement_predictor_v3\\engagement_predictor_deltaV_weighted.joblib",
+      "bytes": 684470,
+      "sha256": "952c71c11aba5516bc7b1e19985de248f1a606abf653b6aec0ba6a2e38010f23"
+    },
+    {
+      "path": "outputs\\engagement_predictor_v3\\engagement_predictor_market_event.joblib",
+      "bytes": 683766,
+      "sha256": "0f1fbf965c219e0778ade32dbeba968abad7155cd47e28ff2feb1fa6cb42702d"
+    },
+    {
+      "path": "outputs\\engagement_predictor_v3\\predictions.npz",
+      "bytes": 3543165,
+      "sha256": "1a4e0f2814412092648cca93392494cec91c4ff9de67e7fb16ab9205fc9c7c49"
+    },
+    {
+      "path": "outputs\\state_value_main_50k\\schema.json",
+      "bytes": 243878,
+      "sha256": "f57d52cc22755e1d30e0ed81ab40ee909f025daaf418152c13ae83a847bf5dfd"
+    },
+    {
+      "path": "outputs\\state_value_main_50k\\manifest.json",
+      "bytes": 1109113,
+      "sha256": "031c5c8f3767816f11a4d505b9d2cffe1dc3717829e31f4e91d9a0d1e5dc089d"
+    },
+    {
+      "path": "outputs\\state_value_main_50k_eval\\match_splits.json",
+      "bytes": 1093005,
+      "sha256": "0934dc6e25dc5afc60adfdb30c4cebafec6921bf93e108053426a4d39d8bc554"
+    },
+    {
+      "path": "gameplay\\state_value.py",
+      "bytes": 9605,
+      "sha256": "c9092265634db41cca40657407087cdf365c0f0ed73cd335afb1b473d038e752"
+    },
+    {
+      "path": "train\\temporal_winprob.py",
+      "bytes": 3853,
+      "sha256": "b48b20770c497f402260e4d4350e38ad3c50673d8ed67dbfdea3294a837ec6f6"
+    },
+    {
+      "path": "train\\state_value_experiment.py",
+      "bytes": 16125,
+      "sha256": "b8a2070e231a4ae1169fb48f4b18ac269e8b2087f108b37beadbaf333a6e0d0e"
+    },
+    {
+      "path": "scripts\\run_temporal_winprob_v3_buckets.py",
+      "bytes": 12291,
+      "sha256": "27f8911786b5131236fb1f32f0335e38bb08fe56d31661c7e48cc052b27ee4f2"
+    },
+    {
+      "path": "scripts\\score_engagements_v3.py",
+      "bytes": 8393,
+      "sha256": "985f02f42f914e3b0cc33fb53abae2ce6e02ec1ea98c04d8a8858e68bee4e62b"
+    },
+    {
+      "path": "scripts\\train_engagement_predictor_v3.py",
+      "bytes": 14579,
+      "sha256": "784ff285f6318e46b64ac9b424f82bb5af17ef8a853792afa0027e567eb93f3d"
+    },
+    {
+      "path": "scripts\\validate_temporal_winprob_claude.py",
+      "bytes": 20549,
+      "sha256": "fa761ccad8e22f685ed9620d92e489478754e0acdbccd043c80b8d4670ceac39"
+    },
+    {
+      "path": "scripts\\validate_boundary_sensitivity_claude.py",
+      "bytes": 20588,
+      "sha256": "373a28ac4f00e0ccfa54e5e0d8584beca49c23c3088832b67b44ba583aca427b"
+    },
+    {
+      "path": "scripts\\validate_objective_passthrough_claude.py",
+      "bytes": 18871,
+      "sha256": "f5f456ba6dfd427b934ef544fcc07c37dcd6a7ecfdc0e4bb5b820381cec776ba"
+    },
+    {
+      "path": "requirements.txt",
+      "bytes": 799,
+      "sha256": "c457cebf017aa5fb4c8faf76def1665b955ee51c654704e25bd3f03cd5ef774c"
+    }
+  ],
+  "missing": []
+}

@@ -246,3 +246,34 @@ def test_source_events_reproduce_the_frozen_objective_window_counts():
     assert got["reproduction_of_frozen_immediate_counts"]["matches"] == {
         "baron": True, "dragons": True, "elder": True, "soul_event_recorded": True}
     assert got["matches_missing_from_cache"] == []
+
+
+# ------------------------------------------------------- v3 bucket sampling
+
+from scripts.run_temporal_winprob_v3_buckets import bucket_minute_indices, ece_from  # noqa: E402
+
+
+def test_bucket_sampling_takes_exactly_one_point_per_five_minute_bucket():
+    grid = np.arange(120_000, 40 * 60_000, 60_000)          # minutes 2..39 inclusive
+    picked = bucket_minute_indices("KR_test", grid)
+    buckets = sorted({int(grid[i]) // 300_000 for i in picked})
+    assert len(picked) == len(buckets) == 8                # [0,5) .. [35,40): eight buckets
+    assert buckets == list(range(8))                       # every bucket present, none doubled
+    assert all(0 <= i < len(grid) for i in picked)
+    assert picked == bucket_minute_indices("KR_test", grid)   # deterministic in the match id
+    assert picked != bucket_minute_indices("KR_other", grid)  # ...and not a constant offset
+
+
+def test_bucket_sampling_covers_short_matches_without_inventing_points():
+    grid = np.array([120_000, 180_000, 240_000])            # a 4-minute game: one bucket only
+    assert len(bucket_minute_indices("KR_short", grid)) == 1
+
+
+def test_v3_ece_agrees_with_validation_a_reliability_ece():
+    rng = np.random.default_rng(11)
+    p = rng.random(2000)
+    y = (rng.random(2000) < p * 0.8 + 0.1).astype(int)
+    g = np.array([f"m{i//7}" for i in range(2000)])
+    w = match_weights(g)
+    _, ece_a = reliability(y, p, w)
+    assert ece_from(y, p, w) == pytest.approx(ece_a, abs=1e-12)
