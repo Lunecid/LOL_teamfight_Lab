@@ -1,13 +1,15 @@
 {
   "frozen_value_model": "v3 (independent_wp_v3_bucket_sampling)",
   "supersedes": "outputs/temporal_winprob_v2 (kept as the documented predecessor)",
-  "base_commit": "18e0e9b",
+  "base_commit": "424982d",
   "workspace": "C:\\Users\\todtj\\문서\\LOL_Teamfight\\worktrees\\engagement-state-value",
   "label_contract": {
-    "label": "sign(V3(S_end) - V3(S_pre))",
+    "decided": "2026-09-10, revised the same day after the predictor run",
+    "outcome_target": "market_event (predicted from X at cutoff)",
+    "value_axis": "delta-V_end = V3(S_end) - V3(S_pre), reported alongside, not a target",
     "boundary": "end = last cluster kill",
-    "weight": "|delta-V_end| x match weight",
-    "comparison": "y_market_event on the same rows"
+    "weights": "match weights only (|delta-V| weighting withdrawn: 0.6344 -> 0.5885)",
+    "evidence": "docs/CLAUDE_V3_PREDICTOR_REPORT.md"
   },
   "environment": {
     "python": "3.13.5",
@@ -121,6 +123,26 @@
       "sha256": "1a4e0f2814412092648cca93392494cec91c4ff9de67e7fb16ab9205fc9c7c49"
     },
     {
+      "path": "outputs\\engagement_predictor_v3\\magnitude_diagnostic.json",
+      "bytes": 4548,
+      "sha256": "5183cd24879b049e91e487348fe5c3265f78eec4e226054661cc2dd367daf1f4"
+    },
+    {
+      "path": "outputs\\engagement_predictor_v3\\magnitude_headroom_decomposition.json",
+      "bytes": 161,
+      "sha256": "5658e1d5cf58b793b758dc20d193c72d762fddb60bdbd877aa5ab00f436d5dcd"
+    },
+    {
+      "path": "outputs\\engagement_predictor_v3\\two_axis_summary.json",
+      "bytes": 4457,
+      "sha256": "05256d56306042f21172a0331b83a2d271215b85c32490055ce6d9f7d86352bf"
+    },
+    {
+      "path": "outputs\\engagement_predictor_v3\\two_axis_test.csv",
+      "bytes": 2226495,
+      "sha256": "ec4d53429f917fbff838d63327739578abb3c31515d17b11b62af73d85609048"
+    },
+    {
       "path": "outputs\\state_value_main_50k\\schema.json",
       "bytes": 243878,
       "sha256": "f57d52cc22755e1d30e0ed81ab40ee909f025daaf418152c13ae83a847bf5dfd"
@@ -164,6 +186,16 @@
       "path": "scripts\\train_engagement_predictor_v3.py",
       "bytes": 14579,
       "sha256": "784ff285f6318e46b64ac9b424f82bb5af17ef8a853792afa0027e567eb93f3d"
+    },
+    {
+      "path": "scripts\\diagnose_deltaV_magnitude_predictability.py",
+      "bytes": 4234,
+      "sha256": "33ea47bc22eddd5e132edb0c88211c0c9b04687d0def7c767d06454dbfe406d3"
+    },
+    {
+      "path": "scripts\\report_two_axis_output_v3.py",
+      "bytes": 5984,
+      "sha256": "31e41b0cf8227ac8c436fc87210e060c40d1e0e4b7131cb055cc1f47591f54d9"
     },
     {
       "path": "scripts\\validate_temporal_winprob_claude.py",
