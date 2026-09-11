@@ -11,6 +11,23 @@
 기존 문서 `CONSTANTS_JUSTIFICATION.md`, `ENGAGEMENT_SCALE_DEFINITION.md`의 수치는
 "[기존 문서]"로 표시하고 이번에 재검증하지 않았음을 밝힌다.
 
+> **Status (2026-09-11).** This file is a dated research log. Sections 1-9 (2026-09-07) were
+> written under the v2 detector (G 18 s, D 4,000 u, R 1,800 u, B 10 s, teamfight `n_min ≥ 3`)
+> and are superseded by sections 14-17 and 22. The current definition is section 17
+> (G 13.7 s, D 4,264 u, R 1,600 u, B 15 s, M 2, teamfight `n_min ≥ 4`), summarised in
+> `docs/ENGAGEMENT_DEFINITION_V3.md` and written up in `docs/tog_manuscript/sec_definition.tex`.
+> Values below that survive only as history and must not be cited as current: the
+> 948,369-engagement v2 corpus with teamfight .784 and pick − teamfight −.068 (leak-affected,
+> retracted in section 22); the Data Dragon coverage shares 89.3 % and 89.1 % as the basis of R
+> (withdrawn in section 15); the kill-less 4.9 % and "0.15 vs 2.03 per match" of section 5 (v2
+> constants; the 4.9 % is a share of proximity encounters, not of engagements; replaced by the
+> v3.3 kill-less grid, see the note in section 17); the threshold-sweep AUC variation 0.008
+> (553 matches, v2 detector). Section 19 (corpus v3) is on leak-affected features, and its
+> scale-gradient reading is retracted in section 22. Section 22's statements that the clean result
+> has no scale gradient hold only at the adopted cut `n_min ≥ 4`, because the pick − teamfight
+> gap depends on the cut (`docs/CLAUDE_TOG_PAPER_PLAN.md` §4; see the note at the end of §22.1).
+> Hit list: `docs/tog_manuscript/stale_claims_inventory.md`.
+
 ---
 
 ## 1. "한타"의 정의: 문헌에서 확인한 것 [문헌]
@@ -396,14 +413,17 @@ tests/test_temporal_boundary.py (12)
 |---|---|---|---|
 | G | 2성분 혼합모형으로 두 성분 위치를 잡고 그 사이 KDE 최소값. 깊이 < 0.95, 내부점일 때만 유효 | 경기 단위 부트스트랩 95% CI, 대역폭 스윕, ARI ≥ 0.9 평원 | 풀링 G 상속, 그것도 없으면 18 s 기본값을 명시 |
 | D | 슬라이스의 G 창 안에서 같은 챔피언 공유율이 0.5로 떨어지는 거리 (베이즈 결정 경계) | 경기 단위 부트스트랩 CI, 경계 ±10% 안의 쌍 질량 | 풀링 D 상속, 그것도 없으면 4,000 u |
-| R | 1,800 u 역학 앵커 고정. 패치별로 Data Dragon 스킬 사거리 커버리지만 갱신 | 커버리지 변화 | 기본값 1,800, 커버리지 미보고 |
-| B, M | 10 s, 2명 고정 (데이터 추정 없음, 명시) | | |
+| R | Game-rule anchor R = 1,600 u (champion-death experience-share radius; League of Legends Wiki "Experience (champion)", checked 2026-09-11, no change recorded, including for patches 15.14-15.16; §15, §17), fixed and not estimated from data (`config/fight_boundary/spec_pooled.json`: `radius_source` "rule:champion-death experience share radius", `radius_coverage` null). *was (2026-09-07):* 1,800 u mechanics anchor with per-patch Data Dragon ability-range coverage; withdrawn because the `range` field holds placeholders for dash/charge abilities (§15) | Sensitivity over the rule bracket [1,350, 1,800] u (§15; the grid also has 2,500 u) | None: a rule constant (*was:* default 1,800, coverage not reported) |
+| B, M | B = 15 s game-rule anchor (kill/assist credit window on Summoner's Rift; League of Legends Wiki "Kill", checked 2026-09-11, no change recorded, including for patches 15.14-15.16; §15, §17), M = 2 (Ke 2022); neither estimated from data (`spec_pooled.json`: `lead_s` 15.0, `min_per_team` 2). *was:* B = 10 s fixed lead | B sensitivity over [5, 15] s (§15) | |
 
 **이동 판정 (drift_decision).** 패치별 G가 풀링 평원(ARI ≥ 0.9인 G 구간) 안이고,
 패치별 D가 풀링 D의 ±10% 안이며 CI가 겹치고, R 커버리지 차이가 2%p 이내이면
 그 패치는 "inside". 모든 패치가 inside면 verdict = **pooled**(정의 하나로 전 코퍼스),
 아니면 **per_patch**(패치별 spec 사용). 규칙은 실행 전에 고정되어 있고 모델 성능은
 어디에도 관여하지 않는다.
+*(2026-09-11: with a rule-anchored R the spec carries no coverage, so the R-coverage criterion
+is skipped (`analysis/fight_boundary_pipeline.py` applies it only when both coverages are
+non-null), and the current verdict in `config/fight_boundary/drift.md` rests on G and D alone.)*
 
 **산출물.** `spec_pooled.json`, `spec_<patch>.json`, `details_<scope>.json`,
 `drift.json`/`drift.md`, `pairs_<patch>.npz`, `fight_boundary.png`.
@@ -416,6 +436,10 @@ teamfight ≥ 4를 적용한다.
 0.90 분위가 약 1,250 u(제외)와 약 2,000 u(포함) 사이를 오간다. 그래서 R은 역학
 앵커로 고정하고 패치별 커버리지(15.14.1: 171 챔피언, 669 스펠, 1,800 u 커버
 89.1%)만 이동 판정에 쓴다.
+*(Superseded 2026-09-09 by §15 and §17: R is the rule anchor 1,600 u and per-patch coverage is no
+longer part of the drift decision. The coverage share is withdrawn as a basis for R because Data
+Dragon `range` values are placeholders for dash/charge abilities. The 89.1 % in the first-run table
+below is kept as a dated measurement only.)*
 
 **실행.**
 ```
@@ -620,6 +644,9 @@ LOL_OUTPUT_ROOT=D:/LOL_Project python scripts/run_fight_boundary_pipeline.py ^
 
 판정 **pooled** (세 패치 모두 inside: G 풀링 평원 안, D 상대차 0.0~0.5%, CI 겹침,
 사거리 커버리지 동일 171 챔피언·669 스펠·89.1%).
+*(2026-09-08 run. The specs were regenerated on 2026-09-09 with rule-anchored R = 1,600 u and
+B = 15 s (commit 7712489); that verdict is also pooled but has no coverage criterion, see
+`config/fight_boundary/drift.md`.)*
 
 **읽는 법.**
 
@@ -673,10 +700,19 @@ LOL_OUTPUT_ROOT=D:/LOL_Project python scripts/run_fight_boundary_pipeline.py ^
 창 내 쌍은 0.16%이고, 비등방성은 경로 거리에서도 남으므로 지형이 아니라 라인을
 따라 싸움이 움직이는 행동의 성질이다. 논문에는 비율 1.5를 관측 사실로 보고한다.
 
-**현행 정의(`config/fight_boundary/spec_pooled.json`).** G = 13.7 s(평원 10~18),
-D = 4,264 u, R = 1,800 u(커버리지 89.1%), B = 10 s, M = 2, pick ≤ 1 / skirmish ≤ 3 /
-teamfight ≥ 4. 논문 초안 `docs/references/definition_section_draft.tex`는 이 수치로
-갱신되어 있다.
+**현행 정의(`config/fight_boundary/spec_pooled.json`, regenerated 2026-09-09 in commit 7712489).**
+G = 13.7 s(평원 10~18), D = 4,264 u, R = 1,600 u (game-rule anchor: champion-death
+experience-share radius), B = 15 s (game-rule anchor: kill/assist credit window), M = 2,
+pick ≤ 1 / skirmish ≤ 3 / teamfight ≥ 4 (spec fields `gap_s` 13.7246, `diameter_u` 4,263.87,
+`validity_radius_u` 1600, `lead_s` 15, `min_per_team` 2; the v3.3 corpus was detected with the
+rounded values 13,700 ms and 4,264.0 u, `D:/LOL_Project/fusion_2615/corpus_shards_v33/manifest.json`).
+*was (2026-09-08):* R = 1,800 u (Data Dragon coverage 89.1 %), B = 10 s; superseded by §15-§17, and the
+coverage basis for R is withdrawn. Rule sources and the patch check: §15. 논문 초안
+`docs/references/definition_section_draft.tex`는 이 수치로 갱신되어 있다. (Its kill-less sentence, which says
+kill-less encounters "amount to 4.9\% of engagements" (line 37 on 2026-09-11), still uses v2 constants and the
+wrong denominator. The v3.3 replacement now exists:
+`D:/LOL_Project/fusion_2615/features/tog_revision/killless_grid/summary.json`, summarised in the §17 note.
+Hit list: `docs/tog_manuscript/stale_claims_inventory.md`.)
 
 ---
 
@@ -697,6 +733,13 @@ teamfight ≥ 4. 논문 초안 `docs/references/definition_section_draft.tex`는
 | Zac E 최대 사거리 | 1,800 u (1,200~1,800, 충전 0.9~1.3 s) | Zac | 궁극기가 아닌 진입기 중 최장 |
 | Malphite R + Flash | 1,000 + 400 = 1,400 u | Malphite, Flash | 대표 진입 콤보 |
 | 기본 이동속도 | 325~355 u/s, 2티어 신발 +45 | Movement speed | 10 s에 약 3,700~4,000 u |
+
+*Patch check (2026-09-11), for the two rows used as anchors.* League of Legends Wiki, "Experience (champion)":
+a dying champion's experience goes to enemy champions within 1,600 u, and minion experience is shared within
+1,500 u. The page's patch history lists changes to the minion radius only (V4.11 and V25.S1.1). League of Legends
+Wiki, "Kill": the credit window is 15 s on Summoner's Rift and 20 s on Howling Abyss, and the page lists no change
+to it. Neither page records a change to the 1,600 u radius or the 15 s window, including for the corpus patches
+15.14-15.16. The other rows of this table were not re-checked on this date.
 
 OpenDota(Tot 2021이 쓴 라벨; odota/core 이력의 `processors/processTeamfights.js`,
 2023-12 삭제 직전 버전을 blobless clone으로 확인): `teamfightCooldown = 15`,
@@ -831,10 +874,17 @@ Hecarim R 50,000, Aatrox E 25,000, Twitch Q 20). 3.3절의 "669 스펠 89.1%"는
 
 **규모 클래스** (사후 보고 축, 참여 인원 중 적은 쪽 min):
 
-- pick: min ≤ 1 (21.9%). 83%가 1v2·1v3, "한 명이 잡히는 것".
-- skirmish: min 2~3 (55.7%). 2와 3 사이에 자연 경계가 없어 관례로 명시.
-- teamfight: min ≥ 4 (22.4%). 참여 분포에서 2v2와 5v5가 봉우리, 4v4가 골짜기라
+- pick: min ≤ 1 (19.1%). 83%가 1v2·1v3, "한 명이 잡히는 것".
+- skirmish: min 2~3 (60.3%). 2와 3 사이에 자연 경계가 없어 관례로 명시.
+- teamfight: min ≥ 4 (20.6%). 참여 분포에서 2v2와 5v5가 봉우리, 4v4가 골짜기라
   {4,5}×{4,5}가 자연 덩어리. 커뮤니티 용법 "팀 전체"와 일치.
+
+(2026-09-11. The shares are now from the v3.3 corpus: 101,798 / 320,878 / 109,829 of 532,547 labelled
+engagements, each n/532,547, from `D:/LOL_Project/fusion_2615/features/scale_decomposition_v33_market_event.json`,
+`by_participation_scale`; the three counts sum to 532,505. *was:* 21.9 / 55.7 / 22.4 %, the v2
+948,369-engagement distribution of §4. The 83 % and the peak-and-valley reading still come from the v2
+distribution of §4. Their v3.3 values:
+`\pending{participation_joint_v33}{v3.3 joint participation distribution: 1v2/1v3 share of picks and the diagonal peaks and valley}`.)
 
 **이 정의가 주장하는 것.**
 
@@ -846,7 +896,24 @@ Hecarim R 50,000, Aatrox E 25,000, Twitch Q 20). 3.3절의 "669 스펠 89.1%"는
 - 예측: 첫 킬 15 s 전 상태로 교전 결과 AUC 0.660(초반 0.61, 중반 0.70, 후반 0.80).
 - 규모: 코퍼스 v3는 약 53만 교전(경기당 2.5).
 
-**주장하지 않는 것.** 킬 없는 한타(전체 encounter의 4.9%), 첫 킬 이전의 "시작 시각"
+(2026-09-11. The gate comparison above, 0.660 vs 0.669 and 0.658 vs 0.659, and the prediction bullet's 0.660
+with its phase AUCs come from the §16 retraining (commit c850f72). That run predates the input-audit fixes
+(leak fix 5b5f9c8), so these are not current results. Current headline: 0.670 on 532,547 labelled engagements
+in 191,940 matches, 2.77 per match (532,547/191,940; §22.1, `features/scale_decomposition_v33_market_event.json`).
+Not yet produced on v3.3 features:
+`\pending{presence_gate_v33}{(1,600 u, 15 s) vs (1,800 u, 10 s) presence gate on v3.3 features}` and
+`\pending{gd_sensitivity_v33}{G x D sensitivity against the v3.3 headline}`.)
+
+**주장하지 않는 것.** 킬 없는 한타 (*updated 2026-09-11:* the v3.3 kill-less grid,
+`D:/LOL_Project/fusion_2615/features/tog_revision/killless_grid/summary.json`, 20,000 matches, seed 7.
+At the teamfight gate (row `r1600_t4_dG_g15`: at least 4 alive per side within 1,600 u for at least 13.7 s,
+15 s grace), 591 of 19,155 proximity encounters have no kill: 3.09 % (591/19,155), or 0.02955 per match
+(591/20,000). R 1,200 u and 2,000 u give 2.00 % and 3.47 % (rows `r1200_t4_dG_g15`, `r2000_t4_dG_g15`);
+a 10 s grace gives 4.34 % (`r1600_t4_dG_g10`). These are shares of proximity encounters, not of
+engagements, and a per-match rate must not be divided by engagement counts (the file's
+`denominator_warning`). *was:* 4.9 %, a v2-constant measurement (R 1,800 u, 10 s grace, 3 per side for at
+least 20 s) over 6,195 proximity encounters in 2,000 matches, `features/killless/r1800_d20_t3.json`),
+첫 킬 이전의 "시작 시각"
 (B는 리드이지 onset이 아님), 비참여 챔피언의 정확한 위치(60 s 프레임 보간).
 
 **부록으로 가는 것.** R×B 감도 격자, (1,800,10) 점의 재현(.669)과 공통 교전 비교,
@@ -1221,7 +1288,7 @@ v3.2 확정 전 외부 감사가 8개 항목을 지적했다. 전부 확인했�
 | 전체 AUC | 0.702 | **0.670** |
 | pick / skirmish / teamfight | 0.673 / 0.686 / 0.770 | 0.679 / 0.663 / 0.681 |
 | pick − teamfight [95% CI] | −0.098 | −0.002 [−0.007, +0.003] |
-| 존재 기준 teamfight (2.0%) | 0.798 | 0.700 |
+| 존재 기준 teamfight (2.0%) | 0.798 | 0.699 *(was: 0.700; see the note at the end of §22.1)* |
 
 같은 v3.3 특징 위에서 라벨만 바꾼 교차 채점(주 모델 고정): 창 전체 귀속 0.672, market_lex 0.689,
 lex 창 전체 0.689, Eq.3 0.622. 귀속 라벨 일치: event 97.8%, lex 99.7%. 라벨 간 AUC 차이(lex − event)는
@@ -1241,14 +1308,14 @@ lex 창 전체 0.689, Eq.3 0.622. 귀속 라벨 일치: event 97.8%, lex 99.7%. 
 - **teamfight의 높은 AUC는 상당 부분 time_norm 누수였다.** 경기 총 길이로 정규화된 시간은 "이 경기가
   곧 끝난다"를 담고, 후반 한타는 경기를 끝내는 싸움이라 앞선 팀이 이긴다. 누수 하나로 teamfight
   +0.05, 전체 +0.02. 앵커 누수는 +0.01 / +0.004. 두 누수를 빼면 규모 기울기는 표본에서 +0.02,
-  전체 코퍼스에서 0이다.
+  전체 코퍼스에서 0이다 *[2026-09-11: this "0" is −0.002 [−0.007, +0.003], at the cut `n_min ≥ 4` only; see the note at the end of §22.1]*.
 - 따라서 v2·v3에서 보고한 "teamfight 0.78~0.81, pick과 0.1 차이"는 철회한다. 깨끗한 입력에서
-  교전 결과는 규모와 무관하게 약 0.67로 예측되고, 컷오프 시점 존재 인원이 4명 이상인 싸움만 0.70이다.
+  교전 결과는 규모와 무관하게 *[at `n_min ≥ 4` only]* 약 0.67로 예측되고, 컷오프 시점 존재 인원이 4명 이상인 싸움만 0.70이다.
 - 전체 0.702 → 0.670의 나머지 차이는 라벨 변경(귀속 −0.002, 가격, 끝점)과 프레임 인덱스 수정
   (특징이 한 프레임 신선해짐; 방향은 개선)과 공통 모집단이 섞인 것이며, 표본 절제에서 누수 둘의
   합이 0.020이므로 대부분은 누수다.
 - 이것은 논문의 주장을 바꾼다. "무엇이 예측 가능한가"가 아니라 "누수 없이 재면 얼마나 예측
-  가능한가"가 결과이고, 규모 분해는 '차이 없음'이 결론이다.
+  가능한가"가 결과이고, 규모 분해는 '차이 없음'이 결론이다 *[at `n_min ≥ 4` only; see the note at the end of §22.1]*.
 
 ### 22.1 v3.3 전체 분해 결과 (2026-09-09 완료)
 
@@ -1265,7 +1332,7 @@ lex 창 전체 0.689, Eq.3 0.622. 귀속 라벨 일치: event 97.8%, lex 99.7%. 
 | v3 Eq.3 | 540,774 | 0.681 | 0.657 | 0.666 | 0.744 | −0.088 |
 | v2 발표 market_lex (tf ≥ 3) | 948,369 | 0.746 | 0.716 | 0.715 | 0.784 | −0.068 |
 
-- **깨끗한 입력에서 규모 기울기는 없다.** market_event −0.002, market_lex −0.011, 창 전체 −0.009~−0.013.
+- **깨끗한 입력에서 규모 기울기는 없다.** *[2026-09-11: at the adopted cut `n_min ≥ 4` only; see the note below.]* market_event −0.002, market_lex −0.011, 창 전체 −0.009~−0.013.
   Eq.3에서는 부호가 뒤집혀 teamfight가 가장 어렵다(+0.067): 연구자 가중 라벨은 역전을 높게 쳐서
   큰 싸움일수록 예측이 어려워진다. v2·v3의 "teamfight 0.78~0.81, pick과 0.1 차이"는 time_norm 누수의
   산물이었다(22절 절제).
@@ -1275,4 +1342,21 @@ lex 창 전체 0.689, Eq.3 0.622. 귀속 라벨 일치: event 97.8%, lex 99.7%. 
   주 라벨로 쓴다.
 - **식별자 범주형 처리는 해롭다**(−0.009). 숫자 입력 유지, 논문 부록에 기록.
 - **헤드라인 재작성.** 첫 킬 15초 전 상태로 교전의 물질적 승자를 AUC 0.67로 예측하며, 이 값은 교전
-  규모와 무관하다. 컷오프 시점에 이미 4명 이상 모인 싸움(2.0%)만 0.70이다.
+  규모와 무관하다 *[at `n_min ≥ 4` only; see the note below]*. 컷오프 시점에 이미 4명 이상 모인 싸움(2.0%)만 0.70이다.
+
+*Note (2026-09-11).* Every statement in §22 and §22.1 that the clean result has no scale gradient, or does not
+depend on scale (규모와 무관), holds only at the adopted cut `n_min ≥ 4`. At that cut pick − teamfight is
+−0.002 [−0.007, +0.003] (`D:/LOL_Project/fusion_2615/features/scale_decomposition_v33_market_event.json`:
+class AUCs 0.67887 − 0.68089 = −0.0020; `bootstrap.pick_minus_teamfight` 2.5 % / 97.5 % = −0.0065 / +0.0026,
+1,000 match-level replicates). The gap depends on where the teamfight cut is placed, so "no scale gradient" and
+"pick − teamfight = 0" must not be written without the cut (`docs/CLAUDE_TOG_PAPER_PLAN.md` §4). Values at
+`n_min ≥ 3 / 4 / 5`:
+`\pending{scale_cut_sensitivity}{pick − teamfight at n_min ≥ 3, 4, 5 from the re-verified cut-sensitivity artefact}`.
+
+Three further corrections, checked against the same file:
+
+- The v3 market_event and v3 Eq.3 rows of the §22.1 table are on leak-affected features, like the v3 market_lex row.
+- In the §22 table, the v3.3 presence-teamfight AUC is 0.69949 (`by_presence_scale.teamfight.auc`), which is 0.699
+  at three decimals (*was:* 0.700).
+- That class's n is 11,477: 2.03 % of the 566,452-row common population (11,477/566,452) and 2.16 % of the
+  532,547 labelled rows (11,477/532,547).

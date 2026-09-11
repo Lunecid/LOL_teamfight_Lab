@@ -19,9 +19,15 @@
    파이프라인이 판정한다.
 2. **정의 변경은 교전의 수를 바꾸지만 예측 가능성은 바꾸지 않는다.** 게이트 두 점(0.669 vs 0.660),
    G·D 변경(교전 +8%, AUC 불변), 정의 v2 → v3(0.746 → 0.736)이 모두 0.01 안이고, 같은 싸움에서는
-   차이가 없다. **반면 입력 누수는 결과를 바꿨다.** 경기 길이로 정규화된 time_norm 하나가 teamfight
+   차이가 없다. *(All three comparisons predate the leak fix; see the §5.1 note. The G × D sensitivity
+   against the v3.3 headline does not exist yet: `\pending{gd_sensitivity_v33}{G x D sensitivity against the v3.3 headline}`.)*
+   **반면 입력 누수는 결과를 바꿨다.** 경기 길이로 정규화된 time_norm 하나가 teamfight
    AUC를 0.05 올리고 있었고, 누수를 걷어낸 v3.3에서 "한타가 가장 예측 가능하다"는 규모 기울기는
-   사라진다(pick − teamfight −0.002). 깨끗한 헤드라인은 **0.670**(규모 무관)이다.
+   채택 컷 `n_min ≥ 4`에서 사라진다(pick − teamfight −0.002 [−0.007, +0.003]). 깨끗한 헤드라인은
+   **0.670**이다. *(2026-09-11, was: "0.670(규모 무관)". The pick − teamfight gap depends on where the
+   teamfight cut is placed (`docs/CLAUDE_TOG_PAPER_PLAN.md` §4), so it is stated at the adopted cut only.
+   Values at `n_min ≥ 3 / 4 / 5`: `\pending{scale_cut_sensitivity}{pick − teamfight at n_min ≥ 3, 4, 5 from the re-verified cut-sensitivity artefact}`.
+   Source of −0.002 [−0.007, +0.003]: see the §5.3 note.)*
 3. **라벨을 "게임이 지급한 골드"로 바꿨다.** 보간된 분 골드(market_lex)의 추가 0.03 AUC는 컷오프
    이전에 앞서 있던 팀을 맞힌 점수임을 5.5% 불일치 행에서 증명했고(0.846 vs 0.244), 사건별 팀 골드
    가격표를 프레임 회귀로 복원해(R² 0.96) 이벤트 가격 라벨 market_event를 주 라벨로 제안한다.
@@ -62,7 +68,7 @@
 
 | 항목 | 내용 | 커밋 |
 |---|---|---|
-| 규칙 앵커 | R = 1,600 u(챔피언 사망 XP 공유 반경), B = 15 s(킬·어시스트 크레딧 창; OpenDota 사전 창과 동일), M = 2(Ke 2022). 괄호 [1,350 시야, 1,800 최장 진입기 Zac E] / [5 s 전투 이탈, 15 s] | 439c7ca, 4cc72dc |
+| 규칙 앵커 | R = 1,600 u(챔피언 사망 XP 공유 반경), B = 15 s(킬·어시스트 크레딧 창; OpenDota 사전 창과 동일), M = 2(Ke 2022). 괄호 [1,350 시야, 1,800 최장 진입기 Zac E] / [5 s 전투 이탈, 15 s]. R and B sources: League of Legends Wiki, "Experience (champion)" (1,600 u) and "Kill" (15 s on Summoner's Rift), checked 2026-09-11. Neither page records a change to either value, including for the corpus patches 15.14-15.16 (`DEFINITION_EVIDENCE.md` §15) | 439c7ca, 4cc72dc |
 | 감도 | R×B 12칸: 적격 비율 9.6~34.2%(R), 13.8~26.5%(B). 교전 수를 정하는 상수는 G·D가 아니라 R·B | 439c7ca |
 | 재학습 | (1,800, 10) 994,365 교전 0.669 vs (1,600, 15) 531,984 교전 0.660; 공통 32,820 교전에서 0.659 vs 0.658 | c850f72 |
 | Data Dragon 강등 | range 필드가 돌진기에서 자리표시자(Zac E 300) → 커버리지 근거를 보조로 | 439c7ca |
@@ -72,7 +78,7 @@
 | 항목 | 내용 | 커밋 |
 |---|---|---|
 | 타임라인 | 관측 [τ−30, τ], τ = 첫 킬 − 15 s, 라벨 [τ, max(마지막 킬, τ+35)] (= 첫 킬 + 20 s, CoG와 동일 사후 범위) | b9b2207, bd8a8c8 |
-| 근거 | 에피소드 지속 p95 17 s, 근처 전환 사건 첫 킬 후 중앙 27 s(의도적으로 라벨 밖), 관측 창 15/30/60 s와 라벨 창 35/45/60 s 감도 오차 안 | bd8a8c8, 224f63d |
+| 근거 | 에피소드 지속 p95 17 s, 근처 전환 사건 첫 킬 후 중앙 27 s(의도적으로 라벨 밖), 관측 창 15/30/60 s와 라벨 창 35/45/60 s 감도 오차 안 (pilot on pre-leak-fix features; see the §5.5 caveat) | bd8a8c8, 224f63d |
 | market_event | 게임이 지급한 킬 골드(bounty + shutdown) + 회귀 가격표(플레이트 120, 외곽 540, 내부 730, 억제기 타워 510, 넥서스 185, 억제기 85, 바론 1,555, 장로 1,390, 전령 170, 아타칸 240, 유충 40, 와드 킬 25, 어시스트 45, 킬 +20) → ±300 g 데드존 → 킬 → 생존자 → 구조물 → 무승부 제외 | 5285e8d, 5b5f9c8 |
 | market_lex 진단 | 두 라벨 불일치 5.5% 행에서 lex 모델 0.846 / event 모델 0.244; lex 라벨은 컷오프 골드 선두와 66.7% 일치 → 추가 AUC는 "앞서 있던 팀" 점수 | 9bea96a |
 | 보간 결정 | 입력 = 마지막 프레임 유지 + 프레임 나이(GRU-D), 선택 = 다리 보간(Brownian bridge), 라벨 = 무보간 통화 | 224f63d |
@@ -127,12 +133,12 @@
 
 | 조건 | 값 | 출처 |
 |---|---|---|
-| 킬 ≥ 1 | — | 관측 가능성 (킬 없는 encounter 4.9%는 범위 밖) |
+| 킬 ≥ 1 | — | 관측 가능성 (킬 없는 encounter는 범위 밖). *v3.3 kill-less grid (2026-09-11):* `features/tog_revision/killless_grid/summary.json`, 20,000 matches, seed 7. Teamfight gate, row `r1600_t4_dG_g15` (≥ 4 alive per side within 1,600 u for ≥ 13.7 s, 15 s grace): 591 of 19,155 **proximity encounters** have no kill, 3.09 % (591/19,155), 0.02955 per match (591/20,000). R = 1,200 u and 2,000 u give 2.00 % and 3.47 % (`r1200_t4_dG_g15`, `r2000_t4_dG_g15`); a 10 s grace gives 4.34 % (`r1600_t4_dG_g10`). These are shares of proximity encounters, not of engagements. *was:* 4.9 %, a v2-constant measurement (R 1,800 u, 10 s grace, 3 per side for ≥ 20 s) over 6,195 proximity encounters in 2,000 matches (`features/killless/r1800_d20_t3.json`) |
 | 시간 G | 13.7 s (평원 10~18) | 코퍼스 골짜기 |
 | 공간 D | 4,264 u | 코퍼스 교차점 |
-| 존재 R / B / M | 1,600 u / 15 s / 2 | 게임 규칙 / Ke 2022 |
+| 존재 R / B / M | 1,600 u / 15 s / 2 | 게임 규칙 (League of Legends Wiki, "Experience (champion)" and "Kill", checked 2026-09-11; no change recorded, including for patches 15.14-15.16) / Ke 2022 |
 | 정리 | 60 s 상한, 전멸 시 종료, 15 s·2,000 u 후속 흡수 | 발표 코드 |
-| 규모 | pick ≤ 1 (18.9%), skirmish 2~3 (60.7%), teamfight ≥ 4 (20.4%) | 참여 분포의 봉우리·골짜기 |
+| 규모 | pick ≤ 1 (19.1%), skirmish 2~3 (60.3%), teamfight ≥ 4 (20.6%) | 참여 분포의 봉우리·골짜기. Shares of the 532,547 labelled v3.3 engagements: 101,798 / 320,878 / 109,829, each n/532,547 (`features/scale_decomposition_v33_market_event.json`, `by_participation_scale`; the three counts sum to 532,505). *was:* 18.9 / 60.7 / 20.4 % (v3, before the input-audit fixes) |
 
 예측 상황: 첫 킬 15초 전, 양 팀이 첫 킬 위치 1,600 u 안에 2명 이상 있는 순간, 직전 30초의 상태
 (프레임 1장 + ms 사건 + 고정 정보 + 지형)만 보고 물질적 승자(게임이 지급한 골드 기준)를 맞힌다.
@@ -149,6 +155,12 @@
 | G·D 18/4,000 → 13.7/4,264, 같은 게이트 | 531,984 → 574,312 | 0.660 → 0.659 | — |
 | v2 → v3, ToG 프로토콜, market_lex | 948,369 → 541,767 | 0.746 → 0.736 | tf ≥ 4: 0.808 vs 0.805 |
 
+*Note (2026-09-11):* all three rows predate the input-audit fixes (leak fix commit 5b5f9c8, 2026-09-09 09:33;
+the rows were committed in c850f72 at 02:04 and 1a93134 at 08:28), so their AUCs are on features that still
+contained the `time_norm` and spatial-anchor leaks and hold only as within-row comparisons. In the third row,
+948,369 is the v2 corpus size and 0.746 / 0.736 / 0.808 / 0.805 are leak-affected values retracted as current
+claims (§5.3). The current headline is v3.3: 0.670 on 532,547 engagements.
+
 ### 5.2 코퍼스 v3 (ToG 프로토콜: 전체 교전, 경기 단위 5겹 OOF, LightGBM, teamfight ≥ 4)
 
 | 라벨 | n | 전체 | pick | skirmish | teamfight | pick − tf |
@@ -158,6 +170,10 @@
 | Eq.3 | 540,774 | 0.682 | 0.657 | 0.666 | 0.744 | −0.088 |
 
 교차 채점: event 모델 → lex 라벨 0.731 (lex 모델 0.736). 세 라벨 모두 규모 기울기 −0.09~−0.10.
+
+*Note (2026-09-11):* §5.2 is the v3 corpus on leak-affected features (built before commit 5b5f9c8). Its scale
+gradient of −0.09 to −0.10 came from the `time_norm` leak and is retracted; on the audit-fixed v3.3 features it
+does not appear at the adopted cut `n_min ≥ 4` (§5.3; `DEFINITION_EVIDENCE.md` §22).
 
 ### 5.3 코퍼스 v3.3 (수정 특징 + 귀속·가격 라벨 + 공통 모집단) — v3 대비
 
@@ -170,40 +186,74 @@
 | v3.3 market_lex@window | 541,895 | 0.693 | 0.700 | 0.685 | 0.712 | −0.013 |
 | v3.3 Eq.3 | 561,721 | 0.624 | 0.666 | 0.621 | 0.599 | **+0.067** |
 | v3 market_lex (누수 특징) | 541,767 | 0.736 | 0.709 | 0.719 | 0.805 | −0.096 |
-| v3 market_event (무가격·창 전체) | 535,444 | 0.702 | 0.673 | 0.686 | 0.770 | −0.098 |
-| v3 Eq.3 | 540,774 | 0.682 | 0.657 | 0.666 | 0.744 | −0.088 |
-| v2 발표 market_lex (tf ≥ 3) | 948,369 | 0.746 | 0.716 | 0.715 | 0.784 | −0.068 |
+| v3 market_event (무가격·창 전체, 누수 특징) | 535,444 | 0.702 | 0.673 | 0.686 | 0.770 | −0.098 |
+| v3 Eq.3 (누수 특징) | 540,774 | 0.682 | 0.657 | 0.666 | 0.744 | −0.088 |
+| v2 발표 market_lex (tf ≥ 3, 누수 특징; retracted) | 948,369 | 0.746 | 0.716 | 0.715 | 0.784 | −0.068 |
+
+*Note (2026-09-11):* the pick − tf column is the gap at the adopted cut `n_min ≥ 4` only. The gap depends on
+where the teamfight cut is placed (`docs/CLAUDE_TOG_PAPER_PLAN.md` §4), so no row here supports "no scale
+gradient" without the cut. Values at `n_min ≥ 3 / 4 / 5`:
+`\pending{scale_cut_sensitivity}{pick − teamfight at n_min ≥ 3, 4, 5 from the re-verified cut-sensitivity artefact}`.
+Source of the first row: `features/scale_decomposition_v33_market_event.json`. Class AUCs are 0.67887 / 0.66333 /
+0.68089. pick − teamfight = 0.67887 − 0.68089 = −0.0020. The 95 % CI [−0.0065, +0.0026] is
+`bootstrap.pick_minus_teamfight` (2.5 % and 97.5 %, 1,000 match-level replicates), rounded in the table to
+[−0.007, +0.003].
 
 ### 5.4 학습기 비교 (2026-09-11, 전체 코퍼스, 패치 홀드아웃)
 
 CoG 리뷰 R2("현대 태뷸러 구조를 시도하지 않았다")에 대한 답. **분할은 패치 홀드아웃** —
 학습 15.14 (187,547) / 검증 15.15 (191,184) / **시험 15.16 (153,816)**. 전 학습기가 같은 행·같은
 라벨(`y_market_event`, 무승부 33,905행 제외)·같은 분할을 받는다. 입력 동일성은
-`scripts/audit_model_comparison_inputs.py`가 14개 항목으로 검증했다(전부 PASS).
+`scripts/audit_model_comparison_inputs.py`가 19개 항목으로 검증했다(verdict PASS,
+`features/model_comparison_input_audit.json`; *was:* 14개 항목).
 
-| 모델 | 인용 | 열 | 검증 | **시험 AUC** | 초 |
-|---|---|---:|---:|---:|---:|
-| LightGBM (용량 확대) | @ke2017lightgbm | 6,164 | 0.6698 | **0.6692** | 680 |
-| LightGBM (발표 설정) | @ke2017lightgbm | 6,164 | 0.6671 | 0.6665 | 144 |
-| LightGBM (딥 파이프라인) | @ke2017lightgbm | 7,106 | 0.6666 | 0.6661 | 255 |
-| FT-Transformer | @gorishniy2021revisiting | 7,106 | 0.6577 | 0.6561 | 4,146 |
-| MLP | 표준 베이스라인 | 7,106 | 0.6570 | 0.6552 | 42 |
-| SAINT | @somepalli2021saint (preprint) | 7,106 | 0.6565 | 0.6546 | 4,621 |
-| 정칙화 로지스틱 | 고전 | 6,164 | 0.6444 | 0.6408 | 37 |
-| TabNet | @arik2021tabnet | 7,106 | 0.6194 | 0.6188 | 179 |
-| **리드 8열 (절제)** | — | **8** | 0.6274 | **0.6261** | 20 |
+| 모델 | 인용 | 열 | 파라미터 / 트리 | 검증 | **시험 AUC** | 초 |
+|---|---|---:|---:|---:|---:|---:|
+| LightGBM (용량 확대) | @ke2017lightgbm | 6,164 | 544 trees | 0.6698 | **0.6692** | 680 |
+| LightGBM (발표 설정) | @ke2017lightgbm | 6,164 | 381 trees | 0.6671 | 0.6665 | 144 |
+| LightGBM (딥 파이프라인) | @ke2017lightgbm | 7,106 | 306 trees | 0.6666 | 0.6661 | 255 |
+| FT-Transformer | @gorishniy2021revisiting | 7,106 | 285,857 | 0.6577 | 0.6561 | 4,146 |
+| MLP | 표준 베이스라인 | 7,106 | 4,167,681 | 0.6570 | 0.6552 | 42 |
+| SAINT | @somepalli2021saint (preprint) | 7,106 | 459,713 | 0.6565 | 0.6546 | 4,621 |
+| 정칙화 로지스틱 | 고전 | 6,164 | — | 0.6444 | 0.6408 | 37 |
+| TabNet | @arik2021tabnet | 7,106 | 4,075,989 | 0.6194 | 0.6188 † | 179 |
+| **리드 8열 (절제)** | — | **8** | 102 trees | 0.6274 | **0.6261** | 4 |
 
-발표 설정 대비 짝지은 경기 단위 부트스트랩 95% CI: 용량 확대 [+0.0021, +0.0034],
-로지스틱 [−0.0274, −0.0239], 리드 8열 [−0.0425, −0.0384].
+발표 설정 대비 짝지은 경기 단위 부트스트랩 95% CI (300회): 용량 확대 [+0.0021, +0.0034],
+로지스틱 [−0.0274, −0.0239], 리드 8열 [−0.0424, −0.0383].
+
+*Notes (2026-09-11).*
+
+- **Parameter counts** are trainable parameters (`sum(p.numel())`) of the models built with the configuration in
+  `scripts/run_deep_tabular_baselines.py` at commit 60945ed, which produced the runs above
+  (`features/deep_tabular_v33_patch_{full,ft,saint}.json`): FT-Transformer and SAINT with d_token 32, 3 layers and
+  8 heads over 1,016 tokens (1,015 bases + `frame_age_s`) x 7 statistics; MLP 7,106 → 512 → 512 → 512 → 1; TabNet
+  with n_d = n_a = 64, 4 decision steps and 7,106 inputs. LightGBM rows give the tree count at the early-stopping
+  best iteration (`features/model_comparison_v33_patch.json`, `features/deep_tabular_v33_patch_full.json`).
+  The neural learners are **not capacity-matched**: MLP (4.17 M) and TabNet (4.08 M) have 9 to 15 times the
+  parameters of SAINT (0.46 M) and FT-Transformer (0.29 M), so reading 1 below is not a like-for-like comparison.
+  None of the neural learners received a hyperparameter search (see the limitation paragraph below).
+- **† TabNet's 0.6188 was produced with the sparsity regulariser's sign reversed.** `train_torch` computes
+  `loss = loss - sparsity_lambda * model.entropy` (`scripts/run_deep_tabular_baselines.py:430` at commit 60945ed,
+  λ = 1e-4), where `entropy` is the positive entropy of the feature-selection masks (line 365). Subtracting it
+  rewards dense masks. TabNet adds the sparsity regularisation to the overall loss, with coefficient λ_sparse, so
+  that masks become sparse (Arik & Pfister, @arik2021tabnet, AAAI 2021). The passage was read on 2026-09-11 in the
+  arXiv version, arXiv:1908.07442v5 of 9 Dec 2020, at the end of the "Feature selection" paragraph on PDF p. 5.
+  The row is kept for provenance only; do not cite 0.6188 as TabNet's result. TabNet is being re-run with the
+  sign corrected:
+  `\pending{tabnet_rerun}{TabNet test AUC on the v3.3 patch holdout with the sparsity term added to the loss}`.
+- Corrected against `features/model_comparison_v33_patch.json`: the lead-only row takes 4.4 s (*was:* 20), and its
+  paired CI is [−0.0424, −0.0383] (*was:* [−0.0425, −0.0384]).
 
 **읽히는 것.**
 
-1. **부스팅 트리가 이기고, 어텐션은 MLP를 넘지 못한다.** FT-Transformer 0.6561 / MLP 0.6552 /
+1. **부스팅 트리가 이기고, 어텐션은 MLP를 넘지 못한다** (not capacity-matched; see the notes above). FT-Transformer 0.6561 / MLP 0.6552 /
    SAINT 0.6546이 0.0015 안에 몰린다. 구 코퍼스(192,727행, 무작위 경기 분할)에서는 FT가 MLP를
    0.024 앞섰는데 전체 코퍼스·패치 홀드아웃에서 그 격차가 사라진다.
 2. **0.67은 용량 한계가 아니다.** 400그루→3,000그루·31잎→127잎이 +0.0027이다.
 3. **특징 집합이 버는 몫은 +0.043.** 리드 8열 0.6261 → 전체 0.6692.
-4. **규모 무관성은 모델이 만든다.** 리드 8열은 pick 0.6017 / skirmish 0.6156 / **teamfight 0.6718**로
+4. **채택 컷 `n_min ≥ 4`에서 클래스 간 평평함은 모델이 만든다.** *(2026-09-11, was: "규모 무관성은 모델이
+   만든다". The classes are flat at this cut only; see the §5.3 note.)* 리드 8열은 pick 0.6017 / skirmish 0.6156 / **teamfight 0.6718**로
    기울기가 있는데(+0.070), 전체 모델은 0.680 / 0.662 / 0.681로 평평하다. "앞선 팀이 이긴다"가
    한타에서만 잘 통하고, 모델이 pick에서 리드 밖 신호를 찾아 격차를 메운다. 철회된 v2 기울기와
    **부호가 반대**라는 점도 누수 설명과 일관된다.
@@ -222,22 +272,32 @@ d_token 32 / 3층 / 8헤드 / lr 1e-4로 고정했고 구조별 탐색은 하지
 time_norm 누수만 0.639 (teamfight 0.691) → 앵커 누수만 0.624 (0.654) → 둘 다 0.640 (0.687).
 teamfight의 +0.05는 time_norm(경기 길이) 누수다.
 
-읽는 법: (1) 깨끗한 입력에서 규모 기울기는 없고 Eq.3에서는 뒤집힌다(+0.067). (2) 라벨 통화 차이
+읽는 법: (1) 깨끗한 입력에서 채택 컷 `n_min ≥ 4`의 pick − teamfight는 −0.002 [−0.007, +0.003]이고
+Eq.3에서는 뒤집힌다(+0.067). *(2026-09-11, was: "규모 기울기는 없고". The gap depends on the cut; see the §5.3
+note.)* (2) 라벨 통화 차이
 (lex − event 0.024)는 분 골드 추세의 몫으로 남는다. (3) 귀속은 AUC를 바꾸지 않고(0.669 vs 0.670)
 라벨 2.2%를 바꾼다. (4) 식별자 범주형은 −0.009로 해롭다. (5) v2·v3의 teamfight 0.78~0.81과
 규모 차이 0.1은 철회한다.
 
-### 5.4 파일럿·감사 지표
+### 5.5 파일럿·감사 지표
 
 | 지표 | 값 |
 |---|---|
-| 관측 창 15 / 30 / 60 s (553경기) | 0.614 / 0.626 / 0.631 |
-| 라벨 창 35 / 45 / 60 s | 일치 100 / 97.5 / 94.3%, AUC 0.626 / 0.627 / 0.629 |
-| 프레임 나이 특징 | +0.004 |
+| 관측 창 15 / 30 / 60 s (553경기) ¹ | 0.614 / 0.626 / 0.631 |
+| 라벨 창 35 / 45 / 60 s ¹ | 일치 100 / 97.5 / 94.3%, AUC 0.626 / 0.627 / 0.629 |
+| 프레임 나이 특징 ¹ | +0.004 |
 | 보간 오차(희생자 킬 위치 대비) | 유지 중앙 2,126 u, 선형 1,149 u |
 | 정렬 검증 (수정 후) | 프레임 특징 98.7%, 이벤트·time_norm·라벨 100% |
 | 라벨 창 끝 수정 / 사건 귀속 (553경기) | 라벨 반전 1.8% / 3.0% |
 | 가격표 회귀 | R² 0.96, 표준오차 0.1~7 g, 패치 간 차이 ≤ 5 g |
+
+¹ *Caveat (2026-09-11).* These three rows come from the prediction-situation pilot
+(`features/prediction_situation_pilot.json`, written 2026-09-09 05:33), which ran before the input-audit fixes
+(commits 5b5f9c8 at 09:33 and 86095c8): pre-leak-fix features (7,105 columns, no `frame_age_s`), label
+`market_lex`, n = 1,360 labelled rows from 1,438 engagements in 553 matches (1,346 and 1,324 rows at the 45 s and
+60 s label windows), match-grouped 5-fold OOF LightGBM. They are not v3.3 results. The context-window sweep on v3.3
+features (`docs/CLAUDE_TOG_PAPER_PLAN.md` §5 item 16) has not produced results yet:
+`\pending{ctx_sweep_v33}{context-window sweep 15/30/60/120 s on v3.3 features}`.
 
 ---
 
@@ -270,9 +330,12 @@ teamfight의 +0.05는 time_norm(경기 길이) 누수다.
 
 ## 8. 로드맵
 
-1. ~~v3.2~~ v3.3 결과 확정 완료. preset `v3.3`과 규칙 앵커 spec으로 재현 경로 고정(완료). 논문 초안 본문 수치를 0.670·규모 무관으로 갱신.
+1. ~~v3.2~~ v3.3 결과 확정 완료. preset `v3.3`과 규칙 앵커 spec으로 재현 경로 고정(완료). 논문 초안 본문 수치를 0.670으로 갱신하고, 규모 차이는 채택 컷 `n_min ≥ 4`의 pick − teamfight
+   −0.002 [−0.007, +0.003]와 컷별 값(`\pending{scale_cut_sensitivity}{pick − teamfight at n_min ≥ 3, 4, 5}`)으로
+   적는다. *(2026-09-11, was: "0.670·규모 무관으로 갱신".)*
 2. 채널 절제 실험(고정 / 스냅숏 / 사건 / 지형; 단독·제외·누적) — 표현 감사의 본문 표.
-3. ~~심층 대조(FT-Transformer·SAINT·MLP·TabNet)~~ **완료** — 9절 참조. v3.3 행렬, 패치 홀드아웃.
+3. ~~심층 대조(FT-Transformer·SAINT·MLP·TabNet)~~ **완료** — §5.4 참조 (*was:* "9절 참조"). v3.3 행렬, 패치 홀드아웃. TabNet의 정규화 부호 수정 재실행은
+   `\pending{tabnet_rerun}{TabNet test AUC on the v3.3 patch holdout with the sparsity term added to the loss}`.
    SHAP은 미실행이며 v3.2 샤드는 삭제됐으므로 v3.3 행렬에서 돌려야 한다.
 4. "교전 예측이 경기 승패 예측을 개선하는가" 층: M0 상태만 / M1 + 교전 예측 / M2 + 실현 결과.
 5. R·B 이동 판정을 규칙 상수표(패치별 XP 반경·크레딧 창·가격표)로 교체.

@@ -1,5 +1,46 @@
 # Every constant, anchored in game mechanics
 
+> **SUPERSEDED (2026-09-11).** This page documents the v2 detector used for the CoG 2026
+> submission. It is not the current engagement definition and must not be cited as one.
+> Current definition: `docs/tog_manuscript/sec_definition.tex` (manuscript) and
+> `docs/ENGAGEMENT_DEFINITION_V3.md` (compact spec); evidence in `docs/DEFINITION_EVIDENCE.md`
+> sections 14-17 and 22.
+>
+> Withdrawn from this page:
+>
+> 1. **18 s / 4,000 u as the current kill-cluster gap and cluster diameter.** Both are now
+>    derived from 208,141 matches (`config/fight_boundary/spec_pooled.json`): G = 13.7246 s,
+>    the antimode of the consecutive-kill-gap density, and D = 4,263.87 u, the distance at
+>    which the share of within-G kill pairs that have a champion in common falls to 50 %.
+>    The v3.3 corpus was detected with the rounded values 13,700 ms and 4,264.0 u
+>    (`D:/LOL_Project/fusion_2615/corpus_shards_v33/manifest.json`).
+> 2. **The Data Dragon ability-range coverage argument for R = 1,800 u**: the "89.3 % of
+>    ability casts within 1,800 u" below (Data Dragon 16.16.1, a later patch than the
+>    15.14-15.16 corpus) and the per-patch 89.1 % in `DEFINITION_EVIDENCE.md` sections 10 and
+>    14. The Data Dragon `range` field holds placeholder values for dash and charge abilities
+>    (`DEFINITION_EVIDENCE.md` section 15), so a coverage share cannot anchor a radius.
+>    R and B are now game-rule anchors, and neither is estimated from the data. R = 1,600 u is
+>    the radius within which a dying champion's experience is shared with enemy champions
+>    (League of Legends Wiki, "Experience (champion)"; the minion radius, 1,500 u, is a separate
+>    value). B = 15 s is the kill/assist credit window on Summoner's Rift (League of Legends
+>    Wiki, "Kill"; 20 s on Howling Abyss). Both pages were checked on 2026-09-11. Neither records
+>    a change to the 1,600 u radius or the 15 s window, including for the corpus patches
+>    15.14-15.16. Earlier citation and the rule brackets: `DEFINITION_EVIDENCE.md` section 15.
+> 3. **"AUC spread 0.008"** as the answer to threshold sensitivity. It comes from a 553-match
+>    sweep on the v2 detector (`D:/LOL_Project/fusion_2615/features/thresholds/*.json`): six
+>    one-factor settings (gap 12/18/24/30 s at 4,000 u; diameter 3,000/5,000 u at 18 s), not
+>    a gap x diameter grid, with 2,242-2,783 labelled rows per setting and AUC 0.593-0.601.
+>    It says nothing about the v3.3 headline. The G x D sensitivity against that headline has
+>    not been produced yet: `\pending{gd_sensitivity_v33}{G x D sensitivity measured against the v3.3 headline}`.
+>
+> Other rows below that no longer match the released v3.3 configuration: the backtrack is
+> B = 15 s, not 10 s (`TF2_ENGAGE_PRE_KILL_MS` = 15000 in the manifest), and the label window
+> runs to max(last kill, cutoff + 35 s) (`FIGHT_HORIZON_SEC` = 35; `ENGAGEMENT_DEFINITION_V3.md`
+> section 4), not 30 s. The 3,000 u interaction radius is still in use (not overridden in the
+> manifest), but its only justification on this page is the same coverage calculation
+> (91.4 %), so it has no anchor of its own at present. The named-ability lists below are kept
+> for provenance only.
+
 Skill-range distribution measured from Data Dragon patch 16.16.1
 (173 champions, 673 spells; `spells[].range` max-rank, `stats.attackrange`):
 

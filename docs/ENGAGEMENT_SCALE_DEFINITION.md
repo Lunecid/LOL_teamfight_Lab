@@ -1,5 +1,25 @@
 # Engagement scale: pick, skirmish, teamfight
 
+> **STALE (2026-09-11): v2 document, kept for provenance.** It was written for the v2 detector
+> (kill gap 18 s, diameter 4,000 u, presence radius 1,800 u, lead 10 s) and the v2 class rule
+> teamfight = `n_min ≥ 3`. Do not cite any of the following as current:
+>
+> - the premise in the next paragraph that the ToG headline is a decomposition by engagement
+>   scale, and the "class gaps ~0.05 AUC" in the shop-event section. The scale gradient is
+>   retracted: it came from the `time_norm` feature leak (`docs/DEFINITION_EVIDENCE.md`
+>   section 22);
+> - the class shares (21.1 / 36.9 / 42.0 %) and counts in the class-rule table. The v3.3
+>   corpus uses new detector constants and teamfight = `n_min ≥ 4` (`scale.teamfight_min` = 4
+>   in `D:/LOL_Project/fusion_2615/corpus_shards_v33/manifest.json`);
+> - "AUC moves 0.008" from the threshold sweep (553 matches, v2 detector, one factor at a time;
+>   `D:/LOL_Project/fusion_2615/features/thresholds/*.json`);
+> - the kill-less table and its 4.9 % (v2 presence gate), the pairing "0.15 per match vs 2.03
+>   teamfight-class engagements", and the "brief passes" reading. The v3.3 kill-less grid
+>   replaces them (see the note in that section).
+>
+> Current definition: `docs/ENGAGEMENT_DEFINITION_V3.md` and `docs/tog_manuscript/sec_definition.tex`.
+> List of stale claims across `docs/`: `docs/tog_manuscript/stale_claims_inventory.md`.
+
 The ToG extension's headline is a decomposition by engagement scale, so the
 class definition has to be exact, justified, and honest about what it can and
 cannot be used for. This is the reference; the paper's definitions section
@@ -171,13 +191,67 @@ champions of *both* sides within the radius. 2,000 matches per setting:
 | 1,800 | 10 s | **3** | 5.26 | **7.7%** |
 | 1,800 | 20 s | **3** | 3.10 | **4.9%** |
 
+> **STALE (2026-09-11): v2 constants, and two statements below are unsupported.** Every row in
+> the table above ran with R = 1,800 u and a 10 s grace (`radius` 1800, `grace_ms` 10000 in
+> `D:/LOL_Project/fusion_2615/features/killless/*.json`), i.e. the v2 presence gate, not the
+> v3.3 rule anchors (R = 1,600 u, B = 15 s). Two statements in the next paragraph are struck
+> through and must not be cited:
+>
+> 1. *"0.15 per match, against 2.03 teamfight-class engagements per match"* pairs unlike
+>    quantities. 0.15 is 305 kill-less proximity encounters (at least 3 alive per side within
+>    R of a common anchor for at least 20 s) over 2,000 matches (`r1800_d20_t3.json`;
+>    305/2,000 = 0.1525). 2.03 counts post-hoc participation-class engagements, not proximity
+>    encounters: 416,956 teamfight-class engagements (v2 rule `n_min ≥ 3`) over 205,884
+>    matches, 416,956/205,884 = 2.025 (`D:/LOL_Project/fusion_2615/features/scale_decomposition.json`,
+>    `by_participation_scale.teamfight.n` and `n_matches`). That file is the v2 detector run of
+>    993,484 engagements behind the class-rule table above, and `docs/DATA_MANIFEST.md` lists it
+>    under "Superseded". The 4.9 % is likewise a share of 6,195 proximity encounters
+>    (305/6,195 = 4.92 %), not of engagements.
+> 2. *"brief passes rather than resolved fights"* is an interpretation, not a measurement. The
+>    16.0 % setting (2 per side, at least 5 s) and the 4.9 % setting (3 per side, at least 20 s)
+>    differ in both duration and party size, and nothing in these runs classifies what the
+>    kill-less encounters were.
+>
+> **v3.3 re-measurement (finished 2026-09-11).** Source:
+> `D:/LOL_Project/fusion_2615/features/tog_revision/killless_grid/summary.json`, written
+> 2026-09-11 11:25:37 from code at commit 5600f8b; the results were recorded in commit dc243cf.
+> The grid has nine settings, 20,000 matches each, seed 7. Every command in the file passes
+> explicit `--radius`, `--min-per-team`, `--min-duration` and `--grace-ms` flags, because the
+> script's argument defaults are still the v2 values. Two details of `scripts/run_killless_encounters.py`
+> matter when reading the table:
+>
+> - An encounter has a kill when a CHAMPION_KILL falls between its first and last active frame,
+>   widened by the grace on both sides.
+> - The minimum duration is applied as a whole number of 5 s grid frames: 13.7 s rounds to
+>   3 frames and 20 s to 4.
+>
+> | row in `rows[]` | R | alive per side | min. duration | grace | encounters | kill-less | share of encounters | kill-less per match |
+> |---|---|---|---|---|---|---|---|---|
+> | `r1600_t4_dG_g15` (teamfight gate) | 1,600 u | ≥ 4 | 13.7 s | 15 s | 19,155 | 591 | **3.09 %** | 0.02955 |
+> | `r1600_t4_d20_g15` | 1,600 u | ≥ 4 | 20 s | 15 s | 12,602 | 351 | 2.79 % | 0.01755 |
+> | `r1200_t4_dG_g15` | 1,200 u | ≥ 4 | 13.7 s | 15 s | 7,049 | 141 | 2.00 % | 0.00705 |
+> | `r2000_t4_dG_g15` | 2,000 u | ≥ 4 | 13.7 s | 15 s | 33,592 | 1,166 | 3.47 % | 0.0583 |
+> | `r1600_t4_dG_g10` | 1,600 u | ≥ 4 | 13.7 s | 10 s | 19,155 | 832 | 4.34 % | 0.0416 |
+>
+> Share = kill-less / encounters (for example 591/19,155 = 3.09 %). Per match = kill-less / 20,000
+> (591/20,000 = 0.02955). The file's fields are `killless_share_of_encounters` and
+> `killless_per_match`. The remaining four settings, with 2 or 3 alive per side, are in the same
+> file.
+>
+> **Denominator.** These are shares of **proximity encounters**, not of engagements. The file's
+> `denominator_warning` states that proximity is not commitment, so a per-match kill-less rate
+> must not be divided by engagement counts. The file's `corpus_reference` gives 0.572
+> teamfight-class engagements per match (109,829/191,940, from
+> `features/scale_decomposition_v33_market_event.json`) as a scale reference only, not as a
+> divisor.
+
 Two things follow. **The omission is modest and shrinks exactly where the
 question was aimed:** the meta-reviewer asked about *teamfights* without
 kills, and at teamfight scale (3+ per side) sustained for 20 s only 4.9% of
-encounters end without a kill — 0.15 per match, against 2.03 teamfight-class
-engagements per match that the corpus does capture. Loosening the duration to
+encounters end without a kill — ~~0.15 per match, against 2.03 teamfight-class
+engagements per match that the corpus does capture~~ **[STALE, see note]**. ~~Loosening the duration to
 5 s triples the kill-less share (16.0%), confirming that most kill-less
-"encounters" are brief passes rather than resolved fights.
+"encounters" are brief passes rather than resolved fights.~~ **[STALE, see note]**
 
 **The share is insensitive to the radius** (12.0–12.7% across 1,200–2,500
 units) and sensitive to duration and party size, which is the expected
@@ -193,3 +267,4 @@ outcome to label, so these encounters remain outside the prediction task.
   better and is worth one sweep.
 - Kill-less encounters remain outside the corpus entirely; quantifying their
   prevalence from the 5 s position grid is a separate planned experiment.
+  **[STALE 2026-09-11: measured under v3.3 constants; see the v3.3 note in the kill-less section.]**
