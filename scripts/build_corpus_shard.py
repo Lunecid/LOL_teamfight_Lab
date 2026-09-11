@@ -30,6 +30,49 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 
+def cached_match_ids(cache_dir) -> list[str]:
+    """Every cached match id, sorted: the universe the corpus build partitions."""
+    return sorted(p.stem.replace(".meta", "") for p in Path(cache_dir).glob("*.meta.json"))
+
+
+def shard_match_ids(all_mids, shard: int, num_shards: int, n_matches: int | None = None, seed: int = 7) -> list[str]:
+    """The matches of one shard, in the shard's own order.
+
+    Sorted ids, optionally a seeded ``random.Random(seed).sample`` of ``n_matches`` (re-sorted),
+    dealt round-robin by position.  scripts/build_label_sidecars_v33.py calls this too, so the
+    label sidecars partition the cache exactly as the corpus shards did.
+    """
+    mids = sorted(all_mids)
+    if n_matches and n_matches < len(mids):
+        mids = sorted(random.Random(seed).sample(mids, n_matches))
+    return [m for i, m in enumerate(mids) if i % num_shards == shard]
+
+
+def team_map_int(pack) -> dict[int, int]:
+    """participantId -> teamId with int keys, as the stored label columns use it."""
+    return {int(k): int(v) for k, v in (pack["meta"].get("team_map") or {}).items()}
+
+
+def label_ref(pack, tm, r) -> int:
+    """One stored label for one engagement ref (-1 where that label is a draw).
+
+    This is the compute_label call behind every ``y_<type>`` column.  Label type, tie policy and
+    any variant overrides are whatever cfg holds at the call.
+    """
+    from gameplay.labels import compute_label
+    from gameplay.pipeline_interp import interpolate_node_global
+    lab = compute_label(
+        pack, tm, -1,
+        engage_ts=int(r.t_start_ts),
+        label_end_ts=(int(r.label_end_ts) if int(r.label_end_ts) >= 0 else None),
+        first_kill_ts=(int(r.first_kill_ts) if int(getattr(r, "first_kill_ts", -1)) >= 0 else None),
+        last_kill_ts=(int(r.last_kill_ts) if int(getattr(r, "last_kill_ts", -1)) >= 0 else None),
+        interp_node_global=interpolate_node_global,
+        anchor_xy=((float(r.anchor_x), float(r.anchor_y)) if float(getattr(r, "anchor_x", -1.0)) >= 0 else None),
+    )
+    return -1 if lab is None else int(lab)
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--shard", required=True, type=int)
@@ -65,10 +108,8 @@ def main(argv=None) -> int:
     from data.index_split import build_fight_index
     from train.baseline import build_tabular_Xy
 
-    mids = sorted(p.stem.replace(".meta", "") for p in CACHE_DIR.glob("*.meta.json"))
-    if args.n_matches and args.n_matches < len(mids):
-        mids = sorted(random.Random(args.seed).sample(mids, args.n_matches))
-    mine = [m for i, m in enumerate(mids) if i % args.num_shards == args.shard]
+    mine = shard_match_ids(cached_match_ids(CACHE_DIR), args.shard, args.num_shards,
+                           n_matches=args.n_matches, seed=args.seed)
     started = time.time()
     print(f"[shard {args.shard}/{args.num_shards}] matches={len(mine)}", flush=True)
 
@@ -85,8 +126,6 @@ def main(argv=None) -> int:
     extra_cols: dict[str, np.ndarray] = {}
     if extra:
         from data.cache_io import load_match_cache
-        from gameplay.labels import compute_label
-        from gameplay.pipeline_interp import interpolate_node_global
         default_type = str(cfg.LABEL_TYPE)
         default_tie = getattr(cfg, "LABEL_TIE_POLICY", None)
         if args.extra_tie_policy:
@@ -100,21 +139,11 @@ def main(argv=None) -> int:
             pack = load_match_cache(mid_)
             if not pack:
                 continue
-            tm = {int(k): int(v) for k, v in (pack["meta"].get("team_map") or {}).items()}
+            tm = team_map_int(pack)
             for lt in extra:
                 cfg.LABEL_TYPE = lt
                 for i in idxs:
-                    r = used[i]
-                    lab = compute_label(
-                        pack, tm, -1,
-                        engage_ts=int(r.t_start_ts),
-                        label_end_ts=(int(r.label_end_ts) if int(r.label_end_ts) >= 0 else None),
-                        first_kill_ts=(int(r.first_kill_ts) if int(getattr(r, "first_kill_ts", -1)) >= 0 else None),
-                        last_kill_ts=(int(r.last_kill_ts) if int(getattr(r, "last_kill_ts", -1)) >= 0 else None),
-                        interp_node_global=interpolate_node_global,
-                        anchor_xy=((float(r.anchor_x), float(r.anchor_y)) if float(getattr(r, "anchor_x", -1.0)) >= 0 else None),
-                    )
-                    extra_cols[lt][i] = -1 if lab is None else int(lab)
+                    extra_cols[lt][i] = label_ref(pack, tm, used[i])
         cfg.LABEL_TYPE = default_type
         if args.extra_tie_policy:
             if default_tie is None:

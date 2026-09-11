@@ -617,6 +617,12 @@ class CFG:
     # or "@engagement" to override per label (e.g. "market_event@window").
     LABEL_EVENT_ATTRIBUTION: str = "engagement"
     LABEL_ATTRIBUTION_RADIUS_U: float = 0.0
+    # Label-family sensitivity (R2; gameplay/labels.py LABEL_VARIANTS): every NON-kill price (all
+    # table entries except "kills" / "assists") is multiplied by LABEL_EVENT_PRICE_NONKILL_SCALE,
+    # then LABEL_EVENT_PRICE_OVERRIDES replaces single entries verbatim (e.g. {"dragon": 25.0}).
+    # The defaults leave the fitted table untouched.
+    LABEL_EVENT_PRICE_NONKILL_SCALE: float = 1.0
+    LABEL_EVENT_PRICE_OVERRIDES: Dict[str, float] = field(default_factory=dict)
     LABEL_TIE_SEED: int = 7
 
     # weighted label

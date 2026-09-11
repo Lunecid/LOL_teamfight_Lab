@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import hashlib
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from contextlib import contextmanager
+from dataclasses import dataclass
+from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
 
 from core.config import cfg, NODE_IDX, OBJ_SCORE
 from core.common import np, safe_float
@@ -674,6 +676,32 @@ def _event_price_table() -> Dict[str, float]:
     return table
 
 
+# Price-table entries paid per kill / per assist on top of the event's own bounty; every other
+# entry (plates, towers, inhibitor, monsters, ward kills, first-tower bonus) is a non-kill price.
+_PRICE_KILL_KEYS: Tuple[str, ...] = ("kills", "assists")
+
+
+def _apply_price_table_variant(table: Dict[str, float]) -> Dict[str, float]:
+    """Price-table perturbation for the label-family sensitivity (R2); the identity under the defaults.
+
+    Every non-kill entry is multiplied by ``LABEL_EVENT_PRICE_NONKILL_SCALE``; afterwards
+    ``LABEL_EVENT_PRICE_OVERRIDES`` (dict, or a JSON object string) replaces single entries
+    verbatim, unscaled.  The kill gold read from the event (bounty + shutdownBounty) is never
+    touched, and the loaded (cached) table is never mutated.
+    """
+    scale = float(getattr(cfg, "LABEL_EVENT_PRICE_NONKILL_SCALE", 1.0))
+    overrides = getattr(cfg, "LABEL_EVENT_PRICE_OVERRIDES", None) or {}
+    if isinstance(overrides, str):
+        import json as _json
+        overrides = _json.loads(overrides) if overrides.strip() else {}
+    if scale == 1.0 and not overrides:
+        return table
+    out = {str(k): (float(v) if str(k) in _PRICE_KILL_KEYS else float(v) * scale) for k, v in table.items()}
+    for k, v in dict(overrides).items():
+        out[str(k)] = float(v)
+    return out
+
+
 def _priced_event_gold(e: dict, table: Dict[str, float], first_tower_ts: Optional[int]) -> float:
     """Team gold the game paid for a non-kill event, from the price table (0 if unpriced)."""
     if not table:
@@ -730,7 +758,7 @@ def _compute_label_market_event(
     """
     tie_policy = str(getattr(cfg, "LABEL_TIE_POLICY", getattr(cfg, "LABEL_TIE_STRATEGY", "drop"))).lower()
     deadzone = float(getattr(cfg, "LABEL_GOLD_DEADZONE", 300.0))
-    table = _event_price_table()
+    table = _apply_price_table_variant(_event_price_table())
     first_tower = _first_tower_ts(cache) if table else None
     gd = 0.0
     for e in evs:
@@ -960,3 +988,265 @@ def compute_label_targets(
         "label_end_ms": float(e_ms),
     }
     return out
+
+
+# =====================================================================================================
+# Label-variant registry (ToG revision of CoG 2026 submission 118; reviewer R2, major comment on labels)
+# =====================================================================================================
+# R2: the engagement outcome aggregates events with hand-set weights, so a model may learn the labelling
+# heuristic rather than the game; R2 asked for alternative labelling schemes (e.g. raw kill advantage or
+# learned weights) and a sensitivity analysis on the weighting parameters.
+#
+# A variant is (label type, event attribution, cfg overrides).  The overrides hold ONLY while that variant
+# is computed -- variant_cfg restores every cfg value afterwards, also when the computation raises -- so
+# scripts/build_label_sidecars_v33.py computes the whole family in one pass on the same rows.  The tie
+# policy is not part of a variant: the caller's LABEL_TIE_POLICY applies (the sidecars use "drop", so a
+# draw is stored as -1).  Nothing below changes a default, and "market_event" carries no overrides.
+#
+# Definitions followed (no scheme is re-implemented here; every variant calls compute_label):
+#   docs/ENGAGEMENT_WINNER_DEFINITION.md, "What each scheme computes": micro_win, kill_survival,
+#       attention_value_win (CoG 2026 Eq. 3), weighted, market_lex;
+#   docs/DEFINITION_EVIDENCE.md sections 18, 20, 21 and 22: market_event (event-priced gold swing, fitted
+#       price table, 300 g dead zone, lexicographic refinement, engagement attribution) and the v3.3 preset.
+
+DRAGON_RULE_TEAM_GOLD: float = 25.0
+DRAGON_RULE_SOURCE: str = (
+    "League of Legends Wiki, 'Dragon pit' (https://wiki.leagueoflegends.com/en-us/Dragon_pit) and "
+    "'Elemental drake' (https://wiki.leagueoflegends.com/en-us/Elemental_drake), patch history V26.01: "
+    "elemental drakes 'Kill gold increased to 75 from 25' (retrieved 2026-09-11). 25 g is the value V26.01 replaced."
+)
+DRAGON_RULE_VERIFICATION: str = (
+    "UNVERIFIED for patches 15.14-15.16: the wiki dates only the V26.01 change, not the value in force in "
+    "15.14-15.16, and does not say whether the kill gold is paid to the killer alone or to every member of the "
+    "killing team. DRAGON_RULE_TEAM_GOLD reads it as 25 g of team gold (killer only); the per-member reading "
+    "(5 x 25 = 125 g) is the variant market_event_dragon_rule_per_member."
+)
+# D / 2 for the v3.3 cluster diameter D = CLUSTER_MAX_DIAMETER = 4,264 u.  attribute_events uses D itself as the
+# disc RADIUS when LABEL_ATTRIBUTION_RADIUS_U is 0, so the half-radius disc is the disc whose diameter is D.
+ATTRIBUTION_RADIUS_HALF_V33_U: float = 2132.0
+
+_VARIANT_LABEL_TYPES: Tuple[str, ...] = (
+    "micro_win", "kill_survival", "attention_value_win", "market_lex", "market_event", "weighted",
+)
+_VARIANT_ATTRIBUTIONS: Tuple[str, ...] = ("engagement", "window")
+_CFG_FIELD_NAMES: Optional[frozenset] = None
+_MISSING = object()
+
+_PRICES_SOURCE = ("config/game_rules/event_prices.json: regression-estimated average team gold per event "
+                  "(24,000 matches, patches 15.14-15.16; docs/DEFINITION_EVIDENCE.md section 20)")
+
+
+class _FrozenMap(tuple):
+    """Immutable stand-in for a dict-valued override: sorted (key, value) pairs, thawed by overrides_dict."""
+
+
+def _freeze(value: Any) -> Any:
+    if isinstance(value, dict):
+        return _FrozenMap(sorted((str(k), _freeze(v)) for k, v in value.items()))
+    if isinstance(value, list):
+        return tuple(_freeze(v) for v in value)
+    return value
+
+
+def _thaw(value: Any) -> Any:
+    if isinstance(value, _FrozenMap):
+        return {k: _thaw(v) for k, v in value}
+    return value
+
+
+def _cfg_field_names() -> frozenset:
+    global _CFG_FIELD_NAMES
+    if _CFG_FIELD_NAMES is None:
+        import dataclasses as _dc
+        _CFG_FIELD_NAMES = frozenset(f.name for f in _dc.fields(type(cfg)))
+    return _CFG_FIELD_NAMES
+
+
+@dataclass(frozen=True)
+class LabelVariant:
+    """One member of the label family.
+
+    ``label_type`` is a compute_label scheme, ``attribution`` "engagement" or "window" (applied as
+    ``LABEL_TYPE = "<label_type>@<attribution>"``), ``overrides`` (key, value) pairs of CFG fields set only
+    while the variant is computed.  ``stored``: corpus_shards_v33 stores ``y_<name>``, so the sidecar build
+    checks this variant row for row.  ``required``: one of the R2 label family scored by default.
+    """
+
+    name: str
+    label_type: str
+    attribution: str = "engagement"
+    overrides: Tuple[Tuple[str, Any], ...] = ()
+    description: str = ""
+    source: str = ""
+    verification: str = ""
+    stored: bool = False
+    required: bool = False
+
+    @property
+    def cfg_label_type(self) -> str:
+        return f"{self.label_type}@{self.attribution}"
+
+    def overrides_dict(self) -> Dict[str, Any]:
+        return {k: _thaw(v) for k, v in self.overrides}
+
+    def validate(self) -> None:
+        if self.label_type not in _VARIANT_LABEL_TYPES:
+            raise ValueError(f"variant {self.name!r}: unknown label type {self.label_type!r}; known {_VARIANT_LABEL_TYPES}")
+        if self.attribution not in _VARIANT_ATTRIBUTIONS:
+            raise ValueError(f"variant {self.name!r}: attribution {self.attribution!r} not in {_VARIANT_ATTRIBUTIONS}")
+        fields = _cfg_field_names()
+        bad = [k for k, _ in self.overrides if k not in fields or k == "LABEL_TYPE"]
+        if bad:
+            raise KeyError(f"variant {self.name!r}: overrides {bad} are not overridable CFG fields "
+                           "(LABEL_TYPE is set from label_type/attribution)")
+
+    def as_dict(self) -> Dict[str, Any]:
+        return {
+            "name": self.name, "label_type": self.label_type, "attribution": self.attribution,
+            "cfg_label_type": self.cfg_label_type, "overrides": self.overrides_dict(),
+            "description": self.description, "source": self.source, "verification": self.verification,
+            "stored": bool(self.stored), "required": bool(self.required),
+        }
+
+
+def _variant(name: str, label_type: str, attribution: str = "engagement",
+             overrides: Optional[Dict[str, Any]] = None, **meta: Any) -> LabelVariant:
+    return LabelVariant(name=name, label_type=label_type, attribution=attribution,
+                        overrides=tuple((str(k), _freeze(v)) for k, v in (overrides or {}).items()), **meta)
+
+
+_ME = ("market_event: team gold swing over the label window from the attributed events -- kill gold read from the "
+       "event (bounty + shutdownBounty) plus the fitted per-kill and per-assist prices, plates / turrets / inhibitor / "
+       "monsters / ward kills at the fitted price table (elemental dragon clamped to 0 g); beyond the dead zone the sign "
+       "decides, inside it cluster kills, then survivors at the last kill, then structure events refine")
+
+_VARIANT_LIST: List[LabelVariant] = [
+    # --- reference and the columns corpus_shards_v33 stores (checked row for row by the sidecar build) ---
+    _variant("market_event", "market_event", stored=True, required=True,
+             description=_ME + ". v3.3 headline: 300 g dead zone, events within CLUSTER_MAX_DIAMETER (4,264 u, used as "
+                               "the radius) of the anchor.",
+             source=_PRICES_SOURCE),
+    _variant("market_event@window", "market_event", "window", stored=True,
+             description="market_event over every event in the time window (no spatial attribution).",
+             source=_PRICES_SOURCE),
+    _variant("market_lex", "market_lex", stored=True,
+             description="Minute-frame team gold swing (linear interpolation at the window ends) beyond the 300 g dead "
+                         "zone, refined by attributed cluster kills -> survivors -> structures."),
+    _variant("market_lex@window", "market_lex", "window", stored=True,
+             description="market_lex with every event of the window in the refinement."),
+    _variant("attention_value_win", "attention_value_win", stored=True,
+             description="CoG 2026 Eq. 3 attention-weighted event value (hand-set LABEL_ATTN_* weights) over the "
+                         "attributed events, as stored in corpus v3.3.",
+             verification="hand-set weights (the heuristic R2 questioned)"),
+    # --- R2 label family: alternative schemes ---
+    _variant("micro_win", "micro_win", required=True,
+             description="Raw kill advantage (R2's named alternative): blue minus red champion kills timestamped in "
+                         "[first cluster kill, last cluster kill] among the attributed events; equal counts are draws. "
+                         "No gold, objectives or weights."),
+    _variant("kill_survival", "kill_survival", required=True,
+             description="LABEL_W_KILL (1.0) x kill difference (cluster kills) + LABEL_W_ALIVE (0.3) x alive difference "
+                         "at the last cluster kill; |score| < 1e-8 is a draw.",
+             verification="hand-set weights 1.0 / 0.3"),
+    # --- R2 sensitivity: dead zone ---
+    *[_variant(f"market_event_dz{int(dz)}", "market_event", overrides={"LABEL_GOLD_DEADZONE": float(dz)}, required=True,
+               description=f"market_event with LABEL_GOLD_DEADZONE = {int(dz)} g (v3.3: 300 g, one base kill bounty)"
+                           + ("; any non-zero swing decides and only an exactly zero swing is refined." if dz == 0 else "."),
+               source=_PRICES_SOURCE)
+      for dz in (0.0, 150.0, 600.0, 900.0)],
+    # --- R2 sensitivity: prices ---
+    _variant("market_event_kills_only", "market_event", overrides={"LABEL_EVENT_PRICE_TABLE": ""}, required=True,
+             description="market_event without the price table: the swing is the kill gold read from the events alone "
+                         "(bounty + shutdownBounty; no fitted per-kill / per-assist prices, every other event 0 g). "
+                         "Structures still enter the refinement tier."),
+    _variant("market_event_prices_x0.5", "market_event", overrides={"LABEL_EVENT_PRICE_NONKILL_SCALE": 0.5}, required=True,
+             description="market_event with every NON-kill price (plates, turrets, inhibitor, monsters, ward kills, "
+                         "first-tower bonus) x 0.5; kill gold and the per-kill / per-assist prices unchanged.",
+             source=_PRICES_SOURCE),
+    _variant("market_event_prices_x2", "market_event", overrides={"LABEL_EVENT_PRICE_NONKILL_SCALE": 2.0}, required=True,
+             description="market_event with every NON-kill price x 2; kill gold and the per-kill / per-assist prices "
+                         "unchanged.",
+             source=_PRICES_SOURCE),
+    _variant("market_event_dragon_rule", "market_event",
+             overrides={"LABEL_EVENT_PRICE_OVERRIDES": {"dragon": DRAGON_RULE_TEAM_GOLD}}, required=True,
+             description=f"market_event with an elemental dragon priced at the rule payout {DRAGON_RULE_TEAM_GOLD:g} g of team "
+                         "gold instead of the fitted, clamped 0 g (Elder Dragon keeps its fitted price).",
+             source=DRAGON_RULE_SOURCE, verification=DRAGON_RULE_VERIFICATION),
+    # --- R2 sensitivity: attribution disc ---
+    _variant("market_event_attr_radius_half", "market_event",
+             overrides={"LABEL_ATTRIBUTION_RADIUS_U": ATTRIBUTION_RADIUS_HALF_V33_U}, required=True,
+             description="market_event with the attribution disc radius D/2 = 2,132 u instead of D = 4,264 u (the default "
+                         "disc uses the cluster diameter as its radius).",
+             source=_PRICES_SOURCE),
+    # --- optional extras (computed by the sidecars, scored on request) ---
+    _variant("market_event_dragon_rule_per_member", "market_event",
+             overrides={"LABEL_EVENT_PRICE_OVERRIDES": {"dragon": 5.0 * DRAGON_RULE_TEAM_GOLD}},
+             description=f"market_event with an elemental dragon priced at {5.0 * DRAGON_RULE_TEAM_GOLD:g} g: the per-member "
+                         f"reading of the {DRAGON_RULE_TEAM_GOLD:g} g kill gold (five members).",
+             source=DRAGON_RULE_SOURCE, verification=DRAGON_RULE_VERIFICATION),
+    _variant("attention_value_win@window", "attention_value_win", "window",
+             description="The CoG 2026 label as published: Eq. 3 over every event in the window, on the v3.3 rows.",
+             verification="hand-set weights (the heuristic R2 questioned)"),
+    _variant("weighted", "weighted",
+             description="Pre-CoG composite: W_KILL (1.0) x kill difference + W_GOLD (0.5) x frame gold swing / GOLD_NORM "
+                         "(500) + W_OBJ (0.25) x OBJ_SCORE-weighted objectives, over the attributed events.",
+             verification="hand-set weights"),
+]
+
+LABEL_VARIANTS: Dict[str, LabelVariant] = {v.name: v for v in _VARIANT_LIST}
+if len(LABEL_VARIANTS) != len(_VARIANT_LIST):
+    raise RuntimeError("duplicate label-variant names")
+REQUIRED_LABEL_VARIANTS: Tuple[str, ...] = tuple(v.name for v in _VARIANT_LIST if v.required)
+STORED_LABEL_VARIANTS: Tuple[str, ...] = tuple(v.name for v in _VARIANT_LIST if v.stored)
+
+
+def get_label_variant(variant: Union[str, LabelVariant]) -> LabelVariant:
+    """Registry lookup by name (a LabelVariant passes through); KeyError for unknown names."""
+    if isinstance(variant, LabelVariant):
+        return variant
+    try:
+        return LABEL_VARIANTS[str(variant)]
+    except KeyError:
+        raise KeyError(f"unknown label variant {variant!r}; known: {sorted(LABEL_VARIANTS)}") from None
+
+
+@contextmanager
+def cfg_override(values: Dict[str, Any]) -> Iterator[None]:
+    """Set cfg attributes for the duration of the block.
+
+    On exit -- also when the block raises -- every value is restored and attributes the instance did not
+    hold before are removed again.  Any attribute name is accepted (e.g. LABEL_TIE_POLICY, which is not a
+    CFG field); variant_cfg validates variant overrides against the CFG fields first.
+    """
+    saved: List[Tuple[str, Any]] = []
+    try:
+        for k, v in dict(values).items():
+            saved.append((k, cfg.__dict__.get(k, _MISSING)))
+            setattr(cfg, k, v)
+        yield
+    finally:
+        for k, old in reversed(saved):
+            if old is _MISSING:
+                try:
+                    delattr(cfg, k)
+                except AttributeError:
+                    pass
+            else:
+                setattr(cfg, k, old)
+
+
+@contextmanager
+def variant_cfg(variant: Union[str, LabelVariant]) -> Iterator[LabelVariant]:
+    """cfg as the variant computes it: LABEL_TYPE = "<label_type>@<attribution>" plus the overrides; restored after."""
+    v = get_label_variant(variant)
+    v.validate()
+    values: Dict[str, Any] = {"LABEL_TYPE": v.cfg_label_type}
+    values.update(v.overrides_dict())
+    with cfg_override(values):
+        yield v
+
+
+def compute_label_variant(variant: Union[str, LabelVariant], cache: Dict[str, Any], tm: Dict[int, int],
+                          t_start: int, **kwargs: Any) -> Optional[int]:
+    """compute_label under one registry variant (same keyword arguments as compute_label)."""
+    with variant_cfg(variant):
+        return compute_label(cache, tm, t_start, **kwargs)
