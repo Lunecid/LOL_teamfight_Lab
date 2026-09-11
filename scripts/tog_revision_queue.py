@@ -83,13 +83,22 @@ def read_json(path: Path):
         return None
 
 
+def outputs_fresh(job: dict, since: float) -> bool:
+    """Every declared output exists and was modified after the job was launched."""
+    outs = [Path(o) for o in (job.get("outputs") or [])]
+    if not outs or since <= 0:
+        return False
+    return all(o.exists() and o.stat().st_mtime >= since for o in outs)
+
+
 def state_of(job: dict, state_dir: Path) -> str:
-    done = read_json(state_dir / f"{job['name']}.done")
-    if done is not None:
-        return "done" if done.get("rc") == 0 else ("failed" if done.get("final") else "retry")
+    # .running first: a retry in progress also has a failed .done, and a restarted runner must see it as running
     running = read_json(state_dir / f"{job['name']}.running")
     if running is not None:
         return "running" if pid_alive(int(running.get("pid", -1))) else "orphaned"
+    done = read_json(state_dir / f"{job['name']}.done")
+    if done is not None:
+        return "done" if done.get("rc") == 0 else ("failed" if done.get("final") else "retry")
     return "pending"
 
 
@@ -167,10 +176,19 @@ def main() -> int:
             print(f"[queue] {time.strftime('%H:%M:%S')} {name} exited rc={rc} attempt {attempts}", flush=True)
 
         states = {j["name"]: state_of(j, a.state_dir) for j in jobs}
-        for j in jobs:  # a job launched by an earlier runner whose process vanished gets one retry
+        for j in jobs:  # a job launched by an earlier runner whose process is gone
             if states[j["name"]] == "orphaned" and j["name"] not in live:
+                started = float((read_json(a.state_dir / f"{j['name']}.running") or {}).get("start", 0))
                 (a.state_dir / f"{j['name']}.running").unlink(missing_ok=True)
                 prior = read_json(a.state_dir / f"{j['name']}.done") or {}
+                if outputs_fresh(j, started):
+                    # it outlived the runner that launched it and finished: adopt, do not re-run days of work
+                    (a.state_dir / f"{j['name']}.done").write_text(json.dumps(
+                        {"rc": 0, "end": time.time(), "attempts": int(prior.get("attempts", 0)) + 1, "final": True,
+                         "note": "adopted: process gone, every declared output written after launch"}), encoding="utf-8")
+                    states[j["name"]] = "done"
+                    print(f"[queue] adopted finished orphan {j['name']}", flush=True)
+                    continue
                 attempts = int(prior.get("attempts", 0)) + 1
                 (a.state_dir / f"{j['name']}.done").write_text(json.dumps(
                     {"rc": -1, "end": time.time(), "attempts": attempts, "final": attempts >= 2,
