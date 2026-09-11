@@ -1,15 +1,24 @@
 """Evidence-based state: causality, event replay, and the formulas the reconstruction rests on."""
+import json
 from pathlib import Path
 import sys
 
 import numpy as np
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 
 from core.config import NODE_FEATURE_NAMES  # noqa: E402
 from gameplay.evidence_state import (  # noqa: E402
-    DEN, EvidenceStateBuilder, FOUNTAIN, XP_AT_LEVEL, level_growth, respawn_seconds,
+    DEN, EvidenceStateBuilder, FOUNTAIN, LEGACY_POS_ERROR_CURVE, POS_ERROR_CURVE, XP_AT_LEVEL,
+    default_pos_error_calibration_path, level_growth, load_pos_error_curve, match_ids_sha256, respawn_seconds,
+)
+from scripts.calibrate_position_error_v3 import (  # noqa: E402
+    corpus_patch_matches, curve_disjointness_record, fit_monotone, ids_sha256, select_calibration_matches,
+)
+from scripts.evidence_block_patch_holdout_v33 import (  # noqa: E402
+    RankedAUC, joint_paired_bootstrap, overlap_with_patches,
 )
 
 IDX = {n: i for i, n in enumerate(NODE_FEATURE_NAMES)}
@@ -45,8 +54,9 @@ def _pack(events, n_frames=4):
                      "static_meta": {"champion_by_pid": {"1": 266}}}}
 
 
-def builder(events, **kw):
-    return EvidenceStateBuilder(_pack(events, **kw), tables=(ITEMS, CHAMPS))
+def builder(events, curve="legacy", **kw):
+    # the expectations below encode the legacy (pilot v1) curve's numbers, so pin it explicitly
+    return EvidenceStateBuilder(_pack(events, **kw), tables=(ITEMS, CHAMPS), pos_error_curve=curve)
 
 
 def test_never_reads_a_frame_after_tau():
@@ -162,3 +172,163 @@ def test_baron_buff_is_lost_on_death():
     assert s[2]["has_baron"] == 0.0                                            # died after taking it
     assert s[6]["has_baron"] == 0.0                                            # other team
     assert b.at(185_000 + 180_000 + 1)[1]["has_baron"] == 0.0                  # expired
+
+
+# ---------------------------------------------------------------- position-error calibration (leak fix)
+
+PATCHES = {f"M{i:02d}": ("15.14", "15.15", "15.16")[i % 3] for i in range(60)}
+POOL = [f"M{i:02d}" for i in range(30)]                  # training-side split
+TEST_SPLIT = [f"M{i:02d}" for i in range(30, 45)]        # an evaluation split (predict_test)
+CORPUS_HOLDOUT = {f"corpus_patch_{p}": sorted(m for m, q in PATCHES.items() if q == p) for p in ("15.15", "15.16")}
+
+
+def _select(pool=POOL, patch_of=PATCHES.get, n=100):
+    return select_calibration_matches(pool, n, patch_of=patch_of, holdout_patches=("15.15", "15.16"),
+                                      split_evaluation_sets={"predict_test": TEST_SPLIT},
+                                      patch_holdout_sets=CORPUS_HOLDOUT)
+
+
+def test_calibration_matches_never_intersect_evaluation_matches():
+    ids, stats, checks = _select()
+    assert ids and all(PATCHES[m] == "15.14" for m in ids)
+    assert stats["excluded_holdout_patch"] == 20 and len(ids) == 10
+    for name, eval_ids in {"predict_test": TEST_SPLIT, **CORPUS_HOLDOUT}.items():
+        assert not set(ids) & set(eval_ids)
+        assert checks[name]["intersection"] == 0 and checks[name]["n_eval"] == len(set(eval_ids))
+    # a pool that overlaps an evaluation split is a split bug: it raises instead of being filtered
+    with pytest.raises(ValueError, match="predict_test"):
+        _select(pool=POOL + TEST_SPLIT[:1])
+    # a hold-out-patch match whose patch lookup lies still cannot get through: the corpus sets are re-checked
+    lying = dict(PATCHES, M01="15.14")
+    assert PATCHES["M01"] == "15.15"
+    with pytest.raises(ValueError, match="corpus_patch_15"):
+        _select(patch_of=lying.get)
+    # an unverifiable patch is excluded, never assumed to be a training patch
+    ids_unknown, stats_unknown, _ = _select(patch_of=lambda m: None if m == "M00" else PATCHES[m])
+    assert "M00" not in ids_unknown and stats_unknown["excluded_unknown_patch"] == 1
+    # the downstream guards: corpus hold-out patches and a run's own evaluation matches
+    groups = np.array(sorted(PATCHES))
+    patch = np.array([PATCHES[m] for m in groups])
+    assert all(v["intersection"] == 0 for v in overlap_with_patches(set(ids), groups, patch, ["15.15", "15.16"]).values())
+    assert overlap_with_patches({"M01"}, groups, patch, ["15.15"])["corpus_patch_15.15"]["intersection"] == 1
+
+
+def _calibration(tmp_path, name, **over):
+    ids = ["M00", "M03"]
+    doc = {"version": "position_error_calibration_v2",
+           "fitted": {k: [float(v) for v in vals] for k, vals in LEGACY_POS_ERROR_CURVE.items()},
+           "match_ids": ids, "match_ids_sha256": ids_sha256(ids),
+           "disjointness": {"predict_test": {"intersection": 0}, "value_validation": {"intersection": 0},
+                            "corpus_patch_15.16": {"intersection": 0}}}
+    doc.update(over)
+    path = tmp_path / name
+    path.write_text(json.dumps(doc), encoding="utf-8")
+    return path
+
+
+def test_curve_loader_refuses_a_calibration_that_touched_evaluation_matches(tmp_path):
+    assert ids_sha256(["b", "a", "a"]) == match_ids_sha256(["a", "b"])        # one hash formula everywhere
+    curve, prov = load_pos_error_curve(_calibration(tmp_path, "good.json"))
+    assert curve["frame"] == [750.0, 2200.0, 3300.0, 3900.0, 3950.0, 3950.0] and prov["match_ids_sha256"] == ids_sha256(["M00", "M03"])
+    bad_sets = {"predict_test": {"intersection": 1}, "value_validation": {"intersection": 0},
+                "corpus_patch_15.16": {"intersection": 0}}
+    cases = {"touched.json": {"disjointness": bad_sets},
+             "unchecked.json": {"disjointness": {}},
+             "no_value_validation.json": {"disjointness": {"predict_test": {"intersection": 0},
+                                                           "corpus_patch_15.16": {"intersection": 0}}},
+             "no_corpus_patch.json": {"disjointness": {"predict_test": {"intersection": 0},
+                                                       "value_validation": {"intersection": 0}}},
+             "edited_ids.json": {"match_ids": ["M00", "M03", "M31"]},
+             "not_monotone.json": {"fitted": dict(LEGACY_POS_ERROR_CURVE, frame=[750, 2200, 3300, 3900, 3950, 3000])}}
+    for name, over in cases.items():
+        with pytest.raises(ValueError):
+            load_pos_error_curve(_calibration(tmp_path, name, **over))
+
+
+def test_new_runs_default_to_the_disjoint_calibration_and_never_fall_back_to_legacy(tmp_path, monkeypatch):
+    monkeypatch.setenv("LOL_POS_ERROR_CALIBRATION", str(tmp_path / "absent.json"))
+    assert default_pos_error_calibration_path() == tmp_path / "absent.json"
+    with pytest.raises(FileNotFoundError):
+        EvidenceStateBuilder(_pack([]), tables=(ITEMS, CHAMPS))
+    # a calibration under which a fresh shop visit is cheap: the builder must follow the loaded curve
+    cheap_shop = dict(LEGACY_POS_ERROR_CURVE, shop=[100, 200, 300, 400, 500, 600])
+    path = _calibration(tmp_path, "cheap_shop.json", fitted=cheap_shop)
+    monkeypatch.setenv("LOL_POS_ERROR_CALIBRATION", str(path))
+    ev = [{"type": "ITEM_PURCHASED", "timestamp": 195_000, "participantId": 4, "itemId": 1001}]
+    b = EvidenceStateBuilder(_pack(ev), tables=(ITEMS, CHAMPS))
+    assert b.pos_error_provenance["source"] == str(path) and b.pos_error_curve["shop"][0] == 100.0
+    assert b.at(200_000)[4]["pos_evidence_kind"] == 5.0                       # shop, not the frame
+    assert builder(ev).at(200_000)[4]["pos_evidence_kind"] == 0.0             # legacy: frame
+    # the legacy table stays selectable and unchanged, so the v1 pilot remains reproducible
+    assert POS_ERROR_CURVE["frame"] == [750, 2200, 3300, 3900, 3950, 3950]
+    assert builder([]).pos_error_provenance["source"] == "legacy"
+
+
+def test_run_guard_checks_the_curve_behind_the_blocks_against_the_runs_evaluation_matches(tmp_path):
+    path = _calibration(tmp_path, "run_guard.json")
+    _, prov = load_pos_error_curve(path)
+    rec = curve_disjointness_record({"train": prov, "test": prov}, {"test_patch": ["M30", "M31"]})
+    assert rec["evaluation_calibrated_curve"] is False and rec["disjointness_from_this_run"]["test_patch"]["intersection"] == 0
+    with pytest.raises(ValueError, match="intersect"):
+        curve_disjointness_record({"train": prov, "test": prov}, {"test_patch": ["M03"]})
+    with pytest.raises(ValueError, match="different"):
+        curve_disjointness_record({"train": prov, "test": {"source": "legacy"}}, {"test_patch": ["M30"]})
+    with pytest.raises(ValueError, match="evaluation matches"):
+        curve_disjointness_record({"train": {"source": "legacy"}, "test": {"source": "legacy"}}, {"t": ["M30"]})
+    legacy = curve_disjointness_record({"train": None, "test": None}, {"t": ["M30"]}, allow_legacy=True)
+    assert legacy["evaluation_calibrated_curve"] is True
+    path.write_text(path.read_text(encoding="utf-8").replace("M03", "M04"), encoding="utf-8")
+    with pytest.raises(ValueError, match="changed"):                          # calibration edited after the build
+        curve_disjointness_record({"train": prov, "test": prov}, {"test_patch": ["M30"]})
+
+
+def test_monotone_fit_is_a_count_weighted_isotonic_regression_with_no_hand_edits():
+    means, counts = [749.5, 2226.7, 3332.1, 4478.4, 5007.3, 3944.4], [1000, 800, 600, 300, 150, 58978]
+    iso = fit_monotone(means, counts, "isotonic_weighted")
+    assert all(b >= a for a, b in zip(iso, iso[1:]))
+    assert iso[:3] == [749.5, 2226.7, 3332.1]
+    pooled = (4478.4 * 300 + 5007.3 * 150 + 3944.4 * 58978) / (300 + 150 + 58978)
+    assert iso[3] == iso[4] == iso[5] == pytest.approx(pooled, abs=0.06)       # the 58,978-row bin dominates
+    assert fit_monotone(means, counts, "cummax") == [749.5, 2226.7, 3332.1, 4478.4, 5007.3, 5007.3]
+    assert fit_monotone([np.nan, 2000, np.nan, 3000, np.nan, np.nan], [0, 5, 0, 5, 0, 0]) == [2000.0, 2000.0, 2000.0, 3000.0, 3000.0, 3000.0]
+
+
+def test_weighted_auc_matches_sklearn_and_the_bootstrap_is_paired():
+    from sklearn.metrics import roc_auc_score
+    rng = np.random.default_rng(0)
+    y = rng.integers(0, 2, 400)
+    p = np.round(rng.random(400), 1)                                           # heavy ties
+    w = rng.integers(0, 3, 400).astype(float)
+    r = RankedAUC(y, p)
+    assert r.auc(np.ones(400)) == pytest.approx(roc_auc_score(y, p), abs=1e-12)
+    assert r.auc(w) == pytest.approx(roc_auc_score(y, p, sample_weight=w), abs=1e-12)
+    groups = np.array([f"M{i // 4}" for i in range(400)])
+    minute = rng.uniform(2, 40, 400)
+    other = np.clip(p + rng.normal(0, .2, 400), 0, 1)
+    out, meta = joint_paired_bootstrap(y, {"X": p, "X_plus_evidence": p.copy(), "X_plus_hold": other},
+                                       groups, minute, n_boot=40)
+    same = out["evidence_minus_X"]["overall"]
+    assert same["delta"] == same["lo"] == same["hi"] == 0.0                   # identical models: zero in every draw
+    assert out["evidence_minus_hold"]["overall"]["delta"] == pytest.approx(-out["hold_minus_X"]["overall"]["delta"])
+    assert meta["auc_implementation_max_abs_diff_vs_sklearn"] < 1e-9 and meta["clusters"] == 100
+
+
+def test_calibration_on_disk_never_intersects_evaluation_matches():
+    """Data check of the calibration new runs load (skipped until scripts/calibrate_position_error_v3.py has run)."""
+    path = default_pos_error_calibration_path()
+    splits_path = ROOT / "outputs/state_value_main_50k_eval/match_splits.json"
+    if not path.exists() or not splits_path.exists():
+        pytest.skip(f"no calibration at {path}")
+    cal = json.loads(path.read_text(encoding="utf-8"))
+    ids = set(cal["match_ids"])
+    assert ids and match_ids_sha256(ids) == cal["match_ids_sha256"]
+    splits = json.loads(splits_path.read_text(encoding="utf-8"))
+    for name in ("predict_test", "value_validation"):
+        assert not ids & set(splits[name]), name
+    shards = Path(cal["split"]["corpus_shards"])
+    if not shards.exists():
+        pytest.skip(f"corpus shards {shards} not available")
+    corpus = corpus_patch_matches(shards)
+    assert cal["split"]["holdout_patches"]
+    for patch in cal["split"]["holdout_patches"]:
+        assert corpus.get(patch) and not ids & corpus[patch], patch

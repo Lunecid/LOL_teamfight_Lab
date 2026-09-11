@@ -13,6 +13,7 @@ gap is reported so 'no change' cases do not dilute the picture.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import sys
@@ -37,6 +38,15 @@ def main():
     ap.add_argument("--cache-dir", type=Path, default=Path("D:/LOL_Project/cache/match_cache_fresh_v3_engage_status13"))
     ap.add_argument("--v3-dir", type=Path, default=ROOT / "outputs/temporal_winprob_v3_buckets")
     ap.add_argument("--out", type=Path, default=ROOT / "outputs/evidence_state/audit.json")
+    # added for the leak fix; the defaults reproduce the published audits
+    ap.add_argument("--split", default="engagement",
+                    help="'engagement' = protocol.json splits (= predict_test, the pilot's EVALUATION matches; "
+                         "legacy default); any other name is read from --match-splits")
+    ap.add_argument("--match-splits", type=Path, default=ROOT / "outputs/state_value_main_50k_eval/match_splits.json")
+    ap.add_argument("--pos-error-curve", default="legacy",
+                    help="'legacy' (published audits) or a scripts/calibrate_position_error_v3.py JSON")
+    ap.add_argument("--exclude-matches-from", type=Path, nargs="*", default=[],
+                    help="calibration JSONs whose match_ids are removed (out-of-sample audit of a fitted curve)")
     a = ap.parse_args()
     a.out.parent.mkdir(parents=True, exist_ok=True)
     os.environ["LOL_OUTPUT_ROOT"] = str(a.out.parent / "runtime")
@@ -44,11 +54,22 @@ def main():
     os.environ["LOL_CFG_OVERRIDES"] = json.dumps({"CACHE_DIRNAME": str(a.cache_dir.resolve()),
         "FIGHT_INDEX_CACHE_ENABLED": False, "FIGHT_INDEX_NUM_WORKERS": 1, "DUMP_FIGHTS": False})
     from data.cache_io import load_match_cache
-    from gameplay.evidence_state import EvidenceStateBuilder, load_tables
+    from gameplay.evidence_state import EvidenceStateBuilder, load_pos_error_curve, load_tables
     from train.temporal_winprob import stable_int
 
-    protocol = json.loads((a.v3_dir / "protocol.json").read_text(encoding="utf-8"))
-    ids = sorted(protocol["splits"]["engagement"], key=lambda m: stable_int("audit:7:" + m))[:a.n_matches]
+    if a.split == "engagement":
+        protocol = json.loads((a.v3_dir / "protocol.json").read_text(encoding="utf-8"))
+        pool = protocol["splits"]["engagement"]
+        print("[audit] WARNING: split 'engagement' is predict_test, the evidence pilot's evaluation matches; "
+              "do not calibrate anything from this audit", flush=True)
+    else:
+        pool = json.loads(a.match_splits.read_text(encoding="utf-8"))[a.split]
+    excluded = set()
+    for path in a.exclude_matches_from:
+        excluded |= set(json.loads(path.read_text(encoding="utf-8"))["match_ids"])
+    pool = [m for m in pool if m not in excluded]
+    ids = sorted(pool, key=lambda m: stable_int("audit:7:" + m))[:a.n_matches]
+    curve, curve_provenance = load_pos_error_curve(a.pos_error_curve)
     tables = {}
     err = {k: defaultdict(list) for k in ("hold", "evidence", "extrapolate")}
     pos = {"hold": [], "evidence": [], "evidence_by_kind": defaultdict(list), "by_kind_age": defaultdict(list)}
@@ -63,7 +84,7 @@ def main():
         patch = str(pack["meta"]["patch"])
         if patch not in tables:
             tables[patch] = load_tables(patch)
-        b = EvidenceStateBuilder(pack, patch=patch, tables=tables[patch])
+        b = EvidenceStateBuilder(pack, patch=patch, tables=tables[patch], pos_error_curve=curve)
         ts = b.ts
         event_ts = np.array(sorted(int(e["timestamp"]) for e in pack["events"]))
         for j in range(2, len(ts)):
@@ -126,6 +147,9 @@ def main():
                                                                 "hold_mean": float(np.mean([y for _, y in v]))}
                                                             for (k, a), v in sorted(pos["by_kind_age"].items())}},
            "elapsed_seconds": round(time.time() - started, 1)}
+    out["provenance"] = {"split": a.split, "evaluation_split_warning": a.split in ("engagement", "predict_test", "value_validation"),
+                         "match_ids_sha256": hashlib.sha256("\n".join(sorted(ids)).encode()).hexdigest(),
+                         "excluded_calibration_matches": len(excluded), "pos_error_curve": curve_provenance}
     a.out.write_text(json.dumps(out, indent=2), encoding="utf-8")
     print(json.dumps({"participant_frames": n_pf, "share_with_event": out["share_with_any_event_in_gap"],
                       "position_u": {k: out["position_error_u"][k]["mean"] for k in ("hold", "evidence")},

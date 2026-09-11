@@ -29,7 +29,9 @@ from __future__ import annotations
 from bisect import bisect_right
 from collections import defaultdict
 from dataclasses import dataclass, field
+import hashlib
 import json
+import os
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -70,11 +72,16 @@ FIELD_CLASSES = {
 }
 
 POS_KIND = {"frame": 0, "victim": 1, "killer": 2, "assist": 3, "objective": 4, "shop": 5, "respawn": 6, "dead": 7}
-# Mean position error (map units) of each evidence kind by its age, in 10 s bins 0-10 .. 50-60+,
-# measured leak-free against the next frame on 1,000 held-out matches (scripts/audit_evidence_state.py,
-# outputs/evidence_state/audit_1000.json).  The fusion picks the candidate with the smallest expected
-# error, so a fresh kill beats a stale frame and a stale shop visit never beats anything.  The frame
-# curve is monotonised; its 50-60 s bin (n = 58,978) is the reliable one.
+# Mean position error (map units) of each evidence kind by its age, in 10 s bins 0-10 .. 50-60+.
+# The fusion picks the candidate with the smallest expected error, so a fresh kill beats a stale frame
+# and a stale shop visit never beats anything.
+#
+# LEGACY (pilot v1 only).  This table was read from outputs/evidence_state/audit_1000.json, whose 1,000
+# matches are protocol['splits']['engagement'] = predict_test, i.e. the pilot's own EVALUATION matches,
+# and its frame row was lowered by hand (measured 749.5 / 2226.7 / 3332.1 / 4478.4 / 5007.3 / 3944.4 u).
+# It is kept verbatim so docs/experiments/claude_evidence_pilot_results.json stays reproducible
+# (pos_error_curve="legacy").  New runs load a calibration measured on disjoint matches and fitted by a
+# written rule: scripts/calibrate_position_error_v3.py, see load_pos_error_curve().
 POS_ERROR_CURVE = {
     "frame":     [750, 2200, 3300, 3900, 3950, 3950],
     "victim":    [1157, 2591, 3649, 4354, 4696, 5045],    # same geometry as a killer at the kill
@@ -84,11 +91,103 @@ POS_ERROR_CURVE = {
     "shop":      [5833, 8232, 9593, 10010, 10126, 10267],
     "respawn":   [2803, 6360, 8931, 9807, 9920, 9999],
 }
+LEGACY_POS_ERROR_CURVE = POS_ERROR_CURVE
+POS_ERROR_BIN_S, POS_ERROR_N_BINS = 10, 6
+POS_FUSION_KINDS = ("frame", "killer", "assist", "objective", "shop", "respawn")   # kinds _position can pick
+# The disjoint calibration new runs default to; LOL_POS_ERROR_CALIBRATION overrides the path.
+DEFAULT_POS_ERROR_CALIBRATION = Path(
+    "D:/LOL_Project/fusion_2615/features/tog_revision/A4-evidence-state-leak/position_error_calibration_v2.json")
+_CURVE_CACHE: Dict[tuple, Tuple[Dict[str, List[float]], dict]] = {}
 
 
-def expected_position_error(kind: str, age_s: float) -> float:
-    curve = POS_ERROR_CURVE[kind]
-    return float(curve[min(len(curve) - 1, max(0, int(age_s // 10)))])
+def default_pos_error_calibration_path() -> Path:
+    return Path(os.environ.get("LOL_POS_ERROR_CALIBRATION") or DEFAULT_POS_ERROR_CALIBRATION)
+
+
+def validate_pos_error_curve(curve: dict) -> Dict[str, List[float]]:
+    """Every fusion kind present, POS_ERROR_N_BINS finite non-decreasing values; victim defaults to killer."""
+    out = {}
+    for kind in POS_FUSION_KINDS + ("victim",):
+        vals = curve.get(kind, curve.get("killer") if kind == "victim" else None)
+        if vals is None:
+            raise ValueError(f"position error curve lacks kind {kind!r}")
+        vals = [float(v) for v in vals]
+        if len(vals) != POS_ERROR_N_BINS or not all(np.isfinite(vals)):
+            raise ValueError(f"position error curve {kind!r} must hold {POS_ERROR_N_BINS} finite values")
+        if any(b < a for a, b in zip(vals, vals[1:])):
+            raise ValueError(f"position error curve {kind!r} is not non-decreasing in age: {vals}")
+        out[kind] = vals
+    return out
+
+
+# Evaluation sets a calibration must have been checked against (names as calibrate_position_error_v3.py writes
+# them): the pilot's test matches, the value model's validation matches, and every hold-out patch of the paper's
+# patch holdout (corpus_patch_<patch>, at least one).
+REQUIRED_DISJOINT_SETS = ("predict_test", "value_validation")
+REQUIRED_DISJOINT_PREFIXES = ("corpus_patch_",)
+
+
+def match_ids_sha256(ids) -> str:
+    """sha256 of the sorted unique ids joined by newlines (same formula as calibrate_position_error_v3.ids_sha256)."""
+    return hashlib.sha256("\n".join(sorted(set(map(str, ids)))).encode()).hexdigest()
+
+
+def assert_calibration_disjoint(calibration: dict, required=REQUIRED_DISJOINT_SETS,
+                                required_prefixes=REQUIRED_DISJOINT_PREFIXES) -> None:
+    """Refuse a calibration that was not checked against every required evaluation set, whose recorded match
+    ids do not hash to the recorded hash, or whose matches intersect any evaluation set it was checked against."""
+    checks = calibration.get("disjointness")
+    if not checks:
+        raise ValueError("calibration JSON records no disjointness checks; refusing to use it")
+    missing = [k for k in required if k not in checks]
+    missing += [p + "*" for p in required_prefixes if not any(str(k).startswith(p) for k in checks)]
+    if missing:
+        raise ValueError(f"calibration JSON was not checked against evaluation sets {missing}; refusing to use it")
+    if "match_ids" in calibration and match_ids_sha256(calibration["match_ids"]) != calibration.get("match_ids_sha256"):
+        raise ValueError("calibration match_ids do not hash to match_ids_sha256; the file was edited")
+    bad = {k: v.get("intersection") for k, v in checks.items() if int(v.get("intersection", 1)) != 0}
+    if bad:
+        raise ValueError(f"calibration matches intersect evaluation sets: {bad}")
+
+
+def load_pos_error_curve(spec=None) -> Tuple[Dict[str, List[float]], dict]:
+    """Resolve a position-error curve and its provenance.
+
+    spec: "legacy" -> POS_ERROR_CURVE (pilot v1, evaluation-calibrated, kept for reproduction only);
+          a dict of kind -> 6 values; a path to a scripts/calibrate_position_error_v3.py JSON (its
+          `fitted` table is used and its recorded disjointness checks must all be zero);
+          None -> default_pos_error_calibration_path(), the default for new runs.
+    """
+    if isinstance(spec, str) and spec == "legacy":
+        return {k: [float(v) for v in vals] for k, vals in POS_ERROR_CURVE.items()}, {
+            "source": "legacy", "note": "POS_ERROR_CURVE: calibrated on predict_test, frame row hand-lowered"}
+    if isinstance(spec, dict):
+        return validate_pos_error_curve(spec), {"source": "dict"}
+    path = Path(spec) if spec is not None else default_pos_error_calibration_path()
+    if not path.exists():
+        raise FileNotFoundError(f"position error calibration {path} not found: run "
+                                "scripts/calibrate_position_error_v3.py, or pass pos_error_curve='legacy' "
+                                "to reproduce the v1 pilot")
+    stat = path.stat()
+    key = (str(path.resolve()), stat.st_mtime_ns, stat.st_size)
+    if key not in _CURVE_CACHE:
+        raw = path.read_bytes()
+        calibration = json.loads(raw.decode("utf-8"))
+        assert_calibration_disjoint(calibration)
+        curve = validate_pos_error_curve(calibration["fitted"])
+        _CURVE_CACHE[key] = (curve, {
+            "source": str(path), "sha256": hashlib.sha256(raw).hexdigest(),
+            "version": calibration.get("version"), "fit_rule": calibration.get("fit_rule"),
+            "measure": calibration.get("measure"), "n_matches": calibration.get("n_matches"),
+            "match_ids_sha256": calibration.get("match_ids_sha256"),
+            "disjointness": calibration.get("disjointness")})
+    curve, provenance = _CURVE_CACHE[key]
+    return {k: list(v) for k, v in curve.items()}, dict(provenance)
+
+
+def expected_position_error(kind: str, age_s: float, curve: Optional[Dict[str, List[float]]] = None) -> float:
+    curve = (curve or POS_ERROR_CURVE)[kind]
+    return float(curve[min(len(curve) - 1, max(0, int(age_s // POS_ERROR_BIN_S)))])
 
 
 def respawn_seconds(level: int, game_ms: int) -> float:
@@ -127,7 +226,11 @@ class Evidence:
 
 
 class EvidenceStateBuilder:
-    def __init__(self, pack: dict, patch: Optional[str] = None, tables: Optional[Tuple[dict, dict]] = None):
+    def __init__(self, pack: dict, patch: Optional[str] = None, tables: Optional[Tuple[dict, dict]] = None,
+                 pos_error_curve=None):
+        """pos_error_curve: see load_pos_error_curve - None (default, new runs) is the disjoint
+        calibration JSON, "legacy" the v1 pilot table, or a path / dict."""
+        self.pos_error_curve, self.pos_error_provenance = load_pos_error_curve(pos_error_curve)
         self.pack = pack
         self.ts = np.asarray(pack["minute_ts"], dtype=np.int64)
         self.node = np.asarray(pack["node_minute"])
@@ -286,15 +389,18 @@ class EvidenceStateBuilder:
         remain = t0 + dur_ms - tau
         return (1.0, float(np.clip(remain / dur_ms, 0.0, 1.0))) if remain > 0 else (0.0, 0.0)
 
-    def _position(self, pid: int, tau: int, i: int):
-        """Most recent position evidence <= tau.  Returns (x, y, kind, age_s)."""
+    def position_candidates(self, pid: int, tau: int, i: int):
+        """(dead, candidates): every position evidence <= tau as (ts, x, y, kind), frame first.
+
+        A dead champion gets only the frame candidate.  Shared by the fusion and by the calibration
+        (scripts/calibrate_position_error_v3.py) so both see exactly the same evidence.
+        """
         cands = [(int(self.ts[i]), float(self.xy[i, pid - 1, 0]), float(self.xy[i, pid - 1, 1]), "frame")]
         e = self.ev[pid]
         fx, fy = FOUNTAIN[self.tm[pid]]
         dead, d, r = self._death_state(pid, tau)
         if dead:
-            # a dead champion cannot take part; keep the frame position and let alive=0 carry it
-            return cands[0][1], cands[0][2], "dead", (tau - cands[0][0]) / 1000.0
+            return True, cands
         if r is not None and r <= tau:
             cands.append((r, fx, fy, "respawn"))
         # a death position is only meaningful while dead (handled above); after the respawn the
@@ -312,8 +418,17 @@ class EvidenceStateBuilder:
             for ts, kind, *_ in e.shop:
                 if 0 < ts <= tau:
                     cands.append((ts, fx, fy, "shop"))
+        return False, cands
+
+    def _position(self, pid: int, tau: int, i: int):
+        """Position evidence <= tau with the smallest expected error.  Returns (x, y, kind, age_s)."""
+        dead, cands = self.position_candidates(pid, tau, i)
+        if dead:
+            # a dead champion cannot take part; keep the frame position and let alive=0 carry it
+            return cands[0][1], cands[0][2], "dead", (tau - cands[0][0]) / 1000.0
         # choose the candidate whose kind-and-age expected error is smallest; ties go to the fresher one
-        ts, x, y, kind = min(cands, key=lambda c: (expected_position_error(c[3], (tau - c[0]) / 1000.0), -c[0]))
+        curve = self.pos_error_curve
+        ts, x, y, kind = min(cands, key=lambda c: (expected_position_error(c[3], (tau - c[0]) / 1000.0, curve), -c[0]))
         return x, y, kind, (tau - ts) / 1000.0
 
     # ------------------------------------------------------------------ main
