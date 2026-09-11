@@ -1,0 +1,57 @@
+% =============================================================================
+% IEEE Transactions on Games submission - extension of CoG 2026 submission 118.
+% Maintained in docs/tog_manuscript/ (tracked); paper/ is gitignored and holds the
+% superseded CoG-era drafts.  Build:  latexmk -pdf main.tex
+% Every experiment still running is rendered visibly with \pending{key}{what}, so a
+% pending number cannot ship silently.  grep -n "\\pending" *.tex lists them.
+% =============================================================================
+\documentclass[journal]{IEEEtran}
+
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+\usepackage{cleveref}
+
+\IfFileExists{macros.tex}{\input{macros.tex}}{}
+\providecommand{\pending}[2]{\textcolor{red}{[PENDING #1: #2]}}
+\newcommand{\sectionfile}[1]{\IfFileExists{#1.tex}{\input{#1.tex}}{\pending{section}{#1.tex not written yet}}}
+
+\begin{document}
+
+\title{Engagement Outcome Prediction in League of Legends Is Bounded by Observation, Not by Model Class}
+\author{\pending{authors}{author block - anonymised or not depends on the ToG review model (see sec\_availability)}}
+\markboth{IEEE Transactions on Games}{}
+
+\maketitle
+
+\begin{abstract}
+\pending{abstract}{written last, with one connective sentence between the definition result and the prediction result and one between the prediction result and the observation-ceiling result (CoG R1)}
+\end{abstract}
+
+\begin{IEEEkeywords}
+League of Legends, esports analytics, engagement detection, outcome prediction, win probability, tabular learning
+\end{IEEEkeywords}
+
+\sectionfile{sec_intro}
+\sectionfile{sec_related}
+\sectionfile{sec_background}
+\sectionfile{sec_definition}
+\sectionfile{sec_label}
+\sectionfile{sec_prediction}
+\sectionfile{sec_learners}
+\sectionfile{sec_limit}
+\sectionfile{sec_limitations}
+\sectionfile{sec_availability}
+\sectionfile{sec_conclusion}
+
+\bibliographystyle{IEEEtran}
+\bibliography{../references/definition_refs}
+
+\end{document}
