@@ -19,6 +19,14 @@ sweep with repeated invocations (see docs/TOG_EXTENSION_PLAN.md):
     LOL_OUTPUT_ROOT=D:/LOL_Project python scripts/run_threshold_sensitivity.py ^
         --gap-ms 24000 --n-matches 553 --seed 7 ^
         --output <...>/threshold_gap24000.json
+
+Superseded for corpus v3.3.  Without ``--preset`` or LOL_CFG_PRESET this runs the CFG defaults (the CoG 2026 constants:
+G 18 s, D 4,000 u, R 1,800 u, B 10 s, Eq.3 label, match-length time_norm and match-wide anchors), which is
+how features/thresholds/*.json were produced, and its AUC is a random-split nested CV on 553 matches.  The
+v3.3 G x D sensitivity (clean features, market_event with draws dropped, patch holdout, match-clustered
+intervals, one-to-one overlap) is scripts/run_gd_sweep_v33.py.  ``--preset NAME`` selects a core/presets.py
+preset before core.config is imported; whenever a preset is in effect (flag or inherited LOL_CFG_PRESET) the output
+records it and the effective constants.  Without a preset the output schema is the original one.
 """
 
 from __future__ import annotations
@@ -26,6 +34,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import os
 import random
 import sys
 from pathlib import Path
@@ -74,8 +83,16 @@ def main(argv=None) -> int:
     parser.add_argument("--reference-refs", type=Path, default=None,
                         help="refs JSON from the default run, for overlap")
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--preset", default=None,
+                        help="core/presets.py preset applied before core.config is imported (default: CFG defaults)")
     args = parser.parse_args(argv)
 
+    if args.preset:
+        if "core.config" in sys.modules:
+            raise SystemExit("core.config was imported before --preset could be applied")
+        os.environ["LOL_CFG_PRESET"] = str(args.preset)
+    # an inherited LOL_CFG_PRESET applies too (core.config reads it at import), so it is recorded either way
+    preset_in_effect = os.environ.get("LOL_CFG_PRESET", "").strip() or None
     from core.config import CACHE_DIR, cfg
 
     # the override must reach the detector: no disk cache, no worker processes
@@ -113,6 +130,12 @@ def main(argv=None) -> int:
         "auc": float(roc_auc_score(y, pred)),
         "refs": [{"match_id": m, "t_start_ts": t} for m, t in keys],
     }
+    if preset_in_effect:
+        results["preset"] = preset_in_effect
+        results["effective_cfg"] = {k: getattr(cfg, k, None) for k in (
+            "TF2_KILL_CLUSTER_GAP_MS", "CLUSTER_MAX_DIAMETER", "TF2_VALIDITY_RADIUS", "TF2_ENGAGE_PRE_KILL_MS",
+            "TF2_MIN_PER_TEAM", "FIGHT_HORIZON_SEC", "LABEL_TYPE", "LABEL_TIE_STRATEGY", "TIME_NORM_ABSOLUTE",
+            "ANCHORS_CAUSAL", "TAB_FRAME_AGE_FEATURE")}
     if args.reference_refs and args.reference_refs.exists():
         reference = [
             (r["match_id"], int(r["t_start_ts"]))
