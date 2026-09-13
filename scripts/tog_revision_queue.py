@@ -115,6 +115,16 @@ def status_table(jobs, state_dir: Path) -> str:
     return "\n".join(rows)
 
 
+def resolve_bash() -> str:
+    """Git Bash, never the WSL launcher: a runner started from PowerShell can see System32\bash.exe first,
+    which would run every command inside Linux with Windows paths that do not exist there."""
+    cand = os.environ.get("QUEUE_BASH") or shutil.which("bash") or ""
+    for c in (cand, r"C:\Program Files\Git\bin\bash.exe", r"C:\Program Files\Git\usr\bin\bash.exe"):
+        if c and os.path.exists(c) and "system32" not in c.lower() and "windowsapps" not in c.lower():
+            return c
+    raise SystemExit(f"no usable Git Bash found (candidate {cand!r}); set QUEUE_BASH")
+
+
 def launch(job: dict, state_dir: Path) -> subprocess.Popen:
     env = dict(os.environ)
     env.update(parse_env(job.get("env", "")))
@@ -124,7 +134,7 @@ def launch(job: dict, state_dir: Path) -> subprocess.Popen:
     log = open(state_dir / f"{job['name']}.log", "a", encoding="utf-8")
     log.write(f"\n===== {time.strftime('%Y-%m-%d %H:%M:%S')} start: {job['command']}\n")
     log.flush()
-    bash = shutil.which("bash") or "bash"
+    bash = resolve_bash()
     proc = subprocess.Popen([bash, "-c", job["command"]], cwd=job.get("cwd") or None, env=env,
                             stdout=log, stderr=subprocess.STDOUT)
     (state_dir / f"{job['name']}.running").write_text(
