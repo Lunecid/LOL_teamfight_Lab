@@ -16,12 +16,14 @@ Corpus v3.3 flags (defaults reproduce the run above; the JSON only gains a "prov
   --csv PATH               full mean |SHAP| vector, one row per column (feature,mean_abs_shap: the
                            analysis/shap_role_rollup.py input), plus <PATH stem>.base.csv with the sum over each
                            base's summary statistics (base,mean_abs_shap,n_columns)
+  --standardize train      train-row standardisation first (run_deep_tabular_baselines.prepare_matrix), as the
+                           learner comparison fits LightGBM (default none = the published run)
   --n-boot 1000            provenance.test_auc: test-split AUC with a match-clustered percentile bootstrap CI
                            (run_deep_tabular_baselines.cluster_bootstrap_auc); 0 = point estimate only
 
     LOL_OUTPUT_ROOT=D:/LOL_Project .venv/Scripts/python.exe scripts/run_shap_attribution.py \\
         --shards D:/LOL_Project/fusion_2615/corpus_shards_v33 \\
-        --n-matches 40000 --y-key y_market_event --split patch --teamfight-min 4 \\
+        --n-matches 40000 --y-key y_market_event --split patch --standardize train --teamfight-min 4 \\
         --csv D:/LOL_Project/fusion_2615/features/tog_revision/A7-shap-forensics/shap_v33_mean_abs.csv \\
         --output D:/LOL_Project/fusion_2615/features/tog_revision/A7-shap-forensics/shap_v33.json
 
@@ -34,6 +36,30 @@ from __future__ import annotations
 import argparse, csv, json, subprocess, time
 from pathlib import Path
 import numpy as np
+
+def preset_from_manifest(mf: dict) -> dict:
+    """Name the core/presets.py preset whose detector and label constants the shard manifest records.
+
+    The manifest stores the constants, not the preset name, and not the feature-path switches
+    (TIME_NORM_ABSOLUTE, ANCHORS_CAUSAL, TAB_FRAME_AGE_FEATURE), so a match names the definition only."""
+    import importlib.util, os
+    out = {"env_LOL_CFG_PRESET": os.environ.get("LOL_CFG_PRESET"), "matched_from_manifest": [],
+           "manifest_detector": mf.get("detector"), "manifest_label": mf.get("label"), "manifest_scale": mf.get("scale"),
+           "note": "matched on the manifest's detector constants and row label; the manifest does not record the "
+                   "feature-path switches"}
+    try:
+        spec = importlib.util.spec_from_file_location(
+            "core_presets", Path(__file__).resolve().parents[1] / "core" / "presets.py")
+        mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
+        det, lab = mf.get("detector") or {}, mf.get("label") or {}
+        for name, vals in mod.PRESETS.items():
+            keys = [k for k in det if k in vals]
+            if keys and all(det[k] == vals[k] for k in keys) and lab.get("row_label") == vals.get("LABEL_TYPE"):
+                out["matched_from_manifest"].append(name)
+    except Exception as e:  # provenance only
+        out["error"] = repr(e)
+    return out
+
 
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(description=__doc__)
@@ -55,6 +81,9 @@ def main(argv=None) -> int:
                    help="also write the full mean |SHAP| vector and <stem>.base.csv (sum over each base's statistics)")
     p.add_argument("--n-boot", type=int, default=1000,
                    help="match-clustered bootstrap replicates for the test AUC CI in provenance (0 = no CI)")
+    p.add_argument("--standardize", choices=("none", "train"), default="none",
+                   help="none: raw features (published); train: run_deep_tabular_baselines.prepare_matrix with "
+                        "train-row statistics, as the learner comparison fits LightGBM")
     a = p.parse_args(argv)
     started = time.time()
 
@@ -76,6 +105,8 @@ def main(argv=None) -> int:
     else:
         tr, va, te = dtb.split_by_match(groups, dtb.SEED)
     print(f"rows={len(y)} features={X.shape[1]}")
+    if a.standardize == "train":
+        dtb.prepare_matrix(data, tr)      # in place: X is data["X"]
 
     from lightgbm import LGBMClassifier, early_stopping, log_evaluation
     m = LGBMClassifier(n_estimators=2000, learning_rate=0.05, num_leaves=31,
@@ -122,6 +153,7 @@ def main(argv=None) -> int:
         print("wrote", a.csv, "and", base_csv)
     manifest = a.shards / "manifest.json"
     mf = json.loads(manifest.read_text(encoding="utf-8")) if manifest.exists() else {}
+    preset = preset_from_manifest(mf)
     try:
         commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=str(Path(__file__).resolve().parents[1]),
                                 capture_output=True, text=True).stdout.strip()
@@ -138,10 +170,11 @@ def main(argv=None) -> int:
         "Tree SHAP is LightGBM's pred_contrib (path-dependent conditional expectation, raw log-odds margin), the "
         "algorithm of Lundberg et al. 2020; the interventional variant is not used.",
         "Global importance is mean |SHAP| over a seeded sample of test rows (--shap-rows), one model, one seed.",
-        "LightGBM is fitted on raw features; the learner comparison (run_deep_tabular_baselines) standardises on "
-        "train rows first.",
         "The base rollup sums mean |SHAP| over a base's summary-statistic columns (<base>__<statistic>).",
     ]
+    if a.standardize == "none":
+        deviations.append("LightGBM is fitted on raw features; the learner comparison (run_deep_tabular_baselines) "
+                          "standardises on train rows first (--standardize train).")
     if a.split == "match":
         deviations.append("split_by_match: a seeded 70/15/15 match split, not the patch holdout of the learner comparison.")
     if a.y_key == "y":
@@ -150,11 +183,12 @@ def main(argv=None) -> int:
     out["provenance"] = {
         "git_commit": commit, "shards": str(a.shards),
         "corpus_manifest": {k: mf.get(k) for k in ("run_id", "git_commit", "preset", "feature_names_sha1")},
+        "preset": preset,
         "y_key": a.y_key, "n_rows": int(len(y)), "n_matches": int(len(np.unique(groups))), "seed": int(dtb.SEED),
         "split": {"kind": a.split, "train": int(tr.sum()), "val": int(va.sum()), "test": int(te.sum()),
                   **({"train_patch": a.train_patch, "val_patch": a.val_patch, "test_patch": a.test_patch}
                      if a.split == "patch" else {})},
-        "teamfight_min": a.teamfight_min, "best_iteration": int(m.best_iteration_ or m.n_estimators),
+        "teamfight_min": a.teamfight_min, "standardize": a.standardize, "best_iteration": int(m.best_iteration_ or m.n_estimators),
         "diagnostic_val_auc": float(roc_auc_score(y[va], m.predict_proba(X[va])[:, 1])),
         "test_auc": test_auc,
         "shap_rows_by_scale": {c: int((cls == c).sum()) for c in ("pick", "skirmish", "teamfight")},

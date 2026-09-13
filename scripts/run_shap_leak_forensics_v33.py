@@ -22,8 +22,8 @@ test-AUC difference says how much the leak is worth; TreeSHAP says where the mod
 Protocol
   1. one declared match sample (--n-matches, --seed) drawn from the v3.3 shard groups exactly as
      run_deep_tabular_baselines.load_subsample draws it, so the same n and seed name the same matches
-  2. fight index under the v3.3 preset; y_market_event computed per engagement as build_corpus_shard.py
-     --extra-labels market_event --extra-tie-policy drop stores it; draws (-1) removed
+  2. fight index under the v3.3 preset; y_market_event (or --label market_lex, the retracted v3 artefact's label)
+     computed per engagement by build_corpus_shard.label_ref under --extra-tie-policy drop; draws (-1) removed
   3. the tabular matrix built twice on those engagements -- clean (v3.3) and leaky (both switches False,
      everything else v3.3) -- with the corpus's row population (row label market_event, tie policy random);
      row keys (match, cutoff), ref objects, the row label and the feature names asserted identical
@@ -74,6 +74,12 @@ published protocols is written to the output JSON under "deviations".
     LOL_OUTPUT_ROOT=D:/LOL_Project LOL_CFG_PRESET=v3.3 OMP_NUM_THREADS=8 \\
         .venv/Scripts/python.exe scripts/run_shap_leak_forensics_v33.py --n-matches 20000 --n-jobs 8 \\
         --output-dir D:/LOL_Project/fusion_2615/features/tog_revision/A7-shap-forensics
+
+Outputs (stem = --tag, default shap_leak_forensics_v33_m<n>, or shap_leak_forensics_v33_market_lex_m<n> with
+--label market_lex): <stem>.json (everything above, provenance and deviations), <stem>.preds.npz (test labels,
+groups, scale and both models' test probabilities, for re-bootstrapping), <stem>_{clean,leaky}_mean_abs_shap.csv
+(every column; the analysis/shap_role_rollup.py input) and <stem>_{clean,leaky}_base.csv (base rollup with rank,
+share and derived leak switch).
 """
 from __future__ import annotations
 
@@ -88,6 +94,7 @@ import platform
 import subprocess
 import sys
 import time
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -98,8 +105,8 @@ if str(PROJECT_ROOT) not in sys.path:
 
 SEED = 7
 CLASSES = ("pick", "skirmish", "teamfight")
-LABEL_TYPE = "market_event"
-LABEL_KEY = "y_market_event"
+ROW_LABEL_TYPE = "market_event"      # the v3.3 shard row population: row label market_event, tie policy random
+LABELS = ("market_event", "market_lex")   # --label: the stored y_<type> column (tie policy drop) the models fit
 # (TIME_NORM_ABSOLUTE, ANCHORS_CAUSAL); every other field stays at the preset
 CONFIGS = {"clean": (True, True), "leaky": (False, False)}
 SWITCH_PROBES = {"TIME_NORM_ABSOLUTE": (False, True), "ANCHORS_CAUSAL": (True, False)}
@@ -189,12 +196,13 @@ def configure(preset: str, index_workers: int):
     return cfg, dict(PRESETS[preset])
 
 
-def market_event_labels(refs, cfg) -> np.ndarray:
-    """y_market_event exactly as build_corpus_shard.py --extra-labels market_event --extra-tie-policy drop."""
+def drop_policy_labels(refs, cfg, label_type: str) -> np.ndarray:
+    """y_<label_type> exactly as build_corpus_shard.py --extra-labels <label_type> --extra-tie-policy drop stores it.
+
+    The per-engagement call is build_corpus_shard.label_ref itself (-1 = draw), so the two cannot drift."""
     from data.cache_io import load_match_cache
-    from gameplay.labels import compute_label
-    from gameplay.pipeline_interp import interpolate_node_global
-    cfg.LABEL_TYPE, cfg.LABEL_TIE_POLICY = LABEL_TYPE, "drop"
+    bcs = load_module("build_corpus_shard")
+    cfg.LABEL_TYPE, cfg.LABEL_TIE_POLICY = label_type, "drop"
     y = np.full(len(refs), -1, dtype=np.int8)
     by_match: dict[str, list[int]] = {}
     for i, r in enumerate(refs):
@@ -203,19 +211,9 @@ def market_event_labels(refs, cfg) -> np.ndarray:
         pack = load_match_cache(mid)
         if not pack:
             continue
-        tm = {int(k): int(v) for k, v in (pack["meta"].get("team_map") or {}).items()}
+        tm = bcs.team_map_int(pack)
         for i in idxs:
-            r = refs[i]
-            lab = compute_label(
-                pack, tm, -1,
-                engage_ts=int(r.t_start_ts),
-                label_end_ts=(int(r.label_end_ts) if int(r.label_end_ts) >= 0 else None),
-                first_kill_ts=(int(r.first_kill_ts) if int(getattr(r, "first_kill_ts", -1)) >= 0 else None),
-                last_kill_ts=(int(r.last_kill_ts) if int(getattr(r, "last_kill_ts", -1)) >= 0 else None),
-                interp_node_global=interpolate_node_global,
-                anchor_xy=((float(r.anchor_x), float(r.anchor_y)) if float(getattr(r, "anchor_x", -1.0)) >= 0 else None),
-            )
-            y[i] = -1 if lab is None else int(lab)
+            y[i] = bcs.label_ref(pack, tm, refs[i])
     return y
 
 
@@ -223,7 +221,7 @@ def build_matrix(refs, switches, cfg, chunk: int, label: str):
     """build_tabular_Xy in ref chunks (rows are independent, so chunking changes nothing but the progress log)."""
     from train.baseline import build_tabular_Xy
     cfg.TIME_NORM_ABSOLUTE, cfg.ANCHORS_CAUSAL = bool(switches[0]), bool(switches[1])
-    cfg.LABEL_TYPE, cfg.LABEL_TIE_POLICY = LABEL_TYPE, "random"   # the corpus's common row population
+    cfg.LABEL_TYPE, cfg.LABEL_TIE_POLICY = ROW_LABEL_TYPE, "random"   # the corpus's common row population
     parts, row_labels, used_all, names = [], [], [], None
     t0 = time.time()
     for s in range(0, len(refs), chunk):
@@ -768,6 +766,9 @@ def main(argv=None) -> int:
     ap.add_argument("--n-matches", type=int, default=20000)
     ap.add_argument("--seed", type=int, default=SEED, help="match draw, SHAP row sample, bootstrap and LightGBM")
     ap.add_argument("--preset", default="v3.3")
+    ap.add_argument("--label", choices=LABELS, default="market_event",
+                    help="label the models fit (draws dropped): market_event = the v3.3 primary label; market_lex = the "
+                         "label of the retracted v3-era SHAP artefact (a robustness column in v3.3)")
     ap.add_argument("--train-patch", default="15.14")
     ap.add_argument("--val-patch", default="15.15")
     ap.add_argument("--test-patch", default="15.16")
@@ -805,7 +806,9 @@ def main(argv=None) -> int:
 
     started = time.time()
     stages: dict[str, float] = {}
-    tag = args.tag or f"shap_leak_forensics_v33_m{args.n_matches}"
+    label_key = f"y_{args.label}"
+    tag = args.tag or (f"shap_leak_forensics_v33_m{args.n_matches}" if args.label == "market_event"
+                       else f"shap_leak_forensics_v33_{args.label}_m{args.n_matches}")
     args.output_dir.mkdir(parents=True, exist_ok=True)
     out_json = args.output_dir / f"{tag}.json"
     if out_json.exists() and not args.overwrite:
@@ -827,18 +830,18 @@ def main(argv=None) -> int:
     stages["sample"] = time.time() - t
     print(f"matches available={n_available} sampled={len(mids)} sha1={sample_sha1[:12]}", flush=True)
 
-    # 2. fight index and the market_event label (draws dropped)
+    # 2. fight index and the label (draws dropped)
     t = time.time()
     refs = build_fight_index(cache_match_ids=mids)
     stages["fight_index"] = time.time() - t
     print(f"refs={len(refs)} ({stages['fight_index']:.0f}s)", flush=True)
     t = time.time()
-    y_all = market_event_labels(refs, cfg)
+    y_all = drop_policy_labels(refs, cfg, args.label)
     stages["label"] = time.time() - t
     keep = y_all >= 0
     refs_kept = [r for r, k in zip(refs, keep) if k]
     y_by_ref = {id(r): int(v) for r, v in zip(refs, y_all)}
-    print(f"{LABEL_KEY}: {int(keep.sum())} labelled, {int((~keep).sum())} draws dropped ({stages['label']:.0f}s)", flush=True)
+    print(f"{label_key}: {int(keep.sum())} labelled, {int((~keep).sum())} draws dropped ({stages['label']:.0f}s)", flush=True)
 
     # 3. the two builds on the same engagements
     X, names, used, row_label, build_s = {}, {}, {}, {}, {}
@@ -865,7 +868,7 @@ def main(argv=None) -> int:
     names = names["clean"]
     y = np.array([y_by_ref[id(r)] for r in rows_used], dtype=np.int8)
     ok = (row_label["clean"] >= 0)
-    identity["market_event_agrees_with_row_label"] = float((row_label["clean"][ok] == y[ok]).mean()) if ok.any() else None
+    identity[f"{args.label}_agrees_with_row_label"] = float((row_label["clean"][ok] == y[ok]).mean()) if ok.any() else None
     groups = np.array([r.match_id for r in rows_used])
     patch = np.array([str(r.patch) for r in rows_used])
     engage_ts = np.array([int(r.t_start_ts) for r in rows_used], dtype=np.int64)
@@ -879,7 +882,7 @@ def main(argv=None) -> int:
         crosscheck = {"skipped": True}
     else:
         t = time.time()
-        crosscheck = shard_crosscheck(args.shards, keys["clean"], X["clean"], y, names, LABEL_KEY)
+        crosscheck = shard_crosscheck(args.shards, keys["clean"], X["clean"], y, names, label_key)
         stages["shard_crosscheck"] = time.time() - t
         print(f"shard cross-check: identical={crosscheck.get('identical')} matched={crosscheck.get('n_matched')}"
               f" build_only={crosscheck.get('n_build_only')} shard_only={crosscheck.get('n_shard_only_labelled')}"
@@ -936,7 +939,9 @@ def main(argv=None) -> int:
         # explain exactly the trees behind the reported AUC
         booster = lgb.Booster(model_str=model.booster_.model_to_string(num_iteration=best))
         p_va = booster.predict(Xva, num_threads=args.n_jobs)
-        trunc = float(np.abs(p_va[:2000] - model.predict_proba(Xva[:2000], num_iteration=best)[:, 1]).max())
+        with warnings.catch_warnings():   # sklearn's feature-name notice for an ndarray input; values are unaffected
+            warnings.simplefilter("ignore", UserWarning)
+            trunc = float(np.abs(p_va[:2000] - model.predict_proba(Xva[:2000], num_iteration=best)[:, 1]).max())
         del Xva
         preds[name] = booster.predict(X[name][te], num_threads=args.n_jobs)
         models[name] = {"best_iteration": best, "trees_in_explained_model": int(booster.num_trees()),
@@ -1137,6 +1142,10 @@ def main(argv=None) -> int:
         deviations[1] = "Global importance is mean |SHAP| over every test-patch row."
     if args.seed != SEED:
         deviations.append(f"seed {args.seed} instead of the declared 7")
+    if args.label != "market_event":
+        deviations.append(f"label {label_key} instead of the v3.3 primary y_market_event: {args.label} is the label of "
+                          "the retracted v3-era artefact (features/shap_mlex.json) and a robustness column in v3.3; "
+                          "the feature builds, split and learner are unchanged")
 
     results = {
         "item": "A7-shap-forensics",
@@ -1156,9 +1165,10 @@ def main(argv=None) -> int:
         "preset": {"name": args.preset, "values": preset_values},
         "configurations": {n: {"TIME_NORM_ABSOLUTE": sw[0], "ANCHORS_CAUSAL": sw[1], "other_fields": f"preset {args.preset}"}
                            for n, sw in CONFIGS.items()},
-        "label": {"key": LABEL_KEY, "label_type": LABEL_TYPE, "tie_policy": "drop",
+        "label": {"key": label_key, "label_type": args.label, "tie_policy": "drop",
                   "attribution": getattr(cfg, "LABEL_EVENT_ATTRIBUTION", None),
-                  "row_population": "row label market_event with tie policy random (the v3.3 shard row population)",
+                  "row_population": f"row label {ROW_LABEL_TYPE} with tie policy random (the v3.3 shard row population), "
+                                    f"then rows where {label_key} is a draw removed",
                   "n_refs": int(len(refs)), "n_draws_dropped": int((~keep).sum())},
         "sample": {"shards": str(args.shards), "seed": args.seed, "n_matches_requested": args.n_matches,
                    "n_matches_available": n_available, "n_matches_sampled": len(mids), "match_sample_sha1": sample_sha1,
