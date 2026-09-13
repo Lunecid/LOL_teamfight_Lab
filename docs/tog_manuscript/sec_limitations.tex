@@ -43,9 +43,9 @@ It counts as containing a kill if a champion kill falls inside the run or within
 % REPO/scripts/run_killless_encounters.py encounters_for_match(): every alive champion is tried as the anchor and
 % counts for its own team (distance 0); has_kill = any kill_ts in [t0 - grace_ms, t1 + grace_ms];
 % grace_ms 15000: summary.json rows[*].grace_ms.
-With $R = 1{,}600$\,u and $k = 4$, 351 of 12,602 encounters (2.79\%) contain no kill when the minimum
-duration is 20\,s (four grid points), and 591 of 19,155 (3.09\%) when it is $G$ (13.7\,s, which the
-scanner rounds to three grid points).
+With $R = 1{,}600$\,u and $k = 4$, 351 of 12,602 encounters (2.79\%) contain no kill when the
+minimum-duration setting is 20\,s, which the scanner applies as at least four consecutive grid points,
+and 591 of 19,155 (3.09\%) when it is $G = 13.7$\,s, applied as at least three.
 % summary.json rows[setting=r1600_t4_d20_g15]: encounters 12602, killless 351, killless_share_of_encounters
 % 0.027853 (= 351 / 12602); rows[setting=r1600_t4_dG_g15]: encounters 19155, killless 591, share 0.030854 (= 591 / 19155).
 % Grid points: encounters_for_match() min_frames = max(1, round(min_duration_s * 1000 / 5000)): 20 s -> 4;
@@ -67,11 +67,13 @@ conducted at longer range need not register as an encounter, so the per-match ra
 divided into engagement counts to estimate how many fights the corpus omits. Finally, the grid does
 not locate the two kinds of encounter equally well. For every kill it moves the killer, the victim
 and the assisting champions along a straight line from their positions in the preceding frame to
-the kill position, whereas champions in a kill-less encounter keep positions interpolated between
-frames 60\,s apart, and alive status is held from the most recent frame.
+the kill position, up to the time of the kill, whereas champions in a kill-less encounter keep
+positions interpolated between frames 60\,s apart; for both kinds, alive status is held from the
+most recent frame.
 % summary.json denominator_warning.  Grid: REPO/gameplay/fight_clustering.py build_5s_position_grid() (linear
-% between minute frames; kill participants re-placed on a line from the preceding frame to the kill position
-% when TF2_USE_KILL_TRAJECTORY_INTERP); alive held: REPO/scripts/run_killless_encounters.py main()
+% between minute frames; kill participants re-placed on a line from the preceding frame to the kill position for
+% grid points up to the kill timestamp when TF2_USE_KILL_TRAJECTORY_INTERP, default True in REPO/core/config.py and
+% not overridden by the grid commands in summary.json); alive held: REPO/scripts/run_killless_encounters.py main()
 % (searchsorted on minute_ts, side="right").
 The share depends strongly on how an encounter is defined: in Dota~2, Schubert et al.\ found no
 kill in 81.1\% of the encounters returned by their proximity-based detector~\cite{schubert2016encounter}.
@@ -85,17 +87,20 @@ plus the fitted 20\,g per kill and 45\,g per assist) and the fitted price of eac
 inhibitor and epic monster.
 % REPO/gameplay/labels.py _compute_label_market_event() (kill gold = bounty + shutdownBounty + table kills + table
 % assists x assisting ids) and _priced_event_gold(); kills 20.0, assists 45.0: REPO/config/game_rules/event_prices.json pooled.
-A kill-less exchange that ends in a retreat pays no gold and writes no event, so its swing is
-zero and falls inside the $\pm 300$\,g dead zone. The refinement that follows finds no kill
+A kill-less exchange that ends in a retreat pays no kill gold and produces no priced event, so its
+swing is zero and falls inside the $\pm 300$\,g dead zone. The refinement that follows finds no kill
 difference, then compares the number of living champions on each team, then the sign of
 structure, plate and monster events, and otherwise declares a draw.
 % dead zone 300 g: SHARDS/manifest.json label.gold_deadzone 300.0; refinement order: REPO/gameplay/labels.py
 % _lex_refine() (cluster kills -> alive counts -> sign of ELITE_MONSTER_KILL / BUILDING_KILL /
 % TURRET_PLATE_DESTROYED -> tie policy).
 The living-champion count covers all ten champions, not only the participants. A kill-less fight
-would therefore be decided by a death elsewhere on the map, by a structure, plate or monster event
-inside the disc, or by the tie policy (a seeded coin flip for the stored row label, exclusion for
+would therefore be decided by a death elsewhere on the map, by a plate, structure or monster event
+inside the disc whose price leaves the swing within the dead zone (a single plate, or an elemental
+dragon at 0\,g), or by the tie policy (a seeded coin flip for the stored row label, exclusion for
 every reported label variant), but not by the fight itself.
+% plate 120 g and dragon 0 g: REPO/config/game_rules/event_prices.json pooled (plates 120.0, dragon 0.0), both below
+% the 300 g dead zone.
 % all ten champions: REPO/gameplay/labels.py _lex_refine() (alive summed over every champion of each team, read by
 % interp_node_global at the last kill or the window end); tie policies: SHARDS/manifest.json
 % label.row_tie_policy "random", label.extra_tie_policy "drop".
@@ -141,10 +146,17 @@ Four entries show what this means in practice. We report them rather than adjust
   % C1_event_census.windows.pre_to_end.rows_with_any_by_category (dragon, baron, elder, soul).
   % Window pre_to_end = query point 0 (pre, cutoff - 1 ms) to query point 1 (last_kill_proxy):
   % WT/scripts/validate_objective_passthrough_claude.py WINDOWS; point names: validation_a denominators.valid_rows_per_point.
-  The rule payout in patches 15.14--15.16 is
-  \pending{rulefact}{patch-dated gold reward of an elemental dragon kill for 15.14--15.16}.
-  % FEAT/event_prices.json wiki_cross_check.dragon (read 2026-09-09) records "25 kill gold pre-26.01 (per-member
-  % status unclear)"; not dated to 15.14-15.16 and ambiguous, so the marker stays.
+  The wiki page on elemental drakes records that patch V26.01 raised their kill gold to 75\,g from
+  25\,g~\pending{cite}{League of Legends Wiki, ``Elemental drake'' page, accessed 14 Sep.\ 2026}, but it
+  states neither the value in force in 15.14--15.16 nor whether every member of the killing team
+  receives it. The rule payout for the corpus patches is therefore
+  \pending{rulefact}{patch-dated gold reward of an elemental dragon kill for 15.14--15.16, and whether
+  it is paid per team member}.
+  % https://wiki.leagueoflegends.com/en-us/Elemental_drake patch history V26.01 "Kill gold increased to 75 from 25"
+  % (WebFetch 2026-09-14; the page does not say whether the gold goes to the killer or to every member); same
+  % reading, retrieved 2026-09-11: REPO/gameplay/labels.py DRAGON_RULE_SOURCE and DRAGON_RULE_VERIFICATION
+  % ("UNVERIFIED for patches 15.14-15.16"); FEAT/event_prices.json wiki_cross_check.dragon (read 2026-09-09)
+  % "25 kill gold pre-26.01 (per-member status unclear)".  Not dated to 15.14-15.16, so the marker stays.
 \item \emph{Turrets.} An inner turret is priced at 730\,g (fitted 729.79\,g, interval
   $[728.29, 731.66]$\,g), above the outer (540\,g), base (510\,g) and nexus (185\,g) turrets.
   % FEAT/event_prices.json fits.pooled.coef tower_inner_turret 729.794, cluster_bootstrap [728.290, 731.660];
@@ -190,10 +202,17 @@ independent of the corpus.
 Whether any conclusion depends on these choices is tested by a label-family ablation, scored by the
 area under the receiver operating characteristic curve (AUC) and by verdict agreement:
 \pending{labels}{AUC and verdict agreement, re-scored on the rows labelled by every variant, for
-kills-only pricing, non-kill prices $\times 0.5$ and $\times 2$, the elemental dragon at its rule
-value, dead zones of 0, 150, 300, 600 and 900 g, and the raw kill-difference label}. Until it is
-reported, the headline AUC of 0.670 holds for this price table and this dead zone only.
+kills-only pricing, non-kill prices $\times 0.5$ and $\times 2$, the elemental dragon at 25\,g, dead
+zones of 0, 150, 300, 600 and 900\,g, an attribution disc of radius $D/2 = 2{,}132$\,u, the raw
+kill-difference label and the kill-and-survivor score}. Until it is reported, the headline AUC of
+0.670 holds for this price table, this dead zone and this attribution disc only.
 % 0.66991: FEAT/scale_decomposition_v33_market_event.json overall_auc 0.6699090.
+% Variants: REPO/gameplay/labels.py label-variant registry, REQUIRED_LABEL_VARIANTS = market_event, micro_win (raw
+% kill advantage), kill_survival, market_event_dz{0,150,600,900}, market_event_kills_only, market_event_prices_x0.5,
+% market_event_prices_x2, market_event_dragon_rule (DRAGON_RULE_TEAM_GOLD 25.0), market_event_attr_radius_half
+% (ATTRIBUTION_RADIUS_HALF_V33_U 2132.0).  Scorer: REPO/scripts/run_label_family_v33.py (row sets "common" and
+% "own"; agreement() gives label agreement, flip rate and Cohen's kappa against market_event).  No scored result in
+% FEAT/tog_revision/A2-label-family/ as of 2026-09-14 (label_sidecars_v33/, keep_v33.npz and smoke runs only).
 
 The label variants reported so far are not compared on identical rows. The v3.3 corpus holds
 566,452 engagements, and each label drops its own draws. This leaves 532,547 rows (191,940
@@ -222,20 +241,25 @@ that defines $D$ is longer along a lane than across it (5,212\,u along the top l
 % 2 x 4264 = 8528.  FEAT/fight_boundary_full/details_pooled.json spatial.lane_anisotropy.top:
 % along.crossover_u 5212.1, across.crossover_u 3456.1.
 Events without a position, such as ward kills, are never attributed. In a 553-match pilot
-(1,438 engagements), 39.1\% of engagements had at least one event outside the disc within the
-label window; attribution changed the verdict of 3.0\% of the engagements labelled under both
-rules and changed whether 2.6\% were draws. No radius other than $D$ has been evaluated.
-% FEAT/label_window_fixes.json attribution: has_far_events_share 0.3908,
+(1,438 engagements, \texttt{market\_event} label), 39.1\% of engagements had at least one event
+outside the disc within the label window; attribution changed the verdict of 3.0\% of the
+engagements labelled under both rules and changed whether 2.6\% were draws. No other radius has been
+evaluated yet; the label-family ablation above includes a disc of radius $D/2$, whose diameter is $D$.
+% FEAT/label_window_fixes.json label "market_event", attribution: has_far_events_share 0.3908,
 % flip_share_among_both_labelled 0.0301, draw_status_changed_share 0.0257; n_matches 553,
-% n_engagements 1438.  Positionless events dropped: REPO/gameplay/labels.py attribute_events()
-% (skips events for which _event_xy() returns None).
+% n_engagements 1438 (file written 2026-09-09 10:18, after the price table of commit 5b5f9c8).
+% Positionless events dropped: REPO/gameplay/labels.py attribute_events() (skips events for which _event_xy()
+% returns None).  D/2 variant: labels.py market_event_attr_radius_half (2,132 u); sec_definition.tex holds the same
+% result under the pending key attr_radius.
 
 \subsubsection{What the inputs observe}
 
-Champion state (position, gold, level, items) arrives in frames 60\,s apart, whereas kills,
-purchases and objectives are timestamped to the millisecond.
+Champion state (position, gold, level, experience and champion statistics) arrives in frames 60\,s
+apart, whereas kills, item purchases and objectives are timestamped to the millisecond.
 % frame spacing 60000-60003 ms: CACHE/<one match drawn from a seeded 300-match sample>.npz minute_ts
-% (one match checked; the final partial frame at game end is shorter).
+% (one match checked; the final partial frame at game end is shorter).  Frame fields vs events:
+% REPO/docs/REPRESENTATION_AUDIT_V3.md section 1 (participantFrames: position, level, xp, currentGold, totalGold,
+% CS, championStats, damageStats; items come only from ITEM_PURCHASED / SOLD / UNDO events).
 At the cutoff, the most recent frame is a median 33.6\,s old (10th and 90th percentiles 8.2\,s
 and 51.6\,s, 553-match pilot).
 % FEAT/prediction_situation_pilot.json checks.freshness.age_s_quantiles p10 8.18 / p50 33.60 / p90 51.55.
@@ -246,14 +270,22 @@ rising to 3,746\,u when the frame is 50--60\,s old.
 % interp_error_u.hold p50 2126 / p90 6779; interp_error_by_since_frame_s["50-60"].hold 3746.
 Linear interpolation towards the next frame roughly halves the median error, to 1,149\,u, but it
 uses information from after the cutoff, so it is used only to construct instances, never as a
-model input. Even so, the interpolated victim position lies within $R = 1{,}600$\,u of the kill
-site for only 61.7\% of kills. The presence gate, which compares positions against $R$, therefore
-inherits a position error of the same order as $R$ itself.
+model input. Even so, the linearly interpolated victim position lies within $R = 1{,}600$\,u of the
+kill site for only 61.7\% of kills. The presence gate reads such interpolated positions for every
+champion it does not place on a kill trajectory, so its comparison against $R$ rests on a position
+error of the same order as $R$ itself. These errors are measured at the moment of a kill, when
+champions move most, and may therefore overstate the error at other times.
 % interp_error_u.linear p50 1149; linear_share_within["1600"] 0.617: same file.
-% feature path holds, gate interpolates: REPO/docs/DEFINITION_EVIDENCE.md section 18.1 (table of interpolation paths:
-% features, presence gate, label gold).
-The observation-bound analysis quantifies how much of the prediction ceiling this gap explains.
-Here we note only that it also limits the definition.
+% feature path holds, gate interpolates (5 s grid, linear between frames, kill participants on a trajectory to the
+% kill position): REPO/docs/DEFINITION_EVIDENCE.md section 18.1 (table of interpolation paths: features, presence
+% gate, label gold); kill instants as an upper-side estimate: same section, paragraph under the error table.
+The effect of this gap on the prediction ceiling belongs to the analysis of where that ceiling
+comes from, and its measurement is \pending{evidence\_state}{v3.3 AUC change from reconstructing
+the state at the cutoff from millisecond events, rerun after the position-error curve is
+recalibrated on training matches only}. Here we note only that the gap also limits the definition.
+% Evidence-state result not citable until the leak fix: REPO/docs/CLAUDE_TOG_PAPER_PLAN.md section 2, "§7 Where the
+% Limit Comes From", point 7.6 (POS_ERROR_CURVE calibrated on the evaluation matches); the fix is still running
+% (FEAT/tog_revision/A4-evidence-state-leak/, no result cited).
 
 The observation window, 30\,s before the cutoff summarised in six 5\,s bins, is carried over
 from the CoG submission; it was not derived.
@@ -268,23 +300,28 @@ columns without the frame-age column. It gives AUCs of 0.614, 0.626 and 0.631 fo
 and 60\,s, without intervals, and we draw no conclusion from that ordering for the v3.3 features.
 % FEAT/prediction_situation_pilot.json checks.ctx: 15 -> 0.61420, 30 -> 0.62626, 60 -> 0.63127; n_matches 553,
 % n_refs 1438, n_rows 1360, n_features 7105, v3.LABEL_TYPE market_lex.  Pre-fix status: REPO/docs/RELEASE_REPORT_V3.md
-% section 5.4 "pilot and audit metrics" (second 5.4), footnote 1: pilot written 2026-09-09 05:33, before commits
-% 5b5f9c8 and 86095c8, no frame_age_s, "not v3.3 results".
-The full-corpus sweep is \pending{window}{full-corpus AUC for observation windows of 15, 30, 60 and
-120\,s and bin widths of 2.5, 5 and 10\,s under the v3.3 preset}. Until it is reported, 30\,s is a
-convention.
+% section 5.5 (pilot and audit metrics), caveat 1: pilot written 2026-09-09 05:33, before commits 5b5f9c8 and
+% 86095c8, no frame_age_s, "not v3.3 results".
+The sweep of \cref{sec:learners-window} is \pending{window}{v3.3 test-patch AUC for observation windows
+of 15, 30, 60 and 120\,s in 5\,s bins and for bin widths of 2.5 and 10\,s within 30\,s, on the
+engagements common to all arms}. Until it is reported, 30\,s is a convention.
+% arms and common rows: REPO/scripts/run_window_sweep_v33.py module docstring; no result in
+% FEAT/tog_revision/A3-temporal-windows/ as of 2026-09-14 (smoke runs only).
 
 The win-probability model that values an engagement is least reliable late in the game. Even
 after sampling one training point per 5-minute bucket, only 2,517 of its 40,228 fitting rows
 (6.3\%) and 176 of its 4,986 test rows fall after 30 minutes.
 % WT/outputs/temporal_winprob_v3_buckets/sampling_census.json: fit.rows 40228, fit.bands["30-1000"] 2517;
-% test.rows 4986, test.bands["30-1000"] 176; 2517 / 40228 = 0.0626.
+% test.rows 4986, test.bands["30-1000"] 176; 2517 / 40228 = 0.0626.  One seeded grid point per 5-minute bucket per
+% match for fit / calibrate / select: WT/scripts/run_temporal_winprob_v3_buckets.py bucket_minute_indices().
 At the engagement cutoff, its expected calibration error (ECE) is 0.069 after 30 minutes (1,077
 engagements from 817 matches), against 0.009, 0.024 and 0.012 in the 2--10, 10--20 and 20--30
 minute bands, while its AUC in the late band is 0.844.
 % WT/outputs/temporal_winprob_v3_buckets/validation_a/results.json
 % engagement_all_available.pre.families.expanded.by_game_time_min: 30+ ece 0.06902, n 1077,
-% matches 817, auc 0.84433; 2-10 ece 0.00906; 10-20 ece 0.02431; 20-30 ece 0.01188.
+% matches 817, auc 0.84433; 2-10 ece 0.00906; 10-20 ece 0.02431; 20-30 ece 0.01188.  "expanded" is the primary
+% family (WT/scripts/run_temporal_winprob_v3_buckets.py report "primary"; value_pre read from z["expanded"] in
+% WT/scripts/report_two_axis_output_v3.py).  The maymin baseline is worse late (30+ ece 0.09587), not used here.
 Value swings of late engagements are therefore measured with the least calibrated instrument in
 the study.
 
@@ -295,8 +332,9 @@ and the labelled corpus comes from three patches, with 187,547, 191,184 and 153,
 15.14, 15.15 and 15.16.
 % CACHE/: 210000 *.meta.json files, all prefixed "KR_"; patch counts:
 % FEAT/scale_decomposition_v33_market_event.json patch_distribution.
-The learner comparison tests transfer to one adjacent patch only. Nothing here speaks to other
-regions, later patches, lower ranks or professional play.
+The learner comparison tests transfer only from 15.14 to 15.16, with 15.15 used for validation.
+Nothing here speaks to other regions, later patches, lower ranks or professional play.
+% split train 15.14 / validation 15.15 / test 15.16: REPO/docs/RELEASE_REPORT_V3.md section 5.4 (learner comparison).
 
 Rank is a property of how the matches were collected, not a measured variable. The collection
 targeted Master tier and above, but the cached records carry no rank, tier or league-point
@@ -316,13 +354,13 @@ player may appear in training and evaluation folds; the size of that effect is u
 
 \subsubsection{What the learner comparison establishes}
 
-The deep tabular models were trained with one fixed configuration and no per-architecture
-search. The token-based models, FT-Transformer~\cite{gorishniy2021revisiting} and
-SAINT~\cite{somepalli2021saint}, used token dimension 32, three layers, eight attention heads,
+In the comparison recorded so far, the deep tabular models were trained with one fixed
+configuration and no per-architecture search. The token-based models,
+FT-Transformer~\cite{gorishniy2021revisiting} and SAINT~\cite{somepalli2021saint}, used token dimension 32, three layers, eight attention heads,
 batch size 64 and learning rate $10^{-4}$.
 % FEAT/deep_tabular_v33_patch_ft.json and deep_tabular_v33_patch_saint.json token_config {d_token 32, n_layers 3,
 % n_heads 8, batch_size 64, lr 0.0001}; no per-architecture search: REPO/docs/RELEASE_REPORT_V3.md section 5.4
-% "learner comparison" (first 5.4), notes and limitation paragraph.
+% (learner comparison), notes ("None of the neural learners received a hyperparameter search") and limitation paragraph.
 The neural learners are not matched in capacity either: the multilayer perceptron (MLP) has
 4.17\,M trainable parameters and TabNet~\cite{arik2021tabnet} 4.08\,M, against 0.46\,M for SAINT
 and 0.29\,M for FT-Transformer.
@@ -333,10 +371,14 @@ rather than sparse feature-selection masks; it is being rerun, and its result is
 % REPO/docs/RELEASE_REPORT_V3.md section 5.4 "learner comparison", dagger note: train_torch computed
 % loss - sparsity_lambda * entropy (REPO/scripts/run_deep_tabular_baselines.py at commit 60945ed), "do not cite
 % 0.6188"; run kept for provenance only in FEAT/deep_tabular_v33_patch_full.json models.tabnet.
-The comparison therefore shows what these architectures reach under that budget, not what they
-can reach. \pending{learners}{validation-patch (15.15) search over learning rate and depth for the
-MLP, FT-Transformer, SAINT and TabNet (with the corrected regulariser), and a capacity-matched
-FT-Transformer and SAINT arm with token dimension 128--192, reported as test AUC on 15.16}.
+That comparison therefore shows what these architectures reach under that budget, not what they
+can reach. The declared search of \cref{sec:learners-effort} replaces it: \pending{learners}{test AUC
+on 15.16 of every learner, LightGBM included, after the declared search selected on 15.15; TabNet
+with the corrected regulariser; FT-Transformer and SAINT at a parameter count matched to the MLP;
+SAINT with and without pre-training}.
+% protocol: docs/tog_manuscript/sec_learners.tex sec:learners-effort; REPO/scripts/run_deep_hparam_search_v33.py
+% module docstring (families lightgbm, mlp, tabnet, ft_transformer, saint, saint_pretrain).  No result in
+% FEAT/tog_revision/A1-deep-baselines/ as of 2026-09-14 (smoke runs only).
 
 \subsubsection{How precisely the constants are known}
 
@@ -373,8 +415,9 @@ of episodes that pass the presence gate is 10.3\% at the operating point and ran
 % grid.R1600_B15.valid_share 0.1027, minimum grid.R1350_B15 0.0649, maximum grid.R2500_B5 0.4112.
 For $G$, every swept value from 10 to 18\,s partitions kills with an adjusted Rand index (ARI) of at
 least 0.90 against the valley partition; this measures agreement between partitions, not the size of
-the corpus. How $G$ and $D$ together change the corpus is \pending{gd}{engagement count and AUC over
-the $G \times D$ sweep under the v3.3 preset}.
+the corpus. How $G$ and $D$ together change the corpus is \pending{gxd\_sweep}{engagement count and
+AUC over the $G \times D$ sweep under the v3.3 preset}.
+% Same key as sec_definition.tex.  Sweep still running (REPO/scripts/run_gd_sweep_v33.py); no result cited.
 % FEAT/fight_boundary_full/details_pooled.json temporal.ari_vs_valley: 10 -> 0.9048, 12 -> 0.9609,
 % 13 -> 0.9844, 14 -> 0.9942, 15 -> 0.9746, 16 -> 0.9562, 18 -> 0.9225 (8 -> 0.8293 and 20 -> 0.8916 fall below).
 
@@ -397,8 +440,8 @@ with the bins fixed; it does not include the uncertainty of placing a crossing i
 The detector was run with $D = 4{,}264.0$\,u.
 % linear interpolation between bin centres: REPO/analysis/spatial_boundary.py crossover() docstring;
 % FEAT/fight_boundary_full/details_pooled.json spatial.curve [3750, 0.6469], [4500, 0.4325];
-% 3750 + (0.6469 - 0.5) / (0.6469 - 0.4325) * 750 = 4263.9; crossover 4263.87, bootstrap [4256.05, 4273.97]
-% (width 17.92): spec_pooled.json; detector 4264.0: SHARDS/manifest.json.
+% 3750 + (0.6469 - 0.5) / (0.6469 - 0.4325) * 750 = 4263.9; spec_pooled.json diameter_u 4263.87 (diameter_source
+% "crossover"), diameter_ci_u [4256.05, 4273.97] (width 17.92); detector 4264.0: SHARDS/manifest.json.
 Both constants, like the price table, are estimated on the corpus that is later evaluated
 (208,141 matches).
 % FEAT/fight_boundary_full/spec_pooled.json n_matches 208141.
@@ -406,8 +449,8 @@ The remaining detector rules (merging a candidate into a neighbour within 15\,s 
 60\,s duration cap, and truncation when one team is eliminated) are carried over from the
 released CoG code, and no sensitivity analysis is reported for them.
 % REPO/docs/RELEASE_REPORT_V3.md section 4 (confirmed definition table, clean-up row: "released code");
-% defaults 2000.0 u and 60000 ms: REPO/gameplay/fights.py detection config (CONTINUOUS_FIGHT_MERGE_RADIUS,
-% MAX_MERGED_FIGHT_DURATION_MS).
+% defaults 15000 ms, 2000.0 u and 60000 ms: REPO/core/config.py and REPO/gameplay/fights.py detection config
+% (CONTINUOUS_FIGHT_MAX_GAP_MS, CONTINUOUS_FIGHT_MERGE_RADIUS, MAX_MERGED_FIGHT_DURATION_MS).
 
 \subsection{Future Work}\label{subsec:future-work}
 
