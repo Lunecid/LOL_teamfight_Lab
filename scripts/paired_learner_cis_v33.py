@@ -26,9 +26,18 @@ number of times its match was drawn.  The weighted Mann-Whitney AUC equals roc_a
 concatenated resample exactly (checked on the first replicates; the gap is written out), and it
 lets one sort per learner serve every replicate.
 
+Monte Carlo error: the whole bootstrap is repeated with an independent seed (--mc-check-seed, default 8)
+and the largest move of any interval endpoint is written out, with every comparison whose reading
+(tie / which learner is higher) would change.  The intervals reported are those of --seed.
+
+Comparisons (difference AUC(b) - AUC(a), written a->b): every learner vs lgbm_paper; tabnet,
+ft_transformer and saint vs mlp; ft_transformer vs saint; lgbm_deep vs lgbm_paper; lead_only vs every
+learner.  A pair planned twice (lgbm_paper->lgbm_deep) is one entry listing both families; a pair planned
+in both directions (lgbm_paper->lead_only, lead_only->lgbm_paper) counts once in the Holm family.
+
 Nothing here touches training, selection or calibration: it reads frozen test-patch predictions.
 
-    python scripts/paired_learner_cis_v33.py ^
+    python scripts/paired_learner_cis_v33.py \
         --out D:/LOL_Project/fusion_2615/features/tog_revision/A8-input-audit-and-cis/paired_learner_cis_v33.json
 """
 from __future__ import annotations
@@ -52,10 +61,18 @@ DEEP_NAMES = {"lightgbm": "lgbm_7106", "mlp": "mlp", "tabnet": "tabnet",
               "ft_transformer": "ft_transformer", "saint": "saint"}
 DEEP_MODELS = ("tabnet", "ft_transformer", "saint")
 HEADLINE = ("mlp->ft_transformer", "mlp->saint", "ft_transformer->saint", "mlp->tabnet",
-            "lgbm_paper->ft_transformer", "lgbm_paper->mlp", "lgbm_paper->lgbm_deep",
+            "lgbm_paper->ft_transformer", "lgbm_paper->saint", "lgbm_paper->mlp", "lgbm_paper->tabnet",
+            "lgbm_paper->lgbm_deep",
             "lgbm_paper->lgbm_7106", "lgbm_paper->linear", "lead_only->lgbm_paper")
 PRIOR_VERIFIER = {"mlp->ft_transformer": [0.0009, -0.0006, 0.0023], "mlp->saint": [-0.0006, -0.0024, 0.0008],
                   "lgbm_paper->ft_transformer": [-0.0105, -0.0117, -0.0092]}
+PRIOR_VERIFIER_NOTE = (
+    "an earlier verifier's rounded values for three pairs.  They differ from this file by at most 0.0001 in the "
+    "difference and 0.0003 at an interval endpoint (mlp->saint lower end -0.0024 here -0.0021); its resample count, "
+    "generator and whether its first number is the point difference or the bootstrap mean were not recorded, so "
+    "exact agreement is not expected.  None of the three readings (tie / which learner is higher) differs.  The "
+    "values in 'comparisons' are the ones to cite; 'monte_carlo_replication' says how far an endpoint moves under "
+    "an independent seed")
 DEVIATIONS = [
     "rows are weighted by match multiplicity instead of concatenating the resample; the AUC is "
     "identical (max gap on the checked replicates is written under validation)",
@@ -105,11 +122,12 @@ def git_state():
     def run(*cmd):
         try:
             return subprocess.run(["git", "-C", str(ROOT), *cmd], capture_output=True, text=True,
-                                  timeout=30).stdout.strip()
+                                  timeout=30).stdout
         except Exception as exc:  # provenance must never abort the run
             return f"unavailable: {exc}"
-    return {"repo": str(ROOT), "commit": run("rev-parse", "HEAD"),
-            "branch": run("rev-parse", "--abbrev-ref", "HEAD"),
+    # porcelain lines are 'XY path'; the leading status column may be a space, so never strip the output
+    return {"repo": str(ROOT), "commit": run("rev-parse", "HEAD").strip(),
+            "branch": run("rev-parse", "--abbrev-ref", "HEAD").strip(),
             "dirty_scripts": [ln[3:] for ln in run("status", "--porcelain").splitlines()
                               if ln[3:].startswith("scripts/")]}
 
@@ -132,6 +150,25 @@ def weighted_auc(prep, w):
     if denom == 0:
         return float("nan")
     return float((gp * (np.cumsum(gn) - 0.5 * gn)).sum() / denom)
+
+
+def bootstrap(prep, names, inv, n_groups, n_boot, seed, log, started):
+    """(n_boot, learners) AUCs; replicate b draws n_groups matches with replacement from one generator."""
+    rng = np.random.default_rng(seed)
+    boot = np.empty((n_boot, len(names)))
+    for b in range(n_boot):
+        w = np.bincount(rng.integers(n_groups, size=n_groups), minlength=n_groups).astype(np.float64)[inv]
+        for j, k in enumerate(names):
+            boot[b, j] = weighted_auc(prep[k], w)
+        if (b + 1) % 250 == 0:
+            log(f"  seed {seed}: replicate {b + 1}/{n_boot} ({time.time() - started:.0f}s)")
+    return boot
+
+
+def pair_interval(B, ia, ib):
+    d = B[:, ib] - B[:, ia]
+    lo, hi = (float(x) for x in np.percentile(d, [2.5, 97.5]))
+    return d, lo, hi
 
 
 def load_predictions(tree_json, tree_preds, deep_jsons, log):
@@ -203,6 +240,9 @@ def main():
     ap.add_argument("--seed", type=int, default=SEED)
     ap.add_argument("--validate-reps", type=int, default=3,
                     help="replicates re-scored by concatenation + roc_auc_score")
+    ap.add_argument("--mc-check-seed", type=int, default=8,
+                    help="repeat the whole bootstrap with this independent seed and report how far every interval "
+                         "endpoint moves (Monte Carlo error); the reported intervals stay those of --seed; -1 skips")
     ap.add_argument("--out", type=Path,
                     default=FEATURES / "tog_revision" / "A8-input-audit-and-cis" / "paired_learner_cis_v33.json")
     a = ap.parse_args()
@@ -223,14 +263,7 @@ def main():
     gap_reported = max(abs(point[k] - sources[k]["reported_auc"]) for k in names)
     log(f"point AUCs reproduce the JSONs (max gap {gap_reported:.1e}); unit-weight AUC gap {gap_point:.1e}")
 
-    rng = np.random.default_rng(a.seed)
-    boot = np.empty((a.n_boot, len(names)))
-    for b in range(a.n_boot):
-        w = np.bincount(rng.integers(len(uniq), size=len(uniq)), minlength=len(uniq)).astype(np.float64)[inv]
-        for j, k in enumerate(names):
-            boot[b, j] = weighted_auc(prep[k], w)
-        if (b + 1) % 250 == 0:
-            log(f"  replicate {b + 1}/{a.n_boot} ({time.time() - started:.0f}s)")
+    boot = bootstrap(prep, names, inv, len(uniq), a.n_boot, a.seed, log, started)
     usable = ~np.isnan(boot).any(axis=1)
     col = {k: j for j, k in enumerate(names)}
 
@@ -253,18 +286,33 @@ def main():
     log(f"concatenation gap {concat_gap:.1e}; published vs_lgbm_paper reproduced to {repro_gap:.1e}")
 
     B = boot[usable]
-    comparisons = {}
+    B2 = None
+    if a.mc_check_seed >= 0:
+        if a.mc_check_seed == a.seed:
+            raise SystemExit("--mc-check-seed must differ from --seed")
+        log(f"independent Monte Carlo replication with seed {a.mc_check_seed} ...")
+        boot2 = bootstrap(prep, names, inv, len(uniq), a.n_boot, a.mc_check_seed, log, started)
+        B2 = boot2[~np.isnan(boot2).any(axis=1)]
+    comparisons, mc_gaps, flips = {}, [], []
     for (ka, kb), families in planned_pairs(names).items():
-        d = B[:, col[kb]] - B[:, col[ka]]
-        lo, hi = (float(x) for x in np.percentile(d, [2.5, 97.5]))
+        d, lo, hi = pair_interval(B, col[ka], col[kb])
         far = min(int((d <= 0).sum()), int((d >= 0).sum()))
-        comparisons[f"{ka}->{kb}"] = {
+        reading = "tie: the 95% interval contains 0" if lo <= 0 <= hi else f"{kb if lo > 0 else ka} higher"
+        key = f"{ka}->{kb}"
+        comparisons[key] = {
             "a": ka, "b": kb, "families": families, "difference": "AUC(b) - AUC(a)",
             "diff": point[kb] - point[ka], "boot_mean": float(d.mean()), "boot_se": float(d.std(ddof=1)),
             "ci95": [lo, hi], "excludes_zero": bool(lo > 0 or hi < 0),
             "p_two_sided": min(1.0, 2 * (1 + far) / (len(d) + 1)),
-            "reading": "tie: the 95% interval contains 0" if lo <= 0 <= hi else f"{kb if lo > 0 else ka} higher",
+            "reading": reading,
             "n_matches": int(len(uniq)), "n_rows": int(len(y))}
+        if B2 is not None:
+            _, lo2, hi2 = pair_interval(B2, col[ka], col[kb])
+            reading2 = "tie: the 95% interval contains 0" if lo2 <= 0 <= hi2 else f"{kb if lo2 > 0 else ka} higher"
+            comparisons[key]["ci95_mc_check_seed"] = [lo2, hi2]
+            mc_gaps.append(max(abs(lo - lo2), abs(hi - hi2)))
+            if reading2 != reading:
+                flips.append(key)
     by_pair = {}
     for key, c in comparisons.items():
         by_pair.setdefault(frozenset((c["a"], c["b"])), []).append(key)
@@ -292,7 +340,16 @@ def main():
                        "replicates_checked_by_concatenation": int(min(a.validate_reps, a.n_boot)),
                        "published_vs_lgbm_paper_reproduction": published,
                        "max_gap_published_vs_lgbm_paper": repro_gap,
-                       "prior_verifier_values_diff_lo_hi": PRIOR_VERIFIER},
+                       "monte_carlo_replication": (
+                           {"seed": a.mc_check_seed, "n_boot": int(len(B2)),
+                            "max_endpoint_gap_between_seeds": float(max(mc_gaps)),
+                            "median_endpoint_gap_between_seeds": float(np.median(mc_gaps)),
+                            "comparisons_whose_reading_changes": flips,
+                            "note": "the reported intervals are those of --seed; the second seed only measures how "
+                                    "much an interval endpoint moves under an independent set of resamples"}
+                           if B2 is not None else "skipped (--mc-check-seed -1)"),
+                       "prior_verifier_values_diff_lo_hi": PRIOR_VERIFIER,
+                       "prior_verifier_note": PRIOR_VERIFIER_NOTE},
         "deviations": DEVIATIONS, "caveats": CAVEATS,
         "provenance": {"script": str(Path(__file__).resolve()), "git": git_state(), "argv": sys.argv[1:],
                        "preset": os.environ.get("LOL_CFG_PRESET", "unset (corpus manifest below)"),
@@ -313,6 +370,9 @@ def main():
     a.out.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     log("\n" + "\n".join(f"  {k:28s} {v['diff']:+.4f} [{v['ci95'][0]:+.4f}, {v['ci95'][1]:+.4f}]  {v['reading']}"
                          for k, v in headline.items()))
+    if B2 is not None:
+        log(f"Monte Carlo replication (seed {a.mc_check_seed}): endpoints move by at most {max(mc_gaps):.5f} "
+            f"(median {np.median(mc_gaps):.5f}); readings that change: {flips or 'none'}")
     log(f"wrote {a.out} ({time.time() - started:.0f}s)")
 
 

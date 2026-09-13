@@ -39,6 +39,16 @@ the published audit never opened the FT-Transformer or SAINT results or any pred
                predictions that reproduce its reported AUC; within-match row order is tested against
                within-match shuffles; subsample runs are checked as subsets; every prediction file on
                disk is inventoried and what was never saved is listed
+  row order    the element-wise checks fix a file's order up to permutations among rows that agree on
+               everything the file stores beside its predictions (tree file: match, label, participation
+               and presence class; deep file: match, label, smaller-side participant count).  Rows alone in
+               such a stratum are fixed; the rest are tested by shuffling one file's predictions inside
+               exactly those strata (19 shuffles, so beating all of them is p <= 1/20 per learner).  Both
+               runners write predictions and metadata from the same row mask in one call, so a file cannot
+               be misaligned with its own metadata; the tests are about order across files
+  inventory    every *v33*.preds.npz in the features folder and every *.preds.npz / pred_*.npz under
+               tog_revision/ (other revision items' outputs), classified; a file that covers the full test
+               patch but is not audited is named, so a later learner-table run cannot go unaudited silently
 
 --extended refuses to write over the published audit.
 
@@ -124,11 +134,12 @@ def git_state():
     def run(*cmd):
         try:
             return subprocess.run(["git", "-C", str(ROOT), *cmd], capture_output=True, text=True,
-                                  timeout=30).stdout.strip()
+                                  timeout=30).stdout
         except Exception as exc:  # provenance must never abort the audit
             return f"unavailable: {exc}"
-    return {"repo": str(ROOT), "commit": run("rev-parse", "HEAD"),
-            "branch": run("rev-parse", "--abbrev-ref", "HEAD"),
+    # porcelain lines are 'XY path'; the leading status column may be a space, so never strip the output
+    return {"repo": str(ROOT), "commit": run("rev-parse", "HEAD").strip(),
+            "branch": run("rev-parse", "--abbrev-ref", "HEAD").strip(),
             "dirty_files": [ln[3:] for ln in run("status", "--porcelain").splitlines()
                             if ln[3:].startswith("scripts/")]}
 
@@ -192,8 +203,19 @@ def second_pass(matrix_path, shard_paths, keep, mode, y_key, const_cols, const_v
     return mat, dev
 
 
+def stratum_codes(*arrays):
+    """One integer per row naming its combination of values across the given arrays."""
+    codes = np.zeros(len(arrays[0]), dtype=np.int64)
+    for arr in arrays:
+        inv = np.unique(arr, return_inverse=True)[1].ravel().astype(np.int64)
+        codes = np.unique(codes * (int(inv.max()) + 1) + inv, return_inverse=True)[1].ravel().astype(np.int64)
+    return codes
+
+
 def within_match_perms(groups, n, seed=SEED):
-    """Permutations that shuffle rows inside each match and leave every match's rows in place."""
+    """Permutations that shuffle rows inside each group and leave every group's rows in place.
+
+    groups may be match ids or stratum_codes(); only group membership is used."""
     inv = np.unique(groups, return_inverse=True)[1]
     base = np.argsort(inv, kind="stable")
     rng = np.random.default_rng(seed)
@@ -319,8 +341,11 @@ def main():
                       "tree_fit_seconds_total": fit_s, "latest_possible_first_fit_start": iso(pred_t - fit_s)}
             detail = (f"matrix written {iso(mat_t)}; predictions written {iso(pred_t)} after {fit_s:.0f} s of "
                       f"fitting, so the first fit began no later than {iso(pred_t - fit_s)} (merge_shards writes "
-                      "the matrix before any fit)")
-        results.append(check("the tree matrix on disk was last written before the tree run's first fit",
+                      "the matrix before any fit).  An upper bound, not a date: the summed fit seconds leave out "
+                      "scoring, saving and the in-run bootstrap, so the first fit may have begun earlier; that the "
+                      "matrix holds the shards' values is shown by the cell-by-cell check, not by this one")
+        results.append(check("the tree matrix on disk was last written no later than the latest possible start of the "
+                             "tree run's first fit (prediction-file mtime minus summed fit seconds)",
                              ok_time, detail))
         results.append(check("no NaN in the shards (a NaN would make the min/max rule drop its column)",
                              nan_cells == 0, f"{nan_cells} NaN cells"))
@@ -515,6 +540,7 @@ def main():
                              f"{a2:.4f} ({deep['n_features']} cols), diff {a1 - a2:+.4f}"))
 
     prediction_files, row_order, inventory, subsample = {}, {}, [], {}
+    unaudited_full, learner_files = [], {}
     if ext:
         from sklearn.metrics import roc_auc_score
         sys.path.insert(0, str(ROOT))
@@ -589,6 +615,52 @@ def main():
                         + " (a shuffle keeps every row in its own match, so a row-order slip inside a match would "
                           "fall to the shuffled value)"))
 
+                # Each file's order equals the shards' order up to a permutation that its element-wise checks
+                # cannot see: one that only exchanges rows agreeing on everything the file stores next to its
+                # predictions.  The tree file stores match, label, participation class and presence class; a
+                # deep file stores match, label and the smaller-side participant count.  A row alone in its
+                # stratum is therefore fixed by those checks; the rows sharing a stratum are tested here by
+                # shuffling that file's side only, inside those strata and nowhere else.
+                sides = {
+                    "deep": ("deep predictions", "match, label, smaller-side participants",
+                             stratum_codes(g0, y0.astype(np.int64),
+                                           np.minimum(tt["cluster_blue"], tt["cluster_red"]).astype(np.int64))),
+                    "tree": ("lgbm_paper predictions", "match, label, participation class, presence class",
+                             stratum_codes(g0, y0.astype(np.int64),
+                                           scale_class(tt["cluster_blue"], tt["cluster_red"], 4).astype(str),
+                                           scale_class(tt["present_blue"], tt["present_red"], 4).astype(str))),
+                }
+                for side, (what, key, strata) in sides.items():
+                    sizes = np.bincount(strata)
+                    movable = int((sizes[strata] > 1).sum())
+                    sperms = list(within_match_perms(strata, N_SHUFFLES, seed=SEED + 1))
+                    moved_rows = int(np.mean([(q != np.arange(len(q))).sum() for q in sperms]))
+                    strat = {"shuffled": what, "stratum": key, "n_strata": int(len(sizes)),
+                             "rows_in_multi_row_strata": movable, "rows_moved_per_shuffle_mean": moved_rows,
+                             "learners": {}}
+                    for label, (_, _, pr) in loaded.items():
+                        if label == "tree":
+                            continue
+                        for k, v in pr.items():
+                            v = v.astype(np.float64)
+                            shuffled = [corr(ref, v[q]) if side == "deep" else corr(ref[q], v) for q in sperms]
+                            strat["learners"][f"{label}:{k}"] = {"r_aligned": corr(ref, v),
+                                                                 "r_shuffled_max": max(shuffled),
+                                                                 "r_shuffled_mean": float(np.mean(shuffled))}
+                    row_order[f"within_strata_invisible_to_{side}_file_checks"] = strat
+                    sl = strat["learners"]
+                    results.append(check(
+                        f"{side}-file row order among rows its element-wise checks cannot tell apart: every deep "
+                        f"learner's correlation with lgbm_paper beats {N_SHUFFLES} shuffles of the {what} within "
+                        f"({key}) strata",
+                        bool(sl) and movable > 0 and all(s["r_aligned"] > s["r_shuffled_max"] for s in sl.values()),
+                        f"{movable:,} of {len(g0):,} test rows share their stratum with another row "
+                        f"({len(sizes):,} strata; a shuffle moves {moved_rows:,} rows on average); "
+                        + "; ".join(f"{k} r {s['r_aligned']:.4f} vs shuffled max {s['r_shuffled_max']:.4f}"
+                                    for k, s in sl.items())
+                        + ".  Every other row is alone in its stratum, so the element-wise checks already fix "
+                          "its position"))
+
         for s in (s.strip() for s in a.subsample_results.split(",")):
             if not s:
                 continue
@@ -621,26 +693,60 @@ def main():
         feat_dir = a.tree_preds.parent
         found = sorted({*feat_dir.glob("deep_tabular_v33_patch_*.preds.npz"),
                         *feat_dir.glob("model_comparison_v33*.preds.npz")})
-        for pp in found:
+        # everything else that could hold v3.3 predictions: other top-level v3.3 runs and every revision item's
+        # outputs.  Files for earlier corpora carry no 'v33' in their name and are not listed.
+        found_more = sorted({*feat_dir.glob("*v33*.preds.npz"), *(feat_dir / "tog_revision").rglob("*.preds.npz"),
+                             *(feat_dir / "tog_revision").rglob("pred_*.npz")} - set(found))
+        meta_keys = {"y", "y_test", "groups", "groups_test", "match_id", "classes", "present", "scale", "presence",
+                     "patch", "engage_ts", "engage_ts_test", "cluster_blue", "cluster_red", "min_participants_test"}
+        for pp in found + found_more:
             jp = pp.with_name(pp.name.replace(".preds.npz", ".json"))
-            run = json.loads(jp.read_text(encoding="utf-8")) if jp.exists() else None
-            with np.load(pp, allow_pickle=False) as z:
-                keys = list(z.files)
-                n_rows = int(len(z["y_test"] if "y_test" in keys else z["y"]))
+            run = None
+            try:
+                run = json.loads(jp.read_text(encoding="utf-8")) if jp.exists() else None
+            except (OSError, ValueError):
+                pass
+            try:
+                with np.load(pp, allow_pickle=False) as z:
+                    keys = list(z.files)
+                    yk = next((k for k in ("y_test", "y") if k in keys), None)
+                    gk = next((k for k in ("groups_test", "groups", "match_id") if k in keys), None)
+                    n_rows = int(len(z[yk])) if yk else None
+                    gg = z[gk] if gk else None
+            except Exception as exc:  # another item may be writing the file right now
+                inventory.append({"file": str(pp), "readable": False, "error": f"{type(exc).__name__}: {exc}",
+                                  "role": "unreadable at audit time; not a learner-table row"})
+                continue
             learners = ([k[len("pred_"):] for k in keys if k.startswith("pred_")]
-                        or [k for k in keys if k not in ("y", "groups", "classes", "present")])
+                        or [k for k in keys if k not in meta_keys and not k.endswith("_index")])
+            full_test = bool(gg is not None and len(gg) == len(tt["groups"]) and np.array_equal(gg, tt["groups"]))
             if str(pp) in used:
                 role = "learner comparison: patch holdout, the full test patch"
             elif run is not None and "folds" in run:
                 role = (f"{run['folds']}-fold match-grouped out-of-fold predictions over all patches; not a patch "
                         f"holdout, not a learner-table row; its JSON reports {sorted(run.get('models', {}))}")
-            elif run is not None and run.get("n_matches") != len(matches):
-                role = (f"subsample run on {run['n_matches']:,} matches ({run['n_rows']:,} rows); not a "
+            elif full_test:
+                role = ("COVERS THE FULL TEST PATCH but is not audited here: if it is a learner-table row, re-run "
+                        "with it in --extra-deep-results")
+            elif n_rows is not None and n_rows >= labelled:
+                role = (f"one prediction per labelled row of every patch (label {(run or {}).get('y_key', '?')}, "
+                        f"{n_rows:,} rows): out-of-fold over all patches, not a patch holdout, not a learner-table row")
+            elif run is not None and run.get("n_matches") not in (None, len(matches)):
+                role = (f"subsample run on {run['n_matches']:,} matches ({run.get('n_rows', 0):,} rows); not a "
                         "learner-table row")
+            elif "tog_revision" in pp.parts:
+                item = pp.parts[pp.parts.index("tog_revision") + 1]
+                role = f"revision item {item}: {n_rows if n_rows is not None else '?'} rows, not the full test patch; " \
+                       "not a learner-table row"
             else:
                 role = "not used by the learner comparison"
             inventory.append({"file": str(pp), "json": str(jp) if jp.exists() else None, "n_rows": n_rows,
-                              "learners": learners, "role": role, "mtime": iso(pp.stat().st_mtime)})
+                              "learners": learners, "covers_full_test_patch": full_test, "role": role,
+                              "mtime": iso(pp.stat().st_mtime)})
+        unaudited_full = [r["file"] for r in inventory if r.get("covers_full_test_patch") and r["file"] not in used]
+        print(f"  inventory: {len(inventory)} prediction files ({len(found)} learner-comparison candidates, "
+              f"{len(found_more)} elsewhere); covering the full test patch but not audited: {unaudited_full or 'none'}",
+              flush=True)
         table = {label: sorted(v["test_auc"]) for label, v in prediction_files.items()}
         reported = {label: sorted((run or {}).get("models", {})) for label, (_, run, _) in files.items()}
         results.append(check("every learner in the patch-holdout comparison has saved test predictions",
@@ -648,7 +754,10 @@ def main():
                              f"{sum(len(v) for v in table.values())} learners: "
                              + "; ".join(f"{k} {v}" for k, v in table.items())
                              + f"; {len(found)} prediction files found under {feat_dir}, "
-                               f"{sum(1 for r in inventory if str(r['file']) in used)} used"))
+                               f"{sum(1 for r in inventory if str(r['file']) in used)} used; "
+                               f"{len(inventory)} v3.3 prediction files inventoried in all, "
+                               f"{len(unaudited_full)} of the others cover the full test patch"))
+        learner_files = {f"{label}:{k}": v["path"] for label, v in prediction_files.items() for k in v["test_auc"]}
 
     payload = {"truth": truth, "checks": results,
                "verdict": "PASS" if all(r["pass"] for r in results) else "FAIL",
@@ -667,7 +776,13 @@ def main():
                                "columns_varying_by_equality": int(varies.sum())},
             "column_sets": column_sets, "asymmetry": asymmetry, "tree_matrix": {**matrix, **timing},
             "prediction_files": prediction_files, "row_order_within_matches": row_order,
-            "subsample_runs": subsample, "prediction_inventory": inventory, "not_saved": NOT_SAVED,
+            "subsample_runs": subsample, "prediction_inventory": inventory,
+            "saved_test_predictions": {
+                "learners": learner_files,
+                "summary": f"all {len(learner_files)} patch-holdout learners have saved test-patch predictions, in "
+                           f"{len(prediction_files)} files; what was not saved is listed under not_saved",
+                "full_test_patch_files_not_audited": unaudited_full},
+            "not_saved": NOT_SAVED,
             "run_code_provenance": [
                 "tree run (model_comparison_v33_patch.*) finished before worktree commit 3fb00c3 "
                 "(2026-09-11 02:22:51), which carries scripts/run_model_comparison_v33.py",
