@@ -1,8 +1,33 @@
-% References for the engagement-definition methodology.
-% Entries marked VERIFIED were checked against the PDF or publisher page on 2026-09-08;
-% CLASSIC entries are standard citations not re-verified this session; check pages before submission.
+% =============================================================================
+% Bibliography for the IEEE ToG manuscript (docs/tog_manuscript/main.tex, which reads
+% ../references/definition_refs with \bibliographystyle{IEEEtran}) and for the
+% engagement-definition drafts.  One key per work; no duplicate keys.
+%
+% Verification convention (revised 2026-09-11, replaces VERIFIED/CLASSIC inline tags):
+%   the comment line(s) directly ABOVE each entry read
+%     % [VERIFIED yyyy-mm-dd] <source URL or local PDF> -- what the source confirmed
+%   or
+%     % [UNVERIFIED] <reason>
+%   Comments sit outside the entries because classic BibTeX does not treat the percent
+%   sign as a comment inside an entry.  Never type the at-sign in a comment line: BibTeX
+%   reads it as the start of an entry.
+%   "Crossref record" = the metadata the publisher deposited for that DOI, read through
+%   https://api.crossref.org/works/<DOI> on the date given.  "DBLP record" = the dblp record
+%   for the DOI, read through the dblp SPARQL endpoint https://sparql.dblp.org/sparql (the
+%   dblp.org web search serves a bot check to scripts).
+%   A publisher page that is no longer online is cited through its Internet Archive capture,
+%   with the capture timestamp.  Source code is cited from the publisher's own repository at a
+%   pinned commit, read through the GitHub REST API.
+%   Per-entry table with notes: docs/tog_manuscript/references_audit.md
+% =============================================================================
 
-@article{zaliapin2013clusters,               % VERIFIED (abstract, publisher page)
+
+% -----------------------------------------------------------------------------
+% 1. Engagement definition: boundaries from inter-event gaps, clustering, measurement
+% -----------------------------------------------------------------------------
+
+% [VERIFIED 2026-09-11] Crossref record https://api.crossref.org/works/10.1002/jgrb.50179
+@article{zaliapin2013clusters,
   author  = {Zaliapin, Ilya and Ben-Zion, Yehuda},
   title   = {Earthquake clusters in southern {C}alifornia {I}: Identification and stability},
   journal = {Journal of Geophysical Research: Solid Earth},
@@ -13,7 +38,9 @@
   doi     = {10.1002/jgrb.50179}
 }
 
-@article{zaliapin2022perspectives,           % VERIFIED (preprint read); volume/pages to confirm
+% [VERIFIED 2026-09-11] Crossref record https://api.crossref.org/works/10.1785/0220210127
+%   (online 2021-09-22, issue 2022).  The preprint read on 2026-09-08 is the same paper.
+@article{zaliapin2022perspectives,
   author  = {Zaliapin, Ilya and Ben-Zion, Yehuda},
   title   = {Perspectives on clustering and declustering of earthquakes},
   journal = {Seismological Research Letters},
@@ -21,11 +48,16 @@
   number  = {1},
   pages   = {386--401},
   year    = {2022},
-  note    = {Preprint: zaliapin.github.io/pubs/ZBZ\_SRL21.pdf}
+  doi     = {10.1785/0220210127}
 }
 
-@inproceedings{halfaker2015session,          % VERIFIED (PDF read)
-  author    = {Halfaker, Aaron and Keyes, Os and Kluver, Daniel and Thebault-Spieker, Jacob and Nguyen, Tien and Shores, Kenneth and Uduwage, Anuradha and Warncke-Wang, Morten},
+% [VERIFIED 2026-09-11] Crossref record https://api.crossref.org/works/10.1145/2736277.2741117
+%   Author list follows the current ACM record (Kate Grandprey-Shores); the arXiv copy in
+%   D:/LOL_Project/references prints the earlier name.
+@inproceedings{halfaker2015session,
+  author    = {Halfaker, Aaron and Keyes, Os and Kluver, Daniel and Thebault-Spieker, Jacob
+               and Nguyen, Tien and Grandprey-Shores, Kate and Uduwage, Anuradha
+               and Warncke-Wang, Morten},
   title     = {User Session Identification Based on Strong Regularities in Inter-activity Time},
   booktitle = {Proceedings of the 24th International Conference on World Wide Web (WWW)},
   pages     = {410--418},
@@ -33,27 +65,148 @@
   doi       = {10.1145/2736277.2741117}
 }
 
-@inproceedings{mehrzadi2012session,          % VERIFIED (PDF read); DOI to confirm
+% [VERIFIED 2026-09-14] Crossref record https://api.crossref.org/works/10.1145/2367589.2367592
+%   (pages 1-7).  Place (Haifa, Israel) from the record's event field, which reads "Haifa Israel",
+%   re-read 2026-09-14; the first page of D:/LOL_Project/references/MehrzadiFeitelson2012_SessionData_SYSTOR.pdf
+%   prints the same place.
+%   The earlier "Article 3" is not printed on that copy nor in the record, so it was removed.
+@inproceedings{mehrzadi2012session,
   author    = {Mehrzadi, David and Feitelson, Dror G.},
   title     = {On Extracting Session Data from Activity Logs},
   booktitle = {Proceedings of the 5th Annual International Systems and Storage Conference (SYSTOR)},
+  address   = {Haifa, Israel},
+  pages     = {1--7},
   year      = {2012},
-  publisher = {ACM},
-  note      = {Article 3}
+  doi       = {10.1145/2367589.2367592}
 }
 
-@inproceedings{chitayat2023beyond,           % VERIFIED (PDF read); DOI pattern to confirm
-  author    = {Pedrassoli Chitayat, Alan and Block, Florian and Walker, James and Drachen, Anders},
-  title     = {Beyond the Meta: Leveraging Game Design Parameters for Patch-Agnostic Esport Analytics},
-  booktitle = {Proceedings of the AAAI Conference on Artificial Intelligence and Interactive Digital Entertainment (AIIDE)},
-  volume    = {19},
-  number    = {1},
-  pages     = {116--125},
-  year      = {2023},
-  doi       = {10.1609/aiide.v19i1.27507}
+% [VERIFIED 2026-09-11] Crossref search result for the title, DOI 10.1016/0169-7552(95)00043-7
+@article{catledge1995browsing,
+  author  = {Catledge, Lara D. and Pitkow, James E.},
+  title   = {Characterizing browsing strategies in the {W}orld-{W}ide {W}eb},
+  journal = {Computer Networks and ISDN Systems},
+  volume  = {27},
+  number  = {6},
+  pages   = {1065--1073},
+  year    = {1995},
+  doi     = {10.1016/0169-7552(95)00043-7}
 }
 
-@inproceedings{jacobs2021measurement,        % VERIFIED (PDF read)
+% [VERIFIED 2026-09-11] Crossref record https://api.crossref.org/works/10.1145/775047.775061
+@inproceedings{kleinberg2002bursty,
+  author    = {Kleinberg, Jon},
+  title     = {Bursty and hierarchical structure in streams},
+  booktitle = {Proceedings of the 8th ACM SIGKDD International Conference on Knowledge Discovery
+               and Data Mining (KDD)},
+  pages     = {91--101},
+  year      = {2002},
+  doi       = {10.1145/775047.775061}
+}
+
+% [VERIFIED 2026-09-11] AAAI page
+%   https://aaai.org/papers/kdd96-037-a-density-based-algorithm-for-discovering-clusters-in-large-spatial-databases-with-noise/
+%   (authors; listed under "Proceedings of the Second International Conference on Knowledge Discovery and
+%   Data Mining"); publisher PDF https://cdn.aaai.org/KDD/1996/KDD96-037.pdf prints page 226 on its first
+%   page and 231 on its last, with the footer "KDD-96 Proceedings. Copyright (c) 1996, AAAI".
+%   Place and publisher were removed: their only source was an OSTI record, not a publisher page.
+@inproceedings{ester1996dbscan,
+  author    = {Ester, Martin and Kriegel, Hans-Peter and Sander, J{\"o}rg and Xu, Xiaowei},
+  title     = {A density-based algorithm for discovering clusters in large spatial databases with noise},
+  booktitle = {Proceedings of the 2nd International Conference on Knowledge Discovery and Data Mining (KDD)},
+  pages     = {226--231},
+  year      = {1996}
+}
+
+% [VERIFIED 2026-09-11] Crossref record https://api.crossref.org/works/10.1007/978-3-642-37456-2_14
+%   (the LNCS volume number is not in the record and is omitted)
+@inproceedings{campello2013hdbscan,
+  author    = {Campello, Ricardo J. G. B. and Moulavi, Davoud and Sander, J{\"o}rg},
+  title     = {Density-based clustering based on hierarchical density estimates},
+  booktitle = {Advances in Knowledge Discovery and Data Mining (PAKDD)},
+  series    = {Lecture Notes in Computer Science},
+  pages     = {160--172},
+  year      = {2013},
+  doi       = {10.1007/978-3-642-37456-2_14}
+}
+
+% [VERIFIED 2026-09-11] Crossref record https://api.crossref.org/works/10.1111/j.2517-6161.1981.tb01155.x
+@article{silverman1981multimodality,
+  author  = {Silverman, B. W.},
+  title   = {Using kernel density estimates to investigate multimodality},
+  journal = {Journal of the Royal Statistical Society: Series B},
+  volume  = {43},
+  number  = {1},
+  pages   = {97--99},
+  year    = {1981},
+  doi     = {10.1111/j.2517-6161.1981.tb01155.x}
+}
+
+% [VERIFIED 2026-09-11] Project Euclid
+%   https://projecteuclid.org/journals/annals-of-statistics/volume-13/issue-1/The-Dip-Test-of-Unimodality/10.1214/aos/1176346577.full
+%   (pages 70-84) and Crossref record for the DOI
+@article{hartigan1985dip,
+  author  = {Hartigan, J. A. and Hartigan, P. M.},
+  title   = {The dip test of unimodality},
+  journal = {The Annals of Statistics},
+  volume  = {13},
+  number  = {1},
+  pages   = {70--84},
+  year    = {1985},
+  doi     = {10.1214/aos/1176346577}
+}
+
+% [VERIFIED 2026-09-11] Crossref record https://api.crossref.org/works/10.1109/TSMC.1979.4310076
+@article{otsu1979threshold,
+  author  = {Otsu, Nobuyuki},
+  title   = {A threshold selection method from gray-level histograms},
+  journal = {IEEE Transactions on Systems, Man, and Cybernetics},
+  volume  = {9},
+  number  = {1},
+  pages   = {62--66},
+  year    = {1979},
+  doi     = {10.1109/TSMC.1979.4310076}
+}
+
+% [VERIFIED 2026-09-11] Crossref record https://api.crossref.org/works/10.1016/j.neuron.2015.11.031
+@article{wiltschko2015mapping,
+  author  = {Wiltschko, Alexander B. and Johnson, Matthew J. and Iurilli, Giuliano and Peterson, Ralph E.
+             and Katon, Jesse M. and Pashkovski, Stan L. and Abraira, Victoria E. and Adams, Ryan P.
+             and Datta, Sandeep Robert},
+  title   = {Mapping sub-second structure in mouse behavior},
+  journal = {Neuron},
+  volume  = {88},
+  number  = {6},
+  pages   = {1121--1135},
+  year    = {2015},
+  doi     = {10.1016/j.neuron.2015.11.031}
+}
+
+% [VERIFIED 2026-09-11] Crossref record https://api.crossref.org/works/10.1098/rsif.2014.0672
+@article{berman2014mapping,
+  author  = {Berman, Gordon J. and Choi, Daniel M. and Bialek, William and Shaevitz, Joshua W.},
+  title   = {Mapping the stereotyped behaviour of freely moving fruit flies},
+  journal = {Journal of The Royal Society Interface},
+  volume  = {11},
+  number  = {99},
+  year    = {2014},
+  note    = {Art. no. 20140672},
+  doi     = {10.1098/rsif.2014.0672}
+}
+
+% [VERIFIED 2026-09-11] Crossref record https://api.crossref.org/works/10.1111/1467-985X.00186
+@article{kulldorff2001prospective,
+  author  = {Kulldorff, Martin},
+  title   = {Prospective time periodic geographical disease surveillance using a scan statistic},
+  journal = {Journal of the Royal Statistical Society: Series A},
+  volume  = {164},
+  number  = {1},
+  pages   = {61--72},
+  year    = {2001},
+  doi     = {10.1111/1467-985X.00186}
+}
+
+% [VERIFIED 2026-09-11] Crossref record https://api.crossref.org/works/10.1145/3442188.3445901
+@inproceedings{jacobs2021measurement,
   author    = {Jacobs, Abigail Z. and Wallach, Hanna},
   title     = {Measurement and Fairness},
   booktitle = {Proceedings of the 2021 ACM Conference on Fairness, Accountability, and Transparency (FAccT)},
@@ -62,138 +215,346 @@
   doi       = {10.1145/3442188.3445901}
 }
 
-@article{berman2014mapping,                  % VERIFIED (PDF read)
-  author  = {Berman, Gordon J. and Choi, Daniel M. and Bialek, William and Shaevitz, Joshua W.},
-  title   = {Mapping the stereotyped behaviour of freely moving fruit flies},
-  journal = {Journal of The Royal Society Interface},
-  volume  = {11},
-  number  = {99},
-  pages   = {20140672},
-  year    = {2014},
-  doi     = {10.1098/rsif.2014.0672}
-}
-
-@inproceedings{mcqueen2014screens,           % VERIFIED (conference page)
-  author    = {McQueen, Armand and Wiens, Jenna and Guttag, John},
-  title     = {Automatically Recognizing On-Ball Screens},
-  booktitle = {MIT Sloan Sports Analytics Conference},
-  year      = {2014}
-}
-
-@article{kulldorff2001prospective,           % VERIFIED (publisher page)
-  author  = {Kulldorff, Martin},
-  title   = {Prospective time periodic geographical disease surveillance using a scan statistic},
-  journal = {Journal of the Royal Statistical Society: Series A},
-  volume  = {164},
-  number  = {1},
-  pages   = {61--72},
-  year    = {2001}
-}
-
-@inproceedings{schubert2016encounter,        % VERIFIED (PDF read 2026-09-07)
-  author    = {Schubert, Matthias and Drachen, Anders and Mahlmann, Tobias},
-  title     = {Esports Analytics Through Encounter Detection},
-  booktitle = {MIT Sloan Sports Analytics Conference},
-  year      = {2016}
-}
-
-@article{catledge1995browsing,               % CLASSIC (summarised in Halfaker 2015 §2.2)
-  author  = {Catledge, Lara D. and Pitkow, James E.},
-  title   = {Characterizing browsing strategies in the {W}orld-{W}ide {W}eb},
-  journal = {Computer Networks and ISDN Systems},
-  volume  = {27},
-  number  = {6},
-  pages   = {1065--1073},
-  year    = {1995}
-}
-
-@inproceedings{kleinberg2002bursty,          % CLASSIC
-  author    = {Kleinberg, Jon},
-  title     = {Bursty and hierarchical structure in streams},
-  booktitle = {Proceedings of the 8th ACM SIGKDD International Conference on Knowledge Discovery and Data Mining},
-  pages     = {91--101},
-  year      = {2002}
-}
-
-@inproceedings{ester1996dbscan,              % CLASSIC
-  author    = {Ester, Martin and Kriegel, Hans-Peter and Sander, J{\"o}rg and Xu, Xiaowei},
-  title     = {A density-based algorithm for discovering clusters in large spatial databases with noise},
-  booktitle = {Proceedings of the 2nd International Conference on Knowledge Discovery and Data Mining (KDD)},
-  pages     = {226--231},
-  year      = {1996}
-}
-
-@inproceedings{campello2013hdbscan,          % CLASSIC
-  author    = {Campello, Ricardo J. G. B. and Moulavi, Davoud and Sander, J{\"o}rg},
-  title     = {Density-based clustering based on hierarchical density estimates},
-  booktitle = {Advances in Knowledge Discovery and Data Mining (PAKDD)},
-  pages     = {160--172},
-  year      = {2013}
-}
-
-@article{silverman1981multimodality,         % CLASSIC
-  author  = {Silverman, Bernard W.},
-  title   = {Using kernel density estimates to investigate multimodality},
-  journal = {Journal of the Royal Statistical Society: Series B},
-  volume  = {43},
-  number  = {1},
-  pages   = {97--99},
-  year    = {1981}
-}
-
-@article{hartigan1985dip,                    % CLASSIC
-  author  = {Hartigan, John A. and Hartigan, Pamela M.},
-  title   = {The dip test of unimodality},
-  journal = {The Annals of Statistics},
-  volume  = {13},
-  number  = {1},
-  pages   = {70--84},
-  year    = {1985}
-}
-
-@article{otsu1979threshold,                  % CLASSIC
-  author  = {Otsu, Nobuyuki},
-  title   = {A threshold selection method from gray-level histograms},
-  journal = {IEEE Transactions on Systems, Man, and Cybernetics},
-  volume  = {9},
-  number  = {1},
-  pages   = {62--66},
-  year    = {1979}
-}
-
-@article{wiltschko2015mapping,               % CLASSIC
-  author  = {Wiltschko, Alexander B. and Johnson, Matthew J. and Iurilli, Giuliano and Peterson, Ralph E. and Katon, Jesse M. and Pashkovski, Stan L. and Abraira, Victoria E. and Adams, Ryan P. and Datta, Sandeep Robert},
-  title   = {Mapping sub-second structure in mouse behavior},
-  journal = {Neuron},
-  volume  = {88},
-  number  = {6},
-  pages   = {1121--1135},
-  year    = {2015}
-}
-
-@article{cronbach1955construct,              % CLASSIC
+% [VERIFIED 2026-09-11] Crossref record https://api.crossref.org/works/10.1037/h0040957
+@article{cronbach1955construct,
   author  = {Cronbach, Lee J. and Meehl, Paul E.},
   title   = {Construct validity in psychological tests},
   journal = {Psychological Bulletin},
   volume  = {52},
   number  = {4},
   pages   = {281--302},
-  year    = {1955}
+  year    = {1955},
+  doi     = {10.1037/h0040957}
 }
 
-% ---- Interpolation of minute-resolution telemetry (added 2026-09-09) ----
+% [VERIFIED 2026-09-11] Conference page
+%   https://www.sloansportsconference.com/research-papers/automatically-recognizing-on-ball-screens
+%   (title and the three authors; year from the page's link to the 2014 conference and the linked PDF's
+%   file name 2014_SSAC_Recognizing-on-Ball-Screens.pdf; the paper has no page numbers)
+@inproceedings{mcqueen2014screens,
+  author    = {McQueen, Armand and Wiens, Jenna and Guttag, John},
+  title     = {Automatically Recognizing On-Ball Screens},
+  booktitle = {MIT Sloan Sports Analytics Conference (SSAC)},
+  year      = {2014},
+  url       = {https://www.sloansportsconference.com/research-papers/automatically-recognizing-on-ball-screens}
+}
 
-@article{che2018grud,                         % VERIFIED (publisher/PubMed page 2026-09-09); DOI to confirm
+
+% -----------------------------------------------------------------------------
+% 2. Esports analytics: encounters, team fights, outcome prediction, patches
+% -----------------------------------------------------------------------------
+
+% [VERIFIED 2026-09-14] Conference's own paper page, no longer online (the old URL now redirects to the
+%   home page), read through its Internet Archive capture of 2017-06-26:
+%   https://web.archive.org/web/20170626141008/http://www.sloansportsconference.com/content/esports-analytics-through-encounter-detection/
+%   (title, the three authors, abstract, "READ FULL PAPER" link to wp-content/uploads/2016/02/1458.pdf).
+%   That conference-hosted PDF, capture of 2017-10-17 (url below): 18 pages; page 1 prints the title, track
+%   "Other Sports", paper number 1458 and the authors in three columns, Schubert (left), Drachen (centre),
+%   Mahlmann (right); every page footer reads "2016 Research Papers Competition".  The author order follows
+%   the printed paper (left to right); the conference page lists Mahlmann before Drachen.  No proceedings
+%   page range was found, so none is given.  Also consistent with the Lund University record
+%   https://lup.lub.lu.se/search/publication/37670941-2b22-4b72-84fc-7022700057df and the local copy
+%   D:/LOL_Project/references/Schubert2016_EncounterDetection_SSAC.pdf (Lund cover page plus the same paper).
+@inproceedings{schubert2016encounter,
+  author    = {Schubert, Matthias and Drachen, Anders and Mahlmann, Tobias},
+  title     = {Esports Analytics Through Encounter Detection},
+  booktitle = {MIT Sloan Sports Analytics Conference (SSAC), Research Papers Competition},
+  year      = {2016},
+  url       = {https://web.archive.org/web/20171017210220/http://www.sloansportsconference.com/wp-content/uploads/2016/02/1458.pdf}
+}
+
+% [VERIFIED 2026-09-14] Crossref record for DOI 10.1109/CoG51982.2022.9893647 (pages 96-103);
+%   author names as printed on D:/LOL_Project/references/Ke2022_TeamFightModels_CoG.pdf.  Re-read 2026-09-14:
+%   the Crossref record lists the same ten authors in the same order.
+@inproceedings{ke2022,
+  author    = {Ke, Cheng Hao and Deng, Haozhang and Xu, Congda and Li, Jiong and Gu, Xingyun
+               and Yadamsuren, Borchuluun and Klabjan, Diego and Sifa, Rafet and Drachen, Anders
+               and Demediuk, Simon},
+  title     = {{DOTA} 2 match prediction through deep learning team fight models},
+  booktitle = {Proceedings of the IEEE Conference on Games (CoG)},
+  pages     = {96--103},
+  year      = {2022},
+  doi       = {10.1109/CoG51982.2022.9893647}
+}
+
+% [VERIFIED 2026-09-14] Crossref record for DOI 10.1109/CoG52621.2021.9619038 (pages 1-8);
+%   author names as printed on https://ieee-cog.org/2021/assets/papers/paper_101.pdf
+%   (same as D:/LOL_Project/references/Tot2021_TeamFightPrediction_CoG.pdf).  Re-read 2026-09-14: the
+%   Crossref record lists the same 14 authors in the same order, with the same spellings Oluseji and Kirmann.
+@inproceedings{tot2021camera,
+  author    = {Tot, Marko and Conserva, Michelangelo and Pedrassoli Chitayat, Alan
+               and Kokkinakis, Athanasios and Patra, Sagarika and Demediuk, Simon
+               and Caceres Munoz, Alvaro and Olarewaju, Oluseji and Ursu, Marian and Kirmann, Ben
+               and Hook, Jonathan and Block, Florian and Drachen, Anders and Perez-Liebana, Diego},
+  title     = {What Are You Looking At? {T}eam Fight Prediction Through Player Camera},
+  booktitle = {Proceedings of the IEEE Conference on Games (CoG)},
+  pages     = {1--8},
+  year      = {2021},
+  doi       = {10.1109/CoG52621.2021.9619038}
+}
+
+% [VERIFIED 2026-09-14] Publisher's own repository (source code; no DOI or proceedings record exists).
+%   File list and history from the GitHub REST API,
+%   https://api.github.com/repos/odota/core/commits?path=processors/processTeamfights.js (24 commits,
+%   2016-03-10 to 2023-12-02), and the file itself at commit e2e44328032e5ce81879f2a6ec3ee73e9120e736
+%   (committed 2018-10-21; url below).  At that commit: line 10 teamfightCooldown = 15; line 17 a fight
+%   opened by the first hero death e gets start = e.time - teamfightCooldown; line 45 it closes at the first
+%   interval event 15 or more after the last hero death; line 57 keeps fights with deaths >= 3; there is no
+%   spatial condition.  processors/createParsedDataBlob.js at the same commit (line 102) stores the result as
+%   parsedData.teamfights.  The next change to the file (b6e810a, 2022-09-20) only reformats it, so this
+%   version stood in the repository from 2018-10-21 to 2022-09-20, a span that contains the CoG 2021
+%   conference of Tot et al. (2021-08-17 to 2021-08-20, Crossref event field).  Tot et al. do not name a
+%   version, and the repository cannot show what OpenDota's servers ran.  The three rules are unchanged
+%   at 5ed1f21 (2016-03-10), b6e810a, a1d40ea (2023-12-01) and 3b6a7cd (2023-12-02, renamed to
+%   processTeamfights.mjs).  Commit 570cfc0 (2024-01-07) removed the file
+%   from odota/core; the same logic is in odota/parser processors/processTeamfights.mjs on master (read
+%   2026-09-14).  The file does not state the unit of e.time.  OpenDota's parser at 44ec63a (2020-06-10,
+%   src/main/java/opendota/Parse.java lines 353 and 469) sets time with Math.round of the combat-log
+%   timestamp and of the game-rules field m_fGameTime; that the unit is seconds is inferred from those
+%   field names and is not stated in either file.
+@misc{opendota2018processteamfights,
+  author       = {{OpenDota}},
+  title        = {{processTeamfights.js}: team-fight processor of the {OpenDota} core},
+  howpublished = {GitHub repository odota/core, commit e2e4432},
+  year         = {2018},
+  url          = {https://github.com/odota/core/blob/e2e44328032e5ce81879f2a6ec3ee73e9120e736/processors/processTeamfights.js},
+  note         = {Source file, lines 10--57. Accessed: Sep. 14, 2026}
+}
+
+% [VERIFIED 2026-09-11] Crossref record https://api.crossref.org/works/10.1109/CoG52621.2021.9619019
+%   (pages 01-05).  The third author follows the record's name split (given "Francisco Carlos", family
+%   "Monteiro Souza"); paper/refer.tex had printed "F. C. M. Souza".
+@inproceedings{costa2021,
+  author    = {Costa, Lincoln Magalhaes and Mantovani, Rafael Gomes and Monteiro Souza, Francisco Carlos
+               and Xexeo, Geraldo},
+  title     = {Feature Analysis to {League of Legends} Victory Prediction on the Picks and Bans Phase},
+  booktitle = {Proceedings of the IEEE Conference on Games (CoG)},
+  pages     = {1--5},
+  year      = {2021},
+  doi       = {10.1109/CoG52621.2021.9619019}
+}
+
+% [VERIFIED 2026-09-11] Crossref record for DOI 10.1109/TG.2022.3153086
+@article{hitar2023,
+  author  = {Hitar-Garc{\'\i}a, Juan Agust{\'\i}n and Mor{\'a}n-Fern{\'a}ndez, Laura
+             and Bol{\'o}n-Canedo, Ver{\'o}nica},
+  title   = {Machine Learning Methods for Predicting {League of Legends} Game Outcome},
+  journal = {IEEE Transactions on Games},
+  volume  = {15},
+  number  = {2},
+  pages   = {171--181},
+  year    = {2023},
+  doi     = {10.1109/TG.2022.3153086}
+}
+
+% [VERIFIED 2026-09-11] Crossref record https://api.crossref.org/works/10.1109/TG.2019.2948469
+%   (issue dated December 2021).  Same work as key hodge2021 in paper/refer.tex: cite THIS key.
+@article{hodge2021win,
+  author  = {Hodge, Victoria J. and Devlin, Sam and Sephton, Nick and Block, Florian
+             and Cowling, Peter I. and Drachen, Anders},
+  title   = {Win Prediction in Multiplayer Esports: Live Professional Match Prediction},
+  journal = {IEEE Transactions on Games},
+  volume  = {13},
+  number  = {4},
+  pages   = {368--379},
+  month   = dec,
+  year    = {2021},
+  doi     = {10.1109/TG.2019.2948469}
+}
+
+% [VERIFIED 2026-09-11] Crossref record for DOI 10.1109/CoG51982.2022.9893671
+@inproceedings{bisberg2022,
+  author    = {Bisberg, Alexander J. and Ferrara, Emilio},
+  title     = {{GCN-WP} -- Semi-Supervised Graph Convolutional Networks for Win Prediction in Esports},
+  booktitle = {Proceedings of the IEEE Conference on Games (CoG)},
+  pages     = {449--456},
+  year      = {2022},
+  doi       = {10.1109/CoG51982.2022.9893671}
+}
+
+% [VERIFIED 2026-09-11] Crossref record https://api.crossref.org/works/10.1109/CIG.2019.8847997
+@inproceedings{katona2019time,
+  author    = {Katona, Adam and Spick, Ryan and Hodge, Victoria J. and Demediuk, Simon and Block, Florian
+               and Drachen, Anders and Walker, James Alfred},
+  title     = {Time to Die: Death Prediction in {D}ota 2 using Deep Learning},
+  booktitle = {Proceedings of the IEEE Conference on Games (CoG)},
+  pages     = {1--8},
+  year      = {2019},
+  doi       = {10.1109/CIG.2019.8847997}
+}
+
+% [VERIFIED 2026-09-14] Publisher PDF https://www.sbgames.org/sbgames2018/files/papers/ComputacaoShort/188226.pdf
+%   (read 2026-09-11 and again 2026-09-14, HTTP 200, 4 pages; the server is intermittent and answered
+%   HTTP 429 to another checker earlier on 2026-09-14).  Title and
+%   authors from page 1; every page footer prints "SBC - Proceedings of SBGames 2018 - ISSN: 2179-2259,
+%   Computing Track - Short Papers, XVII SBGames - Foz do Iguacu - PR - Brazil, October 29th - November
+%   1st, 2018" and the page numbers 639 to 642 (4 pages).
+@inproceedings{silva2018continuous,
+  author    = {Silva, Antonio Luis Cardoso and Pappa, Gisele Lobo and Chaimowicz, Luiz},
+  title     = {Continuous Outcome Prediction of {L}eague of {L}egends Competitive Matches Using Recurrent Neural Networks},
+  booktitle = {SBC -- Proceedings of SBGames 2018 (XVII SBGames), Computing Track -- Short Papers},
+  address   = {Foz do Igua{\c{c}}u, Brazil},
+  pages     = {639--642},
+  month     = oct,
+  year      = {2018},
+  url       = {https://www.sbgames.org/sbgames2018/files/papers/ComputacaoShort/188226.pdf}
+}
+
+% [VERIFIED 2026-09-11] AAAI page https://ojs.aaai.org/index.php/AIIDE/article/view/27507 and Crossref
+%   record for the DOI.  The published title spells "Analitics" (so does the arXiv copy in
+%   D:/LOL_Project/references); it is reproduced as published.
+@inproceedings{chitayat2023beyond,
+  author    = {Pedrassoli Chitayat, Alan and Block, Florian and Walker, James and Drachen, Anders},
+  title     = {Beyond the Meta: Leveraging Game Design Parameters for Patch-Agnostic Esport Analitics},
+  booktitle = {Proceedings of the AAAI Conference on Artificial Intelligence and Interactive Digital
+               Entertainment (AIIDE)},
+  volume    = {19},
+  number    = {1},
+  pages     = {116--125},
+  year      = {2023},
+  doi       = {10.1609/aiide.v19i1.27507}
+}
+
+
+% -----------------------------------------------------------------------------
+% 3. Esports audience experience and narrative tools (CoG reviewer R1's list)
+% -----------------------------------------------------------------------------
+
+% [VERIFIED 2026-09-14] Crossref record (ACM deposit) https://api.crossref.org/works/10.1145/3210825.3210833
+%   (title field "Narrative Bytes", subtitle field "Data-Driven Content Production in Esports", pages 29-41,
+%   event TVX '18, Seoul).  dl.acm.org returned HTTP 403 to the fetcher.
+%   Re-read 2026-09-14 with the DBLP record https://dblp.org/rec/conf/tvx/BlockHHSDUDC18 (same title, pages
+%   29-41, same eight authors in the same order); the middle initial "Victoria J. Hodge" is DBLP's form
+%   (Crossref prints "Victoria Hodge") and matches key hodge2021win.
+@inproceedings{block2018narrative,
+  author    = {Block, Florian and Hodge, Victoria J. and Hobson, Stephen and Sephton, Nick and Devlin, Sam
+               and Ursu, Marian F. and Drachen, Anders and Cowling, Peter I.},
+  title     = {Narrative Bytes: Data-Driven Content Production in Esports},
+  booktitle = {Proceedings of the 2018 ACM International Conference on Interactive Experiences for TV
+               and Online Video (TVX)},
+  pages     = {29--41},
+  year      = {2018},
+  doi       = {10.1145/3210825.3210833}
+}
+
+% [VERIFIED 2026-09-14] Crossref record https://api.crossref.org/works/10.1145/3391614.3393659 (pages
+%   94-105; event IMX '20, location "Cornella, Barcelona Spain") and DBLP record
+%   https://dblp.org/rec/conf/tvx/KokkinakisDNOPR20 (pages 94-105; 17 authors in the order below, including
+%   Oluseyi Olarewaju, Alistair Coates, Ben Kirman).  The Crossref record duplicates "Pedrassoli" in one
+%   author name; DBLP does not.  Author forms also agree with the accepted manuscript
+%   https://eprints.whiterose.ac.uk/id/eprint/160015/, which is not used as a source.
+@inproceedings{kokkinakis2020dax,
+  author    = {Kokkinakis, Athanasios V. and Demediuk, Simon and N{\"o}lle, Isabelle and Olarewaju, Oluseyi
+               and Patra, Sagarika and Robertson, Justus and York, Peter and Pedrassoli Chitayat, Alan
+               and Coates, Alistair and Slawson, Daniel and Hughes, Peter and Hardie, Nicolas
+               and Kirman, Ben and Hook, Jonathan and Drachen, Anders and Ursu, Marian F.
+               and Block, Florian},
+  title     = {{DAX}: Data-Driven Audience Experiences in Esports},
+  booktitle = {Proceedings of the 2020 ACM International Conference on Interactive Media Experiences (IMX)},
+  address   = {Barcelona, Spain},
+  pages     = {94--105},
+  year      = {2020},
+  doi       = {10.1145/3391614.3393659}
+}
+
+% [VERIFIED 2026-09-14] ACM Digital Library page https://dl.acm.org/doi/10.1145/3639701.3656318 (read once
+%   on 2026-09-14 before the site began serving a Cloudflare check), Crossref record
+%   https://api.crossref.org/works/10.1145/3639701.3656318 (pages 94-107; event IMX '24, location
+%   "Stockholm Sweden") and DBLP record https://dblp.org/rec/conf/tvx/ChitayatCBDWDMY24 (pages 94-107).
+%   All three list the eight authors in this order as Alistair Coates, James Alfred Walker and
+%   Mark Mcconachie; the entry follows them.  The authors' accepted manuscript
+%   https://eprints.whiterose.ac.uk/id/eprint/211999/ prints "Alastair Coates", "James Walker" and
+%   "Mark McConachie"; it is not an allowed source, and the difference is recorded in the audit table.
+@inproceedings{pedrassoli2024passive,
+  author    = {Pedrassoli Chitayat, Alan and Coates, Alistair and Block, Florian and Drachen, Anders
+               and Walker, James Alfred and Dean, James and Mcconachie, Mark and York, Peter},
+  title     = {From Passive Viewer to Active Fan: Towards the Design and Large-Scale Evaluation of
+               Interactive Audience Experiences in Esports and Beyond},
+  booktitle = {Proceedings of the 2024 ACM International Conference on Interactive Media Experiences (IMX)},
+  address   = {Stockholm, Sweden},
+  pages     = {94--107},
+  year      = {2024},
+  doi       = {10.1145/3639701.3656318}
+}
+
+% [VERIFIED 2026-09-14] Crossref record for DOI 10.1145/3242671.3242680.  Re-read 2026-09-14 on the ACM
+%   Digital Library page https://dl.acm.org/doi/10.1145/3242671.3242680 (six authors in this order, "Pages
+%   59 - 71") and the DBLP record https://dblp.org/rec/conf/chiplay/CharleerGGCLV18 (same).
+@inproceedings{charleer2018dashboards,
+  author    = {Charleer, Sven and Gerling, Kathrin and Guti{\'e}rrez, Francisco and Cauwenbergh, Hans
+               and Luycx, Bram and Verbert, Katrien},
+  title     = {Real-Time Dashboards to Support {eSports} Spectating},
+  booktitle = {Proceedings of the 2018 Annual Symposium on Computer-Human Interaction in Play (CHI PLAY)},
+  pages     = {59--71},
+  year      = {2018},
+  doi       = {10.1145/3242671.3242680}
+}
+
+% [VERIFIED 2026-09-14] Crossref record https://api.crossref.org/works/10.1145/3677079 (vol. 8, issue
+%   CHI PLAY, pages 1-22, published 2024-10-14, authors Alan Pedrassoli Chitayat, Florian Block, James A.
+%   Walker, Anders Drachen) and DBLP record https://dblp.org/rec/journals/pacmhci/ChitayatBWD24 (vol. 8,
+%   pages 1-22, same four authors in the same order).  This is the Dota 2 win-condition paper of
+%   paper/refer.tex lines 45-50.  Two details of that bibitem are NOT in the entry: the article number
+%   (Art. 314) appears only on the authors' accepted manuscript https://eprints.whiterose.ac.uk/id/eprint/217337/,
+%   not in Crossref or DBLP, and the ACM Digital Library page served a Cloudflare check on 2026-09-14;
+%   the middle initial "F. O. Block" appears in no source read.
+@article{pedrassoli2024wincondition,
+  author  = {Pedrassoli Chitayat, Alan and Block, Florian and Walker, James A. and Drachen, Anders},
+  title   = {How Could They Win? {A}n Exploration of Win Condition for Esports Narratives in {Dota} 2},
+  journal = {Proceedings of the ACM on Human-Computer Interaction},
+  volume  = {8},
+  number  = {CHI PLAY},
+  pages   = {1--22},
+  month   = oct,
+  year    = {2024},
+  doi     = {10.1145/3677079}
+}
+
+
+% -----------------------------------------------------------------------------
+% 4. Data source
+% -----------------------------------------------------------------------------
+
+% [VERIFIED 2026-09-11] https://developer.riotgames.com/api-details/match-v5 lists
+%   GET /lol/match/v5/matches/{matchId}/timeline, "Get a match timeline by match id".
+%   Undated web documentation: the "2024" in the key is inherited from paper/refer.tex, not a version date.
+@misc{riotapi2024timeline,
+  author       = {{Riot Games}},
+  title        = {{MATCH-V5} {API}: Get a match timeline by match id},
+  howpublished = {Riot Developer Portal},
+  url          = {https://developer.riotgames.com/apis#match-v5/GET_getTimeline},
+  note         = {Endpoint GET /lol/match/v5/matches/\{matchId\}/timeline. Accessed: Sep. 11, 2026}
+}
+
+% [VERIFIED 2026-09-11] https://developer.riotgames.com/api-details/match-v5 lists
+%   GET /lol/match/v5/matches/{matchId}, "Get a match by match id".  Undated, as above.
+@misc{riotapi2024matchv5,
+  author       = {{Riot Games}},
+  title        = {{MATCH-V5} {API}: Get a match by match id},
+  howpublished = {Riot Developer Portal},
+  url          = {https://developer.riotgames.com/apis#match-v5},
+  note         = {Endpoint GET /lol/match/v5/matches/\{matchId\}. Accessed: Sep. 11, 2026}
+}
+
+
+% -----------------------------------------------------------------------------
+% 5. Minute-resolution telemetry and interpolation
+% -----------------------------------------------------------------------------
+
+% [VERIFIED 2026-09-11] Crossref record https://api.crossref.org/works/10.1038/s41598-018-24271-9
+@article{che2018grud,
   author  = {Che, Zhengping and Purushotham, Sanjay and Cho, Kyunghyun and Sontag, David and Liu, Yan},
   title   = {Recurrent Neural Networks for Multivariate Time Series with Missing Values},
   journal = {Scientific Reports},
   volume  = {8},
-  pages   = {6085},
+  number  = {1},
   year    = {2018},
+  note    = {Art. no. 6085},
   doi     = {10.1038/s41598-018-24271-9}
 }
 
-@article{horne2007brownian,                   % VERIFIED (publisher page 2026-09-09)
+% [VERIFIED 2026-09-11] Crossref record https://api.crossref.org/works/10.1890/06-0957.1
+@article{horne2007brownian,
   author  = {Horne, Jon S. and Garton, Edward O. and Krone, Stephen M. and Lewis, Jesse S.},
   title   = {Analyzing Animal Movements Using {B}rownian Bridges},
   journal = {Ecology},
@@ -204,65 +565,53 @@
   doi     = {10.1890/06-0957.1}
 }
 
-@inproceedings{silva2018continuous,           % VERIFIED (SBGames PDF located 2026-09-09)
-  author    = {Silva, Antonio Luis Cardoso and Pappa, Gisele Lobo and Chaimowicz, Luiz},
-  title     = {Continuous Outcome Prediction of {L}eague of {L}egends Competitive Matches Using Recurrent Neural Networks},
-  booktitle = {Proceedings of SBGames 2018},
-  year      = {2018},
-  note      = {sbgames.org/sbgames2018/files/papers/ComputacaoShort/188226.pdf}
-}
-
-@article{hodge2021win,                        % VERIFIED (volume/pages from publisher listing 2026-09-09); DOI to confirm
-  author  = {Hodge, Victoria J. and Devlin, Sam and Sephton, Nick and Block, Florian and Cowling, Peter I. and Drachen, Anders},
-  title   = {Win Prediction in Multiplayer Esports: Live Professional Match Prediction},
-  journal = {IEEE Transactions on Games},
-  volume  = {13},
-  number  = {4},
-  pages   = {368--379},
-  year    = {2021},
-  doi     = {10.1109/TG.2019.2948469}
-}
-
-@inproceedings{katona2019time,                % VERIFIED (ACM DL entry 2026-09-09)
-  author    = {Katona, Adam and Spick, Ryan and Hodge, Victoria J. and Demediuk, Simon and Block, Florian and Drachen, Anders and Walker, James Alfred},
-  title     = {Time to Die: Death Prediction in {D}ota 2 using Deep Learning},
-  booktitle = {Proceedings of the IEEE Conference on Games (CoG)},
-  year      = {2019},
-  doi       = {10.1109/CIG.2019.8847997}
-}
-
-@inproceedings{shukla2019interpolation,       % CLASSIC
+% [VERIFIED 2026-09-11] arXiv https://arxiv.org/abs/1909.07782 (comment: International Conference on
+%   Learning Representations) and the ICLR 2019 paper list https://iclr.cc/Downloads/2019
+%   (entry /virtual/2019/poster/1058).  OpenReview blocked the fetcher.
+@inproceedings{shukla2019interpolation,
   author    = {Shukla, Satya Narayan and Marlin, Benjamin M.},
   title     = {Interpolation-Prediction Networks for Irregularly Sampled Time Series},
   booktitle = {International Conference on Learning Representations (ICLR)},
-  year      = {2019}
+  year      = {2019},
+  url       = {https://arxiv.org/abs/1909.07782}
 }
 
-% --- Learners used in the model comparison (added 2026-09-11) -----------------
-% All four checked against the publisher / arXiv page on 2026-09-11.
 
-@inproceedings{ke2017lightgbm,               % VERIFIED (NeurIPS proceedings page)
+% -----------------------------------------------------------------------------
+% 6. Learners and the tree-vs-deep-learning question on tabular data
+% -----------------------------------------------------------------------------
+
+% [VERIFIED 2026-09-11] NeurIPS proceedings BibTeX
+%   https://proceedings.neurips.cc/paper_files/paper/2017/file/6449f44a102fde848669bdd9eb6b76fa-Bibtex.bib
+%   The current proceedings record gives no page range; the former "3146--3154" could not be
+%   re-confirmed and was removed.
+@inproceedings{ke2017lightgbm,
   author    = {Ke, Guolin and Meng, Qi and Finley, Thomas and Wang, Taifeng and Chen, Wei
                and Ma, Weidong and Ye, Qiwei and Liu, Tie-Yan},
   title     = {{LightGBM}: A Highly Efficient Gradient Boosting Decision Tree},
-  booktitle = {Advances in Neural Information Processing Systems 30 (NIPS 2017)},
-  pages     = {3146--3154},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  volume    = {30},
   year      = {2017},
-  url       = {https://proceedings.neurips.cc/paper/2017/file/6449f44a102fde848669bdd9eb6b76fa-Paper.pdf}
+  url       = {https://proceedings.neurips.cc/paper_files/paper/2017/file/6449f44a102fde848669bdd9eb6b76fa-Paper.pdf}
 }
 
-@inproceedings{gorishniy2021revisiting,      % VERIFIED (NeurIPS 2021 page + arXiv); pages to confirm
+% [VERIFIED 2026-09-14] NeurIPS proceedings BibTeX
+%   https://proceedings.neurips.cc/paper_files/paper/2021/file/9d86d83f925f2149e9edb0ac3b49229c-Bibtex.bib
+%   (pages 18932-18943) and arXiv 2106.11959.  Source of the FT-Transformer architecture and of the
+%   MLP and ResNet tabular baselines.  Re-read 2026-09-14: the proceedings BibTeX still gives volume 34,
+%   pages 18932--18943, Curran Associates.
+@inproceedings{gorishniy2021revisiting,
   author    = {Gorishniy, Yury and Rubachev, Ivan and Khrulkov, Valentin and Babenko, Artem},
   title     = {Revisiting Deep Learning Models for Tabular Data},
-  booktitle = {Advances in Neural Information Processing Systems 34 (NeurIPS 2021)},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  volume    = {34},
+  pages     = {18932--18943},
   year      = {2021},
-  eprint    = {2106.11959},
-  archivePrefix = {arXiv},
-  url       = {https://proceedings.neurips.cc/paper/2021/hash/9d86d83f925f2149e9edb0ac3b49229c-Abstract.html},
-  note      = {Source of the FT-Transformer architecture used here}
+  url       = {https://proceedings.neurips.cc/paper/2021/hash/9d86d83f925f2149e9edb0ac3b49229c-Abstract.html}
 }
 
-@inproceedings{arik2021tabnet,               % VERIFIED (AAAI publisher page, DOI resolved)
+% [VERIFIED 2026-09-11] Crossref record https://api.crossref.org/works/10.1609/aaai.v35i8.16826
+@inproceedings{arik2021tabnet,
   author    = {Arik, Sercan {\"O}. and Pfister, Tomas},
   title     = {{TabNet}: Attentive Interpretable Tabular Learning},
   booktitle = {Proceedings of the AAAI Conference on Artificial Intelligence},
@@ -273,13 +622,328 @@
   doi       = {10.1609/aaai.v35i8.16826}
 }
 
-@article{somepalli2021saint,                 % VERIFIED (arXiv abstract page); PREPRINT, not peer reviewed
-  author  = {Somepalli, Gowthami and Goldblum, Micah and Schwarzschild, Avi
-             and Bruss, C. Bayan and Goldstein, Tom},
-  title   = {{SAINT}: Improved Neural Networks for Tabular Data via Row Attention
-             and Contrastive Pre-Training},
-  journal = {arXiv preprint arXiv:2106.01342},
+% [VERIFIED 2026-09-14] arXiv https://arxiv.org/abs/2106.01342 (re-read 2026-09-14: single version v1,
+%   2021-06-02, no journal reference, no comment; arXiv-issued DOI 10.48550/arXiv.2106.01342).  The only
+%   DBLP record is the CoRR preprint https://dblp.org/rec/journals/corr/abs-2106-01342, and a Crossref
+%   bibliographic search for the title returned no published version.  No peer-reviewed version found.  A version was presented as a poster at the
+%   NeurIPS 2022 Table Representation Learning workshop (https://neurips.cc/virtual/2022/58531, which lists
+%   the authors in a different order); the organisers' call for papers calls the workshop non-archival
+%   (https://groups.google.com/g/ml-news/c/wJZF9NgfErg) and the 2022 workshop site returned 404 on
+%   2026-09-11.  Cite as a preprint, with the arXiv author order.
+@misc{somepalli2021saint,
+  author       = {Somepalli, Gowthami and Goldblum, Micah and Schwarzschild, Avi
+                  and Bruss, C. Bayan and Goldstein, Tom},
+  title        = {{SAINT}: Improved Neural Networks for Tabular Data via Row Attention
+                  and Contrastive Pre-Training},
+  howpublished = {arXiv preprint arXiv:2106.01342},
+  year         = {2021},
+  doi          = {10.48550/arXiv.2106.01342},
+  url          = {https://arxiv.org/abs/2106.01342}
+}
+
+% [VERIFIED 2026-09-14] NeurIPS proceedings BibTeX
+%   https://proceedings.neurips.cc/paper_files/paper/2022/file/0378c7692da36807bdec87ab043cdadc-Bibtex-Datasets_and_Benchmarks.bib
+@inproceedings{grinsztajn2022tree,
+  author    = {Grinsztajn, Leo and Oyallon, Edouard and Varoquaux, Gael},
+  title     = {Why do tree-based models still outperform deep learning on typical tabular data?},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS), Datasets and Benchmarks Track},
+  volume    = {35},
+  pages     = {507--520},
+  year      = {2022},
+  doi       = {10.52202/068431-0037},
+  url       = {https://proceedings.neurips.cc/paper_files/paper/2022/hash/0378c7692da36807bdec87ab043cdadc-Abstract-Datasets_and_Benchmarks.html}
+}
+
+% [VERIFIED 2026-09-11] Crossref record https://api.crossref.org/works/10.1016/j.inffus.2021.11.011
+@article{shwartzziv2022tabular,
+  author  = {Shwartz-Ziv, Ravid and Armon, Amitai},
+  title   = {Tabular data: Deep learning is not all you need},
+  journal = {Information Fusion},
+  volume  = {81},
+  pages   = {84--90},
+  year    = {2022},
+  doi     = {10.1016/j.inffus.2021.11.011}
+}
+
+% [VERIFIED 2026-09-11] Crossref record https://api.crossref.org/works/10.1038/s42256-019-0138-9
+%   (TreeSHAP reference)
+@article{lundberg2020local,
+  author  = {Lundberg, Scott M. and Erion, Gabriel and Chen, Hugh and DeGrave, Alex and Prutkin, Jordan M.
+             and Nair, Bala and Katz, Ronit and Himmelfarb, Jonathan and Bansal, Nisha and Lee, Su-In},
+  title   = {From local explanations to global understanding with explainable {AI} for trees},
+  journal = {Nature Machine Intelligence},
+  volume  = {2},
+  number  = {1},
+  pages   = {56--67},
+  year    = {2020},
+  doi     = {10.1038/s42256-019-0138-9}
+}
+
+
+% -----------------------------------------------------------------------------
+% 7. Calibration, resampling, stacking, partition agreement
+% -----------------------------------------------------------------------------
+
+% [VERIFIED 2026-09-11] Crossref chapter record DOI 10.7551/mitpress/1113.003.0008 (title, pages 61-74,
+%   2000), found by https://api.crossref.org/works?query.container-title=Advances+in+Large+Margin+Classifiers&query.author=Platt
+%   and book record https://api.crossref.org/works/10.7551/mitpress/1113.001.0001 (editors, MIT Press).
+%   The publisher's chapter title is "Probabilities for SV Machines"; this is the work usually cited as
+%   Platt, "Probabilistic outputs for support vector machines and comparisons to regularized likelihood
+%   methods" (the plan's "Platt 1999").  Key uses the publication year.
+@incollection{platt2000probabilities,
+  author    = {Platt, John C.},
+  title     = {Probabilities for {SV} Machines},
+  booktitle = {Advances in Large-Margin Classifiers},
+  editor    = {Smola, Alexander J. and Bartlett, Peter and Sch{\"o}lkopf, Bernhard and Schuurmans, Dale},
+  publisher = {MIT Press},
+  pages     = {61--74},
+  year      = {2000},
+  doi       = {10.7551/mitpress/1113.003.0008}
+}
+
+% [VERIFIED 2026-09-11] Crossref record https://api.crossref.org/works/10.1145/775047.775151
+@inproceedings{zadrozny2002transforming,
+  author    = {Zadrozny, Bianca and Elkan, Charles},
+  title     = {Transforming classifier scores into accurate multiclass probability estimates},
+  booktitle = {Proceedings of the 8th ACM SIGKDD International Conference on Knowledge Discovery
+               and Data Mining (KDD)},
+  pages     = {694--699},
+  year      = {2002},
+  doi       = {10.1145/775047.775151}
+}
+
+% [VERIFIED 2026-09-11] PMLR page https://proceedings.mlr.press/v70/guo17a.html
+@inproceedings{guo2017calibration,
+  author    = {Guo, Chuan and Pleiss, Geoff and Sun, Yu and Weinberger, Kilian Q.},
+  title     = {On Calibration of Modern Neural Networks},
+  booktitle = {Proceedings of the 34th International Conference on Machine Learning (ICML)},
+  series    = {Proceedings of Machine Learning Research},
+  volume    = {70},
+  pages     = {1321--1330},
+  year      = {2017},
+  url       = {https://proceedings.mlr.press/v70/guo17a.html}
+}
+
+% [VERIFIED 2026-09-11] AAAI page https://ojs.aaai.org/index.php/AAAI/article/view/9602 and Crossref record
+%   https://api.crossref.org/works/10.1609/aaai.v29i1.9602 (vol. 29, issue 1, DOI; neither shows pages).
+%   Author forms ("Gregory F. Cooper") and the page numbers 2901 (first page) and 2907 (last page) as printed
+%   on the publisher PDF https://ojs.aaai.org/index.php/AAAI/article/download/9602/9461, whose footer reads
+%   "Proceedings of the Twenty-Ninth AAAI Conference on Artificial Intelligence".
+@inproceedings{naeini2015obtaining,
+  author    = {Naeini, Mahdi Pakdaman and Cooper, Gregory F. and Hauskrecht, Milos},
+  title     = {Obtaining Well Calibrated Probabilities Using {B}ayesian Binning},
+  booktitle = {Proceedings of the AAAI Conference on Artificial Intelligence},
+  volume    = {29},
+  number    = {1},
+  pages     = {2901--2907},
+  year      = {2015},
+  doi       = {10.1609/aaai.v29i1.9602}
+}
+
+% [VERIFIED 2026-09-11] Crossref record https://api.crossref.org/works/10.1007/978-1-4899-4541-9
+%   (1993 print, ISBN 978-0-412-04231-7); imprint "New York: Chapman & Hall" from the title of the
+%   Psychometrika book-review record on Cambridge Core,
+%   https://www.cambridge.org/core/journals/psychometrika/article/abs/b-efron-and-r-j-tibshirani-1993-an-introduction-to-the-bootstrap-new-york-chapman-hall-xvi-436-pp-isbn-04120423t2-5000/D7CC806A82BF7AA651C2BBF745D58017
+@book{efron1993bootstrap,
+  author    = {Efron, Bradley and Tibshirani, Robert J.},
+  title     = {An Introduction to the Bootstrap},
+  publisher = {Chapman \& Hall},
+  address   = {New York, NY, USA},
+  year      = {1993},
+  doi       = {10.1007/978-1-4899-4541-9}
+}
+
+% [VERIFIED 2026-09-11] Crossref record https://api.crossref.org/works/10.1016/S0893-6080(05)80023-1
+@article{wolpert1992stacked,
+  author  = {Wolpert, David H.},
+  title   = {Stacked generalization},
+  journal = {Neural Networks},
+  volume  = {5},
+  number  = {2},
+  pages   = {241--259},
+  year    = {1992},
+  doi     = {10.1016/S0893-6080(05)80023-1}
+}
+
+% [VERIFIED 2026-09-11] Crossref record https://api.crossref.org/works/10.1007/BF01908075
+@article{hubert1985comparing,
+  author  = {Hubert, Lawrence and Arabie, Phipps},
+  title   = {Comparing partitions},
+  journal = {Journal of Classification},
+  volume  = {2},
+  number  = {1},
+  pages   = {193--218},
+  year    = {1985},
+  doi     = {10.1007/BF01908075}
+}
+
+
+% -----------------------------------------------------------------------------
+% 8. Neural components and training procedures used by the deep learners
+% -----------------------------------------------------------------------------
+
+% [VERIFIED 2026-09-11] ACL Anthology https://aclanthology.org/D14-1179/ and Crossref record for the DOI
+@inproceedings{cho2014learning,
+  author    = {Cho, Kyunghyun and van Merri{\"e}nboer, Bart and Gulcehre, Caglar and Bahdanau, Dzmitry
+               and Bougares, Fethi and Schwenk, Holger and Bengio, Yoshua},
+  title     = {Learning Phrase Representations using {RNN} Encoder--Decoder for Statistical Machine Translation},
+  booktitle = {Proceedings of the 2014 Conference on Empirical Methods in Natural Language Processing (EMNLP)},
+  address   = {Doha, Qatar},
+  pages     = {1724--1734},
+  month     = oct,
+  year      = {2014},
+  doi       = {10.3115/v1/D14-1179}
+}
+
+% [VERIFIED 2026-09-11] NeurIPS proceedings BibTeX
+%   https://proceedings.neurips.cc/paper_files/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Bibtex.bib
+%   The proceedings record gives no page range, so the "pp. 5998-6008" in paper/refer.tex is not used.
+@inproceedings{vaswani2017attention,
+  author    = {Vaswani, Ashish and Shazeer, Noam and Parmar, Niki and Uszkoreit, Jakob and Jones, Llion
+               and Gomez, Aidan N. and Kaiser, {\L}ukasz and Polosukhin, Illia},
+  title     = {Attention is All you Need},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  volume    = {30},
+  year      = {2017},
+  url       = {https://proceedings.neurips.cc/paper_files/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf}
+}
+
+% [VERIFIED 2026-09-11] NeurIPS proceedings BibTeX
+%   https://proceedings.neurips.cc/paper_files/paper/2017/file/5dd9db5e033da9c6fb5ba83c7a7ebea9-Bibtex.bib
+%   No page range in the record, so the "pp. 1024-1034" in paper/refer.tex is not used.
+@inproceedings{hamilton2017inductive,
+  author    = {Hamilton, Will and Ying, Zhitao and Leskovec, Jure},
+  title     = {Inductive Representation Learning on Large Graphs},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  volume    = {30},
+  year      = {2017},
+  url       = {https://proceedings.neurips.cc/paper_files/paper/2017/file/5dd9db5e033da9c6fb5ba83c7a7ebea9-Paper.pdf}
+}
+
+% [VERIFIED 2026-09-11] arXiv https://arxiv.org/abs/1711.05101 (comment: published as a conference paper
+%   at ICLR 2019) and the ICLR 2019 paper list https://iclr.cc/Downloads/2019 (entry /virtual/2019/poster/935)
+@inproceedings{loshchilov2019decoupled,
+  author    = {Loshchilov, Ilya and Hutter, Frank},
+  title     = {Decoupled Weight Decay Regularization},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2019},
+  url       = {https://arxiv.org/abs/1711.05101}
+}
+
+% [VERIFIED 2026-09-11] arXiv https://arxiv.org/abs/1608.03983 (comment: ICLR 2017 conference paper) and the
+%   ICLR 2017 archived poster list https://iclr.cc/archive/www/doku.php%3Fid=iclr2017:conference_posters.html,
+%   which shortens the title to "SGDR: Stochastic Gradient Descent with Restarts"; the arXiv title is used.
+@inproceedings{loshchilov2017sgdr,
+  author    = {Loshchilov, Ilya and Hutter, Frank},
+  title     = {{SGDR}: Stochastic Gradient Descent with Warm Restarts},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2017},
+  url       = {https://arxiv.org/abs/1608.03983}
+}
+
+% [VERIFIED 2026-09-11] Crossref record https://api.crossref.org/works/10.1109/ICCV.2019.00612
+%   (IEEE pagination 6022-6031; the CVF open-access copy is paginated differently)
+@inproceedings{yun2019cutmix,
+  author    = {Yun, Sangdoo and Han, Dongyoon and Chun, Sanghyuk and Oh, Seong Joon and Yoo, Youngjoon
+               and Choe, Junsuk},
+  title     = {{CutMix}: Regularization Strategy to Train Strong Classifiers With Localizable Features},
+  booktitle = {Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)},
+  pages     = {6022--6031},
+  year      = {2019},
+  doi       = {10.1109/ICCV.2019.00612}
+}
+
+% [VERIFIED 2026-09-11] ICLR 2018 poster page https://iclr.cc/virtual/2018/poster/177 and
+%   arXiv https://arxiv.org/abs/1710.09412
+@inproceedings{zhang2018mixup,
+  author    = {Zhang, Hongyi and Cisse, Moustapha and Dauphin, Yann N. and Lopez-Paz, David},
+  title     = {{mixup}: Beyond Empirical Risk Minimization},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2018},
+  url       = {https://iclr.cc/virtual/2018/poster/177}
+}
+
+% [VERIFIED 2026-09-11] PMLR page https://proceedings.mlr.press/v119/chen20j.html
+@inproceedings{chen2020simple,
+  author    = {Chen, Ting and Kornblith, Simon and Norouzi, Mohammad and Hinton, Geoffrey},
+  title     = {A Simple Framework for Contrastive Learning of Visual Representations},
+  booktitle = {Proceedings of the 37th International Conference on Machine Learning (ICML)},
+  series    = {Proceedings of Machine Learning Research},
+  volume    = {119},
+  pages     = {1597--1607},
+  year      = {2020},
+  url       = {https://proceedings.mlr.press/v119/chen20j.html}
+}
+
+% [VERIFIED 2026-09-11] PMLR page https://proceedings.mlr.press/v48/martins16.html
+@inproceedings{martins2016sparsemax,
+  author    = {Martins, Andre and Astudillo, Ramon},
+  title     = {From Softmax to Sparsemax: A Sparse Model of Attention and Multi-Label Classification},
+  booktitle = {Proceedings of the 33rd International Conference on Machine Learning (ICML)},
+  series    = {Proceedings of Machine Learning Research},
+  volume    = {48},
+  pages     = {1614--1623},
+  year      = {2016},
+  url       = {https://proceedings.mlr.press/v48/martins16.html}
+}
+
+
+% -----------------------------------------------------------------------------
+% 9. Win probability and state value (engagement-state-value worktree)
+% -----------------------------------------------------------------------------
+
+% [VERIFIED 2026-09-11] Crossref record https://api.crossref.org/works/10.1515/jqas-2019-0096
+%   (online 2020-09-21, issue 2021).  The "Maymin (2021)" of the worktree docs.
+@article{maymin2021smart,
+  author  = {Maymin, Philip Z.},
+  title   = {Smart kills and worthless deaths: {eSports} analytics for {League of Legends}},
+  journal = {Journal of Quantitative Analysis in Sports},
+  volume  = {17},
+  number  = {1},
+  pages   = {11--27},
   year    = {2021},
-  url     = {https://arxiv.org/abs/2106.01342},
-  note    = {arXiv preprint; cite as such, not as a peer-reviewed venue}
+  doi     = {10.1515/jqas-2019-0096}
+}
+
+% [VERIFIED 2026-09-14] Aaltodoc repository record, read through its REST API
+%   https://aaltodoc.aalto.fi/server/api/core/items/c1f92b5b-66f2-4742-b746-7d1a1b4d093e
+%   (Aalto University; school: School of Science; master's thesis; issued 2024-08-26; 38 pages;
+%   URN:NBN:fi:aalto-202411217333).  Title, author, programme (Mathematics and Operations Research) and
+%   date also on the title and abstract pages of the PDF at the url below.  The "Jalovaara (2024)" of the
+%   worktree docs: its section 5.1 (p. 27) samples one game state per 5-minute interval of each match.
+%   Not peer reviewed.  Aaltodoc is Aalto University's own publication archive, i.e. the publisher's page
+%   for a thesis the university issues; the record was re-read 2026-09-14 (same author, title, school,
+%   issue date, 38 pages, URN).
+@mastersthesis{jalovaara2024win,
+  author = {Jalovaara, Perttu},
+  title  = {Win probability estimation for strategic decision-making in esports},
+  school = {Aalto University, School of Science},
+  month  = aug,
+  year   = {2024},
+  note   = {{URN:NBN:fi:aalto-202411217333}},
+  url    = {https://sal.aalto.fi/publications/pdf-files/theses/mas/tjal24a_public.pdf}
+}
+
+% [VERIFIED 2026-09-11] Crossref record https://api.crossref.org/works/10.1109/CoG47356.2020.9231878
+%   (named in the worktree docs as the basis for separating accuracy from calibration)
+@inproceedings{kim2020confidence,
+  author    = {Kim, Dong-Hee and Lee, Changwoo and Chung, Ki-Seok},
+  title     = {A Confidence-Calibrated {MOBA} Game Winner Predictor},
+  booktitle = {Proceedings of the IEEE Conference on Games (CoG)},
+  pages     = {622--625},
+  year      = {2020},
+  doi       = {10.1109/CoG47356.2020.9231878}
+}
+
+% [VERIFIED 2026-09-11] Crossref record https://api.crossref.org/works/10.51939/scores25.12
+%   (student research symposium, 4 pages; the record also lists the university as an author, omitted).
+%   Named in the worktree docs; weaker evidence than a journal or main-track paper.
+@inproceedings{ferreira2025quantifying,
+  author    = {Ferreira, Ruben and Faganeli Pucer, Jana},
+  title     = {Quantifying Player Death Impact in {League of Legends}},
+  booktitle = {Proceedings of the 11th Student Computing Research Symposium (SCORES'25)},
+  publisher = {Zalo{\v{z}}ba UL FRI},
+  pages     = {51--54},
+  year      = {2025},
+  doi       = {10.51939/scores25.12}
 }
