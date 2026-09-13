@@ -15,6 +15,9 @@ a per-phase breakdown, since the early game is where held positions were the dec
 
 --block-tag / --tag select suffixed blocks and suffix every output (models, predictions), so the v2
 re-run (blocks built with the disjoint position-error calibration) never overwrites the v1 pilot.
+The untagged default still reads the v1 blocks, whose position curve was calibrated on predict_test (this
+run's test matches); the result is then flagged evaluation_calibrated_curve = true.  A tagged run refuses
+such blocks unless --allow-legacy-curve is given, so no new (_v2) output can come from that curve by accident.
 """
 from __future__ import annotations
 
@@ -75,6 +78,8 @@ def main():
     ap.add_argument("--tag", default="", help="suffix for models and predictions, e.g. _v2")
     ap.add_argument("--restrict-to-block-matches", action="store_true",
                     help="smoke tests only: load X just for the matches present in the blocks")
+    ap.add_argument("--allow-legacy-curve", action="store_true",
+                    help="let a tagged run read blocks built with the legacy (predict_test-calibrated) curve")
     a = ap.parse_args()
     started, wall_start = time.time(), time.strftime("%Y-%m-%dT%H:%M:%S")
     if a.tag and a.out.exists():
@@ -115,9 +120,13 @@ def main():
         rep = path.with_name(path.stem + "_report.json")
         block_reports[split] = (json.loads(rep.read_text(encoding="utf-8")).get("provenance") if rep.exists() else None)
     # one curve behind both blocks, its calibration matches disjoint from the test matches; the v1 blocks (no
-    # provenance, legacy curve) are allowed only as a flagged reproduction
-    curve_check = curve_disjointness_record({s: (p or {}).get("pos_error_curve") for s, p in block_reports.items()},
-                                            {"pilot_test_matches": gte}, allow_legacy=True)
+    # provenance, legacy curve) are allowed only as a flagged reproduction, and in a tagged run only on request
+    allow_legacy = not (a.tag or a.block_tag) or a.allow_legacy_curve
+    try:
+        curve_check = curve_disjointness_record({s: (p or {}).get("pos_error_curve") for s, p in block_reports.items()},
+                                                {"pilot_test_matches": gte}, allow_legacy=allow_legacy)
+    except ValueError as exc:
+        raise SystemExit(f"[pilot] position-error curve refused: {exc}")
     print(f"[pilot] position curve {curve_check['source']} evaluation_calibrated={curve_check['evaluation_calibrated_curve']}", flush=True)
     wtr = match_weights(gtr)
     print(f"[pilot] train {len(ytr)} / test {len(yte)} labelled rows, block {btr_ev.shape[1]} cols ({time.time()-started:.0f}s)", flush=True)
@@ -159,7 +168,7 @@ def main():
     out["evidence_columns_in_top15_of_augmented_model"] = ev_used
     out["elapsed_seconds"] = round(time.time() - started, 2)
     out["provenance"] = {"git": git_state(), "preset": "v3.3", "label_key": "y_market_event (ties dropped)",
-                         "pos_error_curve_check": curve_check,
+                         "pos_error_curve_check": curve_check, "allow_legacy_curve": bool(allow_legacy),
                          "split": {"train": "predict_train", "test": "predict_test",
                                    "source": str(a.v3_dir), "matches": {"train": int(len(set(gtr.tolist()))),
                                                                         "test": int(len(set(gte.tolist())))}},

@@ -20,11 +20,12 @@ moves the comparison to the headline corpus and split, with the disjoint calibra
            model_comparison_v33_patch.json (checked and recorded).
            Paired CIs: match-clustered percentile bootstrap (Efron & Tibshirani 1993, An Introduction to the
            Bootstrap, ch. 13; resampling whole clusters, Field & Welsh 2007, JRSS-B 69(3)).  Each draw is one
-           multiplicity vector over the test matches shared by every model, comparison and game-minute band,
-           so all differences are paired and resampled jointly.  AUC per draw is the Mann-Whitney statistic
-           with the multiplicities as integer weights, which equals roc_auc_score on the duplicated rows; the
-           resampling stream is that of run_model_comparison_v33.paired (default_rng(7).integers(M, size=M)),
-           so its first 300 draws are the reference's draws.
+           multiplicity vector over the test matches shared by every model, comparison and band (overall, the
+           game-minute bands, and the participation / presence scale classes), so all differences are paired
+           and resampled jointly; every model's own AUC gets a CI from the same draws.  AUC per draw is the
+           Mann-Whitney statistic with the multiplicities as integer weights, which equals roc_auc_score on the
+           duplicated rows; the resampling stream is that of run_model_comparison_v33.paired
+           (default_rng(7).integers(M, size=M)), so its first 300 draws are the reference's draws.
 
 Leak discipline: the calibration must record zero intersection with every evaluation set it was checked against
 (load_pos_error_curve refuses it otherwise); build re-checks its match ids against the corpus matches of the
@@ -72,6 +73,10 @@ DEVIATIONS = {
         "thread counts.",
         "Bootstrap uses --n-boot draws (default 1000) instead of the reference's 300; the first 300 coincide.",
         "Smoke runs (--shard-limit / --max-matches) compute the non-constant column mask on the loaded shards only.",
+        "Additions beyond the reference, from the same joint draws: a CI for every model's own AUC, and paired CIs "
+        "within each participation / presence scale class (the reference reports scale-class AUCs without CIs).",
+        "Game-minute bands start at minute 2 (TIME_BANDS of the v1 pilot); test rows outside every band are counted "
+        "in rows_outside_minute_bands and still enter 'overall'.",
     ],
 }
 LEAK_NOTES = [
@@ -87,7 +92,12 @@ LEAK_NOTES = [
     "no split, so the fitted trees cannot depend on it.",
     "Early stopping reads the validation patch, as the reference does; the test patch is read only to predict and to "
     "bootstrap.",
+    "The calibration matches are training-side (the 50k predict_train split); the ones that fall in the training patch "
+    "are allowed here (calibration_vs_loaded_rows.train_patch_*).  A whole-corpus match-grouped CV that used this "
+    "block would put them in test folds: such a run must drop them from its test folds or refit the curve per fold.",
 ]
+SOURCE_FILES = ["scripts/evidence_block_patch_holdout_v33.py", "gameplay/evidence_state.py",
+                "scripts/build_evidence_block_v3.py", "scripts/calibrate_position_error_v3.py"]
 
 
 def now():
@@ -193,6 +203,7 @@ def build(a):
         raise SystemExit(f"calibration matches intersect corpus hold-out patches: {bad}")
     names = block_names()
     git = git_state()
+    source_start = source_hashes(SOURCE_FILES)                     # the code that runs, not what is on disk at the end
     record = {"pos_error_curve": provenance, "calibration_vs_corpus": checks, "git": git, "preset": "v3.3",
               "corpus_run_id": corpus_manifest.get("run_id"), "corpus_git_commit": corpus_manifest.get("git_commit"),
               "tau": "engage_ts - 1 ms", "columns": "scripts/build_evidence_block_v3.py state_rows", "smoke": smoke}
@@ -250,8 +261,7 @@ def build(a):
                 "rows": int(sum(s.get("rows", 0) for s in status.values())),
                 "rows_ok": int(sum(s.get("rows_ok", 0) for s in status.values())),
                 "calibration_match_ids_sha256": ids_sha256(cal_ids), "workers": a.workers,
-                "source_sha256": source_hashes(["gameplay/evidence_state.py", "scripts/build_evidence_block_v3.py",
-                                                "scripts/evidence_block_patch_holdout_v33.py"]),
+                "source_sha256": source_start, "source_changed_during_run": source_hashes(SOURCE_FILES) != source_start,
                 "deviations": DEVIATIONS["build"],
                 "wall_clock": {"start": wall_start, "end": now()}, "elapsed_seconds": round(time.time() - started, 1)}
     name = "manifest.json" if not smoke else "smoke_manifest.json"
@@ -289,42 +299,87 @@ class RankedAUC:
         return float((pos * (np.cumsum(neg) - neg + 0.5 * neg)).sum() / (P * N))
 
 
-def joint_paired_bootstrap(y, preds, groups, minute, n_boot=1000, seed=SEED):
-    """Percentile CIs for every comparison x band from one shared match resample per draw."""
+def bootstrap_bands(minute, extra_masks=None):
+    """{band: bool mask}: 'overall', the TIME_BANDS game-minute bands, then extra_masks in their given order."""
+    minute = np.asarray(minute, dtype=float)
+    bands = {"overall": np.ones(len(minute), dtype=bool)}
+    bands.update({f"{lo}-{hi}": (minute >= lo) & (minute < hi) for lo, hi in TIME_BANDS})
+    for name, mask in (extra_masks or {}).items():
+        if name in bands:
+            raise ValueError(f"band name {name!r} is taken")
+        bands[name] = np.asarray(mask, dtype=bool)
+    return bands
+
+
+def joint_paired_bootstrap(y, preds, groups, minute, n_boot=1000, seed=SEED, extra_masks=None, model_cis=False):
+    """Percentile CIs for every comparison x band from one shared match resample per draw.
+
+    Bands: bootstrap_bands(minute, extra_masks).  A band with fewer than 50 rows or a single class is skipped.
+    Draw b is counts_b = bincount(default_rng(seed).integers(M, size=M)) over the M test matches; every row carries
+    its match's multiplicity, and each band's AUCs are computed on that band's rows with those weights, so every
+    model, comparison and band inside one draw sees the same resampled matches (paired, resampled jointly).
+    Returns (comparisons, meta), or (comparisons, meta, model_cis) with model_cis=True: a percentile CI for each
+    model's own AUC per band, from the same draws.
+    """
+    from sklearn.metrics import roc_auc_score
+    y = np.asarray(y)
+    groups = np.asarray(groups)
     uniq, inv = np.unique(groups, return_inverse=True)
     n_clusters = len(uniq)
-    ranked = {k: RankedAUC(y, p) for k, p in preds.items()}
-    bands = {"overall": None, **{f"{lo}-{hi}": ((minute >= lo) & (minute < hi)).astype(np.float64) for lo, hi in TIME_BANDS}}
     comps = {c: ab for c, ab in COMPARISONS.items() if ab[0] in preds and ab[1] in preds}
-    draws = {c: {b: [] for b in bands} for c in comps}
+    bands = {}
+    for bname, mask in bootstrap_bands(minute, extra_masks).items():
+        idx = np.flatnonzero(mask)
+        if len(idx) < 50 or len(np.unique(y[idx])) < 2:
+            continue
+        bands[bname] = (idx, inv[idx], {k: RankedAUC(y[idx], np.asarray(p)[idx]) for k, p in preds.items()})
+    model_draws = {k: {b: [] for b in bands} for k in preds}
+    comp_draws = {c: {b: [] for b in bands} for c in comps}
     rng = np.random.default_rng(seed)
     for _ in range(n_boot):
-        w = np.bincount(rng.integers(n_clusters, size=n_clusters), minlength=n_clusters)[inv].astype(np.float64)
-        for bname, mask in bands.items():
-            wb = w if mask is None else w * mask
-            aucs = {k: r.auc(wb) for k, r in ranked.items()}
+        counts = np.bincount(rng.integers(n_clusters, size=n_clusters), minlength=n_clusters).astype(np.float64)
+        for bname, (idx, inv_b, ranked) in bands.items():
+            w = counts[inv_b]
+            aucs = {k: r.auc(w) for k, r in ranked.items()}
+            for k, v in aucs.items():
+                model_draws[k][bname].append(v)
             for c, (ka, kb) in comps.items():
-                draws[c][bname].append(aucs[kb] - aucs[ka])
-    from sklearn.metrics import roc_auc_score
+                comp_draws[c][bname].append(aucs[kb] - aucs[ka])
+
+    def ci(values):
+        d = np.asarray(values, dtype=float)
+        d = d[np.isfinite(d)]
+        return d, ({"mean": float(d.mean()), "lo": float(np.percentile(d, 2.5)), "hi": float(np.percentile(d, 97.5)),
+                    "n_boot": int(len(d))} if len(d) else None)
+
+    point = {b: {k: float(roc_auc_score(y[idx], np.asarray(p)[idx])) for k, p in preds.items()}
+             for b, (idx, _, _) in bands.items()}
+    size = {b: {"n_rows": int(len(idx)), "n_matches": int(len(np.unique(inv_b)))} for b, (idx, inv_b, _) in bands.items()}
     out = {}
     for c, (ka, kb) in comps.items():
         out[c] = {}
-        for bname, mask in bands.items():
-            sel = np.ones(len(y), bool) if mask is None else mask.astype(bool)
-            d = np.asarray(draws[c][bname], dtype=float)
-            d = d[np.isfinite(d)]
-            if sel.sum() < 50 or len(set(y[sel].tolist())) < 2 or not len(d):
+        for bname in bands:
+            d, stats = ci(comp_draws[c][bname])
+            if stats is None:
                 continue
-            delta = float(roc_auc_score(y[sel], preds[kb][sel]) - roc_auc_score(y[sel], preds[ka][sel]))
-            out[c][bname] = {"delta": delta, "mean": float(d.mean()), "lo": float(np.percentile(d, 2.5)),
-                             "hi": float(np.percentile(d, 97.5)), "p_draws_le_0": float((d <= 0).mean()),
-                             "n_boot": int(len(d)), "n_rows": int(sel.sum()),
-                             "n_matches": int(len(set(groups[sel].tolist())))}
+            out[c][bname] = {"delta": point[bname][kb] - point[bname][ka], **stats,
+                             "p_draws_le_0": float((d <= 0).mean()), **size[bname]}
+    models = {}
+    for k in preds:
+        models[k] = {}
+        for bname in bands:
+            _, stats = ci(model_draws[k][bname])
+            if stats is not None:
+                models[k][bname] = {"auc": point[bname][k], **stats, **size[bname]}
     check_w = np.bincount(np.random.default_rng(seed + 1).integers(n_clusters, size=n_clusters), minlength=n_clusters)[inv].astype(np.float64)
-    check = max(max(abs(r.auc(np.ones(len(y))) - roc_auc_score(y, preds[k])),
-                    abs(r.auc(check_w) - roc_auc_score(y, preds[k], sample_weight=check_w))) for k, r in ranked.items())
-    return out, {"n_boot": n_boot, "seed": seed, "clusters": int(n_clusters), "ci": "percentile 2.5 / 97.5",
-                 "auc_implementation_max_abs_diff_vs_sklearn": float(check)}
+    check = 0.0
+    for k, p in preds.items():
+        full = RankedAUC(y, np.asarray(p))
+        check = max(check, abs(full.auc(np.ones(len(y))) - roc_auc_score(y, p)),
+                    abs(full.auc(check_w) - roc_auc_score(y, p, sample_weight=check_w)))
+    meta = {"n_boot": n_boot, "seed": seed, "clusters": int(n_clusters), "ci": "percentile 2.5 / 97.5",
+            "bands": list(bands), "auc_implementation_max_abs_diff_vs_sklearn": float(check)}
+    return (out, meta, models) if model_cis else (out, meta)
 
 
 def reference_params_verified():
@@ -354,9 +409,14 @@ def compare(a):
     if a.out.exists() and not a.overwrite:
         raise SystemExit(f"{a.out} exists; pass --overwrite or choose a new name")
     a.out.parent.mkdir(parents=True, exist_ok=True)
+    git_start, source_start = git_state(), source_hashes(SOURCE_FILES)   # the code that runs
     smoke = bool(a.max_matches or a.shard_limit)
     corpus_manifest = (verify_shard_manifest(a.shards) if not smoke
                        else json.loads((a.shards / "manifest.json").read_text(encoding="utf-8")))
+    block_manifest_path = a.block_dir / ("manifest.json" if not smoke else "smoke_manifest.json")
+    block_manifest = (json.loads(block_manifest_path.read_text(encoding="utf-8")) if block_manifest_path.exists() else None)
+    if not smoke and not (block_manifest or {}).get("complete"):
+        raise SystemExit(f"{block_manifest_path} is missing or not complete; run the build stage to completion first")
     paths = sorted(a.shards.glob("shard_*.npz"))[:a.shard_limit or None]
     split_patch = {"train": a.train_patch, "val": a.val_patch, "test": a.test_patch}
     splits = tuple(split_patch)
@@ -387,6 +447,14 @@ def compare(a):
             if s1 < s2 and set(groups[s1].tolist()) & set(groups[s2].tolist()):
                 raise SystemExit(f"match overlap between {s1} and {s2}")
     log(f"rows {n} matches { {s: len(set(groups[s].tolist())) for s in splits} }")
+    # rows whose block failed to build, counted before any X is loaded so an incomplete block fails fast
+    block_ok = [read_keys(a.block_dir / p.name, ("ok",))["ok"] for p in paths]
+    missing = {s: int(sum(int((~ok[x[s]]).sum()) for ok, x in zip(block_ok, sel))) for s in splits}
+    missing_share = {s: missing[s] / n[s] for s in splits}
+    log(f"block rows not built (NaN): {missing}")
+    if not smoke and max(missing_share.values()) > a.max_missing_block_share:
+        raise SystemExit(f"block rows not built exceed --max-missing-block-share {a.max_missing_block_share}: {missing_share}")
+    del block_ok
 
     # block provenance: one curve behind every loaded block shard, its calibration disjoint from the val / test rows
     block_provs = {p.name: json.loads(str(read_keys(a.block_dir / p.name, ("provenance",))["provenance"])) for p in paths}
@@ -399,6 +467,7 @@ def compare(a):
     except ValueError as exc:
         raise SystemExit(f"position-error calibration refused: {exc}")
     cal_ids = calibration_match_ids(block_prov["pos_error_curve"])
+    calibration_doc = json.loads(Path(block_prov["pos_error_curve"]["source"]).read_text(encoding="utf-8"))
     cal_check["train_patch_" + a.train_patch] = {
         "n_matches": len(set(groups["train"].tolist())), "intersection": len(cal_ids & set(groups["train"].tolist())),
         "note": "allowed: the calibration is feature construction fitted on training-side matches"}
@@ -443,8 +512,8 @@ def compare(a):
             off[s] += len(r)
         del X, blk
         log(f"  loaded {p.name} ({time.time()-started:.0f}s)")
-    missing = {s: int((~OK[s]).sum()) for s in splits}
-    log(f"block rows not built (NaN): {missing}")
+    if {s: int((~OK[s]).sum()) for s in splits} != missing:
+        raise SystemExit("block ok masks changed between the first and the second pass")
 
     te_minute = (engage_ts["test"] - 1) / 60000.0
     ym = {s: y[s] for s in splits}
@@ -490,9 +559,16 @@ def compare(a):
         log(f"  {name}: TEST({a.test_patch}) AUC {cell['overall_auc']:.4f} | val {val_auc:.4f} "
             f"best_iter {cell['best_iteration']} ({cell['seconds']:.0f}s)")
         np.savez_compressed(a.preds, y=ym["test"], groups=groups["test"], engage_ts=engage_ts["test"],
-                            minute=te_minute, **{f"p_{k}": v for k, v in preds.items()})
+                            minute=te_minute, classes=classes.astype(str), present=present.astype(str),
+                            **{f"p_{k}": v for k, v in preds.items()})
 
-    paired, boot = joint_paired_bootstrap(ym["test"], preds, groups["test"], te_minute, n_boot=a.n_boot)
+    scale_masks = {**{f"participation_{c}": classes == c for c in CLASSES},
+                   **{f"presence_{c}": present == c for c in CLASSES}}
+    paired, boot, model_ci = joint_paired_bootstrap(ym["test"], preds, groups["test"], te_minute, n_boot=a.n_boot,
+                                                    extra_masks=scale_masks, model_cis=True)
+    in_bands = np.zeros(len(te_minute), dtype=bool)
+    for lo, hi in TIME_BANDS:
+        in_bands |= (te_minute >= lo) & (te_minute < hi)
     reference = None
     if a.reference_json.exists() and "X" in results:
         ref = json.loads(a.reference_json.read_text(encoding="utf-8")).get("models", {}).get("lgbm_paper", {})
@@ -509,19 +585,26 @@ def compare(a):
                       "bootstrap": "match-clustered percentile bootstrap (Efron & Tibshirani 1993 ch. 13; Field & Welsh 2007)",
                       "block": "scripts/build_evidence_block_v3.py state_rows"},
         "deviations": DEVIATIONS["compare"], "leak_notes": LEAK_NOTES,
-        "git": git_state(), "source_sha256": source_hashes(["scripts/evidence_block_patch_holdout_v33.py",
-                                                            "gameplay/evidence_state.py", "scripts/build_evidence_block_v3.py"]),
+        "calibration_deviations": calibration_doc.get("deviations"),
+        "block_deviations": (block_manifest or {}).get("deviations"),
+        "git": git_start, "git_end": git_state(),
+        "source_sha256": source_start, "source_changed_during_run": source_hashes(SOURCE_FILES) != source_start,
         "preset": "v3.3", "label_key": a.y_key, "label_policy": "draws (y < 0) dropped", "seed": SEED,
         "split": {"kind": "patch holdout", **split_patch, "rows": n,
                   "matches": {s: int(len(set(groups[s].tolist()))) for s in splits}},
         "n_rows": int(sum(n.values())), "n_matches": int(len(set().union(*[set(groups[s].tolist()) for s in splits]))),
         "n_features_X": d, "block_columns": len(bnames), "block_rows_not_built": missing,
+        "block_rows_not_built_share": missing_share, "max_missing_block_share": a.max_missing_block_share,
         "corpus_manifest": {k: corpus_manifest.get(k) for k in ("run_id", "git_commit", "num_shards", "feature_names_sha1")},
         "shards_loaded": len(paths), "block_dir": str(a.block_dir), "block_provenance": block_prov,
+        "block_manifest": ({k: block_manifest.get(k) for k in ("complete", "rows", "rows_ok", "git", "source_sha256",
+                                                                "source_changed_during_run", "wall_clock")}
+                           if block_manifest else None),
         "calibration_vs_loaded_rows": cal_check, "calibration_match_ids_sha256": ids_sha256(cal_ids),
         "lgbm_params": params, "reference_params_verified": reference_params_verified(),
         "models": results, "reproduces_lgbm_paper": reference,
-        "paired": paired, "bootstrap": boot,
+        "paired": paired, "model_auc_ci": model_ci, "bootstrap": boot,
+        "rows_outside_minute_bands": int((~in_bands).sum()),
         "wall_clock": {"start": wall_start, "end": now()}, "elapsed_seconds": round(time.time() - started, 1),
     }
     a.out.write_text(json.dumps(payload, indent=2), encoding="utf-8")
@@ -556,6 +639,8 @@ def main():
     c.add_argument("--variants", default="X_plus_hold,X_plus_evidence,X")
     c.add_argument("--n-jobs", type=int, default=-1)
     c.add_argument("--n-boot", type=int, default=1000)
+    c.add_argument("--max-missing-block-share", type=float, default=0.01,
+                   help="full runs stop if a split has more rows whose block failed to build (NaN) than this share")
     c.add_argument("--reference-json", type=Path, default=Path("D:/LOL_Project/fusion_2615/features/model_comparison_v33_patch.json"))
     c.add_argument("--shard-limit", type=int, default=0, help="smoke tests only")
     c.add_argument("--max-matches", type=int, default=0, help="smoke tests only")

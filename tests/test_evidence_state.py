@@ -313,6 +313,39 @@ def test_weighted_auc_matches_sklearn_and_the_bootstrap_is_paired():
     assert meta["auc_implementation_max_abs_diff_vs_sklearn"] < 1e-9 and meta["clusters"] == 100
 
 
+def test_bootstrap_bands_share_one_match_resample_and_models_get_their_own_cis():
+    from sklearn.metrics import roc_auc_score
+    rng = np.random.default_rng(1)
+    n = 600
+    groups = np.array([f"M{i // 3:03d}" for i in range(n)])
+    y = rng.integers(0, 2, n)
+    base = np.clip(0.5 * y + rng.normal(0, .6, n), -2, 2)
+    preds = {"X": base, "X_plus_hold": base + rng.normal(0, .3, n), "X_plus_evidence": base + rng.normal(0, .1, n)}
+    minute = rng.uniform(0, 40, n)
+    pick = rng.random(n) < 0.4
+    extra = {"participation_pick": pick, "participation_skirmish": ~pick, "tiny": np.arange(n) < 10}
+    # one draw: every band's AUCs must use the same match multiplicities (default_rng(seed).integers(M, size=M))
+    out, meta, models = joint_paired_bootstrap(y, preds, groups, minute, n_boot=1, seed=11, extra_masks=extra, model_cis=True)
+    uniq, inv = np.unique(groups, return_inverse=True)
+    w = np.bincount(np.random.default_rng(11).integers(len(uniq), size=len(uniq)), minlength=len(uniq))[inv].astype(float)
+    for band, mask in (("overall", np.ones(n, bool)), ("participation_pick", pick), ("10-20", (minute >= 10) & (minute < 20))):
+        auc = {k: roc_auc_score(y[mask], p[mask], sample_weight=w[mask]) for k, p in preds.items()}
+        assert out["evidence_minus_X"][band]["mean"] == pytest.approx(auc["X_plus_evidence"] - auc["X"], abs=1e-12)
+        assert models["X_plus_hold"][band]["mean"] == pytest.approx(auc["X_plus_hold"], abs=1e-12)
+        assert models["X"][band]["auc"] == pytest.approx(roc_auc_score(y[mask], preds["X"][mask]), abs=1e-12)
+        assert models["X"][band]["n_rows"] == int(mask.sum())
+    assert "tiny" not in out["evidence_minus_X"] and "tiny" not in meta["bands"]        # < 50 rows: skipped
+    assert "0-2" not in meta["bands"] and meta["bands"][:5] == ["overall", "2-10", "10-20", "20-30", "30-1000"]
+    # many draws: percentile interval brackets the draws' mean, and the same seed reproduces it exactly
+    out2, _, models2 = joint_paired_bootstrap(y, preds, groups, minute, n_boot=60, extra_masks=extra, model_cis=True)
+    again, _, _ = joint_paired_bootstrap(y, preds, groups, minute, n_boot=60, extra_masks=extra, model_cis=True)
+    assert out2 == again
+    for band, cell in models2["X_plus_evidence"].items():
+        assert cell["lo"] <= cell["mean"] <= cell["hi"] and cell["n_boot"] == 60
+    with pytest.raises(ValueError, match="taken"):
+        joint_paired_bootstrap(y, preds, groups, minute, n_boot=1, extra_masks={"overall": pick})
+
+
 def test_calibration_on_disk_never_intersects_evaluation_matches():
     """Data check of the calibration new runs load (skipped until scripts/calibrate_position_error_v3.py has run)."""
     path = default_pos_error_calibration_path()
@@ -325,6 +358,13 @@ def test_calibration_on_disk_never_intersects_evaluation_matches():
     splits = json.loads(splits_path.read_text(encoding="utf-8"))
     for name in ("predict_test", "value_validation"):
         assert not ids & set(splits[name]), name
+    # the v1 pilot's own evaluation matches (protocol 'engagement', the set the legacy curve was read from) and the
+    # value model's test matches (protocol 'test'), read from the protocol itself rather than through match_splits
+    protocol_path = ROOT / "outputs/temporal_winprob_v3_buckets/protocol.json"
+    if protocol_path.exists():
+        protocol = json.loads(protocol_path.read_text(encoding="utf-8"))["splits"]
+        for name in ("engagement", "test"):
+            assert protocol.get(name) and not ids & set(protocol[name]), name
     shards = Path(cal["split"]["corpus_shards"])
     if not shards.exists():
         pytest.skip(f"corpus shards {shards} not available")
