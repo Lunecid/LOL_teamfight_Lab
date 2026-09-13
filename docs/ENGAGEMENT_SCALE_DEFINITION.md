@@ -8,14 +8,17 @@
 >   scale, and the "class gaps ~0.05 AUC" in the shop-event section. The scale gradient is
 >   retracted: it came from the `time_norm` feature leak (`docs/DEFINITION_EVIDENCE.md`
 >   section 22);
-> - the class shares (21.1 / 36.9 / 42.0 %) and counts in the class-rule table. The v3.3
+> - the class shares (21.1 / 36.9 / 42.0 %) and counts in the class-rule table, and the rule that
+>   results are reported at `n_min ≥ 3` with `n_min ≥ 4` as the robustness check. The v3.3
 >   corpus uses new detector constants and teamfight = `n_min ≥ 4` (`scale.teamfight_min` = 4
 >   in `D:/LOL_Project/fusion_2615/corpus_shards_v33/manifest.json`);
+> - the commitment gap "negative for 52% of engagements, mean −0.89" (`docs/CLAUDE_TOG_PAPER_PLAN.md`
+>   §4 lists it as never-write; see the note in that section);
 > - "AUC moves 0.008" from the threshold sweep (553 matches, v2 detector, one factor at a time;
 >   `D:/LOL_Project/fusion_2615/features/thresholds/*.json`);
 > - the kill-less table and its 4.9 % (v2 presence gate), the pairing "0.15 per match vs 2.03
->   teamfight-class engagements", and the "brief passes" reading. The v3.3 kill-less grid
->   replaces them (see the note in that section).
+>   teamfight-class engagements", the "brief passes" reading, and "the share is insensitive to
+>   the radius". The v3.3 kill-less grid replaces them (see the note in that section).
 >
 > Current definition: `docs/ENGAGEMENT_DEFINITION_V3.md` and `docs/tog_manuscript/sec_definition.tex`.
 > List of stale claims across `docs/`: `docs/tog_manuscript/stale_claims_inventory.md`.
@@ -160,6 +163,20 @@ settled *after* the cutoff. This is a finding, not a defect — it is direct
 evidence for why pre-onset prediction saturates where it does, and it answers
 the meta-reviewer's question about what "counts" as a teamfight.
 
+> **STALE (2026-09-14): do not cite the 52 % or the −0.89.** They come from the 1,366-engagement
+> v2 sample above, and the paragraph does not say whether the gap is taken on the smaller side or per
+> team. `docs/CLAUDE_TOG_PAPER_PLAN.md` §4 lists "cutoff 이후 참여자 52 %" as a sentence that must
+> not be written. On the full v2 corpus, `docs/DEFINITION_EVIDENCE.md` §4 reports the smaller-side gap
+> as negative for 35.9 % (mean −0.28) and the per-team gap as negative for 43.8 % (mean −0.48). That
+> section is a dated log, and these values were not re-checked in this pass. Under v3.3 the smaller-side
+> gap (presence `n_min` − participation `n_min`) is negative for 194,468 of 532,547 labelled engagements,
+> 36.5 % (194,468/532,547). It is zero for 41.7 % and positive for 21.8 %, with mean −0.34. Source:
+> `D:/LOL_Project/fusion_2615/features/tog_revision/A6-definition-sensitivity/scale_participation_v33.json`,
+> `populations.labelled.crosstab_presence_nmin_rows_participation_nmin_cols`. Each share is the sum of
+> the cells with presence below, equal to or above participation, divided by 532,547. The 42 rows with a
+> participation count of −1 are read as zero. A negative gap is common (36.5 %) but is not a majority,
+> so "largely settled after the cutoff" overstates it.
+
 ## Usage rules (binding)
 
 1. **Participation scale is the primary reporting axis**, always labelled as a
@@ -248,7 +265,7 @@ champions of *both* sides within the radius. 2,000 matches per setting:
 Two things follow. **The omission is modest and shrinks exactly where the
 question was aimed:** the meta-reviewer asked about *teamfights* without
 kills, and at teamfight scale (3+ per side) sustained for 20 s only 4.9% of
-encounters end without a kill — ~~0.15 per match, against 2.03 teamfight-class
+encounters end without a kill **[v2 constants; under v3.3 constants the same 3 per side for 20 s gives 3.27 % (1,607/49,111, row `r1600_t3_d20_g15`) and the teamfight gate 3.09 %; see note]** — ~~0.15 per match, against 2.03 teamfight-class
 engagements per match that the corpus does capture~~ **[STALE, see note]**. ~~Loosening the duration to
 5 s triples the kill-less share (16.0%), confirming that most kill-less
 "encounters" are brief passes rather than resolved fights.~~ **[STALE, see note]**
@@ -257,6 +274,10 @@ engagements per match that the corpus does capture~~ **[STALE, see note]**. ~~Lo
 units) and sensitive to duration and party size, which is the expected
 signature: a proximity threshold decides *how many* encounters exist, while
 duration and size decide *which* of them are fights.
+**[STALE 2026-09-14: v2 rows with 2 per side and a 10 s grace. At the v3.3 teamfight gate the
+kill-less share moves from 2.00 % at 1,200 u to 3.09 % at 1,600 u and 3.47 % at 2,000 u (rows
+`r1200_t4_dG_g15`, `r1600_t4_dG_g15` and `r2000_t4_dG_g15` of `killless_grid/summary.json`), so the
+share is not insensitive to the radius there. The v3.3 grid has no radius variation at 2 per side.]**
 
 This is an upper bound on what kill-anchored detection misses, not a corpus
 extension: proximity is not commitment, and without a kill there is no
@@ -265,6 +286,8 @@ outcome to label, so these encounters remain outside the prediction task.
 - Presence at radii other than 1,800 units (the detector's gate value) has not
   been measured; a 3,000-unit presence count would likely track participation
   better and is worth one sweep.
+  **[STALE 2026-09-14: 1,800 u was the v2 gate; the v3.3 gate is R = 1,600 u
+  (`TF2_VALIDITY_RADIUS` 1600.0 in `corpus_shards_v33/manifest.json`).]**
 - Kill-less encounters remain outside the corpus entirely; quantifying their
   prevalence from the 5 s position grid is a separate planned experiment.
   **[STALE 2026-09-11: measured under v3.3 constants; see the v3.3 note in the kill-less section.]**

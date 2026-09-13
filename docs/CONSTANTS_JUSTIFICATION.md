@@ -23,7 +23,9 @@
 >    the radius within which a dying champion's experience is shared with enemy champions
 >    (League of Legends Wiki, "Experience (champion)"; the minion radius, 1,500 u, is a separate
 >    value). B = 15 s is the kill/assist credit window on Summoner's Rift (League of Legends
->    Wiki, "Kill"; 20 s on Howling Abyss). Both pages were checked on 2026-09-11. Neither records
+>    Wiki, "Kill"; 20 s on Howling Abyss). Both pages
+>    (https://wiki.leagueoflegends.com/en-us/Experience_(champion),
+>    https://wiki.leagueoflegends.com/en-us/Kill) were checked on 2026-09-11 and again on 2026-09-14. Neither records
 >    a change to the 1,600 u radius or the 15 s window, including for the corpus patches
 >    15.14-15.16. Earlier citation and the rule brackets: `DEFINITION_EVIDENCE.md` section 15.
 > 3. **"AUC spread 0.008"** as the answer to threshold sensitivity. It comes from a 553-match

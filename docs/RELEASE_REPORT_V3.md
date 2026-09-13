@@ -26,8 +26,9 @@
    채택 컷 `n_min ≥ 4`에서 사라진다(pick − teamfight −0.002 [−0.007, +0.003]). 깨끗한 헤드라인은
    **0.670**이다. *(2026-09-11, was: "0.670(규모 무관)". The pick − teamfight gap depends on where the
    teamfight cut is placed (`docs/CLAUDE_TOG_PAPER_PLAN.md` §4), so it is stated at the adopted cut only.
-   Values at `n_min ≥ 3 / 4 / 5`: `\pending{scale_cut_sensitivity}{pick − teamfight at n_min ≥ 3, 4, 5 from the re-verified cut-sensitivity artefact}`.
-   Source of −0.002 [−0.007, +0.003]: see the §5.3 note.)*
+   Values at `n_min ≥ 3 / 4 / 5` (2026-09-14): +0.0108 [+0.0070, +0.0147] / −0.0019 [−0.0065, +0.0028] /
+   −0.0105 [−0.0170, −0.0041], so the sign changes between the cuts. Sources of these values and of −0.002 [−0.007, +0.003]:
+   see the §5.3 note.)*
 3. **라벨을 "게임이 지급한 골드"로 바꿨다.** 보간된 분 골드(market_lex)의 추가 0.03 AUC는 컷오프
    이전에 앞서 있던 팀을 맞힌 점수임을 5.5% 불일치 행에서 증명했고(0.846 vs 0.244), 사건별 팀 골드
    가격표를 프레임 회귀로 복원해(R² 0.96) 이벤트 가격 라벨 market_event를 주 라벨로 제안한다.
@@ -192,8 +193,25 @@ does not appear at the adopted cut `n_min ≥ 4` (§5.3; `DEFINITION_EVIDENCE.md
 
 *Note (2026-09-11):* the pick − tf column is the gap at the adopted cut `n_min ≥ 4` only. The gap depends on
 where the teamfight cut is placed (`docs/CLAUDE_TOG_PAPER_PLAN.md` §4), so no row here supports "no scale
-gradient" without the cut. Values at `n_min ≥ 3 / 4 / 5`:
-`\pending{scale_cut_sensitivity}{pick − teamfight at n_min ≥ 3, 4, 5 from the re-verified cut-sensitivity artefact}`.
+gradient" without the cut.
+
+Values at `n_min ≥ 3 / 4 / 5` (filled 2026-09-14): pick − teamfight is +0.0108 [+0.0070, +0.0147],
+−0.0019 [−0.0065, +0.0028] and −0.0105 [−0.0170, −0.0041]. Source:
+`D:/LOL_Project/fusion_2615/features/tog_revision/A6-definition-sensitivity/scale_cut_sensitivity_v33.json`,
+keys `participation.cuts.{3,4,5}.gaps.pick_minus_teamfight` (`point`, `ci_2.5`, `ci_97.5`). The file was written
+2026-09-11 16:22. It re-scores the stored OOF predictions of the first row with only the cut changed, using 400
+match-level replicates. Its `reproduces_main_loop_table` block records that these values reproduce, to four
+decimals, the cut table quoted in `docs/CLAUDE_TOG_PAPER_PLAN.md` §2 (400 replicates, seed 7).
+Its `n_min ≥ 4` value differs from the first row of the table in the fourth decimal, for two reasons:
+
+- That file reads the 42 rows whose participation count is −1 as zero, which places them in pick.
+  `run_scale_decomposition.py`, which produced the first row, leaves them unclassified.
+- The first row uses 1,000 replicates, not 400.
+
+Read the second way (`participation_other_negative_count_reading.cuts`), the same file gives +0.0107 [+0.0069, +0.0146],
+−0.0020 [−0.0065, +0.0027] and −0.0106 [−0.0171, −0.0043]. The pre-rewrite copy of the file,
+`superseded/scale_cut_sensitivity_v33.20260911_1127.json`, holds this second set of values.
+
 Source of the first row: `features/scale_decomposition_v33_market_event.json`. Class AUCs are 0.67887 / 0.66333 /
 0.68089. pick − teamfight = 0.67887 − 0.68089 = −0.0020. The 95 % CI [−0.0065, +0.0026] is
 `bootstrap.pick_minus_teamfight` (2.5 % and 97.5 %, 1,000 match-level replicates), rounded in the table to
@@ -257,6 +275,13 @@ CoG 리뷰 R2("현대 태뷸러 구조를 시도하지 않았다")에 대한 답
    기울기가 있는데(+0.070), 전체 모델은 0.680 / 0.662 / 0.681로 평평하다. "앞선 팀이 이긴다"가
    한타에서만 잘 통하고, 모델이 pick에서 리드 밖 신호를 찾아 격차를 메운다. 철회된 v2 기울기와
    **부호가 반대**라는 점도 누수 설명과 일관된다.
+   *(Note, 2026-09-14: the last sentence is not supported as written. The lead-only gap has the **same** sign as
+   the retracted v2 gap: pick − teamfight = 0.6017 − 0.6718 = −0.0701 (`features/model_comparison_v33_patch.json`,
+   `models.lead_only.by_participation_scale`), against −0.0677 for v2. What does differ is where the extra AUC
+   sits. The full model's gain over lead-only is +0.0782 in pick (0.6799 − 0.6017) and +0.0090 in teamfight
+   (0.6808 − 0.6718; `models.lgbm_deep`). The `time_norm` leak instead added +0.0026 in pick (0.6207 − 0.6181) and
+   +0.0491 in teamfight (0.6912 − 0.6421; `features/leak_ablation_v33.json`, `configs.time_leak` vs `configs.clean`,
+   5,000 matches). Do not cite the sentence until the author confirms which comparison was meant.)*
 5. **패치 홀드아웃이 더 어렵다.** 같은 LightGBM이 무작위 경기 분할 0.6767 → 패치 홀드아웃 0.6661.
 
 산출물: `features/model_comparison_v33_patch.json`, `deep_tabular_v33_patch_{full,ft,saint}.json`,
@@ -331,8 +356,9 @@ features (`docs/CLAUDE_TOG_PAPER_PLAN.md` §5 item 16) has not produced results 
 ## 8. 로드맵
 
 1. ~~v3.2~~ v3.3 결과 확정 완료. preset `v3.3`과 규칙 앵커 spec으로 재현 경로 고정(완료). 논문 초안 본문 수치를 0.670으로 갱신하고, 규모 차이는 채택 컷 `n_min ≥ 4`의 pick − teamfight
-   −0.002 [−0.007, +0.003]와 컷별 값(`\pending{scale_cut_sensitivity}{pick − teamfight at n_min ≥ 3, 4, 5}`)으로
-   적는다. *(2026-09-11, was: "0.670·규모 무관으로 갱신".)*
+   −0.002 [−0.007, +0.003]와 컷별 값(`n_min ≥ 3 / 4 / 5`: +0.0108 [+0.0070, +0.0147] / −0.0019 [−0.0065, +0.0028] /
+   −0.0105 [−0.0170, −0.0041]; source in the §5.3 note)으로 적는다. *(2026-09-11, was: "0.670·규모 무관으로 갱신".
+   Cut values filled 2026-09-14.)*
 2. 채널 절제 실험(고정 / 스냅숏 / 사건 / 지형; 단독·제외·누적) — 표현 감사의 본문 표.
 3. ~~심층 대조(FT-Transformer·SAINT·MLP·TabNet)~~ **완료** — §5.4 참조 (*was:* "9절 참조"). v3.3 행렬, 패치 홀드아웃. TabNet의 정규화 부호 수정 재실행은
    `\pending{tabnet_rerun}{TabNet test AUC on the v3.3 patch holdout with the sparsity term added to the loss}`.

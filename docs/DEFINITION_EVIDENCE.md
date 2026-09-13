@@ -734,7 +734,9 @@ Hit list: `docs/tog_manuscript/stale_claims_inventory.md`.)
 | Malphite R + Flash | 1,000 + 400 = 1,400 u | Malphite, Flash | 대표 진입 콤보 |
 | 기본 이동속도 | 325~355 u/s, 2티어 신발 +45 | Movement speed | 10 s에 약 3,700~4,000 u |
 
-*Patch check (2026-09-11), for the two rows used as anchors.* League of Legends Wiki, "Experience (champion)":
+*Patch check (2026-09-11; re-checked 2026-09-14 with the same result), for the two rows used as anchors.* Pages:
+https://wiki.leagueoflegends.com/en-us/Experience_(champion) and https://wiki.leagueoflegends.com/en-us/Kill.
+League of Legends Wiki, "Experience (champion)":
 a dying champion's experience goes to enemy champions within 1,600 u, and minion experience is shared within
 1,500 u. The page's patch history lists changes to the minion radius only (V4.11 and V25.S1.1). League of Legends
 Wiki, "Kill": the credit window is 15 s on Summoner's Rift and 20 s on Howling Abyss, and the page lists no change
@@ -882,9 +884,21 @@ Hecarim R 50,000, Aatrox E 25,000, Twitch Q 20). 3.3절의 "669 스펠 89.1%"는
 (2026-09-11. The shares are now from the v3.3 corpus: 101,798 / 320,878 / 109,829 of 532,547 labelled
 engagements, each n/532,547, from `D:/LOL_Project/fusion_2615/features/scale_decomposition_v33_market_event.json`,
 `by_participation_scale`; the three counts sum to 532,505. *was:* 21.9 / 55.7 / 22.4 %, the v2
-948,369-engagement distribution of §4. The 83 % and the peak-and-valley reading still come from the v2
-distribution of §4. Their v3.3 values:
-`\pending{participation_joint_v33}{v3.3 joint participation distribution: 1v2/1v3 share of picks and the diagonal peaks and valley}`.)
+948,369-engagement distribution of §4. The 83 % and the peak-and-valley reading above also came from the v2
+distribution of §4; their v3.3 values follow.)
+
+*v3.3 joint participation (filled 2026-09-14).* Source:
+`D:/LOL_Project/fusion_2615/features/tog_revision/A6-definition-sensitivity/scale_participation_v33.json`,
+`populations.labelled.participation` (532,547 labelled engagements, written 2026-09-11 16:23). This file reads the
+42 rows with a participation count of −1 as zero, so its pick class has 101,840 rows, not 101,798.
+
+- **Picks.** 85,616 of the 101,840 engagements with `n_min ≤ 1` are 1v2 or 1v3: 85,616/101,840 = 84.1 %, summed
+  from `joint_blue_rows_red_cols` (v2: 83 %).
+- **Diagonal.** The counts from 1v1 to 5v5 are 2,217 / 78,274 / 40,551 / 32,835 / 38,474 (`diagonal`). Peaks
+  are at 2v2 and 5v5, and the valley is at 4v4 (`troughs.diagonal`: peaks [2, 5], trough k = 4). In all 1,000
+  match-level replicates, 4v4 is below both 3v3 and 5v5 (`share_4v4_below_3v3_and_5v5` = 1.0).
+- **Valley depth.** 1 − 32,835/38,474 = 0.147, shallower than the v2 depth of 0.203
+  (`v2_reference.participation.troughs`).
 
 **이 정의가 주장하는 것.**
 
@@ -1076,7 +1090,8 @@ pick ≤ 1, skirmish 2~3, teamfight ≥ 4. 사후 속성이므로 부분군 보�
 - 수치(파일럿 2,551 교전): 진짜 무승부 5.6% 제외(동전 던지기 없음). ε 150/300/600에서
   시장 판정 76/55/27%. 다른 라벨과 일치 89.9~94.3%. OOF AUC 0.688(순수 골드 0.692와
   통계적으로 같음). 연구자 가중치 라벨 Eq.3은 0.595로 가장 어렵다. "teamfight가 가장
-  예측 가능"은 모든 라벨에서 유지된다.
+  예측 가능"은 모든 라벨에서 유지된다. *[2026-09-14: this pilot ran on features that still had the `time_norm`
+  leak (§20, fix commit 5b5f9c8), and "teamfight most predictable" is retracted in §22; do not cite it.]*
 - 한계: 팀 골드가 분 해상도 선형 보간이라 시장 판정은 그 분의 골드 증가율 차이를
   읽는다(파밍 포함). 점검 예정: 이벤트 현상금(킬 bounty·shutdownBounty, 건물·몬스터
   bounty)으로 ms 해상도 이벤트 가격 라벨을 만들어 일치율·AUC 대조. 순수 버프 가치
@@ -1349,9 +1364,20 @@ depend on scale (규모와 무관), holds only at the adopted cut `n_min ≥ 4`.
 −0.002 [−0.007, +0.003] (`D:/LOL_Project/fusion_2615/features/scale_decomposition_v33_market_event.json`:
 class AUCs 0.67887 − 0.68089 = −0.0020; `bootstrap.pick_minus_teamfight` 2.5 % / 97.5 % = −0.0065 / +0.0026,
 1,000 match-level replicates). The gap depends on where the teamfight cut is placed, so "no scale gradient" and
-"pick − teamfight = 0" must not be written without the cut (`docs/CLAUDE_TOG_PAPER_PLAN.md` §4). Values at
-`n_min ≥ 3 / 4 / 5`:
-`\pending{scale_cut_sensitivity}{pick − teamfight at n_min ≥ 3, 4, 5 from the re-verified cut-sensitivity artefact}`.
+"pick − teamfight = 0" must not be written without the cut (`docs/CLAUDE_TOG_PAPER_PLAN.md` §4).
+
+*Values at `n_min ≥ 3 / 4 / 5` (filled 2026-09-14).* pick − teamfight is +0.0108 [+0.0070, +0.0147],
+−0.0019 [−0.0065, +0.0028] and −0.0105 [−0.0170, −0.0041]. The sign therefore changes between cuts 3 and 5, and no
+point estimate exceeds 0.011 in magnitude.
+
+- Source: `D:/LOL_Project/fusion_2615/features/tog_revision/A6-definition-sensitivity/scale_cut_sensitivity_v33.json`,
+  `participation.cuts.{3,4,5}.gaps.pick_minus_teamfight` (`point`, `ci_2.5`, `ci_97.5`). The file was written
+  2026-09-11 16:22. It re-scores the stored OOF predictions behind the first row of the §22.1 table with only the cut
+  changed, using 400 match-level replicates.
+- That file reads the 42 rows with a participation count of −1 as zero (pick). The first row of the §22.1 table leaves
+  them unclassified and uses 1,000 replicates, which is why the `n_min ≥ 4` values differ in the fourth decimal.
+- Read the second way, the same file gives +0.0107 [+0.0069, +0.0146], −0.0020 [−0.0065, +0.0027] and −0.0106
+  [−0.0171, −0.0043] (`participation_other_negative_count_reading.cuts`).
 
 Three further corrections, checked against the same file:
 
