@@ -743,10 +743,29 @@ Wiki, "Kill": the credit window is 15 s on Summoner's Rift and 20 s on Howling A
 to it. Neither page records a change to the 1,600 u radius or the 15 s window, including for the corpus patches
 15.14-15.16. The other rows of this table were not re-checked on this date.
 
-OpenDota(Tot 2021이 쓴 라벨; odota/core 이력의 `processors/processTeamfights.js`,
-2023-12 삭제 직전 버전을 blobless clone으로 확인): `teamfightCooldown = 15`,
+OpenDota(Tot 2021이 쓴 라벨; `processTeamfights`, 이력은 아래): `teamfightCooldown = 15`,
 `start: e.time - teamfightCooldown`, 마지막 데스 후 15 s 무데스면 종료, `deaths >= 3`,
 공간 조건 없음. 첫 킬 15 s 전을 시작으로 잡는 선례다.
+
+*OpenDota 파일 이력 (corrected 2026-09-14; was: "odota/core 이력의 `processors/processTeamfights.js`, 2023-12 삭제
+직전 버전을 blobless clone으로 확인").* 이 파일은 2023-12에 삭제되지 않았다.
+
+- odota/core 커밋 3b6a7cd(2023-12-02, "codemod processors to esm")가 `processors/processTeamfights.js`를
+  `processors/processTeamfights.mjs`로 이름을 바꿨다. 내용 변경은 `require`/`module.exports`를 `import`/`export default`로
+  바꾼 두 곳뿐이다.
+- odota/core 커밋 570cfc0(2024-01-07, "switch to new parser model")이 그 `.mjs`를 odota/core에서 지웠다.
+- 같은 파일은 odota/parser 커밋 3f9237b(2024-01-06)로 `processors/processTeamfights.mjs`에 들어갔고, odota/core에서
+  지워지기 직전 판과 내용이 같다. parser `master`(de9d6b2)에서도 위 네 조건이 그대로다. 달라진 곳은 싸움이 정해진 뒤의 선수별 집계
+  3곳(시작·끝 경험치 조회, 사망 위치 키 반올림, 스킬·아이템 사용 집계의 슬롯 계산)뿐이며 싸움 경계 판정과는 무관하다.
+- parser 커밋 8ee9b58(2025-12-27, "implement processors in Java")은 같은 절차를
+  `src/main/java/opendota/CreateParsedDataBlob.java`의 `processTeamfights`로 다시 구현했고, 상수도 같다
+  (`int teamfightCooldown = 15`, `tf.deaths >= 3`). 이 커밋은 `.mjs` 파일을 지우지 않았고(사망 위치 키 반올림 한 줄만
+  수정), parser `master`(de9d6b2)에 두 구현이 모두 있다.
+- 확인 방법 (2026-09-14): GitHub REST API의 커밋 응답(`api.github.com/repos/odota/core/commits/3b6a7cd`,
+  `.../570cfc0`, `api.github.com/repos/odota/parser/commits/3f9237b`, `.../8ee9b58`)과 각 판의 원문
+  (raw.githubusercontent.com; core는 3b6a7cd의 부모 f9ae45b, 3b6a7cd, 570cfc0의 부모 4591b1c, parser는 3f9237b와 de9d6b2,
+  그리고 de9d6b2의 `CreateParsedDataBlob.java`). 네 조건은 core의 세 판과 parser의 두 판, Java 판에서 모두 같다. 날짜는
+  커밋 author date(UTC)다.
 
 Data Dragon 주의: `range` 필드가 돌진·충전 스킬에서 자리표시자다(Zac E 300,
 Hecarim R 50,000, Aatrox E 25,000, Twitch Q 20). 3.3절의 "669 스펠 89.1%"는 이
@@ -1322,15 +1341,25 @@ lex 창 전체 0.689, Eq.3 0.622. 귀속 라벨 일치: event 97.8%, lex 99.7%. 
 
 - **teamfight의 높은 AUC는 상당 부분 time_norm 누수였다.** 경기 총 길이로 정규화된 시간은 "이 경기가
   곧 끝난다"를 담고, 후반 한타는 경기를 끝내는 싸움이라 앞선 팀이 이긴다. 누수 하나로 teamfight
-  +0.05, 전체 +0.02. 앵커 누수는 +0.01 / +0.004. 두 누수를 빼면 규모 기울기는 표본에서 +0.02,
-  전체 코퍼스에서 0이다 *[2026-09-11: this "0" is −0.002 [−0.007, +0.003], at the cut `n_min ≥ 4` only; see the note at the end of §22.1]*.
+  +0.05, 전체 +0.02. 앵커 누수는 +0.01 / +0.004. 두 누수를 빼면 규모 기울기(pick − teamfight)는 표본에서
+  −0.02(위 표 clean 행 0.618 − 0.642)이고, 전체 코퍼스의 채택 컷 `n_min ≥ 4`에서는 −0.002 [−0.007, +0.003]로 0과
+  구별되지 않는다. 이 차이는 컷을 옮기면 움직인다(저장된 OOF 예측 재채점: `n_min ≥ 3` +0.0108, `≥ 4` −0.0019,
+  `≥ 5` −0.0105; 산출물은 재검증 대상; 출처는 §22.1 끝 주석). *(was: "규모 기울기는 표본에서 +0.02, 전체 코퍼스에서
+  0이다". The old +0.02 was teamfight − pick; it is now written as pick − teamfight, the convention of every other gap
+  here: `features/leak_ablation_v33.json`, `configs.clean.by_class` 0.61808 − 0.64207 = −0.0240, stored as
+  `configs.clean.pick_minus_teamfight` −0.02399. Cut qualifier added 2026-09-11, moved into the sentence 2026-09-14.)*
 - 따라서 v2·v3에서 보고한 "teamfight 0.78~0.81, pick과 0.1 차이"는 철회한다. 깨끗한 입력에서
-  교전 결과는 규모와 무관하게 *[at `n_min ≥ 4` only]* 약 0.67로 예측되고, 컷오프 시점 존재 인원이 4명 이상인 싸움만 0.70이다.
+  교전 결과는 채택 컷 `n_min ≥ 4`로 나눈 세 규모 클래스에서 0.663~0.681(전체 0.670)로 예측되고, 컷오프 시점 존재
+  인원이 4명 이상인 싸움만 0.70이다. *(was: "규모와 무관하게 약 0.67로". Class AUCs 0.67887 / 0.66333 / 0.68089 and
+  overall 0.66991: `features/scale_decomposition_v33_market_event.json`, `by_participation_scale.{pick,skirmish,teamfight}.auc`
+  and `overall_auc`. Cut qualifier added 2026-09-11, moved into the sentence 2026-09-14; range corrected 2026-09-14.)*
 - 전체 0.702 → 0.670의 나머지 차이는 라벨 변경(귀속 −0.002, 가격, 끝점)과 프레임 인덱스 수정
   (특징이 한 프레임 신선해짐; 방향은 개선)과 공통 모집단이 섞인 것이며, 표본 절제에서 누수 둘의
   합이 0.020이므로 대부분은 누수다.
 - 이것은 논문의 주장을 바꾼다. "무엇이 예측 가능한가"가 아니라 "누수 없이 재면 얼마나 예측
-  가능한가"가 결과이고, 규모 분해는 '차이 없음'이 결론이다 *[at `n_min ≥ 4` only; see the note at the end of §22.1]*.
+  가능한가"가 결과이고, 규모 분해의 결론은 채택 컷 `n_min ≥ 4`에서 pick과 teamfight의 차이가 0과 구별되지 않는다는
+  것이다. 그 차이의 부호는 컷에 따라 바뀐다(§22.1 끝 주석). *(was: "규모 분해는 '차이 없음'이 결론이다"; cut qualifier
+  added 2026-09-11, moved into the sentence 2026-09-14.)*
 
 ### 22.1 v3.3 전체 분해 결과 (2026-09-09 완료)
 
@@ -1347,7 +1376,10 @@ lex 창 전체 0.689, Eq.3 0.622. 귀속 라벨 일치: event 97.8%, lex 99.7%. 
 | v3 Eq.3 | 540,774 | 0.681 | 0.657 | 0.666 | 0.744 | −0.088 |
 | v2 발표 market_lex (tf ≥ 3) | 948,369 | 0.746 | 0.716 | 0.715 | 0.784 | −0.068 |
 
-- **깨끗한 입력에서 규모 기울기는 없다.** *[2026-09-11: at the adopted cut `n_min ≥ 4` only; see the note below.]* market_event −0.002, market_lex −0.011, 창 전체 −0.009~−0.013.
+- **깨끗한 입력의 채택 컷 `n_min ≥ 4`에서 규모 기울기는 작다.** market_event −0.002, market_lex −0.011, 창 전체 −0.009~−0.013.
+  컷을 옮기면 market_event의 pick − teamfight는 +0.0108(`n_min ≥ 3`)에서 −0.0105(`n_min ≥ 5`)까지 움직인다(저장된 OOF
+  예측 재채점, 산출물은 재검증 대상; 아래 주석). *(was: "깨끗한 입력에서 규모 기울기는 없다."; cut qualifier added 2026-09-11,
+  moved into the sentence 2026-09-14.)*
   Eq.3에서는 부호가 뒤집혀 teamfight가 가장 어렵다(+0.067): 연구자 가중 라벨은 역전을 높게 쳐서
   큰 싸움일수록 예측이 어려워진다. v2·v3의 "teamfight 0.78~0.81, pick과 0.1 차이"는 time_norm 누수의
   산물이었다(22절 절제).
@@ -1356,8 +1388,10 @@ lex 창 전체 0.689, Eq.3 0.622. 귀속 라벨 일치: event 97.8%, lex 99.7%. 
 - **귀속(창 전체 → 교전)은 AUC를 바꾸지 않는다**(0.669 vs 0.670; 라벨 2.2% 변경). 정의와 일관된 귀속판을
   주 라벨로 쓴다.
 - **식별자 범주형 처리는 해롭다**(−0.009). 숫자 입력 유지, 논문 부록에 기록.
-- **헤드라인 재작성.** 첫 킬 15초 전 상태로 교전의 물질적 승자를 AUC 0.67로 예측하며, 이 값은 교전
-  규모와 무관하다 *[at `n_min ≥ 4` only; see the note below]*. 컷오프 시점에 이미 4명 이상 모인 싸움(2.0%)만 0.70이다.
+- **헤드라인 재작성.** 첫 킬 15초 전 상태로 교전의 물질적 승자를 AUC 0.67로 예측하며, 채택 컷 `n_min ≥ 4`에서
+  pick과 teamfight의 AUC 차이는 0과 구별되지 않는다(−0.002 [−0.007, +0.003]; 컷에 따른 변화는 아래 주석). 컷오프 시점에
+  이미 4명 이상 모인 싸움(2.0%)만 0.70이다. *(was: "이 값은 교전 규모와 무관하다"; cut qualifier added 2026-09-11, moved
+  into the sentence 2026-09-14.)*
 
 *Note (2026-09-11).* Every statement in §22 and §22.1 that the clean result has no scale gradient, or does not
 depend on scale (규모와 무관), holds only at the adopted cut `n_min ≥ 4`. At that cut pick − teamfight is
@@ -1378,6 +1412,12 @@ point estimate exceeds 0.011 in magnitude.
   them unclassified and uses 1,000 replicates, which is why the `n_min ≥ 4` values differ in the fourth decimal.
 - Read the second way, the same file gives +0.0107 [+0.0069, +0.0146], −0.0020 [−0.0065, +0.0027] and −0.0106
   [−0.0171, −0.0043] (`participation_other_negative_count_reading.cuts`).
+- Re-verification status (2026-09-14): this A6 artefact is flagged for re-verification, but no re-verification run
+  existed on 2026-09-14. The file was still the 2026-09-11 16:22 copy, no newer copy existed in its directory, the
+  run queue `tog_revision/queue_wave1.json` had no scale-cut job, and the file's keys gave both sets of values above,
+  points and CI bounds, to four decimals. If a re-verified artefact differs, replace the cut values here, in the §22
+  reading bullets and in the first bullet under the §22.1 table with
+  `\pending{scale_cut}{pick − teamfight at n_min ≥ 3, 4, 5 from the re-verified cut-sensitivity artefact}`.
 
 Three further corrections, checked against the same file:
 

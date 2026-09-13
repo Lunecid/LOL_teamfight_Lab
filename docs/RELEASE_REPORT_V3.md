@@ -27,8 +27,9 @@
    **0.670**이다. *(2026-09-11, was: "0.670(규모 무관)". The pick − teamfight gap depends on where the
    teamfight cut is placed (`docs/CLAUDE_TOG_PAPER_PLAN.md` §4), so it is stated at the adopted cut only.
    Values at `n_min ≥ 3 / 4 / 5` (2026-09-14): +0.0108 [+0.0070, +0.0147] / −0.0019 [−0.0065, +0.0028] /
-   −0.0105 [−0.0170, −0.0041], so the sign changes between the cuts. Sources of these values and of −0.002 [−0.007, +0.003]:
-   see the §5.3 note.)*
+   −0.0105 [−0.0170, −0.0041], so the sign changes between the cuts. They re-score the stored OOF predictions
+   with only the cut changed, and the artefact that holds them is flagged for re-verification. Sources of these values
+   and of −0.002 [−0.007, +0.003]: see the §5.3 note.)*
 3. **라벨을 "게임이 지급한 골드"로 바꿨다.** 보간된 분 골드(market_lex)의 추가 0.03 AUC는 컷오프
    이전에 앞서 있던 팀을 맞힌 점수임을 5.5% 불일치 행에서 증명했고(0.846 vs 0.244), 사건별 팀 골드
    가격표를 프레임 회귀로 복원해(R² 0.96) 이벤트 가격 라벨 market_event를 주 라벨로 제안한다.
@@ -212,6 +213,13 @@ Read the second way (`participation_other_negative_count_reading.cuts`), the sam
 −0.0020 [−0.0065, +0.0027] and −0.0106 [−0.0171, −0.0043]. The pre-rewrite copy of the file,
 `superseded/scale_cut_sensitivity_v33.20260911_1127.json`, holds this second set of values.
 
+*Re-verification status (2026-09-14).* This A6 artefact is flagged for re-verification, but no re-verification run
+existed on 2026-09-14. The file above was still the 2026-09-11 16:22 copy, no newer copy existed in its directory,
+the run queue `tog_revision/queue_wave1.json` had no scale-cut job, and the file's keys gave both sets of values
+quoted above, points and CI bounds, to four decimals. If a re-verified artefact differs, replace the cut values
+in this note, in §1 item 2 and in §8 item 1 with
+`\pending{scale_cut}{pick − teamfight at n_min ≥ 3, 4, 5 from the re-verified cut-sensitivity artefact}`.
+
 Source of the first row: `features/scale_decomposition_v33_market_event.json`. Class AUCs are 0.67887 / 0.66333 /
 0.68089. pick − teamfight = 0.67887 − 0.68089 = −0.0020. The 95 % CI [−0.0065, +0.0026] is
 `bootstrap.pick_minus_teamfight` (2.5 % and 97.5 %, 1,000 match-level replicates), rounded in the table to
@@ -357,8 +365,8 @@ features (`docs/CLAUDE_TOG_PAPER_PLAN.md` §5 item 16) has not produced results 
 
 1. ~~v3.2~~ v3.3 결과 확정 완료. preset `v3.3`과 규칙 앵커 spec으로 재현 경로 고정(완료). 논문 초안 본문 수치를 0.670으로 갱신하고, 규모 차이는 채택 컷 `n_min ≥ 4`의 pick − teamfight
    −0.002 [−0.007, +0.003]와 컷별 값(`n_min ≥ 3 / 4 / 5`: +0.0108 [+0.0070, +0.0147] / −0.0019 [−0.0065, +0.0028] /
-   −0.0105 [−0.0170, −0.0041]; source in the §5.3 note)으로 적는다. *(2026-09-11, was: "0.670·규모 무관으로 갱신".
-   Cut values filled 2026-09-14.)*
+   −0.0105 [−0.0170, −0.0041]; 저장된 OOF 예측을 컷만 바꿔 재채점한 값, 산출물은 재검증 대상; source in the §5.3 note)으로 적는다.
+   *(2026-09-11, was: "0.670·규모 무관으로 갱신". Cut values filled 2026-09-14.)*
 2. 채널 절제 실험(고정 / 스냅숏 / 사건 / 지형; 단독·제외·누적) — 표현 감사의 본문 표.
 3. ~~심층 대조(FT-Transformer·SAINT·MLP·TabNet)~~ **완료** — §5.4 참조 (*was:* "9절 참조"). v3.3 행렬, 패치 홀드아웃. TabNet의 정규화 부호 수정 재실행은
    `\pending{tabnet_rerun}{TabNet test AUC on the v3.3 patch holdout with the sparsity term added to the loss}`.
