@@ -1019,7 +1019,11 @@ DRAGON_RULE_VERIFICATION: str = (
     "UNVERIFIED for patches 15.14-15.16: the wiki dates only the V26.01 change, not the value in force in "
     "15.14-15.16, and does not say whether the kill gold is paid to the killer alone or to every member of the "
     "killing team. DRAGON_RULE_TEAM_GOLD reads it as 25 g of team gold (killer only); the per-member reading "
-    "(5 x 25 = 125 g) is the variant market_event_dragon_rule_per_member."
+    "(5 x 25 = 125 g) is the variant market_event_dragon_rule_per_member. Supporting the killer-only reading "
+    "(re-checked 2026-09-14): the wiki's 'Baron Nashor' V26.01 entry separates 'kill gold' (25 -> 100) from "
+    "'global gold' (300 -> 150), and the fitted team price of Baron Nashor (1,555 g) is close to 5 x 300 + 25 = "
+    "1,525 g, i.e. global gold is paid to every member and kill gold once; the elemental drake carries kill gold "
+    "only. Still no dated source for 15.14-15.16."
 )
 # D / 2 for the v3.3 cluster diameter D = CLUSTER_MAX_DIAMETER = 4,264 u.  attribute_events uses D itself as the
 # disc RADIUS when LABEL_ATTRIBUTION_RADIUS_U is 0, so the half-radius disc is the disc whose diameter is D.
