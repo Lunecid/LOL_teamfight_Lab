@@ -1,0 +1,10 @@
+% Shared macros for the ToG manuscript.
+% \pending{key}{what is needed}: visible placeholder for a number or citation that does not exist yet.
+\newcommand{\pending}[2]{\textcolor{red}{[PENDING #1: #2]}}
+% \fwdref{label}: forward reference to a section whose file may not be written yet (for example
+% sec:label, sec:prediction, sec:limit).  Prints \ref{label} once the label is in the .aux file (from
+% the second LaTeX run on); until then it prints the visible placeholder \pending{ref}{label}, so a
+% missing section cannot ship as "??".  Added 2026-09-14 (item W2-background).
+\makeatletter
+\newcommand{\fwdref}[1]{\@ifundefined{r@#1}{\pending{ref}{#1}}{\ref{#1}}}
+\makeatother

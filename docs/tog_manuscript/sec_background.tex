@@ -1,0 +1,372 @@
+% =============================================================================
+% sec_background.tex -- Background and Terminology  (ToG manuscript, item W2-background)
+%
+% Answers CoG 2026 review R1 ("I found myself having to check for the definitions of the terms on
+% many occasions"; LoL background for less-informed readers; labelling explained) and R3 (a paper a
+% non-expert can follow).  Target: about one journal page (Table I plus short prose).
+%
+% Revision 2026-09-14 (this item).  The previous ~430-line draft was triaged: its rule statements were
+% kept where the cited page supports them; every \pending{cite} was replaced by keys of
+% docs/references/definition_refs.bib (references_audit.md sections 2a and 2c); the prose was cut to
+% what later sections need, and the subsection "Terms Introduced by This Paper" (label
+% sec:background-terms, cited by no other file) was folded into the last four rows of Table I.
+% A test build of main.tex (scratchpad copy, MiKTeX pdflatex + bibtex) found the draft table taller than
+% a page ("Float too large for page by 91.5pt"); rows were shortened and the group headings dropped.
+% Corrections made in triage:
+%   * "two teams of five" rested on the Summoner's Rift page, which gives no team size (audit N1); it
+%     now rests on the corpus (check C1 below) and the Match-V5 match record.
+%   * Bounty row: patch 25.14 slowed accrual of bounty from FARMING, not shutdown gold in general
+%     (audit N4; riot2025patch2514); the base bounty is dated to 25.09 (riot2025patch2509).
+%   * Scale classes: participation also counts the actors of nearby events, not only the kills'
+%     killers, victims and assisters (sec_definition.tex, subsection "Scale classes").
+%   * Label: prices come from one pooled regression table, not one per patch (gameplay/labels.py
+%     _event_price_table reads blob["pooled"]); ward kills carry no position and never enter the
+%     label (sec_definition.tex, sec:def-attribution); the window can end early at an ace.
+%   * Forward references to sections whose files do not exist yet (sec_label, sec_prediction,
+%     sec_limit) use \fwdref (macros.tex): \ref once the label exists, a visible \pending otherwise.
+%   * Movement speed (template-drawn, audit N3) and the stale "/History subpage" comment were dropped.
+% Fact-check fixes, 2026-09-14 (second pass of this item):
+%   * Atakhan row: "patches 25.S1.1 to 26.1" read as if Atakhan were in 26.1; now "until its removal in 26.1".
+%   * Drake row: permanence of the drake buff is on the Dragon Slayer page, so lolwiki2026dragonslayer joins
+%     the first citation.
+%   * The Data: plates, buildings and epic monsters also carry position and millisecond time (C3), so the
+%     claim is narrowed to champion kills as the only such record of combat between champions (C5).
+%   * Outcome label: the in-dead-zone tie-break counts plates with structures and monsters; drakes carry
+%     a fitted price of 0 in the pooled table; forward reference now reads "Sections X and Y".
+%   * Summoner's Rift row: no cited page places the dragon pit, so that half-clause left the cited
+%     sentence and rests on C5.  Team row: team 100 = blue is stated as an inference from base coordinates.
+%   * The Data paragraph no longer repeats the frame and event rows of Table I.
+%
+% Patch numbering relied on.  Riot's displayed patch 25.N is game version 15.N, the numbering of the
+%   Match-V5 gameVersion field.  Corpus: every match's CACHE/<id>.meta.json "patch" is 15.14, 15.15 or
+%   15.16 (D:/LOL_Project/cache/match_cache_fresh_v3_engage_status13_patch_index.json: 74,673 / 74,748 /
+%   60,579 ids); patch_full of KR_7715477686 is 15.14.695.3589.  Mapping evidence (bib section 10
+%   header, items a-d): riot2025patch25s11 (client shows the seasonal number); riot2025patch2514
+%   introduces Yunara; riot2025ddragon1514 has Yunara (key 804) at 15.14.1 and not at 15.13.1; Yunara in
+%   889 of 4,000 sampled 15.14 corpus matches (bib header item d, not re-run here).  25.15 = 15.15 and
+%   25.16 = 15.16 by succession.  Release months: wiki infoboxes lolwiki2026v2514 (July 16, 2025) and
+%   lolwiki2026v2516 (August 13, 2025); Riot published the notes a day earlier (audit N2), so the
+%   prose says only "July and August 2025".
+%
+% Patch-dating standard for Table I.  A rule is stated as the cited page gives it.  Where a page's patch
+%   history dates the value, the row names that patch.  For every rule in the table, Riot's notes for
+%   25.14, 25.15 and 25.16 list no change except the 25.14 bounty entry: whole-text searches of the three
+%   notes (plain HTTP, 2026-09-14; riot2025patch2514/2515/2516) for elder, respawn, death timer, nexus,
+%   inhibitor, ward(s), vision, sight, fog, stealth, herald, grub, atakhan, baron, soul, drake, dragon,
+%   plate, turret, tower, structure, objective, bounty, shutdown, experience, level 18, minion, super
+%   minion, jungle, camp, spawn, timer, fountain, credit, assist found only champion/item balance, bug
+%   fixes (25.14 turrets and jungle buffs; 25.15 Heimerdinger's turrets; 25.16 Voidgrub feat count,
+%   Voidgrub/Viego, Mel drake buffs), the ARAM map, the 25.14 "Champion Bounties" block, Spellbook Smite
+%   (25.14) and Baron Nashor's health (25.15 regeneration removed, 25.16 base health) -- neither of the
+%   last two is a rule in the table.  This is "no change listed", the standard used for R and B.
+%
+% Corpus checks (C1-C5), run 2026-09-14 by this item on CACHE = D:/LOL_Project/cache/
+%   match_cache_fresh_v3_engage_status13/.  Sample S900: rng = random.Random(20260914); for patch in
+%   ('15.14','15.15','15.16'): rng.sample(sorted(ids with that patch), 300)  (one rng, in that order).
+%   Sample P900: random.Random(20260914).sample(sorted(all 210,000 ids), 900).
+%   C1 teams: meta.json team_map of S900 -> team 100: 1,500 and team 200: 1,500 participant ids per
+%      patch (300 matches x 5).  Re-run on ALL 210,000 ids of the patch index: every team_map has ten
+%      entries, five with 100 and five with 200 ("matches 210000 not 5v5 0").
+%   C2 frames: npz minute_ts diffs of S900 (last, partial interval excluded): min 60,000 ms, median
+%      60,017-60,018 ms, max 60,171 ms (7,574 / 7,675 / 7,624 intervals).
+%   C3 positions and events: events.json of S900.  Keys "position" present on every CHAMPION_KILL,
+%      CHAMPION_SPECIAL_KILL, TURRET_PLATE_DESTROYED, BUILDING_KILL, ELITE_MONSTER_KILL and absent on every
+%      WARD_PLACED, WARD_KILL, ITEM_*, LEVEL_UP, SKILL_LEVEL_UP, FEAT_UPDATE, DRAGON_SOUL_GIVEN,
+%      OBJECTIVE_BOUNTY_*, CHAMPION_TRANSFORM, PAUSE_END, GAME_END.  Frame positions (npz xy_raw_minute,
+%      finite, 246,730 player-frames): x 69-14,633 u, y 135-14,725 u; event positions x 126-14,575 u,
+%      y 182-14,440 u; hence "within 0-14,800 u".  towerType values OUTER_TURRET, INNER_TURRET,
+%      BASE_TURRET, NEXUS_TURRET; buildingType TOWER_BUILDING, INHIBITOR_BUILDING; special killType
+%      KILL_ACE, KILL_MULTI, KILL_FIRST_BLOOD; DRAGON_SOUL_GIVEN names exactly the six elements.
+%   C4 objectives (S900, per patch 15.14 / 15.15 / 15.16): earliest ELITE_MONSTER_KILL of each type --
+%      DRAGON 5:36.8 / 5:21.6 / 5:24.3; HORDE (voidgrubs) 8:05.2 / 8:05.0 / 8:07.0; RIFTHERALD 15:17.9 /
+%      15:17.5 / 15:14.3; ATAKHAN 20:11.0 / 20:14.8 / 20:15.6; BARON_NASHOR 25:10.3 / 25:15.4 / 25:11.3;
+%      monsterSubType ELDER_DRAGON 30:38.3 / 28:51.6 / 30:37.1 -- none before the spawn time in Table I.
+%      ATAKHAN killed in 214 / 234 / 218 of 300 matches: Atakhan is in all three corpus patches.
+%      RIFTHERALD kills 257 / 268 / 248 in exactly as many matches (once per match); HORDE 897 / 892 /
+%      888 kills (about three per match).  Plates (P900): 10,230 TURRET_PLATE_DESTROYED events, every one
+%      at the config/game_rules/map_anchors.json OUTER_TURRET position of the event's own teamId (nearest
+%      anchor, distance 0 u); at most 5 per (match, team, lane); latest at 840,031 ms (14:00.03).
+%   C5 pits and special kills (S900, re-run 2026-09-14 after the fact-check, scratchpad bg_pits.py):
+%      ELITE_MONSTER_KILL positions -- DRAGON 2,871 kills and ELDER_DRAGON 26, all with x > y (south-east of
+%      the base-to-base diagonal; medians (9837, 4411) and (9837, 4417)); BARON_NASHOR 502, HORDE 2,677 and
+%      RIFTHERALD 773, all with x < y (north-west; Baron median (5007, 10471)); ATAKHAN 510 south-east and
+%      156 north-west.  Every one of 6,700 CHAMPION_SPECIAL_KILL events shares timestamp and killerId with
+%      a CHAMPION_KILL.  config/game_rules/map_anchors.json (medians over 2,000 matches, seed 7) agrees.
+%   Team 100 = blue: map_anchors.json puts team 100's nexus turrets at (2177, 1807) and (1748, 2270), near
+%      the origin, and its TOP_LANE outer turret at (981, 10441), so x grows east and y north and team
+%      100's base is the south-west one that lolwiki2025summonersrift gives to blue.  Baron anchor
+%      (5007, 10471) is north-west of centre, dragon anchor (9837, 4401) south-east.
+%   Scripts: session scratchpad (bg_check.py, notes_search.py, bg_pits.py); not in the repository.
+%
+% Wiki patch histories read by this item (WebFetch of api.php action=parse&oldid=<rev>, 2026-09-14):
+%   Nexus rev 3991087 section 7 (Patch History): entries "2025 Annual Cycle" (base armor), V12.6 and its
+%     hotfix (health); none concerns invulnerability.  Inhibitor rev 4047299 section 7: headings V12.6
+%     hotfix, V12.6, V7.15, V4.20, V3.14, V1.0.0.96; the 5-minute respawn line is the latest respawn entry.
+%   Death rev 4051174 and Elder Dragon rev 4002526 have no Patch History section (section lists read).
+%   Terminology rev 4057849 section 2 ("A"): entry Ace -- all champions of a team defeated at the same
+%     time, or killing the last living champion of the opposing team (paraphrase).  The bib note of
+%     lolwiki2026terminology names only the Teamfight entry (flagged to the bib owner).
+% Every other rule fact is from the evidence comment of its bib entry (references_audit.md section 3.10).
+% =============================================================================
+
+\section{Background and Terminology}\label{sec:background}
+
+For readers who do not play League of Legends (LoL), Table~\ref{tab:terms} defines every term the paper
+uses, and this section outlines the game and its match data.
+
+% -----------------------------------------------------------------------------
+% TABLE I.  One row per term group; citations sit in the row they support; source comments above rows.
+% -----------------------------------------------------------------------------
+\begin{table*}[!t]
+\centering
+\caption{Terms used here; game rules as of patches 25.14--25.16 (game versions 15.14--15.16). A patch
+named in a row dates that value; Riot's notes for these patches change no rule here unless stated.
+Match-V5 names in \texttt{typewriter}; the last four rows are our terms.}
+\label{tab:terms}
+\footnotesize
+\renewcommand{\arraystretch}{1.05}
+\setlength{\tabcolsep}{4pt}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.35cm}X@{}}
+\toprule
+\textbf{Term} & \textbf{Meaning} \\
+\midrule
+% lolwiki2025summonersrift: blue south-west, red north-east; three lanes along which minion waves
+%   advance; jungle holds the neutral monster camps; river between the other two corners.
+%   lolwiki2026baron: Baron pit in the top-side (north-west) river.  Neither cited page places the dragon
+%   pit (fact-check 2026-09-14; api.php parse of Dragon pit oldid 4000799 and Summoner's Rift oldid 3968911
+%   re-read: no location phrase), so the dragon-pit half rests on corpus check C5 and is stated as such.
+Summoner's Rift, lane, jungle, river &
+  The map: bases in opposite corners joined by three \emph{lanes}; the \emph{jungle} between them holds
+  neutral monster camps; the \emph{river} joins the other two corners, with the Baron pit in its north-west
+  half~\cite{lolwiki2025summonersrift,lolwiki2026baron}. Drake kills in the data place the dragon pit in
+  its south-east half. \\
+% Five per team: C1 and the ten participants of the match record.  Sides: lolwiki2025summonersrift.
+%   Team 100 = blue is a corpus inference from base coordinates (header note), not a Riot statement.
+%   lolwiki2026champion.  Roles: core/roles.py reads teamPosition (fallback individualPosition);
+%   core/config.py ROLE_ORDER = TOP, JUNGLE, MIDDLE, BOTTOM, UTILITY.
+Team, side, champion, role &
+  Five players per team, \emph{blue} based in the south-west and \emph{red} in the
+  north-east~\cite{lolwiki2025summonersrift}; base coordinates make blue team 100 in the data. Each player
+  controls a \emph{champion}, a character with its own abilities~\cite{lolwiki2026champion}, in a role:
+  top, jungle, middle, bottom or support. \\
+% C3 (coordinate ranges, 900 sampled matches); header note (orientation).
+Game unit (u) &
+  Unit of map coordinates $(x, y)$: blue base near the origin, $x$ east, $y$ north; in 900 sampled
+  matches every coordinate lies in 0--14,800\,u. \\
+\midrule
+% lolwiki2026minion: periodic waves from each Nexus along the lanes.  lolwiki2026farming (redirect Creep
+%   score): CS counts minions and monsters.  minionsKilled / jungleMinionsKilled: gameplay/pipeline_cache.py
+%   frame parsing; docs/FEATURES.md sec. 1.1 (laneCS, jgCS).
+Minion, creep score (CS) &
+  Minions are computer-controlled units that each Nexus sends down every lane in
+  waves~\cite{lolwiki2026minion}. CS counts the minions and neutral monsters a player has
+  killed~\cite{lolwiki2026farming}, reported as lane CS (\texttt{minionsKilled}) and jungle CS
+  (\texttt{jungleMinionsKilled}). \\
+% lolwiki2026gold (uses and sources).  lolwiki2026experience: a champion's death shares XP with enemy
+%   champions within 1,600 u (no range entry in its history), level cap 18.  R = 1,600 u:
+%   D:/LOL_Project/fusion_2615/corpus_shards_v33/manifest.json detector.TF2_VALIDITY_RADIUS 1600.0.
+Gold, experience (XP), level &
+  Gold, earned passively and by killing minions, monsters, champions, plates and structures, buys
+  items~\cite{lolwiki2026gold}. XP from a champion's death goes to enemy champions within 1,600\,u (our
+  constant $R$); XP raises a champion's level, up to 18~\cite{lolwiki2026experience}. \\
+% lolwiki2026kill: final blow; credit window 15 s on Summoner's Rift, no patch entry.  lolwiki2026assist:
+%   15 s, no patch history.  B = 15 s: manifest.json TF2_ENGAGE_PRE_KILL_MS 15000.  lolwiki2026terminology
+%   rev 4057849 section A, entry Ace (header note).  CHAMPION_KILL keys killerId, victimId,
+%   assistingParticipantIds, position, bounty, shutdownBounty, victimDamageDealt/Received:
+%   CACHE/KR_7715477686.events.json; KILL_ACE: C3.
+Kill, assist, ace &
+  A \emph{kill} brings an enemy champion's health to zero (\texttt{CHAMPION\_KILL}: killer, victim,
+  assisters, position). An \emph{assist} credits an ally that affected the victim in its last
+  15\,s~\cite{lolwiki2026kill,lolwiki2026assist}, our constant $B$. An \emph{ace} leaves every champion
+  of one team dead~\cite{lolwiki2026terminology} (\texttt{KILL\_ACE}). \\
+% lolwiki2026death: respawn at the fountain; base wait 10 s (level 1) to 52.5 s (level 18); longer after
+%   15 minutes.  No patch-history section on the page (header note); no change listed in 25.14-25.16.
+Death timer &
+  A killed champion is out of play until it respawns in its base: 10\,s at level 1 to 52.5\,s at level
+  18, and longer after 15\,min of play~\cite{lolwiki2026death}. \\
+% lolwiki2026bounties + riot2025patch2509: 300 g at levels 1-6, +10 g per level from 7 to 18, max 420 g
+%   (set in 25.09; no base change in the 25.10-25.16 notes).  Shutdown gold accrues from kills, assists and
+%   farming.  riot2025patch2514 / lolwiki2026v2514: bounty from farming 1 per 17.5 g -> 1 per 20 g,
+%   suppression thresholds 25 % wider.  Corpus: 300 is the most frequent CHAMPION_KILL bounty in S900
+%   (2,760 / 2,764 / 2,742 kills per patch).  Label use: gameplay/labels.py _compute_label_market_event.
+Bounty, shutdown gold &
+  Gold for a champion kill: a base of 300 at levels 1--6, rising to 420 at level 18 (since 25.09), plus the
+  shutdown gold the victim accrued from kills, assists and, more slowly since 25.14,
+  farming~\cite{lolwiki2026bounties,riot2025patch2509,riot2025patch2514}; kill events record both
+  (\texttt{bounty}, \texttt{shutdownBounty}). \\
+\midrule
+% lolwiki2026turret: 6 outer, 6 inner, 6 inhibitor and 4 nexus turrets, eleven per team.
+%   riot2026patch261: before 26.1 plates were on outer turrets only and fell off at 14 minutes (local gold
+%   250 + 5 plates x 125 = the notes' before-value "maximum local gold 875"); 26.1 made plates permanent
+%   and gave inner and inhibitor turrets plates.  Plate gold 125 set in V13.20 (lolwiki2026turret, audit
+%   N8).  Corpus: C3 (towerType), C4 (plates only at outer turrets, <= 5 per lane, none after 14:00.03).
+Turret, plating &
+  Each team has an outer, an inner and an inhibitor turret (\texttt{BASE\_TURRET}) in every lane and two
+  nexus turrets. In these patches only outer turrets had \emph{plating}: five plates paying gold when
+  destroyed (\texttt{TURRET\_PLATE\_DESTROYED}) and falling off at
+  14:00~\cite{lolwiki2026turret,riot2026patch261}. \\
+% lolwiki2026inhibitor: enemy Nexus adds super minions to that lane; respawn 5 minutes, dated V4.20, no
+%   later respawn entry (header note).  Position behind the inhibitor turret: map_anchors.json (team 100
+%   bottom inhibitor (3468, 1230), bottom BASE_TURRET (4281, 1253)).  lolwiki2026nexus: win condition;
+%   spawns minions; invulnerable while all three allied inhibitors or at least one nexus turret stand;
+%   no patch entry on that rule (header note).
+Inhibitor, Nexus &
+  An \emph{inhibitor} stands behind each inhibitor turret; for the 5\,min until it respawns, enemy waves
+  in its lane include super minions~\cite{lolwiki2026inhibitor}. Destroying the enemy \emph{Nexus} wins
+  the match; it is vulnerable only once its two nexus turrets and at least one of its inhibitors are
+  down~\cite{lolwiki2026nexus}. \\
+\midrule
+% lolwiki2026dragonpit: first drake 5:00, next 5 min after a kill; six elements; fourth drake grants the
+%   Dragon Soul; slaying a drake awards the Dragon Slayer buff of its element; 2025 history entries are
+%   fixes (audit N9).  Permanence and whole-team recipient: lolwiki2026dragonslayer (oldid 4056301, section 0
+%   wikitext read by the fact-check and re-read by this item, WebFetch 2026-09-14: the buffs are permanent
+%   and go to the killer's whole team; its bib evidence comment does not yet record this -- flagged).
+%   lolwiki2026elderdragon: spawns after a team's fourth drake; respawn 6:00; buff for 150 s.
+%   lolwiki2026dragonslayer (redirect Aspect of the Dragon): burn; execute below 20 % of maximum health;
+%   2025 history V25.S1.3 (soul values) only.  Events: C3/C4.
+Elemental dragon (drake), Dragon Soul, Elder Dragon &
+  A drake of one of six elements spawns in the dragon pit at 5:00 and 5\,min after each kill, and gives
+  the killing team a permanent buff of its element; a team's fourth drake also grants the \emph{Dragon Soul}
+  (\texttt{DRAGON\_SOUL\_GIVEN})~\cite{lolwiki2026dragonpit,lolwiki2026dragonslayer}. The \emph{Elder
+  Dragon} then spawns, and again 6\,min after each kill; its 150\,s buff burns enemies and executes enemy champions below 20\,\% of
+  maximum health~\cite{lolwiki2026elderdragon,lolwiki2026dragonslayer}. \\
+% lolwiki2026voidgrub (redirect Voidgrub) and lolwiki2026v2509: three grubs once at 8:00 (V25.09: from 6:00,
+%   no respawn); stacks of Touch of the Void make enemy structures burn.  lolwiki2026riftherald: once at
+%   15:00 (V25.09: from 16:00) in the Baron pit; Eye of the Herald summons the Herald against turrets.  C4.
+Voidgrubs, Rift Herald &
+  Both spawn once in the Baron pit, at times set in 25.09: three \emph{voidgrubs} at 8:00
+  (\texttt{HORDE}), whose buff burns enemy structures, and the \emph{Rift Herald} at 15:00
+  (\texttt{RIFTHERALD}), which drops an item that summons it to charge enemy
+  turrets~\cite{lolwiki2026voidgrub,lolwiki2026riftherald,lolwiki2026v2509}. \\
+% lolwiki2026atakhan: added V25.S1.1, removed V26.01; 20:00 in the top or bottom half of the river, the
+%   half with more champion combat by 14:00; lasting team buff.  riot2026patch261 (removed).  "At the end
+%   of the river": oldid 3982741 section 0 wikitext (WebFetch 2026-09-14) says it can spawn at either end of
+%   the river, the end chosen by combat in the top versus bottom half by 14 minutes.  Corpus C4: killed in
+%   214 / 234 / 218 of 300 sampled matches per patch; C5: 510 kills south-east, 156 north-west.
+Atakhan &
+  An epic monster from patch 25.S1.1 until its removal in 26.1, so present in all three patches studied.
+  It spawns at 20:00 at the end of the river in the half of the map that saw more champion combat by
+  14:00, and gives the killing team a lasting buff~\cite{lolwiki2026atakhan,riot2026patch261}. \\
+% lolwiki2026baron: respawn 6:00; Hand of Baron 180 s with Empowered Recall and a minion aura; initial
+%   spawn 25:00 from V25.S1.1 (from 20:00) to V26.01 (back to 20:00); 25.15 / 25.16 changed only health.
+Baron Nashor &
+  Spawns in the Baron pit at 25:00 in these patches (20:00 before 25.S1.1 and from 26.1) and 6\,min after
+  each kill; its 180\,s buff strengthens nearby allied minions and speeds the return to
+  base~\cite{lolwiki2026baron}. \\
+\midrule
+% lolwiki2026sight: fog of war; sight radius 1,350 u for champions, 900 u for wards; the page's only patch
+%   entry (V13.22) does not change either radius.  lolwiki2025ward: wards remove fog around them; stealth wards
+%   stealthed after placement; control ward visible, reveals and disables enemy wards, one placed per player;
+%   2025 history V25.S1.1 (two ward skins) only.  Events: C3 (no position).
+Vision, ward, control ward &
+  A team sees only what its units see, a champion 1,350\,u around it; the rest is under the \emph{fog of
+  war}. A \emph{ward}, invisible to enemies, reveals 900\,u; a \emph{control ward} is visible, reveals and disables enemy
+  wards, one per player~\cite{lolwiki2026sight,lolwiki2025ward} (\texttt{WARD\_PLACED},
+  \texttt{WARD\_KILL}). \\
+\midrule
+% riotapi2024matchv5 (MatchDto); C1.  riotapi2024timeline: the page (WebFetch 2026-09-14) documents
+%   InfoTimeLineDto.frameInterval and .frames, FramesTimeLineDto.participantFrames, .events and
+%   .timestamp, but states no interval value; the 60 s comes from the corpus (C2).  Frame fields:
+%   gameplay/pipeline_cache.py (position, level, xp, currentGold, totalGold, minionsKilled,
+%   jungleMinionsKilled, championStats, damageStats); docs/FEATURES.md secs. 1.1, 1.4, 1.5.
+Match-V5 match record, frames &
+  The match record lists the ten participants (champion, team, role) and the
+  result~\cite{riotapi2024matchv5}. The timeline~\cite{riotapi2024timeline} has a \emph{participant frame}
+  about every 60\,s (60.00--60.17\,s in the corpus) with each player's position, level, XP, gold, CS, champion
+  statistics and damage totals. \\
+% C3 (event types, positions).  None of the corpus event types is a movement, ability or damage event;
+%   CHAMPION_KILL carries victimDamageDealt / victimDamageReceived.
+Match-V5 events &
+  Millisecond-timestamped records of kills, aces, plates, structures, epic monsters, Dragon Souls, wards,
+  items and level-ups. Only kill, plate, structure and monster events have a position; none records
+  movement or damage, except a summary of each kill victim's damage. \\
+\midrule
+% manifest.json detector {TF2_KILL_CLUSTER_GAP_MS 13700, CLUSTER_MAX_DIAMETER 4264.0, TF2_VALIDITY_RADIUS
+%   1600.0, TF2_ENGAGE_PRE_KILL_MS 15000}; estimates 13.7246 s and 4,263.87 u, M = 2 and the gate wording:
+%   sec_definition.tex (subsections on G, D, and R, B, M).
+Engagement &
+  Kills at most $G = 13.7$\,s apart, chained and split so no two are over $D = 4{,}264$\,u apart; kept if
+  at the cutoff at least $M = 2$ living champions per team stand within $R = 1{,}600$\,u of the first kill
+  (Section~\ref{sec:definition}). Kill-less fights are not engagements (Section~\ref{sec:def-killless}). \\
+% manifest.json scale {pick_max 1, skirmish_min 2, teamfight_min 4}; participation: sec_definition.tex
+%   subsection "Scale classes" (gameplay/fights.py _collect_interactions_in_radius).  Community sense:
+%   lolwiki2026terminology, entry Teamfight (several champions, possibly whole teams, fighting in one place).
+Pick, skirmish, teamfight &
+  Scale classes by $n_{\min}$, the smaller side's number of participating champions (kill participants
+  and actors of nearby events): $\leq 1$, 2--3, $\geq 4$. Known only afterwards, scale is used for
+  reporting, never as an input (Section~\ref{sec:definition}); players use \emph{teamfight}
+  loosely~\cite{lolwiki2026terminology}. \\
+% tau = first kill - B (manifest.json TF2_ENGAGE_PRE_KILL_MS 15000); observation window 30 s in six 5 s
+%   bins (core/config.py FIGHT_CONTEXT_SEC 30, BIN_MS 5000; sec_learners.tex sec:learners-input).
+%   Retrospective placement: sec_limitations.tex, "Instances are also constructed retrospectively"
+%   (label subsec:limitations).
+Prediction cutoff $\tau$ &
+  $B = 15$\,s before the first kill; inputs use only data up to $\tau$, from the 30\,s \emph{observation
+  window} ending there (Section~\ref{sec:learners-input}). As $\tau$ is placed from a kill still to come,
+  models predict who wins an imminent engagement, not whether one occurs (Section~\ref{subsec:limitations}). \\
+% gameplay/labels.py _compute_label_market_event: swing = sum of sign x (bounty + shutdownBounty +
+%   price[kills] + price[assists] x n_assists) over kills and sign x pooled price over other events;
+%   |swing| > 300 decides; else _lex_refine: kills between first and last kill -> champions alive at the
+%   last kill -> net sign of plate, structure and monster events (TURRET_PLATE_DESTROYED, BUILDING_KILL,
+%   ELITE_MONSTER_KILL) -> tie.  Pooled prices: kills 20, assists 45 (per assist, beyond the bounty),
+%   plates 120, turrets 185-730, inhibitor 85, dragon 0.0, elder_dragon 1390, baron_nashor 1555,
+%   riftherald 170, horde 40, atakhan 240 (unit: "regression-estimated average team gold per event").
+%   Window [tau, max(last kill + 1 ms, tau + 35 s)),
+%   clipped at an ace (gameplay/fights.py label_window_end_ts, _truncate_fights_at_ace); events within D
+%   of the first kill, position-less events dropped (sec_definition.tex sec:def-attribution).  Sign +1
+%   for team 100 (_label_event_team_sign).  Ties: manifest.json label.extra_tie_policy "drop"; draws
+%   excluded from learner evaluation (sec_learners.tex sec:learners-input).  Prices:
+%   config/game_rules/event_prices.json "pooled".
+Outcome label &
+  1 if blue wins (\texttt{market\_event}): the net gold each side takes, with kills at their recorded
+  bounty and shutdown gold plus regression prices for kills, assists, plates, structures and epic
+  monsters (a drake's fitted price is 0), over events within $D$ of the first kill from $\tau$
+  to the later of the last kill and $\tau + 35$\,s, or an earlier ace. Within 300 gold of even, kills,
+  then champions alive, then plates, structures and monsters decide; ties are excluded
+  (Sections~\fwdref{sec:label} and~\ref{sec:def-attribution}). \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+% -----------------------------------------------------------------------------
+\subsection{The Game and Its Patches}\label{sec:background-game}
+% -----------------------------------------------------------------------------
+
+% Five per team: C1.  lolwiki2026nexus (win condition); lolwiki2026gold, lolwiki2026experience;
+%   lolwiki2026kill (bounty to the killer), lolwiki2026death.  Scoreboard reference: sec_learners.tex
+%   paragraph "Scoreboard reference" (label sec:learners-ladder).
+Two teams of five players meet on Summoner's Rift, and a team wins by destroying the enemy
+Nexus~\cite{lolwiki2026nexus}. Champions grow stronger with gold and experience, so a team that leads
+in both tends to field stronger champions~\cite{lolwiki2026gold,lolwiki2026experience}; that lead is the
+reference every learner in this paper must beat (Section~\ref{sec:learners-ladder}). A kill pays the
+killing side and leaves the victim's team a player short until the death timer
+ends~\cite{lolwiki2026kill,lolwiki2026death}, while structures and epic monsters reward the team that
+takes them, so the outcome label values an engagement by everything each side takes.
+
+% Mapping and dates: header note "Patch numbering relied on".
+Riot Games changes the rules in \emph{patches}. The corpus covers three, numbered 15.14--15.16 in the
+Match-V5 \texttt{gameVersion} field and 25.14--25.16 in Riot's notes (July and August
+2025~\cite{lolwiki2026v2514,lolwiki2026v2516}): since 25.S1.1 the client shows year-based
+numbers~\cite{riot2025patch25s11}, and Yunara, introduced in 25.14~\cite{riot2025patch2514}, first
+appears in Riot's data at version 15.14.1~\cite{riot2025ddragon1514}. Patch 26.1 (January 2026)
+removed Atakhan and made plates permanent~\cite{riot2026patch261}, so the current game differs from
+Table~\ref{tab:terms}.
+
+% -----------------------------------------------------------------------------
+\subsection{The Data}\label{sec:background-data}
+% -----------------------------------------------------------------------------
+
+% Frames ~60 s: C2.  Events, positions, no damage or movement events: C3.  How old the last frame is at
+%   the cutoff is measured in sec_limitations.tex ("What the inputs observe"); not repeated here.
+%   "Champion kills ... between champions": fact-check 2026-09-14 -- plate, building and elite-monster
+%   events also carry a position and a millisecond timestamp (C3), but none records champion-versus-
+%   champion combat; CHAMPION_SPECIAL_KILL (ace, multikill, first blood) carries a position too but, in C5,
+%   always shares timestamp and killer with a CHAMPION_KILL (6,700 of 6,700).
+Match-V5 timelines hold two streams of different resolution~\cite{riotapi2024timeline}: participant
+frames about once a minute and events to the millisecond (Table~\ref{tab:terms}). What the events
+record is therefore known exactly, but where the champions stand and how strong they are is known only
+as of the last frame, which may be almost a minute old
+(Section~\ref{subsec:limitations}). Champion kills are the only record of combat between champions that
+is both timestamped to the millisecond and placed on the map. Section~\ref{sec:definition} therefore
+builds engagements from kills, and fights in which nobody dies lie outside what it can detect
+(Section~\ref{sec:def-killless}).
