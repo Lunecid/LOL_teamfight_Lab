@@ -7,7 +7,7 @@ regenerable = safe to delete, one command rebuilds it.
 
 | corpus | location | content | status |
 |---|---|---|---|
-| Main (15.14-15.16) | `D:/LOL_Project/cache/match_cache_fresh_v3_engage_status13` | 205,884 matches, SOLE COPY (raw no longer exists) | canonical - BACK UP |
+| Main (15.14-15.16) | `D:/LOL_Project/cache/match_cache_fresh_v3_engage_status13` | 210,000 matches (210,000 each of `*.meta.json`, `*.events.json`, `*.npz`; patch index `match_cache_fresh_v3_engage_status13_patch_index.json`: 15.14 74,673 / 15.15 74,748 / 15.16 60,579; counted 2026-09-14), SOLE COPY (raw no longer exists). *(was: 205,884, which is `n_matches` of the superseded `features/scale_decomposition.json`, the matches holding at least one v2 engagement, not the cache size.)* | canonical - BACK UP |
 | Replication (16.13+16.15) | `D:/LOL_Project/fusion_2615/cache/match_cache_fresh_v3_engage_status13` | 10,612+ matches cached from `data/raw/2026_current/kr` (raw retained) | canonical |
 | Replays 16.15 | `D:/LOL_Project/data/replays/2026_current/kr/rofl` | 1,053 ROFL (vision axis, playable only on 16.15) | frozen asset |
 | Vision windows | `D:/LOL_Project/fusion_2615/vision_windows` | 1,333 pre-fight capture windows | frozen asset |
@@ -67,7 +67,7 @@ Regenerable: the three `*.matrix.npy` memmaps (~10.6 GB each) are rebuilt by the
 
 | file | what | how |
 |---|---|---|
-| `corpus_shards_v33/shard_*.npz` (+`manifest.json`, `feature_names.json`, `build.log`) | 566,452 engagements x 7,106 features on the common population; labels `y_market_event`, `y_market_event@window`, `y_market_lex`, `y_market_lex@window`, `y_attention_value_win` (-1 = draw) | `scripts/build_corpus_v3.py` (preset v3.3, 32 shards) |
+| `corpus_shards_v33/shard_*.npz` (+`manifest.json`, `feature_names.json`, `build.log`) | 566,452 engagements x 7,106 features on the common population; six int8 label arrays: `y` (row label `market_event` with draws broken at random, manifest `label.row_tie_policy` "random", no -1) and `y_market_event`, `y_market_event@window`, `y_market_lex`, `y_market_lex@window`, `y_attention_value_win` (manifest `label.extra_labels`, `extra_tie_policy` "drop": -1 = draw); `y` equals `y_market_event` wherever the latter is not -1 (checked on all 32 shards, 566,452 rows, 2026-09-14). Other arrays: `X`, `groups`, `patch`, `engage_ts`, `cluster_blue`, `cluster_red`, `present_blue`, `present_red`. *(Label list corrected 2026-09-14: `y` was missing.)* | `scripts/build_corpus_v3.py` (preset v3.3, 32 shards) |
 | `features/scale_decomposition_v33_market_event.json` (+preds, matrix) | headline: .670, pick .679 / skirmish .663 / teamfight .681 | `run_scale_decomposition.py --y-key y_market_event --teamfight-min 4` |
 | `features/scale_decomposition_v33_{market_event_cat,market_event_window,market_lex,market_lex_window,attention_value_win}.json` | variants: .661 / .669 / .694 / .693 / .624 | `--categorical`, `--y-key ...` |
 | `features/leak_ablation_v33.json` | same label, leak flags toggled on 5,000 matches: clean .620 -> time_norm leak .639 (teamfight .642 -> .691) | `scripts/run_leak_ablation.py` |

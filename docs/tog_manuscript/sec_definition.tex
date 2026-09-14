@@ -12,9 +12,12 @@
 %   sec:learners-window.  sec_label.tex and sec_prediction.tex are not written, so their references use
 %   \fwdref{...} (macros.tex), which prints \pending{ref}{...} until the label exists.
 % \pending keys used here (underscores escaped for text mode): gxd_sweep, presence_gate_v33, attr_radius,
-%   window, labels, killless_char.  scale_cut is NOT pending: the A6 artefact matches (see scale classes).
-% killless_char stays pending although REV/A5-killless/{freq,char}_*_20k.json exist (queue markers .ok,
-%   2026-09-14 10:00-10:46): the orchestrator has not confirmed A5 as final and there is no char_t4 ktoff run.
+%   window, labels.  scale_cut is NOT pending: the A6 artefact matches (see scale classes).
+% killless_char was filled on 2026-09-14 (item F1-cross-file-fixes) from REV/A5-killless/{freq,char}_*_20k.json,
+%   listed by the orchestrator as finished.  There is no char_t4 frame-only (ktoff) run, so the four-per-side
+%   characterization is quoted on the kill-adjusted track only (subsection sec:def-killless says so).
+% Item F1 (2026-09-14) also corrected the withdrawn scale claim's attribution in the validity summary: the
+%   CoG text has no scale classes; the claim came from the post-conference analyses (v0.2 draft, corpus v3).
 % Retracted claims (docs/CLAUDE_TOG_PAPER_PLAN.md section 4) appear only as retractions.
 % Shorthand in comments: FEAT = D:/LOL_Project/fusion_2615/features; SHARDS = D:/LOL_Project/fusion_2615/corpus_shards_v33;
 %   REV = FEAT/tog_revision; FB = config/fight_boundary (repository).
@@ -521,6 +524,10 @@ Engagements on which the label finds no winner are dropped: 33,905 of 566,452. \
 %   gameplay/labels.py _apply_price_table_variant() returns the table unchanged when scale == 1.0 and no overrides; variants
 %   market_event_prices_x0.5 / market_event_prices_x2 (NONKILL_SCALE) and market_event_dragon_rule (OVERRIDES {"dragon": DRAGON_RULE_TEAM_GOLD})
 %   in LABEL_VARIANTS, all required=True; results: REV/A2-label-family (A2_label_family_v33_full still .running on 2026-09-14)
+% note (rule values, item F1 2026-09-14): this section prints no turret, plate or drake rule value.  The "game's rule" of the dragon
+%   variant is gameplay/labels.py DRAGON_RULE_TEAM_GOLD 25.0 g, the elemental-drake kill gold in force before patch 26.1 (set in the
+%   V9.23 hotfix, raised to 75 in V26.01; Riot's 26.1 notes "Kill gold: 25 => 75"; no drake gold change in the 25.14-25.16 notes),
+%   i.e. the 15.14-15.16 value at the "no change listed" standard (references_audit.md N9; rule_constants_evidence.md section 4).
 % src (rows "Re-engagement merge and gap", "Duration cap", "Start and end exclusion", "Context guard"): gameplay/fights.py detect_fights_teamfight_v2
 %   guards (engage_ts - ctx_ms < t_min; engage_ts - t_min < START_OFFSET_MIN; engage_ts + horizon_ms > t_max;
 %   fight_end_ts - engage_ts > max_merged_fight_duration_ms) and _merge_adjacent_candidates() (gap <= max_gap_ms, centroid distance
@@ -556,16 +563,18 @@ kills~\cite{schubert2016encounter}.
 We scanned the 5\,s position grid of 20,000 matches, sampled with a fixed seed from the 210,000 cached
 matches of patches 15.14--15.16, for \emph{proximity encounters}: runs of consecutive grid points at which
 some alive champion has at least $k$ alive champions of each team, itself included, within
-$R = 1{,}600$\,u of its position. An encounter counts as kill-less when no champion kill falls inside the
-run or within $B = 15$\,s of either end. With $k = 4$, the teamfight threshold, 591 of 19,155 encounters
-(3.09\%) were kill-less when a run had to hold for at least three consecutive grid points, the scanner's
-rounding of a minimum duration of $G = 13.7$\,s, and 351 of 12,602 (2.79\%) at four points, its rounding of
-20\,s. These are 0.030 and 0.018 kill-less
-encounters per scanned match; the labelled corpus has 0.572 teamfight-class engagements per match. With
+$R = 1{,}600$\,u of its position. An encounter counts as kill-less when no champion kill, anywhere on the
+map, falls inside the run or within $B = 15$\,s of either end. With $k = 4$, the teamfight threshold, 591
+of 19,155 encounters (3.09\%) were kill-less when a run had to hold for at least three consecutive grid
+points, the scanner's rounding of a minimum duration of $G = 13.7$\,s, and 351 of 12,602 (2.79\%) at four
+points, its rounding of 20\,s. These are 0.030 and 0.018 kill-less encounters per scanned match. On the
+same 20,000 matches the labelled corpus holds 0.529 teamfight-class engagements per match; the rate per
+corpus match, 0.572, is higher because 1,665 of the scanned matches have no labelled engagement. With
 $k = 2$ and three grid points, 16,756 of 210,738 encounters (7.95\%) were kill-less, 0.838 per scanned
-match. The other six gates of the grid set the radius to 1,200 or 2,000\,u, set $k$ to 3 at either
-minimum duration or to 2 at 20\,s, or shorten the kill margin to 10\,s. Across all gates with $k \geq 3$
-the kill-less share lies between 2.0\% and 4.3\%; the two gates with $k = 2$ give 6.8\% and 8.0\%.
+match, against 2.538 labelled engagements per scanned match. The other six gates of the grid set the
+radius to 1,200 or 2,000\,u, set $k$ to 3 at either minimum duration or to 2 at 20\,s, or shorten the kill
+margin to 10\,s. Across all gates with $k \geq 3$ the kill-less share lies between 2.0\% and 4.3\%; the two
+gates with $k = 2$ give 6.8\% and 8.0\%.
 % src: REV/killless_grid/summary.json (written 2026-09-11 11:25:37, git_commit 5600f8b, seed 7, 20,000 matches per row, grace_ms 15000):
 %   rows[setting r1600_t4_dG_g15] min_duration_s 13.7, encounters 19155, killless 591, killless_share_of_encounters 0.030854, killless_per_match 0.02955;
 %   rows[setting r1600_t4_d20_g15] encounters 12602, killless 351, share 0.027853, killless_per_match 0.01755;
@@ -574,24 +583,47 @@ the kill-less share lies between 2.0\% and 4.3\%; the two gates with $k = 2$ giv
 % src: same file, all nine rows, killless_share_of_encounters (re-read 2026-09-14): k >= 3 rows r1200_t4_dG_g15 0.020003, r1600_t3_d20_g15 0.032722,
 %   r1600_t3_dG_g15 0.039922, r1600_t4_d20_g15 0.027853, r1600_t4_dG_g10 0.043435, r1600_t4_dG_g15 0.030854, r2000_t4_dG_g15 0.034711
 %   -> min 2.00 %, max 4.34 %; k = 2 rows r1600_t2_d20_g15 0.067818, r1600_t2_dG_g15 0.079511.
-% note (denominators): encounter rates are per scanned cache match (20,000); 0.572 is per corpus match.  The two sets differ: the
-%   unconfirmed A5 run (REV/A5-killless/freq_t4_dG_g15_20k.json corpus_comparison.same_sample_corpus) finds 18,335 of the 20,000
-%   scanned matches in the corpus and 0.5291 teamfight-class engagements per scanned match.  Not printed until A5 is confirmed.
+% note (denominators): encounter rates are per scanned cache match (20,000); 0.572 is per corpus match.
+% src: REV/A5-killless/freq_t4_dG_g15_20k.json (scripts/run_killless_v33.py, started 2026-09-14 09:46, seed 7, 20,000 matches,
+%   n_failed 0; grid_reproduction.status "reproduced" against r1600_t4_dG_g15): corpus_comparison.same_sample_corpus matches_in_corpus
+%   18335, n_teamfight_class 10582, teamfight_class_per_match 0.5291, engagements_per_match 2.5383 (50,766 / 20,000);
+%   published_corpus.teamfight_class_per_match 0.572205.  cmd: 20000 - 18335 = 1665.  Deviation 4 of that file: the corpus keeps only
+%   matches with >= 1 labelled engagement.  freq_t2_dG_g15_20k.json has the same same_sample_corpus block (engagements_per_match 2.5383).
+% src: freq_t4_dG_g15_20k.json gate.kill_test "has_kill = any CHAMPION_KILL anywhere on the map with start_ms - grace_ms <= t <=
+%   end_ms + grace_ms" (deviation 5: stricter than "no kill inside the encounter").
 % src: scripts/run_killless_encounters.py encounters_for_match(): every alive champion is tried as the anchor and counts for its own team;
 %   min_frames = max(1, round(min_duration_s * 1000 / 5000)): 13.7 s -> 3, 20 s -> 4; has_kill = any kill in [t0 - grace_ms, t1 + grace_ms];
 %   main(): sample = sorted(random.Random(seed).sample(sorted CACHE_DIR ids, n)); CACHE_DIR = D:/LOL_Project/cache/match_cache_fresh_v3_engage_status13
 %   (210,000 *.meta.json, counted 2026-09-14; patch index values 15.14 / 15.15 / 15.16 only).
+These shares depend on how positions between frames are drawn. The grid used above moves every kill's
+participants towards the kill position, which assembles encounters around kills that interpolation
+between frames a minute apart would not; kill-less encounters receive no such adjustment. Re-scanning
+the same 20,000 matches on frame-only positions leaves the number of kill-less encounters at $k = 4$
+almost unchanged (598 against 591) but finds about a third fewer encounters with a kill (12,561 against
+18,564), so the kill-less share rises to 4.54\% (95\% CI 4.17--4.91\%, against 2.84--3.35\% on the
+adjusted grid; paired difference $+1.46$ percentage points, 95\% CI $+1.25$ to $+1.67$). At $k = 2$ it rises
+from 7.95\% to 12.54\% (21,316 of 170,020). The intervals come from a bootstrap over matches with 1,000
+replicates. We therefore quote each share as a range over the two position tracks: 3.1--4.5\% of
+proximity encounters at four champions per side and 8.0--12.5\% at two.
+% src: REV/A5-killless/freq_t4_dG_g15_20k.json track_sensitivity (--track-sensitivity: same matches on both tracks):
+%   kill-adjusted encounters 19155, killless 591, with_kill 18564, killless_share_of_encounters 0.030854, killless_share_ci
+%   [0.028373, 0.033516]; frame-only encounters 13159, killless 598, with_kill 12561, killless_share_of_encounters 0.045444,
+%   killless_share_ci [0.041713, 0.049128]; frame_only_minus_kill_adjusted.killless_share_of_encounters diff 0.014591, ci95
+%   [0.012455, 0.016726]; n_boot 1000, bootstrap resamples scanned matches (deviation 8).  The separate frame-only scan
+%   freq_t4_dG_g15_ktoff_20k.json (--kill-trajectory-interp off) gives the same 598 / 13159, CI [0.041713, 0.049128].
+%   cmd: 12561 / 18564 = 0.677 (32 % fewer).
+% src: REV/A5-killless/freq_t2_dG_g15_20k.json track_sensitivity: kill-adjusted 16756 / 210738 = 0.079511; frame-only 21316 / 170020
+%   = 0.125373 (ci [0.123866, 0.126894]); same values in freq_t2_dG_g15_ktoff_20k.json denominator.
+% cmd: ranges 0.030854 -> 3.1 %, 0.045444 -> 4.5 %; 0.079511 -> 8.0 %, 0.125373 -> 12.5 %.
 Three cautions govern these numbers. Their denominator is proximity encounters, not engagements.
 Proximity is not commitment: champions near one another need not be fighting, so the per-match rates are
-not a count of the fights the corpus omits and cannot be divided into engagement counts. And the grid
-does not locate the two kinds of encounter equally well: it moves every kill's participants towards the
-kill position, whereas champions in a kill-less encounter keep positions interpolated between frames a
-minute apart, so the share is not a bound in either direction.
+not a count of the fights the corpus omits and cannot be divided into engagement counts. And neither
+track observes a fight between frames: the frame-only track places every champion on a straight line
+between positions a minute apart, and on both tracks a champion counts as alive if it was alive at the
+last frame, so neither share bounds the omitted fights in either direction.
 % src: summary.json denominator_warning; gameplay/fight_clustering.py build_5s_position_grid() (TF2_USE_KILL_TRAJECTORY_INTERP True,
-%   not overridden by the grid commands in summary.json)
-How the kill-adjusted positions move the share, and whether a kill-less encounter contains any event
-that the label prices:
-\pending{killless\_char}{share of kill-less encounters (k = 4 and k = 2, three grid points) holding an event the market label prices, the tier that would decide them, and the frequency re-scanned on frame-only positions}.
+%   not overridden by the grid commands in summary.json); freq_t4_dG_g15_20k.json gate.alive_rule "alive flag of the last minute
+%   frame at or before the 5 s grid timestamp" (deviation 1: up to 59 s stale, both kinds of encounter).
 
 \emph{Measurability.} Detection is only half of the problem, because a fight can be won without a kill.
 Even if a kill-less fight were found, the label could not score it. The label's window starts at $\tau$,
@@ -606,9 +638,47 @@ exchange.
 %   ELITE_MONSTER_KILL / WARD_KILL; ward kills carry no position and are dropped by attribute_events) and _lex_refine()
 %   (cluster kills -> alive counts from interp_node_global at the last kill or window end -> structure sign -> tie policy);
 %   dead zone SHARDS/manifest.json label.gold_deadzone 300.0
+Applying the label to the detected kill-less encounters shows how often this holds. We scored every one that
+starts from minute 2, as corpus cutoffs do, over a window from its start to 15\,s after its end: 559
+encounters at $k = 4$ and 13,485 at $k = 2$, on the kill-adjusted grid. With no first kill, the
+attribution disc of radius $D$ was centred on the champions gathered around the encounter's best-supported
+anchor. Under this engagement attribution, 23.3\% (95\% CI 19.9--26.6\%) of the four-per-side kill-less
+encounters hold any event the label prices, against 98.2\% of the encounters with a kill and 12.2\% of
+matched windows of the same length, match and game phase that hold no proximity run and no kill. At $k = 2$
+the share is 17.2\%, and 16.7\% on frame-only positions. The remaining 76.7\% (82.8\% at $k = 2$) are
+unmeasurable in the label's currency. Unmeasurable is not the same as undecided, because refinement can
+return a winner without a priced event, from survivor counts at the window end, which in a kill-less
+window can reflect a death more than 15\,s earlier, or from drake kills, which refinement counts although
+their fitted price is zero; this happens for 17.5\% of the four-per-side encounters. The label returns no verdict for
+59.6\% of them (61.5\% at $k = 2$), and decides 14.7\% by gold beyond the dead zone, 13.1\% by survivors
+and 12.7\% by structures and monsters. Counting instead every event anywhere on the map in the window
+(window attribution) finds a priced event in 84.1\% of the four-per-side encounters, but also in 87.4\% of
+their matched windows, and in only 31.1\% of the encounters once ward kills, which carry no position, are
+set aside: those events belong to the rest of the match, not to the encounter.
+% src: REV/A5-killless/char_t4_dG_g15_20k.json (scripts/characterize_killless_v33.py, seed 7, 20,000 matches, kill-adjusted track,
+%   attribution_radius_u 4264.0, tie policy drop, dead zone 300 g; grid_reproduction.status "reproduced";
+%   windows.market_window "[start_ms, end_ms + after_ms]", after_ms 15000): headline_killless_market.eng.pooled_ge2
+%   (bands 2-10, 10-20, 20-30, 30+; encounters starting before minute 2 excluded) n_windows 559; priced_any mean 0.2326
+%   ci95 [0.1986, 0.2658]; with_kill_priced_any 0.9824 (n 18376); baseline_priced_any 0.1221 (n 516); unmeasurable_share 0.7674;
+%   verdict_unpriced 0.1753; no_verdict_share 0.5957 (ci95 [0.5566, 0.6383]); tier_market_gold 0.1467, tier_refine_alive 0.1306,
+%   tier_refine_structures 0.1270, tier_draw 0.5957 (sum 1.0000).  headline_killless_market.win.pooled_ge2 priced_any 0.8408,
+%   baseline_priced_any 0.8743 (n 517), priced_nonward_any 0.3113.
+% src: char_t2_dG_g15_20k.json eng.pooled_ge2 n_windows 13485, priced_any 0.1720, unmeasurable_share 0.8280, no_verdict_share 0.6148;
+%   char_t2_dG_g15_ktoff_20k.json (frame-only track) eng.pooled_ge2 n_windows 15385, priced_any 0.1667.
+% cmd (independent re-count from the row tables, 2026-09-14): for f in char_t4_dG_g15_20k / char_t2_dG_g15_20k / char_t2_dG_g15_ktoff_20k
+%   .rows.npz: rows with has_kill == 0 and start_ms >= 120000 -> n 559 / 13485 / 15385; mean of mk_eng_priced_any 0.2326 / 0.1720 /
+%   0.1667; 1 - mean(mk_eng_verdict_defined) 0.5957 / 0.6148 / 0.6426; mk_eng_verdict_unpriced 0.1753 (t4); mk_win_priced_any 0.8408,
+%   mk_win_priced_nonward_any 0.3113, base_mk_win_priced_any 0.8743 (t4) -- identical to the JSON.  Of the 429 t4 rows with
+%   mk_eng_priced_any == 0, 98 get a verdict (98 / 559 = 0.1753): 61 at tier_refine_alive and 37 at tier_refine_structures, all 37
+%   with mk_eng_table_type_any == 1; the only zero price in checks.price_table.pooled_used is dragon 0.0, hence "drake kills".
+% note: matched window = same match and game-time band, same number of 5 s frames, no frame active at 2 per side and no
+%   CHAMPION_KILL within +-15 s (windows.baseline_exclusion).  Attribution centre = centroid of the champions within R of the
+%   best-supported qualifying anchor at its peak frame (char_t4 deviations).  Ward kills are priced 25 g but have no position, so
+%   engagement attribution drops them (priced_any = priced_nonward_any under eng).  No char_t4 run exists on the frame-only track.
+%   checks.all_zero_ok is false only because of damage_component_sum_mismatch_cells = 1 (a damage column, not used here).
 With this telemetry the outcome of a kill-less fight is therefore unmeasurable, not merely undetected: the
-timeline records health and damage only once a minute, and a kill-less fight changes nothing that the
-label prices. A kill-less fight that forces a retreat and concedes a structure or a monster would be
+timeline records health and damage only once a minute, and most kill-less encounters contain nothing that
+the label prices. A kill-less fight that forces a retreat and concedes a structure or a monster would be
 priced, but through the objective rather than through the fight.
 
 Kills alone do not settle outcomes either. Among 25,995 fights detected under the conference-version
@@ -636,10 +706,19 @@ bootstrap intervals and the ARI plateau. \emph{Predictive validity}: with every 
 is observable at the cutoff, the outcome of the 532,547 engagements in 191,940 matches is predictable at
 a match-grouped out-of-fold AUC of 0.670.
 % src: FEAT/scale_decomposition_v33_market_event.json n 532547, n_matches 191940, overall_auc 0.6699089924634439
-The conference version's claim that predictability grows with engagement scale is withdrawn. It was
-carried by a time feature normalised by each match's own length, which is not known at the cutoff, and
-with that input removed the sign of the difference between classes follows the arbitrary teamfight cut.
+Our analyses after the conference version had concluded that predictability grows with engagement
+scale; that conclusion is withdrawn. It was carried by a time feature normalised by each match's own
+length, which is not known at the cutoff, and with that input removed the sign of the difference between
+classes follows the arbitrary teamfight cut. The conference paper reported no scale classes, but its
+pipeline used the same time feature, together with map anchors that included structures and objectives
+taken later in the match.
 % src: docs/DEFINITION_EVIDENCE.md section 22 (leak ablation); retraction per docs/CLAUDE_TOG_PAPER_PLAN.md section 4 -- stated as a
 %   retraction only, no live scale claim; cut dependence: scale subsection (A6 artefact)
+% src (attribution, item F1 2026-09-14): the scale-decomposition claim was made after the CoG submission, in the v0.2 extension
+%   draft paper/tog/main_en.tex (teamfight n_min >= 3) and in the corpus-v3 analyses (DEFINITION_EVIDENCE.md section 19,
+%   n_min >= 4); the CoG text (paper/abstract.tex, intro.tex, methods.tex, result.tex) has no scale classes (sec_intro.tex header).
+%   The CoG pipeline: core/presets.py PRESETS["cog2026"] TIME_NORM_ABSOLUTE False, ANCHORS_CAUSAL False (v3.3: both True);
+%   FEAT/leak_ablation_v33.json (5,000 matches) configs.time_leak.by_class.teamfight 0.69116 vs configs.clean 0.64207,
+%   configs.anchor_leak.by_class.teamfight 0.65358.
 Construct validity is a matter of degree; the pipeline and its verdicts are released
 (Section~\ref{sec:availability}) so that the degree can be re-assessed on new patches.

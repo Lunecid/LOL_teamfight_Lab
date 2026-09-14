@@ -14,7 +14,9 @@
 % a page ("Float too large for page by 91.5pt"); rows were shortened and the group headings dropped.
 % Corrections made in triage:
 %   * "two teams of five" rested on the Summoner's Rift page, which gives no team size (audit N1); it
-%     now rests on the corpus (check C1 below) and the Match-V5 match record.
+%     now rests on the corpus (check C1 below) and the Match-V5 match record.  Item F1 (2026-09-14) put
+%     \cite{riotapi2024matchv5} on both sentences that state the team size (Team row and the first
+%     sentence of sec:background-game); lolwiki2025summonersrift and lolwiki2026nexus no longer carry it.
 %   * Bounty row: patch 25.14 slowed accrual of bounty from FARMING, not shutdown gold in general
 %     (audit N4; riot2025patch2514); the base bounty is dated to 25.09 (riot2025patch2509).
 %   * Scale classes: participation also counts the actors of nearby events, not only the kills'
@@ -105,7 +107,8 @@
 %   Death rev 4051174 and Elder Dragon rev 4002526 have no Patch History section (section lists read).
 %   Terminology rev 4057849 section 2 ("A"): entry Ace -- all champions of a team defeated at the same
 %     time, or killing the last living champion of the opposing team (paraphrase).  The bib note of
-%     lolwiki2026terminology names only the Teamfight entry (flagged to the bib owner).
+%     lolwiki2026terminology now names both the Teamfight and the Ace entries (item F1, 2026-09-14; the
+%     Ace wikitext re-read through api.php action=parse, oldid 4057849, section 2).
 % Every other rule fact is from the evidence comment of its bib entry (references_audit.md section 3.10).
 % =============================================================================
 
@@ -141,11 +144,18 @@ Summoner's Rift, lane, jungle, river &
   half~\cite{lolwiki2025summonersrift,lolwiki2026baron}. Drake kills in the data place the dragon pit in
   its south-east half. \\
 % Five per team: C1 and the ten participants of the match record.  Sides: lolwiki2025summonersrift.
+%   riotapi2024matchv5 (item F1, 2026-09-14): the api-details page documents InfoDto.participants as List[ParticipantDto], each with
+%   teamId, and TeamDto.teamId / win; it states no participant count (its ParticipantFramesDto key reads "1-9"), so the count ten
+%   rests on C1 (team_map of all 210,000 cached matches: ten entries, five with team 100 and five with team 200).
+%   team_map is info.participants' participantId -> teamId (data/cache_io.py, which skips a record with fewer than ten
+%   participants, so C1 checks the five-five split, not the count, independently of the build).  The Summoner's Rift page
+%   gives no team size (references_audit.md N1), so it is cited only for the sides.
 %   Team 100 = blue is a corpus inference from base coordinates (header note), not a Riot statement.
 %   lolwiki2026champion.  Roles: core/roles.py reads teamPosition (fallback individualPosition);
 %   core/config.py ROLE_ORDER = TOP, JUNGLE, MIDDLE, BOTTOM, UTILITY.
 Team, side, champion, role &
-  Five players per team, \emph{blue} based in the south-west and \emph{red} in the
+  Five players per team, the ten participants of each match record~\cite{riotapi2024matchv5}; \emph{blue}
+  based in the south-west and \emph{red} in the
   north-east~\cite{lolwiki2025summonersrift}; base coordinates make blue team 100 in the data. Each player
   controls a \emph{champion}, a character with its own abilities~\cite{lolwiki2026champion}, in a role:
   top, jungle, middle, bottom or support. \\
@@ -332,11 +342,12 @@ Outcome label &
 \subsection{The Game and Its Patches}\label{sec:background-game}
 % -----------------------------------------------------------------------------
 
-% Five per team: C1.  lolwiki2026nexus (win condition); lolwiki2026gold, lolwiki2026experience;
+% Five per team: C1 and riotapi2024matchv5 (participants with teamId; the count ten is the corpus's, see the Team row comment).
+%   lolwiki2026nexus supports only the win condition.  lolwiki2026gold, lolwiki2026experience;
 %   lolwiki2026kill (bounty to the killer), lolwiki2026death.  Scoreboard reference: sec_learners.tex
 %   paragraph "Scoreboard reference" (label sec:learners-ladder).
-Two teams of five players meet on Summoner's Rift, and a team wins by destroying the enemy
-Nexus~\cite{lolwiki2026nexus}. Champions grow stronger with gold and experience, so a team that leads
+Two teams of five players, the ten participants of each match record~\cite{riotapi2024matchv5}, meet on
+Summoner's Rift, and a team wins by destroying the enemy Nexus~\cite{lolwiki2026nexus}. Champions grow stronger with gold and experience, so a team that leads
 in both tends to field stronger champions~\cite{lolwiki2026gold,lolwiki2026experience}; that lead is the
 reference every learner in this paper must beat (Section~\ref{sec:learners-ladder}). A kill pays the
 killing side and leaves the victim's team a player short until the death timer

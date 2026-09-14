@@ -518,25 +518,47 @@
 % 4. Data source
 % -----------------------------------------------------------------------------
 
-% [VERIFIED 2026-09-11] https://developer.riotgames.com/api-details/match-v5 lists
+% [VERIFIED 2026-09-14] https://developer.riotgames.com/api-details/match-v5 lists
 %   GET /lol/match/v5/matches/{matchId}/timeline, "Get a match timeline by match id".
 %   Undated web documentation: the "2024" in the key is inherited from paper/refer.tex, not a version date.
+%   Corrected 2026-09-14 (item F1-cross-file-fixes).  What was read: the portal page the entry used to name,
+%   https://developer.riotgames.com/apis#match-v5/GET_getTimeline, is rendered by script; a plain HTTP GET of
+%   https://developer.riotgames.com/apis returns a shell of about 1,500 characters of text (navigation and API names,
+%   no endpoint or field).  The same reference is served without script at
+%   https://developer.riotgames.com/api-details/match-v5 (HTTP 200, 167,797 bytes, read 2026-09-14 with a plain HTTP
+%   client; also read by item W5, sec_availability.tex).  That page gives the endpoint returning TimelineDto;
+%   InfoTimeLineDto with frameInterval (type long, no value stated), participants and frames;
+%   FramesTimeLineDto with events, participantFrames and timestamp; EventsTimeLineDto with timestamp,
+%   realTimestamp and type; ParticipantFrameDto with championStats, currentGold, damageStats, level,
+%   minionsKilled, jungleMinionsKilled, position and others.  It lists no per-event-type fields and no frame
+%   interval value (60 s comes from the corpus, sec_background.tex check C2).  The url field now names the page
+%   that was read, and the access date is the date of that reading.
 @misc{riotapi2024timeline,
   author       = {{Riot Games}},
   title        = {{MATCH-V5} {API}: Get a match timeline by match id},
   howpublished = {Riot Developer Portal},
-  url          = {https://developer.riotgames.com/apis#match-v5/GET_getTimeline},
-  note         = {Endpoint GET /lol/match/v5/matches/\{matchId\}/timeline. Accessed: Sep. 11, 2026}
+  url          = {https://developer.riotgames.com/api-details/match-v5},
+  note         = {Endpoint GET /lol/match/v5/matches/\{matchId\}/timeline; static reference page (the portal view under \url{https://developer.riotgames.com/apis} is rendered by script). Accessed: Sep. 14, 2026}
 }
 
-% [VERIFIED 2026-09-11] https://developer.riotgames.com/api-details/match-v5 lists
+% [VERIFIED 2026-09-14] https://developer.riotgames.com/api-details/match-v5 lists
 %   GET /lol/match/v5/matches/{matchId}, "Get a match by match id".  Undated, as above.
+%   Corrected 2026-09-14 (item F1-cross-file-fixes).  What was read: as for riotapi2024timeline, the portal URL the
+%   entry used to name (https://developer.riotgames.com/apis#match-v5) is rendered by script and a plain HTTP client
+%   gets no field from it; the fields were read from the static page
+%   https://developer.riotgames.com/api-details/match-v5 (plain HTTP GET, 2026-09-14): MatchDto with metadata
+%   (MetadataDto: dataVersion, matchId, participants "A list of participant PUUIDs") and info (InfoDto: gameVersion,
+%   mapId, participants List[ParticipantDto], platformId, queueId, teams List[TeamDto], ...); ParticipantDto with
+%   puuid, teamId, teamPosition, individualPosition and others; TeamDto with bans, objectives, teamId and win.
+%   The page states no participant count (its ParticipantFramesDto key reads "1-9").  A sentence citing this key for
+%   "ten participants" or "five per team" rests on the record structure documented here plus the corpus count
+%   (sec_background.tex check C1: every one of 210,000 cached matches has ten participants, five per team).
 @misc{riotapi2024matchv5,
   author       = {{Riot Games}},
   title        = {{MATCH-V5} {API}: Get a match by match id},
   howpublished = {Riot Developer Portal},
-  url          = {https://developer.riotgames.com/apis#match-v5},
-  note         = {Endpoint GET /lol/match/v5/matches/\{matchId\}. Accessed: Sep. 11, 2026}
+  url          = {https://developer.riotgames.com/api-details/match-v5},
+  note         = {Endpoint GET /lol/match/v5/matches/\{matchId\}; static reference page (the portal view under \url{https://developer.riotgames.com/apis} is rendered by script). Accessed: Sep. 14, 2026}
 }
 
 
@@ -1026,13 +1048,19 @@
 %   battle (paraphrase). The wiki's full-text search finds the definition's wording on this page only.
 %   The rendered page, as fetched, is cut off before section T, which probably explains why the
 %   2026-09-11 check (rule_constants_evidence.md section 5) did not find the entry. Not patch-dated.
+%   Added 2026-09-14 (item F1-cross-file-fixes): the key is also cited for "ace" (sec_background.tex, Table I row
+%   "Kill, assist, ace").  Section A (api.php action=parse, oldid=4057849, section=2, wikitext read through WebFetch on
+%   2026-09-14) has the term Ace with two senses: all champions of a team defeated at the same time, and killing the
+%   last living champion of the opposing team (paraphrase).  The Teamfight entry (section=21) was re-read the same day
+%   and agrees with the paraphrase above.  The note now names both entries.  No other term is cited to this key
+%   (grep of docs/tog_manuscript/*.tex and docs/references/rule_constants_evidence.md, 2026-09-14).
 @misc{lolwiki2026terminology,
   title        = {{Terminology}},
   howpublished = {League of Legends Wiki},
   month        = aug,
   year         = {2026},
   url          = {https://wiki.leagueoflegends.com/en-us/Terminology},
-  note         = {Glossary entry ``Teamfight''. Revision 4057849 of Aug. 28, 2026, \url{https://wiki.leagueoflegends.com/en-us/Special:PermanentLink/4057849}. Accessed: Sep. 14, 2026}
+  note         = {Glossary entries ``Ace'' and ``Teamfight''. Revision 4057849 of Aug. 28, 2026, \url{https://wiki.leagueoflegends.com/en-us/Special:PermanentLink/4057849}. Accessed: Sep. 14, 2026}
 }
 
 % [VERIFIED 2026-09-14] https://wiki.leagueoflegends.com/en-us/Summoner's_Rift -- revision 3968911 of 2025-11-21T19:44:07Z.

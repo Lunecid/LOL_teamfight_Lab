@@ -251,7 +251,12 @@ Notes for the section owners.
   page's Environment section speaks of two teams of champions without a number, and its lead says only
   that the map is the first and most popular one, used for Classic queues and esports.  The rendered page,
   as fetched, mentions five-a-side only in game-mode names (5v5).  Cite the ten participants of each
-  Match-V5 match record, or reword.
+  Match-V5 match record, or reword.  **Applied 2026-09-14 (item F1-cross-file-fixes):** both sentences of
+  sec_background.tex that give the team size (the Table I row "Team, side, champion, role" and the first
+  sentence of subsection sec:background-game) now cite `riotapi2024matchv5` for the ten participants of each
+  match record; `lolwiki2025summonersrift` is cited there only for the sides and `lolwiki2026nexus` only for the
+  win condition.  The API page documents the participant list and its `teamId` but gives no count; the count
+  is the corpus's (check C1 in the sec_background.tex header), as the `riotapi2024matchv5` row of 3.4 says.
 - **N2 (patch numbers and dates).**  The wiki V25.S1.1 and V25.09 articles give the old numbers 15.1 and
   15.9 in their first sentence; the V25.14-V25.16 articles give no old number.  25.14 = 15.14 rests on
   Riot data: Data Dragon has no Yunara at 15.13.1 and Yunara (key 804) at 15.14.1; Riot's Patch 25.14
@@ -399,8 +404,8 @@ All six works on R1's list have entries: `schubert2016encounter` (3.2) and the f
 
 | key | work | status | source URL | notes |
 |---|---|---|---|---|
-| riotapi2024timeline | Riot Games, MATCH-V5 API: get a match timeline by match id | VERIFIED 2026-09-11 | https://developer.riotgames.com/api-details/match-v5 | The key is fixed by `definition_section_draft.tex` (from `paper/refer.tex`). The page lists `GET /lol/match/v5/matches/{matchId}/timeline` returning `TimelineDto`. The documentation is undated: "2024" in the key is not a version date, and the entry gives an access date. |
-| riotapi2024matchv5 | Riot Games, MATCH-V5 API: get a match by match id | VERIFIED 2026-09-11 | https://developer.riotgames.com/api-details/match-v5 | Lists `GET /lol/match/v5/matches/{matchId}`, which returns `MatchDto`. Undated; carries an access date. |
+| riotapi2024timeline | Riot Games, MATCH-V5 API: get a match timeline by match id | VERIFIED 2026-09-14 | https://developer.riotgames.com/api-details/match-v5 | The key is fixed by `definition_section_draft.tex` (from `paper/refer.tex`). The page lists `GET /lol/match/v5/matches/{matchId}/timeline` returning `TimelineDto`. The documentation is undated: "2024" in the key is not a version date, and the entry gives an access date. **Corrected 2026-09-14 (item F1):** the portal URL the entry used to give (`https://developer.riotgames.com/apis#match-v5/GET_getTimeline`) is rendered by script; a plain HTTP client gets about 1,500 characters of navigation text and no field.  What was read is the static page in the source column (plain HTTP GET, HTTP 200, 167,797 bytes): `TimelineDto`, `InfoTimeLineDto` (`frameInterval` typed long with no value, `participants`, `frames`), `FramesTimeLineDto` (`events`, `participantFrames`, `timestamp`), `EventsTimeLineDto` (`timestamp`, `realTimestamp`, `type`) and `ParticipantFrameDto` (position, gold, level, CS, champion and damage statistics).  It gives no frame interval value and no per-event-type fields.  The entry's url and note now name that page and the access date 2026-09-14. |
+| riotapi2024matchv5 | Riot Games, MATCH-V5 API: get a match by match id | VERIFIED 2026-09-14 | https://developer.riotgames.com/api-details/match-v5 | Lists `GET /lol/match/v5/matches/{matchId}`, which returns `MatchDto`. Undated; carries an access date. **Corrected 2026-09-14 (item F1):** the portal URL the entry used to give (`https://developer.riotgames.com/apis#match-v5`) is rendered by script and yields no field to a plain HTTP client.  What was read is the static page in the source column: `MetadataDto.participants` ("A list of participant PUUIDs"), `InfoDto.participants` (`List[ParticipantDto]`), `ParticipantDto.teamId`, `teamPosition` and `individualPosition`, `TeamDto.teamId` and `win`.  The page states no participant count (its `ParticipantFramesDto` key reads "1-9"), so "ten participants, five per team" rests on this record structure plus the corpus count (sec_background.tex check C1).  The entry's url and note now name the page read and the access date 2026-09-14. |
 
 ### 3.5 Minute-resolution telemetry and interpolation
 
@@ -470,7 +475,7 @@ page's own metadata (`og:title`, JSON-LD `datePublished` and `author`).  Patch-n
 
 | key | page | status | source URL | revision or date; notes |
 |---|---|---|---|---|
-| lolwiki2026terminology | League of Legends Wiki, Terminology (glossary entry "Teamfight") | VERIFIED 2026-09-14 | https://wiki.leagueoflegends.com/en-us/Terminology | Revision 4057849, 2026-08-28.  Entry in section T (wikitext, action=parse section 21); the wiki search API finds the definition's wording on this page only.  Not patch-dated. |
+| lolwiki2026terminology | League of Legends Wiki, Terminology (glossary entries "Ace" and "Teamfight") | VERIFIED 2026-09-14 | https://wiki.leagueoflegends.com/en-us/Terminology | Revision 4057849, 2026-08-28.  Teamfight entry in section T (wikitext, action=parse section 21); the wiki search API finds the definition's wording on this page only.  **Extended 2026-09-14 (item F1):** the key is also cited for "ace" (sec_background.tex, Table I).  Section A (action=parse section 2, read through WebFetch) has the Ace entry with two senses: all champions of a team defeated at the same time, and killing the last living champion of the opposing team.  The bib note now names both entries; no other term is cited to this key.  Not patch-dated. |
 | lolwiki2025summonersrift | Summoner's Rift | VERIFIED 2026-09-14 | https://wiki.leagueoflegends.com/en-us/Summoner's_Rift | Revision 3968911, 2025-11-21.  Sides, lanes, jungle, river, six drake elements.  **Comment corrected in the second web-source pass:** the page does not state the team size (N1).  **Corrected again in the third pass:** the two-teams-of-champions phrase is in the Environment section (section 1), not the lead (section 0). |
 | lolwiki2026champion | Champion | VERIFIED 2026-09-14 | https://wiki.leagueoflegends.com/en-us/Champion | Revision 4026288, 2026-06-09.  Player-controlled characters with their own abilities and attributes. |
 | lolwiki2026sight | Sight | VERIFIED 2026-09-14 | https://wiki.leagueoflegends.com/en-us/Sight | Revision 4035710, 2026-06-25.  1,350 u for champions and turrets; 900 u for wards.  **Comment corrected:** the patch history has one entry (V13.22, fog-of-war attacker reveal), none for these radii.  Not patch-dated. |
@@ -512,6 +517,19 @@ page's own metadata (`og:title`, JSON-LD `datePublished` and `author`).  Patch-n
 | riot2025ddragon1514 | Riot Games, Data Dragon champion data, game versions 15.13.1 and 15.14.1 | VERIFIED 2026-09-14 | https://ddragon.leagueoflegends.com/cdn/15.14.1/data/en_US/champion.json | 171 champions with Yunara (key 804) at 15.14.1; 170 without at 15.13.1; version list (499 versions) runs 15.13.1, 15.14.1, 15.15.1, 15.16.1 without gaps.  Undated files: no year field. |
 
 ## 4. Changes
+
+### 4.0 Cross-file fixes of 2026-09-14 (item F1-cross-file-fixes)
+
+1. `lolwiki2026terminology`: the note now reads "Glossary entries ``Ace'' and ``Teamfight''", because
+   sec_background.tex cites the key for "ace" as well as "teamfight".  The Ace entry was read in section A of
+   revision 4057849 (action=parse, section 2); the Teamfight entry was re-read (section 21).  3.10 row updated.
+2. `riotapi2024matchv5`, `riotapi2024timeline`: url changed from the script-rendered portal
+   (`https://developer.riotgames.com/apis#match-v5...`) to the static page that was actually read,
+   `https://developer.riotgames.com/api-details/match-v5`; the note says the portal view is rendered by script;
+   access date Sep. 11 -> Sep. 14, 2026; the evidence comments list the DTO fields read and state that the page
+   gives no participant count and no frame interval value.  3.4 rows updated.  This answers the mismatch
+   flagged in the sec_availability.tex source comment (item W5).
+3. N1 marked as applied in sec_background.tex.
 
 ### 4.1 Web-source passes of 2026-09-14 (item W1b-web-sources)
 

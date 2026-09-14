@@ -317,9 +317,20 @@ Our contributions, each stated by what it lets others do, are the following.
 %   sign(delta-V_end) predictor trained with |delta-V| weights (lines 146-151 and 216-218, columns
 %   oof / p): deltaV_weighted.test.auc 0.583209.  That weighting was later withdrawn (decision D3,
 %   WT/docs/CLAUDE_V3_PREDICTOR_REPORT.md, "D3 철회"); the stacked column is NOT the market_event
-%   predictor (market_event.test.auc 0.664886), so stacking that predictor is \pending{stacking}.
+%   predictor (market_event.test.auc 0.664886).
 %   The stacked column is a function of A's inputs X (downstream_winprob.json "note": "the predicted
 %   outcome is a function of X").
+% Stacking with the market_event predictor (filled 2026-09-14 by item F1; was \pending{stacking}):
+%   REV/A9-stacking-market/stacking_market_event_v3.json (WT/scripts/stack_market_event_predictor_v3.py,
+%   worktree commit 15751e8, dirty false; written 2026-09-14 14:58).  reproduction: A_reproduced true
+%   (A_auc_now = A_auc_published = 0.8123867), B_deltaV_reproduced true (0.8125137), test_p_market_reproduced
+%   true (market_test_auc_now = published 0.6648862).  layers.B_market.auc 0.812522 (n 26,712, matches
+%   9,198); paired_vs_A.B_market.auc_improvement_ci95 [-0.000995, +0.001292], n_boot 300 (match-clustered
+%   paired bootstrap, seed 7, script docstring).  B_market = X + the market_event predictor, out-of-fold on
+%   every predict_train row, full-train model on test (script docstring).  Not printed: B_market_nan 0.811983
+%   (stored labelled-row OOF, draws NaN; CI [-0.001369, +0.000613]) and C_market 0.832818 (realised label,
+%   retrospective; CI [+0.01777, +0.02273]).  "held-out AUC 0.665 on its own label": market_test_auc 0.6649,
+%   the market_event label on labelled test rows (match-weighted, WT metrics).
 % Information from outside X: WT/outputs/engagement_predictor_v3/stacking_ceiling.json sweep, synthetic
 %   predictor y + N(0, sigma) with y = sign(delta-V) (WT/scripts/diagnose_stacking_ceiling_v3.py
 %   docstring and synthetic()): target 0.665, realised_engagement_auc 0.668749, match_auc 0.814127,
@@ -340,8 +351,9 @@ Our contributions, each stated by what it lets others do, are the following.
   engagement moves win probability (held-out AUC 0.583) gives 0.8125 (95\% interval of the difference
   [$-0.00055$, $+0.00082$]). A synthetic predictor of that direction with AUC 0.669, built from the
   realised direction plus noise and so informed from outside the inputs, does raise the AUC
-  ([$+0.0008$, $+0.0028$]); the same test with our engagement-outcome predictor is
-  \pending{stacking}{match-outcome stacking with the market\_event predictor}. Supplying the realised
+  ([$+0.0008$, $+0.0028$]). Our engagement-outcome predictor (held-out AUC 0.665 on its own label), which
+  is also computed from the match model's inputs, gives 0.8125 as well ([$-0.0010$, $+0.0013$]).
+  Supplying the realised
   direction only for the quarter of engagements with the largest change in win probability raises the
   AUC by 0.0196 [0.0170, 0.0224], and only for the quarter with the smallest change by 0.0001. The
   quarters are defined by the realised change, so this holds partly by construction, but it locates
@@ -352,8 +364,9 @@ Our contributions, each stated by what it lets others do, are the following.
 %   and \pending{window}; REV/A2-label-family is running (queue_state/A2_label_family_v33_full.running);
 %   the G x D sweep has no artefact; the A4 evidence-state patch-holdout comparison has only calibration
 %   and pilot output; A1 and A3 hold smoke runs only.  REV/A8 caveats: TabNet sparsity term subtracted
-%   instead of added; deep models received no hyper-parameter search.  No artefact stacks the
-%   market_event predictor into the match model (WT/outputs/engagement_predictor_v3/, listed 2026-09-14).
+%   instead of added; deep models received no hyper-parameter search.  The market_event predictor was
+%   stacked into the match model by REV/A9-stacking-market (finished 2026-09-14 14:58, reproduction checks
+%   true; see the contribution bullet above).
 Still pending are tuned, capacity-matched learners of other model classes
 (\pending{learners}{deep re-runs}), longer or finer windows with sequence learners
 (\pending{window}{window sweep}), event-level reconstruction of the cutoff state

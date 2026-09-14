@@ -2,23 +2,66 @@
 
 The CoG 2026 meta-reviewer asked what happens to teamfights that produce no
 kills -- fights won by draining cooldowns or taking map control.  The corpus
-is kill-anchored by construction, so those engagements are absent.  This
-quantifies the gap rather than arguing about it.
+is kill-anchored by construction, so those fights are absent.  This script
+counts *proximity encounters* with and without a kill.  It computes no label
+and fits no model.
 
-Method (no new labels, no model): rebuild each match's 5 s position grid and
-scan for *proximity encounters* -- windows where at least ``--min-per-team``
-alive champions from each side sit within ``--radius`` units of their joint
-centroid, sustained for at least ``--min-duration`` seconds.  This mirrors the
-detector's own validity condition (2 alive per team within 1,800 units), just
-without requiring a kill.  Encounters are then split by whether any
-CHAMPION_KILL falls inside the window plus a trailing grace period.
+What the code does:
 
-Reported: encounters per match, the kill-less share, and how that share moves
-with the proximity threshold -- i.e. an upper bound on what the corpus omits.
+* Matches: the ids of every ``*.meta.json`` in ``core.config.CACHE_DIR``,
+  sorted.  When ``--n-matches`` is non-zero and smaller than that list,
+  ``random.Random(--seed).sample`` draws that many ids and the draw is sorted
+  again.  A match whose cache does not load, that has fewer than three minute
+  frames or an empty team, or whose preparation or scan raises, is skipped
+  silently and not counted in ``matches``.
+* Positions: ``gameplay.fight_clustering.build_5s_position_grid`` with the
+  process ``cfg``.  Minute-frame positions are interpolated onto a grid of
+  ``cfg.TF2_GRID_STEP_MS`` (5,000 ms by default), and while
+  ``cfg.TF2_USE_KILL_TRAJECTORY_INTERP`` is on (the default) every kill
+  participant is moved towards its kill position.  Encounters around kills are
+  therefore scanned on kill-adjusted positions, kill-less ones mostly on frame
+  interpolation.
+* Alive: the ``alive`` node feature of the last minute frame at or before each
+  grid timestamp.  If the node layout has no ``alive`` column, or reading it
+  fails, every champion counts as alive.
+* Active grid point: every alive champion of either team is tried as the
+  anchor, and the point is active when some anchor has at least
+  ``--min-per-team`` alive champions of EACH team, itself included, within
+  ``--radius`` game units of its own position.  There is no joint centroid.
+  ``--radius`` is a flag (default 1,800 u; the v3.3 grid passes 1,200, 1,600
+  or 2,000 u); when the cached coordinates are detected as normalised it is
+  divided by the scale that ``detect_coordinate_scale`` returns.
+* Encounter: a run of consecutive active grid points holding at least
+  ``max(1, round(--min-duration * 1000 / GRID_STEP_MS))`` points, with
+  ``GRID_STEP_MS`` = 5,000 ms: 3 points for 13.7 s, 4 for 20 s, 2 for the
+  default 10 s.  ``start_ms`` and ``end_ms`` are the first and last active grid
+  timestamps, so a 3-point run spans 10 s.
+* Kill test: ``has_kill`` is true when any CHAMPION_KILL of the match, anywhere
+  on the map, has a timestamp in ``[start_ms - --grace-ms, end_ms + --grace-ms]``.
+  The grace window extends the run on both sides, not only after it
+  (default 10,000 ms; the v3.3 grid passes 10,000 or 15,000 ms).
+
+This is not the detector's presence gate, which counts alive champions within
+R of the first kill's position at the cutoff tau = first kill - B.
+
+Reported (JSON at ``--output``): the four flags, ``matches``, ``encounters``,
+``with_kill``, ``killless``, ``killless_share`` (kill-less share of
+encounters), ``encounters_per_match`` (per scanned match) and
+``killless_median_duration_s`` (median ``end_ms - start_ms`` of kill-less
+encounters).  The share is a share of proximity encounters, not of corpus
+engagements.  Proximity is not commitment, and the kill-adjusted positions
+favour encounters with a kill, so the share bounds the fights the corpus omits
+in neither direction.  ``scripts/run_killless_v33.py`` wraps this scanner for
+the v3.3 analyses (frame-only track, match bootstrap intervals, corpus
+comparison).
+
+Example, one row of the v3.3 grid
+(``D:/LOL_Project/fusion_2615/features/tog_revision/killless_grid/summary.json``):
 
     LOL_OUTPUT_ROOT=D:/LOL_Project python scripts/run_killless_encounters.py ^
-        --n-matches 2000 --seed 7 ^
-        --output D:/LOL_Project/fusion_2615/features/killless_encounters.json
+        --n-matches 20000 --seed 7 --radius 1600 --min-per-team 4 ^
+        --min-duration 13.7 --grace-ms 15000 ^
+        --output D:/LOL_Project/fusion_2615/features/tog_revision/killless_grid/r1600_t4_dG_g15.json
 """
 
 from __future__ import annotations
