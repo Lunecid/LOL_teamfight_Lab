@@ -11,8 +11,11 @@
 % Labels that exist on 2026-09-14: sec:limitations, sec:availability, sec:background-data, sec:learners-input,
 %   sec:learners-window.  sec_label.tex and sec_prediction.tex are not written, so their references use
 %   \fwdref{...} (macros.tex), which prints \pending{ref}{...} until the label exists.
-% \pending keys used here (underscores escaped for text mode): gxd_sweep, presence_gate_v33, attr_radius,
-%   window, labels.  scale_cut is NOT pending: the A6 artefact matches (see scale classes).
+% \pending keys used here (underscores escaped for text mode): gxd_sweep, presence_gate_v33.  window was filled on
+%   2026-09-14 (item F2-fill-and-gloss) from REV/A3-temporal-windows/window_sweep_paired_cis_v33.json (Table tab:constants,
+%   row "Context guard, observation window").
+%   scale_cut is NOT pending: the A6 artefact matches (see scale classes).  attr_radius and labels were filled on
+%   2026-09-14 (item F2-fill-and-gloss) from REV/A2-label-family/label_family_v33.json (finished, partial false).
 % killless_char was filled on 2026-09-14 (item F1-cross-file-fixes) from REV/A5-killless/{freq,char}_*_20k.json,
 %   listed by the orchestrator as finished.  There is no char_t4 frame-only (ktoff) run, so the four-per-side
 %   characterization is quoted on the kill-adjusted track only (subsection sec:def-killless says so).
@@ -321,9 +324,19 @@ neighbouring fight. After the re-engagement merge (Table~\ref{tab:constants}), t
 keeps the earlier anchor, so kills of the absorbed episode can lie up to $D + 2{,}000$\,u from it,
 outside the disc.
 % src: gameplay/fights.py _merge_adjacent_candidates() keeps the earlier candidate's centroid_x/y; merge radius CONTINUOUS_FIGHT_MERGE_RADIUS 2000.0 (core/config.py)
-How much the radius matters:
-\pending{attr\_radius}{re-label and re-score the v3.3 corpus with attribution radius D/2 = 2,132 u (label-family variant market\_event\_attr\_radius\_half)}.
+How much the radius matters was measured in the label family (Section~\fwdref{sec:label-family}). With
+radius $D/2 = 2{,}132$\,u, a disc of diameter $D$, the label names the same winner as with radius $D$ on
+97.84\% of the 524,711 engagements both decide. On the 484,474 engagements that every label of the family
+decides, a model trained on the radius-$D/2$ label reaches an AUC of 0.6773 against 0.6822 for
+\texttt{market\_event}, a paired difference of $-0.0050$ (95\% interval $-0.0055$ to $-0.0044$;
+Table~\fwdref{tab:label-family}).
 % src: gameplay/labels.py ATTRIBUTION_RADIUS_HALF_V33_U 2132.0, variant "market_event_attr_radius_half"
+% src (filled 2026-09-14, item F2; was \pending{attr_radius}): REV/A2-label-family/label_family_v33.json (partial false, finished
+%   2026-09-14 14:26:43, git_dirty false): agreement_vs_market_event.market_event_attr_radius_half n_both 524711, agreement 0.978396;
+%   rowsets.common n 484474; rowsets.common.variants.market_event_attr_radius_half.auc 0.677253,
+%   rowsets.common.variants.market_event.auc 0.682212; point difference 0.677253 - 0.682212 = -0.004959;
+%   own_minus_market_event ci_2.5 -0.005489, ci_97.5 -0.004430 (mean -0.004967; 1,000 paired match bootstraps, seed 7).
+%   Same values as sec_label.tex Table tab:label-family row "Radius D/2".
 
 \subsection{Re-estimation per patch}
 
@@ -472,7 +485,7 @@ Rejects a candidate whose last kill is more than 60\,s after $\tau$; skips a mer
 Start and end exclusion & \texttt{\scriptsize START\_\allowbreak OFFSET\_\allowbreak MIN}; $H$ & 2\,min; $\tau + 35$\,s & Engineering &
 Cutoffs in the first two minutes are rejected, as are cutoffs less than 35\,s before the last frame. Not measured. \\
 Context guard, observation window & \texttt{\scriptsize FIGHT\_\allowbreak CONTEXT\_\allowbreak SEC}, \texttt{\scriptsize BIN\_\allowbreak MS}, \texttt{\scriptsize PREDICTION\_\allowbreak GAP\_\allowbreak MS} & 30\,s in 5\,s bins; gap 0 & Convention (conference version) &
-$\tau - 30$\,s must not precede the first frame; the same 30\,s, ending at $\tau$ without a gap, form the observation window (Section~\ref{sec:learners-window}): \pending{window}{observation-window sweep under v3.3}. \\
+$\tau - 30$\,s must not precede the first frame; the same 30\,s, ending at $\tau$ without a gap, form the observation window (Section~\ref{sec:learners-window}). Sweep (20,000 matches, patch holdout): 2.5\,s bins $+0.0063$ [$+0.0029$, $+0.0100$] AUC over 0.6380; 15--120\,s windows and 10\,s bins $-0.0009$ to $+0.0042$, none above zero after adjustment for five comparisons. \\
 Label horizon $H$; ace truncation & \texttt{\scriptsize FIGHT\_\allowbreak HORIZON\_\allowbreak SEC}; -- & 35\,s; on & Engineering; ace: convention &
 Keeps the conference version's reach of first kill $+20$\,s. Pilot (553 matches, \texttt{market\_lex} labels): 97.5\% and 94.3\% label agreement with 45\,s and 60\,s windows. The window ends early at an ace (not measured). \\
 Overlap resolution & location radius $= D$ & on & Engineering &
@@ -487,13 +500,13 @@ Adds event actors to participation counts (scale classes only). Carried over wit
 Scale cuts & \texttt{\scriptsize pick\_max}, \texttt{\scriptsize teamfight\_min} & $\leq 1$ / 2--3 / $\geq 4$ & Convention &
 Shares 19.1 / 60.3 / 20.6\%; pick minus teamfight AUC $+0.0108$ / $-0.0019$ / $-0.0105$ with the teamfight cut at 3 / 4 / 5. \\
 Dead zone $\varepsilon$ & \texttt{\scriptsize LABEL\_\allowbreak GOLD\_\allowbreak DEADZONE} & 300\,g & Engineering (rule-motivated) &
-One base champion kill bounty~\cite{lolwiki2026bounties,riot2025patch2509}; swings within $\pm\varepsilon$ go to refinement. \pending{labels}{dead-zone variants 0, 150, 600 and 900 g}. \\
+One base champion kill bounty~\cite{lolwiki2026bounties,riot2025patch2509}; swings within $\pm\varepsilon$ go to refinement. Variants at 0, 150, 600 and 900\,g (Table~\fwdref{tab:label-family}): common-row AUC 0.6737, 0.6785, 0.6860 and 0.6871, against 0.6822 at 300\,g. \\
 Attribution & \texttt{\scriptsize LABEL\_\allowbreak EVENT\_\allowbreak ATTRIBUTION}; \texttt{\scriptsize LABEL\_\allowbreak ATTRIBUTION\_\allowbreak RADIUS\_\allowbreak U} $= 0 \Rightarrow D$ & engagement; 4,264\,u & Engineering (tied to $D$) &
-Only events with a position inside a disc of radius $D$ (diameter $2D$) around the anchor are read. \pending{attr\_radius}{D/2 variant}. \\
+Only events with a position inside a disc of radius $D$ (diameter $2D$) around the anchor are read. Radius $D/2$ (Table~\fwdref{tab:label-family}): common-row AUC 0.6773 against 0.6822, paired difference $-0.0050$ [$-0.0055$, $-0.0044$]; 97.84\% agreement. \\
 Event prices & \texttt{\scriptsize LABEL\_\allowbreak EVENT\_\allowbreak PRICE\_\allowbreak TABLE} & table & Data-derived (regression) &
 Team gold per structure, plate and monster; estimated and audited in Section~\fwdref{sec:label}. \\
 Price perturbation & \texttt{\scriptsize LABEL\_\allowbreak EVENT\_\allowbreak PRICE\_\allowbreak NONKILL\_\allowbreak SCALE}; \texttt{\scriptsize LABEL\_\allowbreak EVENT\_\allowbreak PRICE\_\allowbreak OVERRIDES} & 1.0; none & Engineering (identity) &
-Identity. Variants scale non-kill prices by 0.5 or 2 or price an elemental dragon by the game's rule: \pending{labels}{price variants}. \\
+Identity. Variants scale non-kill prices by 0.5 or 2 or price an elemental dragon by the game's rule (Table~\fwdref{tab:label-family}): common-row AUC $-0.0021$, $+0.0062$ and $-0.0001$ from 0.6822, the last with an interval containing zero. \\
 Draws & \texttt{\scriptsize LABEL\_\allowbreak TIE\_\allowbreak POLICY} & drop & Convention &
 Engagements on which the label finds no winner are dropped: 33,905 of 566,452. \\
 \bottomrule
@@ -516,14 +529,35 @@ Engagements on which the label finds no winner are dropped: 33,905 of 566,452. \
 %   gameplay/fights.py detect_fights_teamfight_v2: merge runs only if config.continuous_fight_merge
 % src (row "Context guard"): core/config.py PREDICTION_GAP_MS 0 (line 455; not set by PRESETS["v3.3"]); gameplay/pipeline.py
 %   (line ~119) prediction_gap_ms = getattr(cfg, "PREDICTION_GAP_MS", 0): observation window ends at engage_ts - gap, label window starts at engage_ts
+%   Sweep values (filled 2026-09-14, item F2-fill-and-gloss; was \pending{window}): REV/A3-temporal-windows/window_sweep_paired_cis_v33.json
+%   (item C2, created_utc 2026-09-14T07:02:08Z, checks.passed true; source_run.n_matches_sampled 20000, checks.common_rows n_rows 50766,
+%   n_matches 18335; split patch holdout 15.14 / 15.15 / 15.16, test 14,417 rows, 5,206 matches; lgbm_params = published configuration,
+%   400 trees, learning rate 0.05, 31 leaves, early stopping on 15.15).  protocols.patch.auc.ctx30_bin5000.auc 0.637953;
+%   protocols.patch.paired.<arm> - ctx30_bin5000 delta [ci_lo, ci_hi] (2,000 match bootstraps, seed 7):
+%   ctx15_bin5000 -0.000923 [-0.004876, +0.002671]; ctx60_bin5000 +0.003760 [-0.000311, +0.007678]; ctx120_bin5000 +0.004198
+%   [+0.000040, +0.008467]; ctx30_bin2500 +0.006325 [+0.002878, +0.009956]; ctx30_bin10000 +0.000418 [-0.003466, +0.004060].
+%   family_ci (Bonferroni over the five arms) excludes zero only for ctx30_bin2500 [+0.001932, +0.010999] (ctx120 family
+%   [-0.001305, +0.010111]); p_two_sided_holm 0.0050 for ctx30_bin2500, >= 0.196 for the others.  Hence "-0.0009 to +0.0042, none
+%   above zero after adjustment" for the other four arms (the unadjusted ctx120 interval excludes zero by 0.00004).  Row kept short:
+%   a longer version overfilled the table* page by 6.1 pt (build check 2026-09-14).
 % src (row "Interaction radius, shop events"): core/config.py TF2_EXCLUDE_SHOP_INTERACTIONS False (line 486; comment: shop events have no
 %   position and are placed by the actor's interpolated location); gameplay/fights.py _collect_interactions_in_radius exclude_shop;
 %   FEAT/shop_event_sensitivity.json class_change_rate 0.0159 (226 / 14211)
 % src (row "Attribution"): core/presets.py PRESETS["v3.3"] LABEL_EVENT_ATTRIBUTION "engagement"; core/config.py LABEL_ATTRIBUTION_RADIUS_U 0.0
+%   Radius D/2 values (filled 2026-09-14, item F2; was \pending{attr_radius}): see the src comment at the end of subsection
+%   sec:def-attribution (REV/A2-label-family/label_family_v33.json market_event_attr_radius_half: common auc 0.677253 vs
+%   market_event 0.682212, own_minus_market_event [-0.005489, -0.004430], agreement 0.978396 on n_both 524711).
+% src (row "Dead zone", filled 2026-09-14, item F2; was \pending{labels}): REV/A2-label-family/label_family_v33.json (partial false)
+%   rowsets.common.variants.{market_event_dz0, market_event_dz150, market_event_dz600, market_event_dz900}.auc 0.673699 / 0.678536 /
+%   0.685977 / 0.687110; market_event 0.682212 (484,474 common rows, 188,104 matches); sec_label.tex Table tab:label-family.
 % src (row "Price perturbation"): core/config.py LABEL_EVENT_PRICE_NONKILL_SCALE 1.0, LABEL_EVENT_PRICE_OVERRIDES {} (field default_factory=dict);
 %   gameplay/labels.py _apply_price_table_variant() returns the table unchanged when scale == 1.0 and no overrides; variants
 %   market_event_prices_x0.5 / market_event_prices_x2 (NONKILL_SCALE) and market_event_dragon_rule (OVERRIDES {"dragon": DRAGON_RULE_TEAM_GOLD})
-%   in LABEL_VARIANTS, all required=True; results: REV/A2-label-family (A2_label_family_v33_full still .running on 2026-09-14)
+%   in LABEL_VARIANTS, all required=True; results: REV/A2-label-family/label_family_v33.json (finished 2026-09-14 14:26:43,
+%   partial false; queue_state A2_label_family_v33_full.ok).  Filled 2026-09-14, item F2 (was \pending{labels}): common-row
+%   AUC minus market_event (0.682212), point on unrounded AUCs: prices_x0.5 0.680134 - 0.682212 = -0.002078 [ci -0.002423,
+%   -0.001735]; prices_x2 0.688404 - 0.682212 = +0.006192 [+0.005714, +0.006665]; dragon_rule 0.682152 - 0.682212 = -0.000060
+%   [-0.000302, +0.000169] (own_minus_market_event ci_2.5 / ci_97.5, 1,000 paired match bootstraps).
 % note (rule values, item F1 2026-09-14): this section prints no turret, plate or drake rule value.  The "game's rule" of the dragon
 %   variant is gameplay/labels.py DRAGON_RULE_TEAM_GOLD 25.0 g, the elemental-drake kill gold in force before patch 26.1 (set in the
 %   V9.23 hotfix, raised to 75 in V26.01; Riot's 26.1 notes "Kill gold: 25 => 75"; no drake gold change in the 25.14-25.16 notes),

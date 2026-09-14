@@ -1366,6 +1366,20 @@
 %   Reached from the redirect(s) Aspect of the Dragon. Confirms: section Aspect of the Dragon: damaging
 %   enemies applies a burn, and damaging an enemy champion below 20 percent of maximum health triggers
 %   an execute. 2025 patch history: V25.S1.3 (Dragon Soul values) only.
+%   Section 0 (re-read 2026-09-14 by item F2-fill-and-gloss through WebFetch of
+%   https://wiki.leagueoflegends.com/en-us/api.php?action=parse&oldid=4056301&section=0&prop=wikitext&format=json, of
+%   https://wiki.leagueoflegends.com/en-us/api.php?action=parse&oldid=4056301&prop=sections&format=json and of
+%   https://wiki.leagueoflegends.com/en-us/index.php?title=Dragon_Slayer&oldid=4056301&action=raw; plain curl returns a
+%   bot-check page): section 0 runs from the lead to the first counted heading "== General notes ==" (prop=sections:
+%   index 1, level 2, byteoffset 4886) and contains the whole tabber (tabs "Dragon Slayer", "Dragon Soul", "Aspect of the
+%   Dragon"), whose in-tab headings "== Dragon Slayer buffs ==", "== Dragon Souls ==" and "== Old Icon ==" are not
+%   counted as sections (the raw wikitext closes the tabber before "== General notes ==").  The Dragon Slayer tab calls
+%   Dragon Slayer a team-wide stacking neutral buff: slaying a
+%   drake grants a buff of the drake's element, which stacks up to four times per element, and the buffs "are permanent
+%   and are granted to the entire team" of the player who killed the drake.  So the elemental-drake buffs are permanent
+%   and go to the killer's whole team.  Cited for this in sec_background.tex (drake row) and sec_label.tex
+%   (elemental-drake bullet).  The section-0 text read contains no statement on drake kill gold or who receives it
+%   (that question stays open: note N9 in docs/tog_manuscript/references_audit.md).
 @misc{lolwiki2026dragonslayer,
   title        = {{Dragon Slayer}},
   howpublished = {League of Legends Wiki},

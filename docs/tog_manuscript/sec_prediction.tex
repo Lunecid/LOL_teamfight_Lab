@@ -64,7 +64,9 @@
 %   tab:pred-leak caption; durable provenance of one-model class gaps; plain-words LightGBM and early
 %   stopping (R3); "makes no claim" wording.  No \pending marker could be filled (see the four keys below).
 % \pending keys used here (underscores escaped for text mode; grep "pending" finds them):
-%   gxd_sweep, presence_gate_v33 (same keys as sec_definition.tex), shap_forensics, leak_ablation_ci.
+%   gxd_sweep, presence_gate_v33 (same keys as sec_definition.tex), leak_ablation_ci.  shap_forensics was filled on
+%   2026-09-14 by item F2-fill-and-gloss from REV/A7-shap-forensics/rerun.json (see sec:pred-audit); leak_ablation_ci stays
+%   pending (REV/C3-leak-ablation holds only smoke_m300 on 2026-09-14 16:10).  sec:limit-shap is now referenced.
 % Citation keys (all in REPO/docs/references/definition_refs.bib, marked VERIFIED): efron1993bootstrap,
 %   ke2017lightgbm, lundberg2020local.
 % =============================================================================
@@ -75,7 +77,10 @@ This section states the prediction task, the protocol that evaluates it and the 
 the audit of the model inputs, which withdrew an earlier conclusion that predictability depends on
 engagement scale; shows that any comparison between scale classes depends on where the class boundary
 is placed; and measures how much of the result a model that reads only the scoreboard reproduces.
-Learners other than gradient-boosted trees are compared in Section~\fwdref{sec:learners}, and the label
+% Gloss at first use (item F2, 2026-09-14): the full description is in sec:pred-protocol ("The learner is LightGBM").
+Learners other than gradient-boosted trees, many small decision trees added one after another with each
+fitted to the errors of those before it (Section~\ref{sec:pred-protocol}), are compared in
+Section~\fwdref{sec:learners}, and the label
 and its variants are examined in Section~\fwdref{sec:label}.
 
 % -----------------------------------------------------------------------------
@@ -191,10 +196,10 @@ every tree sees all training rows. Each fold's model is fitted once, with one ra
 \emph{Why this protocol for the headline, and when the other.} Cross-validation scores every engagement,
 which the class analyses below need, and it measures predictability within the three patches of the
 corpus. It does not measure forecasting across a patch change, because every fold mixes all three
-patches. The \emph{patch holdout} does: models are trained on patch 15.14, stopped early on 15.15 and
-tested once on 15.16 (Section~\fwdref{sec:learners-protocol}). \emph{Stopping early} means that trees
-stop being added once the model's score on patch 15.15 has not improved for 100 consecutive trees, and
-the model at its best point is kept; more trees would fit accidental regularities of the training patch
+patches. The \emph{patch holdout} does: models are trained on patch 15.14 and tested once on 15.16
+(Section~\fwdref{sec:learners-protocol}), and patch 15.15 is used for \emph{early stopping}: trees stop
+being added once the model's score on patch 15.15 has not improved for 100 consecutive trees, and the
+model at its best point is kept; more trees would fit accidental regularities of the training patch
 rather than structure that carries over. The patch holdout is used for the learner comparison and
 for the scoreboard contrast of Section~\ref{sec:pred-scoreboard}. The published configuration scores
 0.6699 under cross-validation and 0.6665 under the patch holdout, where it also stops early. The
@@ -431,24 +436,30 @@ differences are not decomposed further here, because they differ from the presen
 the inputs.
 
 % R3-5 (REPO/docs/tog_manuscript/reviewer_response_matrix.md): TreeSHAP kept only as leak forensics.
-% Not yet available: REPO/scripts/run_shap_leak_forensics_v33.py (commit 342e74c).  REV/A7-shap-forensics/
-%   shap_leak_forensics_v33_m20000.json (05:29) predates the re-run and is not cited.  The r2 re-run failed
-%   (REV/queue_state/A7-shap-leak-forensics-v33-m20000-r2.done rc 1: "json exists; pass --overwrite or another
-%   --tag").  The r3 job in REV/queue_wave5.json passes --tag rerun, so its output will be
-%   REV/A7-shap-forensics/rerun.json (script l.810-813), not the path in its described_outputs.  No number
-%   is cited until that file exists.  Method: docstring "Why SHAP, and only here" (Shapley value definition; mean |SHAP| as
-%   global importance; TreeSHAP of Lundberg et al. 2020 via Booster.predict(pred_contrib=True), verified
-%   against the definition).
+% Filled 2026-09-14 by item F2-fill-and-gloss (was \pending{shap_forensics}): REV/A7-shap-forensics/rerun.json, the r3 re-run
+%   (REV/queue_state/A7-shap-leak-forensics-v33-m20000-r3.ok 16:06; .done rc 0, final true), script
+%   REPO/scripts/run_shap_leak_forensics_v33.py sha1 a9d1362 = committed version (commit 8978bfb).  Its provenance lists dirty
+%   manuscript files and scripts/run_leak_ablation.py, which the script does not load (it loads build_corpus_shard,
+%   run_deep_tabular_baselines and run_scale_decomposition).  The earlier shap_leak_forensics_v33_m20000.json (05:29) has the
+%   same test AUCs and leak shares but is not the cited file.  Keys: sample.n_matches_sampled 20000; split test rows 15911,
+%   matches 5695 (patch 15.14 / 15.15 / 15.16, early stopping on 15.15); test_auc.overall auc_clean 0.647144, auc_leaky
+%   0.663690, diff +0.016547, ci_diff [+0.012196, +0.021074] (2,000 match bootstraps); shap.n_rows 10000;
+%   leak_share.union share_leaky 0.091930 [0.090298, 0.093523], share_clean 0.004567 [0.004463, 0.004672], diff +0.087363
+%   ci_diff [+0.085716, +0.088987] (2,000 bootstraps over the 4,912 explained matches); leak_share.TIME_NORM_ABSOLUTE
+%   share_leaky 0.089712, share_clean 0.001322.  Printed as 9.2 %, 0.5 %, 8.7 pp [8.6, 8.9], 9.0 %.
+%   Method: docstring "Why SHAP, and only here" (Shapley value definition; mean |SHAP| as global importance; TreeSHAP of
+%   Lundberg et al. 2020 via Booster.predict(pred_contrib=True), verified against the definition).
 \emph{Where the leak sat in the model.} The ablation says how much the leaking inputs were worth, not
 which columns the model used. Attribution answers the second question. A SHAP value splits one prediction
 of a model into additive contributions, one per input column, using the Shapley value from cooperative
 game theory; for tree models it can be computed exactly~\cite{lundberg2020local}. Averaging the absolute
 contributions over many engagements shows which columns a model relies on. We use attribution only for
 this forensic purpose: the same engagements are built with and without the leaking inputs, a model is
-fitted to each build, and the share of attribution that falls on the columns the leaks change is compared
-(\pending{shap\_forensics}{20,000-match run: attribution share of the leak-affected columns in the leaky
-and the audit-fixed build, with match-bootstrap intervals}). We do not use attributions to explain what
-decides engagements.
+fitted to each build, and the share of attribution that falls on the columns the leaks change is compared.
+On 20,000 sampled matches under the patch holdout, the model given both leaking inputs places 9.2\% of
+its attribution on those columns and the audit-fixed model 0.5\%, a paired difference of 8.7 percentage
+points (95\% interval 8.6 to 8.9); 9.0 of the 9.2\% fall on game time divided by match length
+(Section~\ref{sec:limit-shap}). We do not use attributions to explain what decides engagements.
 
 % -----------------------------------------------------------------------------
 \subsection{Class Comparisons Depend on the Teamfight Cut}\label{sec:pred-cut}
@@ -641,10 +652,12 @@ Table~\ref{tab:pred-scoreboard} gives the result. Over all test engagements the 
 to the scoreboard model's 0.626, and the addition is uneven. In teamfights the scoreboard model reaches
 0.672 and the full input adds 0.008 (95\% interval 0.005 to 0.010). In picks the scoreboard model reaches
 only 0.602 and the full input adds 0.074 (0.069 to 0.079); skirmishes lie between, at 0.616 and $+0.043$.
-With the cut at four, the scoreboard model's own AUC is 0.070 lower in picks than in teamfights (paired
-interval 0.061 to 0.079), whereas the published full-input model's pick and teamfight AUCs cannot be
-distinguished ($-0.0033$, paired interval $-0.0118$ to $+0.0054$). For the full-input model this
-difference depends on the cut, as it does under cross-validation (Section~\ref{sec:pred-cut}): its pick
+With teamfights at $n_{\min} \ge 4$, the scoreboard model's own AUC is 0.070 lower in picks than in
+teamfights (paired interval 0.061 to 0.079), whereas at that cut the published full-input model's pick and
+teamfight AUCs cannot be distinguished ($-0.0033$, paired interval $-0.0118$ to $+0.0054$).
+% n_min >= 4 qualifier made explicit for the indistinguishability clause (item F2, 2026-09-14): the tie holds only at cut 4;
+%   at cut 3 the difference is +0.0110 [+0.0034, +0.0184] and at cut 5 -0.0131 [-0.0242, -0.0020] (next sentence; src above).
+For the full-input model this difference depends on the cut, as it does under cross-validation (Section~\ref{sec:pred-cut}): its pick
 AUC is above its teamfight AUC by 0.0110 ($+0.0034$ to $+0.0184$) with the cut at three and below it by
 0.0131 ($-0.0242$ to $-0.0020$) at five. For the scoreboard model it keeps its sign: the pick AUC stays
 below the teamfight AUC by 0.053 at three (0.045 to 0.061) and by 0.082 at five (0.070 to 0.093). In

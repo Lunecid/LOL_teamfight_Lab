@@ -798,8 +798,18 @@ the leak columns, with match-clustered intervals, together with the paired AUC d
 model's extra accuracy comes through the leaks, that model should concentrate its attribution on the leak
 columns and the model trained without them should not. The SHAP values are also
 checked against the Shapley definition by code that shares nothing with LightGBM.
-\pending{shap}{20,000-match run: leak-column share of mean absolute SHAP value with and without the leaks,
-its paired difference with match-clustered 95\% interval, and the paired test-AUC difference}. We do not
+
+The run uses 54,561 engagements from a random sample of 20,000 matches; 15,911 engagements from 5,695
+matches form the test patch. The model with both leaks reaches a test AUC of 0.6637 against 0.6471
+without them, a paired difference of 0.0165 (95\% interval 0.0122 to 0.0211, from 2,000 bootstrap
+resamples of the test matches). On 10,000 test engagements, the leaky model places 9.2\% of its mean
+absolute SHAP value on the leak columns and the audit-fixed model 0.5\%, a paired difference of 8.7
+percentage points (8.6 to 8.9). Almost all of it is game time: in the leaky model the time quantity
+holds 9.0\% of the attribution and ranks second among the base quantities, behind the gold difference,
+whereas in the audit-fixed model, where it carries elapsed minutes divided by 45, it holds 0.1\% and
+ranks 154th. The anchor columns hold 0.2\% in the leaky model and 0.3\% in the audit-fixed one, in line
+with the small AUC effect of the anchor leak above. On every checked tree and engagement the SHAP values
+agree with the Shapley definition to within $10^{-15}$. We do not
 reproduce the attribution ranking of the conference submission: it was computed on the leaky feature path,
 where a ranking cannot separate the game's structure from the leaks.
 % Design: REPO/scripts/run_shap_leak_forensics_v33.py docstring, Protocol steps 3 (two builds, identical row keys), 5 (leak columns
@@ -807,8 +817,21 @@ where a ranking cannot separate the game's structure from the leaks.
 %   bootstrap CIs, paired difference), 7 (TreeSHAP on one seeded sample of test rows, same rows for both configurations, leak share
 %   with match-clustered CI and paired difference), 8 (verify_tree_shap: enumeration with EXPVALUE and leaf decomposition).
 %   Values: LightGBM Booster.predict(pred_contrib=True), Lundberg et al. 2020 path-dependent TreeSHAP.
-% Pending: the orchestrator lists the SHAP forensics re-run as still running (2026-09-14); no number is quoted from
-%   REV/A7-shap-forensics/.
+% Filled 2026-09-14 by item F2-fill-and-gloss (was \pending{shap}): REV/A7-shap-forensics/rerun.json (queue_state
+%   A7-shap-leak-forensics-v33-m20000-r3.ok 16:06, rc 0, final true; provenance.script_sha1 a9d1362 = committed
+%   run_shap_leak_forensics_v33.py, commit 8978bfb).  sample.n_matches_sampled 20000, n_matches_with_rows 19698, n_rows 54561;
+%   split.test rows 15911, matches 5695; row_identity keys_equal true; shard_crosscheck identical true (clean build = v3.3 shards).
+%   test_auc.overall auc_leaky 0.663690, auc_clean 0.647144, diff_leaky_minus_clean +0.016547, ci_diff [+0.012196, +0.021074],
+%   n_boot 2000.  shap.n_rows 10000.  leak_share (n_boot 2000, n_matches 4912, paired):
+%   union share_leaky 0.091930, share_clean 0.004567, diff +0.087363, ci_diff [+0.085716, +0.088987];
+%   TIME_NORM_ABSOLUTE share_leaky 0.089712, share_clean 0.001322; ANCHORS_CAUSAL share_leaky 0.002218, share_clean 0.003245.
+%   rank_shift.leak_bases time_norm rank_clean 154, rank_leaky 2; rank_shift.top_k_union goldDiff rank_leaky 1.
+%   leak_share_note: in the clean build the same bases hold causal values (absolute game time, anchors destroyed before the
+%   cutoff), hence "where it carries elapsed minutes divided by 45".
+%   Verification: shap_verification.all_agree true; max_abs_diff leaf_decomposition_phi 2.5e-17 (clean) / 1.4e-17 (leaky),
+%   whole_ensemble max_abs_diff_phi_and_expected 6.9e-17 / 1.2e-16, auxiliary_small_model enumeration 1.4e-17 -> "within 1e-15".
+%   Learner: n_estimators 2000, learning_rate 0.05, num_leaves 31, early_stopping_rounds 50 on 15.15 (learner.config); not
+%   called the published configuration in the text.  Anchor sentence refers to the leak-ablation AUCs quoted in the first paragraph.
 
 % -----------------------------------------------------------------------------
 \subsection{Summary}\label{sec:limit-summary}
