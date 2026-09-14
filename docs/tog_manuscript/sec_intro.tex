@@ -386,7 +386,7 @@ Our contributions, each stated by what it lets others do, are the following.
 %     contribution bullet; reproduction checks true).
 %   * Observation-window sweep: REV/A3-temporal-windows/window_sweep_v33.json (queue_state A3-window-sweep-v33.ok 15:50)
 %     with paired intervals REV/A3-temporal-windows/window_sweep_paired_cis_v33.json (item C2, created_utc
-%     2026-09-14T07:02:08Z; checks.passed true: 50,766 common rows, 18,335 matches, every recorded AUC = sklearn
+%     2026-09-14T07:41:41Z, the rewrite that added seed_replication, values re-read by item F4; checks.passed true: 50,766 common rows, 18,335 matches, every recorded AUC = sklearn
 %     recomputation, abs_diff 0.0, labels and match groups identical across arms, predictions differ from the reference).
 %     source_run.n_matches_sampled 20000; lgbm_params n_estimators 400, learning_rate 0.05, num_leaves 31, subsample 0.9,
 %     colsample_bytree 0.9 (the published configuration), early stopping on 15.15; test 14,417 rows, 5,206 matches.
@@ -400,6 +400,19 @@ Our contributions, each stated by what it lets others do, are the following.
 %       "ctx60_bin5000 - ctx30_bin5000" +0.003760 [-0.000311, +0.007678], family [-0.001514, +0.009023], holm 0.207;
 %       "ctx120_bin5000 - ctx30_bin5000" +0.004198 [+0.000040, +0.008467], family [-0.001305, +0.010111], holm 0.196;
 %       ctx15 -0.000923 [-0.004876, +0.002671]; ctx30_bin10000 +0.000418 [-0.003466, +0.004060] (not printed here).
+%     Ten-seed qualification (added 2026-09-14 by item F4-consistency-fills; the fixed-model intervals above hold the seed-7
+%     models fixed, protocols.patch method.held_fixed): same file, seed_replication (created_utc 2026-09-14T07:41:41Z rewrite):
+%       seeds [7, 1, 2, 3, 4, 5, 6, 8, 9, 10]; varied "LightGBM random_state only; it seeds colsample_bytree = 0.9 column
+%       subsampling"; published_seed_reproduced bit_identical true for every setting; patch holdout only (the OOF protocol is
+%       not refitted).  Estimand seed_mean = "interval of the difference of seed-averaged AUCs: per replicate the same match
+%       draw plus 10 seeds drawn with replacement per setting and averaged" (2,000 replicates), so the interval covers match
+%       sampling and refit variation.
+%       paired."ctx30_bin2500 - ctx30_bin5000": seed_mean delta +0.001568, ci [-0.000734, +0.003896] (p_report Holm-adjusted
+%         p = 0.5787); same_seed_delta_by_seed["7"] +0.006325 = same_seed_delta_max (min -0.000714); n_seeds_delta_gt_0 8 of 10;
+%         n_seeds_match_ci_excludes_zero 1 (seed 7 only).  Hence "the largest gain of ten refits" and "includes zero".
+%       paired."ctx60_bin5000 - ctx30_bin5000": seed_mean +0.003051 [-0.000129, +0.006244] (10 of 10 seeds > 0);
+%       paired."ctx120_bin5000 - ctx30_bin5000": seed_mean +0.000431 [-0.002986, +0.003817] (5 of 10).  Hence "their ten-refit
+%         intervals include zero as well".  sec_learners.tex Table tab:window prints all of these.
 %     Sequence learners: REV/A3-temporal-windows/sequence_baseline/sequence_baseline_v33.json (queue_state
 %     A3-sequence-baseline-v33.ok 15:51, rc 0, final true; git dirty_tracked_files []; one seed 7; deviations[2]
 %     "Hyperparameters are fixed a priori ..., not tuned"; ctx30/60/120 at 5 s bins only).  bootstrap (1,000 match draws,
@@ -438,10 +451,11 @@ Our contributions, each stated by what it lets others do, are the following.
 %     model reads the state at first kill - 10 s instead of - 15 s (B_ms 10000 against 15000) and is trained on
 %     counts.train.n_rows_labelled 339470 against 187547 (deviations and sec_prediction.tex sec:pred-constants); the run
 %     changes both at once.
-%   STILL RUNNING (orchestrator status, 2026-09-14, item F3-fill-results): A1 deep-model re-runs (SAINT with match-disjoint
-%     batches, SAINT d128, SAINT with pre-training) and the declared hyper-parameter search (d1-d3).  Finished A1 runs
-%     (a_tabnet_sign_fixed_published_config.json, b_ft_transformer_d192_published_budget.json) are not cited here:
-%     no model-class statement is made while \pending{learners} is open.
+%   STILL RUNNING (orchestrator status, 2026-09-14, item F4-consistency-fills): A1 deep-model re-runs (SAINT d128, SAINT with
+%     pre-training) and the declared hyper-parameter search (d1-d3).  Finished A1 runs
+%     (a_tabnet_sign_fixed_published_config.json, b_ft_transformer_d192_published_budget.json,
+%     c0_saint_d32_published_config_match_disjoint.json) are not cited here (sec_learners.tex and sec_limitations.tex report
+%     them): no model-class statement is made while \pending{learners} is open.
 %   REV/A8 caveats unchanged: the published TabNet row subtracted its sparsity term and the published SAINT row is
 %     leak-exposed (same-match rows in every test batch), so neither is cited.
 Several analyses that the reviews asked for have finished. In the label family, the adopted label and
@@ -453,9 +467,12 @@ $+0.0051$ [$+0.0041$, $+0.0060$] is gained over the same columns filled from the
 (Section~\fwdref{sec:limit-evidence}). In the observation-window sweep, on 50,766 engagements from a
 20,000-match sample, finer bins (2.5\,s instead of 5\,s within the 30\,s window) raise the
 held-out-patch AUC of LightGBM by $+0.0063$ [$+0.0029$, $+0.0100$] (Holm-adjusted bootstrap
-$p \le 0.005$), the only change whose interval stays above zero after adjustment for the five
-comparisons; windows of 60\,s and 120\,s change it by $+0.0038$ and $+0.0042$, neither above zero after
-that adjustment. Two sequence learners that read the bins in order, a BiGRU and a temporal Transformer,
+$p \le 0.005$) when the fitted models of one random seed are held fixed, the only change whose interval
+stays above zero after adjustment for the five comparisons. That seed's gain, however, is the largest of
+ten refits that differ only in the seed, and the difference of the ten-refit means, $+0.0016$
+[$-0.0007$, $+0.0039$], includes zero, so the gain cannot be told apart from the variation between
+refits. Windows of 60\,s and 120\,s change the fixed-model AUC by $+0.0038$ and $+0.0042$, neither above
+zero after that adjustment, and their ten-refit intervals include zero as well. Two sequence learners that read the bins in order, a BiGRU and a temporal Transformer,
 untuned and trained once, stay below LightGBM (0.616 and 0.627 against 0.638 with the 30\,s window)
 and gain nothing from longer windows (Section~\ref{sec:learners-window}). In the attribution check for
 leaks, a model given both leaking inputs scores $+0.0165$ [$+0.0122$, $+0.0211$] AUC above the
@@ -474,9 +491,9 @@ instead of two leaves 13.5\% as many engagements as the adopted gate and raises 
 [$+0.0057$, $+0.0191$], through which engagements remain rather than through a better model. The result
 is thus not invariant to the presence gate
 (Section~\ref{sec:pred-constants}).
-Still running are the re-runs of the deep tabular learners and the declared hyper-parameter search
-(\pending{learners}{deep re-runs and declared search}); until they finish, we draw no conclusion about
-other model classes.
+Still running are the last re-runs of the deep tabular learners (SAINT at a larger token dimension and
+with pre-training) and the declared hyper-parameter search (\pending{learners}{deep re-runs and declared
+search}); until they finish, we draw no conclusion about other model classes.
 
 % Label summary: sec_background.tex "Outcome label" entry; REPO/gameplay/labels.py
 %   _compute_label_market_event and _lex_refine; dead zone FEAT/model_comparison_v33_patch.json

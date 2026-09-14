@@ -29,15 +29,16 @@
 %     gameVersion 15.N, is documented in definition_refs.bib section 10).
 %   * Cross-references use labels that exist on 2026-09-14 (sec:background-data, sec:definition,
 %     sec:def-constants, sec:def-killless, sec:learners, sec:learners-input, sec:learners-effort,
-%     subsec:future-work).  sec_limit.tex is not written yet, so its label is rendered as
-%     \pending{ref}{sec:limit}, the convention of sec_intro.tex.
+%     subsec:future-work).  sec_limit.tex was not written when this file was drafted, so its label was rendered as
+%     a visible pending-ref placeholder; item F4-consistency-fills (2026-09-14) replaced both with \ref{sec:limit}, whose
+%     label exists (sec_limit.tex, \section{Where the Limit Comes From}).
 %   * Paraphrase only; the text contains no direct quotation.
 %   * Length: IEEEtran journal build on 2026-09-14 after the fact-check fixes (MiKTeX pdflatex + bibtex,
 %     scratchpad copy with url, hyperref and cleveref as in main.tex, followed by sec_background,
 %     sec_definition, sec_learners and sec_limitations so that cross-references resolve): no errors,
 %     no undefined citations, 0 bibtex warnings, every \ref of this file resolved except the pending
-%     sec:limit; about 1,100 words of prose, one page plus four lines while the two \pending{ref}
-%     markers are rendered.
+%     sec:limit; about 1,100 words of prose, one page plus four lines while the two pending-ref
+%     placeholders were rendered (both replaced by \ref{sec:limit} on 2026-09-14, item F4-consistency-fills).
 %
 % Triage of the previous draft (2026-09-14 05:41), kept where correct.  Changed in this pass:
 %   - (2) added Maymin's own LoL engagement rule (damage-based, 5 s gap, experience-range gate), the
@@ -53,7 +54,8 @@
 %     rests on sec_background.tex;
 %   - (5) added Naeini et al.'s near-perfect-AUC, poorly calibrated example for "ranking is not
 %     calibration";
-%   - \ref{sec:limit} -> \pending{ref}{sec:limit}; prose shortened from about 1.1 pages to one page.
+%   - \ref{sec:limit} -> pending-ref placeholder (since restored to \ref{sec:limit}, item F4); prose shortened from about
+%     1.1 pages to one page.
 %
 % Fact-check fixes (2026-09-14, second pass; all four findings re-verified and accepted):
 %   - (2) "built from kills, as Ke et al.'s team fights are" misdescribed Ke et al., whose team fights
@@ -222,7 +224,7 @@ improvise explanations, which led to a model of the game state each team needs i
 \cite{pedrassoli2024wincondition}. For fights, this work points to two cues that viewers can check
 against play: the probability, stated before an engagement begins, that each team wins it, and its
 stakes, how far the match's win probability moves with its outcome
-(Section~\pending{ref}{sec:limit}). Whether they help needs a user study
+(Section~\ref{sec:limit}). Whether they help needs a user study
 (Section~\ref{subsec:future-work}).
 % charleer2018dashboards, S2 abstract (DOI 10.1145/3242671.3242680): dashboards for LoL and CS:GO
 %   contribute to spectator insight and experience; in-game complexity and cognitive load must be
@@ -326,7 +328,7 @@ LoL winner predictor better than temperature scaling by modelling data uncertain
 %   ECE 0.57% against 1.11% for temperature scaling.
 Hence the AUC, which depends only on how predictions are ranked, is silent on calibration,
 and a model calibrated on random match minutes need not be calibrated at engagement
-cutoffs, which the kills that follow select; the value model of Section~\pending{ref}{sec:limit} is
+cutoffs, which the kills that follow select; the value model of Section~\ref{sec:limit} is
 therefore checked at those cutoffs.
 % AUC is unchanged by any strictly increasing transformation of the scores (it depends only on their
 %   ranking); stated without citation as a property of the measure.

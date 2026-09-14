@@ -4,6 +4,12 @@
 % superficially touched"; labelling to be discussed as a limitation; wider-community use),
 % R2 (deep baselines, observation window), R4 (teamfights with no kills).
 % Owner: W8-limitations-future-work.
+% Item F4-consistency-fills (2026-09-14): filled \pending{gxd_sweep} from the G x D sweep and updated the learner-comparison
+%   limitation to the finished re-runs (TabNet with the regulariser sign fixed, FT-Transformer at token dimension 192, SAINT
+%   with match-disjoint batches); \pending{learners} stays open for SAINT d128, SAINT with pre-training and the declared search.
+%   Still pending here although results exist elsewhere (not in this item's brief): labels (REV/A2-label-family/
+%   label_family_v33.json), evidence_state (REV/A4-evidence-state-leak/evidence_block_patch_holdout_v33_v2.json), window
+%   (REV/A3-temporal-windows/window_sweep_paired_cis_v33.json; any fill must carry the ten-seed qualification).
 %
 % Every number carries its source in a comment.  Path prefixes used in those comments:
 %   FEAT/    = D:/LOL_Project/fusion_2615/features/
@@ -417,31 +423,73 @@ player may appear in training and evaluation folds; the size of that effect is u
 
 \subsubsection{What the learner comparison establishes}
 
-In the comparison recorded so far, the deep tabular models were trained with one fixed
+In the first learner comparison, each deep tabular model was trained once, with one fixed
 configuration and no per-architecture search. The token-based models,
 FT-Transformer~\cite{gorishniy2021revisiting} and SAINT~\cite{somepalli2021saint}, used token dimension 32, three layers, eight attention heads,
 batch size 64 and learning rate $10^{-4}$.
 % FEAT/deep_tabular_v33_patch_ft.json and deep_tabular_v33_patch_saint.json token_config {d_token 32, n_layers 3,
 % n_heads 8, batch_size 64, lr 0.0001}; no per-architecture search: REPO/docs/RELEASE_REPORT_V3.md section 5.4
 % (learner comparison), notes ("None of the neural learners received a hyperparameter search") and limitation paragraph.
-The neural learners are not matched in capacity either: the multilayer perceptron (MLP) has
+The neural learners were not matched in capacity either: the multilayer perceptron (MLP) has
 4.17\,M trainable parameters and TabNet~\cite{arik2021tabnet} 4.08\,M, against 0.46\,M for SAINT
 and 0.29\,M for FT-Transformer.
 % REPO/docs/RELEASE_REPORT_V3.md section 5.4 "learner comparison" table and parameter-count note (sum(p.numel()) of
 % the models built at commit 60945ed): MLP 4,167,681; TabNet 4,075,989; SAINT 459,713; FT-Transformer 285,857.
-The recorded TabNet run applied its sparsity regulariser with the sign reversed, which rewards dense
-rather than sparse feature-selection masks; it is being rerun, and its result is not reported.
+Two of its runs are withdrawn (\cref{sec:learners-published}). The TabNet run applied its sparsity
+regulariser with the sign reversed, which rewards dense rather than sparse feature-selection masks. The
+SAINT run evaluated engagements in batches that kept the engagements of a match together, so its attention
+across engagements could let an engagement attend to later engagements of its own match, recorded after
+its cutoff.
 % REPO/docs/RELEASE_REPORT_V3.md section 5.4 "learner comparison", dagger note: train_torch computed
 % loss - sparsity_lambda * entropy (REPO/scripts/run_deep_tabular_baselines.py at commit 60945ed), "do not cite
 % 0.6188"; run kept for provenance only in FEAT/deep_tabular_v33_patch_full.json models.tabnet.
-That comparison therefore shows what these architectures reach under that budget, not what they
-can reach. The declared search of \cref{sec:learners-effort} replaces it: \pending{learners}{test AUC
-on 15.16 of every learner, LightGBM included, after the declared search selected on 15.15; TabNet
-with the corrected regulariser; FT-Transformer and SAINT at a parameter count matched to the MLP;
-SAINT with and without pre-training}.
-% protocol: docs/tog_manuscript/sec_learners.tex sec:learners-effort; REPO/scripts/run_deep_hparam_search_v33.py
-% module docstring (families lightgbm, mlp, tabnet, ft_transformer, saint, saint_pretrain).  No result in
-% FEAT/tog_revision/A1-deep-baselines/ as of 2026-09-14 (smoke runs only).
+% SAINT leak exposure: sec_learners.tex paragraph "Two withdrawn rows" (published evaluate() used 1,024 consecutive rows in load
+%   order; all 151 test batches contained engagements of a common match).  As in sec_learners.tex, the withdrawn AUCs are not
+%   printed; only differences from them are.
+Three runs at the first comparison's training budget have since finished, on the same 153,816 test
+engagements. TabNet with the regulariser added reaches a test AUC of 0.6114 (95\% interval 0.6086 to
+0.6142), 0.0074 (0.0058 to 0.0090) below the withdrawn run. SAINT with batches that hold at most one
+engagement per match reaches 0.6550 (0.6522 to 0.6577), a difference from the withdrawn run whose interval
+includes zero ($-0.0006$ to $+0.0014$). FT-Transformer at token dimension 192, with 2.45\,M parameters,
+reaches 0.6578 (0.6549 to 0.6606), 0.0018 (0.0007 to 0.0029) above dimension 32. On the same engagements
+the LightGBM of the same neural pipeline, which reads all 7,106 columns, reaches 0.6661 (0.6632 to 0.6688),
+and the three runs lie 0.008 to 0.055 below it, each paired interval excluding zero. These are still single
+runs of fixed configurations, with intervals from 1,000 match-bootstrap resamples that hold the fitted
+models fixed: they show what these configurations reach under that budget, not what the architectures can
+reach, and we draw no conclusion about model classes from them. SAINT at token dimension 128, SAINT with
+pre-training and the declared search of \cref{sec:learners-effort} are still running:
+\pending{learners}{test AUC with paired intervals of SAINT at token dimension 128 and of SAINT with
+pre-training, and test AUC on 15.16 of every learner, LightGBM included, after the declared search
+selected on 15.15}.
+% Updated 2026-09-14 by item F4-consistency-fills.  REV = D:/LOL_Project/fusion_2615/features/tog_revision/.
+%   All three: REPO/scripts/run_deep_tabular_baselines.py, git_commit fa166ec, git_dirty false, preset v3.3, seed 7, patch split
+%   15.14 / 15.15 / 15.16 (test 153,816 rows, 55,449 matches), training_options epochs 30, patience 5 (the first comparison's
+%   budget: file names "published_config" / "published_budget", as sec_learners.tex "Corrected and enlarged runs, first
+%   comparison's training budget"); test_auc_bootstrap n_boot 1000, seed 7, "match-clustered percentile bootstrap, matches resampled jointly across
+%   models".  In these files "published_lightgbm" is the LightGBM of FEAT/deep_tabular_v33_patch_full.json (7,106 columns,
+%   models.lightgbm.test_auc 0.666089, best_iteration 306), NOT lgbm_paper (6,164 columns, 0.666484).
+%   REV/A1-deep-baselines/a_tabnet_sign_fixed_published_config.json: models.tabnet.sparsity_sign "+", config.legacy_sparsity_sign
+%     false, n_params 4075989; test_auc_bootstrap.auc.tabnet point 0.611370 ci95 [0.608602, 0.614197];
+%     paired."tabnet-published_tabnet" delta -0.007424 [-0.008966, -0.005834]; "tabnet-published_lightgbm" -0.054719
+%     [-0.056966, -0.052387]; auc.published_lightgbm 0.666089 [0.663194, 0.668803] (identical in all three files).
+%   REV/A1-deep-baselines/b_ft_transformer_d192_published_budget.json: token_config d_token 192, n_layers 3, n_heads 8, batch 64,
+%     lr 1e-4; models.ft_transformer.n_params 2452417; auc.ft_transformer 0.657835 [0.654946, 0.660590];
+%     paired."ft_transformer-published_ft_transformer" (d_token 32) +0.001779 [+0.000700, +0.002884];
+%     "ft_transformer-published_lightgbm" -0.008254 [-0.009628, -0.006793].
+%   REV/A1-deep-baselines/c0_saint_d32_published_config_match_disjoint.json: config.batching "match_disjoint", d_token 32,
+%     eval_batch_size 64, n_params 459713; deviations.protocol[1] (published SAINT row used row-order evaluation batches of 1,024,
+%     through which intersample attention could reach later engagements of the same match); auc.saint 0.655013 [0.652200,
+%     0.657733]; paired."saint-published_saint" +0.000428 [-0.000646, +0.001446]; "saint-published_lightgbm" -0.011076
+%     [-0.012568, -0.009634].
+%   "0.008 to 0.055": 0.008254 (FT-Transformer), 0.011076 (SAINT), 0.054719 (TabNet); every ci95 below zero.
+%   The corrected runs also seed torch (deviations.protocol[0]) and SAINT evaluates at batch 64, so the differences from the
+%   withdrawn runs do not isolate the fix; the text states them as differences only.
+%   sec_learners.tex Table tab:learners gives the same runs against lgbm_paper on the A8 draws (Delta -0.0551 / -0.0086 /
+%   -0.0115); the comparator here is named as the 7,106-column pipeline LightGBM to match these files.
+% Still running (REV/queue_state/b2_saint_d128_published_budget.running; c_saint_d32_pretrain5_published_config and
+%   d1-d3 hparam search queued in REV/queue_wave5.json, no queue_state entry): protocol in sec_learners.tex sec:learners-effort and
+%   REPO/scripts/run_deep_hparam_search_v33.py module docstring (families lightgbm, mlp, tabnet, ft_transformer, saint,
+%   saint_pretrain).
 
 \subsubsection{How precisely the constants are known}
 
@@ -492,11 +540,38 @@ of episodes that pass the presence gate is 10.3\% at the operating point and ran
 % grid.R1600_B15.valid_share 0.1027, minimum grid.R1350_B15 0.0649, maximum grid.R2500_B5 0.4112.
 For $G$, every swept value from 10 to 18\,s partitions kills with an adjusted Rand index (ARI) of at
 least 0.90 against the valley partition; this measures agreement between partitions, not the size of
-the corpus. How $G$ and $D$ together change the corpus is \pending{gxd\_sweep}{engagement count and
-AUC over the $G \times D$ sweep under the v3.3 preset}.
-% Same key as sec_definition.tex.  Sweep still running (REPO/scripts/run_gd_sweep_v33.py); no result cited.
+the corpus.
 % FEAT/fight_boundary_full/details_pooled.json temporal.ari_vs_valley: 10 -> 0.9048, 12 -> 0.9609,
 % 13 -> 0.9844, 14 -> 0.9942, 15 -> 0.9746, 16 -> 0.9562, 18 -> 0.9225 (8 -> 0.8293 and 20 -> 0.8916 fall below).
+How $G$ and $D$ together change the corpus and the AUC was measured by re-detecting the engagements of a
+random sample of 10,000 of the 210,000 cached matches with $G \in \{10, 12, 13.7, 16, 18\}$\,s and
+$D \in \{3{,}500, 4{,}000, 4{,}264, 4{,}750\}$\,u (\cref{sec:pred-constants}). Against the adopted
+constants, the number of engagements changes by $-8.5$\% to $+11.6$\%. Under the patch holdout, on the
+test engagements that a setting shares with the adopted constants and with each model scored against its
+own labels, the AUC differs by $-0.0094$ to $+0.0036$; two of the 19 intervals lie below zero, both at
+$G = 10$\,s, and none lies above it. These differences describe that sample only. On it the adopted
+constants reach a test AUC of just 0.6252, with models trained on 8,185 to 10,162 engagements instead of
+187,547; each setting was fitted once, the intervals hold the fitted models fixed and are not adjusted for
+the 19 comparisons, and no margin of negligible difference was set in advance. The sweep therefore does
+not show that the full-corpus result is insensitive to $G$ and $D$.
+% Filled 2026-09-14 by item F4-consistency-fills (was \pending{gxd_sweep}; same values as sec_definition.tex and sec_prediction.tex
+%   sec:pred-constants, whose comment block lists all 20 settings with intervals).  Source:
+%   REV = D:/LOL_Project/fusion_2615/features/tog_revision/
+%   REV/A6-definition-sensitivity/gd_sweep/gd_sweep_summary.json: provenance.n_matches_sampled 10000 (seed 7, sample_digest
+%   51646dbd62f59fa0d9c50186), split patch holdout 15.14 / 15.15 / 15.16, n_boot 1000, tolerance_ms 5000, operating_point
+%   G13700_D4264; settings_requested = 5 G x 4 D (G10000..G18000, D3500..D4750), settings_missing []; deviations[0] "Match
+%   subsample of 10,000 cache matches (seed 7), not the full corpus".  210,000 cached matches: CACHE count (see "What the corpus
+%   covers" below).
+%   settings[*].counts.n_engagements min 24764 (G18000_D4750), max 30185 (G10000_D3500), operating point 27053:
+%   24764 / 27053 - 1 = -0.0846; 30185 / 27053 - 1 = +0.1158.
+%   settings[*].paired_vs_operating_point.shared_setting_minus_op (setting's model on its labels minus the operating point's model
+%   on its labels, shared test rows matched one-to-one within 5 s): point min -0.009439 (G10000_D4264), max +0.003594
+%   (G13700_D4000); intervals entirely below zero G10000_D3500 [-0.015477, -0.000819] and G10000_D4264 [-0.017364, -0.002415];
+%   none entirely above zero (G13700_D4750 upper end +0.000046).
+%   settings[G13700_D4264].test.auc.point 0.625191; settings[*].counts.by_split.train.rows min 8185 (G18000_D4750), max 10162
+%   (G10000_D3500); 187,547 = FEAT/model_comparison_v33_patch.json split.rows.train.  Fitted once: signature seed 7, one fit per
+%   setting (REPO/scripts/run_gd_sweep_v33.py); intervals resample test matches of the stored predictions, models not refitted
+%   (the paired stream resamples the union of both settings' test matches, deviations[8]; wording as sec_prediction.tex).
 
 The derived constants carry numerical limits of their own. $G$ is the minimum of a kernel density
 estimate (KDE) evaluated on 1,401 points spaced uniformly in the base-10 logarithm of the interval

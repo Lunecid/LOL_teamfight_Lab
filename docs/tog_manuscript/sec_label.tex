@@ -20,7 +20,8 @@
 % Game-rule values are those of references_audit.md section 2c, notes N4, N5, N8, N9 (in force in 15.14-15.16 at
 %   the "no change listed" standard); no post-26.1 value is compared with the regression.
 % Cross-references: sec:prediction and sec:limit use \fwdref (macros.tex) because those files are not yet tracked.
-% \pending keys used here: label_tiers, price_diag, dragon_per_member (narrowed to the variant's own-model AUC).
+% \pending keys used here: price_diag, dragon_per_member (narrowed to the variant's own-model AUC).  label_tiers was filled on
+%   2026-09-14 by item F4-consistency-fills from REV/C4-label-tiers/label_tier_shares_v33.json (Step 5 of sec:label-def).
 % Fact-check fixes, 2026-09-14 (revision pass of M1-label):
 %   * Window pilot: the 45 s / 60 s agreements are for the minute-frame market_lex label, not market_event.
 %   * Timeline fields: riotapi2024timeline is cited for the record only; the bounty facts come from the corpus sample.
@@ -211,8 +212,38 @@ before the last kill; because frames are held, this count can be up to a minute 
 number of plates, structures and epic monsters taken inside the disc during the window. If $K$, $N$
 and $S$ are all zero the engagement is a draw, and draws are dropped: 33,905 of the 566,452 detected
 engagements (5.99\%), leaving 532,547 labelled engagements from 191,940 matches, of which blue won
-50.8\%. How often each step decides:
-\pending{label\_tiers}{share of the 532,547 labelled engagements decided by the swing, by $K$, by $N$ and by $S$}.
+50.8\%. Of the 532,547 labelled engagements, the gold swing decides 85.99\% (95\% interval 85.90 to
+86.09), $K$ decides 9.28\% (9.20 to 9.35), $N$ 3.51\% (3.46 to 3.56) and $S$ 1.22\% (1.19 to 1.25); the
+draws are 5.99\% (5.92 to 6.05) of the 566,452 detected engagements. The refinement decides 14.7\%, 14.3\%
+and 12.4\% of labelled picks, skirmishes and teamfights (scale classes of Section~\ref{sec:definition},
+teamfights from $n_{\min} = 4$), and 13.7\%, 16.3\%, 11.8\% and 10.1\% of labelled engagements whose cutoff
+falls in minutes 2--10, 10--20, 20--30 and after 30. Draws are most common early: 9.7\% of detected
+engagements with a cutoff in minutes 2--10, against 2.3\% to 4.0\% later. The intervals come from 2,000
+bootstrap resamples of the 194,676 matches that hold a detected engagement, and none of the grouped
+intervals extends more than 0.41 percentage points from its estimate.
+% Filled 2026-09-14 by item F4-consistency-fills (was \pending{label_tiers}): REV/C4-label-tiers/label_tier_shares_v33.json
+%   (script REPO/scripts/label_tier_shares_v33.py, git_commit b930f82, git_dirty false, preset v3.3, full_corpus true, 32 shards;
+%   checks.rows_checked_verdict_equals_stored 566452, every_shard_identity_ok true, every_shard_self_test_ok true,
+%   reproduces_manuscript_counts_all_equal true: rows_total 566452, rows_labelled 532547, rows_draw 33905, matches_labelled 191940,
+%   blue_win_rate_5dp 0.50785).  Rule (file "rule"): order swing (|Delta| > 300 g) -> kills (K != 0) -> survivors (N != 0) ->
+%   structures (S != 0) -> draw (tie policy drop), as REPO/gameplay/labels.py _compute_label_market_event / _lex_refine.
+%   overall.share_of_labelled (denominator 532547): swing 0.859943 [0.858992, 0.860905] (457960); kills 0.092766 [0.092025,
+%     0.093533] (49402); survivors 0.035112 [0.034588, 0.035604] (18699); structures 0.012179 [0.011897, 0.012461] (6486).
+%     Sum 457960 + 49402 + 18699 + 6486 = 532547.
+%   overall.share_of_detected.draw (denominator 566452): 0.059855 [0.059196, 0.060476] (33905).  Draws appear only in
+%     share_of_detected; they are not a share of the labelled engagements.
+%   by_scale_class.<c>.share_of_labelled.refined (K + N + S; scale_class from cluster_blue / cluster_red, smaller side, cuts pick <= 1,
+%     skirmish 2-3, teamfight >= 4; the 42 labelled rows with a negative stored count are the class "unknown" and are not quoted):
+%     pick 0.147498 [0.145363, 0.149723] (15015 / 101798); skirmish 0.143026 [0.141783, 0.144260] (45894 / 320878); teamfight
+%     0.124402 [0.122474, 0.126393] (13663 / 109829).
+%   by_minute_band.<b>.share_of_labelled.refined (band of engage_ts = tau in minutes; band lt2 is empty because cutoffs start at
+%     minute 2): 2-10 0.136645 [0.135165, 0.138099] (29561 / 216334); 10-20 0.162645 [0.161011, 0.164483] (29548 / 181672);
+%     20-30 0.117690 [0.115965, 0.119421] (13275 / 112796); 30+ 0.101311 [0.097203, 0.105100] (2203 / 21745).
+%   by_minute_band.<b>.share_of_detected.draw: 2-10 0.096979 [0.095804, 0.098165] (23233 / 239567); 10-20 0.039591 [0.038732,
+%     0.040449]; 20-30 0.022954 [0.022122, 0.023837]; 30+ 0.023925 [0.021920, 0.026068].  "2.3 % to 4.0 % later" = 20-30 and 10-20.
+%   Largest distance from a quoted grouped estimate to an interval end: 30+ refined 0.101311 - 0.097203 = 0.004108 (0.41 pp).
+%   bootstrap: n_boot 2000, seed 7, n_matches 194676 ("every match holding an analysed row, draws included"), match-clustered
+%     percentile, one multiplicity vector per replicate shared by every share and group.
 % src: REPO/gameplay/labels.py compute_label() applies attribute_events() before every label, so _lex_refine() sees only
 %   events inside the disc; merged-episode kills up to D + 2,000 u from the anchor: sec_definition.tex sec:def-attribution
 %   (REPO/gameplay/fights.py _merge_adjacent_candidates keeps the earlier centroid; CONTINUOUS_FIGHT_MERGE_RADIUS 2000).

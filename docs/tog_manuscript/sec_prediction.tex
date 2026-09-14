@@ -64,9 +64,12 @@
 %   tab:pred-leak caption; durable provenance of one-model class gaps; plain-words LightGBM and early
 %   stopping (R3); "makes no claim" wording.  No \pending marker could be filled (see the four keys below).
 % \pending keys used here (underscores escaped for text mode; grep "pending" finds them):
-%   leak_ablation_ci.  shap_forensics was filled on
-%   2026-09-14 by item F2-fill-and-gloss from REV/A7-shap-forensics/rerun.json (see sec:pred-audit); leak_ablation_ci stays
-%   pending (REV/C3-leak-ablation holds only smoke_m300 on 2026-09-14 16:10).  sec:limit-shap is now referenced.
+%   none.  shap_forensics was filled on
+%   2026-09-14 by item F2-fill-and-gloss from REV/A7-shap-forensics/rerun.json (see sec:pred-audit); leak_ablation_ci was filled
+%   on 2026-09-14 by item F4-consistency-fills from REV/C3-leak-ablation/leak_ablation_paired_cis_v33.json after its checks
+%   confirmed that the re-run reproduces FEAT/leak_ablation_v33.json exactly (sec:pred-audit).  sec:limit-shap is now referenced.
+% Item F4-consistency-fills (2026-09-14) also corrected the claim that the published configuration stops early under the
+%   patch holdout (best iteration 381 of 400, sec:pred-protocol).
 %   gxd_sweep and presence_gate_v33 were filled on 2026-09-14 by item F3-fill-results from
 %   REV/A6-definition-sensitivity/gd_sweep/gd_sweep_summary.json and REV/A6-definition-sensitivity/presence_gate/
 %   presence_gate_summary.json (sec:pred-constants; new label tab:pred-gxd).
@@ -196,6 +199,12 @@ every tree sees all training rows. Each fold's model is fitted once, with one ra
 %   improved for 100 trees; best_iteration_ is used for prediction.  Hence "score", not "AUC", in the text;
 %   plain-words definition shared with sec_learners.tex "Terms".
 % Training-set sizes: five-fold 532547 * 4 / 5 = 426,038 (about 426,000); patch 187,547.
+% Corrected 2026-09-14 (item F4-consistency-fills): the draft said the published configuration "also stops early" under the
+%   patch holdout.  It does not: FEAT/model_comparison_v33_patch.json models.lgbm_paper.best_iteration 381 with n_estimators
+%   400 and early_stopping(100) (WT/scripts/run_model_comparison_v33.py run_model()); 400 - 381 = 19 < 100, so the stopping
+%   rule never fires, all 400 trees are built and the model at tree 381 is kept (best_iteration_).  The same 381 is
+%   REV/A6-definition-sensitivity/presence_gate/presence_gate_summary.json points[rule_R1600_B15].reproduces_lgbm_paper
+%   best_iteration and REV/A4-evidence-state-leak/evidence_block_patch_holdout_v33_v2.json models.X.best_iteration.
 \emph{Why this protocol for the headline, and when the other.} Cross-validation scores every engagement,
 which the class analyses below need, and it measures predictability within the three patches of the
 corpus. It does not measure forecasting across a patch change, because every fold mixes all three
@@ -205,10 +214,11 @@ being added once the model's score on patch 15.15 has not improved for 100 conse
 model at its best point is kept; more trees would fit accidental regularities of the training patch
 rather than structure that carries over. The patch holdout is used for the learner comparison and
 for the scoreboard contrast of Section~\ref{sec:pred-scoreboard}. The published configuration scores
-0.6699 under cross-validation and 0.6665 under the patch holdout, where it also stops early. The
-difference mixes the size of the training set (about 426,000 against 187,547 engagements), early stopping
-and the patch change, so it is not interpreted, and the two protocols never share a table or a
-difference.
+0.6699 under cross-validation and 0.6665 under the patch holdout. Under the patch holdout its stopping rule
+never fires: its best point on patch 15.15 is the 381st of its 400 trees, fewer than 100 trees before
+that cap, so all 400 trees are built and the first 381 are kept. The difference between the two AUCs mixes
+the size of the training set (about 426,000 against 187,547 engagements), the number of trees kept and the
+patch change, so it is not interpreted, and the two protocols never share a table or a difference.
 
 % AUC 0.6699 -> "about two times in three": 0.6699 ~ 2/3 = 0.6667.
 \emph{Area under the ROC curve (AUC).} The model outputs a probability, and the AUC evaluates how well
@@ -221,7 +231,8 @@ whether engagements given a probability of 0.7 are won 70\% of the time.
 
 % Replicate counts: FEAT/scale_decomposition_v33_market_event.json bootstrap.*.n_boot 1000;
 %   REV/A6-definition-sensitivity/scale_cut_sensitivity_v33.json provenance.n_boot 400, seed 7;
-%   REV/A10-perclass-contrast/perclass_lead_contrast_v33.json (A8 method, seed 7, 2,000 replicates).
+%   REV/A10-perclass-contrast/perclass_lead_contrast_v33.json (A8 method, seed 7, 2,000 replicates);
+%   REV/C3-leak-ablation/leak_ablation_paired_cis_v33.json bootstrap.n_boot_used 2000, seed 7 (Table tab:pred-leak).
 % "not refitted", "unadjusted": REV/A8-input-audit-and-cis/paired_learner_cis_v33.json deviations
 %   ("each learner is one fitted model ... intervals cover test-set sampling only"; "intervals are per
 %   comparison and unadjusted"); REV/A10 .../perclass_lead_contrast_v33.json deviations (same wording).
@@ -240,8 +251,9 @@ engagements, such as two classes or two models, both are computed on every resam
 taken over the resampled differences; such an interval is called \emph{paired}. Models are not refitted
 inside the resamples, so the intervals describe the sampling of the evaluated matches, not the variation
 from retraining. Intervals use 1,000 resamples for the classes in Table~\ref{tab:pred-headline}, 400 for
-its first row and for Table~\ref{tab:pred-cut}, and 2,000 for Table~\ref{tab:pred-scoreboard} and the
-comparisons that accompany it, and they are not adjusted for the number of comparisons.
+its first row and for Table~\ref{tab:pred-cut}, and 2,000 for Table~\ref{tab:pred-scoreboard}, the
+comparisons that accompany it and the leak ablation of Table~\ref{tab:pred-leak}, and they are not adjusted
+for the number of comparisons.
 
 % -----------------------------------------------------------------------------
 \subsection{Result}\label{sec:pred-headline}
@@ -333,6 +345,13 @@ from it in definition, label and protocol.
 %   learner sd.oof_predictions = the published configuration, GroupKFold(5) on match ids; teamfight =
 %   smaller side >= 4.  Fold training sets 10,082-10,083 engagements (log "fold k/5: train=...").
 % Class sizes: configs.clean.by_class pick n 2419, skirmish 7556, teamfight 2628.
+% Re-run with predictions (item C3, 2026-09-14): REV/C3-leak-ablation/leak_ablation_v33_rerun.json (REPO/scripts/run_leak_ablation.py
+%   --n-matches 5000 --seed 7 --save-predictions; predictions/manifest.json git commit 2eb94d2, tracked_changes [], LightGBM 4.6.0).
+%   Reproduction, REV/C3-leak-ablation/leak_ablation_paired_cis_v33.json checks: reproduction_vs_published status "identical",
+%   max_abs_diff 0.0 over every AUC of FEAT/leak_ablation_v33.json (n_rows_equal, n_matches_equal, n_refs_equal, class_n_equal
+%   true); folds_vs_published_log all_match true (max_abs_diff 4.62e-05 against the log's four-decimal fold AUCs, fold sizes
+%   equal); rows status "pass", n_rows 12603, n_matches 4572, match_id / t_start_ts / y / scale_class / fold identical across
+%   configs, matches_within_one_fold true.  The published values below therefore carry the re-run's intervals.
 \emph{How much the leaks were worth.} A controlled ablation measures it. On 5,000 randomly drawn matches,
 12,603 engagements were built four times under the current definition and label, with each leaking input
 switched on or off and everything else fixed, and each build was scored by the protocol of
@@ -350,12 +369,31 @@ between builds are read.
 %   both_leaks:  overall 0.639965 - 0.619726 = +0.020239; pick 0.623716 - 0.618075 = +0.005641;
 %                skirmish 0.627945 - 0.612278 = +0.015667; teamfight 0.686937 - 0.642066 = +0.044871;
 %                pick_minus_teamfight -0.063221: change -0.039230.
-Table~\ref{tab:pred-leak} gives the result. Dividing game time by match length raised the overall AUC by
-0.019, but not evenly: it raised the AUC of teamfights by 0.049, of skirmishes by 0.014 and of picks by
-0.003, and so widened the difference between the pick and teamfight AUCs from $-0.024$ to $-0.070$. The
-map anchors alone raised the teamfight AUC by 0.012 and the pick and skirmish AUCs by at most 0.003. With both leaking
-inputs, as in the conference pipeline, the overall AUC rose by 0.020, the teamfight AUC by 0.045 and the
-pick AUC by 0.006, and the pick-minus-teamfight difference reached $-0.063$. A leak can therefore create a
+% Intervals (filled 2026-09-14, item F4-consistency-fills; was \pending{leak_ablation_ci}): REV/C3-leak-ablation/
+%   leak_ablation_paired_cis_v33.json bootstrap (method "match-clustered paired percentile bootstrap: one draw of matches (with
+%   replacement) per replicate, shared by every configuration, class and statistic"; n_boot_used 2000, seed 7, n_matches 4572;
+%   predictions of the fitted models, not refitted).  bootstrap.differences["<config> - clean"].<stat> point [ci_lo, ci_hi]:
+%   time_leak:   auc_all +0.019428 [+0.013243, +0.025607]; auc_pick +0.002624 [-0.012039, +0.016879]; auc_skirmish +0.013818
+%                [+0.005724, +0.021659]; auc_teamfight +0.049092 [+0.036034, +0.062632]; pick_minus_teamfight -0.046468
+%                [-0.066412, -0.026957].
+%   anchor_leak: auc_all +0.004375 [-0.001307, +0.010051]; auc_pick +0.002525 [-0.010741, +0.015488]; auc_skirmish +0.002024
+%                [-0.005692, +0.009463]; auc_teamfight +0.011513 [+0.000103, +0.022854]; pick_minus_teamfight -0.008988
+%                [-0.025957, +0.007508].
+%   both_leaks:  auc_all +0.020239 [+0.013899, +0.026591]; auc_pick +0.005641 [-0.010075, +0.020371]; auc_skirmish +0.015667
+%                [+0.007586, +0.024377]; auc_teamfight +0.044871 [+0.031192, +0.058061]; pick_minus_teamfight -0.039230
+%                [-0.060009, -0.018564].
+%   The points equal the differences computed above from FEAT/leak_ablation_v33.json (reproduction identical).
+Table~\ref{tab:pred-leak} gives the result; the intervals below are paired 95\% intervals for the differences
+from the audit-fixed build. Dividing game time by match length raised the overall AUC by 0.019 (0.013 to
+0.026), but not evenly: it raised the AUC of teamfights by 0.049 (0.036 to 0.063) and of skirmishes by 0.014
+(0.006 to 0.022), whereas the 0.003 for picks has an interval that includes zero ($-0.012$ to $+0.017$). It
+thereby widened the difference between the pick and teamfight AUCs from $-0.024$ to $-0.070$, a change of
+$-0.046$ ($-0.066$ to $-0.027$). The map anchors alone raised the teamfight AUC by 0.012 (0.0001 to 0.023);
+their changes to the overall, pick and skirmish AUCs, at most 0.004, and to the pick-minus-teamfight
+difference have intervals that include zero. With both leaking inputs, as in the conference pipeline, the
+overall AUC rose by 0.020 (0.014 to 0.027), the teamfight AUC by 0.045 (0.031 to 0.058) and the pick AUC by
+0.006 ($-0.010$ to $+0.020$), and the pick-minus-teamfight difference reached $-0.063$, a change of $-0.039$
+($-0.060$ to $-0.019$). A leak can therefore create a
 difference between classes as well as inflate a number. We have not tested why teamfights gain most;
 they also occur later in the match (median cutoff at minute 21.1, against 8.7 for picks), so the class
 and the game time at which the leaking time input is read are confounded.
@@ -364,14 +402,17 @@ and the game time at which the leaking time input is read are confounded.
 %   .pick.median_engage_minute 8.718 (engage_ts = cutoff tau: REPO/scripts/build_corpus_shard.py l.66
 %   engage_ts=int(r.t_start_ts); REPO/gameplay/fights.py l.1371 engage_ts_val = first_kill_ts - pre-kill).
 %   Whole labelled corpus, cut 4.  The explanation is flagged as untested in the text.
-% No interval: FEAT/leak_ablation_v33.json has no predictions and no bootstrap block; the script writes
-%   only AUCs (run_leak_ablation.py main()).
-The ablation kept no predictions, so these differences carry no interval
-(\pending{leak\_ablation\_ci}{paired match-bootstrap intervals for the differences in
-Table~\ref{tab:pred-leak}; needs scripts/run\_leak\_ablation.py re-run with its predictions saved}). With
-2,419 picks and 2,628 teamfights, class AUCs in this sample are far less precise than in
-Table~\ref{tab:pred-headline}, which is why the clean build's own difference of $-0.024$ is not read as a
-finding; on the full corpus the same inputs give $-0.0019$ at this cut (Table~\ref{tab:pred-cut}).
+% The published run kept no predictions (FEAT/leak_ablation_v33.json has no bootstrap block), so the intervals come from the
+%   re-run described above, whose AUCs are identical to the published ones.  4,572 = leak_ablation_paired_cis_v33.json
+%   bootstrap.n_matches (matches holding one of the 12,603 rows; 5,000 sampled, preflight_refs_m5000.json n_matches_with_refs
+%   4641).  Clean build's own gap: bootstrap.per_config.clean.pick_minus_teamfight -0.023991 [-0.055747, +0.005321].
+The intervals come from a re-run of the ablation that saved its predictions and reproduced every AUC of
+Table~\ref{tab:pred-leak} exactly, on the same engagements and folds. Each of 2,000 resamples redraws, with
+replacement, the 4,572 matches that hold these engagements, one draw shared by the four builds; the fitted models are held
+fixed, and the intervals are not adjusted for the number of comparisons. With 2,419 picks and 2,628
+teamfights, class AUCs in this sample are far less precise than in Table~\ref{tab:pred-headline}: the clean
+build's own pick-minus-teamfight difference of $-0.024$ has an interval from $-0.056$ to $+0.005$ and is not
+read as a finding; on the full corpus the same inputs give $-0.0019$ at this cut (Table~\ref{tab:pred-cut}).
 
 \begin{table}[t]
 \centering
@@ -380,7 +421,8 @@ match-grouped folds, with the two leaking inputs switched on or off. Time leak: 
 length. Anchor leak: map anchors from the whole match. Both leaks: both leaking inputs switched on, as in
 the conference pipeline.
 Out-of-fold AUC of the published LightGBM configuration; classes at $n_{\min} \ge 4$ ($n$ = 2,419 picks,
-7,556 skirmishes, 2,628 teamfights). No intervals were computed.}
+7,556 skirmishes, 2,628 teamfights). Paired intervals for the differences between builds (match bootstrap,
+2,000 resamples) are given in the text.}
 \label{tab:pred-leak}
 % FEAT/leak_ablation_v33.json configs.{clean,time_leak,anchor_leak,both_leaks}: auc; by_class.pick.auc;
 %   by_class.skirmish.auc; by_class.teamfight.auc; pick_minus_teamfight.
@@ -388,6 +430,8 @@ Out-of-fold AUC of the published LightGBM configuration; classes at $n_{\min} \g
 %   time_leak   0.639154  0.620699  0.626096  0.691158  -0.070459
 %   anchor_leak 0.624101  0.620601  0.614302  0.653579  -0.032978
 %   both_leaks  0.639965  0.623716  0.627945  0.686937  -0.063221
+%   Identical to every digit in the re-run REV/C3-leak-ablation/leak_ablation_v33_rerun.json (checks.reproduction_vs_published
+%   max_abs_diff 0.0 in REV/C3-leak-ablation/leak_ablation_paired_cis_v33.json); intervals: see the comment above the text.
 % "legacy path" = both flags False = REPO/core/presets.py PRESETS["cog2026"] feature flags.
 % both_leaks is NOT the conference pipeline's input: it is the v3.3 representation with the two flags off
 %   (REPO/scripts/run_leak_ablation.py docstring "both_leaks ... (v3 feature path)", CONFIGS l.37; 7,106
@@ -432,7 +476,8 @@ $-0.0702$ to $-0.0650$). A re-run on engagements detected with the current const
 leaking inputs and before later fixes to the label and the input representation, gave 0.7701 for
 teamfights ($n_{\min} \ge 4$) against 0.6726 for picks, a difference of $-0.0975$. Both analyses used the
 leaking inputs. The ablation shows that, on identical engagements, those inputs widen the difference in
-that direction, by 0.039 with both and by 0.046 with the time input alone, and on audit-fixed inputs the
+that direction, by 0.039 (95\% interval 0.019 to 0.060) with both and by 0.046 (0.027 to 0.066) with the
+time input alone, and on audit-fixed inputs the
 difference at the adopted cut is $-0.0019$
 (95\% interval $-0.0065$ to $+0.0028$). We therefore withdraw the conclusion. The two withdrawn AUC
 differences are not decomposed further here, because they differ from the present result in more than

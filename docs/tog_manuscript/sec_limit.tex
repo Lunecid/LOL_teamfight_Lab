@@ -698,8 +698,8 @@ is unchanged.
 
 We then repeated the prediction experiment on the full labelled corpus under the patch holdout of
 Section~\ref{sec:learners}: LightGBM with the settings of that section's published tree model, trained on
-15.14 (187,547 engagements), stopped early on 15.15 (191,184) and tested once on 15.16 (153,816
-engagements from 55,449 matches). Adding 306 columns could raise the AUC merely because they present
+15.14 (187,547 engagements), with 15.15 (191,184) used for early stopping, and tested once on 15.16
+(153,816 engagements from 55,449 matches). Adding 306 columns could raise the AUC merely because they present
 per-player values in a new layout. We therefore compare three models: the 6,164 non-constant pre-cutoff
 columns alone (X); X plus 306 reconstructed columns (thirty fields per player, including position
 evidence kind and age, and six team differences); and, as a control, X plus the same 306 columns filled
@@ -713,6 +713,10 @@ resamples of the test matches, shared by all models and bands, so the difference
 %   subsample .9, colsample_bytree .9, seed 7, reference_params_verified true; block_rows_not_built 0 in every split
 %   (block_manifest rows_ok 566452 / rows 566452).
 % reproduces_lgbm_paper: x_only_test_auc 0.6664835 = lgbm_paper_test_auc (FEAT/model_comparison_v33_patch.json), abs_diff 0.0.
+% "used for early stopping", not "stopped early" (corrected 2026-09-14, item F4-consistency-fills): models.X.best_iteration 381,
+%   models.X_plus_hold.best_iteration 355, models.X_plus_evidence.best_iteration 287, each with lgbm_params n_estimators 400 and
+%   100-tree patience (WT/scripts/evidence_block_patch_holdout_v33.py, callbacks=[early_stopping(100, ...)]); X, the published configuration, and X+Hold keep a best point less than 100 trees before the cap, so their
+%   stopping rule never fires (FEAT/model_comparison_v33_patch.json models.lgbm_paper.best_iteration 381 likewise).
 % bootstrap n_boot 1000, seed 7, clusters 55449, percentile 2.5 / 97.5, one multiplicity vector per draw for all models and bands.
 % Calibration matches vs this run: calibration_vs_loaded_rows disjoint_from_test_patch true, disjoint_from_val_patch true;
 %   train_patch_15.14 intersection 928 (allowed: feature construction fitted on training-side matches).

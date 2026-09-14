@@ -16,7 +16,8 @@
 %   presence_gate_summary.json (temporal-boundary subsection, presence-gate subsection, Table tab:constants rows G, D, R, B, M;
 %   full values and keys in sec_prediction.tex, subsection sec:pred-constants).  window was filled on
 %   2026-09-14 (item F2-fill-and-gloss) from REV/A3-temporal-windows/window_sweep_paired_cis_v33.json (Table tab:constants,
-%   row "Context guard, observation window").
+%   row "Context guard, observation window").  Item F4-consistency-fills (2026-09-14) added the ten-seed qualification from the
+%   same file's seed_replication block to that row: the 2.5 s gain holds for one seed's fixed models, not over ten refits.
 %   scale_cut is NOT pending: the A6 artefact matches (see scale classes).  attr_radius and labels were filled on
 %   2026-09-14 (item F2-fill-and-gloss) from REV/A2-label-family/label_family_v33.json (finished, partial false).
 % killless_char was filled on 2026-09-14 (item F1-cross-file-fixes) from REV/A5-killless/{freq,char}_*_20k.json,
@@ -519,7 +520,7 @@ Rejects a candidate whose last kill is more than 60\,s after $\tau$; skips a mer
 Start and end exclusion & \texttt{\scriptsize START\_\allowbreak OFFSET\_\allowbreak MIN}; $H$ & 2\,min; $\tau + 35$\,s & Engineering &
 Cutoffs in the first two minutes are rejected, as are cutoffs less than 35\,s before the last frame. Not measured. \\
 Context guard, observation window & \texttt{\scriptsize FIGHT\_\allowbreak CONTEXT\_\allowbreak SEC}, \texttt{\scriptsize BIN\_\allowbreak MS}, \texttt{\scriptsize PREDICTION\_\allowbreak GAP\_\allowbreak MS} & 30\,s in 5\,s bins; gap 0 & Convention (conference version) &
-$\tau - 30$\,s must not precede the first frame; the same 30\,s, ending at $\tau$ without a gap, form the observation window (Section~\ref{sec:learners-window}). Sweep (20,000 matches, patch holdout): 2.5\,s bins $+0.0063$ [$+0.0029$, $+0.0100$] AUC over 0.6380 (Holm-adjusted bootstrap $p \leq 0.005$); 15--120\,s windows and 10\,s bins $-0.0009$ to $+0.0042$, none above zero after adjustment for five comparisons. \\
+$\tau - 30$\,s must not precede the first frame; the 30\,s up to $\tau$ form the observation window (Section~\ref{sec:learners-window}). Sweep (patch holdout): 2.5\,s bins $+0.0063$ [$+0.0029$, $+0.0100$] AUC over 0.6380 with one seed's models (Holm-adjusted $p \leq 0.005$) but $+0.0016$ [$-0.0007$, $+0.0039$] over ten seeds; other windows and bins $-0.0009$ to $+0.0042$, none above zero after adjustment or over ten seeds. \\
 Label horizon $H$; ace truncation & \texttt{\scriptsize FIGHT\_\allowbreak HORIZON\_\allowbreak SEC}; -- & 35\,s; on & Engineering; ace: convention &
 Keeps the conference version's reach of first kill $+20$\,s. Pilot (553 matches, \texttt{market\_lex} labels): 97.5\% and 94.3\% label agreement with 45\,s and 60\,s windows. The window ends early at an ace (not measured). \\
 Overlap resolution & location radius $= D$ & on & Engineering &
@@ -574,7 +575,7 @@ Engagements on which the label finds no winner are dropped: 33,905 of 566,452. \
 % src (row "Context guard"): core/config.py PREDICTION_GAP_MS 0 (line 455; not set by PRESETS["v3.3"]); gameplay/pipeline.py
 %   (line ~119) prediction_gap_ms = getattr(cfg, "PREDICTION_GAP_MS", 0): observation window ends at engage_ts - gap, label window starts at engage_ts
 %   Sweep values (filled 2026-09-14, item F2-fill-and-gloss; was \pending{window}): REV/A3-temporal-windows/window_sweep_paired_cis_v33.json
-%   (item C2, created_utc 2026-09-14T07:02:08Z, checks.passed true; source_run.n_matches_sampled 20000, checks.common_rows n_rows 50766,
+%   (item C2, created_utc 2026-09-14T07:41:41Z after the rewrite that added seed_replication, re-read 2026-09-14 by item F4; checks.passed true; source_run.n_matches_sampled 20000, checks.common_rows n_rows 50766,
 %   n_matches 18335; split patch holdout 15.14 / 15.15 / 15.16, test 14,417 rows, 5,206 matches; lgbm_params = published configuration,
 %   400 trees, learning rate 0.05, 31 leaves, early stopping on 15.15).  protocols.patch.auc.ctx30_bin5000.auc 0.637953;
 %   protocols.patch.paired.<arm> - ctx30_bin5000 delta [ci_lo, ci_hi] (2,000 match bootstraps, seed 7):
@@ -586,6 +587,16 @@ Engagements on which the label finds no winner are dropped: 33,905 of 566,452. \
 %   written only as p <= 0.005 if ever printed; >= 0.196 for the others.  Hence "-0.0009 to +0.0042, none
 %   above zero after adjustment" for the other four arms (the unadjusted ctx120 interval excludes zero by 0.00004).  Row kept short:
 %   a longer version overfilled the table* page by 6.1 pt (build check 2026-09-14).
+%   Ten-seed qualification (added 2026-09-14, item F4-consistency-fills): the intervals above hold the seed-7 models fixed
+%   (method.held_fixed).  seed_replication (seeds 7, 1-6, 8-10; LightGBM random_state only, which seeds the 0.9 column draw;
+%   patch holdout only) paired.<arm> - ctx30_bin5000 .seed_mean delta [ci_lo, ci_hi] = difference of ten-seed mean AUCs, interval
+%   from 2,000 replicates that redraw the matches and ten seeds per setting: ctx30_bin2500 +0.001568 [-0.000734, +0.003896]
+%   (seed 7's +0.006325 is same_seed_delta_max of the ten); ctx15 -0.002503 [-0.005656, +0.000387]; ctx60 +0.003051
+%   [-0.000129, +0.006244]; ctx120 +0.000431 [-0.002986, +0.003817]; ctx30_bin10000 -0.000302 [-0.002867, +0.002194].  Every
+%   ten-refit interval includes zero, hence "none above zero after adjustment or over ten seeds" ("other windows and bins" = the
+%   15, 60, 120 s windows and the 10 s bins).  "the 30 s up to tau": the gap 0 is in the value column.  The 20,000-match sample
+%   size was dropped from the row to keep the table* on its page (first F4 build overfilled it by 6.1 pt; final build clean);
+%   sec:learners-window states it.
 % src (row "Interaction radius, shop events"): core/config.py TF2_EXCLUDE_SHOP_INTERACTIONS False (line 486; comment: shop events have no
 %   position and are placed by the actor's interpolated location); gameplay/fights.py _collect_interactions_in_radius exclude_shop;
 %   FEAT/shop_event_sensitivity.json class_change_rate 0.0159 (226 / 14211)
