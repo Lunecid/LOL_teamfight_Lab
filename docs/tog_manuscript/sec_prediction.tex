@@ -1,0 +1,696 @@
+% =============================================================================
+% sec_prediction.tex -- Pre-Engagement Prediction  (ToG manuscript, item M2-prediction, 2026-09-14)
+%
+% Answers CoG 2026 reviews: R3 (motivate every method for a non-expert: task, grouped cross-validation,
+% AUC, match bootstrap, attribution forensics), R1 (results must not hinge on hand-set constants: pointer to
+% the G x D sweep and the presence-gate points, both pending) and the audit-driven withdrawal that the
+% Introduction announces (reviewer_response_matrix.md rows R1-2, R3-5).
+%
+% FACTS THIS FILE MUST KEEP (checked against code and artefacts by this item):
+%   * The CoG submission's text has no scale classes (REPO/paper/abstract.tex, intro.tex, methods.tex,
+%     result.tex: no class definition, no n_min, no per-class result; the words occur only descriptively:
+%     abstract.tex l.8 "teamfights", intro.tex l.5 "skirmishes or teamfights", methods.tex l.60 "isolated
+%     picks"; re-read 2026-09-14).  The scale conclusion came from the post-conference
+%     extension draft REPO/paper/tog/main_en.tex (v0.2, SUPERSEDED banner, lines 2-8, 20, 30, 42, 52, 60-62)
+%     and from re-runs on the corpus-v3 shards (REPO/docs/DATA_MANIFEST.md "Corpus v3").  Never write that
+%     the conference paper claimed a scale gradient.
+%   * What IS a CoG-era issue: the conference pipeline used the legacy feature path.  REPO/core/presets.py
+%     PRESETS["cog2026"] (tag v1.0-cog2026): TIME_NORM_ABSOLUTE False, ANCHORS_CAUSAL False,
+%     TAB_FRAME_AGE_FEATURE False; PRESETS["v3.3"]: True, True (TIME_NORM_DENOM_MIN 45.0), True.
+%     git show v1.0-cog2026:gameplay/pipeline_cache.py line 48: time_norm = float(t / max(1.0, T - 1))
+%     (re-read 2026-09-14).  Fix commit 5b5f9c8 (2026-09-09 09:33, "Input feature audit: two leaks fixed,
+%     spatial block repaired, frame age added").
+%   * "No scale gradient" is never written as absolute (A6 cut table).
+%
+% Provenance.  Every number carries a comment with its artefact and key; derived numbers show the
+% arithmetic.  All values were re-read from the artefacts on 2026-09-14 by this item.  Path prefixes:
+%   FEAT/    = D:/LOL_Project/fusion_2615/features/
+%   REV/     = D:/LOL_Project/fusion_2615/features/tog_revision/
+%   REPO/    = C:/Users/todtj/PycharmProjects/LOL_teamfight/
+%   WT/      = C:/Users/todtj/문서/LOL_Teamfight/worktrees/engagement-state-value/
+% No comment cites a session scratchpad (not archived, not durable).  Every printed value is either in an
+%   archived artefact under FEAT/ or REV/, or recomputable from committed code and archived inputs, with the
+%   computation given where it is used (the one case: one model's pick-minus-teamfight interval on the patch
+%   holdout, Section sec:pred-scoreboard).
+% Protocols are never mixed in one table or one difference:
+%   "five-fold"      = match-grouped 5-fold out-of-fold predictions on the whole v3.3 corpus, published
+%                      LightGBM configuration (FEAT/scale_decomposition_v33_market_event.json and .preds.npz;
+%                      REV/A6-definition-sensitivity/);
+%   "patch holdout"  = train 15.14 / early stopping 15.15 / test 15.16 (FEAT/model_comparison_v33_patch.json
+%                      and .preds.npz; REV/A8-input-audit-and-cis/; REV/A10-perclass-contrast/).
+% Learner of the five-fold predictions: WT/scripts/run_scale_decomposition.py oof_predictions():
+%   GroupKFold(n_splits=5) on match ids (no shuffle), LGBMClassifier(n_estimators=400, learning_rate=0.05,
+%   num_leaves=31, subsample=0.9, colsample_bytree=0.9, random_state=7), no early stopping.  subsample_freq is
+%   left at its default 0, and LightGBM 4.6 enables row subsampling only when subsample_freq > 0
+%   ("subsample_freq ... <=0 means no enable", LGBMClassifier docstring, anaconda python used for the runs),
+%   so every tree sees all training rows and only the 90 % column draw is active.  The text says so.
+% Match bootstrap of the five-fold file: same script, cluster_bootstrap(): rng default_rng(7), resample
+%   match ids with replacement, roc_auc_score on the concatenated rows, 2.5 / 97.5 percentiles, n_boot 1000.
+%
+% Cross-references.  \ref for labels in committed files (sec:intro, sec:background, sec:definition,
+%   sec:def-constants, sec:def-killless, sec:limitations, subsec:limitations, sec:availability);
+%   \fwdref (macros.tex) for sec:label and for the labels of sec_learners.tex.  sec_label.tex now exists
+%   (\label{sec:label} at l.26) but is untracked, and sec_learners.tex is untracked and partial (sec:learners,
+%   sec:learners-input, sec:learners-ladder, sec:learners-protocol, sec:learners-terms); \fwdref resolves to
+%   \ref in a full build and prints a placeholder only if a file is missing.  sec:limit is not referenced.
+% Labels defined here: sec:prediction, sec:pred-task, sec:pred-protocol, sec:pred-headline, sec:pred-audit,
+%   sec:pred-cut, sec:pred-scoreboard, sec:pred-constants; tab:pred-headline, tab:pred-leak, tab:pred-cut,
+%   tab:pred-scoreboard.
+% Build check 2026-09-14 (after the fact-check fixes): compiled with IEEEtran + macros.tex + bibtex in the
+%   scratchpad (stub sections for the \ref / \fwdref targets): no errors, no overfull boxes, no undefined
+%   references, all three citations resolve.
+% Fact-check round (2026-09-14): cut qualifier and cut-3/5 full-model gaps in sec:pred-scoreboard; "-1
+%   stored count" wording in three captions; 0.675 source; spatial inventory; interpolation of positions;
+%   tab:pred-leak caption; durable provenance of one-model class gaps; plain-words LightGBM and early
+%   stopping (R3); "makes no claim" wording.  No \pending marker could be filled (see the four keys below).
+% \pending keys used here (underscores escaped for text mode; grep "pending" finds them):
+%   gxd_sweep, presence_gate_v33 (same keys as sec_definition.tex), shap_forensics, leak_ablation_ci.
+% Citation keys (all in REPO/docs/references/definition_refs.bib, marked VERIFIED): efron1993bootstrap,
+%   ke2017lightgbm, lundberg2020local.
+% =============================================================================
+
+\section{Pre-Engagement Prediction}\label{sec:prediction}
+
+This section states the prediction task, the protocol that evaluates it and the result. It then reports
+the audit of the model inputs, which withdrew an earlier conclusion that predictability depends on
+engagement scale; shows that any comparison between scale classes depends on where the class boundary
+is placed; and measures how much of the result a model that reads only the scoreboard reproduces.
+Learners other than gradient-boosted trees are compared in Section~\fwdref{sec:learners}, and the label
+and its variants are examined in Section~\fwdref{sec:label}.
+
+% -----------------------------------------------------------------------------
+\subsection{The Task}\label{sec:pred-task}
+
+In plain words, the task is to state, shortly before an engagement starts, how likely the blue team is
+to win it, using only what the match telemetry has recorded up to that moment.
+
+% B = 15 s: FEAT/model_comparison_v33_patch.json corpus_manifest.detector.TF2_ENGAGE_PRE_KILL_MS 15000;
+%   the presence gate is evaluated at the same tau (sec_definition.tex lines 228-231).
+% 33,905 of 566,452: FEAT/model_comparison_input_audit.json truth.rows_total 566452, rows_labelled 532547;
+%   566452 - 532547 = 33905.
+% 532,547 / 191,940 / 50.8 %: FEAT/scale_decomposition_v33_market_event.json n 532547, n_matches 191940,
+%   positive_rate 0.507854.
+Formally, let $e$ be an engagement (Section~\ref{sec:definition}) whose first kill occurs at time
+$t_1(e)$. Its \emph{cutoff} is $\tau(e) = t_1(e) - B$ with $B = 15$\,s, the instant at which the
+definition's presence gate is evaluated. The target $y(e)$ is 1 when the blue team wins the engagement
+under the \texttt{market\_event} label (Section~\fwdref{sec:label}) and 0 when the red team wins it;
+engagements that the label scores as a draw have no target and are excluded, 33,905 of 566,452 detected
+engagements. A model maps an input vector $x(e)$, computed only from telemetry recorded up to $\tau(e)$,
+to a number $\hat p(e) \in [0, 1]$, its estimate of $\Pr\{y(e) = 1 \mid x(e)\}$. The corpus holds
+532,547 labelled engagements from 191,940 matches, and the blue team won 50.8\% of them.
+
+% Window and bins: REPO/core/config.py FIGHT_CONTEXT_SEC 30 (l.432), BIN_MS 5000 (l.321); 30 / 5 = 6 bins.
+% Base-quantity groups: REPO/docs/INPUT_FEATURE_AUDIT_V3.md section 1 (inventory, 2026-09-09):
+%   per player slot 17 snapshot + 11 state + 11 rune + 25 champion statistic + 12 damage + 16 item = 92;
+%   92 x 10 = 920; game-wide time_norm 1 + bans 10 + team differences 15 + event counts 44 + spatial
+%   (6 + 5 + 14 =) 25 = 95; 920 + 95 = 1015 (= FEAT/deep_tabular_v33_patch_full.json n_bases 1015).
+% Spatial 25 (REPO/gameplay/feature_spatial.py SPATIAL_FEATURE_NAMES l.17-43; audit section 1 rows l.22-24):
+%   6 = pos_fight/pos_blue/pos_red x,y, zeroed by [P0-1] (REPO/gameplay/features.py l.23-30 and l.564-571,
+%   ZERO_XY_IN_EXTRA_SEQ True at REPO/core/config.py l.509; the zeroed copy enters macro_seq, which the
+%   "full" and "tri_modal" feature sets read, features.py l.573 and l.613-623; audit l.22 "fixed at 0 ->
+%   constant, removed");
+%   5 = dist_team_sep, standoff_pairs_frac, mean_min_enemy_dist, d_standoff_pairs_frac, d_mean_min_enemy_dist;
+%   14 = dist_obj_nearest, near_obj x5, dist_tower_nearest, in_tower_range, near_tower_radius, zone x5.
+% Frames before tau only: REPO/gameplay/pipeline.py l.161-175 node_max_snapshot_ms = label_start_ms - 1
+%   (label_start_ms = engage_ts = tau, l.128) passed to REPO/gameplay/pipeline_interp.py
+%   interpolate_node_global / interpolate_abs_xy, which cap the query time at the last frame with timestamp
+%   <= tau - 1 ms ("Prevent future-frame interpolation leakage", l.117-122); scalars ffill
+%   (INTERP_SCALARS_METHOD "ffill", REPO/core/config.py l.337); coordinates linear between the two frames
+%   around the (capped) query, alpha clipped to [0, 1] (l.127-138; _interp_xy_guarded holds on a jump
+%   > 7,000 u or a death, audit section 1 row 1).  The x_seq of feature set "full" is node_flat + macro_seq
+%   (features.py l.613-620), i.e. 920 + 95 base quantities.  Frames every ~60 s: sec_background.tex (60.00-60.17 s in the corpus).
+% Seven statistics: REPO/docs/FEATURES.md l.279-297; FEAT/model_comparison_input_audit.json check "suffix
+%   families are contiguous and suffix-major" ['last','mean','std','min','max','delta','slope'].
+% 7,106 / 942 / 6,164: FEAT/model_comparison_input_audit.json truth.columns_total 7106, columns_constant 942,
+%   columns_non_constant 6164; 1015 * 7 + 1 = 7106.  The tree pipeline's filter reads column ranges over all
+%   shard rows and never the labels (sec_learners.tex, paragraph "Columns").
+The input summarises the \emph{observation window} $[\tau - 30\,\mathrm{s},\ \tau]$, divided into six
+bins of 5\,s. Of its 1,015 base quantities, 920 describe the ten players (for each: 17 snapshot quantities
+such as position, level, experience, gold and creep score; 11 buff and ability states; 11 rune slots; 25
+champion statistics; 12 cumulative damage totals; 16 item quantities); the other 95 are game time, 10
+champion bans, 15 blue-minus-red team differences, 44 counts of timeline events and 25 spatial
+quantities. Of the spatial quantities, five measure how far apart the two teams stand and 14 where the
+fight lies relative to towers, objectives and map zones; the other six are coordinates of the fight and
+team centres, which the input holds at zero, so they are among the constant columns counted below.
+Quantities read from participant frames use only frames recorded before $\tau$. Frames arrive about every
+60\,s, so a quantity carried forward from the
+last frame changes at most once inside the window. Champion positions are instead interpolated linearly
+between consecutive frames, but never past the last frame before $\tau$: they can change in every bin up
+to that frame and keep its value after it. Events carry millisecond timestamps and are counted in the bin
+that contains them.
+Each base quantity is summarised over the six bins by seven statistics: the last value, the mean, the
+standard deviation, the minimum, the maximum, the change from the first to the last bin, and the
+least-squares slope. A final column, \emph{frame age}, gives the time from the last frame to $\tau$ and so
+tells a model how stale the frame quantities are. Each engagement is thus a row of
+$1{,}015 \times 7 + 1 = 7{,}106$ numbers. Of these columns, 942 take a single value in every engagement of
+the corpus and carry no information; the tree learners use the other 6,164
+(Section~\fwdref{sec:learners-input}).
+
+% "who wins an imminent engagement, not whether one occurs": sec_background.tex term "Prediction cutoff".
+\emph{What a leak is here.} An input \emph{leaks} when its value at $\tau$ depends on anything recorded
+after $\tau$: the engagement itself, later events, or properties of the whole match such as its length or
+its winner. A leaking input answers part of the question from the future. The AUC it produces cannot be
+reached by a model used before the fight, and a comparison built on it, between scale classes, learners or
+labels, may measure how much each group gains from the leak rather than how predictable the group is.
+Leaks need not come from a column that obviously reads the future; a scale factor or a reference table
+computed from the complete match leaks just as well, and Section~\ref{sec:pred-audit} reports two of that
+kind. One use of the future is part of the task and is not a leak in this sense: $\tau$ is placed from a
+kill that has not yet happened, so the task is to predict who wins an engagement known to be imminent,
+not whether one will occur (Section~\ref{subsec:limitations}).
+
+% -----------------------------------------------------------------------------
+\subsection{Evaluation Protocol}\label{sec:pred-protocol}
+
+\emph{Grouped cross-validation.} A model's skill has to be measured on engagements it was not trained on.
+Five-fold cross-validation divides the data into five parts, the \emph{folds}; a model trained on four
+folds predicts the engagements of the fifth, and repeating this for every fold gives each engagement one
+\emph{out-of-fold} prediction from a model that never saw it. The folds are formed from whole matches, so
+that all engagements of a match fall in the same fold. Engagements of one match share players, champions
+and much of the game state (a gold lead persists from one fight to the next), and a model trained on some
+engagements of a match could partly recognise the match when predicting its other engagements rather than
+predict the fight. The AUC is computed once over all 532,547 out-of-fold predictions.
+% Learner: see header (oof_predictions).  Configuration text shared with sec_learners.tex paragraph
+%   "Gradient-boosted trees"; the row subsample inactive per the header note.
+The learner is LightGBM~\cite{ke2017lightgbm}, an implementation of gradient-boosted decision trees. A
+decision tree predicts by a short sequence of yes-or-no questions about the input columns; boosting builds
+many small trees one after another, fits each new tree to the errors that the trees before it still make,
+and adds up their outputs, scaled by a learning rate, to form the prediction. It is used in its published
+configuration (Section~\fwdref{sec:learners-ladder}): 400 trees of at most 31 leaves, learning rate 0.05,
+and a random 90\% of the columns drawn for each tree. The configuration also sets a row fraction of 90\%, but LightGBM
+applies it only when a subsampling frequency is set, which this configuration leaves at its default, so
+every tree sees all training rows. Each fold's model is fitted once, with one random seed.
+
+% Patch holdout: FEAT/model_comparison_v33_patch.json split {train 15.14, val 15.15, test 15.16},
+%   rows {187547, 191184, 153816}.  lgbm_paper test AUC 0.666484 (models.lgbm_paper.overall_auc).
+% Early stopping: WT/scripts/run_model_comparison_v33.py run_model() l.130-131: fit(eval_set=[15.15],
+%   eval_metric="auc", callbacks=[early_stopping(100)]); with first_metric_only left False the callback
+%   watches every validation metric (AUC and LightGBM's default binary log-loss) and stops when one has not
+%   improved for 100 trees; best_iteration_ is used for prediction.  Hence "score", not "AUC", in the text;
+%   plain-words definition shared with sec_learners.tex "Terms".
+% Training-set sizes: five-fold 532547 * 4 / 5 = 426,038 (about 426,000); patch 187,547.
+\emph{Why this protocol for the headline, and when the other.} Cross-validation scores every engagement,
+which the class analyses below need, and it measures predictability within the three patches of the
+corpus. It does not measure forecasting across a patch change, because every fold mixes all three
+patches. The \emph{patch holdout} does: models are trained on patch 15.14, stopped early on 15.15 and
+tested once on 15.16 (Section~\fwdref{sec:learners-protocol}). \emph{Stopping early} means that trees
+stop being added once the model's score on patch 15.15 has not improved for 100 consecutive trees, and
+the model at its best point is kept; more trees would fit accidental regularities of the training patch
+rather than structure that carries over. The patch holdout is used for the learner comparison and
+for the scoreboard contrast of Section~\ref{sec:pred-scoreboard}. The published configuration scores
+0.6699 under cross-validation and 0.6665 under the patch holdout, where it also stops early. The
+difference mixes the size of the training set (about 426,000 against 187,547 engagements), early stopping
+and the patch change, so it is not interpreted, and the two protocols never share a table or a
+difference.
+
+% AUC 0.6699 -> "about two times in three": 0.6699 ~ 2/3 = 0.6667.
+\emph{Area under the ROC curve (AUC).} The model outputs a probability, and the AUC evaluates how well
+those probabilities rank engagements: it is the probability that a randomly chosen engagement that blue
+won receives a higher predicted probability than a randomly chosen engagement that blue lost, with ties
+counted as one half. It equals 0.5 for a model that ranks at random and 1 for a perfect ranking,
+whatever the share of blue wins, and it needs no decision threshold. An AUC of 0.67 means that the model
+orders such a pair correctly about two times in three. The AUC does not measure calibration, that is,
+whether engagements given a probability of 0.7 are won 70\% of the time.
+
+% Replicate counts: FEAT/scale_decomposition_v33_market_event.json bootstrap.*.n_boot 1000;
+%   REV/A6-definition-sensitivity/scale_cut_sensitivity_v33.json provenance.n_boot 400, seed 7;
+%   REV/A10-perclass-contrast/perclass_lead_contrast_v33.json (A8 method, seed 7, 2,000 replicates).
+% "not refitted", "unadjusted": REV/A8-input-audit-and-cis/paired_learner_cis_v33.json deviations
+%   ("each learner is one fitted model ... intervals cover test-set sampling only"; "intervals are per
+%   comparison and unadjusted"); REV/A10 .../perclass_lead_contrast_v33.json deviations (same wording).
+% Matches resampled: 191,940 = FEAT/scale_decomposition_v33_market_event.json n_matches; 55,449 =
+%   REV/A10-perclass-contrast/perclass_lead_contrast_v33.json overall.n_matches (= A8 comparisons.*.n_matches).
+\emph{Match bootstrap.} Another sample of matches from the same population would give a somewhat
+different AUC, and a confidence interval states how different. The bootstrap estimates this variation
+from the data at hand~\cite{efron1993bootstrap}. It draws, with replacement, as many matches as are
+evaluated (all 191,940 under cross-validation, the 55,449 of the test patch under the patch holdout),
+keeps every engagement of each drawn match as often as the match was drawn, and recomputes the AUC from
+the stored predictions; after many such resamples, the 2.5th and 97.5th percentiles of the recomputed
+AUCs form the 95\% interval. Matches, not engagements, are resampled because engagements of one match are
+not independent, and resampling them one by one would count correlated engagements as
+separate evidence and make the intervals too narrow. For a difference between two AUCs on the same
+engagements, such as two classes or two models, both are computed on every resample and the interval is
+taken over the resampled differences; such an interval is called \emph{paired}. Models are not refitted
+inside the resamples, so the intervals describe the sampling of the evaluated matches, not the variation
+from retraining. Intervals use 1,000 resamples for the classes in Table~\ref{tab:pred-headline}, 400 for
+its first row and for Table~\ref{tab:pred-cut}, and 2,000 for Table~\ref{tab:pred-scoreboard} and the
+comparisons that accompany it, and they are not adjusted for the number of comparisons.
+
+% -----------------------------------------------------------------------------
+\subsection{Result}\label{sec:pred-headline}
+
+% Overall: REV/A6-definition-sensitivity/scale_cut_sensitivity_v33.json overall.auc point 0.669909,
+%   ci_2.5 0.668356, ci_97.5 0.671160 (n_boot 400, seed 7) -> 0.6699 [0.6684, 0.6712].  Point equals
+%   FEAT/scale_decomposition_v33_market_event.json overall_auc 0.6699089924634439 (that file has no overall
+%   interval).
+% Classes: FEAT/scale_decomposition_v33_market_event.json by_participation_scale.{pick,skirmish,teamfight}
+%   n 101798 / 320878 / 109829, share 0.191153 / 0.602535 / 0.206233, auc 0.678869 / 0.663327 / 0.680888;
+%   bootstrap.{pick,skirmish,teamfight} ci_2.5 / ci_97.5 0.675686 / 0.682056, 0.661409 / 0.665259,
+%   0.677646 / 0.684035 (n_boot 1000).  The 42 rows whose stored participation count is -1 are in no class
+%   (532547 - 101798 - 320878 - 109829 = 42; 42 / 532547 = 0.0079 %).  -1 is how the index stores a count
+%   of zero: REPO/gameplay/fights.py l.1465-1466 always writes an int count, and REPO/data/index_split.py
+%   l.361-362 stores int(fight.get("det_cluster_blue", -1) or -1), so 0 becomes -1.  REV/A6 reads these
+%   rows as zero participants (scale_participation_v33.json definitions.negative_counts); REPO/scripts/
+%   run_scale_decomposition.py scale_class reads them as unknown (scale_cut_sensitivity_v33.json deviations[3]).
+% Cut: FEAT/scale_decomposition_v33_market_event.json teamfight_min 4.
+With the protocol above, LightGBM ranks engagement outcomes at an AUC of 0.6699 (95\% interval 0.6684 to
+0.6712; Table~\ref{tab:pred-headline}). Table~\ref{tab:pred-headline} also scores the same out-of-fold
+predictions within the scale classes of Section~\ref{sec:definition}: picks, in which the smaller side has
+at most one participating champion ($n_{\min} \le 1$), skirmishes ($2 \le n_{\min} \le 3$) and teamfights
+($n_{\min} \ge 4$). Scale is known only after the engagement, so it is never an input, and no model is
+trained per class. The class AUCs are 0.6789, 0.6633 and 0.6809. Whether and how they differ depends on
+where the teamfight class begins (Section~\ref{sec:pred-cut}), and an earlier analysis that ranked the
+classes was built on leaking inputs (Section~\ref{sec:pred-audit}).
+
+\begin{table}[t]
+\centering
+\caption{Pre-engagement prediction, five-fold cross-validation grouped by match: out-of-fold AUC of the
+published LightGBM configuration, overall and within scale classes defined on $n_{\min}$, the smaller
+side's number of participating champions. One
+set of predictions is scored on every row. Intervals: match bootstrap, 400 resamples (overall) and 1,000
+(classes). The 42 engagements whose stored participation count is $-1$ (the index stores a side with no
+participating champion as $-1$) are in no class.}
+\label{tab:pred-headline}
+% Rows: see the comments above the paragraph.  Shares: 101798 / 532547 = 19.12 %, 320878 / 532547 = 60.25 %,
+%   109829 / 532547 = 20.62 %.
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lrrc@{}}
+\toprule
+Engagements & $n$ & Share (\%) & AUC [95\% CI] \\
+\midrule
+All & 532,547 & 100.00 & 0.6699 [0.6684, 0.6712] \\
+Pick ($n_{\min} \le 1$) & 101,798 & 19.12 & 0.6789 [0.6757, 0.6821] \\
+Skirmish ($2$--$3$) & 320,878 & 60.25 & 0.6633 [0.6614, 0.6653] \\
+Teamfight ($\ge 4$) & 109,829 & 20.62 & 0.6809 [0.6776, 0.6840] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% -----------------------------------------------------------------------------
+\subsection{The Input Audit and a Withdrawn Conclusion}\label{sec:pred-audit}
+
+% Audit: REPO/docs/INPUT_FEATURE_AUDIT_V3.md sections 1-2 (2026-09-09): table of every base-quantity group
+%   with source, time alignment, fill and verdict; "누수 2건 수정, 무의미 블록 1건 수정, 특징 1개 추가"
+%   (two leaks fixed, one meaningless block repaired, one feature added); commit 5b5f9c8.
+% Leak 1: cache time_norm = t / (T - 1) (git show v1.0-cog2026:gameplay/pipeline_cache.py l.48); REPO/core/
+%   config.py l.435-440 ("normalised by the match's own length, which is not known at the cutoff"; with
+%   TIME_NORM_ABSOLUTE the feature path rewrites it as min(t / 45 min, 1) and the phase encoding recovers
+%   minutes with the same constant).
+% Leak 2: REPO/core/config.py l.441-445 (meta["anchors"] = "every tower that fell and every objective killed
+%   anywhere in the match"; ANCHORS_CAUSAL uses the static map and only buildings destroyed at or before the
+%   cutoff, REPO/gameplay/anchors.py causal_anchors / standing_towers).
+% Non-leak repair not toggled below: spatial block computed from centre-relative coordinates, repaired by an
+%   absolute-coordinate path that is unconditional (REPO/gameplay/pipeline.py l.159-276 xy_abs_seq; no flag).
+% 0.675: REPO/paper/abstract.tex l.18 ("AUC~$0.675$"); REPO/paper/result.tex l.16 ("(AUC~.675)") and l.31
+%   (Table tab:main-results, "LightGBM (engineered tabular) & .675", held-out patch 15.16).
+To make sure that the result above uses no future information, every one of the 1,015 base quantities was
+checked for where it comes from, which instant it describes, and how it is filled between frames. The
+audit found two leaks. First, game time entered the input divided by the length of the whole match, a
+number that is not known at the cutoff; the quantities derived from it inherited the leak. Second, the
+map quantities that measure how far a fight lies from towers and objectives were computed against every
+tower destroyed and every objective taken anywhere in the match, so a distance to the nearest fallen tower
+could reflect a tower that fell after the cutoff. Both were fixed: game time is now elapsed minutes
+divided by 45 and capped at 1, and the map reference is the static map with only the buildings destroyed
+at or before the cutoff. The audit also repaired map quantities that had been computed from coordinates
+relative to the fight centre, which is not a leak, and added the frame-age column. The conference pipeline
+used both leaking inputs (the code keeps its settings as a named configuration preset), so its reported
+AUC of 0.675 is not a clean reference, and it is not compared with the results here, which also differ
+from it in definition, label and protocol.
+
+% FEAT/leak_ablation_v33.json (script REPO/scripts/run_leak_ablation.py, docstring; run 2026-09-09, log
+%   FEAT/leak_ablation_v33.log): n_matches 5000 (random.Random(7).sample of cached matches), n_refs 13422,
+%   every config n_rows 12603, n_features 7106; rows asserted identical across configs
+%   ("row set changed between configurations"); label market_event with the v3.3 detector constants
+%   (V3 dict: G 13,700 ms, D 4,264 u, R 1,600 u, B 15 s, H 35 s, attribution "engagement", ties dropped);
+%   learner sd.oof_predictions = the published configuration, GroupKFold(5) on match ids; teamfight =
+%   smaller side >= 4.  Fold training sets 10,082-10,083 engagements (log "fold k/5: train=...").
+% Class sizes: configs.clean.by_class pick n 2419, skirmish 7556, teamfight 2628.
+\emph{How much the leaks were worth.} A controlled ablation measures it. On 5,000 randomly drawn matches,
+12,603 engagements were built four times under the current definition and label, with each leaking input
+switched on or off and everything else fixed, and each build was scored by the protocol of
+Section~\ref{sec:pred-protocol}. The engagements, labels and folds are identical across the four builds,
+so the differences are due to the two inputs alone. Each fold trains on about 10,000 engagements, against
+about 426,000 in Table~\ref{tab:pred-headline}, and the absolute AUCs are lower; only the differences
+between builds are read.
+
+% Differences (configs.X minus configs.clean; computed 2026-09-14 from the JSON):
+%   time_leak:   overall 0.639154 - 0.619726 = +0.019428; pick 0.620699 - 0.618075 = +0.002624;
+%                skirmish 0.626096 - 0.612278 = +0.013818; teamfight 0.691158 - 0.642066 = +0.049092;
+%                pick_minus_teamfight -0.070459 vs clean -0.023991: change -0.046468.
+%   anchor_leak: overall +0.004375; pick +0.002525; skirmish +0.002024; teamfight 0.653579 - 0.642066 =
+%                +0.011513; pick_minus_teamfight -0.032978: change -0.008988.
+%   both_leaks:  overall 0.639965 - 0.619726 = +0.020239; pick 0.623716 - 0.618075 = +0.005641;
+%                skirmish 0.627945 - 0.612278 = +0.015667; teamfight 0.686937 - 0.642066 = +0.044871;
+%                pick_minus_teamfight -0.063221: change -0.039230.
+Table~\ref{tab:pred-leak} gives the result. Dividing game time by match length raised the overall AUC by
+0.019, but not evenly: it raised the AUC of teamfights by 0.049, of skirmishes by 0.014 and of picks by
+0.003, and so widened the difference between the pick and teamfight AUCs from $-0.024$ to $-0.070$. The
+map anchors alone raised the teamfight AUC by 0.012 and the pick and skirmish AUCs by at most 0.003. With both leaking
+inputs, as in the conference pipeline, the overall AUC rose by 0.020, the teamfight AUC by 0.045 and the
+pick AUC by 0.006, and the pick-minus-teamfight difference reached $-0.063$. A leak can therefore create a
+difference between classes as well as inflate a number. We have not tested why teamfights gain most;
+they also occur later in the match (median cutoff at minute 21.1, against 8.7 for picks), so the class
+and the game time at which the leaking time input is read are confounded.
+% Median cutoff minutes: REV/A6-definition-sensitivity/scale_participation_v33.json
+%   populations.labelled.participation.cuts."4".teamfight.median_engage_minute 21.148,
+%   .pick.median_engage_minute 8.718 (engage_ts = cutoff tau: REPO/scripts/build_corpus_shard.py l.66
+%   engage_ts=int(r.t_start_ts); REPO/gameplay/fights.py l.1371 engage_ts_val = first_kill_ts - pre-kill).
+%   Whole labelled corpus, cut 4.  The explanation is flagged as untested in the text.
+% No interval: FEAT/leak_ablation_v33.json has no predictions and no bootstrap block; the script writes
+%   only AUCs (run_leak_ablation.py main()).
+The ablation kept no predictions, so these differences carry no interval
+(\pending{leak\_ablation\_ci}{paired match-bootstrap intervals for the differences in
+Table~\ref{tab:pred-leak}; needs scripts/run\_leak\_ablation.py re-run with its predictions saved}). With
+2,419 picks and 2,628 teamfights, class AUCs in this sample are far less precise than in
+Table~\ref{tab:pred-headline}, which is why the clean build's own difference of $-0.024$ is not read as a
+finding; on the full corpus the same inputs give $-0.0019$ at this cut (Table~\ref{tab:pred-cut}).
+
+\begin{table}[t]
+\centering
+\caption{Input-leak ablation on 12,603 engagements from 5,000 matches: the same engagements, labels and
+match-grouped folds, with the two leaking inputs switched on or off. Time leak: game time divided by match
+length. Anchor leak: map anchors from the whole match. Both leaks: both leaking inputs switched on, as in
+the conference pipeline.
+Out-of-fold AUC of the published LightGBM configuration; classes at $n_{\min} \ge 4$ ($n$ = 2,419 picks,
+7,556 skirmishes, 2,628 teamfights). No intervals were computed.}
+\label{tab:pred-leak}
+% FEAT/leak_ablation_v33.json configs.{clean,time_leak,anchor_leak,both_leaks}: auc; by_class.pick.auc;
+%   by_class.skirmish.auc; by_class.teamfight.auc; pick_minus_teamfight.
+%   clean       0.619726  0.618075  0.612278  0.642066  -0.023991
+%   time_leak   0.639154  0.620699  0.626096  0.691158  -0.070459
+%   anchor_leak 0.624101  0.620601  0.614302  0.653579  -0.032978
+%   both_leaks  0.639965  0.623716  0.627945  0.686937  -0.063221
+% "legacy path" = both flags False = REPO/core/presets.py PRESETS["cog2026"] feature flags.
+% both_leaks is NOT the conference pipeline's input: it is the v3.3 representation with the two flags off
+%   (REPO/scripts/run_leak_ablation.py docstring "both_leaks ... (v3 feature path)", CONFIGS l.37; 7,106
+%   columns incl. frame age, FEAT/leak_ablation_v33.json configs.both_leaks.n_features 7106; absolute-
+%   coordinate spatial block; v3.3 definition and label).  The conference pipeline had 7,105 columns, no
+%   frame age (PRESETS["cog2026"] TAB_FRAME_AGE_FEATURE False) and a centre-relative spatial block.  Hence
+%   "as in the conference pipeline" qualifies only the two flags.
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+Inputs & All & Pick & Skirmish & Teamfight & Pick $-$ team. \\
+\midrule
+Audit-fixed & 0.6197 & 0.6181 & 0.6123 & 0.6421 & $-0.0240$ \\
+Time leak only & 0.6392 & 0.6207 & 0.6261 & 0.6912 & $-0.0705$ \\
+Anchor leak only & 0.6241 & 0.6206 & 0.6143 & 0.6536 & $-0.0330$ \\
+Both leaks & 0.6400 & 0.6237 & 0.6279 & 0.6869 & $-0.0632$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% Withdrawn draft: REPO/paper/tog/main_en.tex (v0.2; SUPERSEDED banner l.2-8; title l.20 "... Decomposes by
+%   Scale"; l.30 "pre-engagement predictability decomposes by scale"; l.42 teamfight n_min >= 3;
+%   l.52 "teamfights reach 0.7842 against 0.7165 for picks ... gap of -0.0677 (95% CI [-0.0702,-0.0650])",
+%   under market_lex; l.32 948,369 engagements).  Its corpus: REV/A6-definition-sensitivity/
+%   scale_participation_v33.json v2_reference n 948369, "v2 corpus (G 18 s, D 4,000 u, R 1,800 u, B 10 s)",
+%   i.e. the conference constants.
+% Corpus-v3 re-run: FEAT/scale_decomposition_v3_market_event.json (file time 2026-09-09 08:08, before
+%   5b5f9c8 at 09:33): n 535444, teamfight_min 4, y_key y_market_event, by_participation_scale pick auc
+%   0.672614, teamfight auc 0.770143; 0.672614 - 0.770143 = -0.097529; bootstrap.pick_minus_teamfight
+%   ci_2.5 -0.101877, ci_97.5 -0.093388 (n_boot 1000).  Corpus v3 = v3.3 constants (REPO/docs/DATA_MANIFEST.md
+%   "Corpus v3": G 13.7 s, D 4,264 u, R 1,600 u, B 15 s) but legacy inputs and before the later label-window,
+%   attribution and representation fixes (DATA_MANIFEST.md "Corpus v3.3"; REPO/docs/INPUT_FEATURE_AUDIT_V3.md
+%   section 4).
+% CoG text has no scale classes: REPO/paper/{abstract,intro,methods,result}.tex (grep: no pick, skirmish,
+%   teamfight or n_min; result.tex stratifies by game phase and gold imbalance only).
+\emph{The withdrawn conclusion.} The conference version reported no scale classes. After it, a draft of
+this extension concluded that pre-engagement predictability decomposes by scale: with teamfights taken as
+$n_{\min} \ge 3$, under a different label and on engagements detected with the conference constants,
+teamfights reached an AUC of 0.7842 against 0.7165 for picks, a difference of $-0.0677$ (95\% interval
+$-0.0702$ to $-0.0650$). A re-run on engagements detected with the current constants, but still with the
+leaking inputs and before later fixes to the label and the input representation, gave 0.7701 for
+teamfights ($n_{\min} \ge 4$) against 0.6726 for picks, a difference of $-0.0975$. Both analyses used the
+leaking inputs. The ablation shows that, on identical engagements, those inputs widen the difference in
+that direction, by 0.039 with both and by 0.046 with the time input alone, and on audit-fixed inputs the
+difference at the adopted cut is $-0.0019$
+(95\% interval $-0.0065$ to $+0.0028$). We therefore withdraw the conclusion. The two withdrawn AUC
+differences are not decomposed further here, because they differ from the present result in more than
+the inputs.
+
+% R3-5 (REPO/docs/tog_manuscript/reviewer_response_matrix.md): TreeSHAP kept only as leak forensics.
+% Not yet available: REPO/scripts/run_shap_leak_forensics_v33.py (commit 342e74c).  REV/A7-shap-forensics/
+%   shap_leak_forensics_v33_m20000.json (05:29) predates the re-run and is not cited.  The r2 re-run failed
+%   (REV/queue_state/A7-shap-leak-forensics-v33-m20000-r2.done rc 1: "json exists; pass --overwrite or another
+%   --tag").  The r3 job in REV/queue_wave5.json passes --tag rerun, so its output will be
+%   REV/A7-shap-forensics/rerun.json (script l.810-813), not the path in its described_outputs.  No number
+%   is cited until that file exists.  Method: docstring "Why SHAP, and only here" (Shapley value definition; mean |SHAP| as
+%   global importance; TreeSHAP of Lundberg et al. 2020 via Booster.predict(pred_contrib=True), verified
+%   against the definition).
+\emph{Where the leak sat in the model.} The ablation says how much the leaking inputs were worth, not
+which columns the model used. Attribution answers the second question. A SHAP value splits one prediction
+of a model into additive contributions, one per input column, using the Shapley value from cooperative
+game theory; for tree models it can be computed exactly~\cite{lundberg2020local}. Averaging the absolute
+contributions over many engagements shows which columns a model relies on. We use attribution only for
+this forensic purpose: the same engagements are built with and without the leaking inputs, a model is
+fitted to each build, and the share of attribution that falls on the columns the leaks change is compared
+(\pending{shap\_forensics}{20,000-match run: attribution share of the leak-affected columns in the leaky
+and the audit-fixed build, with match-bootstrap intervals}). We do not use attributions to explain what
+decides engagements.
+
+% -----------------------------------------------------------------------------
+\subsection{Class Comparisons Depend on the Teamfight Cut}\label{sec:pred-cut}
+
+% Diagonal and marginal: REV/A6-definition-sensitivity/scale_participation_v33.json populations.labelled.
+%   participation: troughs.diagonal peaks [2, 5], primary.k 4, depth 0.146567 (= 1 - 32835 / 38474),
+%   bootstrap.primary_location_share {"4": 1.0}, share_4v4_below_3v3_and_5v5 1.0, primary_depth ci_2.5
+%   0.134287, ci_97.5 0.160572 (n_boot 1000, match-clustered); diagonal_share_of_population 2v2 0.14698,
+%   3v3 0.076145, 4v4 0.061657, 5v5 0.072245 (also printed in sec_definition.tex).
+%   troughs.smaller_side peaks [2], troughs [], bootstrap.primary_location_share {"none": 1.0}.
+% Class shares at the cuts (stored count -1 read as zero participants, so the 42 rows are picks;
+%   scale_participation_v33.json definitions.negative_counts): cuts."3"/"4"/"5":
+%   pick n 101840 share 0.191232; skirmish 214295 / 320878 / 392233, share 0.402396 / 0.602535 / 0.736523;
+%   teamfight 216412 / 109829 / 38474, share 0.406372 / 0.206233 / 0.072245; largest distance from a share to
+%   an end of its share_ci is 0.134 percentage points (computed 2026-09-14 over the nine class-cut cells).
+Table~\ref{tab:pred-headline} places the teamfight class at $n_{\min} \ge 4$. The data do not fix that
+cut. Among engagements in which both sides field the same number of champions, 2v2 is the most common
+(14.7\% of all engagements); between 3v3 (7.6\%) and 5v5 (7.2\%, a second mode at the edge of the range),
+4v4 (6.2\%) is a trough. The trough lies at 4v4 in all of 1,000 match-bootstrap resamples (depth 0.147,
+95\% interval 0.134 to 0.161, where depth is one minus the 4v4 count divided by the smaller of the two mode
+counts), so the equal-sides counts support two kinds of multi-champion engagement. The classes, however,
+are defined on $n_{\min}$, the smaller side's count, whose distribution has a single peak at two and no
+trough in any resample; and a boundary placed at the 4v4 trough could put 4v4 on either side of it. The
+data therefore single out none of the cuts at three, four and five participants, and four is a convention
+(Section~\ref{sec:definition}). The cut moves many engagements: the teamfight share is 40.6\%, 20.6\% and
+7.2\% at the three cuts and the skirmish share 40.2\%, 60.3\% and 73.7\%, while picks stay at 19.1\%
+(each share's 95\% bootstrap interval extends at most 0.14 percentage points on either side).
+
+% Levels: REV/A6-definition-sensitivity/scale_cut_sensitivity_v33.json participation.levels."1".."5":
+%   n 101798 / 214295 / 106583 / 71355 / 38474; share 0.191153 / 0.402396 / 0.200138 / 0.133988 / 0.072245;
+%   auc.point 0.678869 / 0.667989 / 0.654328 / 0.676101 / 0.689462; ci_2.5 0.675723 / 0.665453 / 0.651202 /
+%   0.672395 / 0.684322; ci_97.5 0.682134 / 0.670122 / 0.657789 / 0.679746 / 0.694971 (n_boot 400).
+%   levels."0": the 42 rows whose stored count is -1 (a count of zero, see the headline comment), no AUC.
+% Gaps: participation.cuts."3"/"4"/"5".gaps:
+%   pick_minus_teamfight point +0.010759 / -0.001925 / -0.010499; ci_2.5 +0.006976 / -0.006469 / -0.016997;
+%     ci_97.5 +0.014719 / +0.002816 / -0.004128.
+%   pick_minus_skirmish point +0.010974 / +0.015636 / +0.013280; ci_2.5 +0.007275 / +0.012308 / +0.009865;
+%     ci_97.5 +0.014854 / +0.019545 / +0.017094.
+%   skirmish_minus_teamfight point -0.000215 / -0.017561 / -0.023779; ci_2.5 -0.003547 / -0.020804 /
+%     -0.029328; ci_97.5 +0.002947 / -0.013618 / -0.018489.
+%   reproduces_main_loop_table.by_reading.zero.*.reproduced_to_4dp true (sec_intro.tex, sec_definition.tex).
+%   Independent point check in sec_definition.tex ("% cmd" line): {3: 0.0108, 4: -0.0019, 5: -0.0105}.
+\begin{table*}[t]
+\centering
+\caption{Scale classes and the teamfight cut, five-fold cross-validation grouped by match (the predictions
+of Table~\ref{tab:pred-headline}, re-scored). Left: AUC at each value of $n_{\min}$, the smaller side's
+number of participating champions. Right: paired differences between class AUCs when the teamfight class
+begins at $n_{\min} = c$; picks are $n_{\min} \le 1$ and skirmishes $2 \le n_{\min} < c$. The 42
+engagements whose stored participation count is $-1$ (a side with no participating champion) are in no
+row on the left and count as picks on the right. Match bootstrap, 400 resamples.}
+\label{tab:pred-cut}
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}crrc@{\hspace{1.5em}}cccc@{}}
+\toprule
+\multicolumn{4}{@{}c}{AUC by smaller-side participants} & \multicolumn{4}{c@{}}{Differences between class AUCs [95\% CI]} \\
+\cmidrule(r{0.75em}){1-4}\cmidrule(l){5-8}
+$n_{\min}$ & $n$ & Share (\%) & AUC [95\% CI] & Cut $c$ & Pick $-$ teamfight & Pick $-$ skirmish & Skirmish $-$ teamfight \\
+\midrule
+1 & 101,798 & 19.12 & 0.6789 [0.6757, 0.6821] & 3 & $+0.0108$ [$+0.0070$, $+0.0147$] & $+0.0110$ [$+0.0073$, $+0.0149$] & $-0.0002$ [$-0.0035$, $+0.0029$] \\
+2 & 214,295 & 40.24 & 0.6680 [0.6655, 0.6701] & 4 & $-0.0019$ [$-0.0065$, $+0.0028$] & $+0.0156$ [$+0.0123$, $+0.0195$] & $-0.0176$ [$-0.0208$, $-0.0136$] \\
+3 & 106,583 & 20.01 & 0.6543 [0.6512, 0.6578] & 5 & $-0.0105$ [$-0.0170$, $-0.0041$] & $+0.0133$ [$+0.0099$, $+0.0171$] & $-0.0238$ [$-0.0293$, $-0.0185$] \\
+4 & 71,355 & 13.40 & 0.6761 [0.6724, 0.6797] & & & & \\
+5 & 38,474 & 7.22 & 0.6895 [0.6843, 0.6950] & & & & \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+% Non-monotone: level 3 interval [0.6512, 0.6578] overlaps neither level 2 [0.6655, 0.6701] nor level 4
+%   [0.6724, 0.6797] (marginal intervals; a conservative reading, no paired level test was run).
+Table~\ref{tab:pred-cut} shows why the cut decides the comparison. The AUC does not change monotonically
+with $n_{\min}$: it falls from 0.6789 at one participant to 0.6543 at three, whose interval overlaps
+neither neighbour's, and rises to 0.6895 at five. A teamfight class that begins at three therefore contains
+the hardest level, and one that begins at five contains only the easiest. Accordingly, the
+pick-minus-teamfight difference is $+0.0108$ with the cut at three, $-0.0019$ at four and $-0.0105$ at five, and its
+interval excludes zero at three and at five, with opposite signs.
+
+% Under a sixth / ninth: max |pick_minus_teamfight point| over cuts 3-5 = 0.010759;
+%   0.0677 / 6 = 0.011283 > 0.010759 (ratio 0.010759 / 0.0677 = 0.159);
+%   0.097529 / 9 = 0.010837 > 0.010759 (ratio 0.110).  At cut 5: 0.010499 / 0.0677 = 0.155,
+%   0.010499 / 0.097529 = 0.108.
+The honest summary is therefore not that scale makes no difference. The difference between the pick and
+teamfight AUCs moves with a cut that the data do not fix, and it changes sign near the adopted cut. At
+every cut its size is under a sixth of the withdrawn draft's $-0.0677$ and under a ninth of the $-0.0975$
+of the re-run on the leaking inputs. We make no claim about scale in either direction: neither that larger
+engagements are more predictable, nor that predictability does not depend on scale.
+
+% -----------------------------------------------------------------------------
+\subsection{What the Scoreboard Explains}\label{sec:pred-scoreboard}
+
+% Readout motivation: sec_intro.tex paragraph 1 ("how much of that likelihood the scoreboard alone implies").
+% Scoreboard model: WT/scripts/run_model_comparison_v33.py lead_cols (goldDiff__last, xpDiff__last,
+%   avgLevelDiff__last, killDiff_cum__last, csDiff_total__last, aliveDiff__last, time_norm__last,
+%   frame_age_s); FEAT/model_comparison_v33_patch.json models.lead_only.n_features 8.  run_model(): lead_only
+%   and lgbm_paper share params (n_estimators 400, learning_rate 0.05, num_leaves 31, subsample 0.9,
+%   colsample_bytree 0.9, random_state 7) and early_stopping(100) on 15.15; lgbm_deep: n_estimators 3000,
+%   learning_rate 0.02, num_leaves 127, min_child_samples 100, reg_lambda 1.0.  time_norm__last under v3.3 =
+%   min(t / 45 min, 1).  models.lgbm_paper.n_features = models.lgbm_deep.n_features = 6164.
+% Test patch: REV/A10-perclass-contrast/perclass_lead_contrast_v33.json overall n 153816, n_matches 55449,
+%   positive_rate 0.504947.
+A readout that states which team is ahead is transparent and cheap to build, and the readout proposed in
+the Introduction would state how much of the pre-fight likelihood the scoreboard alone implies
+(Section~\ref{sec:intro}). We measure this on the patch holdout, with a
+\emph{scoreboard model}: the published LightGBM configuration given eight columns, namely the blue-minus-red
+differences in gold, experience, average level, kills, creep score and living champions at the last bin,
+game time and frame age. It is compared on the same 153,816 test engagements from 55,449 matches with the
+same configuration given all 6,164 informative columns, so that only the input differs, and with a
+higher-capacity LightGBM (at most 3,000 trees of 127 leaves, learning rate 0.02) on the same columns, the
+model behind the figures in the Introduction. Learner capacity itself is examined in
+Section~\fwdref{sec:learners}.
+
+\begin{table*}[t]
+\centering
+\caption{Scoreboard model against full-input LightGBM on the patch holdout (train 15.14, early stopping
+15.15, test 15.16), overall and within scale classes at $n_{\min} \ge 4$. Gain is the paired difference in
+test AUC from the scoreboard model. Match bootstrap over the 55,449 test matches, 2,000 resamples. Picks,
+skirmishes and teamfights are 18.86\%, 60.45\% and 20.67\% of test engagements; the 22 test engagements
+whose stored participation count is $-1$ (a side with no participating champion) are in the first row
+only.}
+\label{tab:pred-scoreboard}
+% Source: REV/A10-perclass-contrast/perclass_lead_contrast_v33.json
+%   overall.auc.{lead_only,lgbm_paper,lgbm_deep}.point / ci95; overall.contrasts."lead_only->lgbm_paper",
+%   "lead_only->lgbm_deep".diff / ci95;
+%   by_cut.cut_4.classes.{pick,skirmish,teamfight}.n, share_of_test, auc.*.point / ci95, contrasts.*.diff / ci95.
+%   All:       lead 0.626117 [0.623306, 0.628902]; paper 0.666484 [0.663758, 0.669230], gain +0.040367
+%              [+0.038501, +0.042187]; deep 0.669212 [0.666560, 0.671929], gain +0.043095 [+0.041159, +0.044949]
+%   Pick:      n 29005, share 0.188569; lead 0.601662 [0.595366, 0.608100]; paper 0.676121 [0.669852, 0.682240],
+%              gain +0.074458 [+0.069404, +0.079306]; deep 0.679901 [0.673686, 0.685871], gain +0.078239
+%              [+0.072900, +0.083322]
+%   Skirmish:  n 92988, share 0.604540; lead 0.615592 [0.611832, 0.619385]; paper 0.658946 [0.655363, 0.662291],
+%              gain +0.043354 [+0.040730, +0.045945]; deep 0.661880 [0.658315, 0.665331], gain +0.046288
+%              [+0.043660, +0.048900]
+%   Teamfight: n 31801, share 0.206747; lead 0.671814 [0.665794, 0.677588]; paper 0.679470 [0.673524, 0.685141],
+%              gain +0.007656 [+0.004798, +0.010339]; deep 0.680784 [0.674964, 0.686458], gain +0.008970
+%              [+0.005968, +0.011841]
+%   The overall rows equal REV/A8-input-audit-and-cis/paired_learner_cis_v33.json learners.*.ci95 and
+%   comparisons."lead_only->lgbm_paper" / "lead_only->lgbm_deep" to every digit.
+% Archived artefact: A10 = REPO/scripts/perclass_lead_contrast_v33.py (commit 0b365d1), final write
+%   2026-09-14 15:04:45, seed 7, n_boot 2000, its own seed-8 check "readings that change: none" (validation.
+%   monte_carlo_replication max_endpoint_gap_between_seeds 0.000443).  An independent computation by this item
+%   (A8 method; not archived) agreed with every class, contrast and gain difference of A10 exactly.
+\scriptsize
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{@{}lrccccc@{}}
+\toprule
+& & Scoreboard & \multicolumn{2}{c}{Published configuration} & \multicolumn{2}{c@{}}{Higher capacity} \\
+& & (8 columns) & \multicolumn{2}{c}{(6,164 columns)} & \multicolumn{2}{c@{}}{(6,164 columns)} \\
+\cmidrule(lr){3-3}\cmidrule(lr){4-5}\cmidrule(l){6-7}
+Engagements & $n$ & AUC [95\% CI] & AUC [95\% CI] & Gain [95\% CI] & AUC [95\% CI] & Gain [95\% CI] \\
+\midrule
+All & 153,816 & 0.6261 [0.6233, 0.6289] & 0.6665 [0.6638, 0.6692] & $+0.0404$ [$+0.0385$, $+0.0422$] & 0.6692 [0.6666, 0.6719] & $+0.0431$ [$+0.0412$, $+0.0449$] \\
+Pick & 29,005 & 0.6017 [0.5954, 0.6081] & 0.6761 [0.6699, 0.6822] & $+0.0745$ [$+0.0694$, $+0.0793$] & 0.6799 [0.6737, 0.6859] & $+0.0782$ [$+0.0729$, $+0.0833$] \\
+Skirmish & 92,988 & 0.6156 [0.6118, 0.6194] & 0.6589 [0.6554, 0.6623] & $+0.0434$ [$+0.0407$, $+0.0459$] & 0.6619 [0.6583, 0.6653] & $+0.0463$ [$+0.0437$, $+0.0489$] \\
+Teamfight & 31,801 & 0.6718 [0.6658, 0.6776] & 0.6795 [0.6735, 0.6851] & $+0.0077$ [$+0.0048$, $+0.0103$] & 0.6808 [0.6750, 0.6865] & $+0.0090$ [$+0.0060$, $+0.0118$] \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+% One model's pick-minus-teamfight AUC difference (paired over classes).  A10 stores the class AUCs and
+%   their intervals but not this statistic.
+%   Points, from A10 by_cut.cut_c.classes.{pick,teamfight}.auc.<model>.point (durable; differences taken on
+%   the unrounded values, so the last digit can differ from the rounded operands):
+%     lead_only  c3 0.601662 - 0.654581 = -0.052919;  c4 0.601662 - 0.671814 = -0.070152;
+%                c5 0.601662 - 0.683556 = -0.081894
+%     lgbm_paper c3 0.676121 - 0.665098 = +0.011022;  c4 0.676121 - 0.679470 = -0.003349;
+%                c5 0.676121 - 0.689218 = -0.013098
+%   Intervals: the A10 replicate matrix itself, recomputed 2026-09-14 by importing the committed script
+%     (REPO/scripts/perclass_lead_contrast_v33.py, commit 0b365d1): load_inputs(default A10 inputs),
+%     sets "pick" and "teamfight@c" exactly as main() builds them, B = bootstrap(prep, sets, models, inv,
+%     n_groups=55449, n_boot=2000, seed=7), statistic B[:, pick, m] - B[:, teamfight@c, m], interval() =
+%     2.5 / 97.5 percentiles.  Check: every class AUC point and ci95 at cuts 3-5 for all three models equals
+%     A10 with max abs gap 0.0, so the draws are A10's.  Results (diff [ci95]):
+%     lead_only  c3 -0.052919 [-0.061022, -0.045258]; c4 -0.070152 [-0.079034, -0.061360];
+%                c5 -0.081894 [-0.092933, -0.070348]
+%     lgbm_paper c3 +0.011022 [+0.003366, +0.018449]; c4 -0.003349 [-0.011802, +0.005417];
+%                c5 -0.013098 [-0.024167, -0.002030]
+%     lgbm_deep  c3 +0.013184 [+0.005813, +0.020817]; c4 -0.000883 [-0.009017, +0.007675];
+%                c5 -0.010631 [-0.021547, +0.000468]
+%   TODO(orchestrator): add this block to REV/A10-perclass-contrast/perclass_lead_contrast_v33.json (key e.g.
+%     by_cut.cut_c.class_auc_differences) and repoint this comment; this item may not write outside its file.
+% Teamfight gain of lgbm_paper at cuts 3 and 5: A10 by_cut.cut_3.classes.teamfight.contrasts."lead_only->
+%   lgbm_paper" diff +0.010518 ci95 [+0.008132, +0.012703]; cut_5 +0.005662 [+0.002005, +0.009337].
+% Gain ordering: REV/A10 .../perclass_lead_contrast_v33.json by_cut.cut_{3,4,5}.ordering.{lgbm_paper,lgbm_deep}
+%   .pick_gt_skirmish_gt_teamfight_with_every_pairwise_interval_above_zero true (all six);
+%   by_cut.cut_4.gain_differences.lgbm_paper."pick-teamfight" diff +0.066803, ci95 [+0.061050, +0.072514].
+% Pick + skirmish shares of the 153,816 test engagements (A10 by_cut.cut_c.classes.*.n):
+%   c4 (29005 + 92988) / 153816 = 0.79310; c3 (29005 + 62109) / 153816 = 0.59236;
+%   c5 (29005 + 113657) / 153816 = 0.92749.
+Table~\ref{tab:pred-scoreboard} gives the result. Over all test engagements the full input adds 0.040 AUC
+to the scoreboard model's 0.626, and the addition is uneven. In teamfights the scoreboard model reaches
+0.672 and the full input adds 0.008 (95\% interval 0.005 to 0.010). In picks the scoreboard model reaches
+only 0.602 and the full input adds 0.074 (0.069 to 0.079); skirmishes lie between, at 0.616 and $+0.043$.
+With the cut at four, the scoreboard model's own AUC is 0.070 lower in picks than in teamfights (paired
+interval 0.061 to 0.079), whereas the published full-input model's pick and teamfight AUCs cannot be
+distinguished ($-0.0033$, paired interval $-0.0118$ to $+0.0054$). For the full-input model this
+difference depends on the cut, as it does under cross-validation (Section~\ref{sec:pred-cut}): its pick
+AUC is above its teamfight AUC by 0.0110 ($+0.0034$ to $+0.0184$) with the cut at three and below it by
+0.0131 ($-0.0242$ to $-0.0020$) at five. For the scoreboard model it keeps its sign: the pick AUC stays
+below the teamfight AUC by 0.053 at three (0.045 to 0.061) and by 0.082 at five (0.070 to 0.093). In
+teamfights the published configuration adds 0.011 to the scoreboard model with the cut at three and 0.006
+at five, and the ordering of the gains, largest in picks and smallest in teamfights, holds for both
+full-input models at all three cuts, with every pairwise interval above zero.
+
+In plain terms, the rule ``the team that is ahead wins'' ranks the outcomes of teamfights almost as well
+as the full model does, and those of picks and skirmishes much worse. Picks and skirmishes are most
+engagements wherever the cut is placed: 79.3\% of test-patch engagements with the cut at four, 59.2\% at
+three and 92.7\% at five. A readout built on the lead would therefore lose little in large fights and much
+in most engagements, and it is in picks and skirmishes that the information beyond the lead matters. This
+is a statement about how much of each class's predictable part the lead carries, not a scale gradient of
+predictability, on which Section~\ref{sec:pred-cut} makes no claim. Two limits apply. Teamfights happen
+later in the match than picks (median cutoff at minute 21.1 against 8.7 in the whole corpus with the cut
+at four; Section~\ref{sec:pred-audit}), and we have not separated the effect of game time from that of
+the number of participants. And which of the other 6,156 columns carry the gain in picks is not analysed
+here.
+% 6,156 = 6,164 - 8.
+
+% -----------------------------------------------------------------------------
+\subsection{Sensitivity to the Definition's Constants}\label{sec:pred-constants}
+
+% Why: CoG R1 (reviewer_response_matrix.md R1-5b; REPO/scripts/run_gd_sweep_v33.py docstring: "the objection
+%   is retired only if the result does not hinge on where they sit").
+% G x D grid: REPO/scripts/run_gd_sweep_v33.py docstring: G in {10, 12, 13.7, 16, 18} s x D in {3,500, 4,000,
+%   4,264, 4,750} u (20 settings), every other constant at preset v3.3, declared match subsample, published
+%   LightGBM configuration under the patch holdout (lgbm_paper), per setting engagements, test AUC with match
+%   bootstrap CI, class AUCs, and engagement overlap with the operating point.  No artefact on 2026-09-14.
+% Presence gate: REPO/scripts/run_presence_gate_points.py docstring: points rule_R1600_B15 (1,600 u, 15 s),
+%   ref_R1800_B10 (1,800 u, 10 s), rule_R1600_B15_M3 (M = 3); --engine holdout = the v3.3 protocol of the
+%   G x D sweep.  The earlier runs_presence_gate/ comparison used the CoG constants and the leaking inputs and
+%   is not cited (sec_definition.tex note).  No v3.3 artefact on 2026-09-14.
+The result describes the engagements that the definition produces, and the definition has constants. The
+kill gap $G$ and the cluster diameter $D$ are estimated from data and the presence radius $R$ and lead $B$
+are anchored on game rules (Section~\ref{sec:def-constants}), but a reader may still ask whether the AUC
+would move if they sat elsewhere. If it moved much, the result would describe the constants rather than
+the task. Two experiments re-detect the engagements with only these constants changed, relabel them, and
+score them under the patch holdout with the published LightGBM configuration, so that each setting is
+compared with the operating point on the same matches rather than with the cross-validated AUC above. The
+first varies $G$ over 10, 12, 13.7, 16 and 18\,s and $D$ over 3,500, 4,000, 4,264 and 4,750\,u:
+\pending{gxd\_sweep}{G x D sensitivity grid against the v3.3 operating point: engagements, test AUC with
+match-bootstrap interval, class AUCs and overlap with the operating point's engagements for each of the 20
+settings}. The second moves the presence gate to the conference point ($R = 1{,}800$\,u, $B = 10$\,s) and
+raises the minimum number of champions per team from two to three:
+\pending{presence\_gate\_v33}{v3.3 protocol re-run at (R, B, M) = (1,800 u, 10 s, 2) and (1,600 u, 15 s,
+3), every other constant fixed: engagements, AUC at each point, and AUC on the engagements accepted at both
+points}. Until both are available, no statement is made that the result is insensitive to these
+constants.
