@@ -21,11 +21,13 @@
 
 \IfFileExists{macros.tex}{\input{macros.tex}}{}
 \providecommand{\pending}[2]{\textcolor{red}{[PENDING #1: #2]}}
-\newcommand{\sectionfile}[1]{\IfFileExists{#1.tex}{\input{#1.tex}}{\pending{section}{#1.tex not written yet}}}
+\newcommand{\sectionfile}[1]{\IfFileExists{#1.tex}{\input{#1.tex}}{\pending{section}{\detokenize{#1}.tex not written yet}}}
 
 \begin{document}
 
-\title{Engagement Outcome Prediction in League of Legends Is Bounded by Observation, Not by Model Class}
+% Working title.  The earlier title asserted 'not by model class'; that claim waits for the tuned,
+% capacity-matched deep baselines (A1), so it is not in the title until those results exist.
+\title{Pre-Engagement Outcome Prediction in League of Legends: A Data-Derived Definition, Its Verification, and What Bounds It}
 \author{\pending{authors}{author block - anonymised or not depends on the ToG review model (see sec\_availability)}}
 \markboth{IEEE Transactions on Games}{}
 
