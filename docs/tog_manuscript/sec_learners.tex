@@ -23,41 +23,54 @@
 %   WIN   = REV/A3-temporal-windows/window_sweep_paired_cis_v33.json (2,000 draws, seed 7; created_utc
 %           2026-09-14T07:41:41Z, the rewrite that added seed_replication)
 %   SEQ   = REV/A3-temporal-windows/sequence_baseline/sequence_baseline_v33.json (1,000 draws, seed 7)
+%   C5    = REV/C5-learner-cis/learner_rerun_paired_cis_v33.json, written by REPO/scripts/learner_rerun_paired_cis_v33.py
+%           (script_sha1 248419ff; created_utc 2026-09-14T12:06:06Z, git commit 9d3a4b8 with the script untracked;
+%           the SHA-1 of every input under "inputs"; CPU only, 4 threads)
 % TABF, FT192 and SC0 record git_commit fa166ec, git_dirty false; scripts/run_deep_tabular_baselines.py is
 %   unchanged between fecaaf3 and fa166ec (git log fecaaf3..HEAD -- that file: empty), so all three run the
 %   code of commit fecaaf3.
 %
-% Numbers COMPUTED by this item (not stored in an artefact; the computation is given where each is used):
-%   (C1) Test AUC intervals of the three corrected runs and their differences from lgbm_paper and lead_only,
-%        on A8's own bootstrap draws.  prepare / weighted_auc / the replicate loop copied from
-%        WT/scripts/paired_learner_cis_v33.py (script_sha1 5400ecb): uniq, inv = np.unique(groups,
+% Numbers not stored in the run artefacts, archived in C5 (first computed by scratch scripts of this item; C5
+%   re-derives them from the committed prediction files and reproduces every one exactly, so no printed number
+%   changed).  The labels (C1)-(C3) name the three blocks in the comments below:
+%   (C1) C5 learner_cis: test AUC intervals of the three corrected runs and their differences from lgbm_paper and
+%        lead_only, on A8's own bootstrap draws (learner_cis.draws: uniq, inv = np.unique(groups,
 %        return_inverse=True) of FEAT/model_comparison_v33_patch.preds.npz; rng = default_rng(7); for b in
-%        range(2000): w = bincount(rng.integers(G, size=G), minlength=G)[inv]; B[b, j] = weighted_auc(prep_j, w);
-%        interval of a difference = np.percentile(B[:, k] - B[:, ref], [2.5, 97.5]).  Test preds of the corrected
-%        runs: REV/A1-deep-baselines/{a_tabnet_sign_fixed_published_config, b_ft_transformer_d192_published_budget,
-%        c0_saint_d32_published_config_match_disjoint}.preds.npz (pred_tabnet, pred_ft_transformer, pred_saint),
-%        asserted equal to the tree file in y and groups and to FEAT/deep_tabular_v33_patch_full.preds.npz in
-%        min_participants_test, element by element.  Check: every A8 learners.*.test_auc / ci95 and
-%        comparisons.*.diff / ci95 reproduced, max gap 1.1e-16.  4 threads, CPU only.
-%          tabnet_fixed 0.611370 [0.608551, 0.614272]; - lgbm_paper -0.055114 [-0.057260, -0.052864];
-%                       - lead_only -0.014747 [-0.016329, -0.013244]
-%          ft_d192      0.657835 [0.655053, 0.660616]; - lgbm_paper -0.008649 [-0.009989, -0.007195]
-%          saint_c0     0.655013 [0.652291, 0.657809]; - lgbm_paper -0.011470 [-0.012864, -0.010041]
-%   (C2) Difference of window gains, sequence learner minus LightGBM, on SEQ's own draws:
-%        (AUC_seq,w - AUC_seq,30) - (AUC_lgbm,w - AUC_lgbm,30), percentile interval over the 1,000 replicates
-%        of REPO/scripts/run_window_sweep_v33.py match_bootstrap (match_weights / _auc_plan / _auc_from_plan
-%        copied verbatim; default_rng(7); preds test__* of sequence_baseline_v33.preds.npz).  Check: every
-%        SEQ bootstrap.paired delta, ci_lo, ci_hi and bootstrap.auc ci reproduced, max gap 0.0.  With 2,000
-%        replicates the readings are unchanged (BiGRU 60 s [-0.0084, +0.0008], 120 s [-0.0121, +0.0012];
-%        Transformer 60 s [-0.0157, -0.0045], 120 s [-0.0185, -0.0066]).
-%   (C3) Published SAINT evaluation batches: FEAT/deep_tabular_v33_patch_saint.preds.npz groups_test cut
-%        into consecutive chunks of 1,024 (the evaluate() loop of REPO/scripts/run_deep_tabular_baselines.py
-%        at commit 60945ed, "for i in range(0, len(y_eval), 1024)"): 151 chunks, 151 contain two or more
-%        rows of one match; 141,746 of 153,816 rows share their chunk with a row of the same match; the
-%        rows of each match are contiguous (55,449 runs for 55,449 matches).
-%   TODO(orchestrator): archive C1-C3 under REV/ (e.g. REV/A8-input-audit-and-cis/corrected_runs_on_a8_
-%     draws.json, REV/A3-temporal-windows/sequence_baseline/gain_differences.json) and repoint the
-%     comments; this item may not write outside its file.
+%        range(2000): w = bincount(rng.integers(G, size=G), minlength=G)[inv]; prepare / weighted_auc copied from
+%        WT/scripts/paired_learner_cis_v33.py, script_sha1 5400ecb).  Keys: learner_cis.learners.<k>.test_auc,
+%        ci95; learner_cis.comparisons."<k> - <ref>".diff, ci95 (difference AUC(k) - AUC(ref); interval
+%        np.percentile(B[:, k] - B[:, ref], [2.5, 97.5])).  Test preds of the corrected runs: REV/A1-deep-baselines/
+%        {a_tabnet_sign_fixed_published_config, b_ft_transformer_d192_published_budget,
+%        c0_saint_d32_published_config_match_disjoint}.preds.npz (pred_tabnet, pred_ft_transformer, pred_saint);
+%        learner_cis.row_identity: y and groups equal to the tree file and min_participants_test equal to
+%        FEAT/deep_tabular_v33_patch_full.preds.npz, element by element, and each <stem>.<model>.preds.npz equal in
+%        rows and predictions (all true).  Check: learner_cis.reproduces_a8 (every A8 learners.*.test_auc / ci95 and
+%        comparisons.*.diff / ci95 / boot_mean / boot_se / p_two_sided / p_holm), passed true, largest gap 1.1e-16.
+%          tabnet_fixed 0.611370 [0.608551, 0.614272]; "tabnet_fixed - lgbm_paper" -0.055114 [-0.057260, -0.052864];
+%                       "tabnet_fixed - lead_only" -0.014747 [-0.016329, -0.013244]
+%          ft_d192      0.657835 [0.655053, 0.660616]; "ft_d192 - lgbm_paper" -0.008649 [-0.009989, -0.007195]
+%          saint_c0     0.655013 [0.652291, 0.657809]; "saint_c0 - lgbm_paper" -0.011470 [-0.012864, -0.010041]
+%   (C2) C5 sequence_gain_differences: difference of window gains, sequence learner minus LightGBM, on SEQ's own
+%        draws: (AUC_seq,w - AUC_seq,30) - (AUC_lgbm,w - AUC_lgbm,30), percentile interval over the 1,000
+%        replicates of REPO/scripts/run_window_sweep_v33.py match_bootstrap (match_weights / _auc_plan /
+%        _auc_from_plan imported from that script; default_rng(7); preds test__* of sequence_baseline_v33.preds.npz).
+%        Keys: n_boot_1000.gain_minus_lgbm_gain."<model>__ctx<w>_bin5000__seed7".diff, ci95.  Check:
+%        reproduces_seq_bootstrap (every SEQ bootstrap.auc and bootstrap.paired entry), passed true, largest gap 0.0.
+%        With 2,000 replicates (n_boot_2000.gain_minus_lgbm_gain) the readings are unchanged (BiGRU 60 s [-0.0084,
+%        +0.0008], 120 s [-0.0121, +0.0012]; Transformer 60 s [-0.0157, -0.0045], 120 s [-0.0185, -0.0066]).
+%   (C3) C5 published_saint_batches: FEAT/deep_tabular_v33_patch_saint.preds.npz groups_test cut into consecutive
+%        chunks of 1,024 (the evaluate() loop of REPO/scripts/run_deep_tabular_baselines.py, "for i in range(0,
+%        len(y_eval), 1024)", found at 314ee78 and 60945ed; the boolean patch split at 60945ed:
+%        published_code.lines_found_in_git_source): n_batches 151, n_batches_with_a_shared_match 151;
+%        n_rows_sharing_batch_with_own_match 141,746 of n_rows 153,816; the rows of each match are contiguous
+%        (n_match_runs_in_row_order 55,449 for n_matches 55,449).  corrected_runs_rebuilt_batches.saint_c0: the
+%        corrected run's test batches rebuilt with match_disjoint_batches() share no match.
+%   Adding the pending runs: re-run REPO/scripts/learner_rerun_paired_cis_v33.py once SAINT at width 128, SAINT with
+%     pre-training or the declared search has finished; C5 learner_cis.pending lists what was absent at this run
+%     (saint_d128, saint_pretrain5, search_{lightgbm, mlp, tabnet, ft_transformer, saint, saint_pretrain}).  A new
+%     learner joins learners / comparisons on the same A8 draws without moving an existing interval, and
+%     learner_cis.vs_best_validation_tree (marked provisional until pending is empty) holds the differences and
+%     Holm-adjusted p values that \pending{learners} in sec:learners-answer defers.
 %
 % Queue state read at 20:33 KST (REV/queue_state/, REV/queue_runner_wave5.log): a_tabnet..., b1_ft...,
 %   c0_saint... finished (.ok); b2_saint_d128_published_budget running since 20:12:05 (.running);
@@ -392,7 +405,8 @@ engagements (Section~\ref{sec:pred-protocol}).
 % Coverage: AUD saved_test_predictions.summary "all 9 patch-holdout learners have saved test-patch predictions,
 %   in 4 files"; AUD not_saved[3] (the re-run arms had no artefact when the audit ran).
 % Corrected runs: element-wise equality of y_test, groups_test, min_participants_test with the first-comparison
-%   files, computation (C1) (TABF, FT192, SC0 .preds.npz).
+%   files: C5 learner_cis.row_identity."REV/A1-deep-baselines/<stem>.preds.npz" (TABF, FT192, SC0) y_equal_tree_file,
+%   groups_equal_tree_file, min_participants_equal_first_comparison all true (computation (C1)).
 \paragraph{Identical rows, labels and split}
 All learners receive the same 532,547 engagements, the same assignment of engagements to patches and the
 same label. An input audit of 84 checks, run before the paired intervals of the first comparison were
@@ -462,11 +476,11 @@ Section~\ref{sec:prediction}.}
 %   n_params 2452417; SC0 models.saint.n_params 459713.
 % Corrected runs: validation AUC TABF models.tabnet.val_auc 0.613020, FT192 models.ft_transformer.val_auc
 %   0.659369, SC0 models.saint.val_auc 0.657042; test AUC TABF models.tabnet.test_auc 0.611370, FT192 0.657835,
-%   SC0 models.saint.test_auc 0.655013; intervals and Delta from computation (C1) on A8 draws:
+%   SC0 models.saint.test_auc 0.655013; intervals and Delta on A8 draws from C5 learner_cis.learners.<k>.ci95 and
+%   learner_cis.comparisons."<k> - lgbm_paper".diff, ci95 (computation (C1)):
 %   tabnet_fixed [0.608551, 0.614272], Delta -0.055114 [-0.057260, -0.052864];
 %   ft_d192 [0.655053, 0.660616], Delta -0.008649 [-0.009989, -0.007195];
-%   saint_c0 [0.652291, 0.657809], Delta -0.011470 [-0.012864, -0.010041]
-%   (d = B[:, saint_c0] - B[:, lgbm_paper]; np.percentile(d, [2.5, 97.5])).
+%   saint_c0 [0.652291, 0.657809], Delta -0.011470 [-0.012864, -0.010041].
 % Pending rows: REV/queue_wave5.json b2_saint_d128_published_budget (running, REV/queue_state/b2_...running,
 %   writes REV/A1-deep-baselines/b_saint_d128_published_budget.json), c_saint_d32_pretrain5_published_config,
 %   d1_hparam_search_lightgbm, d2_hparam_search_deep, d3_hparam_search_summary (no queue_state entry at 20:33).
@@ -535,7 +549,9 @@ cannot be distinguished from each other (FT-Transformer minus MLP: $+0.0008$ [$-
 %   REPO/tests/test_deep_tabular_baselines.py test_tabnet_sparsity_regulariser_is_added_to_the_loss (l.295).
 % SAINT batches: published evaluate() used consecutive chunks of 1,024 rows (git show 60945ed l.405-411) for
 %   validation and test; the published intersample attention attends across all rows of a batch (same file,
-%   class IntersampleAttention l.222-252).  151 of 151 / 141,746 of 153,816: computation (C3).  Fix: commit
+%   class IntersampleAttention l.222-252).  151 of 151 / 141,746 of 153,816: C5 published_saint_batches
+%   n_batches_with_a_shared_match 151, n_batches 151, n_rows_sharing_batch_with_own_match 141746, n_rows 153816
+%   (computation (C3)).  Fix: commit
 %   fecaaf3 --saint-batches match_disjoint (default), match_disjoint_batches(); tests
 %   test_match_disjoint_batches_never_share_a_match (l.432), test_match_disjoint_evaluation_returns_predictions_
 %   in_row_order (l.445).
@@ -586,8 +602,8 @@ be reproduced, and each corrected run starts from different initial weights than
 %   "tabnet-published_tabnet" delta -0.007424, ci95 [-0.008966, -0.005834].  vs LightGBM of the same pipeline:
 %   "tabnet-published_lightgbm" -0.054719 [-0.056966, -0.052387].  vs MLP: "tabnet-published_mlp" -0.043853
 %   [-0.046295, -0.041262].  (1,000 resamples: TABF test_auc_bootstrap.n_boot.)
-% vs scoreboard model -0.0147 [-0.0163, -0.0132]: computation (C1), tabnet_fixed - lead_only -0.014747
-%   [-0.016329, -0.013244].
+% vs scoreboard model -0.0147 [-0.0163, -0.0132]: C5 learner_cis.comparisons."tabnet_fixed - lead_only" diff
+%   -0.014747, ci95 [-0.016329, -0.013244] (computation (C1)).
 % Hyper-parameters unchanged, same parameter count: TABF models.tabnet.config (see comment above), n_params
 %   4075989 = A8 caveats[1] TabNet 4,075,989; sparsity_sign "+", legacy_sparsity_sign false.
 % Validation AUC 0.6127-0.6130 over 10 epochs; mask entropy 1.29 -> 0.51: TABF models.tabnet.history[*].val_auc
@@ -618,7 +634,8 @@ search varies the mask width, the number of steps and the weight of the regulari
 % 0.6578: FT192 models.ft_transformer.test_auc 0.657835.  Paired (1,000 resamples): FT192 test_auc_bootstrap.
 %   paired."ft_transformer-published_ft_transformer" +0.001779 [+0.000700, +0.002884];
 %   "ft_transformer-published_mlp" +0.002612 [+0.001104, +0.004182]; "ft_transformer-published_lightgbm"
-%   -0.008254 [-0.009628, -0.006793].  From the published LightGBM: computation (C1), -0.008649.
+%   -0.008254 [-0.009628, -0.006793].  From the published LightGBM: C5
+%   learner_cis.comparisons."ft_d192 - lgbm_paper".diff -0.008649 (computation (C1)).
 % Epochs: FT192 models.ft_transformer.best_epoch 6, epochs_run 11, history[5].val_auc 0.659369,
 %   history[0].loss 0.671212, history[10].loss 0.637343 (loss falls in every epoch).
 \paragraph{FT-Transformer at token width 192}
@@ -645,7 +662,8 @@ narrower one and than the MLP, and still below the trees; it has not been search
 %   "saint-published_lightgbm" -0.011076 [-0.012568, -0.009634] (published_lightgbm = FEAT/deep_tabular_v33_patch_
 %   full.preds.npz pred_lightgbm, the neural pipeline's LightGBM); "saint-published_mlp" -0.000209 [-0.001627,
 %   +0.001316]; "saint-published_ft_transformer" -0.001043 [-0.002074, +0.000059].
-% From the published LightGBM on A8 draws: computation (C1), -0.011470 [-0.012864, -0.010041].
+% From the published LightGBM on A8 draws: C5 learner_cis.comparisons."saint_c0 - lgbm_paper" diff -0.011470, ci95
+%   [-0.012864, -0.010041] (computation (C1)).
 \paragraph{SAINT with match-disjoint batches}
 Rerun at the first comparison's architecture and budget (token width 32, three stages, eight heads, and
 attention across engagements over a 128-dimensional summary of each engagement), but with batches of 64
@@ -927,7 +945,8 @@ $-$LGBM: difference from LightGBM with the same window. Gain: difference from th
 \label{tab:sequence}
 % AUC: SEQ bootstrap.auc.<model>__ctx<w>_bin5000[__seed7].auc, ci_lo, ci_hi.  -LGBM: bootstrap.paired."<model>__ctx<w>
 %   _bin5000__seed7 - lgbm__ctx<w>_bin5000".  Gain: "<model>__ctx<w>... - <model>__ctx30...".  LightGBM gain:
-%   "lgbm__ctx<w>_bin5000 - lgbm__ctx30_bin5000".  Gain-LGBM: computation (C2).  Best: SEQ fits.*.best_epoch,
+%   "lgbm__ctx<w>_bin5000 - lgbm__ctx30_bin5000".  Gain-LGBM: C5 sequence_gain_differences.n_boot_1000.
+%   gain_minus_lgbm_gain."<model>__ctx<w>_bin5000__seed7".diff, ci95 (computation (C2)).  Best: SEQ fits.*.best_epoch,
 %   epochs_run.  LightGBM best iteration: SEQ sweep.lgbm_patch_fits.<s>.best_iteration 73 / 59 / 65.
 %   LightGBM    30: 0.637953 [0.628931, 0.647119]
 %               60: 0.641713 [0.632941, 0.650774]; gain +0.003760 [-0.000210, +0.007918]
@@ -1009,7 +1028,8 @@ the full corpus in Section~\ref{sec:limit-evidence}.
 \label{sec:learners-answer}
 
 % -0.0113 / -0.0104 / -0.0086 / -0.0115 / -0.0551: tab:learners Delta column (A8 comparisons."lgbm_paper->mlp",
-%   "lgbm_paper->ft_transformer"; computation (C1) ft_d192, saint_c0, tabnet_fixed), every interval excluding zero.
+%   "lgbm_paper->ft_transformer"; C5 learner_cis.comparisons."{ft_d192, saint_c0, tabnet_fixed} - lgbm_paper",
+%   computation (C1)), every interval excluding zero.
 % Validation AUC rule: tab:learners column Validation AUC (higher-capacity LightGBM 0.6698 is the highest among the
 %   tree rows available now).
 In each of the five finished neural runs with a valid result, the neural learner ranks the test engagements
