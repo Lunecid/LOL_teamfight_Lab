@@ -146,38 +146,101 @@ Four entries show what this means in practice. We report them rather than adjust
   % C1_event_census.windows.pre_to_end.rows_with_any_by_category (dragon, baron, elder, soul).
   % Window pre_to_end = query point 0 (pre, cutoff - 1 ms) to query point 1 (last_kill_proxy):
   % WT/scripts/validate_objective_passthrough_claude.py WINDOWS; point names: validation_a denominators.valid_rows_per_point.
-  The wiki page on elemental drakes records that patch V26.01 raised their kill gold to 75\,g from
-  25\,g~\pending{cite}{League of Legends Wiki, ``Elemental drake'' page, accessed 14 Sep.\ 2026}, but it
-  states neither the value in force in 15.14--15.16 nor whether every member of the killing team
-  receives it. The rule payout for the corpus patches is therefore
-  \pending{rulefact}{patch-dated gold reward of an elemental dragon kill for 15.14--15.16, and whether
-  it is paid per team member}.
-  % https://wiki.leagueoflegends.com/en-us/Elemental_drake patch history V26.01 "Kill gold increased to 75 from 25"
-  % (WebFetch 2026-09-14; the page does not say whether the gold goes to the killer or to every member); same
-  % reading, retrieved 2026-09-11: REPO/gameplay/labels.py DRAGON_RULE_SOURCE and DRAGON_RULE_VERIFICATION
-  % ("UNVERIFIED for patches 15.14-15.16"); FEAT/event_prices.json wiki_cross_check.dragon (read 2026-09-09)
-  % "25 kill gold pre-26.01 (per-member status unclear)".  Not dated to 15.14-15.16, so the marker stays.
+  The patch history of the League of Legends Wiki page on the dragon pit records that a hotfix to
+  patch 9.23 set the kill gold of an elemental drake to 25\,g, and it lists no later change until
+  patch 26.1 raised the value to 75\,g. Riot's notes for patch 26.1 give the same earlier value, and the notes for the
+  corpus patches (numbered 25.14--25.16 there) list no drake gold
+  change~\cite{lolwiki2026dragonpit,riot2026patch261,riot2025patch2514,riot2025patch2515,riot2025patch2516}.
+  The kill gold in 15.14--15.16 is therefore 25\,g, a value for which no change is listed rather than
+  one confirmed patch by patch. Neither source says whether the killer or every member of the
+  killing team receives it, so a team receives 25\,g or, if every member is paid, 125\,g; which
+  applies is \pending{rulefact}{whether the 25\,g elemental drake kill gold of 15.14--15.16 is paid
+  to the killer only or to every member of the killing team}.
+  % Elemental drake redirects to Dragon pit.  lolwiki2026dragonpit (definition_refs.bib section 10, revision 4000799,
+  % VERIFIED 2026-09-14): patch-history lines on elemental-drake kill gold, re-read 2026-09-14 from the raw
+  % wikitext (api.php action=parse, oldid=4000799, via WebFetch): V8.23 "increased to 100 from 25", V9.23 "reduced
+  % to 25 from 100", V26.01 "increased to 75 from 25"; the headings between V26.01 and V9.23 (V25.19, V25.12,
+  % V25.05, V25.S1.2, V14.15 ... V9.24) carry no gold line; the V26.01 global-gold line belongs to the Elder
+  % Dragon.  The hotfix is the V9.23 November 25th hotfix (references_audit.md section 2c, note N9).  Recipient:
+  % the Rewards section does not say who receives the gold (same reading; also REPO/gameplay/labels.py
+  % DRAGON_RULE_VERIFICATION and FEAT/event_prices.json wiki_cross_check.dragon "per-member status unclear").
+  % riot2026patch261: Patch 26.1 notes downloaded 2026-09-14 (HTTP 200, 576,268 bytes), under Elemental Drakes
+  % "Kill gold: 25 => 75" (recipient not stated).  riot2025patch2514/2515/2516: notes downloaded 2026-09-14 (HTTP
+  % 200), tag-stripped text searched: "drake" 0 / 0 / 1 (25.16, a Mel bug fix), "kill gold" 0 in each; the one
+  % "dragon" hit (25.14) is champion balance prose.  Mapping 25.N = 15.N: see the comment on the rule constants
+  % below.  125 = 5 x 25; five members per team: CACHE/*.meta.json team_map has five participant ids on team 100 and
+  % five on team 200 in each of 200 matches drawn with random.seed(0), random.sample(sorted ids, 200) (2026-09-14).
+  % V9.23 heading re-read verbatim 2026-09-14: "V9.23 - November 25th Hotfix", elemental drakes kill gold reduced to
+  % 25 from 100.  The label table prices the dragon at 0 g (above).
 \item \emph{Turrets.} An inner turret is priced at 730\,g (fitted 729.79\,g, interval
   $[728.29, 731.66]$\,g), above the outer (540\,g), base (510\,g) and nexus (185\,g) turrets.
   % FEAT/event_prices.json fits.pooled.coef tower_inner_turret 729.794, cluster_bootstrap [728.290, 731.660];
   % outer 537.745, base 507.728, nexus 183.724; rounded table: REPO/config/game_rules/event_prices.json pooled.
   The League of Legends Wiki lists 50\,g of global gold per team member for an outer turret and
-  25\,g for an inner turret, with no local gold~\pending{cite}{League of Legends Wiki, ``Turret''
-  page, accessed 11 Sep.\ 2026}. The page gives current values, which we could not confirm for
-  15.14--15.16 (\pending{rulefact}{patch-dated turret rewards for 15.14--15.16}).
-  % Wiki Turret page read 2026-09-11 (local 0, outer and nexus 50 global, inner and base 25 global, first-turret
-  % bonus 300, plates 120; no patch history for 15.x); the same values recorded on 2026-09-09 in
-  % FEAT/event_prices.json wiki_cross_check ("current page").
-  The regression ranks the inner turret above the outer one, the reverse of that listing, so the
-  price records what an inner turret is associated with in team gold within its minute, not what
-  the rule pays.
+  25\,g for an inner turret, with no local gold~\cite{lolwiki2026turret}. That table gives the
+  rewards from patch 26.1 onwards; that patch moved local turret gold onto turret
+  plates~\cite{riot2026patch261}.
+  In 15.14--15.16 a destroyed outer turret paid 250\,g of local gold, and each of its five plates
+  125\,g until the plates fell off at 14 minutes; an inner turret paid 425\,g (mid lane) or 675\,g
+  (top and bottom lanes) of local gold and an inhibitor turret, the base turret of the event data,
+  375\,g, and both paid 25\,g of global gold per team member~\cite{riot2026patch261,lolwiki2026turret}.
+  These are the values that the 26.1 notes replaced. The wiki's patch history dates the plate value
+  to patch 13.20 and the inner and inhibitor turret values to patch 13.23, and the notes for the
+  corpus patches list no turret or plate gold
+  change~\cite{riot2025patch2514,riot2025patch2515,riot2025patch2516}. Like $R$ and $B$ below, they
+  are values for which no change is listed, not values confirmed patch by patch.
+  % Values for 15.14-15.16.  riot2026patch261: Patch 26.1 notes downloaded 2026-09-14 (HTTP 200), before => after:
+  % under Outer Turrets "Local gold: 250 => 0", "Turret plate gold: 125 => 120", "Maximum local gold: 875 => 600"
+  % (= 250 + 5 x 125), plates "now permanent instead of falling off at 14 minutes", plate gold "Turret plates drop
+  % at 14 minutes, awarding no further gold"; under Inner and Inhibitor Turrets "Inner turret local gold: 425/675
+  % => 600 spread across 5 plates", "Inhibitor turret local gold: 375 => 600 spread across 5 plates"; the section
+  % introduction says all turrets except nexus turrets now have plates and total local gold was shifted into
+  % them.  No line gives global turret gold.
+  % lolwiki2026turret (revision 4050003, VERIFIED 2026-09-14), raw wikitext re-read 2026-09-14 (api.php
+  % action=parse, oldid=4050003, via WebFetch): V13.20 plate gold "reduced to 125 from 175"; V13.23 mid-lane inner
+  % turret local gold "increased to 425 from 300", side-lane inner turret "increased to 675 from 550", inhibitor
+  % turret "increased to 375 from 50", and global gold of all three "reduced to 25 from 50"; V26.01 outer local gold
+  % "reduced to 0 from 250".  Blocks V14.1-V25.20 have no turret-gold line other than the first-turret bonus
+  % (definition_refs.bib comment on lolwiki2026turret; references_audit.md section 2c, note N8).  Global reward "to
+  % all the champions in the team, regardless of range or death status": Turret rewards section, same reading.
+  % The 50 g outer-turret global gold is not stated for 15.14-15.16 here because no source dates it (note N8).
+  % riot2025patch2514/2515/2516 (downloaded 2026-09-14, HTTP 200, tag-stripped text searched): "turret" once in each,
+  % all bug fixes (25.14 jungle buffs on turrets, 25.15 Heimerdinger's turrets, 25.16 Voidgrub damage and Viego);
+  % "plate" only in the item name Experimental Hexplate (25.16); "local gold", "global gold" 0 in each.
+  % Base turret = inhibitor turret: REPO/config/game_rules/map_anchors.json, e.g. team 100 bot BASE_TURRET (4281, 1253)
+  % lies between the bot INHIBITOR_BUILDING (3468, 1230) and INNER_TURRET (6919, 1483).
+  % Superseded comment (2026-09-11 reading): "no patch history for 15.x" was wrong; the page has V25.S1.1 and V26.01
+  % entries among others (audit notes N5, N8, N7).
+  In the corpus patches an inner turret therefore paid more local gold than an outer or an inhibitor
+  turret, so the regression's ranking of the inner turret first does not contradict the rule in
+  force. The comparison is one of order only. The wiki page shares local gold only among living
+  champions near the turret when it falls and champions that helped destroy it, and plates are
+  priced as separate events, so the rule fixes no single team-gold amount against which a turret
+  coefficient could be checked.
+  % Order: 425 and 675 > 375 > 250 (local gold, values above); regression inner 729.79 > outer 537.75 > base 507.73.
+  % Local-gold sharing: lolwiki2026turret Turret rewards section (same reading), local reward shared by champions
+  % alive and within 1200 range at destruction, plus any champion that dealt the killing blow or assisted within
+  % the last 10 seconds.  Plates as a separate regressor: FEAT/event_prices.json fits.pooled.coef plates 117.66
+  % (table 120 g, REPO/config/game_rules/event_prices.json pooled.plates).
 \item \emph{First turret.} The first-turret coefficient is negative, $-53.44$\,g (interval
-  $[-55.45, -50.83]$\,g), although the wiki page used for the cross-check lists a first-turret
-  bonus. The table omits the term, so the label does not price that bonus at all.
+  $[-55.45, -50.83]$\,g). The wiki page used for the cross-check lists a 300\,g first-turret bonus,
+  but the corpus patches did not pay it. Patch 25.S1.1 replaced the bonus with Feats of Strength,
+  which give upgraded boots to the first team to achieve two of first blood, first turret and three
+  epic monster takedowns, and patch 26.1 removed the Feats and restored the
+  bonus~\cite{riot2025patch25s11,riot2026patch261,lolwiki2026turret}. The table omits the term, so
+  the label prices no first-turret bonus, as the rule in force paid none; the boot upgrade, which is
+  not gold, is not priced either.
   % FEAT/event_prices.json fits.pooled.coef first_tower -53.445, cluster_bootstrap [-55.448, -50.827];
   % wiki_cross_check.first_tower "300 bonus (current page)"; omission: REPO/analysis/event_prices.py price_table()
   % (skips kill_bounty, d_lane_cs, d_jg_cs, first_tower); unpriced in the label: REPO/gameplay/labels.py
   % _priced_event_gold() adds table.get("first_tower", 0.0) and the pooled table has no first_tower entry.
+  % riot2025patch25s11 (downloaded 2026-09-14, HTTP 200): under Feats of Strength, the system replaces the gold
+  % bonuses from First Blood and First Turret; the team that first completes two of First Blood, First Turret and
+  % Monster Slaying (three epic monster claims) has its tier-2 boots upgraded to Triumphant versions.
+  % riot2026patch261: Feats of Strength removed; "The first Turret destroyed once again grants +300g".
+  % lolwiki2026turret history: V25.S1.1 first turret no longer grants the 300 bonus gold; V26.01 first turret
+  % takedown grants a bonus 300 (same reading as above).  Feats still in the game in the corpus patches: the 25.16
+  % notes fix a bug in which Voidgrubs did not count toward Feats (downloaded 2026-09-14).
 \item \emph{Kill bounty.} The bounty coefficient is 1.203 (interval $[1.200, 1.205]$), where the
   estimation code expects a value near 1 if frame gold and event bounties agree. The label
   nevertheless counts kill gold at face value, so, in the regression's own currency, a bounty is
@@ -389,16 +452,22 @@ credits a kill or an assist on Summoner's Rift. Minute frames cannot resolve eit
 % FEAT/fight_boundary_full/spec_pooled.json radius_source "rule:champion-death experience share radius",
 % lead_source "rule:kill/assist credit window (Summoner's Rift)".
 Both values were taken from League of Legends Wiki pages read on 8 September 2026 and re-read on
-11 September 2026~\pending{cite}{League of Legends Wiki, ``Experience (champion)'', ``Assist'' and
-``Kill'' pages, accessed 11 Sep.\ 2026}, and were applied unchanged to all three patches.
+11 September 2026~\cite{lolwiki2026experience,lolwiki2026assist,lolwiki2026kill}, and were applied
+unchanged to all three patches.
 % first read: REPO/docs/DEFINITION_EVIDENCE.md section 15 (game-rule constants table, 2026-09-08); re-read:
 % REPO/docs/references/rule_constants_evidence.md section 1 (retrieved 2026-09-11); Experience (champion) page
 % fetched again for this section on 2026-09-11: 1,600 u for champion deaths, 1,500 u for minions.
 % Same R, B per patch: FEAT/fight_boundary_full/spec_15.14.json, spec_15.15.json, spec_15.16.json.
+% Cite keys (definition_refs.bib section 10, VERIFIED 2026-09-14): lolwiki2026experience revision 4053165 of
+% 2026-08-22, lolwiki2026assist revision 4016680 of 2026-05-12, lolwiki2026kill revision 4053216 of 2026-08-23; all
+% predate 8 Sep. 2026, so both readings saw these revisions (references_audit.md section 2c, note N6).  Permanent
+% links re-read 2026-09-14: 1600 u for champion deaths (1500 u for minions), 15 s assist window and 15 s kill credit
+% on Summoner's Rift.
 The pages give current values without dating them. The patch history of the experience page lists
 no change to the champion-death radius; its range entries concern minion experience only. The
-official notes for the three corpus patches list no change to either rule~\pending{cite}{Riot Games,
-patch 25.14, 25.15 and 25.16 notes}. That no note lists a change does not show that a rule was
+official notes for the three corpus patches list no change to either
+rule~\cite{riot2025patch2514,riot2025patch2515,riot2025patch2516}. That no note lists a change does
+not show that a rule was
 unchanged: notes can omit changes, and hotfixes announced elsewhere were not searched.
 % Experience (champion) patch history: V25.S1.1 minion range 1,400 -> 1,500 and V4.11 lane minion range
 % 1,250 -> 1,400, no champion-death radius entry (WebFetch 2026-09-11; also rule_constants_evidence.md section 1).
@@ -406,6 +475,14 @@ unchanged: notes can omit changes, and hotfixes announced elsewhere were not sea
 % Kill page re-fetched 2026-09-11).  Notes 25.14-25.16: "no change listed" for the experience radius and the assist
 % window (rule_constants_evidence.md section 2, automated-fetch reading; that file asks for a manual check).
 % Displayed patches 25.14-25.16 = game versions 15.14-15.16: rule_constants_evidence.md section 3 (PARTLY VERIFIED).
+% Cite keys (definition_refs.bib section 10, VERIFIED 2026-09-14): riot2025patch2514, riot2025patch2515,
+% riot2025patch2516.  Re-checked 2026-09-14 (pages downloaded, HTTP 200, whole-page string search): "assist" and
+% "credit" 0 hits in each; "1,600" 0; "1600" only as image dimensions in 25.15.  Mapping relied on, displayed 25.N =
+% gameVersion 15.N: definition_refs.bib header (Data Dragon has Yunara, key 804, at 15.14.1 and not at 15.13.1; the
+% 25.14 notes introduce Yunara; re-run 2026-09-14: champion 804 in 99 of 500 corpus matches of patch 15.14,
+% random.seed(0) then random.sample(sorted ids, 500) over the 74,673 ids with value 15.14 in
+% D:/LOL_Project/cache/match_cache_fresh_v3_engage_status13_patch_index.json, champion ids from each CACHE meta.json
+% static_meta.champion_by_pid); 25.15 and 25.16 follow by succession.
 
 The two kinds of constant have been probed with different measures, so their effects cannot be
 ranked against each other. For the rule anchors, on 2,971 matches (81,914 kill episodes) the share
