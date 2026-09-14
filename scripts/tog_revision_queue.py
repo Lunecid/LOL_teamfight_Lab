@@ -205,7 +205,8 @@ def main() -> int:
                      "note": "process vanished"}), encoding="utf-8")
                 states[j["name"]] = "failed" if attempts >= 2 else "retry"
 
-        running = [j for j in jobs if j["name"] in live]
+        # jobs launched by an earlier runner that are still alive hold CPU and RAM too
+        running = [j for j in jobs if j["name"] in live or states.get(j["name"]) == "running"]
         cpu_used = sum(float(j.get("cpu_threads", 1) or 1) for j in running)
         ram_used = sum(float(j.get("ram_gb", 0) or 0) for j in running)
         gpu_busy = any(float(j.get("gpu_mem_gb", 0) or 0) >= 0.5 for j in running)
