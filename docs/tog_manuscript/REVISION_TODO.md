@@ -1,4 +1,4 @@
-# ToG revision — what is left (state at 2026-09-14 21:15 KST)
+# ToG revision — what is left (state at 2026-09-14 21:35 KST)
 
 The authors decided to accept every CoG 2026 reviewer recommendation. All experiments that do not depend on the
 deep-model search are finished and written into the manuscript; `main.tex` builds with 0 errors, 0 undefined
@@ -15,8 +15,8 @@ state in `.../tog_revision/queue_state/` (a job is finished only when `<job>.ok`
 
 | job | what | estimate |
 |---|---|---|
-| `b2_saint_d128_published_budget` | SAINT, d_token 128, match-disjoint batches | running |
-| `c_saint_d32_pretrain5_published_config` | SAINT with 5 contrastive pre-training epochs | ~2.5 h |
+| `b2_saint_d128_published_budget` | SAINT, d_token 128, match-disjoint batches | **done** 21:30 |
+| `c_saint_d32_pretrain5_published_config` | SAINT with 5 contrastive pre-training epochs | running since 21:30, ~2.5 h |
 | `d1_hparam_search_lightgbm` | declared LightGBM grid, validation-only selection | ~2.5 h |
 | `d2_hparam_search_deep` | declared grids for MLP, TabNet, FT-Transformer, SAINT (±pre-training) | ~22 h |
 | `d3_hparam_search_summary` | one test evaluation per family | minutes |
@@ -34,6 +34,8 @@ exits, and one adoption was observed to lag by ~50 minutes.
 3. Restore a model-class claim to the title only if §2.1 supports it (the current working title makes none).
 
 ## 3. Writing that can be done now (small)
+
+Items 1–3 **done** in commit cdc2c41 (limitation results filled, stale sentences corrected, pick interval, explicit comparator). Item 4 waits for §2.
 
 1. `sec_limitations.tex`: fill `\pending{labels}` (A2 `label_family_v33.json`), `\pending{evidence_state}`
    (A4 `evidence_block_patch_holdout_v33_v2.json`) and `\pending{window}` (A3 `window_sweep_paired_cis_v33.json`, with the
