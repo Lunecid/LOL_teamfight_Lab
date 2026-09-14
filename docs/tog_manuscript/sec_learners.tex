@@ -1,0 +1,1026 @@
+% =============================================================================
+% sec_learners.tex -- "Is the Ceiling a Model-Class Limit?"  (ToG manuscript, item M3-learners, 2026-09-14)
+%
+% Answers CoG 2026 reviews: R2 (FT-Transformer / TabNet / SAINT on equal features in a competitive
+% setting; alternative temporal resolutions or extended windows), R3 (motivate every method for a
+% non-expert; the unreferenced "diagnostic MLP"; the "Layered+Logit" notation), R4 (the deep models'
+% potential).  Rows R2-5a/b/c, R2-6, R2-7, R2-9, R2-10, R3-2, R3-3, R3-4, X-2 of reviewer_response_matrix.md.
+%
+% Provenance.  Every number carries a comment with its artefact and key; derived numbers show the
+% arithmetic.  Every value was re-read from the artefacts on 2026-09-14 (20:15-20:35 KST) by this item.
+% Path prefixes:
+%   FEAT/ = D:/LOL_Project/fusion_2615/features/
+%   REV/  = D:/LOL_Project/fusion_2615/features/tog_revision/
+%   REPO/ = C:/Users/todtj/PycharmProjects/LOL_teamfight/
+%   WT/   = C:/Users/todtj/문서/LOL_Teamfight/worktrees/engagement-state-value/
+%   A8    = REV/A8-input-audit-and-cis/paired_learner_cis_v33.json (2,000 match draws, seed 7; finished 05:14:17)
+%   AUD   = REV/A8-input-audit-and-cis/model_comparison_input_audit_extended.json (84 checks, PASS; finished
+%           05:12:12; its inputs, the first-comparison prediction files, date from 2026-09-11 01:53-04:49)
+%   TABF  = REV/A1-deep-baselines/a_tabnet_sign_fixed_published_config.json (1,000 draws, seed 7)
+%   FT192 = REV/A1-deep-baselines/b_ft_transformer_d192_published_budget.json (1,000 draws, seed 7)
+%   SC0   = REV/A1-deep-baselines/c0_saint_d32_published_config_match_disjoint.json (1,000 draws, seed 7;
+%           written 20:11; REV/queue_state/c0_saint_d32_published_config_match_disjoint.ok and .done present)
+%   WIN   = REV/A3-temporal-windows/window_sweep_paired_cis_v33.json (2,000 draws, seed 7; created_utc
+%           2026-09-14T07:41:41Z, the rewrite that added seed_replication)
+%   SEQ   = REV/A3-temporal-windows/sequence_baseline/sequence_baseline_v33.json (1,000 draws, seed 7)
+% TABF, FT192 and SC0 record git_commit fa166ec, git_dirty false; scripts/run_deep_tabular_baselines.py is
+%   unchanged between fecaaf3 and fa166ec (git log fecaaf3..HEAD -- that file: empty), so all three run the
+%   code of commit fecaaf3.
+%
+% Numbers COMPUTED by this item (not stored in an artefact; the computation is given where each is used):
+%   (C1) Test AUC intervals of the three corrected runs and their differences from lgbm_paper and lead_only,
+%        on A8's own bootstrap draws.  prepare / weighted_auc / the replicate loop copied from
+%        WT/scripts/paired_learner_cis_v33.py (script_sha1 5400ecb): uniq, inv = np.unique(groups,
+%        return_inverse=True) of FEAT/model_comparison_v33_patch.preds.npz; rng = default_rng(7); for b in
+%        range(2000): w = bincount(rng.integers(G, size=G), minlength=G)[inv]; B[b, j] = weighted_auc(prep_j, w);
+%        interval of a difference = np.percentile(B[:, k] - B[:, ref], [2.5, 97.5]).  Test preds of the corrected
+%        runs: REV/A1-deep-baselines/{a_tabnet_sign_fixed_published_config, b_ft_transformer_d192_published_budget,
+%        c0_saint_d32_published_config_match_disjoint}.preds.npz (pred_tabnet, pred_ft_transformer, pred_saint),
+%        asserted equal to the tree file in y and groups and to FEAT/deep_tabular_v33_patch_full.preds.npz in
+%        min_participants_test, element by element.  Check: every A8 learners.*.test_auc / ci95 and
+%        comparisons.*.diff / ci95 reproduced, max gap 1.1e-16.  4 threads, CPU only.
+%          tabnet_fixed 0.611370 [0.608551, 0.614272]; - lgbm_paper -0.055114 [-0.057260, -0.052864];
+%                       - lead_only -0.014747 [-0.016329, -0.013244]
+%          ft_d192      0.657835 [0.655053, 0.660616]; - lgbm_paper -0.008649 [-0.009989, -0.007195]
+%          saint_c0     0.655013 [0.652291, 0.657809]; - lgbm_paper -0.011470 [-0.012864, -0.010041]
+%   (C2) Difference of window gains, sequence learner minus LightGBM, on SEQ's own draws:
+%        (AUC_seq,w - AUC_seq,30) - (AUC_lgbm,w - AUC_lgbm,30), percentile interval over the 1,000 replicates
+%        of REPO/scripts/run_window_sweep_v33.py match_bootstrap (match_weights / _auc_plan / _auc_from_plan
+%        copied verbatim; default_rng(7); preds test__* of sequence_baseline_v33.preds.npz).  Check: every
+%        SEQ bootstrap.paired delta, ci_lo, ci_hi and bootstrap.auc ci reproduced, max gap 0.0.  With 2,000
+%        replicates the readings are unchanged (BiGRU 60 s [-0.0084, +0.0008], 120 s [-0.0121, +0.0012];
+%        Transformer 60 s [-0.0157, -0.0045], 120 s [-0.0185, -0.0066]).
+%   (C3) Published SAINT evaluation batches: FEAT/deep_tabular_v33_patch_saint.preds.npz groups_test cut
+%        into consecutive chunks of 1,024 (the evaluate() loop of REPO/scripts/run_deep_tabular_baselines.py
+%        at commit 60945ed, "for i in range(0, len(y_eval), 1024)"): 151 chunks, 151 contain two or more
+%        rows of one match; 141,746 of 153,816 rows share their chunk with a row of the same match; the
+%        rows of each match are contiguous (55,449 runs for 55,449 matches).
+%   TODO(orchestrator): archive C1-C3 under REV/ (e.g. REV/A8-input-audit-and-cis/corrected_runs_on_a8_
+%     draws.json, REV/A3-temporal-windows/sequence_baseline/gain_differences.json) and repoint the
+%     comments; this item may not write outside its file.
+%
+% Queue state read at 20:33 KST (REV/queue_state/, REV/queue_runner_wave5.log): a_tabnet..., b1_ft...,
+%   c0_saint... finished (.ok); b2_saint_d128_published_budget running since 20:12:05 (.running);
+%   c_saint_d32_pretrain5_published_config, d1_hparam_search_lightgbm, d2_hparam_search_deep,
+%   d3_hparam_search_summary have no queue_state entry (queued, REV/queue_wave5.json).
+%
+% A finding in WIN that the brief did not name: WIN.seed_replication refits LightGBM with ten seeds on
+%   the patch holdout.  The 2.5 s-bin gain of +0.0063 is seed 7's, the largest of the ten, and the
+%   seed-averaged gain's interval includes zero.  The text reports both.  sec_intro.tex and
+%   sec_definition.tex tab:constants (window row, l.522) quote +0.0063 as surviving adjustment without that
+%   qualification.
+%
+% Rules kept: no model-class conclusion while \pending{learners} is open; the withdrawn TabNet and SAINT
+%   AUCs are not printed (differences from them are); no p value printed as "p = 0.005" (floor: p <= 0.005).
+% \pending keys: learners (SAINT at width 128 and with pre-training, and the declared search), audit (input
+%   audit extended to the re-runs), sequence-arms (BiGRU / Transformer at 15 s and at 2.5 s and 10 s bins;
+%   not run, no job).
+% Citation keys (all in REPO/docs/references/definition_refs.bib): ke2017lightgbm, gorishniy2021revisiting,
+%   grinsztajn2022tree, shwartzziv2022tabular, arik2021tabnet, somepalli2021saint, martins2016sparsemax,
+%   chen2020simple, yun2019cutmix, zhang2018mixup, cho2014learning, vaswani2017attention,
+%   loshchilov2019decoupled, loshchilov2017sgdr, efron1993bootstrap, silva2018continuous, katona2019time.
+%   Holm (1979) has no bib entry and is named without a citation.
+% Labels used by other sections: sec:learners, sec:learners-input, sec:learners-ladder, sec:learners-protocol,
+%   sec:learners-effort, sec:learners-window.  Also defined: sec:learners-terms, sec:learners-cog,
+%   sec:learners-published, sec:learners-answer; tab:learners, tab:learner-grids, tab:window, tab:sequence.
+% =============================================================================
+
+\section{Is the Ceiling a Model-Class Limit?}
+\label{sec:learners}
+
+% 0.6699: REV/A6-definition-sensitivity/scale_cut_sensitivity_v33.json overall.auc.point 0.669909 (= FEAT/
+%   scale_decomposition_v33_market_event.json overall_auc 0.6699089924634439).  0.6665: A8 learners.lgbm_paper.
+%   test_auc 0.6664835319909197.
+Section~\ref{sec:prediction} ranks the outcomes of engagements before they begin with gradient-boosted
+trees, at an AUC of 0.6699 under grouped cross-validation and 0.6665 on a held-out patch. These values
+describe one learner. By themselves they cannot say whether the information available before an
+engagement allows no better ranking, or whether a more flexible learner would find structure that the
+trees miss. We call the highest AUC that this information allows the \emph{ceiling}.
+Section~\ref{sec:limit} attributes part of the limit to what the telemetry records before an engagement;
+that reading presumes that a different learner would not rank the same engagements much better from the
+same inputs. This section therefore asks one question: \emph{given identical inputs, does any learner rank
+engagement outcomes better than gradient-boosted trees?} It also tests a second explanation raised in
+review: that the 30\,s observation window is too short or too coarse, above all for learners that read
+time in order (Section~\ref{sec:learners-window}).
+
+The answer to the first question is not complete. The comparison first run for this study gave the
+neural learners no hyper-parameter search and sizes that differ by a factor of about fifteen, and two of its
+rows are withdrawn because of implementation errors (Section~\ref{sec:learners-published}). Three
+corrected or enlarged runs have finished; two more runs and a search declared in advance are running or
+queued (Section~\ref{sec:learners-effort}). Their cells in Table~\ref{tab:learners} are marked as pending, and no
+conclusion about model classes is drawn until they are filled.
+
+% -----------------------------------------------------------------------------
+\subsection{Terms}
+\label{sec:learners-terms}
+
+A \emph{learner} is a family of prediction functions together with a procedure that fits one member of
+the family to labelled examples. The values that fitting sets, such as the weights of a neural network,
+are the model's \emph{trainable parameters}; settings fixed before fitting, such as the number of trees
+or the learning rate, are \emph{hyper-parameters}. Engagements are divided into a \emph{training} set,
+used to fit parameters, a \emph{validation} set, used to choose hyper-parameters and to decide when to
+stop training, and a \emph{test} set, scored once at the end. A neural network is trained in
+\emph{epochs}, full passes over the training set. A learner that fits accidental regularities of its
+training set, and therefore predicts new engagements worse, \emph{overfits}. AUC, early stopping and the
+match bootstrap are defined in Section~\ref{sec:pred-protocol}.
+
+% -----------------------------------------------------------------------------
+\subsection{The Ladder of Learners}
+\label{sec:learners-ladder}
+
+Whether trees or neural networks should be expected to rank better on a table like ours is open
+(Section~\ref{sec:related}). The papers that introduced neural architectures for tables report gains on
+their own benchmarks~\cite{arik2021tabnet,somepalli2021saint}. Independent comparisons found
+gradient-boosted trees ahead on most datasets~\cite{shwartzziv2022tabular,grinsztajn2022tree}, and under
+one tuning protocol neither family was superior on every dataset~\cite{gorishniy2021revisiting}.
+Findings on other data do not settle the question for ours, so we measure it. The learners form a ladder,
+ordered roughly by how much structure each can represent. Each rung is there because its result, in
+either direction, says something specific about the ceiling.
+
+% 8 columns: WT/scripts/run_model_comparison_v33.py lead_cols (goldDiff__last, xpDiff__last, avgLevelDiff__last,
+%   killDiff_cum__last, csDiff_total__last, aliveDiff__last, time_norm__last, frame_age_s); FEAT/
+%   model_comparison_v33_patch.json models.lead_only.n_features 8.  Same text as sec_prediction.tex
+%   sec:pred-scoreboard.
+\paragraph{Scoreboard model}
+This model is LightGBM in its published configuration (below), given eight columns: the blue-minus-red
+differences in gold, experience, average champion level, kills, creep score and living champions at the
+last bin, game time, and frame age. It measures how far the rule ``the team that is ahead wins'' carries.
+The distance from it to the full-input learners is what the rest of the input contributes, and a learner
+that falls below it ranks engagements worse than the lead in these eight columns does.
+
+% Logistic regression as implemented: WT/scripts/run_model_comparison_v33.py torch_fit_predict("linear"):
+%   nn.Linear(6164, 1), inputs standardised with training-patch mean and sd (sd < 1e-6 -> 1), AdamW lr 3e-3
+%   (OneCycle), weight_decay 1e-3, batch 4,096, at most 25 epochs, early stopping on validation-patch AUC
+%   with patience 3.  6,164 columns: FEAT/model_comparison_v33_patch.json models.linear.n_features.
+\paragraph{Logistic regression}
+The model forms a weighted sum of the 6,164 informative columns, each standardised, and passes it
+through the logistic function to obtain a probability. The weights are fitted by gradient descent on the
+cross-entropy between predictions and labels with weight decay~\cite{loshchilov2019decoupled}, which
+shrinks every weight toward zero at each step so that thousands of weights do not fit noise, and
+training stops early on the validation patch. It is the least flexible learner that uses every
+informative column: it cannot represent a threshold, nor an interaction such as a gold lead that matters
+more late in a match than early. What the trees add to it is what thresholds and interactions add.
+
+% Published configuration: WT/scripts/run_model_comparison_v33.py run_model(): n_estimators 400,
+%   learning_rate 0.05, num_leaves 31, subsample 0.9 (inactive: subsample_freq 0, sec_prediction.tex header),
+%   colsample_bytree 0.9, random_state 7, early_stopping(100) on 15.15.  Higher capacity ("lgbm_deep"):
+%   n_estimators 3000, learning_rate 0.02, num_leaves 127, min_child_samples 100, reg_lambda 1.0.
+% 381 of 400: FEAT/model_comparison_v33_patch.json models.lgbm_paper.best_iteration 381; with patience 100 the
+%   callback cannot stop before iteration 381 + 100 = 481 > 400, so fitting reached the 400-tree cap and the
+%   model at iteration 381 is used for prediction (LightGBM best_iteration_).
+\paragraph{Gradient-boosted trees (LightGBM)}
+A decision tree predicts by asking a short sequence of threshold questions about single columns, such as
+whether the gold difference exceeds some value. Gradient boosting builds many small trees one after
+another, fits each new tree to the errors that the trees before it still make, and adds their outputs;
+LightGBM is an efficient implementation~\cite{ke2017lightgbm}. Early stopping watches the score on the
+validation patch while trees are added, ends training once that score has not improved for a fixed number
+of trees, and keeps the model at its best point, because further trees fit accidental regularities of the
+training patch. The \emph{published configuration} (at most 400 trees of at most 31 leaves, learning rate
+0.05, 90\% of the columns drawn for each tree) is the learner of Section~\ref{sec:prediction}. It uses
+early stopping with a patience of 100 trees; under the patch holdout its best iteration is 381 of at most
+400, so training ran to the cap and the model at tree 381 is kept. A \emph{higher-capacity configuration}
+(at most 3,000 trees of at most 127 leaves, learning rate 0.02) asks whether the published trees are simply
+too small, and the declared search (Section~\ref{sec:learners-effort}) gives LightGBM the same search as
+every other learner.
+
+% MLP as run: REPO/scripts/run_deep_tabular_baselines.py at commit 60945ed, build_mlp(hidden=512, layers=3,
+%   dropout=0.1): Linear-LayerNorm-GELU-Dropout x 3, AdamW lr 1e-3, weight_decay 1e-4, batch 256.
+% Standardisation: AUD asymmetry.deep_standardisation (labelled train-patch rows, sd < 1e-6 set to 1).
+% "diagnostic" framing in the conference version: REPO/paper/methods.tex l.167-169 (gitignored copy of the
+%   submission): "A matched-input MLP uses the same X_tab to separate the effect of the engineered
+%   representation from the tree-based learner"; REPO/docs/AUDIT.md l.39 ("MLP" diagnostic).
+% No convolutional learner: REV/queue_wave5.json A3-sequence-baseline-v33.command --models bigru,transformer;
+%   REPO/scripts/run_sequence_baseline_v33.py MODELS = ("bigru", "transformer").
+\paragraph{Multilayer perceptron (MLP)}
+An MLP passes the input through a stack of layers; each layer forms weighted sums of all outputs of the
+layer below and applies a fixed non-linear function, so the stack can combine many columns at once. It
+reads the same 7,106 columns, each standardised with the mean and standard deviation of the training
+patch. It enters as the baseline neural learner on identical inputs, the role it has in the benchmark of
+Gorishniy et al.~\cite{gorishniy2021revisiting}: the simplest network, which a more elaborate
+architecture must at least match. The conference version called a similar network a ``diagnostic'' that
+separated the effect of the engineered input from that of the tree learner, without a reference. We drop
+that framing, because two learners compared on one input separate learners, not inputs. For the same
+reason, attention or convolutional probes are not the relevant comparison: a probe is a small model
+trained to read what a fixed, already learned representation encodes, and here every learner is trained
+end to end on the same columns, so there is no fixed representation to probe. Attention therefore enters
+as complete learners, FT-Transformer and SAINT below and a temporal Transformer in
+Section~\ref{sec:learners-window}. Convolution assumes that neighbouring inputs are related, which holds
+for the ordered bins of the window but not for the columns of the table, whose order carries no meaning;
+a convolutional learner over the bins was not run.
+
+\paragraph{FT-Transformer}
+FT-Transformer~\cite{gorishniy2021revisiting} turns each input quantity into a short vector, a
+\emph{token}, by a linear map of its own. It then applies \emph{self-attention}
+layers~\cite{vaswani2017attention}: each token is updated with a weighted average of all tokens, whose
+weights are computed from the tokens themselves, so which quantities inform one another can differ from
+one engagement to the next. A learned summary token feeds the prediction. A tree combines columns through
+nested threshold questions on one column at a time; attention can combine many quantities in one step.
+FT-Transformer is therefore the most direct test of whether the ceiling reflects interactions that trees
+represent poorly, and it is one of the neural models that, under a common tuning protocol, was not
+uniformly beaten by gradient-boosted trees~\cite{gorishniy2021revisiting}.
+
+% 60 s frames and "changes at most once": sec_prediction.tex sec:pred-task (frames every ~60 s; a quantity
+%   carried forward from the last frame changes at most once inside the 30 s window).
+\paragraph{TabNet}
+TabNet~\cite{arik2021tabnet} predicts in several decision steps. At each step an attention module selects
+a sparse subset of the columns through sparsemax~\cite{martins2016sparsemax}, which gives most columns a
+weight of exactly zero, and a prior discourages later steps from reusing columns chosen earlier. The
+entropy of the selection masks is added to the training loss, so that training favours masks that select
+few columns. TabNet is on the ladder because our input is wide and redundant: several of the seven
+statistics of a frame quantity nearly coincide, since the quantity changes at most once inside the
+window (Section~\ref{sec:pred-task}). If the other learners were hampered by having to find a few
+informative columns among thousands, a learner built to select them should do better.
+
+% Pre-training as implemented (REPO/scripts/run_deep_tabular_baselines.py, commit fecaaf3, docstring and
+%   saint_pretrain_loss): CutMix in input space p_cutmix 0.3, mixup in embedding space alpha 0.2, InfoNCE
+%   between projection heads with tau 0.7, denoising reconstruction with lambda_pt 10 (parser defaults
+%   --cutmix-p, --mixup-alpha, --contrastive-tau, --lambda-denoise); pre-training rows are training-patch rows
+%   only (fit_model: rows = tr_idx), in match-disjoint batches (groups=ids(rows)).
+% Preprint status: REPO/docs/references/definition_refs.bib comment above somepalli2021saint.
+\paragraph{SAINT}
+SAINT~\cite{somepalli2021saint} alternates attention across the quantities of one engagement, as in
+FT-Transformer, with attention across the engagements of a batch, so that the representation of one
+engagement can draw on others. It adds \emph{self-supervised pre-training}, which uses the inputs but not
+the labels. The network learns to give an engagement and a corrupted copy of it (some columns replaced by
+those of another engagement~\cite{yun2019cutmix}, and its token vectors mixed with another's~\cite{zhang2018mixup})
+similar representations that differ from those of other engagements, a \emph{contrastive}
+objective~\cite{chen2020simple}, and to reconstruct the original values from the copy. Attention across
+engagements tests whether an engagement is predicted better in the company of others; pre-training tests
+whether the labelled training engagements are too few to learn a good representation. We pre-train on
+training-patch engagements only, so no feature of the validation or test patch enters it. SAINT is
+available as a preprint, not a peer-reviewed publication; it is included because it combines both ideas
+in one architecture. Attention across engagements needs care with our data, because an earlier engagement
+that shares a batch with a later one of the same match could attend to features recorded after its own
+cutoff (Section~\ref{sec:learners-published}).
+
+\paragraph{Sequence learners}
+The seven statistics decide, before any learning, which aspects of the history inside the window a
+tabular learner can see. A sequence learner instead receives the value of every quantity in every bin and
+learns its own summary. The bidirectional gated recurrent unit (BiGRU) reads the bins in order while
+carrying a state of fixed size, with learned gates deciding how much of the state each new bin
+overwrites~\cite{cho2014learning}; a second reader runs from the last bin to the first. The temporal
+Transformer applies self-attention across bins, with an encoding of each bin's
+position~\cite{vaswani2017attention}. Recurrent networks have been used for continuous outcome prediction
+in League of Legends~\cite{silva2018continuous}, and deep networks for death prediction in
+Dota~2~\cite{katona2019time}. These are the learners for which the length and resolution of the window
+should matter most, so they are evaluated in the window experiment (Section~\ref{sec:learners-window}).
+
+% -----------------------------------------------------------------------------
+\subsection{What the Conference Version Compared, and Why It Is Not Repeated}
+\label{sec:learners-cog}
+
+% Conference lineup: REPO/paper/methods.tex l.163-180 and REPO/paper/result.tex l.27-37 (gitignored copy of
+%   the submission): LightGBM and MLP on X_tab; Bi-GRU and Transformer on the macro sequence; GraphSAGE on
+%   the final player graph; ST-GNN; Cross-Attn (event tokens with player states); Layered fusion.  Results
+%   are not reprinted (superseded definition, label and inputs).
+% Layered fusion: REPO/docs/MODELS.md l.481-530 and REPO/docs/CoG2026_Paper.md l.213-231: h_cat = [h_global
+%   || h_graph || h_event]; g = sigma(W_g h_cat + b_g); h_fuse = g . MLP(h_cat); "Optional: h_final = [h_fuse
+%   || logit_lgbm]" before the MLP head; name "Layered+Logit" in REPO/docs/AUDIT.md l.69 (model list of the
+%   submission's Table III).
+% Superseded settings: REPO/core/presets.py PRESETS["cog2026"] (TF2_KILL_CLUSTER_GAP_MS 18000,
+%   LABEL_TYPE attention_value_win, TIME_NORM_ABSOLUTE False, ANCHORS_CAUSAL False) against PRESETS["v3.3"].
+The conference version compared pairings of an input representation with a learner family: LightGBM and
+an MLP on the tabular input, a BiGRU and a Transformer on a sequence of match-level state, graph neural
+networks on a graph of the ten players, an attention model relating events to player states, and a
+``Layered'' fusion network. The fusion network encoded the sequence, the player graph and the events in
+three branches, concatenated the three encodings into one vector $h$, and multiplied a transformed copy of
+$h$ element by element with a learned gate $g = \sigma(W h + b)$, where $\sigma$ is the logistic function
+applied to each element. ``Layered+Logit'' was the same network with one more input to its prediction
+head: the logit $\log\bigl(p/(1-p)\bigr)$ of the probability $p$ predicted by a separately trained
+LightGBM model. Neither is part of this study, for three reasons. First, the pairings changed the input
+and the learner at the same time, so a difference between two of them cannot be attributed to either.
+Second, a network that receives LightGBM's prediction cannot show whether anything other than LightGBM
+reaches the ceiling, since any score it obtains may be LightGBM's. Third, those models were trained under
+the conference version's engagement definition and label and on inputs that leaked information from after
+the cutoff (Sections~\ref{sec:definition}, \ref{sec:label} and~\ref{sec:pred-audit}). The ladder replaces
+them with one question, in which the input is held fixed and only the learner changes.
+
+% -----------------------------------------------------------------------------
+\subsection{The Shared Input}
+\label{sec:learners-input}
+
+% 532,547 / 191,940 / 33,905 of 566,452: AUD truth.rows_labelled, matches, rows_total (566452 - 532547).
+% 1,015 x 7 + 1 = 7,106: AUD truth.columns_total 7106; FEAT/deep_tabular_v33_patch_full.json n_bases 1015.
+Every learner predicts the \texttt{market\_event} label (Section~\ref{sec:label}) from the input of
+Section~\ref{sec:pred-task}: telemetry recorded before the cutoff, 15\,s before the engagement's first
+kill, summarised over an \emph{observation window} of the 30\,s that end at the cutoff, divided into six
+5\,s bins. Each of 1,015 base quantities enters through seven statistics of its six bin values, and one
+further column gives the age of the last participant frame, 7,106 columns in all. Engagements that the
+label scores as a draw are excluded, 33,905 of 566,452, which leaves 532,547 engagements from 191,940
+matches.
+
+% 6,164 / 942: AUD truth.columns_non_constant 6164, columns_constant 942; check "columns dropped by the tree
+%   pipeline are constant across the corpus" (none of the 942 takes a second value in any of 566,452 rows).
+% Filter over all patches, no labels: AUD asymmetry.tree_selection ("run_scale_decomposition.merge_shards keeps a
+%   column when its max exceeds its min over every shard row, all patches (test included), labelled or not;
+%   labels are never read"); WT/scripts/run_scale_decomposition.py merge_shards l.99-110.  Neither source records
+%   why the filter exists, so the text gives none.  Standardisation on training patch, sd < 1e-6 set to 1:
+%   AUD asymmetry.deep_standardisation (commit 60945ed lines 505-507; REPO/scripts/run_deep_tabular_baselines.py
+%   prepare_matrix at fecaaf3).
+% 14 / 10: AUD asymmetry.tree_columns_constant_on_train_labelled 14, tree_columns_that_vary_only_on_the_test_patch 10.
+% 0.6665 / 0.6661 / -0.0004 [-0.0010, +0.0002]: A8 learners.lgbm_paper.test_auc 0.666484, learners.lgbm_7106.
+%   test_auc 0.666089; comparisons."lgbm_paper->lgbm_7106" diff -0.000394, ci95 [-0.000994, +0.000226].
+% Tree cap and patience: A8 caveats[3] (lgbm_7106: 2,000-tree cap, patience 50; lgbm_paper: 400, patience 100;
+%   both learning rate 0.05 and 31 leaves); colsample 0.9 in both (LGBM_PUBLISHED; run_model()).
+\paragraph{Two column sets}
+The tree learners and logistic regression read 6,164 columns, the neural learners all 7,106. The other
+942 columns take a single value in every one of the 566,452 detected engagements and carry no information
+for any learner: a tree cannot split on a constant column, and the neural pipeline, which standardises
+every column with the mean and standard deviation of the training patch, turns each into zeros. The tree
+pipeline removes them. Its filter reads the range of every column over all three patches, the test patch
+included, but never the labels, whereas the neural pipeline's standardisation reads the training patch
+alone. Of the 6,164 kept columns, 14 are constant on the labelled training engagements and 10 vary only on
+the test patch; a tree fitted on the training patch cannot split on a column that is constant there, so the
+test patch decides only whether such a column is carried, not what a tree learns. As a check, LightGBM
+with the same learning rate, leaf limit and column fraction was fitted on both column sets. It reaches a
+test AUC of 0.6665 on 6,164 columns and 0.6661 on 7,106, a paired difference of $-0.0004$ [$-0.0010$,
+$+0.0002$]. The two fits also differ in their cap on trees (400 and 2,000) and in early stopping (after
+100 and 50 trees without improvement), so this shows that the two column sets lead to the same result,
+not that the columns alone were varied.
+
+% Tokeniser: REPO/scripts/run_deep_tabular_baselines.py make_token_transform (reshape (rows, 7, bases) ->
+%   (rows, bases, 7); unstructured columns padded [value, 0, ..., 0]); AUD checks "unstructured columns get
+%   their own token, none dropped" (1015 structured tokens + 1 extra ['frame_age_s']), "every column reaches
+%   exactly one token" (1016 tokens x 7), "token 0 carries base 0 under all 7 statistics".
+% Intractability of one token per column: same script, docstring l.13-18 and model_deviations() "attention
+%   over 1,017 tokens instead of 7,107 is the reason" (1,016 input tokens plus the summary token).
+\paragraph{Tokens for the attention learners}
+FT-Transformer and SAINT take their input as a set of tokens. One token per column would give 7,106
+tokens, and the memory and time that self-attention needs grow with the square of the number of tokens,
+which is not tractable for a corpus of this size on our hardware. Each of the 1,015 base quantities
+instead becomes one token, computed by a linear map specific to that quantity from the vector of its seven
+statistics. Frame age, which has no family of seven statistics, becomes a 1,016th token whose input holds
+its value followed by six zeros. The input audit below confirms that every one of the 7,106 columns
+reaches exactly one token. The grouping changes which relations attention models explicitly (between
+quantities, not between the statistics of one quantity), not what information the model receives. The MLP
+and TabNet read the 7,106 columns directly.
+
+% -----------------------------------------------------------------------------
+\subsection{Evaluation Protocol}
+\label{sec:learners-protocol}
+
+% Patch rows and matches: TABF split {train 187547, val 191184, test 153816, train_matches 68116, val_matches
+%   68375, test_matches 55449} (identical in FT192 and SC0 split); FEAT/model_comparison_v33_patch.json split.why
+%   "a random match split lets a learner see the patch it is tested on".
+\paragraph{Patch holdout}
+League of Legends is updated in patches, releases that change the strength of champions and items
+(Section~\ref{sec:background}). Every learner is trained on patch 15.14 (187,547 engagements from 68,116
+matches), uses patch 15.15 (191,184 engagements from 68,375 matches) for early stopping and for choosing
+hyper-parameters, and is scored once on patch 15.16 (153,816 engagements from 55,449 matches). A random
+split of matches would put engagements of the test patch into training and let a learner use regularities
+of that patch, such as which champions are strong, that are not available when predicting a later patch.
+Holding out whole patches makes every result a forecast across a patch change, and it provides the
+validation set that early stopping and a search need. These AUCs are not comparable with the
+cross-validated AUC of Section~\ref{sec:prediction}, which mixes the three patches and trains on more
+engagements (Section~\ref{sec:pred-protocol}).
+
+% 84 checks, PASS, 0 failed: AUD n_checks 84, verdict PASS, n_failed 0; AUD provenance.finished 2026-09-14
+%   05:12:12, before A8 provenance.finished 05:14:17.  The learner results and their first comparison predate the
+%   audit (AUD prediction_files.*.mtime 2026-09-11; FEAT/model_comparison_v33_patch.json vs_lgbm_paper), so the
+%   timing claim is limited to the paired intervals.
+% What the row checks compare (WT/scripts/audit_model_comparison_inputs.py l.397-405):
+%   "train rows identical" / "val rows identical" / "test rows identical" compare COUNTS ("tree 187547 vs deep
+%   187547"); "deep pipeline (full|ft|saint) train/val/test patch and rows match the shards and the tree run"
+%   compare counts with the shard count.  Element by element, on the test patch only: "<file> y equals the shard
+%   test patch element-wise", "<file> groups equal the shard test patch element-wise", "tree row order carries the
+%   shards' participation and presence classes", "deep:<file> row order carries the shards' smaller-side
+%   participant counts", "every prediction file has identical y, groups and row order" (4 of 4 files).
+%   Row order within matches: "deep:<file> row order inside matches: every learner's correlation with lgbm_paper
+%   beats 19 within-match shuffles" and the two within-strata shuffle checks (AUD row_order_within_matches).
+%   Matrix: "the tree run's merged matrix equals the shards restricted to the kept columns, cell by cell"
+%   (3,491,610,128 cells).  Tokens: "every column reaches exactly one token".
+% Coverage: AUD saved_test_predictions.summary "all 9 patch-holdout learners have saved test-patch predictions,
+%   in 4 files"; AUD not_saved[3] (the re-run arms had no artefact when the audit ran).
+% Corrected runs: element-wise equality of y_test, groups_test, min_participants_test with the first-comparison
+%   files, computation (C1) (TABF, FT192, SC0 .preds.npz).
+\paragraph{Identical rows, labels and split}
+All learners receive the same 532,547 engagements, the same assignment of engagements to patches and the
+same label. An input audit of 84 checks, run before the paired intervals of the first comparison were
+computed, passed without a failure. It verifies, among other things, that the tree and neural pipelines
+hold the same number of engagements in each patch, equal to the corpus count; that every saved set of test
+predictions carries, element by element, the labels and match identifiers of the test patch and its
+sequence of participation classes; that no set of test predictions has its engagements reordered
+within a match, which the element-wise checks alone could miss; that the matrix read by the tree learners
+equals the corpus, cell by cell, on the kept columns; that the 942 removed columns are constant; and that
+every column reaches exactly one token. For the training and validation patches the audit compares the
+numbers of engagements, not the engagements themselves. The audit covers the nine learners of the first
+comparison. For the three corrected runs reported below, the labels, match identifiers and participant
+counts of the test engagements equal those of the first comparison, element by element.
+\pending{audit}{84-check audit extended to every re-run and searched learner's saved predictions: number
+of checks and verdict}.
+
+% A8 method: "match-clustered paired percentile bootstrap"; n_boot 2000, seed 7; deviations[3] ("each learner
+%   is one fitted model (one training seed): the intervals cover test-set sampling only"), deviations[4]
+%   ("intervals are per comparison and unadjusted; the Holm-adjusted p is the family-wise statement").
+% Holm changes no reading: A8 comparisons.*: every comparison with excludes_zero true has p_holm <= 0.019990,
+%   every one with excludes_zero false has p_holm 0.698651; 19 distinct pairs (p_holm floor 0.018991 = 19 x
+%   2 / 2001).
+% Refit vs sampling on the window sample: WIN seed_replication.paired.*.seed_sd_of_independent_refit_difference
+%   0.0013-0.0017 against match_bootstrap_se_published_seed 0.0018-0.0022 (see sec:learners-window comment).
+\paragraph{Uncertainty and how intervals are read}
+Differences between learners are paired differences in test AUC with 95\% intervals from the match
+bootstrap of Section~\ref{sec:pred-protocol}~\cite{efron1993bootstrap}: in each of 2,000 resamples the
+test matches are drawn with replacement and every learner is scored on the same draw. When an interval
+includes zero, we write that the two learners cannot be distinguished on this test patch and do not rank
+them. Intervals are per comparison; in the first comparison, Holm's adjustment of the bootstrap $p$ values
+across all its comparisons changes none of the readings below. Each learner was fitted once, with one
+random seed, and the resamples do not refit it, so an interval describes which matches happened to be
+tested, not how much a difference would move if the learners were trained again. The window experiment
+measures that second source for LightGBM on a smaller sample, where it is of the same order as the first
+(Section~\ref{sec:learners-window}).
+
+% -----------------------------------------------------------------------------
+\subsection{The First Comparison, Its Withdrawn Rows and Its Limits}
+\label{sec:learners-published}
+
+\begin{table*}[t]
+\centering
+\caption{Learner comparison on the patch holdout (training 15.14, validation 15.15, test 15.16; 153,816
+test engagements from 55,449 matches). $\Delta$ is the paired difference in test AUC from LightGBM in the
+published configuration. All intervals are 95\% match-bootstrap intervals from the same 2,000 resamples.
+Size is the number of trees up to the best validation iteration (with the leaf limit) for tree models and
+the number of trainable parameters for the others. Withdrawn rows have no valid result
+(Section~\ref{sec:learners-published}). These AUCs are not comparable with the cross-validated AUC of
+Section~\ref{sec:prediction}.}
+\label{tab:learners}
+% Published rows: A8 learners.<k>.test_auc, ci95 and comparisons."lgbm_paper-><k>".diff, ci95 (k = lead_only,
+%   linear, lgbm_deep, lgbm_7106, mlp, ft_transformer).  Validation AUC: FEAT/model_comparison_v33_patch.json
+%   models.{lead_only 0.627382, linear 0.644399, lgbm_paper 0.667087, lgbm_deep 0.669810}.val_auc;
+%   FEAT/deep_tabular_v33_patch_full.json models.{lightgbm 0.666593, mlp 0.656997}.val_auc;
+%   FEAT/deep_tabular_v33_patch_ft.json models.ft_transformer.val_auc 0.657731.
+%   lead_only 0.626117 [0.623306, 0.628902], -0.040367 [-0.042187, -0.038501]
+%   linear    0.640771 [0.638014, 0.643553], -0.025712 [-0.027362, -0.023758]
+%   lgbm_paper 0.666484 [0.663758, 0.669230]
+%   lgbm_deep 0.669212 [0.666560, 0.671929], +0.002728 [+0.002011, +0.003446]
+%   lgbm_7106 0.666089 [0.663345, 0.668832], -0.000394 [-0.000994, +0.000226]
+%   mlp       0.655223 [0.652510, 0.657880], -0.011261 [-0.012843, -0.009710]
+%   ft (d 32) 0.656056 [0.653332, 0.658693], -0.010428 [-0.011722, -0.009003]
+% Sizes: trees = best_iteration: FEAT/model_comparison_v33_patch.json models.lead_only 102, lgbm_paper 381,
+%   lgbm_deep 544; FEAT/deep_tabular_v33_patch_full.json models.lightgbm.best_iteration 306.  Logistic
+%   regression 6,164 weights + 1 bias = 6,165.  Parameters: A8 caveats[1] (MLP 4,167,681; TabNet 4,075,989;
+%   FT-Transformer 285,857; SAINT 459,713); TABF models.tabnet.n_params 4075989; FT192 models.ft_transformer.
+%   n_params 2452417; SC0 models.saint.n_params 459713.
+% Corrected runs: validation AUC TABF models.tabnet.val_auc 0.613020, FT192 models.ft_transformer.val_auc
+%   0.659369, SC0 models.saint.val_auc 0.657042; test AUC TABF models.tabnet.test_auc 0.611370, FT192 0.657835,
+%   SC0 models.saint.test_auc 0.655013; intervals and Delta from computation (C1) on A8 draws:
+%   tabnet_fixed [0.608551, 0.614272], Delta -0.055114 [-0.057260, -0.052864];
+%   ft_d192 [0.655053, 0.660616], Delta -0.008649 [-0.009989, -0.007195];
+%   saint_c0 [0.652291, 0.657809], Delta -0.011470 [-0.012864, -0.010041]
+%   (d = B[:, saint_c0] - B[:, lgbm_paper]; np.percentile(d, [2.5, 97.5])).
+% Pending rows: REV/queue_wave5.json b2_saint_d128_published_budget (running, REV/queue_state/b2_...running,
+%   writes REV/A1-deep-baselines/b_saint_d128_published_budget.json), c_saint_d32_pretrain5_published_config,
+%   d1_hparam_search_lightgbm, d2_hparam_search_deep, d3_hparam_search_summary (no queue_state entry at 20:33).
+\scriptsize
+\setlength{\tabcolsep}{3.5pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}llrrccc@{}}
+\toprule
+Learner & Configuration & Columns & Size & Validation AUC & Test AUC [95\% CI] & $\Delta$ test AUC [95\% CI] \\
+\midrule
+\multicolumn{7}{@{}l}{\emph{References}} \\
+Scoreboard model (LightGBM) & published & 8 & 102 trees, $\le$31 leaves & 0.6274 & 0.6261 [0.6233, 0.6289] & $-0.0404$ [$-0.0422$, $-0.0385$] \\
+Logistic regression & weight decay $10^{-3}$ & 6,164 & 6,165 & 0.6444 & 0.6408 [0.6380, 0.6436] & $-0.0257$ [$-0.0274$, $-0.0238$] \\
+\midrule
+\multicolumn{7}{@{}l}{\emph{Gradient-boosted trees}} \\
+LightGBM & published & 6,164 & 381 trees, $\le$31 leaves & 0.6671 & 0.6665 [0.6638, 0.6692] & reference \\
+LightGBM & higher capacity & 6,164 & 544 trees, $\le$127 leaves & 0.6698 & 0.6692 [0.6666, 0.6719] & $+0.0027$ [$+0.0020$, $+0.0034$] \\
+LightGBM & neural pipeline & 7,106 & 306 trees, $\le$31 leaves & 0.6666 & 0.6661 [0.6633, 0.6688] & $-0.0004$ [$-0.0010$, $+0.0002$] \\
+\midrule
+\multicolumn{7}{@{}l}{\emph{Neural learners, first comparison (no search)}} \\
+MLP & 3 layers of 512 & 7,106 & 4,167,681 & 0.6570 & 0.6552 [0.6525, 0.6579] & $-0.0113$ [$-0.0128$, $-0.0097$] \\
+FT-Transformer & token width 32 & 1,016 tokens & 285,857 & 0.6577 & 0.6561 [0.6533, 0.6587] & $-0.0104$ [$-0.0117$, $-0.0090$] \\
+TabNet & sparsity term subtracted & 7,106 & 4,075,989 & \multicolumn{3}{c}{withdrawn: regulariser sign reversed} \\
+SAINT & load-order evaluation batches & 1,016 tokens & 459,713 & \multicolumn{3}{c}{withdrawn: same-match engagements shared evaluation batches} \\
+\midrule
+\multicolumn{7}{@{}l}{\emph{Corrected and enlarged runs, first comparison's training budget}} \\
+TabNet & sparsity term added & 7,106 & 4,075,989 & 0.6130 & 0.6114 [0.6086, 0.6143] & $-0.0551$ [$-0.0573$, $-0.0529$] \\
+FT-Transformer & token width 192 & 1,016 tokens & 2,452,417 & 0.6594 & 0.6578 [0.6551, 0.6606] & $-0.0086$ [$-0.0100$, $-0.0072$] \\
+SAINT & match-disjoint batches, width 32 & 1,016 tokens & 459,713 & 0.6570 & 0.6550 [0.6523, 0.6578] & $-0.0115$ [$-0.0129$, $-0.0100$] \\
+SAINT & match-disjoint batches, width 128 & 1,016 tokens & \pending{learners}{size} & \pending{learners}{AUC} & \pending{learners}{AUC} & \pending{learners}{CI} \\
+SAINT & width 32, 5 pre-training epochs & 1,016 tokens & \pending{learners}{size} & \pending{learners}{AUC} & \pending{learners}{AUC} & \pending{learners}{CI} \\
+\midrule
+\multicolumn{7}{@{}l}{\emph{Declared search: selected on validation, refitted, tested once (Table~\ref{tab:learner-grids})}} \\
+LightGBM & selected & 7,106 & \pending{learners}{size} & \pending{learners}{AUC} & \pending{learners}{AUC} & \pending{learners}{CI} \\
+MLP & selected & 7,106 & \pending{learners}{size} & \pending{learners}{AUC} & \pending{learners}{AUC} & \pending{learners}{CI} \\
+TabNet & selected & 7,106 & \pending{learners}{size} & \pending{learners}{AUC} & \pending{learners}{AUC} & \pending{learners}{CI} \\
+FT-Transformer & selected & 1,016 tokens & \pending{learners}{size} & \pending{learners}{AUC} & \pending{learners}{AUC} & \pending{learners}{CI} \\
+SAINT & selected, no pre-training & 1,016 tokens & \pending{learners}{size} & \pending{learners}{AUC} & \pending{learners}{AUC} & \pending{learners}{CI} \\
+SAINT & selected, pre-trained & 1,016 tokens & \pending{learners}{size} & \pending{learners}{AUC} & \pending{learners}{AUC} & \pending{learners}{CI} \\
+\bottomrule
+\end{tabular}}
+\end{table*}
+
+% 0.6261 / 0.6665 / +0.0404 [0.0385, 0.0422]: A8 comparisons."lead_only->lgbm_paper" diff +0.040367, ci95
+%   [+0.038501, +0.042187].  0.6408; +0.0147 [+0.0124, +0.0169]: A8 comparisons."lead_only->linear" diff
+%   +0.014655, ci95 [+0.012433, +0.016880].  -0.0257: see tab:learners comment.
+% +0.0027: A8 comparisons."lgbm_paper->lgbm_deep".
+% MLP / FT: A8 comparisons."lgbm_paper->mlp", "lgbm_paper->ft_transformer"; "mlp->ft_transformer" diff +0.000833,
+%   ci95 [-0.000505, +0.002269].
+\paragraph{Results that stand}
+Table~\ref{tab:learners} gives the first comparison. The scoreboard model reaches a test AUC of 0.6261 and
+LightGBM in its published configuration 0.6665, so the full input adds 0.0404 [0.0385, 0.0422] to the
+rule that the team ahead wins. Logistic regression on the full input reaches 0.6408: it recovers 0.0147
+[0.0124, 0.0169] of that gain and stays 0.0257 [0.0238, 0.0274] below the trees, so most of what the full
+input adds under LightGBM is not captured by a weighted sum of the columns as fitted here. The
+higher-capacity trees add 0.0027 [0.0020, 0.0034] to the published ones, a difference that the intervals
+distinguish from zero and that is small beside the 0.0404 contributed by the input. The MLP and
+FT-Transformer are 0.0113 [0.0097, 0.0128] and 0.0104 [0.0090, 0.0117] below the published trees and
+cannot be distinguished from each other (FT-Transformer minus MLP: $+0.0008$ [$-0.0005$, $+0.0023$]).
+
+% TabNet sign: A8 caveats[0]: "the published predictions subtract TabNet's sparsity term (loss - lambda_sparse *
+%   mask entropy; main repo scripts/run_deep_tabular_baselines.py line 430 at commit 60945ed ...), where Arik &
+%   Pfister 2021 (section 3, feature selection) add it"; git show 60945ed:scripts/run_deep_tabular_baselines.py
+%   l.430 "loss = loss - sparsity_lambda * getattr(model, "entropy", 0.0)" (re-read 2026-09-14).  Fix: commit
+%   fecaaf3 (sign +1 unless --tabnet-legacy-sparsity-sign); test
+%   REPO/tests/test_deep_tabular_baselines.py test_tabnet_sparsity_regulariser_is_added_to_the_loss (l.295).
+% SAINT batches: published evaluate() used consecutive chunks of 1,024 rows (git show 60945ed l.405-411) for
+%   validation and test; the published intersample attention attends across all rows of a batch (same file,
+%   class IntersampleAttention l.222-252).  151 of 151 / 141,746 of 153,816: computation (C3).  Fix: commit
+%   fecaaf3 --saint-batches match_disjoint (default), match_disjoint_batches(); tests
+%   test_match_disjoint_batches_never_share_a_match (l.432), test_match_disjoint_evaluation_returns_predictions_
+%   in_row_order (l.445).
+\paragraph{Two withdrawn rows}
+Two rows of the first comparison are withdrawn as results. The TabNet run subtracted the entropy of its
+selection masks from the loss instead of adding it, which rewards dense masks, the opposite of the method
+of Arik and Pfister~\cite{arik2021tabnet}. The SAINT run formed its validation and test batches from
+1,024 consecutive engagements in the order in which they were loaded, which keeps the engagements of a
+match together. Attention across engagements then let an engagement attend to later engagements of the
+same match, whose features were recorded after its cutoff: all 151 test batches contained engagements of
+a common match, and 141,746 of the 153,816 test engagements shared a batch with another engagement of their
+own match. Both errors are corrected in the current code, each with a test. Neither run's AUC is reported,
+and neither enters any comparison in this paper except as the baseline against which its corrected run is
+measured (Section~\ref{sec:learners-effort}).
+
+% No search: A8 caveats[1] "the deep models received no hyperparameter search"; FEAT/deep_tabular_v33_patch_ft.json
+%   token_config {d_token 32, n_layers 3, n_heads 8, batch_size 64, lr 0.0001}.  Sizes: A8 caveats[1].
+%   4,167,681 / 285,857 = 14.6 ("about fifteen times"); 4,167,681 / 459,713 = 9.1 ("about nine times").
+\paragraph{Limits of the first comparison}
+None of its neural learners received a hyper-parameter search, and their sizes were not matched: the MLP
+has 4,167,681 trainable parameters, about fifteen times the 285,857 of FT-Transformer and nine times the
+459,713 of SAINT. A tie between the MLP and FT-Transformer therefore compares networks of very different
+size at settings that were never tested against alternatives. It says what these configurations reach,
+not what the architectures can reach, and it cannot answer the question of this section.
+
+% -----------------------------------------------------------------------------
+\subsection{Corrected Runs and the Declared Search}
+\label{sec:learners-effort}
+
+% Training budget of the three runs: TABF / FT192 / SC0 training_options {epochs 30, patience 5, amp "none"},
+%   config lr_schedule "constant"; TabNet config {n_d 64, n_a 64, n_steps 4, gamma 1.3, lambda_sparse 0.0001,
+%   lr 0.002, weight_decay 1e-05, batch_size 256, virtual_batch_size 0}; FT config {d_token 192, n_layers 3,
+%   n_heads 8, lr 0.0001, weight_decay 1e-05, batch_size 64, arch "published"}; SAINT config {d_token 32,
+%   n_layers 3, n_heads 8, d_misa 128, lr 0.0001, weight_decay 1e-05, batch_size 64, arch "published",
+%   batching "match_disjoint", pretrain_epochs 0}.  Unchanged from 60945ed: git show 60945ed l.535-552 (MLP;
+%   TabNet n_steps 4, n_d 64, gamma 1.3, lr 2e-3, weight_decay 1e-5, sparsity_lambda 1e-4), l.601 (token models
+%   weight_decay 1e-5) and argparse defaults l.463-469 (epochs 30, batch 64, d_token 32, n_layers 3, n_heads 8,
+%   lr 1e-4, patience 5); the published code has no autocast (git show 60945ed | grep autocast: none).
+% Initialisation: TABF / FT192 / SC0 deviations.protocol[0] "torch RNG seeded with 7 before each deep model is
+%   built (the published runs did not seed torch, so their initialisation is not reproducible bit for bit)".
+Three corrected or enlarged runs have finished. Each keeps the first comparison's training budget: the
+same optimiser settings, a constant learning rate, full numerical precision, at most 30 epochs, and early
+stopping after five epochs without a gain in validation AUC. Each also seeds PyTorch's random number
+generator with 7 before the network is built. The first comparison did not, so its initial weights cannot
+be reproduced, and each corrected run starts from different initial weights than the run it replaces.
+
+% 0.6114: TABF models.tabnet.test_auc 0.611370.  vs withdrawn run: TABF test_auc_bootstrap.paired.
+%   "tabnet-published_tabnet" delta -0.007424, ci95 [-0.008966, -0.005834].  vs LightGBM of the same pipeline:
+%   "tabnet-published_lightgbm" -0.054719 [-0.056966, -0.052387].  vs MLP: "tabnet-published_mlp" -0.043853
+%   [-0.046295, -0.041262].  (1,000 resamples: TABF test_auc_bootstrap.n_boot.)
+% vs scoreboard model -0.0147 [-0.0163, -0.0132]: computation (C1), tabnet_fixed - lead_only -0.014747
+%   [-0.016329, -0.013244].
+% Hyper-parameters unchanged, same parameter count: TABF models.tabnet.config (see comment above), n_params
+%   4075989 = A8 caveats[1] TabNet 4,075,989; sparsity_sign "+", legacy_sparsity_sign false.
+% Validation AUC 0.6127-0.6130 over 10 epochs; mask entropy 1.29 -> 0.51: TABF models.tabnet.history[*].val_auc
+%   (min 0.612692 epoch 7, max 0.613020 epoch 5), history[0].mask_entropy 1.292366, history[9].mask_entropy
+%   0.506826; epochs_run 10, best_epoch 5.
+% Grid n_d {16, 32, 64}, n_steps {3, 5}, lambda_sparse {1e-4, 1e-3}: REPO/scripts/run_deep_hparam_search_v33.py
+%   GRIDS["suggested"]["tabnet"].
+\paragraph{TabNet with the regulariser corrected}
+With the sparsity term added, as Arik and Pfister define it, and every other hyper-parameter unchanged,
+TabNet reaches a test AUC of 0.6114. This is $0.0074$ [$0.0058$, $0.0090$] \emph{below} the withdrawn run
+on the same test engagements, from the corrected run's bootstrap of 1,000 resamples. The two runs differ in
+the sign of the regulariser and also in their random initialisation, so this difference combines the
+correction with initialisation variation, and one run of each cannot separate the two. What can be said is
+that the corrected implementation did not score higher. We keep the correction, because the regulariser is
+part of the method under comparison, and a lower score from a correct implementation is the result that
+counts. The corrected run is 0.0547 [0.0524, 0.0570] below LightGBM fitted by the same pipeline on the same
+7,106 columns, 0.0439 [0.0413, 0.0463] below the MLP, and 0.0147 [0.0132, 0.0163] below the eight-column
+scoreboard model. During training its validation AUC stayed between 0.6127 and 0.6130 in all ten epochs,
+while the entropy of its selection masks fell from 1.29 to 0.51, that is, the masks became sparser. One
+unsearched configuration does not show that sparse selection is unsuited to these data; the declared
+search varies the mask width, the number of steps and the weight of the regulariser.
+
+% 285,857 -> 2,452,417: A8 caveats[1]; FT192 models.ft_transformer.n_params.  2,452,417 / 4,167,681 = 0.588
+%   ("about three fifths").  192, 3, 8 as the default FT-Transformer of Gorishniy et al.: FT192 deviations.
+%   ft_transformer[3] "d_token 192, 3 blocks, 8 heads (paper's default FT-Transformer: 192, 3, 8)"; the other
+%   entries of that list (GELU feed-forward of factor 2, dropout 0.1, first-block LayerNorm kept) are the first
+%   comparison's architecture ("arch": "published").
+% 0.6578: FT192 models.ft_transformer.test_auc 0.657835.  Paired (1,000 resamples): FT192 test_auc_bootstrap.
+%   paired."ft_transformer-published_ft_transformer" +0.001779 [+0.000700, +0.002884];
+%   "ft_transformer-published_mlp" +0.002612 [+0.001104, +0.004182]; "ft_transformer-published_lightgbm"
+%   -0.008254 [-0.009628, -0.006793].  From the published LightGBM: computation (C1), -0.008649.
+% Epochs: FT192 models.ft_transformer.best_epoch 6, epochs_run 11, history[5].val_auc 0.659369,
+%   history[0].loss 0.671212, history[10].loss 0.637343 (loss falls in every epoch).
+\paragraph{FT-Transformer at token width 192}
+Raising the token width from 32 to 192, the width of the default FT-Transformer of Gorishniy et
+al.~\cite{gorishniy2021revisiting}, with the same three blocks, eight attention heads, learning rate,
+batch size and remaining architecture, increases the parameter count from 285,857 to 2,452,417, about three
+fifths of the MLP's. The test AUC is 0.6578: $+0.0018$ [$+0.0007$, $+0.0029$] over the width-32 run and
+$+0.0026$ [$+0.0011$, $+0.0042$] over the MLP, but 0.0083 [0.0068, 0.0096] below LightGBM fitted by the same
+pipeline (all three from the run's bootstrap of 1,000 resamples; 0.0086 below the published trees in
+Table~\ref{tab:learners}). As for TabNet, the gain over the width-32 run also includes a different random
+initialisation. Its validation AUC peaked at epoch 6 while the training loss kept falling through epoch 11,
+where early stopping ended the run. At this budget, the wider network is distinguishably better than the
+narrower one and than the MLP, and still below the trees; it has not been searched.
+
+% SC0 architecture: models.saint.config {d_token 32, n_layers 3, n_heads 8, d_misa 128, arch "published",
+%   batching "match_disjoint", eval_batch_size 64, amp "none", pretrain_epochs 0}; deviations.saint[1] ("batches
+%   hold at most one row per match in training, pre-training, validation and test, and evaluation uses the
+%   training batch size (64)") and deviations.saint[3] ("intersample attention pools each row's tokens into a
+%   d_misa = 128 summary, attends across rows and broadcasts the context back to every token").
+% 0.6550 / 0.6570: SC0 models.saint.test_auc 0.655013, val_auc 0.657042; best_epoch 5, epochs_run 10;
+%   history[*].loss 0.675861, 0.661901, 0.657692, 0.654647, 0.652577, 0.650836, 0.649104, 0.647809, 0.646269,
+%   0.644934 (falls in every epoch).
+% Paired, 1,000 resamples: SC0 test_auc_bootstrap.paired."saint-published_saint" +0.000428 [-0.000646, +0.001446];
+%   "saint-published_lightgbm" -0.011076 [-0.012568, -0.009634] (published_lightgbm = FEAT/deep_tabular_v33_patch_
+%   full.preds.npz pred_lightgbm, the neural pipeline's LightGBM); "saint-published_mlp" -0.000209 [-0.001627,
+%   +0.001316]; "saint-published_ft_transformer" -0.001043 [-0.002074, +0.000059].
+% From the published LightGBM on A8 draws: computation (C1), -0.011470 [-0.012864, -0.010041].
+\paragraph{SAINT with match-disjoint batches}
+Rerun at the first comparison's architecture and budget (token width 32, three stages, eight heads, and
+attention across engagements over a 128-dimensional summary of each engagement), but with batches of 64
+that hold at most one engagement per match in training and in evaluation, SAINT reaches a test AUC of
+0.6550. From the run's bootstrap of 1,000 resamples, it differs from the withdrawn run by $+0.0004$
+[$-0.0006$, $+0.0014$]: correcting the batches changed the score by an amount that this test patch cannot
+distinguish from zero. As for TabNet, the two runs also differ in random initialisation, so this difference
+too combines the correction with initialisation variation. The withdrawn row stays withdrawn, because its
+evaluation could read features recorded after the cutoff whether or not that changed its score. The
+corrected run is 0.0111 [0.0096, 0.0126] below LightGBM fitted by the same pipeline and 0.0115 [0.0100,
+0.0129] below the published trees (Table~\ref{tab:learners}), and it cannot be distinguished from the MLP
+($-0.0002$ [$-0.0016$, $+0.0013$]) or from FT-Transformer at width 32 ($-0.0010$ [$-0.0021$, $+0.0001$]).
+Its validation AUC peaked at epoch 5, and early stopping ended the run after epoch 10, while its training
+loss fell in every epoch.
+
+% Running: REV/queue_state/b2_saint_d128_published_budget.running (queue job started 20:12:05, REV/
+%   queue_runner_wave5.log); command --models saint --d-token 128 (REV/queue_wave5.json).  Queued, no queue_state
+%   entry at 20:33: c_saint_d32_pretrain5_published_config, command --models saint --saint-pretrain-epochs 5.
+%   Both use the default --saint-batches match_disjoint and the published budget.
+\paragraph{Runs in progress}
+Two further SAINT runs keep the first comparison's budget and use match-disjoint batches in training,
+pre-training and evaluation: one at token width 128 (running), and one at width 32 after five epochs of
+self-supervised pre-training on training-patch engagements (queued)
+(\pending{learners}{test AUC, parameters and paired intervals of SAINT at width 128 and of SAINT with
+pre-training}).
+
+% Protocol: REPO/scripts/run_deep_hparam_search_v33.py module docstring steps 1-4 (commit fecaaf3) and the queue
+%   commands REV/queue_wave5.json d1_hparam_search_lightgbm / d2_hparam_search_deep: --search-train-matches 20000
+%   --search-epochs 10 --search-patience 3 --pretrain-epochs 3 --epochs 30 --patience 5 --amp bf16 --ft-arch
+%   gorishniy --saint-arch paper --tabnet-arch paper --tabnet-batch-size 1024 --tabnet-virtual-batch 256
+%   --n-boot 2000; no --search-val-matches (full validation patch).  Search loop: dtb.fit_model(model, cfg,
+%   search_opts, X, y, s_tr, s_va, None, ...) for every family, LightGBM included (te_idx None: no test rows).
+%   68,116 training matches: TABF split.train_matches.
+% Refit refuses a second test scoring for a different selection: same script main(), "scored test for a
+%   different selection/protocol; refusing to score the test patch again"; an existing refit is skipped
+%   ("already scored; skipping").
+% Grid sizes: GRIDS["suggested"] products: lightgbm 3x2x2 = 12, mlp 2x3x2x2 = 24, tabnet 3x2x2 = 12,
+%   ft_transformer 3x2x3x2 = 36, saint 3x2x2x2 = 24, saint_pretrain 24; total 132.  search_deviations(): "equal
+%   effort means one protocol, not one grid size".
+% AdamW: REPO/scripts/run_deep_tabular_baselines.py train_torch (torch.optim.AdamW); cosine_warmup: make_lr_scheduler
+%   docstring "linear warm-up over warmup_frac of the steps, cosine decay to 0"; warmup_frac default 0.05.
+% Seed: run_deep_hparam_search_v33.py passes dtb.SEED = 7 to every fit.
+\paragraph{The declared search}
+A comparison in which one learner is tuned and another runs at untested settings measures tuning effort,
+not model class. Every learner, LightGBM included, therefore receives a search over a grid of settings
+fixed in the code before any searched model was fitted (commit \texttt{fecaaf3};
+Table~\ref{tab:learner-grids}). Every grid point is fitted on training-patch engagements, stopped early on
+the full validation patch and scored on the validation patch only. The point with the highest validation
+AUC is selected, refitted on the full training patch with early stopping on the validation patch, and
+scored on the test patch once; the code will not score the test patch again for a different selection.
+The neural learners are trained with AdamW~\cite{loshchilov2019decoupled}, a variant of gradient descent
+that adapts the step size of each parameter and applies weight decay separately. For FT-Transformer and
+SAINT the grid also chooses between a constant learning rate and a short linear warm-up followed by cosine
+decay~\cite{loshchilov2017sgdr}, because a single untuned rate can leave a network under-trained or
+unstable. Equal effort here means one protocol for every learner, not grids of one size: the grids hold
+between 12 and 36 points.
+
+% Deviations: run_deep_hparam_search_v33.py search_deviations() (20,000-match subsample of the train patch; refit
+%   on the full patch; LightGBM cap 5,000 with early stopping 50; saint_pretrain "fixed 3 pre-training epoch(s);
+%   pre-training rows are the search-train rows in the search and the full train patch in the refit"); search
+%   epochs apply to the neural learners only (relevant_options(): "epochs", "patience" kept only when model !=
+%   "lightgbm"); schedule horizon: make_lr_scheduler total_steps = epochs x batches, so 10 search epochs and 30
+%   refit epochs give different cosine horizons (reviewer_response_matrix.md R2-6).
+% Mixed precision: REV/queue_wave5.json d1/d2/d3 commands --amp bf16; REPO/scripts/run_deep_tabular_baselines.py
+%   fit_model() "amp = opts["amp"] if name in ("ft_transformer", "saint") else "none"" and parser help "bfloat16
+%   autocast for FT-Transformer and SAINT"; TABF / FT192 / SC0 training_options.amp "none".
+% TabNet shared blocks: REPO/scripts/run_deep_tabular_baselines.py build_tabnet(): self.shared =
+%   ModuleList([GLUBlock, GLUBlock]) passed to every FeatureTransformer, and GLUBlock holds its own
+%   GhostBatchNorm1d, so the batch normalisation of the shared layers is shared across decision steps (declared
+%   deviation, reviewer_response_matrix.md R2-5b).  SAINT paper architecture: model_deviations() "token-shared
+%   q/k/v/output projections W = I_n (x) W_d instead of dense (n*d) x (n*d) matrices (~4.2e9 parameters per stage
+%   at n = 1,017, d = 32 ...)"; pre-training on training-patch rows: "pre-training sees TRAIN-patch rows only
+%   (paper Sec. 4 'Finetuning': pre-trained 'on all unlabeled data')".  One seed: see above.
+\paragraph{Declared deviations}
+The search departs from an ideal protocol and from the reference architectures in ways recorded with every
+run. Grid points are fitted on the training-patch engagements of 20,000 of the 68,116 training matches; the
+neural learners are trained there for at most 10 epochs, with early stopping after three, while the
+selected point is refitted on the full training patch for at most 30 epochs, with early stopping after
+five. The length of the warm-up-and-cosine schedule, which is set by the epoch budget, therefore differs
+between selection and refit. LightGBM may grow up to 5,000 trees in both phases and stops after 50 trees
+without improvement. The searched FT-Transformer and SAINT are trained with bfloat16 mixed precision, which
+the first comparison and the corrected runs did not use; the MLP and TabNet are trained in full precision.
+In TabNet, the two layers shared across decision steps also share their batch normalisation across steps.
+SAINT's attention across engagements uses projections shared across tokens, because the dense projections
+of the reference architecture would need about $4 \times 10^{9}$ parameters per stage for 1,017 tokens.
+SAINT is pre-trained for three epochs, on training-patch engagements only, where Somepalli et al.\
+pre-train on all unlabelled data. Every learner is fitted with one random seed.
+\pending{learners}{selected setting, validation AUC, test AUC, parameters and paired intervals of every
+learner after the declared search}.
+
+\begin{table*}[t]
+\centering
+\caption{Declared hyper-parameter search (code at commit \texttt{fecaaf3}). Every grid point is fitted
+on the engagements of 20,000 matches of the training patch (15.14), for at most 10 epochs for the neural
+learners and at most 5,000 trees for LightGBM, and scored on the validation patch (15.15); the point with
+the highest validation AUC is refitted on the full training patch and scored once on the test patch
+(15.16). $\times$ separates the searched settings; ``fixed'' lists settings held at one value.}
+\label{tab:learner-grids}
+% Grids: REPO/scripts/run_deep_hparam_search_v33.py GRIDS["suggested"]; FIXED["suggested"]["lightgbm"]
+%   n_estimators 5000.  Fixed values: published_configs() under the queue flags (REV/queue_wave5.json d1/d2):
+%   LightGBM LGBM_PUBLISHED colsample_bytree 0.9, early_stopping_rounds 50 (run_lightgbm); MLP weight_decay 1e-4,
+%   batch max(64, 256) = 256, lr_schedule constant (parser default); TabNet --tabnet-arch paper = TABNET_PAPER
+%   (gamma 1.5, lr 0.02, exp_decay 0.95 every 500 steps, bn_momentum 0.3, weight_decay 0, dropout 0, Glorot init)
+%   with --tabnet-batch-size 1024 --tabnet-virtual-batch 256, n_a = n_d; FT-Transformer --ft-arch gorishniy,
+%   n_heads 8, batch 64, weight_decay 1e-5; SAINT --saint-arch paper, n_heads 8, batch 64, weight_decay 0.01,
+%   feed-forward dropout 0.8, match-disjoint batches; saint_pretrain --pretrain-epochs 3, tau 0.7, lambda_pt 10,
+%   p_cutmix 0.3, mixup alpha 0.2.  Precision: --amp bf16 applies to FT-Transformer and SAINT only (fit_model()).
+%   Points: products of the grids (see sec:learners-effort comment).
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabularx}{\textwidth}{@{}lXrl@{}}
+\toprule
+Learner & Searched settings; fixed settings & Points & Selected setting \\
+\midrule
+LightGBM & leaves \{31, 127, 255\} $\times$ learning rate \{0.03, 0.1\} $\times$ minimum engagements per leaf \{20, 100\}; fixed: at most 5,000 trees, early stopping after 50, 90\% of columns per tree & 12 & \pending{learners}{setting} \\
+MLP & width \{512, 1,024\} $\times$ hidden layers \{2, 3, 4\} $\times$ dropout \{0.1, 0.3\} $\times$ learning rate \{$10^{-4}$, $10^{-3}$\}; fixed: weight decay $10^{-4}$, batch 256, constant rate, full precision & 24 & \pending{learners}{setting} \\
+TabNet & mask width $n_d = n_a$ \{16, 32, 64\} $\times$ decision steps \{3, 5\} $\times$ regulariser weight \{$10^{-4}$, $10^{-3}$\}; fixed: the Forest Cover Type settings of Arik and Pfister (relaxation 1.5, learning rate 0.02 decayed by 0.95 every 500 steps) with batch 1,024 in normalisation groups of 256, full precision & 12 & \pending{learners}{setting} \\
+FT-Transformer & learning rate \{$10^{-4}$, $3 \times 10^{-4}$, $10^{-3}$\} $\times$ blocks \{2, 3\} $\times$ token width \{32, 128, 192\} $\times$ schedule \{constant, warm-up and cosine\}; fixed: architecture defaults of Gorishniy et al., 8 heads, batch 64, bfloat16 mixed precision & 36 & \pending{learners}{setting} \\
+SAINT & learning rate \{$10^{-4}$, $3 \times 10^{-4}$, $10^{-3}$\} $\times$ stages \{2, 3\} $\times$ token width \{32, 128\} $\times$ schedule \{constant, warm-up and cosine\}; fixed: architecture of Somepalli et al.\ with token-shared projections, 8 heads, batch 64 of match-disjoint engagements, bfloat16 mixed precision & 24 & \pending{learners}{setting} \\
+SAINT, pre-trained & as SAINT; fixed in addition: 3 pre-training epochs on training-patch engagements & 24 & \pending{learners}{setting} \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+% -----------------------------------------------------------------------------
+\subsection{The Observation Window}
+\label{sec:learners-window}
+
+% 30 s / 5 s as conventions: sec_limitations.tex subsubsection "What the inputs observe" (REPO/docs/
+%   DEFINITION_EVIDENCE.md section 18.1 "not derived from data, a CoG convention").
+The input covers 30\,s at a resolution of 5\,s, conventions carried over from the conference version
+rather than values derived from data (Section~\ref{sec:limitations}). A sequence learner reading it sees
+a sequence only six steps long, and a frame quantity changes at most once within it. A review attributed
+the neural learners' results to this window and recommended longer windows and other resolutions. We state
+that explanation as a hypothesis in two parts and test each.
+
+\emph{Hypothesis W.} The 30\,s window with 5\,s bins limits how well engagement outcomes can be ranked on
+the test patch. (W1) A longer window, or finer bins within the same window, raises test AUC. (W2) The rise
+is larger for learners that read the bins in order than for LightGBM, which reads seven statistics per
+quantity.
+
+% Settings and bins: WIN settings (ctx15_bin5000 L 3, ctx30 L 6, ctx60 L 12, ctx120 L 24, ctx30_bin2500 L 12,
+%   ctx30_bin10000 L 3).  Sample: WIN source_run.n_matches_sampled 20000; checks.common_rows n_rows 50766,
+%   n_matches 18335, patch_test_rows 14417, patch_test_matches 5206; source_run.split.rows {train 17909, val
+%   18440, test 14417}, matches {6551, 6578, 5206}.  Engagements identical across settings: WIN checks.settings.
+%   <s>.setting_cache.row_order_labels_groups_patch_equal_common true, label_mismatch_vs_common 0; checks.passed.
+% Learner: WIN source_run.lgbm_params (n_estimators 400, learning_rate 0.05, num_leaves 31, colsample 0.9,
+%   random_state 7); seed_replication.code.early_stopping_rounds 100; column filter on the training rows only
+%   (REPO/scripts/run_window_sweep_v33.py docstring "Leak discipline").  OOF: WIN protocols.oof.rows "all common
+%   rows, out-of-fold predictions from match-grouped GroupKFold(5)"; no early stopping (same docstring).
+% Holm across five comparisons per protocol: WIN method.p_values.
+% Seed replication: WIN seed_replication.seeds [7, 1, ..., 10]; varied "LightGBM random_state only; it seeds
+%   colsample_bytree = 0.9 column subsampling"; published seed reproduced bit-identically; estimand seed_mean.
+% 17,909 / 187,547 = 0.095 ("about a tenth").
+\paragraph{Design}
+Window length takes the values 15, 30, 60 and 120\,s at 5\,s bins (3, 6, 12 and 24 bins), which adds
+history; bin width takes the values 2.5 and 10\,s within the 30\,s window (12 and 3 bins), which changes
+resolution without adding history. Every setting is built for the same 20,000 randomly sampled matches and
+scored on the same 50,766 engagements from 18,335 matches, identical in rows and labels across settings,
+so a difference between settings reflects the window, not a change in which engagements are scored.
+LightGBM in the published configuration receives the seven statistics recomputed over each setting's bins.
+It is evaluated under the patch holdout (17,909 training, 18,440 validation and 14,417 test engagements)
+and, as a second protocol, under five-fold cross-validation grouped by match over all 50,766 engagements.
+Each setting is compared with the 30\,s, 5\,s reference by the paired match bootstrap with 2,000
+resamples, with Holm's adjustment across the five comparisons of each protocol. Because an interval of
+this kind holds the fitted models fixed, the patch-holdout comparison is repeated over ten refits of every
+setting that differ only in LightGBM's random seed, which selects the columns drawn for each tree; the
+interval for the difference of the ten-refit means covers both the sampling of matches and the variation
+between refits. With about a tenth of the full training patch, the AUCs of this sample lie below those of
+Table~\ref{tab:learners}, and only differences between settings are interpreted.
+
+\begin{table*}[t]
+\centering
+\caption{Observation-window experiment with LightGBM on 50,766 engagements from a 20,000-match sample.
+$\Delta$ is the paired difference in AUC from the reference setting (30\,s window, 5\,s bins) with a 95\%
+match-bootstrap interval (2,000 resamples). Fitted model: the patch-holdout models of one seed, held fixed
+in the resamples. Ten refits: the difference of the means over ten refits with different seeds, whose
+interval also covers the variation between refits; the count gives the refits whose own difference is
+above zero. Out of fold: five-fold cross-validation grouped by match, one seed.}
+\label{tab:window}
+% Patch AUC and Delta (fitted): WIN protocols.patch.auc.<s>.auc; protocols.patch.paired."<s> - ctx30_bin5000".delta,
+%   ci_lo, ci_hi, p_two_sided_holm, p_at_floor.
+%   15 s  0.637029; -0.000923 [-0.004876, +0.002671]; Holm 1.0
+%   30 s  0.637953 (reference)
+%   60 s  0.641713; +0.003760 [-0.000311, +0.007678]; Holm 0.2069
+%   120 s 0.642151; +0.004198 [+0.0000404, +0.008467]; Holm 0.1959
+%   2.5 s 0.644278; +0.006325 [+0.002878, +0.009956]; Holm <= 0.0050 (p_at_floor true)
+%   10 s  0.638371; +0.000418 [-0.003466, +0.004060]; Holm 1.0
+% Ten refits: WIN seed_replication.paired."<s> - ctx30_bin5000".seed_mean.delta, ci_lo, ci_hi; n_seeds_delta_gt_0.
+%   15 s  -0.002503 [-0.005656, +0.000387]; 0 of 10
+%   60 s  +0.003051 [-0.000129, +0.006244]; 10 of 10
+%   120 s +0.000431 [-0.002986, +0.003817]; 5 of 10
+%   2.5 s +0.001568 [-0.000734, +0.003896]; 8 of 10
+%   10 s  -0.000302 [-0.002867, +0.002194]; 4 of 10
+% Out of fold: WIN protocols.oof.auc.<s>.auc and paired."<s> - ctx30_bin5000".
+%   15 s  0.645535; +0.000670 [-0.001842, +0.003311]
+%   30 s  0.644865 (reference)
+%   60 s  0.645799; +0.000934 [-0.001711, +0.003714]
+%   120 s 0.645619; +0.000754 [-0.002156, +0.003752]
+%   2.5 s 0.649575; +0.004710 [+0.002398, +0.007135]; Holm <= 0.0050 (p_at_floor true)
+%   10 s  0.646297; +0.001432 [-0.000935, +0.003851]
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}rrrcccccc@{}}
+\toprule
+& & & \multicolumn{4}{c}{Patch holdout (test 15.16, 14,417 engagements)} & \multicolumn{2}{c@{}}{Out of fold (50,766 engagements)} \\
+\cmidrule(lr){4-7}\cmidrule(l){8-9}
+Window (s) & Bin (s) & Bins & Test AUC & $\Delta$, fitted model & $\Delta$, ten refits & Refits $\Delta > 0$ & AUC & $\Delta$ \\
+\midrule
+15 & 5 & 3 & 0.6370 & $-0.0009$ [$-0.0049$, $+0.0027$] & $-0.0025$ [$-0.0057$, $+0.0004$] & 0 & 0.6455 & $+0.0007$ [$-0.0018$, $+0.0033$] \\
+30 & 5 & 6 & 0.6380 & reference & reference & -- & 0.6449 & reference \\
+60 & 5 & 12 & 0.6417 & $+0.0038$ [$-0.0003$, $+0.0077$] & $+0.0031$ [$-0.0001$, $+0.0062$] & 10 & 0.6458 & $+0.0009$ [$-0.0017$, $+0.0037$] \\
+120 & 5 & 24 & 0.6422 & $+0.0042$ [$+0.00004$, $+0.0085$] & $+0.0004$ [$-0.0030$, $+0.0038$] & 5 & 0.6456 & $+0.0008$ [$-0.0022$, $+0.0038$] \\
+\midrule
+30 & 2.5 & 12 & 0.6443 & $+0.0063$ [$+0.0029$, $+0.0100$] & $+0.0016$ [$-0.0007$, $+0.0039$] & 8 & 0.6496 & $+0.0047$ [$+0.0024$, $+0.0071$] \\
+30 & 10 & 3 & 0.6384 & $+0.0004$ [$-0.0035$, $+0.0041$] & $-0.0003$ [$-0.0029$, $+0.0022$] & 4 & 0.6463 & $+0.0014$ [$-0.0009$, $+0.0039$] \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+% Holm floor: WIN protocols.<patch|oof>.paired."ctx30_bin2500 - ctx30_bin5000".p_report "Holm-adjusted bootstrap
+%   p <= 0.0050 (resolution floor 2/(B+1) at B = 2,000; 0 of 2,000 replicates had delta of opposite sign or zero)";
+%   n_replicates_zero_or_opposite_sign 0 in both protocols; p_two_sided_holm_is_bound true.
+% Family intervals (Bonferroni, alpha 0.01): same keys family_ci_lo / family_ci_hi: 2.5 s patch [+0.001932,
+%   +0.010999], oof [+0.001690, +0.007784]; 120 s patch [-0.001305, +0.010111], Holm p 0.1959; 60 s patch Holm p
+%   0.2069.
+% Seed 7 largest: WIN seed_replication.paired."ctx30_bin2500 - ctx30_bin5000".same_seed_delta_max 0.006325 =
+%   same_seed_delta_by_seed["7"]; same_seed_delta_min -0.000714; n_seeds_match_ci_excludes_zero 1.
+% 60 s range: seed_replication.paired."ctx60_bin5000 - ctx30_bin5000".same_seed_delta_min 0.001061, max 0.005709.
+% 120 s seed 7 +0.004198 = same_seed_delta_max; 15 s same_seed_delta_max -0.000390 (all ten below zero).
+% Refit sd vs bootstrap se: WIN seed_replication.paired."<s> - ctx30_bin5000".seed_sd_of_independent_refit_difference
+%   and match_bootstrap_se_published_seed: 15 s 0.001630 / 0.001938; 60 s 0.001707 / 0.002013; 120 s 0.001599 /
+%   0.002212; 2.5 s 0.001705 / 0.001796; 10 s 0.001283 / 0.001907 -> 0.0013-0.0017 and 0.0018-0.0022.
+\paragraph{Finer bins and longer windows for LightGBM}
+Table~\ref{tab:window} gives the result. With the fitted models held fixed, only one change exceeds the
+reference with an interval above zero in both protocols: 2.5\,s bins within the 30\,s window raise the
+AUC by $+0.0063$ [$+0.0029$, $+0.0100$] on the patch holdout and by $+0.0047$ [$+0.0024$, $+0.0071$] out
+of fold. In both, no resample gave a difference of zero or below, so the Holm-adjusted bootstrap $p$ is
+at the smallest value that 2,000 resamples can resolve among five comparisons, $p \le 0.005$. Longer
+windows do not survive the adjustment in either protocol: on the patch holdout the 120\,s window's
+interval, [$+0.00004$, $+0.0085$], clears zero only before adjustment (Holm-adjusted $p = 0.20$), and out
+of fold no window's interval excludes zero. Refitting changes the reading of the finer bins. Across the
+five comparisons, the standard deviation of a difference between independent refits is 0.0013 to 0.0017,
+against bootstrap standard errors of 0.0018 to 0.0022 for fixed models. The $+0.0063$ of the patch
+holdout comes from one seed, and it is the largest of the ten refits, which range from $-0.0007$ to
+$+0.0063$; the difference of the ten-refit means is $+0.0016$ [$-0.0007$, $+0.0039$], which includes
+zero. The 60\,s window is above the reference in all ten refits, by 0.0011 to 0.0057, but the interval
+for its ten-refit mean, [$-0.0001$, $+0.0062$], also includes zero, and the 15\,s window is below the
+reference in all ten, with a ten-refit interval of [$-0.0057$, $+0.0004$]. On this sample, then, finer
+bins raise LightGBM's AUC by a few thousandths for a fixed model, but the gain cannot be distinguished from
+the variation between refits on the patch holdout; the cross-validated protocol, which gives the same
+direction, was fitted with one seed only.
+
+% Sequence input: SEQ settings.<s>.D_seq 1015, d_in 1016 (frame age as a constant channel: SEQ deviations[3]);
+%   standardiser rows "train patch only".  Identity with LightGBM's input: SEQ settings.<s>.tabular_consistency
+%   rows_checked 512, rows_bit_identical 512, max_abs_difference 0.0 (seq_to_tabular(x_seq) equals the sweep's
+%   matrix; REPO/scripts/run_sequence_baseline_v33.py verify_against_tabular).  Fixed hyper-parameters: SEQ
+%   deviations[2]; seeds [7].
+% Arms run: SEQ settings = ctx30/60/120 at 5 s bins only (DEFAULT_CTX "30,60,120"); 15 s, 2.5 s and 10 s not run
+%   (reviewer_response_matrix.md R2-10: sequences saved only for 30, 60 and 120 s).
+% Hyper-parameters: SEQ fits.*.hp: BiGRU hidden 128, 2 layers, dropout 0.2; Transformer d_model 128, 4 heads, 2
+%   layers, sinusoidal positions, [CLS] + mean readout; both AdamW lr 1e-3, weight_decay 0.01, batch 512, at most
+%   40 epochs, patience 6 on validation-patch AUC, amp bf16.  Parameters: SEQ fits.*.n_params 1209601 / 428289.
+\paragraph{Sequence learners}
+The BiGRU and the temporal Transformer were trained on the same engagements, split and label, reading the
+per-bin sequences of the same 1,015 quantities, with frame age added to every bin. For 512 sampled
+engagements per setting, the seven statistics recomputed from these sequences equal LightGBM's columns
+exactly, so both kinds of learner receive the same information. Their hyper-parameters were fixed in
+advance, not searched; each was trained once, with early stopping on the validation patch. They were run
+at 30, 60 and 120\,s with 5\,s bins (\pending{sequence-arms}{BiGRU and temporal Transformer at the 15\,s
+window and at 2.5\,s and 10\,s bins: not run, and no job is queued}).
+
+\begin{table*}[t]
+\centering
+\caption{Sequence learners against LightGBM on the 14,417 test engagements of Table~\ref{tab:window}
+(patch holdout, one seed, 95\% intervals from 1,000 match-bootstrap resamples shared by all rows).
+$-$LGBM: difference from LightGBM with the same window. Gain: difference from the same learner at
+30\,s. Gain$-$LGBM: the gain minus LightGBM's gain. Best: epoch of highest validation AUC / epochs run.}
+\label{tab:sequence}
+% AUC: SEQ bootstrap.auc.<model>__ctx<w>_bin5000[__seed7].auc, ci_lo, ci_hi.  -LGBM: bootstrap.paired."<model>__ctx<w>
+%   _bin5000__seed7 - lgbm__ctx<w>_bin5000".  Gain: "<model>__ctx<w>... - <model>__ctx30...".  LightGBM gain:
+%   "lgbm__ctx<w>_bin5000 - lgbm__ctx30_bin5000".  Gain-LGBM: computation (C2).  Best: SEQ fits.*.best_epoch,
+%   epochs_run.  LightGBM best iteration: SEQ sweep.lgbm_patch_fits.<s>.best_iteration 73 / 59 / 65.
+%   LightGBM    30: 0.637953 [0.628931, 0.647119]
+%               60: 0.641713 [0.632941, 0.650774]; gain +0.003760 [-0.000210, +0.007918]
+%              120: 0.642151 [0.633651, 0.651223]; gain +0.004198 [+0.000016, +0.008597]
+%   BiGRU       30: 0.616281 [0.607297, 0.626070]; -LGBM -0.021672 [-0.028404, -0.014855]; best 1/7
+%               60: 0.616168 [0.607282, 0.625755]; -LGBM -0.025545 [-0.032006, -0.018763]; gain -0.000113
+%                   [-0.002518, +0.002559]; gain-LGBM -0.003873 [-0.008531, +0.000756]; best 1/7
+%              120: 0.614911 [0.605858, 0.624396]; -LGBM -0.027240 [-0.035222, -0.019105]; gain -0.001370
+%                   [-0.006344, +0.003550]; gain-LGBM -0.005568 [-0.012301, +0.001029]; best 2/8
+%   Transformer 30: 0.627435 [0.618733, 0.636907]; -LGBM -0.010518 [-0.016766, -0.004186]; best 2/8
+%               60: 0.620784 [0.612223, 0.629931]; -LGBM -0.020929 [-0.027657, -0.014428]; gain -0.006650
+%                   [-0.010650, -0.002541]; gain-LGBM -0.010411 [-0.015943, -0.005039]; best 3/9
+%              120: 0.619094 [0.609807, 0.628433]; -LGBM -0.023057 [-0.029982, -0.016446]; gain -0.008341
+%                   [-0.012864, -0.004121]; gain-LGBM -0.012539 [-0.018624, -0.006741]; best 3/9
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{@{}lrrccccc@{}}
+\toprule
+Learner & Parameters & Window (s) & Test AUC & $-$LGBM & Gain & Gain$-$LGBM & Best \\
+\midrule
+LightGBM & -- & 30 & 0.6380 [0.6289, 0.6471] & -- & -- & -- & -- \\
+ & & 60 & 0.6417 [0.6329, 0.6508] & -- & $+0.0038$ [$-0.0002$, $+0.0079$] & -- & -- \\
+ & & 120 & 0.6422 [0.6337, 0.6512] & -- & $+0.0042$ [$+0.00002$, $+0.0086$] & -- & -- \\
+\midrule
+BiGRU & 1,209,601 & 30 & 0.6163 [0.6073, 0.6261] & $-0.0217$ [$-0.0284$, $-0.0149$] & -- & -- & 1/7 \\
+ & & 60 & 0.6162 [0.6073, 0.6258] & $-0.0255$ [$-0.0320$, $-0.0188$] & $-0.0001$ [$-0.0025$, $+0.0026$] & $-0.0039$ [$-0.0085$, $+0.0008$] & 1/7 \\
+ & & 120 & 0.6149 [0.6059, 0.6244] & $-0.0272$ [$-0.0352$, $-0.0191$] & $-0.0014$ [$-0.0063$, $+0.0036$] & $-0.0056$ [$-0.0123$, $+0.0010$] & 2/8 \\
+\midrule
+Transformer & 428,289 & 30 & 0.6274 [0.6187, 0.6369] & $-0.0105$ [$-0.0168$, $-0.0042$] & -- & -- & 2/8 \\
+ & & 60 & 0.6208 [0.6122, 0.6299] & $-0.0209$ [$-0.0277$, $-0.0144$] & $-0.0067$ [$-0.0106$, $-0.0025$] & $-0.0104$ [$-0.0159$, $-0.0050$] & 3/9 \\
+ & & 120 & 0.6191 [0.6098, 0.6284] & $-0.0231$ [$-0.0300$, $-0.0164$] & $-0.0083$ [$-0.0129$, $-0.0041$] & $-0.0125$ [$-0.0186$, $-0.0067$] & 3/9 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+% Numbers: tab:sequence comment.  Training loss and validation AUC by epoch: SEQ fits."bigru__ctx30_bin5000__seed7".
+%   history[0] train_loss 0.677434, val_auc 0.617161; history[5] val_auc 0.570114; history[6] train_loss 0.188242;
+%   fits."transformer__ctx30_bin5000__seed7".history[1] val_auc 0.630836 (best), history[7] train_loss 0.535342,
+%   val_auc 0.581960; history[0] train_loss 0.690076.
+\paragraph{What the sequence learners show}
+Table~\ref{tab:sequence} gives the result. With the reference window, the BiGRU is 0.0217 [0.0149, 0.0284]
+and the temporal Transformer 0.0105 [0.0042, 0.0168] below LightGBM on the same engagements. A longer window
+does not raise either: the BiGRU changes by $-0.0001$ [$-0.0025$, $+0.0026$] at 60\,s and $-0.0014$
+[$-0.0063$, $+0.0036$] at 120\,s, and the Transformer falls by 0.0067 [0.0025, 0.0106] and 0.0083 [0.0041,
+0.0129]. Neither learner's gain from a longer window exceeds LightGBM's gain from the same change: the
+BiGRU's gain minus LightGBM's, $-0.0039$ at 60\,s and $-0.0056$ at 120\,s, cannot be distinguished from
+zero, and the Transformer's, $-0.0104$ and $-0.0125$, is below zero with intervals that exclude zero. The
+training curves point to overfitting. The BiGRU at 30\,s reached its highest validation AUC, 0.6172, after
+the first epoch; by the sixth its validation AUC had fallen to 0.5701, while its training loss fell from
+0.677 to 0.188 by the seventh. The Transformer's validation AUC peaked at 0.6308 after the second epoch and
+fell to 0.5820 by the eighth, as its training loss fell from 0.690 to 0.535. With 1,209,601 and 428,289
+trainable parameters for 17,909 training engagements, both networks keep fitting the training engagements
+after their validation AUC has begun to fall.
+
+% 20,000-match sample and single seed: WIN source_run.n_matches_sampled; SEQ seeds [7].  Full training patch 187,547.
+% "only change whose gain for a fixed LightGBM model survived adjustment": WIN protocols.<patch|oof>.paired.
+%   "ctx30_bin2500 - ctx30_bin5000" family_ci_excludes_zero true, p_at_floor true; its ten-refit mean
+%   seed_replication.paired."ctx30_bin2500 - ctx30_bin5000".seed_mean +0.001568 [-0.000734, +0.003896].
+\paragraph{What this implies for Hypothesis W}
+For LightGBM, W1 is not supported for window length on this sample: no longer window raises the AUC once
+the five comparisons are adjusted for, in either protocol, or once refit variation is included. For bin
+width, 2.5\,s bins raise the AUC of the fitted models in both protocols, but on the patch holdout the gain
+cannot be distinguished from refit variation, so the evidence that finer bins help is suggestive rather
+than established. For the sequence learners, the claim that the short window starves them is not supported
+for window length on this sample: doubling or quadrupling the window leaves the BiGRU where it was and
+lowers the Transformer, neither gains measurably more than LightGBM from the longer window (W2), and in these runs the
+visible limit is the fit, since validation AUC peaks within three epochs while the training loss keeps
+falling. These statements have four limits. The sample holds 20,000 matches, and its training patch about
+a tenth of the engagements of the full training patch, so learners with this many parameters may behave
+differently with more data. Each learner was trained with one seed and fixed, unsearched hyper-parameters.
+The sequence learners were not run with finer bins, the only change whose gain for a fixed LightGBM model
+survived adjustment, nor with the 15\,s window, so W2 is untested for bin width. And windows beyond 120\,s
+and bins finer than 2.5\,s were not tested. A different route to temporal resolution, reconstructing each
+player's state at the cutoff from the millisecond event log rather than from the last frame, is examined on
+the full corpus in Section~\ref{sec:limit-evidence}.
+
+% -----------------------------------------------------------------------------
+\subsection{Where the Question Stands}
+\label{sec:learners-answer}
+
+% -0.0113 / -0.0104 / -0.0086 / -0.0115 / -0.0551: tab:learners Delta column (A8 comparisons."lgbm_paper->mlp",
+%   "lgbm_paper->ft_transformer"; computation (C1) ft_d192, saint_c0, tabnet_fixed), every interval excluding zero.
+% Validation AUC rule: tab:learners column Validation AUC (higher-capacity LightGBM 0.6698 is the highest among the
+%   tree rows available now).
+In each of the five finished neural runs with a valid result, the neural learner ranks the test engagements
+below LightGBM in its published configuration: the MLP, FT-Transformer at width 32, FT-Transformer at width
+192 and SAINT with match-disjoint batches are 0.0113, 0.0104, 0.0086 and 0.0115 below the published trees,
+and the corrected TabNet is 0.0551 below, each with an interval that excludes zero. These runs were not
+searched, their sizes differ widely, and two SAINT runs and the declared search have not finished, so they
+do not answer the question of this section, and no conclusion about model classes is drawn from them.
+\pending{learners}{answer after the remaining SAINT runs and the declared search: for every learner, the
+paired difference in test AUC from the tree model with the highest validation AUC, with its interval and
+Holm-adjusted p value}. When those results exist, the ceiling will be called in part a model-class limit
+only if a learner that is not a tree model exceeds that tree model with a paired interval above zero after
+adjustment for the comparisons of Table~\ref{tab:learners}; a negative answer will cover only the learners,
+sizes and search budgets that were tried.
