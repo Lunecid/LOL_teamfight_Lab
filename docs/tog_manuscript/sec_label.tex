@@ -1,0 +1,779 @@
+% =============================================================================
+% sec_label.tex -- Engagement Outcome Label (item M1-label, written 2026-09-14).
+% Answers CoG 2026 reviews: R1 (explain the labelling to readers who do not play the game; discuss it as a
+% limitation), R2 (hand-set label weights: alternative labels such as raw kill advantage and learned weights,
+% sensitivity to the weights), R3 (motivate every method before describing it), R4 (fights won without kills:
+% what the label can and cannot credit).
+% Every number carries a "% src:" comment (file and key) or a "% cmd:" comment (the computation).
+% Path prefixes in comments:
+%   REPO   = C:/Users/todtj/PycharmProjects/LOL_teamfight
+%   FEAT   = D:/LOL_Project/fusion_2615/features
+%   REV    = FEAT/tog_revision
+%   LF     = REV/A2-label-family/label_family_v33.json   (label family, finished 2026-09-14 14:26:43,
+%            git_commit 491814f, git_dirty false, partial false)
+%   LFP    = REV/A2-label-family/label_family_v33.preds/ (frozen out-of-fold predictions of LF)
+%   SHARDS = D:/LOL_Project/fusion_2615/corpus_shards_v33
+%   PRICES = FEAT/event_prices.json  (price regression; the rounded table is REPO/config/game_rules/event_prices.json)
+%   WT     = C:/Users/todtj/문서/LOL_Teamfight/worktrees/engagement-state-value
+% AUC point estimates are the out-of-fold AUC on all rows of a row set (key "auc"); intervals are the 2.5th and
+%   97.5th percentiles of 1,000 match bootstraps (key "auc_ci"), whose mean (key "auc_ci.mean") is not printed.
+% Game-rule values are those of references_audit.md section 2c, notes N4, N5, N8, N9 (in force in 15.14-15.16 at
+%   the "no change listed" standard); no post-26.1 value is compared with the regression.
+% Cross-references: sec:prediction and sec:limit use \fwdref (macros.tex) because those files are not yet tracked.
+% \pending keys used here: label_tiers, price_diag, dragon_per_member (narrowed to the variant's own-model AUC).
+% Fact-check fixes, 2026-09-14 (revision pass of M1-label):
+%   * Window pilot: the 45 s / 60 s agreements are for the minute-frame market_lex label, not market_event.
+%   * Timeline fields: riotapi2024timeline is cited for the record only; the bounty facts come from the corpus sample.
+%   * Conference label: 0.6243 is the Eq. 3 formula under v3.3 engagement attribution in the v3.3 pipeline, not a
+%     conference-paper figure; the conference paper used window attribution, another detector and a leaky feature path.
+%   * Window: "always contains the last kill" holds only when no ace comes first (and no overlap clip applies).
+%   * K and micro_win count kills inside the disc timestamped in [t_F, t_L], not "the engagement's own kills".
+%   * Own-row transfer is scored on the rows both labels decide, not on the variant's own rows.
+%   * Elemental-drake buff: lolwiki2026dragonslayer re-read (see the comment at the drake bullet); its bib evidence
+%     comment still has to record the sentence (flagged to the bib owner).
+%   * Conference weights: tables and normalising constants named alongside the fourteen weights.
+%   * Value yardstick: sign accuracy is match-weighted like R^2.
+%   * Added: why weights are not learned from outcomes (R2); the no-disc (window) attribution variant from the stored
+%     scale-decomposition runs as a third attribution setting; dragon per-member agreement and transfer.
+% =============================================================================
+
+\section{Engagement Outcome Label}\label{sec:label}
+
+The prediction target is which team won an engagement. This section explains why that needs a
+definition (Section~\ref{sec:label-why}), defines the label step by step
+(Section~\ref{sec:label-def}), shows where its prices come from and where they depart from the game's
+rules (Section~\ref{sec:label-prices}), lists the choices that remain ours
+(Section~\ref{sec:label-choices}), and tests whether any conclusion depends on them
+(Section~\ref{sec:label-family}).
+
+% -----------------------------------------------------------------------------
+\subsection{Why the winner needs a definition}\label{sec:label-why}
+
+An engagement rarely ends with one side simply wiped out. A team can lose two champions and destroy a
+turret; it can trade one kill for one and take a dragon; it can win every kill while the other team
+destroys a turret nearby. Any rule that names a winner must decide how a kill compares with a turret,
+an assist or a dragon, and those relative values are the label's weights. The conference version set
+them by hand: its label combined kills, shutdowns, kill streaks, assists, bounties, objectives and
+lane position through fourteen weights, a temperature, and hand-set tables of objective tiers, lane
+priorities and special-kill bonuses, all chosen by us, and a reviewer rightly asked whether a model
+trained on such a label learns the game or the heuristic.
+% src: REPO/gameplay/labels.py _compute_label_attention_value_win(): value weights LABEL_ATTN_W_{KILL 1.0, SHUTDOWN 1.6,
+%   STREAK 0.35, ASSIST 0.20, BOUNTY 0.30, OBJECTIVE 1.10, LANE 0.25} (REPO/core/config.py) and prior weights
+%   LABEL_ATTN_PRIOR_W_{KILL 0.25, SHUTDOWN 0.30, STREAK 0.15, ASSIST 0.10, BOUNTY 0.20, OBJECTIVE 0.35, LANE 0.15}
+%   (getattr defaults), temperature LABEL_ATTN_BETA 2.0; plus hand-set tables _label_objective_tier(),
+%   _label_lane_priority(), _label_special_kill_bonus() (ace 0.45, multi-kill 0.25, first blood 0.20, 0.20 x multi-kill
+%   length / 4) and normalising constants log1p(1500) for shutdown and bounty gold, streak / 10, assists / 4.
+%   cmd: 7 + 7 = 14 weights.  CoG preset: REPO/core/presets.py
+%   PRESETS["cog2026"] LABEL_TYPE "attention_value_win", LABEL_EVENT_ATTRIBUTION "window".
+
+The game already puts a price on most of these events. It pays gold for kills, assists, turret
+plates, turrets and epic monsters, and gold buys the items that make a champion
+stronger~\cite{lolwiki2026gold} (Table~\ref{tab:terms}). Gold is therefore the currency in which the
+game itself converts a won exchange into future fighting strength. Our label adds up the gold each
+team received from the events of the engagement and names the team that received more, so the
+exchange rate between a kill and a turret is the game's, not ours. Two things in particular keep the
+label from being free of our choices. First, in the match timelines of our corpus, which come from
+Riot's timeline endpoint~\cite{riotapi2024timeline}, each kill event carries bounty and shutdown-gold
+fields, but plate events carry no bounty field, and the bounty of a structure or epic-monster event is
+non-zero in only 3.0\% and 0.9\% of cases (300 sampled matches). Those prices must therefore be
+estimated (Section~\ref{sec:label-prices}). The estimate is fitted to how team gold moves, not to how
+well any model predicts the label, so it cannot have been tuned towards an easier target. Second, gold
+does not price everything a fight wins: a drake's permanent buff for the killing
+team~\cite{lolwiki2026dragonslayer}, the timed Baron Nashor and Elder Dragon
+buffs~\cite{lolwiki2026baron,lolwiki2026elderdragon}, experience and the time an enemy spends dead carry
+no gold. The label measures the material exchange
+as the game pays it, not its consequence for the match; Section~\ref{sec:label-value} points to where
+that consequence is measured separately.
+% cmd (2026-09-14, read-only): LOL_OUTPUT_ROOT=D:/LOL_Project REPO/.venv/Scripts/python.exe -c "import random,collections;
+%   from data.cache_io import load_match_cache;from analysis.kill_pairs import list_cache_match_ids;random.seed(0);
+%   sm=random.sample(list_cache_match_ids(),300); ... count events by type, non-zero float(e.get('bounty',0)), and whether
+%   TURRET_PLATE_DESTROYED has a 'bounty' key"
+%   -> BUILDING_KILL 3,236 events, 98 with non-zero bounty (3.0 %); ELITE_MONSTER_KILL 2,521, 22 non-zero (0.9 %);
+%      TURRET_PLATE_DESTROYED 3,360, none has a bounty field.  Kill events carry bounty and shutdownBounty
+%      (sec_background.tex, Table tab:terms row "Bounty, shutdown gold").  cmd: 98 / 3,236 = 3.03 %; 22 / 2,521 = 0.87 %.
+%   riotapi2024timeline is cited for the timeline record only: its bib comment says the API page lists no per-event-type
+%   fields, so the field facts rest on the corpus sample, not on the page.
+% src (buffs): lolwiki2026baron bib comment (Hand of Baron for 180 s); lolwiki2026elderdragon bib comment (Aspect of the
+%   Dragon for 150 s); lolwiki2026dragonslayer: see the comment at the Elemental drake bullet below (permanent, whole team).
+% src (fitted to gold, not to the label): REPO/analysis/event_prices.py match_rows() (target = frame gold change);
+%   the price table is written before and independently of any label model (REPO/scripts/estimate_event_prices.py).
+
+% -----------------------------------------------------------------------------
+\subsection{The label, step by step}\label{sec:label-def}
+
+The label is computed for each engagement from its cutoff $\tau$, 15\,s before the first kill at
+time $t_{\mathrm{F}}$; from its anchor $\mathbf{a}$, the position of that first kill; and from its
+last kill at time $t_{\mathrm{L}}$ (Section~\ref{sec:definition}). It is 1 if the blue team won and 0
+if the red team won.
+% src: SHARDS/manifest.json detector.TF2_ENGAGE_PRE_KILL_MS 15000; anchor = first kill position
+%   (REPO/data/index_split.py _fight_anchor); y = 1 for team 100 (REPO/gameplay/labels.py _label_event_team_sign, sign +1).
+
+\emph{Step 1: the window.} The label reads events in
+\begin{align}
+W &= [\tau,\ t_{\mathrm{end}}), \label{eq:label-window}\\
+t_{\mathrm{end}} &= \min\{\max(t_{\mathrm{L}} + 1\,\mathrm{ms},\ \tau + H),\ t_{\mathrm{A}} + 1\,\mathrm{ms}\}, \nonumber
+\end{align}
+where $H = 35$\,s and $t_{\mathrm{A}}$ is the first ace at or after $\tau$ ($t_{\mathrm{A}} = \infty$
+if there is none). Unless an ace comes first, the window contains the engagement's last kill and
+reaches at least 20\,s past its first kill, the reach of the conference version, whose cutoff lay
+10\,s before the first kill with a 30\,s horizon. An ace ends the window at once, because the losing
+side then has no champion left; an ace before the last kill therefore also excludes the kills that
+follow it. In one further case, not counted, the window is cut short: when it overlaps a later,
+higher-priority engagement whose anchor lies more than $D$ away, it ends at that engagement's cutoff
+(Table~\ref{tab:constants}).
+% src: REPO/gameplay/fights.py label_window_end_ts() = max(fight_end_ts + 1, engage_ts + horizon_ms);
+%   _truncate_fights_at_ace(): first ace at or after engage_ts (searchsorted left); if it precedes the end, end =
+%   max(engage_ts + 1, ace_ts + 1) = ace_ts + 1; REPO/gameplay/labels.py _resolve_label_window() uses that end.
+%   SHARDS/manifest.json detector.FIGHT_HORIZON_SEC 35.  cmd: tau + 35 s = t_F - 15 s + 35 s = t_F + 20 s.
+%   _truncate_fights_at_ace() sets horizon_end_ts only and leaves the fight's last kill in place, so an ace before t_L
+%   excludes later kills from W.  Conference reach: REPO/core/presets.py PRESETS["cog2026"] TF2_ENGAGE_PRE_KILL_MS 10000,
+%   FIGHT_HORIZON_SEC 30; cmd: -10 s + 30 s = t_F + 20 s (sec_definition.tex Table tab:constants, row "Label horizon").
+% src (overlap clip): REPO/gameplay/fight_postmerge.py enforce_postmerge_spacing_and_nonoverlap(): when a later fight's
+%   cutoff falls inside the earlier label window, the centroids are more than location_radius apart (REPO/gameplay/fights.py
+%   postmerge_location_radius = config.cluster_max_diameter = D; sec_definition.tex tab:constants row "Overlap resolution")
+%   and the later fight has the higher priority, the earlier fight's
+%   horizon_end_ts = min(label end, later engage_ts); called after _truncate_fights_at_ace() in REPO/gameplay/fights.py.
+%   No count of clipped windows is recorded in SHARDS/manifest.json.
+
+\emph{Step 2: which events belong to the engagement.} A kill or a turret on the other side of the map
+should not decide this fight, so the label keeps only the events of $W$ whose position $\mathbf{p}_e$
+lies in a disc around the anchor:
+\begin{equation}\label{eq:label-attr}
+\mathcal{E} = \{\, e : t_e \in W,\ \lVert \mathbf{p}_e - \mathbf{a} \rVert \le D \,\}.
+\end{equation}
+The disc has radius $D = 4{,}264$\,u, the detector's cluster diameter, and therefore a diameter of
+$2D = 8{,}528$\,u; Section~\ref{sec:def-attribution} explains why the radius is $D$ and not $D/2$.
+Events without a position, such as ward kills, are dropped.
+% src: REPO/core/presets.py PRESETS["v3.3"] LABEL_EVENT_ATTRIBUTION "engagement"; REPO/core/config.py
+%   LABEL_ATTRIBUTION_RADIUS_U 0.0 -> radius = CLUSTER_MAX_DIAMETER; SHARDS/manifest.json detector.CLUSTER_MAX_DIAMETER 4264.0;
+%   REPO/gameplay/labels.py attribute_events() keeps (dx^2 + dy^2) <= radius^2 and skips events without a position.
+%   cmd: 2 x 4264 = 8528.
+
+\emph{Step 3: who gained, and how much.} Each event $e \in \mathcal{E}$ has a side $s(e)$, $+1$ if
+it benefits blue and $-1$ if it benefits red: the killer's team for a champion kill, the killing team
+for an epic monster, and the team opposite the owner for a plate or a structure. An event credited to
+no team, such as a champion executed by a turret, has $s(e) = 0$. Calling plates, structures and epic
+monsters \emph{objective events}, the gold of an event is
+\begin{equation}\label{eq:label-gold}
+g(e) = \begin{cases}
+b_e + h_e + \pi_{\mathrm{k}} + \pi_{\mathrm{a}}\,|A_e| & \text{kill},\\
+\pi_{c(e)} & \text{objective},\\
+0 & \text{otherwise},
+\end{cases}
+\end{equation}
+where $b_e$ and $h_e$ are the bounty and shutdown gold recorded on the kill event, $A_e$ is its set of
+assisting champions, and the prices $\pi$ come from the table of Section~\ref{sec:label-prices}:
+$\pi_{\mathrm{k}} = 20$\,g per kill and $\pi_{\mathrm{a}} = 45$\,g per assisting champion on top of the
+recorded bounty, and one price $\pi_{c(e)}$ for each plate, turret tier, inhibitor and epic monster
+type $c(e)$. The \emph{gold swing} is
+\begin{equation}\label{eq:label-swing}
+\Delta = \sum_{e \in \mathcal{E}} s(e)\, g(e),
+\end{equation}
+positive when blue received more gold.
+% src: REPO/gameplay/labels.py _compute_label_market_event(): kill gold = max(0, bounty) + max(0, shutdownBounty)
+%   + table["kills"] + table["assists"] x len(assistingParticipantIds); other events _priced_event_gold() (plates,
+%   BUILDING_KILL by towerType or INHIBITOR_BUILDING, ELITE_MONSTER_KILL by monsterType with elder_dragon separate,
+%   WARD_KILL); every other type (CHAMPION_SPECIAL_KILL, DRAGON_SOUL_GIVEN) 0 g; sign 0 skipped.
+%   Sides: _label_event_team_sign() (kills and ward kills: team of killerId, 0 for killerId 0; ELITE_MONSTER_KILL:
+%   killerTeamId; BUILDING_KILL and TURRET_PLATE_DESTROYED: opposite of teamId).
+%   Prices 20 and 45: REPO/config/game_rules/event_prices.json pooled.kills 20.0, pooled.assists 45.0.
+
+\emph{Step 4: the verdict.} A swing larger than one base kill bounty names the winner; a smaller one
+is treated as materially even:
+\begin{equation}\label{eq:label-verdict}
+y = \begin{cases}
+1 & \Delta > \varepsilon,\\
+0 & \Delta < -\varepsilon,\\
+r & |\Delta| \le \varepsilon,
+\end{cases}
+\qquad \varepsilon = 300\,\mathrm{g}.
+\end{equation}
+The dead zone $\varepsilon$ is the bounty of a champion at levels 1--6~\cite{lolwiki2026bounties,riot2025patch2509}.
+With the fitted prices, one unanswered kill at that bounty is worth at least 320\,g, enough on its
+own to decide, whereas a single plate, 120\,g, is not.
+% src: SHARDS/manifest.json label.gold_deadzone 300.0; REPO/core/presets.py PRESETS["v3.3"] LABEL_GOLD_DEADZONE 300.0;
+%   base bounty 300 g at levels 1-6, set in 25.09, no change listed in the 25.10-25.16 notes (references_audit.md N4).
+% cmd: 300 + 20 (per-kill price) + 45 x |A| >= 320 > 300;  plate price 120 < 300 (event_prices.json pooled.plates 120.0).
+
+\emph{Step 5: refinement inside the dead zone.} When $|\Delta| \le \varepsilon$, three discrete facts
+are consulted in a fixed order, and the first that is not zero decides:
+\begin{align}
+K &= \textstyle\sum_{e \in \mathcal{E}_{\mathrm{kill}},\ t_{\mathrm{F}} \le t_e \le t_{\mathrm{L}}} s(e), \nonumber\\
+N &= n^{\mathrm{blue}}_{\mathrm{alive}} - n^{\mathrm{red}}_{\mathrm{alive}}, \label{eq:label-refine}\\
+S &= \textstyle\sum_{e \in \mathcal{E}_{\mathrm{obj}}} s(e), \nonumber
+\end{align}
+and $r = 1$ if that fact is positive and $r = 0$ if it is negative. $K$ is the net number of kills
+inside the disc timestamped between the engagement's first and last kill. These are normally the
+engagement's own kills, but $K$ can include a neighbouring fight's kills in that interval and miss
+kills of a merged episode that lie outside the disc (Section~\ref{sec:def-attribution}). $N$ is the difference in
+living champions, counted over all five champions of each team in the last one-minute frame at or
+before the last kill; because frames are held, this count can be up to a minute old. $S$ is the net
+number of plates, structures and epic monsters taken inside the disc during the window. If $K$, $N$
+and $S$ are all zero the engagement is a draw, and draws are dropped: 33,905 of the 566,452 detected
+engagements (5.99\%), leaving 532,547 labelled engagements from 191,940 matches, of which blue won
+50.8\%. How often each step decides:
+\pending{label\_tiers}{share of the 532,547 labelled engagements decided by the swing, by $K$, by $N$ and by $S$}.
+% src: REPO/gameplay/labels.py compute_label() applies attribute_events() before every label, so _lex_refine() sees only
+%   events inside the disc; merged-episode kills up to D + 2,000 u from the anchor: sec_definition.tex sec:def-attribution
+%   (REPO/gameplay/fights.py _merge_adjacent_candidates keeps the earlier centroid; CONTINUOUS_FIGHT_MERGE_RADIUS 2000).
+% src: REPO/gameplay/labels.py _lex_refine(): kd over CHAMPION_KILL with first_kill_ts <= ts <= last_kill_ts; alive
+%   summed over all ten participants (tids from team map) from interp_node_global(cache, last_kill_ts), bound to
+%   REPO/gameplay/pipeline_interp.py interpolate_node_global(), which reads node_minute[i] for the last frame
+%   i with minute_ts[i] <= q under INTERP_SCALARS_METHOD "ffill" (REPO/core/config.py default, not overridden in
+%   SHARDS/manifest.json); alive = health > 0 in the frame (REPO/gameplay/pipeline_cache.py); struct = sum of
+%   sides over ELITE_MONSTER_KILL, BUILDING_KILL, TURRET_PLATE_DESTROYED in the attributed events; tie policy "drop".
+% src: SHARDS/manifest.json label.extra_tie_policy "drop" (y_market_event); LF agreement_vs_market_event.*.n_rows
+%   566452; LF rowsets.own.variants.market_event n 532547, n_matches 191940, positive_rate 0.50785.
+% cmd: 566452 - 532547 = 33905; 33905 / 566452 = 0.05985.
+
+\emph{A worked example.} In an engagement's window and disc, blue kills two red champions: one with
+a 300\,g bounty and two assists ($300 + 20 + 2 \times 45 = 410$\,g), one with a 300\,g bounty,
+150\,g of shutdown gold and one assist ($300 + 150 + 20 + 45 = 515$\,g). Red kills one blue champion
+with a 300\,g bounty and three assists (455\,g), and blue destroys a plate (120\,g). The swing is
+$410 + 515 + 120 - 455 = 590$\,g, beyond the dead zone, so blue wins. Had each team instead killed one
+champion with a 300\,g bounty, blue's kill with three assists (455\,g) and red's with one (365\,g),
+and had red destroyed a plate, the swing would be $455 - 365 - 120 = -30$\,g, inside the dead zone.
+The kills cancel ($K = 0$); if both teams had the same number of champions alive in the last frame
+($N = 0$), red's plate gives $S = -1$, and red wins.
+% cmd: 300+20+2*45 = 410; 300+150+20+45 = 515; 300+20+3*45 = 455; 410+515+120-455 = 590 > 300;
+%   300+20+3*45 = 455; 300+20+45 = 365; 455-365-120 = -30, |-30| <= 300.  Illustrative events, not taken from a match.
+
+% -----------------------------------------------------------------------------
+\subsection{Where the prices come from}\label{sec:label-prices}
+
+Plates, structures and monsters carry no usable gold amount in the timeline, but the frames carry
+each player's total gold once a minute (Table~\ref{tab:terms}). Suppose that in one minute a team
+destroys a turret, kills a champion and farms twenty minions: its gold rises by what each of these
+paid, plus passive income. Across a million minutes the events occur in different combinations, so
+their separate contributions can be recovered by regression. Ordinary least squares (OLS) finds the
+per-event amounts that best reproduce the observed gold changes. For every team $j$ in every
+frame interval,
+\begin{equation}\label{eq:label-prices}
+\Delta G_j = \alpha + \beta_{\mathrm{b}} B_j + \sum_{k} \beta_k\, n_{jk}
+ + \gamma_{\mathrm{L}}\, \Delta C^{\mathrm{L}}_j + \gamma_{\mathrm{J}}\, \Delta C^{\mathrm{J}}_j + u_j,
+\end{equation}
+where $\Delta G_j$ is the change in the team's total gold, $B_j$ the bounty and shutdown gold
+recorded on the team's kills, $n_{jk}$ the team's count of events of type $k$ (kills, assists,
+plates, turrets by tier, inhibitors, a first-turret indicator, the six epic monster types and ward
+kills), and $\Delta C^{\mathrm{L}}_j$ and $\Delta C^{\mathrm{J}}_j$ the team's changes in lane and
+jungle creep score. Intervals that start before 2:00 are dropped. We sampled 8,000 matches from each patch (24,000), which give 1,173,822 team-intervals.
+% src: REPO/analysis/event_prices.py REGRESSORS (kill_bounty, kills, assists, plates, tower_{outer,inner,base,nexus}_turret,
+%   inhibitor, first_tower, dragon, elder_dragon, baron_nashor, riftherald, horde, atakhan, ward_kills, d_lane_cs, d_jg_cs),
+%   match_rows() (y = gold_team_minute[t+1] - gold_team_minute[t], one row per team per interval, keep interval start
+%   >= 120,000 ms), fit_prices() (OLS with intercept); REPO/scripts/estimate_event_prices.py (--n-matches-per-patch 8000,
+%   --seed 7, sample_ids per patch).
+% src: PRICES fits.pooled.n_matches 24000, n_intervals 1173822; n_matches_per_patch 8000, seed 7.
+A coefficient is the average team gold associated with one more event of its type when the other
+counts are held fixed. It is not the payout written in the rules, and it absorbs any income that
+tends to arrive in the same minute as the event. The fit explains 96.2\% of the variance of the gold
+changes pooled over patches, and 96.2\% within each patch. The OLS standard errors treat the
+intervals as independent, which minutes of the same match are not, so we also refit the regression
+on 200 bootstrap samples that resample whole matches~\cite{efron1993bootstrap} and report the
+2.5th and 97.5th percentiles as a 95\% interval.
+% src: PRICES fits.pooled.r2 0.96182; fits.15.14.r2 0.96165, fits.15.15.r2 0.96203, fits.15.16.r2 0.96178;
+%   fits.pooled.cluster_bootstrap.<regressor>.{p2.5, p97.5}; REPO/analysis/event_prices.py cluster_bootstrap(n_boot=200, seed=7)
+%   resamples per-match blocks; FEAT/event_prices_boot.log "cluster bootstrap over 23,829 matches x 200" (171 sampled
+%   matches contributed no interval).  Standard errors: fit_prices() sigma^2 (A'A)^-1.
+
+The label reads a rounded table built from the pooled fit (Table~\ref{tab:prices}). Kill gold is
+read from the event at face value, and the kill and assist coefficients are added on top of it.
+Each epic monster's coefficient is increased by the jungle creep-score coefficient (23.33\,g), because
+the table construction assumes that the frames count an epic monster as one jungle creep, whose gold
+the creep-score term would otherwise absorb; a negative result is set to zero. The first-turret term
+is left out. Prices are rounded to 5\,g, and an event type needs at least 200 events to be priced.
+% src: REPO/analysis/event_prices.py price_table(min_count=200.0): skips kill_bounty, d_lane_cs, d_jg_cs, first_tower;
+%   monsters v = max(0, coef + coef[d_jg_cs]); round(v / 5) * 5.  PRICES fits.pooled.coef.d_jg_cs 23.3319.
+% cmd (2026-09-14): price_table(PRICES fits.pooled) == REPO/config/game_rules/event_prices.json "pooled" -> True.
+% src (the table the corpus used): LF sidecars label_sidecars_v33/labels_shard_*.json price_table.pooled_equal true in
+%   32 of 32 shards (bytes differ from the build commit's file, pooled entries equal); identity.ok true in 32 of 32
+%   shards, 566,452 rows (y_market_event reproduced row for row).
+
+\begin{table*}[!t]
+\centering
+\caption{Event prices. Coefficients of Eq.~\eqref{eq:label-prices} pooled over patches 15.14--15.16
+(24,000 matches, 1,173,822 team-intervals, $R^2 = 0.962$), in gold per event (per gold of bounty in
+the first row). SE: OLS standard error. Interval: 2.5th--97.5th percentiles of 200 refits on matches
+resampled with replacement. Patches: range of the three per-patch fits. Label: the price the label
+uses. Rule: the payout in force in 15.14--15.16, as local gold (L, shared by champions near the
+event) plus global gold (G, paid to each of the five team members), with the team total if a champion
+collects the local gold; these are values for which no change is listed in the patch notes, not
+values confirmed patch by patch. ``Not checked'': no dated value in the sources we verified.}
+\label{tab:prices}
+\scriptsize
+\renewcommand{\arraystretch}{1.05}
+\setlength{\tabcolsep}{3.5pt}
+% src (all fitted columns): PRICES fits.pooled.{count, coef, se, cluster_bootstrap}; fits.{15.14,15.15,15.16}.coef (min-max);
+%   label column: REPO/config/game_rules/event_prices.json pooled.  Values re-read and formatted 2026-09-14.
+\begin{tabularx}{\textwidth}{@{}l r r r r r >{\raggedright\arraybackslash}X@{}}
+\toprule
+Event & Events & Coefficient (SE) & 95\% interval & Patches & Label & Rule in force in 15.14--15.16 \\
+\midrule
+\multicolumn{7}{@{}l}{\emph{Champion kills}} \\
+% kill_bounty: coef 1.20320 se 0.00092 [1.20039, 1.20541]; patches 1.20250 / 1.20440 / 1.20265; count is gold (408,588,474), not events
+Bounty and shutdown gold & -- & 1.2032 (0.0009) & [1.2004, 1.2054] & 1.2025--1.2044 & $\times 1$ & Recorded on the event: base 300 at levels 1--6 to 420, plus shutdown gold~\cite{lolwiki2026bounties,riot2025patch2509} \\
+% kills: count 1,201,414; coef 19.907 se 0.366 [19.005, 20.884]; patches 20.092 / 19.667 / 19.882; table 20.0
+Kill (beyond the bounty) & 1,201,414 & 19.91 (0.37) & [19.00, 20.88] & 19.67--20.09 & 20 & -- \\
+% assists: count 1,827,247; coef 45.086 se 0.108 [44.816, 45.417]; patches 44.639 / 44.773 / 45.903; table 45.0
+Assist (per assister) & 1,827,247 & 45.09 (0.11) & [44.82, 45.42] & 44.64--45.90 & 45 & Assist gold is split among the assisters; amount not checked~\cite{lolwiki2026kill} \\
+\multicolumn{7}{@{}l}{\emph{Plates and structures}} \\
+% plates: count 268,549; coef 117.656 se 0.244 [117.244, 118.090]; patches 117.768 / 117.504 / 117.696; table 120.0
+Plate & 268,549 & 117.66 (0.24) & [117.24, 118.09] & 117.50--117.77 & 120 & 125 L, outer turrets until 14:00 $=$ 125~\cite{riot2026patch261,lolwiki2026turret} \\
+% tower_outer_turret: count 109,651; coef 537.745 se 0.515 [536.151, 539.190]; patches 536.052 / 539.533 / 537.661; table 540.0
+Outer turret & 109,651 & 537.75 (0.51) & [536.15, 539.19] & 536.05--539.53 & 540 & 250 L $+$ 50 G $=$ 500~\cite{riot2026patch261,lolwiki2026turret} \\
+% tower_inner_turret: count 60,242; coef 729.794 se 0.615 [728.290, 731.660]; patches 729.863 / 730.248 / 729.281; table 730.0
+Inner turret & 60,242 & 729.79 (0.61) & [728.29, 731.66] & 729.28--730.25 & 730 & 425 (mid) or 675 (top, bottom) L $+$ 25 G $=$ 550 or 800 \\
+% tower_base_turret: count 32,269; coef 507.728 se 1.077 [505.016, 510.421]; patches 506.646 / 512.161 / 504.262; table 510.0
+Inhibitor turret & 32,269 & 507.73 (1.08) & [505.02, 510.42] & 504.26--512.16 & 510 & 375 L $+$ 25 G $=$ 500 \\
+% tower_nexus_turret: count 30,303; coef 183.724 se 0.750 [182.030, 185.835]; patches 185.208 / 184.568 / 181.405; table 185.0
+Nexus turret & 30,303 & 183.72 (0.75) & [182.03, 185.83] & 181.41--185.21 & 185 & 50 G $=$ 250~\cite{lolwiki2026turret} \\
+% inhibitor: count 29,400; coef 85.220 se 1.142 [82.218, 87.525]; patches 85.468 / 82.698 / 87.389; table 85.0
+Inhibitor & 29,400 & 85.22 (1.14) & [82.22, 87.53] & 82.70--87.39 & 85 & Not checked \\
+% first_tower: count 23,562; coef -53.445 se 1.163 [-55.448, -50.827]; patches -51.049 / -56.286 / -52.972; omitted by price_table()
+First turret (indicator) & 23,562 & $-$53.44 (1.16) & [$-$55.45, $-$50.83] & $-$56.29 to $-$51.05 & omitted & None; replaced by Feats of Strength, whose reward is a boot upgrade~\cite{riot2025patch25s11,riot2026patch261} \\
+\multicolumn{7}{@{}l}{\emph{Epic monsters} (label price $=$ coefficient $+$ 23.33\,g, floored at 0)} \\
+% dragon: count 77,389; coef -41.829 se 0.581 [-43.123, -40.588]; patches -41.980 / -40.985 / -42.485; -41.829 + 23.332 = -18.497 -> 0.0
+Elemental drake & 77,389 & $-$41.83 (0.58) & [$-$43.12, $-$40.59] & $-$42.49 to $-$40.98 & 0 & 25 kill gold $=$ 25 or 125; recipient not stated~\cite{lolwiki2026dragonpit,riot2026patch261} \\
+% elder_dragon: count 468; coef 1366.641 se 7.061 [1344.572, 1388.869]; patches 1386.999 / 1351.639 / 1362.122 (counts 158 / 166 / 144,
+%   below min_count 200, so absent from the per-patch tables); 1366.641 + 23.332 = 1389.97 -> 1390.0
+Elder Dragon & 468 & 1,366.64 (7.06) & [1,344.57, 1,388.87] & 1,351.64--1,387.00 & 1,390 & 250 global gold $=$ 250 or 1,250; recipient not stated~\cite{lolwiki2026dragonpit} \\
+% baron_nashor: count 13,512; coef 1531.522 se 1.341 [1528.263, 1534.724]; patches 1532.048 / 1530.509 / 1532.115; +23.332 = 1554.85 -> 1555.0
+Baron Nashor & 13,512 & 1,531.52 (1.34) & [1,528.26, 1,534.72] & 1,530.51--1,532.11 & 1,555 & Not checked \\
+% riftherald: count 20,998; coef 147.179 se 1.078 [144.648, 149.957]; patches 146.418 / 147.738 / 147.381; +23.332 = 170.51 -> 170.0
+Rift Herald & 20,998 & 147.18 (1.08) & [144.65, 149.96] & 146.42--147.74 & 170 & Not checked \\
+% horde: count 70,964; coef 17.629 se 0.384 [17.167, 18.100]; patches 18.637 / 16.495 / 17.760; +23.332 = 40.96 -> 40.0
+Voidgrub & 70,964 & 17.63 (0.38) & [17.17, 18.10] & 16.49--18.64 & 40 & Not checked \\
+% atakhan: count 17,938; coef 214.989 se 1.166 [211.967, 218.374]; patches 217.187 / 218.346 / 209.341; +23.332 = 238.32 -> 240.0
+Atakhan & 17,938 & 214.99 (1.17) & [211.97, 218.37] & 209.34--218.35 & 240 & Not checked \\
+\multicolumn{7}{@{}l}{\emph{Other terms}} \\
+% ward_kills: count 1,061,608; coef 26.285 se 0.130 [26.040, 26.516]; patches 26.244 / 26.081 / 26.524; table 25.0 (never attributed:
+%   WARD_KILL has no position, REPO/gameplay/labels.py attribute_events())
+Ward kill & 1,061,608 & 26.29 (0.13) & [26.04, 26.52] & 26.08--26.52 & 25$^{a}$ & Not checked \\
+% d_lane_cs: coef 24.856 se 0.017 [24.811, 24.902]; patches 24.869 / 24.814 / 24.886
+Lane creep score & -- & 24.86 (0.02) & [24.81, 24.90] & 24.81--24.89 & -- & -- \\
+% d_jg_cs: coef 23.332 se 0.032 [23.277, 23.396]; patches 23.428 / 23.303 / 23.265
+Jungle creep score & -- & 23.33 (0.03) & [23.28, 23.40] & 23.27--23.43 & -- & -- \\
+% intercept: 554.893 se 0.466; patches 553.754 / 556.209 / 554.722; no bootstrap interval for the intercept in PRICES
+Intercept (per interval) & -- & 554.89 (0.47) & -- & 553.75--556.21 & -- & -- \\
+\bottomrule
+\end{tabularx}
+\par\vspace{2pt}
+{\raggedright\scriptsize $^{a}$Ward kills have no position, so under engagement attribution this price is never used.\par}
+% src (rule column): references_audit.md 2c note N8 (plates 125 local, outer 250 local, inner 425/675 local, inhibitor turret
+%   375 local, inner and inhibitor 25 global: riot2026patch261 before-values, V13.20 / V13.23 in lolwiki2026turret, no change
+%   listed in riot2025patch2514-2516; outer and nexus 50 global: not dated, no change listed V13.20-V26.03); global gold to
+%   every team member: lolwiki2026turret Turret rewards section as read for sec_limitations.tex (comment on the Turrets item);
+%   N5 (first-turret bonus absent in 15.14-15.16); N9 (elemental drake 25 kill gold, recipient unknown); Elder Dragon global
+%   gold 250 (the V26.01 before-value under the Elder Dragon on the Dragon pit page, definition_refs.bib comment on
+%   lolwiki2026dragonpit; no gold line between V9.23 and V26.01); N4 (base bounty).  Baron Nashor, Rift Herald, Voidgrub,
+%   Atakhan, inhibitor and ward-kill gold: no verified bib entry records a value for 15.14-15.16 (the regression's
+%   wiki_cross_check strings in PRICES are not verified sources and are not used).
+% cmd (team totals): 250 + 5 x 50 = 500; 425 + 5 x 25 = 550; 675 + 5 x 25 = 800; 375 + 5 x 25 = 500; 5 x 50 = 250;
+%   5 x 25 = 125; 5 x 250 = 1250.
+\end{table*}
+
+\emph{Comparison with the rules.} For plates and three turret tiers the fitted price lies near the
+rule's team total. A plate is priced at 117.66\,g against 125\,g, an outer turret at 537.75\,g against a team total of
+500\,g, an inhibitor turret at 507.73\,g against 500\,g, and an inner turret at 729.79\,g, between the
+mid-lane (550\,g) and side-lane (800\,g) totals. The agreement is approximate by construction: the
+rule totals assume that a champion is near enough to collect the local gold, and the coefficients
+absorb income that arrives in the same minute. Four entries depart from the rules or from what the
+estimation code expects, and we explain each rather than adjust it.
+% src: PRICES fits.pooled.coef plates 117.656, tower_outer_turret 537.745, tower_base_turret 507.728, tower_inner_turret 729.794;
+%   rule totals as in Table tab:prices (cmd above).  cmd: 537.745 / 500 = 1.075; 507.728 / 500 = 1.015; 117.656 / 125 = 0.941.
+\begin{itemize}
+\item \emph{Elemental drake.} An elemental drake pays little gold: 25\,g of kill gold in these
+  patches, which neither the wiki's patch history nor Riot's notes assign to the killer or to every
+  team member~\cite{lolwiki2026dragonpit,riot2026patch261}. Its main reward is a permanent buff for the
+  whole killing team, which is not gold~\cite{lolwiki2026dragonslayer}. With so small a payout, the fitted
+  coefficient is dominated by what else happens in a minute in which a team kills a drake, and it comes
+  out negative: $-41.83$\,g (interval $[-43.12, -40.59]$\,g, $-42.49$ to $-40.98$\,g per patch). We have
+  not isolated which co-occurring income it reflects. Adding back one jungle creep gives $-18.50$\,g,
+  which is set to 0; the price would stay at 0 unless the frames counted a drake as more than 1.79
+  jungle creeps. A drake therefore adds nothing to the swing and enters the verdict only through $S$
+  in the dead zone. The dragon-rule variant of Section~\ref{sec:label-family} prices it at 25\,g.
+  % src (buff): lolwiki2026dragonslayer, revision 4056301, section 0, re-read 2026-09-14 by this item through WebFetch of
+  %   https://wiki.leagueoflegends.com/en-us/api.php?action=parse&oldid=4056301&section=0&prop=wikitext&format=json and of
+  %   index.php?title=Dragon_Slayer&oldid=4056301&action=raw (plain curl gets a bot-check page): the lead says the
+  %   elemental-drake buffs "are permanent and are granted to the entire team" of the killer.  The bib evidence comment
+  %   (definition_refs.bib, above @misc{lolwiki2026dragonslayer}) does not yet record this sentence; flagged to the bib
+  %   owner, as sec_background.tex (drake row) already flagged.
+  % src: PRICES fits.pooled.coef.dragon -41.8287, cluster_bootstrap.dragon [-43.1233, -40.5877], fits.15.1x.coef.dragon
+  %   -41.9802 / -40.9845 / -42.4854; coef.d_jg_cs 23.3319.  cmd: -41.8287 + 23.3319 = -18.4968; 41.8287 / 23.3319 = 1.793.
+  % note (scratch diagnostic, 2026-09-14, not a tracked artefact, not printed): refitting on 2,100 matches (700 per patch,
+  %   seed 7) with game-time band indicators, an interval-length regressor or a separate bounty for assisted kills left
+  %   the drake coefficient between -38.7 and -48.3 g, so an early-game shortfall does not explain the negative sign.
+\item \emph{First turret.} The indicator was included to detect a first-turret bonus, but none was paid
+  in 15.14--15.16: patch 25.S1.1 replaced the gold bonus with Feats of Strength, whose reward is a boot
+  upgrade, and patch 26.1 restored it~\cite{riot2025patch25s11,riot2026patch261,lolwiki2026turret}. The
+  coefficient is $-53.44$\,g (interval $[-55.45, -50.83]$\,g). The first turret to fall is an outer
+  turret in all 294 of 300 sampled matches in which a turret fell, so the indicator only contrasts the
+  minute of the first outer turret with that of an average outer turret, and we do not interpret it.
+  The table omits the term, so the label pays no first-turret bonus, which matches the rule in force.
+  % src: PRICES fits.pooled.coef.first_tower -53.4450, cluster_bootstrap.first_tower [-55.4483, -50.8270];
+  %   REPO/analysis/event_prices.py price_table() skips first_tower; the pooled table has no first_tower key, so
+  %   REPO/gameplay/labels.py _priced_event_gold() adds table.get("first_tower", 0.0) = 0.
+  % cmd (2026-09-14): same seed-0, 300-match cache sample as above; first BUILDING_KILL that is not INHIBITOR_BUILDING in
+  %   timestamp order -> towerType OUTER_TURRET in 294 of 294 matches with such an event.
+\item \emph{Kill bounty.} The bounty enters the regression in gold, so a coefficient of 1 would mean
+  that team gold rises by exactly the recorded bounty, the value the estimation code expects. The fit
+  gives 1.2032 (interval $[1.2004, 1.2054]$; 1.2025 to 1.2044 per patch). The game pays the bounty to
+  the killer and splits assist gold among the assisters~\cite{lolwiki2026kill}, and the regression
+  prices assists as a flat 45.09\,g per assister. If part of the assist gold grows with the victim's
+  bounty, a flat price cannot represent it and the bounty coefficient absorbs it, which would push the
+  coefficient above 1: \pending{price\_diag}{tracked refit of Eq.~(\ref{eq:label-prices}) with the bounty of assisted kills as its own regressor and the interval length as a regressor, 24,000 matches}.
+  The label reads kill gold at face value, so relative to the table-priced events a bounty counts at
+  $1/1.2032 = 0.83$ of its fitted team-gold value. The price variants of
+  Section~\ref{sec:label-family}, which halve and double every non-kill price, bracket this choice.
+  % src: PRICES fits.pooled.coef.kill_bounty 1.20320, cluster_bootstrap.kill_bounty [1.20039, 1.20541],
+  %   fits.15.14/15.15/15.16.coef.kill_bounty 1.20250 / 1.20440 / 1.20265; expectation ~1: REPO/analysis/event_prices.py
+  %   module docstring ("coefficient ~1 if the frames agree with the events"); assists 45.0857.  cmd: 1 / 1.2032 = 0.831.
+  % note (scratch diagnostic, not printed): with the bounty of assisted kills as an extra regressor on the 2,100-match
+  %   refit, the all-kill bounty slope was 0.86 and assisted kills carried a further 0.41 per gold of bounty.
+\item \emph{Nexus turret.} A nexus turret is priced at 183.72\,g against 250\,g of global gold. The
+  intercept assumes a full minute of passive income in every interval, but a match's last frame is
+  written when the match ends, so its last interval is shorter: a median 28.8\,s in 200 sampled matches,
+  in which 137 of the 222 nexus-turret kills fall in that last interval. Events concentrated at the end
+  of a match are therefore likely to be credited with less gold than they paid. A nexus turret moves the swing of an
+  engagement by 185\,g, below the dead zone.
+  % src: PRICES fits.pooled.coef.tower_nexus_turret 183.724; rule 5 x 50 = 250 (Table tab:prices).
+  % cmd (2026-09-14): LOL_OUTPUT_ROOT=D:/LOL_Project REPO/.venv/Scripts/python.exe -c "import random,numpy as np;
+  %   from data.cache_io import load_match_cache;from analysis.kill_pairs import list_cache_match_ids;random.seed(1);
+  %   sm=random.sample(list_cache_match_ids(),200); per match: ts=minute_ts, last=ts[-1]-ts[-2]; for BUILDING_KILL with
+  %   towerType NEXUS_TURRET: i=searchsorted(ts,t,'right')-1, in last interval if i==len(ts)-2"
+  %   -> 200 matches, last interval median 28,782 ms (p10 6,197, p90 52,998); nexus turrets 222, in last interval 137.
+  % note (scratch diagnostic, not printed): adding the interval length as a regressor on the 2,100-match refit moved the
+  %   nexus-turret coefficient from 182 to 263 g.
+  % cmd: 185 < 300 (event_prices.json pooled.tower_nexus_turret 185.0).
+\end{itemize}
+The Elder Dragon is priced from only 468 kills, so its interval is the widest in the table, 44\,g, and
+each patch alone has fewer than the 200 kills the table construction requires.
+% src: PRICES fits.pooled.count.elder_dragon 468; cluster_bootstrap.elder_dragon [1344.572, 1388.869]; fits.15.1x.count.elder_dragon
+%   158 / 166 / 144; REPO/analysis/event_prices.py price_table(min_count=200.0).  cmd: 1388.869 - 1344.572 = 44.3.
+
+% -----------------------------------------------------------------------------
+\subsection{Choices that remain ours}\label{sec:label-choices}
+
+Reading the game's economy removes the weights between event types, but these choices remain.
+\begin{enumerate}
+\item \emph{Window.} $H = 35$\,s and the stop at an ace (Eq.~\eqref{eq:label-window}). In a 553-match
+  pilot with the minute-frame \texttt{market\_lex} label, verdicts with 45\,s and 60\,s windows agreed
+  with those with 35\,s on 97.5\% and 94.3\% of the engagements labelled at both horizons
+  (Table~\ref{tab:constants}); the \texttt{market\_event} label has not been re-run at other horizons.
+  % src: FEAT/prediction_situation_pilot.json n_matches 553; v3.LABEL_TYPE "market_lex"; checks.horizon."45"
+  %   label_agreement_with_35 0.97475, n_common_with_35 1307; checks.horizon."60" label_agreement_with_35 0.94313,
+  %   n_common_with_35 1266 (as printed in sec_definition.tex Table tab:constants row "Label horizon").
+  %   No market_event horizon check exists in REV (A2 label family varies no horizon).
+\item \emph{Attribution.} A disc of radius $D$ centred on the first kill, fixed in place and identical
+  in every direction; events without a position never count (Eq.~\eqref{eq:label-attr}). The disc can
+  admit the kill, structure or monster of a neighbouring fight and can miss kills of a merged episode
+  that lie outside it. The swing counts every kill inside the disc in the window, including kills
+  before the first or after the last kill of the engagement, while $K$ counts only the kills inside
+  the disc timestamped between the first and the last kill.
+  % src: REPO/gameplay/labels.py _compute_label_market_event() sums over all attributed events of the window;
+  %   _lex_refine() restricts kills to [first_kill_ts, last_kill_ts] among the attributed events;
+  %   sec_definition.tex sec:def-attribution (neighbouring fight; merged episode up to D + 2,000 u).
+\item \emph{Dead zone.} $\varepsilon = 300$\,g, one base bounty.
+\item \emph{Refinement order.} Kills, then living champions, then structures. The living-champion
+  count covers all ten champions and is read from the last frame before the last kill.
+\item \emph{Draws.} Dropped, not split or assigned at random.
+\item \emph{Price estimation.} A linear model with a constant passive income per interval, the
+  regressor set of Eq.~\eqref{eq:label-prices}, intervals from 2:00, patches pooled, prices rounded
+  to 5\,g, the one-creep add-back and the zero floor for monsters, the first-turret term omitted, and
+  the bounty read at face value rather than at its coefficient. The prices are fitted on matches from
+  the same corpus that is later evaluated (Section~\ref{subsec:limitations}).
+\item \emph{Gold the label does not read.} Bounty fields on structure and monster events, non-zero on
+  3.0\% of structure kills and 0.9\% of epic-monster kills in 300 sampled matches, and every reward that
+  is not gold: buffs, the Dragon Soul, experience and death timers.
+  % cmd: seed-0, 300-match cache sample above: 98 / 3,236 = 3.03 %; 22 / 2,521 = 0.87 %.
+  % src: REPO/gameplay/labels.py _priced_event_gold() reads table prices only (no event bounty for non-kill events);
+  %   DRAGON_SOUL_GIVEN and CHAMPION_SPECIAL_KILL priced 0 g.
+\end{enumerate}
+The label also cannot credit a fight won without any priced event: a kill-less exchange that ends in a
+retreat has a swing of zero and is not an engagement in the first place
+(Sections~\ref{sec:def-killless} and~\ref{subsec:limitations}).
+
+% -----------------------------------------------------------------------------
+\subsection{Does any conclusion depend on those choices?}\label{sec:label-family}
+
+If a model learned the arithmetic of one label rather than the state of the game, changing the
+arithmetic would change what it can predict. A reviewer of the conference version raised this concern
+and asked for alternative labels, naming raw kill advantage and learned weights, and for the
+sensitivity of the label to its weights. The price table is our learned-weight label, learned from the gold record rather than from
+the prediction target. Weights could instead be learned from outcomes, and we chose not to do so for
+two reasons. Weights chosen to make the engagement label easier to predict would select the label by
+its predictability, the very circularity the reviewer's question guards against. Weights fitted to the
+match result would turn the label into a measure of match value, which depends on the state of the
+match before the engagement, state that the model's inputs already describe; we keep match value as a
+separate yardstick instead (Section~\ref{sec:label-value}). Against the price table we set eleven
+variants, each computed by the same label code with one
+setting changed (Table~\ref{tab:label-family}): two schemes without gold (raw kill advantage, and a
+kill difference plus 0.3 times the survivor difference, whose two weights are hand-set), four dead zones
+(0, 150, 600 and 900\,g), four price perturbations (kill gold only; every non-kill price halved;
+doubled; the elemental drake at its 25\,g rule payout) and an attribution disc of radius $D/2$, whose
+diameter is $D$. Every variant was recomputed on the same 566,452 detected engagements, and the
+recomputation reproduces the corpus's stored \texttt{market\_event} labels row for row.
+% src: REPO/gameplay/labels.py LABEL_VARIANTS / REQUIRED_LABEL_VARIANTS (micro_win, kill_survival with LABEL_W_KILL 1.0 and
+%   LABEL_W_ALIVE 0.3, market_event_dz{0,150,600,900}, market_event_kills_only (LABEL_EVENT_PRICE_TABLE ""),
+%   market_event_prices_x0.5 / _x2 (LABEL_EVENT_PRICE_NONKILL_SCALE), market_event_dragon_rule
+%   (LABEL_EVENT_PRICE_OVERRIDES {"dragon": 25.0}), market_event_attr_radius_half (LABEL_ATTRIBUTION_RADIUS_U 2132.0));
+%   LF label_keys (12 labels); LF sidecars.n_rows 566452, n_matches 194676; identity.ok in 32 of 32 shard reports
+%   (REV/A2-label-family/label_sidecars_v33/labels_shard_*.json, re-read 2026-09-14).
+
+Each label drops its own draws, so the variants label different engagements, and an AUC difference
+between two of them would mix the effect of the label with that of the population. We therefore score
+all twelve labels on the 484,474 engagements (188,104 matches) that every one of them labels. On these
+common rows each label gets its own model under the headline protocol
+(Section~\fwdref{sec:prediction}): LightGBM gradient-boosted trees~\cite{ke2017lightgbm} (400 trees,
+learning rate 0.05, 31 leaves) on the same 6,164 input columns, five folds that keep each match within
+one fold and are identical for every label, and out-of-fold predictions, so that every engagement is
+scored by a model that never saw its match. The score is the area under the receiver operating
+characteristic curve (AUC): the probability that an engagement blue won receives a higher predicted
+probability of a blue win than one red won, 0.5 for guessing and 1 for a perfect ranking. Intervals
+come from 1,000 bootstrap samples of matches, and every label is scored on the same samples, so
+differences between labels are paired. \emph{Agreement} is the share of engagements on which a variant
+and \texttt{market\_event} name the same winner, among those both label; the \emph{flip rate} is its
+complement. To test directly whether a model learns a label's arithmetic, we keep the
+\texttt{market\_event} model's out-of-fold predictions fixed and score them against each variant's
+labels (\emph{transfer}). A model that had fitted the arithmetic of \texttt{market\_event} should rank
+a variant's winners worse than that variant's own model does.
+% src: LF rowsets.common n 484474, n_matches 188104, share_of_sidecar_rows 0.8553; split "match-grouped GroupKFold(n_splits=5)
+%   OOF within each row set"; rowsets.common.variants.*.fold_sha1 all "0dc9ea055d4c2f228c7d82eb0754e32f445e2b61" (checked
+%   2026-09-14); n_boot 1000, seed 7; deviations[1] (paired draws, weighted Mann-Whitney AUC); matrix.n_keep 6164.
+% src: REPO/scripts/run_scale_decomposition.py LGBMClassifier(n_estimators=400, learning_rate=0.05, num_leaves=31,
+%   subsample=0.9, colsample_bytree=0.9) (LF reference_followed); REPO/scripts/run_label_family_v33.py.
+% cmd (independent check, 2026-09-14): for each variant v, np.load(LFP/common__<v>.npz): matrix_row identical to
+%   common__market_event.npz; sklearn roc_auc_score(y_v, pred_v) and roc_auc_score(y_v, pred_market_event) and
+%   mean(y_v == y_market_event) reproduce LF rowsets.common.variants.<v>.auc, .transfer.auc and
+%   .agreement_vs_market_event.agreement to 6 dp.
+
+\begin{table*}[!t]
+\centering
+\caption{Label family on identical rows. Labelled: engagements the label decides, of 566,452 detected.
+Common rows: AUC with 95\% match-bootstrap interval on the 484,474 engagements every label decides, each
+label with its own model; $-$\,ME: difference from \texttt{market\_event} on the same rows, whose paired
+95\% interval excludes zero for every variant except the dragon rule. Agree / flip: agreement with \texttt{market\_event} and flip rate (\%) on all engagements both
+label. Transfer: the \texttt{market\_event} model scored against the variant's labels on the common rows,
+with its difference from the variant's own model in parentheses. Own rows: out-of-fold AUC on the
+variant's own labelled engagements (different rows for each label).}
+\label{tab:label-family}
+\scriptsize
+\renewcommand{\arraystretch}{1.05}
+\setlength{\tabcolsep}{3pt}
+% src: LF rowsets.common.variants.<v>.{auc, auc_ci.ci_2.5, auc_ci.ci_97.5, own_minus_market_event.{ci_2.5, ci_97.5},
+%   transfer.auc}; difference column point = auc(v) - auc(market_event) (equals own_minus_market_event.mean to 4 dp);
+%   transfer parenthesis = transfer.auc - auc(v) (equals transfer.transfer_minus_own.mean to 4 dp);
+%   LF agreement_vs_market_event.<v>.{agreement, flip_rate} (rows both decide); LF rowsets.own.variants.<v>.{n, auc}.
+\begin{tabularx}{\textwidth}{@{}l >{\raggedright\arraybackslash}X r c c c c c@{}}
+\toprule
+ & & & \multicolumn{2}{c}{Common rows} & & & \\
+\cmidrule(lr){4-5}
+Variant & What it changes & Labelled (\%) & AUC [95\%] & $-$\,ME & Agree / flip & Transfer & Own rows \\
+\midrule
+% market_event: own n 532547 (0.9401), own auc 0.669909 (reproduces the published 0.6699: LF reproduction_market_event_own
+%   auc_published = auc_now 0.669908992463444, preds_identical true); common auc 0.682212 [0.680794, 0.683862]
+\texttt{market\_event} & Reference (Sections~\ref{sec:label-def}, \ref{sec:label-prices}) & 532,547 (94.0) & 0.6822 [0.6808, 0.6839] & -- & -- & -- & 0.6699 \\
+\multicolumn{8}{@{}l}{\emph{Schemes without gold}} \\
+% micro_win: own n 489984 (0.8650) auc 0.686978; common 0.687700 [0.686312, 0.689327]; diff +0.005488 [+0.004986, +0.005956];
+%   agree 0.989038 flip 0.010962; transfer 0.687935 (-own +0.000235)
+Raw kill advantage & Net kills inside the disc between the first and last kill ($K$); equal counts are draws & 489,984 (86.5) & 0.6877 [0.6863, 0.6893] & $+$0.0055 & 98.90 / 1.10 & 0.6879 ($+$0.0002) & 0.6870 \\
+% kill_survival: own n 516644 (0.9121) auc 0.686000; common 0.687748 [0.686352, 0.689364]; diff +0.005536 [+0.005031, +0.006038];
+%   agree 0.982681 flip 0.017319; transfer 0.688015 (+0.000267)
+Kill and survivor score & $1.0 \times K + 0.3 \times N$ (hand-set weights) & 516,644 (91.2) & 0.6877 [0.6864, 0.6894] & $+$0.0055 & 98.27 / 1.73 & 0.6880 ($+$0.0003) & 0.6860 \\
+\multicolumn{8}{@{}l}{\emph{Dead zone} ($\varepsilon = 300$\,g in \texttt{market\_event})} \\
+% market_event_dz0: own n 559117 (0.9871) auc 0.647365; common 0.673699 [0.672315, 0.675389]; diff -0.008513 [-0.009089, -0.007936];
+%   agree 0.961746 flip 0.038254; transfer 0.672745 (-0.000954)
+$\varepsilon = 0$\,g & Any non-zero swing decides & 559,117 (98.7) & 0.6737 [0.6723, 0.6754] & $-$0.0085 & 96.17 / 3.83 & 0.6727 ($-$0.0010) & 0.6474 \\
+% market_event_dz150: own n 537352 (0.9486) auc 0.660194; common 0.678536 [0.677097, 0.680331]; diff -0.003676 [-0.004109, -0.003278];
+%   agree 0.987945 flip 0.012055; transfer 0.678322 (-0.000215)
+$\varepsilon = 150$\,g & & 537,352 (94.9) & 0.6785 [0.6771, 0.6803] & $-$0.0037 & 98.79 / 1.21 & 0.6783 ($-$0.0002) & 0.6602 \\
+% market_event_dz600: own n 528631 (0.9332) auc 0.681336; common 0.685977 [0.684646, 0.687622]; diff +0.003766 [+0.003350, +0.004190];
+%   agree 0.989127 flip 0.010873; transfer 0.686172 (+0.000195)
+$\varepsilon = 600$\,g & & 528,631 (93.3) & 0.6860 [0.6846, 0.6876] & $+$0.0038 & 98.91 / 1.09 & 0.6862 ($+$0.0002) & 0.6813 \\
+% market_event_dz900: own n 527403 (0.9311) auc 0.685910; common 0.687110 [0.685705, 0.688765]; diff +0.004898 [+0.004454, +0.005328];
+%   agree 0.984848 flip 0.015152; transfer 0.687408 (+0.000298)
+$\varepsilon = 900$\,g & & 527,403 (93.1) & 0.6871 [0.6857, 0.6888] & $+$0.0049 & 98.48 / 1.52 & 0.6874 ($+$0.0003) & 0.6859 \\
+\multicolumn{8}{@{}l}{\emph{Prices}} \\
+% market_event_kills_only: own n 531589 (0.9385) auc 0.657050; common 0.673676 [0.672269, 0.675349]; diff -0.008536 [-0.009015, -0.008052];
+%   agree 0.985176 flip 0.014824; transfer 0.673499 (-0.000177)
+Kill gold only & Bounty and shutdown gold; no fitted prices; other events 0\,g & 531,589 (93.8) & 0.6737 [0.6723, 0.6753] & $-$0.0085 & 98.52 / 1.48 & 0.6735 ($-$0.0002) & 0.6571 \\
+% market_event_prices_x0.5: own n 532532 (0.9401) auc 0.666584; common 0.680134 [0.678719, 0.681788]; diff -0.002078 [-0.002423, -0.001735];
+%   agree 0.994857 flip 0.005143; transfer 0.680442 (+0.000308)
+Non-kill prices $\times 0.5$ & Kill gold, per-kill and per-assist prices unchanged & 532,532 (94.0) & 0.6801 [0.6787, 0.6818] & $-$0.0021 & 99.49 / 0.51 & 0.6804 ($+$0.0003) & 0.6666 \\
+% market_event_prices_x2: own n 532565 (0.9402) auc 0.677809; common 0.688404 [0.687040, 0.690039]; diff +0.006192 [+0.005714, +0.006665];
+%   agree 0.988872 flip 0.011128; transfer 0.688101 (-0.000303)
+Non-kill prices $\times 2$ & As above & 532,565 (94.0) & 0.6884 [0.6870, 0.6900] & $+$0.0062 & 98.89 / 1.11 & 0.6881 ($-$0.0003) & 0.6778 \\
+% market_event_dragon_rule: own n 532545 (0.9401) auc 0.670259; common 0.682152 [0.680738, 0.683770]; diff -0.000060 [-0.000302, +0.000169];
+%   agree 0.999912 flip 0.000088 (47 of 532,545 rows); transfer 0.682242 (+0.000090)
+Dragon rule & Elemental drake at 25\,g (killer only; unverified) & 532,545 (94.0) & 0.6822 [0.6807, 0.6838] & $-$0.0001 & 99.99 / 0.01 & 0.6822 ($+$0.0001) & 0.6703 \\
+\multicolumn{8}{@{}l}{\emph{Attribution}} \\
+% market_event_attr_radius_half: own n 527550 (0.9313) auc 0.664860; common 0.677253 [0.675841, 0.678993]; diff -0.004959 [-0.005489, -0.004430];
+%   agree 0.978396 flip 0.021604; transfer 0.677304 (+0.000051)
+Radius $D/2$ & Disc of radius 2,132\,u (diameter $D$) & 527,550 (93.1) & 0.6773 [0.6758, 0.6790] & $-$0.0050 & 97.84 / 2.16 & 0.6773 ($+$0.0001) & 0.6649 \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+Five readings follow from Table~\ref{tab:label-family}.
+
+\emph{The labels are close.} On identical rows every label's AUC lies between 0.6737 (kill gold only,
+and a dead zone of 0\,g) and 0.6884 (non-kill prices doubled), a range of 0.0147, and
+\texttt{market\_event}, at 0.6822, sits in its middle: five variants are easier, five harder, and the
+dragon rule cannot be told apart from it. Every variant names the same winner as
+\texttt{market\_event} on 96.17\% (dead zone 0\,g) to 99.99\% (dragon rule) of the engagements both
+label, and on 97.97\% to 99.995\% of the common rows.
+% src: LF rowsets.common.variants: min auc market_event_kills_only 0.673676, market_event_dz0 0.673699; max market_event_prices_x2
+%   0.688404; market_event 0.682212.  cmd: 0.688404 - 0.673676 = 0.014728.  Easier (difference interval above 0): micro_win,
+%   kill_survival, dz600, dz900, prices_x2; harder (below 0): dz0, dz150, kills_only, prices_x0.5, attr_radius_half; dragon_rule
+%   interval [-0.000302, +0.000169] contains 0.
+% src: LF agreement_vs_market_event min market_event_dz0 0.961746, max market_event_dragon_rule 0.999912;
+%   common rows: min over rowsets.common.variants.<v>.agreement_vs_market_event.agreement 0.979665 (dz0), max 0.999950 (dragon_rule).
+
+\emph{The model is not learning the label's arithmetic.} Scored against each variant's labels, the
+\texttt{market\_event} model's fixed predictions come within 0.0010 AUC of the variant's own model on
+the common rows. The same holds, within 0.0028, on the larger set of rows that each variant and
+\texttt{market\_event} both decide, where the transfer model is \texttt{market\_event}'s model trained
+on its own rows and the variant's model is trained on the variant's own rows. High agreement makes close transfer
+likely, so the informative cases are the variants that flip the most verdicts: with the dead zone at
+0\,g, which flips 3.83\%, a model trained on that variant's own labels ranks them better by 0.0010 on the
+common rows and by 0.0028 (interval $[0.0023, 0.0033]$) on the 532,547 engagements both labels decide;
+with the radius-$D/2$ disc, which flips 2.16\%, the two models differ by less than 0.0002 on either row set.
+% src: LF rowsets.common.variants.<v>.transfer.transfer_minus_own.mean range -0.000947 (dz0) to +0.000307 (prices_x0.5);
+%   point differences transfer.auc - auc: -0.000954 (dz0) to +0.000308.
+% src: LF rowsets.own.variants.<v>.transfer.{n_both, transfer_minus_own_on_both}: every mean negative, range -0.002778 (dz0,
+%   n_both 532,547, [-0.003294, -0.002255]) to -0.000011 (dz900); micro_win -0.002154, dz150 -0.001108, kill_survival -0.000643,
+%   kills_only -0.000618, prices_x2 -0.000386, prices_x0.5 -0.000292, dragon_rule -0.000291, dz600 -0.000276,
+%   attr_radius_half -0.000140 [-0.000504, +0.000226] on n_both 524,711; attr_radius_half common +0.000051.
+%   LF deviations[2]: on the own row sets the transfer model is market_event's own-row OOF model, scored only on rows both
+%   labels decide, and the own-row bootstrap resamples the matches of the variant's own rows.
+%   Sign convention: transfer minus own, so -0.002778 means the variant's own model is better by 0.0028.
+
+\emph{The dead zone moves AUC monotonically and modestly on identical rows.} From 0 to 900\,g the
+common-row AUC rises through 0.6737, 0.6785, 0.6822, 0.6860 and 0.6871, a change of 0.0134. A wider dead
+zone hands more engagements to the kill count $K$, and the label moves towards raw kill advantage
+(0.6877). On each variant's own rows the spread is larger, 0.6474 to 0.6859, because the dead zone
+also changes which engagements are labelled: at 0\,g, 26,570 engagements that \texttt{market\_event}
+calls draws receive a verdict from a small swing, and such near-even engagements are hard to predict.
+% src: LF rowsets.common.variants.market_event_dz0 / dz150 / market_event / dz600 / dz900 .auc 0.673699 / 0.678536 / 0.682212 /
+%   0.685977 / 0.687110; micro_win 0.687700.  cmd: 0.687110 - 0.673699 = 0.013411.
+% src: LF rowsets.own.variants dz0 0.647365, dz150 0.660194, market_event 0.669909, dz600 0.681336, dz900 0.685910;
+%   LF agreement_vs_market_event.market_event_dz0.n_variant_only 26570, n_market_event_only 0.
+
+\emph{Prices and attribution move the AUC by amounts of the same size.} Removing every fitted price
+lowers the common-row AUC by 0.0085; halving the non-kill prices lowers it by 0.0021 and doubling them
+raises it by 0.0062, so the label becomes easier to predict as the non-kill prices grow.
+Pricing the elemental drake at its 25\,g rule payout changes 0.01\% of verdicts and the AUC by
+$-0.0001$ (interval $[-0.0003, +0.0002]$). Halving the attribution radius flips 2.16\% of verdicts and
+lowers the AUC by 0.0050. The label family scored only this one alternative radius, but the corpus also
+stores the label with no disc at all, reading every event of the window wherever it occurs, as the
+conference version's label did. That label was scored earlier on its own 541,627 engagements with the
+same learner and protocol, so it has no common-row value. It names the same winner as
+\texttt{market\_event} on 97.80\% of the 530,599 engagements both decide, and on those engagements its
+own model reaches 0.6716 while the \texttt{market\_event} model, scored against its labels, also reaches
+0.6716. Relative to the disc of radius $D$, halving the radius changes 2.16\% of verdicts and removing
+the disc 2.20\%.
+% src: LF rowsets.common.variants.{market_event_kills_only, prices_x0.5, prices_x2, dragon_rule, attr_radius_half}: differences
+%   -0.008536, -0.002078, +0.006192, -0.000060 [-0.000302, +0.000169], -0.004959; LF agreement_vs_market_event flip_rate
+%   dragon_rule 0.000088, attr_radius_half 0.021604.
+% src (no disc): FEAT/scale_decomposition_v33_market_event_window.json y_key "y_market_event@window", n 541627, n_matches 192727,
+%   n_features_used 6164, overall_auc 0.669468 (REPO/scripts/run_scale_decomposition.py, the protocol LF follows);
+%   REPO/gameplay/labels.py LABEL_VARIANTS "market_event@window" ("every event in the time window (no spatial
+%   attribution)"; attribute_events() returns all events for "window", so ward kills are priced too);
+%   conference attribution: REPO/core/presets.py PRESETS["cog2026"] LABEL_EVENT_ATTRIBUTION "window".
+% cmd (2026-09-14, read-only, scratchpad check_window.py): concatenate y_market_event and y_market_event@window over
+%   REV/A2-label-family/label_sidecars_v33/labels_shard_000..031.npz (566,452 rows, -1 = no verdict); map each stored
+%   FEAT/scale_decomposition_v33_{market_event,market_event_window}.preds.npz row to the sidecar rows with a verdict (y arrays
+%   equal: True; own AUCs 0.669909 and 0.669468 reproduced); on rows both decide: n 530,599, agreement 0.977968 (11,690
+%   flips); roc_auc_score(y_window, pred_window) 0.671631; roc_auc_score(y_window, pred_market_event) 0.671570;
+%   roc_auc_score(y_market_event, pred_market_event) 0.670160.  Flip rates vs radius D: attr_radius_half 0.021604 (LF);
+%   no disc 1 - 0.977968 = 0.022032.
+
+\emph{The primary label was not chosen for being easy.} Raw kill advantage, the alternative the
+reviewer named, is easier than \texttt{market\_event} on identical rows by 0.0055 (interval
+$[+0.0050, +0.0060]$), and so is the hand-weighted kill and survivor score. We keep
+\texttt{market\_event} because it also counts the plates, structures and monsters that a kill count
+ignores, and because its exchange rates come from the game. Among the labels stored with the corpus,
+which are scored on their own rows and so are not comparable with the table, one that reads the
+minute-frame team gold at the two ends of the window instead of event gold is easier still (0.6938 on
+538,593 engagements). We do not use it because team gold also includes income earned away from the
+fight. The conference label's formula, with its hand-set weights, applied to the events inside the disc
+of the same detected engagements and scored with the same protocol, reaches 0.6243 on 561,721
+engagements and names the same winner as \texttt{market\_event} on 93.79\% of the 531,356 engagements
+both decide. This is not a figure of the conference paper, which used a different detector, read every
+event in the window, and computed its inputs with time normalised by match length and with match-wide
+anchors, both of which leak information about the rest of the match. The hand-set label with no disc
+has not been scored with its own model.
+% src: FEAT/scale_decomposition_v33_attention_value_win.json y_key y_attention_value_win, n 561721, overall_auc 0.624251;
+%   REPO/gameplay/labels.py LABEL_VARIANTS "attention_value_win" (Eq. 3 "over the attributed events, as stored in corpus
+%   v3.3") vs "attention_value_win@window" ("The CoG 2026 label as published: Eq. 3 over every event in the window");
+%   REPO/core/presets.py PRESETS["cog2026"] LABEL_EVENT_ATTRIBUTION "window", TIME_NORM_ABSOLUTE False, ANCHORS_CAUSAL False
+%   (leak quantified in FEAT/leak_ablation_v33.json); PRESETS["v3.3"] TIME_NORM_ABSOLUTE True, ANCHORS_CAUSAL True.
+% cmd (2026-09-14, read-only, scratchpad check_dpm.py / check_window.py): sidecar y_attention_value_win vs y_market_event on
+%   rows both decide: n 531,356, agreement 0.937944 (32,974 flips); stored attention_value_win preds map to the 561,721
+%   sidecar rows with a verdict (y equal) and reproduce AUC 0.624251.  y_attention_value_win@window is stored in the sidecars
+%   (564,170 rows with a verdict; agreement with market_event 0.915385 on 531,964 rows) but no model has been trained on it.
+% src: LF rowsets.common.variants.micro_win.own_minus_market_event mean +0.005479 [+0.004986, +0.005956]; point +0.005488;
+%   kill_survival +0.005536 [+0.005031, +0.006038].
+% src: FEAT/scale_decomposition_v33_market_lex.json n 538593, overall_auc 0.693816 (y_market_lex, minute-frame gold swing,
+%   REPO/gameplay/labels.py _compute_label_market_lex); FEAT/scale_decomposition_v33_attention_value_win.json n 561721,
+%   overall_auc 0.624251 (y_attention_value_win over attributed events, LABEL_VARIANTS "attention_value_win").
+% src (income away from the fight): REPO/gameplay/labels.py _compute_label_market_lex(): gd from gold_at_ms(cache, s_ms / e_ms),
+%   the whole team's frame gold interpolated linearly at the window ends (LABEL_GOLD_METHOD "linear"), before any attribution.
+
+The common rows are easier than the corpus. They exclude 48,073 of the engagements that
+\texttt{market\_event} labels, 42,563 of them engagements with equal kill counts, on which the
+\texttt{market\_event} model's out-of-fold AUC is 0.556, against 0.681 on the engagements kept. Every
+AUC in the common-row columns is therefore higher than the headline figure of
+Section~\fwdref{sec:prediction}, 0.6699 on all 532,547 labelled engagements, which the own-row
+\texttt{market\_event} run reproduces exactly.
+% cmd (2026-09-14): me=np.load(LFP/own__market_event.npz); c=np.load(LFP/common__market_event.npz); mw=np.load(LFP/own__micro_win.npz);
+%   inc=np.isin(me['matrix_row'],c['matrix_row']); inmw=np.isin(me['matrix_row'],mw['matrix_row'])
+%   -> 532,547 rows, 484,474 in common, 48,073 not; 42,563 not in micro_win (micro_win draws: LF
+%   agreement_vs_market_event.micro_win.n_market_event_only 42563, n_variant_only 0);
+%   roc_auc_score on own-row OOF predictions: common subset 0.6807, rows where micro_win is a draw 0.5564 (all 48,073
+%   excluded rows 0.5614).
+% src: LF reproduction_market_event_own: auc_published 0.669908992463444 = auc_now, preds_identical true, max_abs_pred_diff 0.0.
+
+One variant rests on an unverified assumption. The dragon-rule variant prices an elemental
+drake at 25\,g of team gold, which assumes that its 25\,g of kill gold is paid once, to the killer. The
+value of 25\,g is the one in force in these patches, but neither the wiki's patch history nor Riot's
+26.1 notes say whether the killer or every member of the killing team receives
+it~\cite{lolwiki2026dragonpit,riot2026patch261}. If every member is paid, the rule price is 125\,g.
+That reading changes little. Pricing the drake at 125\,g names the same winner as
+\texttt{market\_event} on 99.95\% of the 532,542 engagements both decide (265 flips) and on 99.97\% of
+the common rows, every one of which it decides; the \texttt{market\_event} model's common-row
+predictions score its labels at 0.6823, against 0.6822 on \texttt{market\_event}'s own labels. A model
+trained on this variant's own labels has not been run:
+\pending{dragon\_per\_member}{label-family scoring of market\_event\_dragon\_rule\_per\_member with its own model: common-row AUC with 95\% interval and difference from market\_event}.
+% src: REPO/gameplay/labels.py DRAGON_RULE_TEAM_GOLD 25.0 (team gold, killer-only reading) and DRAGON_RULE_VERIFICATION;
+%   variant market_event_dragon_rule_per_member (5 x 25 = 125 g) is in LABEL_VARIANTS but not in REQUIRED_LABEL_VARIANTS and
+%   not in LF label_keys.  Value in force: references_audit.md 2c note N9 (25 g from the V9.23 hotfix to V26.01, no change
+%   listed); recipient open (same note).  The DRAGON_RULE_VERIFICATION string still says the value itself is undated; N9
+%   supersedes that part.
+% cmd (2026-09-14, read-only, scratchpad check_dpm.py): concatenate y_market_event and y_market_event_dragon_rule_per_member over
+%   REV/A2-label-family/label_sidecars_v33/labels_shard_000..031.npz (566,452 rows; corpus_row contiguous per shard; -1 = no
+%   verdict); mapping check LFP/common__market_event.npz y == sidecar y_market_event[matrix_row]: True.
+%   -> per_member verdicts 532,542; rows both decide 532,542, agreement 0.999502 (265 flips; 0 rows only per_member decides,
+%   5 rows only market_event decides).  Common rows (LFP/common__market_event.npz matrix_row, 484,474): per_member decides
+%   484,474, agreement 0.999748; roc_auc_score(y_per_member, pred) 0.682322; roc_auc_score(y_market_event, pred) 0.682212
+%   (= LF rowsets.common.variants.market_event.auc).  cmd: 0.999748 -> 99.97 %; 0.999502 -> 99.95 %.
+%   Cross-check with the killer-only variant: same script gives dragon_rule agreement 0.999912 (47 flips on 532,545) and
+%   common-row transfer 0.682242, equal to LF agreement_vs_market_event.market_event_dragon_rule and
+%   rowsets.common.variants.market_event_dragon_rule.transfer.auc.
+
+% -----------------------------------------------------------------------------
+\subsection{Gold is not value}\label{sec:label-value}
+
+The label records which team took more gold, not whether that gold changed who is likely to win the
+match. A kill that raises a team's chance of winning is worth more than one that does not, the
+distinction behind Maymin's smart kills and worthless deaths~\cite{maymin2021smart}. We therefore keep
+match value as a separate yardstick. Section~\fwdref{sec:limit} scores each engagement by the change in
+an independently fitted model's win probability from just before the cutoff to the engagement's last
+kill. On 25,177 held-out engagements, the realised \texttt{market\_event} outcome alone accounts for
+55.0\% of the variance of that change and gives its direction for 92.4\% of engagements, both weighted
+so that every match counts equally. The binary gold verdict thus accounts for a little over half of the variation in what
+an engagement does to the match's win probability; Section~\fwdref{sec:limit} examines the rest.
+% src: WT/outputs/engagement_predictor_v3/downstream_winprob.json horizons.end.n_test 25177; R_realized_outcome_alone.r2
+%   0.549710, sign_accuracy 0.924365 (match-weighted: WT/scripts/diagnose_downstream_winprob_v3.py score() with
+%   match_weights); realised outcome = the market label (tr["market"], te["market"] in that script).  States: pre =
+%   tau - 1 ms, end = last kill (sec_limit.tex, subsection sec:limit-delta; WT/train/temporal_winprob.py observed_queries()).
+%   The same values appear in sec_limit.tex Table tab:limit-explained (row "Last kill, All").
