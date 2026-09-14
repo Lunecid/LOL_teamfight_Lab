@@ -611,6 +611,11 @@ be reproduced, and each corrected run starts from different initial weights than
 %   0.506826; epochs_run 10, best_epoch 5.
 % Grid n_d {16, 32, 64}, n_steps {3, 5}, lambda_sparse {1e-4, 1e-3}: REPO/scripts/run_deep_hparam_search_v33.py
 %   GRIDS["suggested"]["tabnet"].
+% Comparator names in the three re-run paragraphs (item F5-limitations-fills, 2026-09-14; no number changed):
+%   "neural-pipeline LightGBM" = tab:learners row "LightGBM, neural pipeline, 7,106" = the "published_lightgbm" of TABF /
+%   FT192 / SC0 (FEAT/deep_tabular_v33_patch_full.json models.lightgbm, test_auc 0.666089); "LightGBM in its published
+%   configuration, 6,164 columns" = A8 learners.lgbm_paper (test_auc 0.666484; AUD truth.columns_non_constant 6164), the
+%   reference of the tab:learners Delta column.
 \paragraph{TabNet with the regulariser corrected}
 With the sparsity term added, as Arik and Pfister define it, and every other hyper-parameter unchanged,
 TabNet reaches a test AUC of 0.6114. This is $0.0074$ [$0.0058$, $0.0090$] \emph{below} the withdrawn run
@@ -619,7 +624,7 @@ the sign of the regulariser and also in their random initialisation, so this dif
 correction with initialisation variation, and one run of each cannot separate the two. What can be said is
 that the corrected implementation did not score higher. We keep the correction, because the regulariser is
 part of the method under comparison, and a lower score from a correct implementation is the result that
-counts. The corrected run is 0.0547 [0.0524, 0.0570] below LightGBM fitted by the same pipeline on the same
+counts. The corrected run is 0.0547 [0.0524, 0.0570] below the neural-pipeline LightGBM on the same
 7,106 columns, 0.0439 [0.0413, 0.0463] below the MLP, and 0.0147 [0.0132, 0.0163] below the eight-column
 scoreboard model. During training its validation AUC stayed between 0.6127 and 0.6130 in all ten epochs,
 while the entropy of its selection masks fell from 1.29 to 0.51, that is, the masks became sparser. One
@@ -643,10 +648,10 @@ Raising the token width from 32 to 192, the width of the default FT-Transformer 
 al.~\cite{gorishniy2021revisiting}, with the same three blocks, eight attention heads, learning rate,
 batch size and remaining architecture, increases the parameter count from 285,857 to 2,452,417, about three
 fifths of the MLP's. The test AUC is 0.6578: $+0.0018$ [$+0.0007$, $+0.0029$] over the width-32 run and
-$+0.0026$ [$+0.0011$, $+0.0042$] over the MLP, but 0.0083 [0.0068, 0.0096] below LightGBM fitted by the same
-pipeline (all three from the run's bootstrap of 1,000 resamples; 0.0086 below the published trees in
-Table~\ref{tab:learners}). As for TabNet, the gain over the width-32 run also includes a different random
-initialisation. Its validation AUC peaked at epoch 6 while the training loss kept falling through epoch 11,
+$+0.0026$ [$+0.0011$, $+0.0042$] over the MLP, but 0.0083 [0.0068, 0.0096] below the neural-pipeline
+LightGBM on 7,106 columns (all three from the run's bootstrap of 1,000 resamples; 0.0086 below LightGBM in
+its published configuration, on 6,164 columns, in Table~\ref{tab:learners}). As for TabNet, the gain over
+the width-32 run also includes a different random initialisation. Its validation AUC peaked at epoch 6 while the training loss kept falling through epoch 11,
 where early stopping ended the run. At this budget, the wider network is distinguishably better than the
 narrower one and than the MLP, and still below the trees; it has not been searched.
 
@@ -673,9 +678,10 @@ that hold at most one engagement per match in training and in evaluation, SAINT 
 distinguish from zero. As for TabNet, the two runs also differ in random initialisation, so this difference
 too combines the correction with initialisation variation. The withdrawn row stays withdrawn, because its
 evaluation could read features recorded after the cutoff whether or not that changed its score. The
-corrected run is 0.0111 [0.0096, 0.0126] below LightGBM fitted by the same pipeline and 0.0115 [0.0100,
-0.0129] below the published trees (Table~\ref{tab:learners}), and it cannot be distinguished from the MLP
-($-0.0002$ [$-0.0016$, $+0.0013$]) or from FT-Transformer at width 32 ($-0.0010$ [$-0.0021$, $+0.0001$]).
+corrected run is 0.0111 [0.0096, 0.0126] below the neural-pipeline LightGBM on 7,106 columns and 0.0115
+[0.0100, 0.0129] below LightGBM in its published configuration on 6,164 columns (Table~\ref{tab:learners}),
+and it cannot be distinguished from the MLP ($-0.0002$ [$-0.0016$, $+0.0013$]) or from FT-Transformer at
+width 32 ($-0.0010$ [$-0.0021$, $+0.0001$]).
 Its validation AUC peaked at epoch 5, and early stopping ended the run after epoch 10, while its training
 loss fell in every epoch.
 

@@ -7,9 +7,11 @@
 % Item F4-consistency-fills (2026-09-14): filled \pending{gxd_sweep} from the G x D sweep and updated the learner-comparison
 %   limitation to the finished re-runs (TabNet with the regulariser sign fixed, FT-Transformer at token dimension 192, SAINT
 %   with match-disjoint batches); \pending{learners} stays open for SAINT d128, SAINT with pre-training and the declared search.
-%   Still pending here although results exist elsewhere (not in this item's brief): labels (REV/A2-label-family/
-%   label_family_v33.json), evidence_state (REV/A4-evidence-state-leak/evidence_block_patch_holdout_v33_v2.json), window
-%   (REV/A3-temporal-windows/window_sweep_paired_cis_v33.json; any fill must carry the ten-seed qualification).
+% Item F5-limitations-fills (2026-09-14): filled \pending{labels} (REV/A2-label-family/label_family_v33.json),
+%   \pending{evidence_state} (REV/A4-evidence-state-leak/evidence_block_patch_holdout_v33_v2.json) and \pending{window}
+%   (REV/A3-temporal-windows/window_sweep_paired_cis_v33.json, with its seed_replication block); corrected the stale
+%   sentences on other attribution radii and on the headline AUC awaiting the label family; named the LightGBM
+%   comparator of the deep re-runs.  No model-class conclusion (\pending{learners} still open).
 %
 % Every number carries its source in a comment.  Path prefixes used in those comments:
 %   FEAT/    = D:/LOL_Project/fusion_2615/features/
@@ -269,21 +271,37 @@ independent of the corpus.
 % (analysis.kill_pairs list_cache_match_ids -> group_by_patch -> sample_ids per patch).
 
 Whether any conclusion depends on these choices is tested by a label-family ablation, scored by the
-area under the receiver operating characteristic curve (AUC) and by verdict agreement:
-\pending{labels}{AUC and verdict agreement, re-scored on the rows labelled by every variant, for
-kills-only pricing, non-kill prices $\times 0.5$ and $\times 2$, the elemental dragon at 25\,g, dead
-zones of 0, 150, 300, 600 and 900\,g, an attribution disc of radius $D/2 = 2{,}132$\,u, the raw
-kill-difference label and the kill-and-survivor score}. Until it is reported, the headline AUC of
-0.670 holds for this price table, this dead zone and this attribution disc only.
-% 0.66991: FEAT/scale_decomposition_v33_market_event.json overall_auc 0.6699090.
-% Variants: REPO/gameplay/labels.py label-variant registry, REQUIRED_LABEL_VARIANTS = market_event, micro_win (raw
-% kill advantage), kill_survival, market_event_dz{0,150,600,900}, market_event_kills_only, market_event_prices_x0.5,
-% market_event_prices_x2, market_event_dragon_rule (DRAGON_RULE_TEAM_GOLD 25.0), market_event_attr_radius_half
-% (ATTRIBUTION_RADIUS_HALF_V33_U 2132.0).  Scorer: REPO/scripts/run_label_family_v33.py (row sets "common" and
-% "own"; agreement() gives label agreement, flip rate and Cohen's kappa against market_event).  No scored result in
-% FEAT/tog_revision/A2-label-family/ as of 2026-09-14 (label_sidecars_v33/, keep_v33.npz and smoke runs only).
+area under the receiver operating characteristic curve (AUC) and by verdict agreement
+(\cref{sec:label-family}). Twelve labels, \texttt{market\_event} and eleven variants of it (kills-only
+pricing, non-kill prices $\times 0.5$ and $\times 2$, the elemental dragon at 25\,g, dead zones of 0,
+150, 600 and 900\,g, an attribution disc of radius $D/2 = 2{,}132$\,u, the raw kill-difference label and
+the kill-and-survivor score), were each scored with a model of their own on the 484,474 engagements
+(188,104 matches) that every one of them labels. On these common rows their AUCs range from 0.6737 to
+0.6884, with \texttt{market\_event} at 0.6822, and each variant names the same winner as
+\texttt{market\_event} on 97.97\% to 99.995\% of the engagements. The \texttt{market\_event} model,
+scored against each variant's labels, comes within 0.0010 AUC of the variant's own model.
+% Filled 2026-09-14 by item F5-limitations-fills (was \pending{labels}); same values as sec_label.tex Table tab:label-family.
+%   REV/A2-label-family/label_family_v33.json (partial false, finished 2026-09-14 14:26:43, git_dirty false):
+%   label_keys: 12 labels (market_event = dead zone 300 g plus the 11 variants listed).
+%   rowsets.common.n 484474, rowsets.common.n_matches 188104.
+%   rowsets.common.variants.<v>.auc: min market_event_kills_only 0.673676 (market_event_dz0 0.673699), max
+%     market_event_prices_x2 0.688404; market_event 0.682212.
+%   rowsets.common.variants.<v>.agreement_vs_market_event.agreement: min market_event_dz0 0.979665, max
+%     market_event_dragon_rule 0.999950.
+%   rowsets.common.variants.<v>.transfer.transfer_minus_own.mean: range -0.000947 (dz0) to +0.000307 (prices_x0.5);
+%     point transfer.auc - auc: -0.000954 to +0.000308; largest absolute value 0.000954 -> "within 0.0010".
+%   Variants: REPO/gameplay/labels.py REQUIRED_LABEL_VARIANTS; scorer REPO/scripts/run_label_family_v33.py.
+The ablation measures how far the tested settings move the AUC on identical rows; it does not cover
+settings outside those tested, and it does not make the label independent of these choices. The headline AUC of 0.670 is measured on the 532,547 engagements that
+\texttt{market\_event} itself labels, and on each variant's own labelled engagements the AUC ranges from
+0.6474 (dead zone 0\,g) to 0.6870 (raw kill difference), because these choices also change which
+engagements receive a verdict.
+% 0.66991: FEAT/scale_decomposition_v33_market_event.json overall_auc 0.6699090 (= label_family_v33.json
+%   reproduction_market_event_own.auc_now 0.669908992463444, preds_identical true); 532,547: rowsets.own.variants.market_event.n.
+% Own rows: label_family_v33.json rowsets.own.variants.<v>.auc min market_event_dz0 0.647365 (n 559117), max micro_win
+%   0.686978 (n 489984).
 
-The label variants reported so far are not compared on identical rows. The v3.3 corpus holds
+By contrast, the labels stored with the corpus are scored on their own rows. The v3.3 corpus holds
 566,452 engagements, and each label drops its own draws. This leaves 532,547 rows (191,940
 matches) for \texttt{market\_event}, 541,627 for \texttt{market\_event@window}, 538,593 for
 \texttt{market\_lex}, 541,895 for \texttt{market\_lex@window} and 561,721 for the CoG exchange-value
@@ -312,14 +330,26 @@ that defines $D$ is longer along a lane than across it (5,212\,u along the top l
 Events without a position, such as ward kills, are never attributed. In a 553-match pilot
 (1,438 engagements, \texttt{market\_event} label), 39.1\% of engagements had at least one event
 outside the disc within the label window; attribution changed the verdict of 3.0\% of the
-engagements labelled under both rules and changed whether 2.6\% were draws. No other radius has been
-evaluated yet; the label-family ablation above includes a disc of radius $D/2$, whose diameter is $D$.
+engagements labelled under both rules and changed whether 2.6\% were draws. On the full corpus, two other
+settings have been evaluated (\cref{sec:def-attribution,sec:label-family}). A disc of radius
+$D/2 = 2{,}132$\,u, whose diameter is $D$, names a different winner than the disc of radius $D$ for 2.16\%
+of the 524,711 engagements both label and lowers the common-row AUC by 0.0050 (95\% interval 0.0044 to
+0.0055); reading every event of the window with no disc names a different winner for 2.20\% of the 530,599
+engagements both label. No intermediate radius has been evaluated.
 % FEAT/label_window_fixes.json label "market_event", attribution: has_far_events_share 0.3908,
 % flip_share_among_both_labelled 0.0301, draw_status_changed_share 0.0257; n_matches 553,
 % n_engagements 1438 (file written 2026-09-09 10:18, after the price table of commit 5b5f9c8).
 % Positionless events dropped: REPO/gameplay/labels.py attribute_events() (skips events for which _event_xy()
-% returns None).  D/2 variant: labels.py market_event_attr_radius_half (2,132 u); sec_definition.tex holds the same
-% result under the pending key attr_radius.
+% returns None).
+% Corrected 2026-09-14 by item F5-limitations-fills (was "No other radius has been evaluated yet").  Same values as
+%   sec_definition.tex sec:def-attribution and sec_label.tex sec:label-family.
+%   D/2: REV/A2-label-family/label_family_v33.json agreement_vs_market_event.market_event_attr_radius_half n_both 524711,
+%     flip_rate 0.021604; rowsets.common.variants.market_event_attr_radius_half.auc 0.677253 - market_event.auc 0.682212 =
+%     -0.004959; own_minus_market_event ci_2.5 -0.005489, ci_97.5 -0.004430 (1,000 paired match bootstraps, seed 7).
+%   No disc (y_market_event@window, REPO/gameplay/labels.py LABEL_VARIANTS "market_event@window"): re-computed 2026-09-14
+%     (read-only) from REV/A2-label-family/label_sidecars_v33/labels_shard_000..031.npz keys y_market_event and
+%     y_market_event@window (566,452 rows; -1 = no verdict): rows both >= 0: 530,599; agreement 0.977968 -> 1 - 0.977968 =
+%     0.022032 (as sec_label.tex, cmd check_window.py).  No-disc AUC: sec_label.tex (own rows only, no common-row value).
 
 \subsubsection{What the inputs observe}
 
@@ -349,12 +379,24 @@ champions move most, and may therefore overstate the error at other times.
 % kill position): REPO/docs/DEFINITION_EVIDENCE.md section 18.1 (table of interpolation paths: features, presence
 % gate, label gold); kill instants as an upper-side estimate: same section, paragraph under the error table.
 The effect of this gap on the prediction ceiling belongs to the analysis of where that ceiling
-comes from, and its measurement is \pending{evidence\_state}{v3.3 AUC change from reconstructing
-the state at the cutoff from millisecond events, rerun after the position-error curve is
-recalibrated on training matches only}. Here we note only that the gap also limits the definition.
-% Evidence-state result not citable until the leak fix: REPO/docs/CLAUDE_TOG_PAPER_PLAN.md section 2, "§7 Where the
-% Limit Comes From", point 7.6 (POS_ERROR_CURVE calibrated on the evaluation matches); the fix is still running
-% (FEAT/tog_revision/A4-evidence-state-leak/, no result cited).
+comes from (\cref{sec:limit-evidence}). There, under the patch holdout and with a position-error curve
+fitted on 1,000 training-side matches, none from the validation or test patch, adding 306 columns
+reconstructed at the cutoff from millisecond events raises the test AUC of LightGBM in its published
+configuration from 0.6665 to 0.6732, by 0.0068 (95\% interval 0.0057 to 0.0078), and exceeds the same
+columns filled from the held frame by 0.0051 (0.0041 to 0.0060); each model was fitted once, and the
+intervals resample test matches only. Here we note only that the gap also limits the definition.
+% Filled 2026-09-14 by item F5-limitations-fills (was \pending{evidence_state}); same values as sec_limit.tex Table
+%   tab:limit-evidence, row "All".  REV = D:/LOL_Project/fusion_2615/features/tog_revision/.
+%   REV/A4-evidence-state-leak/evidence_block_patch_holdout_v33_v2.json (git dirty false, smoke false):
+%   split patch holdout train 15.14 / val 15.15 / test 15.16; block_columns 306.
+%   block_provenance.pos_error_curve.n_matches 1000 (source position_error_calibration_v2.json, fit_rule isotonic_weighted);
+%     calibration_vs_loaded_rows disjoint_from_test_patch true, disjoint_from_val_patch true, train_patch_15.14 intersection
+%     928 ("training-side matches"); position_error_calibration_v2.json split.name predict_train, holdout_patches
+%     ["15.15", "15.16"], selection.excluded_holdout_patch 1730.
+%   models.X.overall_auc 0.666484 (= reproduces_lgbm_paper.lgbm_paper_test_auc); models.X_plus_evidence.overall_auc 0.673239.
+%   paired.evidence_minus_X.overall delta +0.006755, lo +0.005700, hi +0.007757.
+%   paired.evidence_minus_hold.overall delta +0.005076, lo +0.004083, hi +0.006042.
+%   Fitted once: lgbm_params random_state 7, one fit per model; bootstrap n_boot 1000, seed 7, clusters 55449 (test matches).
 
 The observation window, 30\,s before the cutoff summarised in six 5\,s bins, is carried over
 from the CoG submission; it was not derived.
@@ -362,20 +404,49 @@ from the CoG submission; it was not derived.
 % convention": REPO/docs/DEFINITION_EVIDENCE.md section 18.1; kept on 2026-09-09: REPO/docs/RELEASE_REPORT_V3.md
 % section 7 (decision log).
 Because frames are 60\,s apart, a 30\,s window contains at most one frame, so its length mostly
-changes how many events are seen rather than how much state. The only measurement so far is a
-553-match pilot that predates the input-audit leak fixes and is therefore not a v3.3 result: it used
-1,360 labelled rows from 1,438 engagements, the \texttt{market\_lex} label, and 7,105 pre-fix feature
-columns without the frame-age column. It gives AUCs of 0.614, 0.626 and 0.631 for windows of 15, 30
+changes how many events are seen rather than how much state. Before the sweep below, the only
+measurement was a 553-match pilot that predates the input-audit leak fixes and is therefore not a v3.3
+result: it used 1,360 labelled rows from 1,438 engagements, the \texttt{market\_lex} label, and 7,105
+pre-fix feature columns without the frame-age column. It gives AUCs of 0.614, 0.626 and 0.631 for windows of 15, 30
 and 60\,s, without intervals, and we draw no conclusion from that ordering for the v3.3 features.
 % FEAT/prediction_situation_pilot.json checks.ctx: 15 -> 0.61420, 30 -> 0.62626, 60 -> 0.63127; n_matches 553,
 % n_refs 1438, n_rows 1360, n_features 7105, v3.LABEL_TYPE market_lex.  Pre-fix status: REPO/docs/RELEASE_REPORT_V3.md
 % section 5.5 (pilot and audit metrics), caveat 1: pilot written 2026-09-09 05:33, before commits 5b5f9c8 and
 % 86095c8, no frame_age_s, "not v3.3 results".
-The sweep of \cref{sec:learners-window} is \pending{window}{v3.3 test-patch AUC for observation windows
-of 15, 30, 60 and 120\,s in 5\,s bins and for bin widths of 2.5 and 10\,s within 30\,s, on the
-engagements common to all arms}. Until it is reported, 30\,s is a convention.
-% arms and common rows: REPO/scripts/run_window_sweep_v33.py module docstring; no result in
-% FEAT/tog_revision/A3-temporal-windows/ as of 2026-09-14 (smoke runs only).
+The sweep of \cref{sec:learners-window} scores LightGBM in its published configuration for windows of
+15, 30, 60 and 120\,s in 5\,s bins and for bins of 2.5 and 10\,s within 30\,s, on 50,766 engagements
+from a 20,000-match sample that are identical across settings. No window or bin width improves on the
+30\,s, 5\,s reference by a margin that survives both the sampling of test matches and the training seed.
+With the fitted models held fixed, 2.5\,s bins raise the AUC by 0.0063 (95\% interval 0.0029 to 0.0100)
+on the patch holdout and by 0.0047 (0.0024 to 0.0071) out of fold, a protocol fitted with one seed only.
+Over ten patch-holdout refits that differ only in LightGBM's random seed, however, the difference of the
+mean AUCs for 2.5\,s bins is $+0.0016$ ($-0.0007$ to $+0.0039$), and the corresponding intervals of the
+other four settings also include zero. The sample's training patch holds about a tenth of the engagements
+of the full one, and windows beyond 120\,s and bins finer than 2.5\,s were not tested. The 30\,s window
+therefore remains a convention: the sweep shows neither that it limits the AUC nor that it is the best
+choice.
+% Filled 2026-09-14 by item F5-limitations-fills (was \pending{window}); same values as sec_learners.tex Table tab:window.
+%   REV = D:/LOL_Project/fusion_2615/features/tog_revision/.
+%   REV/A3-temporal-windows/window_sweep_paired_cis_v33.json (created_utc 2026-09-14T07:41:41Z, the rewrite with
+%   seed_replication; checks.passed true):
+%   settings ctx15/30/60/120_bin5000, ctx30_bin2500, ctx30_bin10000; reference "ctx30_bin5000".
+%   source_run.lgbm_params n_estimators 400, learning_rate 0.05, num_leaves 31, colsample_bytree 0.9, random_state 7 (the
+%     published configuration); source_run.n_matches_sampled 20000; checks.common_rows n_rows 50766 (identical rows and
+%     labels across settings: checks.settings.<s>.setting_cache.row_order_labels_groups_patch_equal_common true).
+%   protocols.patch.paired."ctx30_bin2500 - ctx30_bin5000" delta +0.006325, ci_lo +0.002878, ci_hi +0.009956.
+%   protocols.oof.paired."ctx30_bin2500 - ctx30_bin5000" delta +0.004710, ci_lo +0.002398, ci_hi +0.007135; one seed:
+%     method.held_fixed "the OOF protocol is not refitted".
+%   seed_replication.seeds [7, 1, 2, 3, 4, 5, 6, 8, 9, 10]; varied "LightGBM random_state only"; estimand seed_mean
+%     ("interval of the difference of seed-averaged AUCs: per replicate the same match draw plus 10 seeds drawn with
+%     replacement per setting"), n_boot 2000.
+%   seed_replication.paired."<s> - ctx30_bin5000".seed_mean delta, ci_lo, ci_hi:
+%     ctx30_bin2500 +0.001568 [-0.000734, +0.003896]; ctx15_bin5000 -0.002503 [-0.005656, +0.000387];
+%     ctx60_bin5000 +0.003051 [-0.000129, +0.006244]; ctx120_bin5000 +0.000431 [-0.002986, +0.003817];
+%     ctx30_bin10000 -0.000302 [-0.002867, +0.002194]; ci_excludes_zero false for all five.
+%   source_run.split.rows.train 17909; FEAT/model_comparison_v33_patch.json split.rows.train 187547;
+%     17909 / 187547 = 0.095 ("about a tenth").
+%   Untested ranges: sec_learners.tex paragraph "What this implies for Hypothesis W" (windows beyond 120 s, bins finer
+%     than 2.5 s).
 
 The win-probability model that values an engagement is least reliable late in the game. Even
 after sampling one training point per 5-minute bucket, only 2,517 of its 40,228 fitting rows
@@ -452,8 +523,15 @@ engagements. TabNet with the regulariser added reaches a test AUC of 0.6114 (95\
 engagement per match reaches 0.6550 (0.6522 to 0.6577), a difference from the withdrawn run whose interval
 includes zero ($-0.0006$ to $+0.0014$). FT-Transformer at token dimension 192, with 2.45\,M parameters,
 reaches 0.6578 (0.6549 to 0.6606), 0.0018 (0.0007 to 0.0029) above dimension 32. On the same engagements
-the LightGBM of the same neural pipeline, which reads all 7,106 columns, reaches 0.6661 (0.6632 to 0.6688),
-and the three runs lie 0.008 to 0.055 below it, each paired interval excluding zero. These are still single
+the neural-pipeline LightGBM, which reads all 7,106 columns, reaches 0.6661 (0.6632 to 0.6688), and the
+three runs lie 0.008 to 0.055 below this neural-pipeline LightGBM, each paired interval excluding zero.
+This comparator is not LightGBM in its published configuration on 6,164 columns, against which
+\cref{tab:learners} states the differences of the same runs.
+% Comparator naming (item F5-limitations-fills, 2026-09-14; no number changed): "neural pipeline" = row "LightGBM, neural
+%   pipeline, 7,106" of sec_learners.tex tab:learners (FEAT/deep_tabular_v33_patch_full.json models.lightgbm, the
+%   "published_lightgbm" of the REV/A1-deep-baselines files); 6,164 = FEAT/model_comparison_v33_patch.json lgbm_paper input
+%   (sec_learners.tex sec:learners-input comment: AUD truth.columns_non_constant 6164), the reference of tab:learners.
+These are still single
 runs of fixed configurations, with intervals from 1,000 match-bootstrap resamples that hold the fitted
 models fixed: they show what these configurations reach under that budget, not what the architectures can
 reach, and we draw no conclusion about model classes from them. SAINT at token dimension 128, SAINT with

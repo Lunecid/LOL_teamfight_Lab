@@ -136,6 +136,11 @@ available at the cutoff?
 %   teamfight 0.69116 - 0.64207 = +0.0491 (n 2,628); pick 0.62070 - 0.61808 = +0.0026 (n 2,419).
 %   "most of the effect": pick_minus_teamfight -0.0705 (time_leak) vs -0.0240 (clean);
 %   (-0.0705 - -0.0240) / -0.0705 = 0.66 of the gap in that sample.
+% Paired intervals (added 2026-09-14 by item F5-limitations-fills; same values as sec_prediction.tex tab:pred-leak text):
+%   D:/LOL_Project/fusion_2615/features/tog_revision/C3-leak-ablation/leak_ablation_paired_cis_v33.json
+%   bootstrap.differences["time_leak - clean"].auc_teamfight point +0.049092, ci_lo +0.036034, ci_hi +0.062632;
+%   .auc_pick point +0.002624, ci_lo -0.012039, ci_hi +0.016879, excludes_zero false (n_boot_used 2000, seed 7,
+%   4,572 matches; fitted models held fixed; re-run reproduces FEAT/leak_ablation_v33.json exactly).
 % Five-fold headline: FEAT/scale_decomposition_v33_market_event.json n 532547, n_matches 191940,
 %   overall_auc 0.669909 (published LightGBM configuration, the "lgbm_paper" of the patch comparison;
 %   WT/scripts/run_model_comparison_v33.py line 12).  Class AUCs behind the cut table (not printed
@@ -157,8 +162,9 @@ analyses after the conference version had concluded that pre-fight predictabilit
 scale. Engagements were classed by the number of participants on the smaller side as picks (at most
 one), skirmishes and teamfights, and teamfights, whether the class began at three participants or at
 four, were markedly more predictable than the rest. We withdraw that conclusion. In a paired ablation
-on 5,000 matches, the time feature alone raised the AUC of teamfights by 0.049 and that of picks by
-0.003. With audit-fixed inputs, LightGBM gradient-boosted trees~\cite{ke2017lightgbm}, many small
+on 5,000 matches, the time feature alone raised the AUC of teamfights by 0.049 (paired 95\% interval
+0.036 to 0.063), whereas its 0.003 for picks has a paired interval that includes zero ($-0.012$ to
+$+0.017$). With audit-fixed inputs, LightGBM gradient-boosted trees~\cite{ke2017lightgbm}, many small
 decision trees added one after another, each fitted to the errors of those before it, reach an
 AUC of 0.6699 on 532,547 engagements from 191,940 matches in five-fold cross-validation that keeps
 each match within one fold, and the difference between the AUCs of picks and teamfights follows
