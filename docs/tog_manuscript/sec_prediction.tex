@@ -2,8 +2,8 @@
 % sec_prediction.tex -- Pre-Engagement Prediction  (ToG manuscript, item M2-prediction, 2026-09-14)
 %
 % Answers CoG 2026 reviews: R3 (motivate every method for a non-expert: task, grouped cross-validation,
-% AUC, match bootstrap, attribution forensics), R1 (results must not hinge on hand-set constants: pointer to
-% the G x D sweep and the presence-gate points, both pending) and the audit-driven withdrawal that the
+% AUC, match bootstrap, attribution forensics), R1 (results must not hinge on hand-set constants: the G x D
+% sweep and the presence-gate points, both filled 2026-09-14 by item F3-fill-results, sec:pred-constants) and the audit-driven withdrawal that the
 % Introduction announces (reviewer_response_matrix.md rows R1-2, R3-5).
 %
 % FACTS THIS FILE MUST KEEP (checked against code and artefacts by this item):
@@ -55,7 +55,7 @@
 %   \ref in a full build and prints a placeholder only if a file is missing.  sec:limit is not referenced.
 % Labels defined here: sec:prediction, sec:pred-task, sec:pred-protocol, sec:pred-headline, sec:pred-audit,
 %   sec:pred-cut, sec:pred-scoreboard, sec:pred-constants; tab:pred-headline, tab:pred-leak, tab:pred-cut,
-%   tab:pred-scoreboard.
+%   tab:pred-scoreboard, tab:pred-gxd (added by item F3-fill-results).
 % Build check 2026-09-14 (after the fact-check fixes): compiled with IEEEtran + macros.tex + bibtex in the
 %   scratchpad (stub sections for the \ref / \fwdref targets): no errors, no overfull boxes, no undefined
 %   references, all three citations resolve.
@@ -64,9 +64,12 @@
 %   tab:pred-leak caption; durable provenance of one-model class gaps; plain-words LightGBM and early
 %   stopping (R3); "makes no claim" wording.  No \pending marker could be filled (see the four keys below).
 % \pending keys used here (underscores escaped for text mode; grep "pending" finds them):
-%   gxd_sweep, presence_gate_v33 (same keys as sec_definition.tex), leak_ablation_ci.  shap_forensics was filled on
+%   leak_ablation_ci.  shap_forensics was filled on
 %   2026-09-14 by item F2-fill-and-gloss from REV/A7-shap-forensics/rerun.json (see sec:pred-audit); leak_ablation_ci stays
 %   pending (REV/C3-leak-ablation holds only smoke_m300 on 2026-09-14 16:10).  sec:limit-shap is now referenced.
+%   gxd_sweep and presence_gate_v33 were filled on 2026-09-14 by item F3-fill-results from
+%   REV/A6-definition-sensitivity/gd_sweep/gd_sweep_summary.json and REV/A6-definition-sensitivity/presence_gate/
+%   presence_gate_summary.json (sec:pred-constants; new label tab:pred-gxd).
 % Citation keys (all in REPO/docs/references/definition_refs.bib, marked VERIFIED): efron1993bootstrap,
 %   ke2017lightgbm, lundberg2020local.
 % =============================================================================
@@ -440,8 +443,10 @@ the inputs.
 %   (REV/queue_state/A7-shap-leak-forensics-v33-m20000-r3.ok 16:06; .done rc 0, final true), script
 %   REPO/scripts/run_shap_leak_forensics_v33.py sha1 a9d1362 = committed version (commit 8978bfb).  Its provenance lists dirty
 %   manuscript files and scripts/run_leak_ablation.py, which the script does not load (it loads build_corpus_shard,
-%   run_deep_tabular_baselines and run_scale_decomposition).  The earlier shap_leak_forensics_v33_m20000.json (05:29) has the
-%   same test AUCs and leak shares but is not the cited file.  Keys: sample.n_matches_sampled 20000; split test rows 15911,
+%   run_deep_tabular_baselines and run_scale_decomposition).  The earlier shap_leak_forensics_v33_m20000.json (05:29, from a
+%   mid-edit tree) gave identical values: item F3-fill-results (2026-09-14) compared every JSON leaf of the two files; the 57
+%   that differ are timings, argv, output paths and git provenance, and every key cited below is equal to the last digit.
+%   rerun.json is the cited file.  Keys: sample.n_matches_sampled 20000; split test rows 15911,
 %   matches 5695 (patch 15.14 / 15.15 / 15.16, early stopping on 15.15); test_auc.overall auc_clean 0.647144, auc_leaky
 %   0.663690, diff +0.016547, ci_diff [+0.012196, +0.021074] (2,000 match bootstraps); shap.n_rows 10000;
 %   leak_share.union share_leaky 0.091930 [0.090298, 0.093523], share_clean 0.004567 [0.004463, 0.004672], diff +0.087363
@@ -683,27 +688,193 @@ here.
 
 % Why: CoG R1 (reviewer_response_matrix.md R1-5b; REPO/scripts/run_gd_sweep_v33.py docstring: "the objection
 %   is retired only if the result does not hinge on where they sit").
-% G x D grid: REPO/scripts/run_gd_sweep_v33.py docstring: G in {10, 12, 13.7, 16, 18} s x D in {3,500, 4,000,
-%   4,264, 4,750} u (20 settings), every other constant at preset v3.3, declared match subsample, published
-%   LightGBM configuration under the patch holdout (lgbm_paper), per setting engagements, test AUC with match
-%   bootstrap CI, class AUCs, and engagement overlap with the operating point.  No artefact on 2026-09-14.
-% Presence gate: REPO/scripts/run_presence_gate_points.py docstring: points rule_R1600_B15 (1,600 u, 15 s),
-%   ref_R1800_B10 (1,800 u, 10 s), rule_R1600_B15_M3 (M = 3); --engine holdout = the v3.3 protocol of the
-%   G x D sweep.  The earlier runs_presence_gate/ comparison used the CoG constants and the leaking inputs and
-%   is not cited (sec_definition.tex note).  No v3.3 artefact on 2026-09-14.
+% Filled 2026-09-14 by item F3-fill-results (was \pending{gxd_sweep} and \pending{presence_gate_v33}).  Every value below was
+%   re-read from the two artefacts on 2026-09-14.
+% G x D grid: REV/A6-definition-sensitivity/gd_sweep/gd_sweep_summary.json (script REPO/scripts/run_gd_sweep_v33.py; provenance
+%   git_commit a5b4965, git_dirty_tracked true; settings_missing []).  provenance: n_matches_sampled 10000 (seed 7, sample_digest
+%   51646dbd62f59fa0d9c50186; signature.cache_dir D:/LOL_Project/cache/match_cache_fresh_v3_engage_status13, 210,000 matches per
+%   presence_gate_summary.json provenance.n_matches), split patch holdout 15.14 / 15.15 / 15.16, n_boot 1000, tolerance_ms 5000,
+%   operating_point G13700_D4264; signature.lgbm = the published configuration (400 trees, learning rate 0.05, 31 leaves,
+%   subsample 0.9, colsample_bytree 0.9), early_stopping_rounds 100.  Deviations (file): all 7,106 columns given to LightGBM
+%   (train-constant columns are never split on), draws dropped through the label tie policy, one-to-one greedy matching within
+%   5 s, per-setting and paired intervals from separate replicate streams (the paired stream resamples the union of both
+%   settings' test matches).
+%   Operating point settings[G13700_D4264]: counts.n_engagements 27053; counts.by_split.train.rows 9032, test.rows 7298 (2,607
+%   matches); test.auc point 0.625191, ci_2.5 0.612380, ci_97.5 0.637923.  Training rows over all 20 settings:
+%   counts.by_split.train.rows min 8185 (G18000_D4750), max 10162 (G10000_D3500).
+%   Per setting: counts.n_engagements; overlap_engagements.share_of_operating_point_matched; test_rows_vs_operating_point.n_shared
+%   and .label_agreement_shared; paired_vs_operating_point.shared_setting_minus_op point [ci_2.5, ci_97.5]; .shared_label_effect.
+%   G10000_D3500 eng 30185, op_matched 0.9901, shared 7194, agree 0.9915, shared_setting_minus_op -0.008171 [-0.015477, -0.000819], label -0.004223 [-0.007095, -0.001446]
+%   G10000_D4000 eng 29983, op_matched 0.9908, shared 7213, agree 0.9939, shared_setting_minus_op -0.005742 [-0.012303, +0.001264], label -0.003358 [-0.005772, -0.001001]
+%   G10000_D4264 eng 29919, op_matched 0.9914, shared 7220, agree 0.9945, shared_setting_minus_op -0.009439 [-0.017364, -0.002415], label -0.003108 [-0.005383, -0.000857]
+%   G10000_D4750 eng 29842, op_matched 0.9876, shared 7193, agree 0.9935, shared_setting_minus_op -0.000168 [-0.007524, +0.007046], label -0.002517 [-0.005090, +0.000057]
+%   G12000_D3500 eng 28522, op_matched 0.9937, shared 7223, agree 0.9943, shared_setting_minus_op -0.000735 [-0.007638, +0.006331], label -0.001801 [-0.003926, +0.000403]
+%   G12000_D4000 eng 28291, op_matched 0.9952, shared 7247, agree 0.9970, shared_setting_minus_op -0.001533 [-0.008439, +0.005813], label -0.001226 [-0.002887, +0.000278]
+%   G12000_D4264 eng 28210, op_matched 0.9962, shared 7259, agree 0.9978, shared_setting_minus_op -0.005744 [-0.012442, +0.000713], label -0.000920 [-0.002314, +0.000436]
+%   G12000_D4750 eng 28111, op_matched 0.9912, shared 7225, agree 0.9964, shared_setting_minus_op -0.001328 [-0.007613, +0.005118], label -0.000106 [-0.002098, +0.002099]
+%   G13700_D3500 eng 27410, op_matched 0.9966, shared 7253, agree 0.9961, shared_setting_minus_op -0.001980 [-0.008548, +0.004345], label -0.001028 [-0.002800, +0.000736]
+%   G13700_D4000 eng 27152, op_matched 0.9987, shared 7284, agree 0.9990, shared_setting_minus_op +0.003594 [-0.002659, +0.009402], label -0.000476 [-0.001394, +0.000377]
+%   G13700_D4264 eng 27053, op_matched 1.0000, shared 7298, agree 1.0000, shared_setting_minus_op +0.000000 [+0.000000, +0.000000] (operating point)
+%   G13700_D4750 eng 26939, op_matched 0.9939, shared 7254, agree 0.9983, shared_setting_minus_op -0.005638 [-0.011571, +0.000046], label +0.000783 [-0.000604, +0.002317]
+%   G16000_D3500 eng 26190, op_matched 0.9481, shared 6883, agree 0.9939, shared_setting_minus_op +0.002413 [-0.004257, +0.009603], label -0.000899 [-0.003161, +0.001355]
+%   G16000_D4000 eng 25884, op_matched 0.9488, shared 6899, agree 0.9962, shared_setting_minus_op +0.000446 [-0.006787, +0.007394], label -0.000086 [-0.001880, +0.001614]
+%   G16000_D4264 eng 25770, op_matched 0.9496, shared 6910, agree 0.9970, shared_setting_minus_op +0.001320 [-0.005739, +0.008552], label +0.000677 [-0.000778, +0.002154]
+%   G16000_D4750 eng 25626, op_matched 0.9429, shared 6866, agree 0.9953, shared_setting_minus_op -0.000242 [-0.006893, +0.006800], label +0.001519 [-0.000571, +0.003714]
+%   G18000_D3500 eng 25415, op_matched 0.9174, shared 6630, agree 0.9911, shared_setting_minus_op -0.003667 [-0.011821, +0.004158], label -0.000822 [-0.003528, +0.001889]
+%   G18000_D4000 eng 25085, op_matched 0.9173, shared 6643, agree 0.9925, shared_setting_minus_op -0.005167 [-0.012050, +0.001931], label -0.000144 [-0.002419, +0.002047]
+%   G18000_D4264 eng 24958, op_matched 0.9172, shared 6647, agree 0.9932, shared_setting_minus_op -0.000126 [-0.007218, +0.007421], label +0.000653 [-0.001594, +0.002934]
+%   G18000_D4750 eng 24764, op_matched 0.9094, shared 6593, agree 0.9917, shared_setting_minus_op -0.000632 [-0.008250, +0.007018], label +0.001519 [-0.000979, +0.004248]
+%   cmd (2026-09-14, over the 19 non-operating settings of settings[*]): n_engagements min 24764 / max 30185; 24764 / 27053 - 1 =
+%     -0.0846, 30185 / 27053 - 1 = +0.1158; share_of_operating_point_matched min 0.9094; n_shared min 6593 / max 7284;
+%     label_agreement_shared min 0.9911; shared_setting_minus_op min -0.009439 / max +0.003594, 15 of 19 points < 0; intervals
+%     entirely below zero only G10000_D3500 and G10000_D4264, none entirely above zero (G13700_D4750 reaches +0.000046, so zero
+%     is inside); shared_label_effect intervals entirely below zero only at G10000_D3500 / D4000 / D4264 (-0.004223, -0.003358,
+%     -0.003108), none entirely above.  Plateau "10 to 18 s": sec_definition.tex (FB/details_pooled.json temporal.plateau_s).
+%   Not printed: per-class test AUCs (test.classes.*; intervals about 0.05 to 0.07 wide at this sample size, e.g. the operating
+%     point's teamfight [0.6254, 0.6804]) and full_setting_minus_op (each setting's own test rows: -0.011667 to +0.002621).
+% Presence gate: REV/A6-definition-sensitivity/presence_gate/presence_gate_summary.json (script REPO/scripts/
+%   run_presence_gate_points.py --engine holdout --summarize; provenance git_commit fa166ec, git_dirty_tracked false; n_matches
+%   210000, seed 7, n_boot 1000, tolerance_ms 5000, reference rule_R1600_B15; points_missing []).  M is TF2_MIN_PER_TEAM (script
+%   docstring and GATE_KEYS); REQUIRE_ALIVE_PER_TEAM is not changed.  The earlier runs_presence_gate/ comparison used the CoG
+%   constants and the leaking inputs and is not cited (sec_definition.tex note).
+%   points[rule_R1600_B15]: counts.all.n_engagements 566452; counts.train.n_rows_labelled 187547, counts.test.n_rows_labelled
+%     153816; test.auc 0.666484 [0.663722, 0.669230]; reproduces_lgbm_paper: test_auc_reference 0.6664835319909197 =
+%     test_auc_this_run, test_auc_diff 0.0, best_iteration 381 = 381, rows_this_run = rows_reference,
+%     test_rows_aligned_with_reference true, max_abs_pred_diff 0.0 (reference FEAT/model_comparison_v33_patch.json and .preds.npz).
+%   points[ref_R1800_B10]: counts.all.n_engagements 1022489 (1022489 / 566452 = 1.805); counts.train.n_rows_labelled 339470,
+%     counts.test.n_rows_labelled 279353; test.auc 0.673588 [0.671787, 0.675575]; paired_vs_reference.full_setting_minus_op
+%     +0.007105 [+0.004982, +0.009368]; overlap_engagements.share_of_operating_point_matched 0.913172;
+%     test_rows_vs_reference.n_shared 139397, label_agreement_shared 0.991083; auc_vs_reference.setting_shared 0.669312,
+%     operating_point_shared 0.665425; paired_vs_reference.shared_setting_minus_op +0.003887 [+0.002550, +0.005307],
+%     shared_label_effect -0.001191 [-0.001798, -0.000551], shared_model_effect +0.005078 [+0.003799, +0.006280].
+%   points[rule_R1600_B15_M3]: counts.all.n_engagements 76290 (76290 / 566452 = 0.1347); counts.train.n_rows_labelled 25565,
+%     counts.test.n_rows_labelled 21173; test.auc 0.678927 [0.672150, 0.686214]; paired_vs_reference.full_setting_minus_op
+%     +0.012444 [+0.005689, +0.019138]; test_rows_vs_reference.n_shared 19918, label_agreement_shared 0.997239;
+%     auc_vs_reference.setting_shared 0.681144, operating_point_shared 0.687695; paired_vs_reference.shared_setting_minus_op
+%     -0.006551 [-0.009725, -0.003525], shared_label_effect -0.000148 [-0.000992, +0.000640], shared_model_effect -0.006402
+%     [-0.009395, -0.003522].
+%   Deviations (file): shared engagements matched one-to-one on (match id, first-kill time) within 5 s; labels of a shared
+%     engagement can differ between points because the label window starts at the cutoff, which moves with B; per-point and
+%     paired intervals from separate replicate streams.  Model effect = setting model minus reference model, both scored against
+%     the setting's labels (run_gd_sweep_v33.py docstring "shared"), so at ref_R1800_B10 it includes the setting's cutoff
+%     (tau = first kill - 10 s) and its training rows.  Not printed: class and presence-class AUCs (test.classes, test.extra).
 The result describes the engagements that the definition produces, and the definition has constants. The
 kill gap $G$ and the cluster diameter $D$ are estimated from data and the presence radius $R$ and lead $B$
 are anchored on game rules (Section~\ref{sec:def-constants}), but a reader may still ask whether the AUC
 would move if they sat elsewhere. If it moved much, the result would describe the constants rather than
 the task. Two experiments re-detect the engagements with only these constants changed, relabel them, and
 score them under the patch holdout with the published LightGBM configuration, so that each setting is
-compared with the operating point on the same matches rather than with the cross-validated AUC above. The
-first varies $G$ over 10, 12, 13.7, 16 and 18\,s and $D$ over 3,500, 4,000, 4,264 and 4,750\,u:
-\pending{gxd\_sweep}{G x D sensitivity grid against the v3.3 operating point: engagements, test AUC with
-match-bootstrap interval, class AUCs and overlap with the operating point's engagements for each of the 20
-settings}. The second moves the presence gate to the conference point ($R = 1{,}800$\,u, $B = 10$\,s) and
-raises the minimum number of champions per team from two to three:
-\pending{presence\_gate\_v33}{v3.3 protocol re-run at (R, B, M) = (1,800 u, 10 s, 2) and (1,600 u, 15 s,
-3), every other constant fixed: engagements, AUC at each point, and AUC on the engagements accepted at both
-points}. Until both are available, no statement is made that the result is insensitive to these
-constants.
+compared with the operating point on the same matches rather than with the cross-validated AUC above.
+
+\emph{Kill gap and diameter.} The first experiment varies $G$ over 10, 12, 13.7, 16 and 18\,s and $D$
+over 3,500, 4,000, 4,264 and 4,750\,u, 20 settings, on a random sample of 10,000 of the 210,000 cached
+matches drawn with a fixed seed (Table~\ref{tab:pred-gxd}). On so few matches each model is trained on
+8,185 to 10,162 engagements instead of 187,547, and the operating point itself reaches a test AUC of only
+0.6252 (95\% interval 0.6124 to 0.6379). Absolute AUCs from this sample are therefore not compared with those
+elsewhere in this section; only differences from the operating point on the same sample are read. A setting also
+changes which engagements exist, so each difference is taken on the test engagements that both the setting
+and the operating point detect, paired by match and by the time of the first kill (within 5\,s): the AUC
+of the setting's model against the setting's labels minus that of the operating point's model against its
+own labels. The two labels of such an engagement agree in at least 99.1\% of cases.
+
+\begin{table}[t]
+\centering
+\caption{Sensitivity to the kill gap $G$ and the cluster diameter $D$ on a random sample of 10,000 matches,
+patch holdout, published LightGBM configuration fitted once per setting. Top: engagements detected. Bottom:
+test AUC of the setting minus test AUC of the operating point ($G = 13.7$\,s, $D = 4{,}264$\,u; ---), both
+on the test engagements that the two settings share (6,593 to 7,284 of the operating point's 7,298), each
+model scored against its own labels. $^\dagger$: the paired 95\% interval (match bootstrap, 1,000
+resamples, fitted models held fixed, not adjusted for the 19 comparisons) excludes zero. On this sample the
+operating point's test AUC is 0.6252, so only differences are shown.}
+\label{tab:pred-gxd}
+% Source: REV/A6-definition-sensitivity/gd_sweep/gd_sweep_summary.json settings[*].counts.n_engagements and
+%   settings[*].paired_vs_operating_point.shared_setting_minus_op.{point, ci_2.5, ci_97.5}; every value with its
+%   interval is listed in the comment block at the start of this subsection.  Dagger = interval entirely below zero
+%   (G10000_D3500, G10000_D4264).  6,593 / 7,284 = test_rows_vs_operating_point.n_shared min / max; 7,298 =
+%   n_test_operating_point; 0.6252 = settings[G13700_D4264].test.auc.point 0.625191.
+\footnotesize
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+& \multicolumn{4}{c@{}}{$D$ (u)} \\
+\cmidrule(l){2-5}
+$G$ (s) & 3,500 & 4,000 & 4,264 & 4,750 \\
+\midrule
+\multicolumn{5}{@{}l}{\emph{Engagements detected}} \\
+10 & 30,185 & 29,983 & 29,919 & 29,842 \\
+12 & 28,522 & 28,291 & 28,210 & 28,111 \\
+13.7 & 27,410 & 27,152 & 27,053 & 26,939 \\
+16 & 26,190 & 25,884 & 25,770 & 25,626 \\
+18 & 25,415 & 25,085 & 24,958 & 24,764 \\
+\midrule
+\multicolumn{5}{@{}l}{\emph{AUC difference from the operating point, shared test engagements}} \\
+10 & $-0.0082$\rlap{$^\dagger$} & $-0.0057$ & $-0.0094$\rlap{$^\dagger$} & $-0.0002$ \\
+12 & $-0.0007$ & $-0.0015$ & $-0.0057$ & $-0.0013$ \\
+13.7 & $-0.0020$ & $+0.0036$ & --- & $-0.0056$ \\
+16 & $+0.0024$ & $+0.0004$ & $+0.0013$ & $-0.0002$ \\
+18 & $-0.0037$ & $-0.0052$ & $-0.0001$ & $-0.0006$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Over the grid the number of engagements ranges from 24,764 to 30,185 against 27,053 at the operating point,
+from $-8.5$\% to $+11.6$\%, and every setting keeps at least 90.9\% of the operating point's engagements.
+On the shared test engagements the AUC differences range from $-0.0094$ to $+0.0036$, and 15 of the 19 are
+negative. No setting's interval lies above zero. Two lie below it, both at $G = 10$\,s, the lower end of
+the 10--18\,s plateau (Section~\ref{sec:definition}): $-0.0082$ ($-0.0155$ to $-0.0008$) at $D = 3{,}500$\,u and
+$-0.0094$ ($-0.0174$ to $-0.0024$) at $D = 4{,}264$\,u. At $G = 10$\,s the change of labels costs the most
+AUC: scoring the operating point's model against the labels of the settings with $G = 10$\,s and
+$D \le 4{,}264$\,u lowers its AUC on the shared engagements by 0.0031 to 0.0042, with intervals below zero.
+Labels do not change most often there: at every $D$ the share of shared test engagements whose label
+differs from the operating point's is larger at $G = 18$\,s (0.7\% to 0.9\%) than at $G = 10$\,s (0.6\% to
+0.8\%).
+% Corrected after the F3 fact-check (2026-09-14): the draft said "the labels change most" at G = 10 s, which the artefact
+%   does not support.  gd_sweep_summary.json settings[*].test_rows_vs_operating_point.label_agreement_shared:
+%   G10000 D3500 / D4000 / D4264 / D4750 0.991521 / 0.993900 / 0.994460 / 0.993466 (label differs on 0.85 / 0.61 / 0.55 /
+%   0.65 %); G18000 0.991101 / 0.992473 / 0.993230 / 0.991658 (0.89 / 0.75 / 0.68 / 0.83 %); lowest agreement of all 19
+%   settings G18000_D3500.  What is largest at G = 10 s is settings[*].paired_vs_operating_point.shared_label_effect: the four
+%   most negative points of the 19 are G10000_D3500 -0.004223 [-0.007095, -0.001446], D4000 -0.003358 [-0.005772, -0.001001],
+%   D4264 -0.003108 [-0.005383, -0.000857], D4750 -0.002517 [-0.005090, +0.000057]; next G12000_D3500 -0.001801.
+%   Label effect = AUC of the operating point's model against the setting's labels minus against its own labels, on the
+%   shared rows (shared_setting_minus_op = shared_label_effect + shared_model_effect, e.g. G10000_D3500 -0.004223 - 0.003948
+%   = -0.008171).
+
+The grid shows no more than this. It is one sample of 10,000 matches, and differences between models
+trained on the full corpus may be larger or smaller. Each setting is fitted once with one seed, and the
+intervals hold the fitted models fixed, so they leave out the variation from refitting. Every difference is
+taken against the same fitted model of the operating point, so the 19 differences are not independent: a
+favourable fit of that one model would lower all of them together. The intervals are not adjusted for the
+19 comparisons. No margin within which a difference counts as negligible was set in advance, so the grid
+bounds the differences observed in these ranges and does not establish that the AUC is insensitive to $G$
+and $D$; it says nothing about values outside the ranges, about cross-validation or about the scale
+classes.
+
+\emph{Presence gate.} The second experiment changes only the presence gate and runs on all 210,000 cached
+matches. At the adopted gate ($R = 1{,}600$\,u, $B = 15$\,s, $M = 2$) it reproduces the published
+patch-holdout result exactly: the same 153,816 test engagements, the same predictions and a test AUC of
+0.6665. At the conference-version gate ($R = 1{,}800$\,u, $B = 10$\,s) the corpus holds 1,022,489
+engagements, 1.8 times the 566,452 at the adopted gate, and 91.3\% of the adopted gate's engagements are
+among them. The test AUC is 0.6736 (0.6718 to 0.6756) on 279,353 test engagements, $+0.0071$ ($+0.0050$ to
+$+0.0094$) above the adopted gate's. On the 139,397 test engagements that both gates accept it is 0.6693
+against 0.6654, a paired difference of $+0.0039$ ($+0.0025$ to $+0.0053$). Scoring the adopted gate's model
+against the other gate's labels on those engagements changes its AUC by $-0.0012$ ($-0.0018$ to $-0.0006$),
+so the gain lies in the model, $+0.0051$ ($+0.0038$ to $+0.0063$). That model differs in two ways that the
+run does not separate: it reads the state at a cutoff 10\,s rather than 15\,s before the first kill, and it
+is trained on 339,470 engagements rather than 187,547.
+
+Raising $M$ to three leaves 76,290 engagements, 13.5\% of the adopted set. Their test AUC is 0.6789 (0.6721
+to 0.6862) on 21,173 test engagements, $+0.0124$ ($+0.0057$ to $+0.0191$) above the adopted gate's. The rise
+comes from which engagements remain, not from a better model: on the 19,918 test engagements that both
+gates accept, the adopted gate's model reaches 0.6877 and the model trained under $M = 3$, on 25,565
+engagements, reaches 0.6811, a paired difference of $-0.0066$ ($-0.0097$ to $-0.0035$), of which the
+change of labels accounts for $-0.0001$ ($-0.0010$ to $+0.0006$). As in the grid, each point is fitted
+once, the intervals use 1,000 match-bootstrap resamples with the fitted models held fixed, and they are not
+adjusted for the comparisons.
+
+The presence gate therefore moves the AUC: by up to $+0.0124$ on each gate's own test engagements, and in
+either direction on the engagements that two gates share. The result is not invariant to it. A higher AUC
+is not a reason to adopt a gate, because a definition chosen for its predictability would make the
+prediction result partly a product of that choice. $R$ and $B$ stay fixed by the game rules and $M$ by the
+convention of Section~\ref{sec:definition}, and the AUCs in Tables~\ref{tab:pred-headline},
+\ref{tab:pred-cut} and~\ref{tab:pred-scoreboard} are those of that definition. Within the tested
+ranges of $G$ and $D$, on the 10,000-match sample, the AUC on shared engagements moved by at most 0.0094.

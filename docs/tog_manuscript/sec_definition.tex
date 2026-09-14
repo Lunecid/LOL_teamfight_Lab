@@ -11,7 +11,10 @@
 % Labels that exist on 2026-09-14: sec:limitations, sec:availability, sec:background-data, sec:learners-input,
 %   sec:learners-window.  sec_label.tex and sec_prediction.tex are not written, so their references use
 %   \fwdref{...} (macros.tex), which prints \pending{ref}{...} until the label exists.
-% \pending keys used here (underscores escaped for text mode): gxd_sweep, presence_gate_v33.  window was filled on
+% \pending keys used here: none.  gxd_sweep and presence_gate_v33 were filled on 2026-09-14 by item F3-fill-results from
+%   REV/A6-definition-sensitivity/gd_sweep/gd_sweep_summary.json and REV/A6-definition-sensitivity/presence_gate/
+%   presence_gate_summary.json (temporal-boundary subsection, presence-gate subsection, Table tab:constants rows G, D, R, B, M;
+%   full values and keys in sec_prediction.tex, subsection sec:pred-constants).  window was filled on
 %   2026-09-14 (item F2-fill-and-gloss) from REV/A3-temporal-windows/window_sweep_paired_cis_v33.json (Table tab:constants,
 %   row "Context guard, observation window").
 %   scale_cut is NOT pending: the A6 artefact matches (see scale classes).  attr_radius and labels were filled on
@@ -138,8 +141,21 @@ overturning it.
 %   analysis/temporal_boundary.py plateau_ari): "10" 0.9048, "12" 0.9609, "14" 0.9942, "18" 0.9225361913023281, "20" 0.8916;
 %   gaps tested 6..60 s; temporal.plateau_s [10.0, 18.0] (threshold spec_pooled.json plateau_ari 0.9)
 % note: for patch 15.14 alone the plateau starts at 12 s (ari_vs_valley "10" = 0.8991, FB/details_15.14.json)
-How $G$ and $D$ jointly move the engagement set and its predictability under the v3.3 protocol:
-\pending{gxd\_sweep}{G x D sensitivity grid against the v3.3 headline: engagements and match-grouped AUC per cell}.
+How $G$ and $D$ jointly move the engagement set and its predictability was measured on a random sample of
+10,000 matches under the patch holdout (Section~\fwdref{sec:pred-constants}, Table~\fwdref{tab:pred-gxd}).
+Over $G$ from 10 to 18\,s and $D$ from 3,500 to 4,750\,u, the number of engagements changes by $-8.5$\% to
+$+11.6$\%, and on the test engagements detected both at a setting and at the adopted constants the AUC
+differs from the adopted constants' by $-0.0094$ to $+0.0036$. No setting's 95\% interval lies above zero;
+the two that lie below it both have $G = 10$\,s. On this sample the adopted constants reach a test AUC of
+only 0.6252, so only these differences are read, and they do not show that the result is insensitive to
+$G$ and $D$ (Section~\fwdref{sec:pred-constants} states why).
+% src (filled 2026-09-14, item F3-fill-results; was \pending{gxd_sweep}): REV/A6-definition-sensitivity/gd_sweep/gd_sweep_summary.json
+%   provenance.n_matches_sampled 10000, split patch holdout; settings[*].counts.n_engagements min 24764 (G18000_D4750) / max
+%   30185 (G10000_D3500) against 27053 (G13700_D4264): 24764 / 27053 - 1 = -0.0846, 30185 / 27053 - 1 = +0.1158;
+%   settings[*].paired_vs_operating_point.shared_setting_minus_op point min -0.009439 (G10000_D4264), max +0.003594
+%   (G13700_D4000); intervals entirely below zero: G10000_D3500 [-0.015477, -0.000819], G10000_D4264 [-0.017364, -0.002415];
+%   none entirely above zero; settings[G13700_D4264].test.auc.point 0.625191.  All 19 settings: sec_prediction.tex comment
+%   block of subsection sec:pred-constants.
 
 Two qualifications follow from the same analysis. First, the valley is a mid-game feature. In the
 pilot, a clear dip appears only between 10 and 20 minutes (valley 12.2\,s, depth 0.94); before
@@ -288,11 +304,30 @@ share rises with $R$ and falls with $B$, from 6.5\% to 41.1\%, a factor of six.
 %   grid.R1600_B15.valid_share 0.1027, grid.R1800_B10.valid_share 0.1914, min grid.R1350_B15 0.0649, max grid.R2500_B5 0.4112;
 %   strictly increasing in R for each B and strictly decreasing in B for each R (checked 2026-09-14)
 % cmd: 0.4112 / 0.0649 = 6.3
-The gate therefore decides the size of the engagement set. Whether it also moves predictability under
-the v3.3 protocol:
-\pending{presence\_gate\_v33}{v3.3 protocol re-run at (R, B, M) = (1,800 u, 10 s, 2) and (1,600 u, 15 s, 3), every other constant fixed: engagements, AUC at each point, and AUC on the engagements accepted at both points}.
-% note: the draft's 0.669 / 0.660 / 0.659 / 0.658 comparison came from a run with the time-feature leak and is not used,
-%   and no sentence here may claim that predictability is invariant to R or B until this marker is filled.
+The gate therefore decides the size of the engagement set. It also moves predictability. We re-ran the
+v3.3 pipeline on all 210,000 cached matches with only the gate changed and scored each point under the
+patch holdout with the published LightGBM configuration (Section~\fwdref{sec:pred-constants}). At the
+adopted gate the run reproduces the published test AUC of 0.6665 exactly. At (1,800\,u, 10\,s) the corpus
+holds 1,022,489 engagements, 1.8 times the 566,452 at (1,600\,u, 15\,s), and the test AUC is 0.6736; on
+the 139,397 test engagements that both gates accept it is 0.6693 against 0.6654, a paired difference of
+$+0.0039$ (95\% interval $+0.0025$ to $+0.0053$). With $M = 3$ the corpus holds 76,290 engagements and
+the test AUC is 0.6789, but on the 19,918 test engagements that both gates accept the model trained under
+$M = 3$ is below the adopted gate's model (0.6811 against 0.6877; $-0.0066$, $-0.0097$ to $-0.0035$), so
+the higher AUC comes from which engagements remain. The prediction result is therefore not invariant to the
+gate. $R$ and $B$ remain fixed by the game rules above and $M$ by convention, not chosen by the AUC they
+give.
+% src (filled 2026-09-14, item F3-fill-results; was \pending{presence_gate_v33}): REV/A6-definition-sensitivity/presence_gate/
+%   presence_gate_summary.json (provenance n_matches 210000, git_commit fa166ec, git_dirty_tracked false, n_boot 1000):
+%   points[rule_R1600_B15] counts.all.n_engagements 566452, test.auc.point 0.666484, reproduces_lgbm_paper.test_auc_diff 0.0
+%     (max_abs_pred_diff 0.0, best_iteration 381 = 381);
+%   points[ref_R1800_B10] counts.all.n_engagements 1022489 (1022489 / 566452 = 1.805), test.auc.point 0.673588,
+%     test_rows_vs_reference.n_shared 139397, auc_vs_reference.setting_shared 0.669312, operating_point_shared 0.665425,
+%     paired_vs_reference.shared_setting_minus_op +0.003887 [+0.002550, +0.005307];
+%   points[rule_R1600_B15_M3] counts.all.n_engagements 76290, test.auc.point 0.678927, n_shared 19918,
+%     auc_vs_reference.setting_shared 0.681144, operating_point_shared 0.687695, shared_setting_minus_op -0.006551
+%     [-0.009725, -0.003525].  Label and model effects and the full-row differences: sec_prediction.tex, sec:pred-constants.
+% note: the draft's 0.669 / 0.660 / 0.659 / 0.658 comparison came from a run with the time-feature leak and is not used.
+%   No sentence here claims that predictability is invariant to R, B or M; the v3.3 re-run shows that it is not.
 
 The anchor is the first kill's position rather than the centroid of the episode's kills. Under the
 conference-version constants (2,971 matches, 79,408 episodes), moving the anchor to the centroid, a
@@ -419,8 +454,7 @@ label, with its value and one of four source classes. \emph{Data-derived} consta
 an interval. \emph{Rule anchors} are fixed by assumption at a value the game applies and are checked
 against the patch notes. \emph{Convention} marks choices that follow a published definition, community
 usage or the conference version. \emph{Engineering} marks implementation choices; for each we give the
-measured impact, or state that it has not been measured. Sensitivity runs still in progress are marked
-as pending. Values are those injected into the detector: $G$ and $D$ were rounded before injection
+measured impact, or state that it has not been measured. Values are those injected into the detector: $G$ and $D$ were rounded before injection
 (13.7246\,s to 13.700\,s, 4,263.87\,u to 4,264.0\,u), and constants that the v3.3 preset does not set
 keep their configuration defaults.
 
@@ -461,18 +495,18 @@ Constant & Configuration key & Value & Source class & Basis and measured impact 
 \midrule
 \multicolumn{5}{@{}l}{\emph{Detector: episode boundaries}} \\
 Kill gap $G$ & \texttt{\scriptsize TF2\_\allowbreak KILL\_\allowbreak CLUSTER\_\allowbreak GAP\_\allowbreak MS} & 13.7\,s (estimate 13.7246\,s; run at 13,700\,ms) & Data-derived &
-KDE antimode of log inter-kill intervals, 208,141 matches; match bootstrap 95\% CI 12.2--15.7\,s (conservative); ARI $\geq$ 0.9 for 10--18\,s; ARI 0.9225 against the former 18\,s; estimate resolution 79\,ms (grid). Downstream effect: \pending{gxd\_sweep}{G x D grid}. \\
+KDE antimode of log inter-kill intervals, 208,141 matches; match bootstrap 95\% CI 12.2--15.7\,s (conservative); ARI $\geq$ 0.9 for 10--18\,s; ARI 0.9225 against the former 18\,s; estimate resolution 79\,ms (grid). Downstream, $G$ = 10--18\,s at adopted $D$: AUC on shared engagements $-0.0094$ to $+0.0013$ (Table~\fwdref{tab:pred-gxd}). \\
 Diameter $D$ & \texttt{\scriptsize CLUSTER\_\allowbreak MAX\_\allowbreak DIAMETER} & 4,264\,u (estimate 4,263.87\,u; run at 4,264.0\,u) & Data-derived &
-0.5 crossing of the champion-sharing rate over 5,460,008 pairs; match bootstrap 95\% CI 4,256--4,274\,u, sampling only (interpolated between bin centres 750\,u apart). Downstream effect: \pending{gxd\_sweep}{G x D grid}. \\
+0.5 crossing of the champion-sharing rate over 5,460,008 pairs; match bootstrap 95\% CI 4,256--4,274\,u, sampling only (interpolated between bin centres 750\,u apart). Downstream, $D$ = 3,500--4,750\,u at adopted $G$: $-0.0056$ to $+0.0036$. \\
 Executions & kills with \texttt{\scriptsize killerId} 0 & included & Engineering &
 619 of 152,513 kills (0.41\%) and 0.78\% of consecutive pairs (2,967-match pilot). Effect on engagements not measured. \\
 \multicolumn{5}{@{}l}{\emph{Detector: presence gate}} \\
 Presence radius $R$ & \texttt{\scriptsize TF2\_\allowbreak VALIDITY\_\allowbreak RADIUS} & 1,600\,u & Rule anchor &
-Champion-death experience-sharing radius~\cite{lolwiki2026experience}; no change listed in patch notes 25.14--25.16. Qualifying share of kill episodes 10.3\% (19.1\% at 1,800\,u, 10\,s). Predictive effect: \pending{presence\_gate\_v33}{v3.3 re-run}. \\
+Champion-death experience-sharing radius~\cite{lolwiki2026experience}; no change listed in patch notes 25.14--25.16. Qualifying share of kill episodes 10.3\% (19.1\% at 1,800\,u, 10\,s). At (1,800\,u, 10\,s): 1,022,489 engagements, AUC on shared engagements $+0.0039$. \\
 Lead $B$ & \texttt{\scriptsize TF2\_\allowbreak ENGAGE\_\allowbreak PRE\_\allowbreak KILL\_\allowbreak MS} & 15\,s & Rule anchor &
-Assist window on Summoner's Rift~\cite{lolwiki2026assist}; no change listed in patch notes 25.14--25.16; equals OpenDota's team-fight start offset~\cite{opendota2018processteamfights}. Sets the cutoff $\tau$. Predictive effect: \pending{presence\_gate\_v33}{v3.3 re-run}. \\
+Assist window on Summoner's Rift~\cite{lolwiki2026assist}; no change listed in patch notes 25.14--25.16; equals OpenDota's team-fight start offset~\cite{opendota2018processteamfights}. Sets the cutoff $\tau$. Predictive effect: moved together with $R$ (Section~\fwdref{sec:pred-constants}). \\
 Minimum per team $M$ & \texttt{\scriptsize TF2\_\allowbreak MIN\_\allowbreak PER\_\allowbreak TEAM}, \texttt{\scriptsize REQUIRE\_\allowbreak ALIVE\_\allowbreak PER\_\allowbreak TEAM} & 2 & Convention &
-At least two players on a side, after Ke et al.~\cite{ke2022}; required on both sides, within $R$ and in the whole team. Predictive effect: \pending{presence\_gate\_v33}{M = 3 point}. \\
+At least two players on a side, after Ke et al.~\cite{ke2022}; required on both sides, within $R$ and in the whole team. At $M = 3$: 76,290 engagements, AUC on shared engagements $-0.0066$. \\
 Position grid & \texttt{\scriptsize TF2\_\allowbreak GRID\_\allowbreak STEP\_\allowbreak MS}; \texttt{\scriptsize TF2\_\allowbreak USE\_\allowbreak FRAME\_\allowbreak INTERP}, \texttt{\scriptsize TF2\_\allowbreak USE\_\allowbreak KILL\_\allowbreak TRAJECTORY\_\allowbreak INTERP} & 5\,s; on, on & Engineering &
 Linear interpolation between one-minute frames, kill participants moved towards the kill position. Against 152,517 victims' kill positions (3,000-match pilot) linear interpolation errs by a median 1,149\,u, an upper-side figure because a victim's next frame follows its death. Effect on the gate not measured. \\
 \multicolumn{5}{@{}l}{\emph{Detector: assembly and guards}} \\
@@ -485,7 +519,7 @@ Rejects a candidate whose last kill is more than 60\,s after $\tau$; skips a mer
 Start and end exclusion & \texttt{\scriptsize START\_\allowbreak OFFSET\_\allowbreak MIN}; $H$ & 2\,min; $\tau + 35$\,s & Engineering &
 Cutoffs in the first two minutes are rejected, as are cutoffs less than 35\,s before the last frame. Not measured. \\
 Context guard, observation window & \texttt{\scriptsize FIGHT\_\allowbreak CONTEXT\_\allowbreak SEC}, \texttt{\scriptsize BIN\_\allowbreak MS}, \texttt{\scriptsize PREDICTION\_\allowbreak GAP\_\allowbreak MS} & 30\,s in 5\,s bins; gap 0 & Convention (conference version) &
-$\tau - 30$\,s must not precede the first frame; the same 30\,s, ending at $\tau$ without a gap, form the observation window (Section~\ref{sec:learners-window}). Sweep (20,000 matches, patch holdout): 2.5\,s bins $+0.0063$ [$+0.0029$, $+0.0100$] AUC over 0.6380; 15--120\,s windows and 10\,s bins $-0.0009$ to $+0.0042$, none above zero after adjustment for five comparisons. \\
+$\tau - 30$\,s must not precede the first frame; the same 30\,s, ending at $\tau$ without a gap, form the observation window (Section~\ref{sec:learners-window}). Sweep (20,000 matches, patch holdout): 2.5\,s bins $+0.0063$ [$+0.0029$, $+0.0100$] AUC over 0.6380 (Holm-adjusted bootstrap $p \leq 0.005$); 15--120\,s windows and 10\,s bins $-0.0009$ to $+0.0042$, none above zero after adjustment for five comparisons. \\
 Label horizon $H$; ace truncation & \texttt{\scriptsize FIGHT\_\allowbreak HORIZON\_\allowbreak SEC}; -- & 35\,s; on & Engineering; ace: convention &
 Keeps the conference version's reach of first kill $+20$\,s. Pilot (553 matches, \texttt{market\_lex} labels): 97.5\% and 94.3\% label agreement with 45\,s and 60\,s windows. The window ends early at an ace (not measured). \\
 Overlap resolution & location radius $= D$ & on & Engineering &
@@ -512,6 +546,16 @@ Engagements on which the label finds no winner are dropped: 33,905 of 566,452. \
 \bottomrule
 \end{tabularx}
 % src (row "Kill gap", "Diameter"): spec_pooled.json; SHARDS/manifest.json detector (13700 ms, 4264.0 u); FB/details_pooled.json temporal.ari_vs_valley."18" 0.9225
+% src (rows "Kill gap", "Diameter", downstream; filled 2026-09-14, item F3-fill-results; was \pending{gxd_sweep}):
+%   REV/A6-definition-sensitivity/gd_sweep/gd_sweep_summary.json settings[*].paired_vs_operating_point.shared_setting_minus_op.point.
+%   G row, D = 4,264 u: G10000_D4264 -0.009439, G12000_D4264 -0.005744, G16000_D4264 +0.001320, G18000_D4264 -0.000126
+%   -> -0.0094 to +0.0013.  D row, G = 13.7 s: G13700_D3500 -0.001980, G13700_D4000 +0.003594, G13700_D4750 -0.005638
+%   -> -0.0056 to +0.0036.  Whole grid and intervals: sec_prediction.tex, sec:pred-constants, Table tab:pred-gxd.
+% src (rows "Presence radius", "Lead", "Minimum per team", predictive effect; filled 2026-09-14, item F3-fill-results; was
+%   \pending{presence_gate_v33}): REV/A6-definition-sensitivity/presence_gate/presence_gate_summary.json
+%   points[ref_R1800_B10].counts.all.n_engagements 1022489, paired_vs_reference.shared_setting_minus_op.point +0.003887;
+%   points[rule_R1600_B15_M3].counts.all.n_engagements 76290, shared_setting_minus_op.point -0.006551.  The (1,800 u, 10 s) point
+%   changes R and B together, hence "moved together with R" in the Lead row.
 % src (row "Executions"): FEAT/kill_pairs_summary.json n_matches 2967, n_kills 152513, n_exec 619, exec.kills_exec_share 0.00406,
 %   exec.pairs_involving_exec 0.00780; gameplay/fights.py _extract_kill_events keeps killerId 0
 % src (rows "Presence radius", "Lead"): lolwiki2026experience, lolwiki2026assist, opendota2018processteamfights; FEAT/fight_boundary/presence_sensitivity.json
@@ -537,7 +581,9 @@ Engagements on which the label finds no winner are dropped: 33,905 of 566,452. \
 %   ctx15_bin5000 -0.000923 [-0.004876, +0.002671]; ctx60_bin5000 +0.003760 [-0.000311, +0.007678]; ctx120_bin5000 +0.004198
 %   [+0.000040, +0.008467]; ctx30_bin2500 +0.006325 [+0.002878, +0.009956]; ctx30_bin10000 +0.000418 [-0.003466, +0.004060].
 %   family_ci (Bonferroni over the five arms) excludes zero only for ctx30_bin2500 [+0.001932, +0.010999] (ctx120 family
-%   [-0.001305, +0.010111]); p_two_sided_holm 0.0050 for ctx30_bin2500, >= 0.196 for the others.  Hence "-0.0009 to +0.0042, none
+%   [-0.001305, +0.010111]); for ctx30_bin2500 the Holm-adjusted p is a bound, not an estimate (p_at_floor true,
+%   p_two_sided_holm_is_bound true, p_report "Holm-adjusted bootstrap p <= 0.0050"; no replicate of 2,000 reached zero), so it is
+%   written only as p <= 0.005 if ever printed; >= 0.196 for the others.  Hence "-0.0009 to +0.0042, none
 %   above zero after adjustment" for the other four arms (the unadjusted ctx120 interval excludes zero by 0.00004).  Row kept short:
 %   a longer version overfilled the table* page by 6.1 pt (build check 2026-09-14).
 % src (row "Interaction radius, shop events"): core/config.py TF2_EXCLUDE_SHOP_INTERACTIONS False (line 486; comment: shop events have no

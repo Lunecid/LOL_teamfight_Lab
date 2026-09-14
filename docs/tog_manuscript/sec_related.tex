@@ -298,7 +298,9 @@ that accompanies an action \cite{jalovaara2024win}.
 % jalovaara2024win abstract (p. 3): win probability added = the change in win probability associated
 %   with an action, a contextualised measure of value, applied to the evaluation of items.
 Ranking well does not imply calibration: a classifier can separate two classes almost perfectly and
-still be poorly calibrated, which post-processing by histogram binning, isotonic regression or a
+still be poorly calibrated, which post-processing by histogram binning, isotonic regression (a stepwise
+mapping from scores to probabilities, fitted to the observed outcomes under the sole constraint that it
+never decreases) or a
 fitted sigmoid \cite{platt2000probabilities} is meant to correct \cite{naeini2015obtaining}. Guo et
 al.\ found modern neural networks poorly calibrated and temperature scaling, a one-parameter variant
 of Platt's sigmoid, effective on most datasets \cite{guo2017calibration}, and Kim et al.\ calibrated a
@@ -309,6 +311,10 @@ LoL winner predictor better than temperature scaling by modelling data uncertain
 %   histogram binning, Platt's sigmoid and isotonic regression as existing post-processing methods
 %   (binning and isotonic regression non-parametric); ECE = sum over bins of the bin share times
 %   |observed fraction - mean predicted probability|.
+% Gloss of isotonic regression at its first use in the paper (item F3-fill-results, 2026-09-14; R3): a definition of the
+%   method, not a claim of the cited works; the same wording is used in sec_limit.tex (sec:limit-value: "a stepwise mapping
+%   from old to new probabilities that is constrained only never to decrease", cited there to zadrozny2002transforming).
+%   No citation is added here.
 % guo2017calibration, arXiv 1706.04599 abstract (preprint of the PMLR paper): modern neural networks,
 %   unlike those from a decade ago, are poorly calibrated; on most datasets temperature scaling, a
 %   single-parameter variant of Platt Scaling, is effective.

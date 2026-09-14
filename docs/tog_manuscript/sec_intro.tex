@@ -392,7 +392,11 @@ Our contributions, each stated by what it lets others do, are the following.
 %     colsample_bytree 0.9 (the published configuration), early stopping on 15.15; test 14,417 rows, 5,206 matches.
 %     protocols.patch.auc.ctx30_bin5000.auc 0.637953 (reference).  protocols.patch.paired (2,000 match bootstraps, seed 7):
 %       "ctx30_bin2500 - ctx30_bin5000" delta +0.006325 ci [+0.002878, +0.009956], family_ci (Bonferroni over the five
-%         arms) [+0.001932, +0.010999] excludes zero, p_two_sided_holm 0.0050;
+%         arms) [+0.001932, +0.010999] excludes zero, p_two_sided_holm 0.0050 is a bound at the resolution floor
+%         (p_at_floor true, p_two_sided_holm_is_bound true; p_report "Holm-adjusted bootstrap p <= 0.0050"), printed as
+%         "Holm-adjusted bootstrap p <= 0.005", never as an exact value (item F3-fill-results);
+%       protocols.oof.paired "ctx30_bin2500 - ctx30_bin5000" +0.004710 [+0.002398, +0.007135], family [+0.001690, +0.007784],
+%         p at the same floor (not printed here);
 %       "ctx60_bin5000 - ctx30_bin5000" +0.003760 [-0.000311, +0.007678], family [-0.001514, +0.009023], holm 0.207;
 %       "ctx120_bin5000 - ctx30_bin5000" +0.004198 [+0.000040, +0.008467], family [-0.001305, +0.010111], holm 0.196;
 %       ctx15 -0.000923 [-0.004876, +0.002671]; ctx30_bin10000 +0.000418 [-0.003466, +0.004060] (not printed here).
@@ -412,11 +416,32 @@ Our contributions, each stated by what it lets others do, are the following.
 %     ci_diff [+0.012196, +0.021074] (2,000 match bootstraps).  shap.n_rows 10000 (4,912 matches); leak_share.union
 %     share_leaky 0.091930, share_clean 0.004567, diff +0.087363, ci_diff [+0.085716, +0.088987];
 %     leak_share.TIME_NORM_ABSOLUTE share_leaky 0.089712 (so almost all of the union); rank_shift.leak_bases time_norm
-%     rank_clean 154, rank_leaky 2.  Only the optional market_lex robustness run (queue_state ...market_lex...-r3.running)
-%     is still going; it is not cited.
-%   STILL RUNNING (REV/queue_state and directory listing, 2026-09-14 16:10): A1 deep-model re-runs and declared search
-%     (REV/A1-deep-baselines holds smoke runs only); A6 G x D sweep and v3.3 presence-gate points (no artefact in
-%     REV/A6-definition-sensitivity/).
+%     rank_clean 154, rank_leaky 2.  The earlier shap_leak_forensics_v33_m20000.json (05:29, mid-edit tree) gave identical
+%     values for every key cited here (item F3-fill-results compared all JSON leaves; the 57 that differ are timings, argv,
+%     output paths and git provenance).  The market_lex robustness run REV/A7-shap-forensics/
+%     shap_leak_forensics_v33_market_lex_m20000.json has finished (16:23); it is not cited.
+%   * G x D sensitivity (item F3-fill-results, 2026-09-14): REV/A6-definition-sensitivity/gd_sweep/gd_sweep_summary.json
+%     (10,000-match sample, seed 7, patch holdout, published LightGBM configuration; settings_missing []).  Over the 19
+%     non-operating settings: counts.n_engagements 24,764 to 30,185 against 27,053 (-8.46 % to +11.58 %);
+%     paired_vs_operating_point.shared_setting_minus_op point -0.009439 (G10000_D4264) to +0.003594 (G13700_D4000);
+%     operating point test.auc 0.625191.  Full listing: sec_prediction.tex, subsection sec:pred-constants.
+%   * Presence gate (item F3-fill-results, 2026-09-14): REV/A6-definition-sensitivity/presence_gate/presence_gate_summary.json
+%     (210,000 matches, patch holdout; rule_R1600_B15 reproduces_lgbm_paper test_auc_diff 0.0).  counts.all.n_engagements
+%     566452 / 1022489 / 76290 (ratios 1.805 and 0.1347); test.auc 0.666484 / 0.673588 / 0.678927;
+%     paired_vs_reference.full_setting_minus_op ref_R1800_B10 +0.007105 [+0.004982, +0.009368], rule_R1600_B15_M3 +0.012444
+%     [+0.005689, +0.019138]; shared_setting_minus_op +0.003887 [+0.002550, +0.005307] and -0.006551 [-0.009725, -0.003525].
+%     Printed shared-row figure for (1,800 u, 10 s) (added after the F3 fact-check, because the full-row +0.0071 compares
+%     different test sets): points[ref_R1800_B10].paired_vs_reference.shared_setting_minus_op +0.003887 [+0.002550,
+%     +0.005307] on test_rows_vs_reference.n_shared 139397 of n_test_setting 279353 / n_test_operating_point 153816.
+%     "does not separate ... later cutoff ... larger training set": shared_label_effect -0.001191
+%     [-0.001798, -0.000551] and shared_model_effect +0.005078 [+0.003799, +0.006280] (sum +0.003887); the setting's
+%     model reads the state at first kill - 10 s instead of - 15 s (B_ms 10000 against 15000) and is trained on
+%     counts.train.n_rows_labelled 339470 against 187547 (deviations and sec_prediction.tex sec:pred-constants); the run
+%     changes both at once.
+%   STILL RUNNING (orchestrator status, 2026-09-14, item F3-fill-results): A1 deep-model re-runs (SAINT with match-disjoint
+%     batches, SAINT d128, SAINT with pre-training) and the declared hyper-parameter search (d1-d3).  Finished A1 runs
+%     (a_tabnet_sign_fixed_published_config.json, b_ft_transformer_d192_published_budget.json) are not cited here:
+%     no model-class statement is made while \pending{learners} is open.
 %   REV/A8 caveats unchanged: the published TabNet row subtracted its sparsity term and the published SAINT row is
 %     leak-exposed (same-match rows in every test batch), so neither is cited.
 Several analyses that the reviews asked for have finished. In the label family, the adopted label and
@@ -427,19 +452,31 @@ the held-out-patch AUC from 0.6665 to 0.6732, by $+0.0068$ [$+0.0057$, $+0.0078$
 $+0.0051$ [$+0.0041$, $+0.0060$] is gained over the same columns filled from the held frame
 (Section~\fwdref{sec:limit-evidence}). In the observation-window sweep, on 50,766 engagements from a
 20,000-match sample, finer bins (2.5\,s instead of 5\,s within the 30\,s window) raise the
-held-out-patch AUC of LightGBM by $+0.0063$ [$+0.0029$, $+0.0100$], the only change whose interval
-stays above zero after adjustment for the five comparisons; windows of 60\,s and 120\,s add $+0.0038$
-and $+0.0042$. Two sequence learners that read the bins in order, a BiGRU and a temporal Transformer,
+held-out-patch AUC of LightGBM by $+0.0063$ [$+0.0029$, $+0.0100$] (Holm-adjusted bootstrap
+$p \le 0.005$), the only change whose interval stays above zero after adjustment for the five
+comparisons; windows of 60\,s and 120\,s change it by $+0.0038$ and $+0.0042$, neither above zero after
+that adjustment. Two sequence learners that read the bins in order, a BiGRU and a temporal Transformer,
 untuned and trained once, stay below LightGBM (0.616 and 0.627 against 0.638 with the 30\,s window)
 and gain nothing from longer windows (Section~\ref{sec:learners-window}). In the attribution check for
 leaks, a model given both leaking inputs scores $+0.0165$ [$+0.0122$, $+0.0211$] AUC above the
 audit-fixed model on 20,000 sampled matches, and it places 9.2\% of its attribution (SHAP values, which
 split each prediction into contributions of the input columns~\cite{lundberg2020local}) on the
 leak-affected columns, against 0.5\% for the audit-fixed model; almost all of it falls on game time
-divided by match length (Section~\ref{sec:limit-shap}).
-Still running are tuned, capacity-matched learners of other model classes
-(\pending{learners}{deep re-runs and declared search}), the $G \times D$ grid and the presence-gate
-points (\pending{gxd}{sweep}; \pending{presence\_gate\_v33}{v3.3 re-run}).
+divided by match length (Section~\ref{sec:limit-shap}). Re-detecting the engagements of a
+10,000-match sample with the kill gap between 10 and 18\,s and the diameter between 3,500 and
+4,750\,u changes their number by $-8.5$\% to $+11.6$\% and, on the engagements found both there and at
+the adopted constants, the held-out-patch AUC by $-0.0094$ to $+0.0036$. On all 210,000 cached matches,
+moving the presence gate to the conference version's values nearly doubles the number of engagements and
+raises the held-out-patch AUC by $+0.0071$ [$+0.0050$, $+0.0094$]. On the engagements that both gates
+accept the rise is $+0.0039$ [$+0.0025$, $+0.0053$], and the run does not separate how much of it comes
+from the gate's later cutoff and how much from its larger training set. Requiring three champions per side
+instead of two leaves 13.5\% as many engagements as the adopted gate and raises the AUC by $+0.0124$
+[$+0.0057$, $+0.0191$], through which engagements remain rather than through a better model. The result
+is thus not invariant to the presence gate
+(Section~\ref{sec:pred-constants}).
+Still running are the re-runs of the deep tabular learners and the declared hyper-parameter search
+(\pending{learners}{deep re-runs and declared search}); until they finish, we draw no conclusion about
+other model classes.
 
 % Label summary: sec_background.tex "Outcome label" entry; REPO/gameplay/labels.py
 %   _compute_label_market_event and _lex_refine; dead zone FEAT/model_comparison_v33_patch.json

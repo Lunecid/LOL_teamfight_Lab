@@ -832,6 +832,13 @@ where a ranking cannot separate the game's structure from the leaks.
 %   whole_ensemble max_abs_diff_phi_and_expected 6.9e-17 / 1.2e-16, auxiliary_small_model enumeration 1.4e-17 -> "within 1e-15".
 %   Learner: n_estimators 2000, learning_rate 0.05, num_leaves 31, early_stopping_rounds 50 on 15.15 (learner.config); not
 %   called the published configuration in the text.  Anchor sentence refers to the leak-ablation AUCs quoted in the first paragraph.
+% Re-check 2026-09-14 (item F3-fill-results): every SHAP-forensics number printed in this subsection (54,561; 20,000; 15,911; 5,695;
+%   0.6637; 0.6471; 0.0165 [0.0122, 0.0211]; 2,000; 10,000; 9.2 %; 0.5 %; 8.7 pp [8.6, 8.9]; 9.0 %, rank 2 behind goldDiff
+%   (rank_shift.top_k_union goldDiff rank_leaky 1); 0.1 %, rank 154; anchors 0.2 % / 0.3 %; 1e-15) was compared with
+%   REV/A7-shap-forensics/rerun.json (the source cited above) and matches it.  The earlier
+%   REV/A7-shap-forensics/shap_leak_forensics_v33_m20000.json (05:29, produced from a mid-edit tree) gave identical values: of
+%   its JSON leaves, the 57 that differ from rerun.json are timings, argv, output paths and git provenance; every key cited
+%   above is equal to the last digit.  The market_lex robustness run (shap_leak_forensics_v33_market_lex_m20000.json) is not cited.
 
 % -----------------------------------------------------------------------------
 \subsection{Summary}\label{sec:limit-summary}
