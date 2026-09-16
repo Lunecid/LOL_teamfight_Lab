@@ -1,0 +1,37 @@
+{
+ "group": "fit_h120_pt_N",
+ "state": "complete",
+ "stage": "selected",
+ "pid": 43344,
+ "updated": "2026-09-16 02:45:19",
+ "elapsed_s": 17.2,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "next family / cohort / horizon, then freeze",
+ "chosen": "pt_C1__raw",
+ "selection_sha256": "88d1c2747599b0536f3cc4dda4d3a8ba4803550be71b9d446f37f66f7dadbf9d",
+ "seconds": 8.9,
+ "select_brier": {
+  "pt_C1__isotonic": 0.244239,
+  "pt_C1__raw": 0.244131,
+  "pt_C1__sigmoid": 0.244134
+ },
+ "history": [
+  {
+   "stage": "load",
+   "state": "running",
+   "at": "2026-09-16 02:45:02"
+  },
+  {
+   "stage": "fit_pt_C1",
+   "state": "running",
+   "at": "2026-09-16 02:45:07"
+  },
+  {
+   "stage": "selected",
+   "state": "complete",
+   "at": "2026-09-16 02:45:19"
+  }
+ ]
+}

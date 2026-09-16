@@ -1,0 +1,48 @@
+{
+ "group": "rebuild_fixture100",
+ "state": "complete",
+ "stage": "fixture",
+ "pid": 35460,
+ "updated": "2026-09-16 08:11:04",
+ "elapsed_s": 11.1,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "full rebuild",
+ "checks": {
+  "rows": 250,
+  "rows_expected": 250,
+  "keys_all_found": true,
+  "input_names_equal": true,
+  "X_input_equal": true,
+  "pre_ok_equal": true,
+  "p_pre_equal": true,
+  "sub_role_equal": true,
+  "adapter_equal": true,
+  "valid_h60_equal": true,
+  "Y_h60_equal": true,
+  "p_post_h60_equal": true,
+  "endpoint_h60_equal": true,
+  "valid_h90_equal": true,
+  "Y_h90_equal": true,
+  "p_post_h90_equal": true,
+  "endpoint_h90_equal": true,
+  "valid_h120_equal": true,
+  "Y_h120_equal": true,
+  "p_post_h120_equal": true,
+  "endpoint_h120_equal": true,
+  "all_equal": true
+ },
+ "history": [
+  {
+   "stage": "extract",
+   "state": "running",
+   "at": "2026-09-16 08:11:00"
+  },
+  {
+   "stage": "fixture",
+   "state": "complete",
+   "at": "2026-09-16 08:11:04"
+  }
+ ]
+}

@@ -1,0 +1,899 @@
+{
+ "version": "champion_class_20260916",
+ "role": "EXPLORATORY_FOLLOWUP_AFTER_PRIOR_TEST_EXPOSURE_MODEL_DEFINED_LABELS_NOT_CONFIRMATORY",
+ "written_at": "2026-09-16 04:11:07",
+ "design": "docs/CLAUDE_CHAMPION_CLASS_20260916.md (Claude, continuing the Codex design line; proposed by the user 2026-09-16)",
+ "spec_sha256": "5e56593f050b97641e1b2f6881528194b665df2dce7f86dbbadbb624b4b048fd",
+ "provenance_docs_sha256": {
+  "CLAUDE_INCREMENTAL_Q_TRAIN_20260915.md": "c98fe463930e6ee7ff82d03f8d25cf3d28a2f869d29fd0988611b64be9ec7b2d",
+  "DELTA_Q_FAIR_BALANCED_PROTOCOL_20260915.md": "c456fbde1146b35479395ea278328490666fa3388da00c432cd93c41ed8c6360",
+  "COLLABORATOR_CRITIQUE_RESPONSE_20260915.md": "c847d82d00654f88cbe5f8f70370cf8498c3c722c89657b2d27064860f113396"
+ },
+ "prior_test_exposure": "Exploratory follow-up; MAIN TEST and the external sets were evaluated before (cohort-role, iq, Track A, horizon sensitivity, balanced SHAP, V mechanism). No choice here uses TEST performance.",
+ "question": "Do Riot champion-class features (per-slot tags, class-conditioned team state, class composition, position-pair class combinations) lower the sealed Brier of the fixed-configuration logistic / LightGBM q, and beyond champion identity?",
+ "parents": {
+  "read_only": [
+   "outputs/full_corpus_training_20260915",
+   "outputs/cohort_role_training_20260915",
+   "outputs/incremental_q_training_20260915",
+   "source implementations",
+   "raw data",
+   "original manuscript"
+  ],
+  "integrity_snapshot_before_sha256": "b766e9fa0c5b8a44e3bec5e5c143dd63919632ff6c7bdc6e9b326ceb5b3f807f",
+  "iq_frozen_manifest_sha256": "60527473bbca5b10f808c05d11e4fc6fa45c94e89e134d51c59faa9f4a5784d5",
+  "cohort_role_frozen_manifest_sha256": "3c738a3ff537a3a52fcf9d8bdcd4c8b0c80b94993e53a176226abb4813280454",
+  "cohort_manifest_sha256": "e39a33df3afad820bb6fdcbcc0796a9bd3bf5ca27c522cd07b0e48184c2b3071",
+  "q_pre_only_schema_sha256": "bc07a3c9b1ea1f4bdbd278a0c837bd59a96d89ff831b2a8ed393a3cc38249284",
+  "v_models_manifest_sha256": "92d57e3bee472ade1d498e50de5a41a599bf09d5dc1433302b13350234c9ead7",
+  "expected_parent_file_sha256": {
+   "outputs/full_corpus_training_20260915/labels/EXT_KR_16.13_features_pre_only.npz": "cef03c6d16927fedcaa5df8c3986d828337c37bf8e2c740a56b44e64098086ce",
+   "outputs/full_corpus_training_20260915/labels/EXT_KR_16.13_labels.npz": "fa5f6150e7a4aa4e2fbd267dcbe76c702f0e025c83f3a2d057b25ca272782213",
+   "outputs/full_corpus_training_20260915/labels/EXT_KR_16.14_pilot_features_pre_only.npz": "0b6d08880b6b729f5b36b3522ecc41062b341d8d65a76d64be84f1930f3e4eef",
+   "outputs/full_corpus_training_20260915/labels/EXT_KR_16.14_pilot_labels.npz": "e5dd804570349f519a9dd97bcaf2dd6f96fd27e933088ed5fdbdc050e2f723c9",
+   "outputs/full_corpus_training_20260915/labels/EXT_KR_16.15_features_pre_only.npz": "462ab4312b91c34a3307344bb54a66498161131b5c2d4d530b0d6c7bfc2b7b1c",
+   "outputs/full_corpus_training_20260915/labels/EXT_KR_16.15_labels.npz": "dd3e51a8455f0de6ef09d3b691f0c59e9e48d56207e46d499ef516fdf9a51a9f",
+   "outputs/full_corpus_training_20260915/labels/EXT_NA1_16.13_features_pre_only.npz": "c7aa4396de605a98085f7400d0c7fbfba5785dcf74395f5f7b0831b2ea2c41f7",
+   "outputs/full_corpus_training_20260915/labels/EXT_NA1_16.13_labels.npz": "91cefb42eaae94a6bde3f7007cf34d4d8a9c7f5f42c6098651a96de76fe32065",
+   "outputs/full_corpus_training_20260915/labels/labels_test_external_manifest.json": "023a6b854027657818cf1b28fe2df368902f589bce9b6d3e154a46445f73faa6",
+   "outputs/full_corpus_training_20260915/labels/labels_trainval_manifest.json": "9a4449ebbf147e629698f97a08f6a0c5db2ba26eccf313911137d5852d2622f7",
+   "outputs/full_corpus_training_20260915/labels/MAIN_TEST_features_pre_only.npz": "fb0945a68087b4198622d1a4713497fae6690327317d82d387503a29c8a1a933",
+   "outputs/full_corpus_training_20260915/labels/MAIN_TEST_labels.npz": "eec6e0388792985d0fb2d2d15039ed058bc4041ae082ee99cc2e778f08e2d96e",
+   "outputs/full_corpus_training_20260915/labels/MAIN_TRAIN_features_pre_only.npz": "1f8eee36c21de0146fd6879cfa57abb9421d494b6425663d0db1e3aafea44ca2",
+   "outputs/full_corpus_training_20260915/labels/MAIN_TRAIN_labels.npz": "f0a1bdcfcce497c6e443126d16d09fab5b69b5a93d2acf525324509fc6c07b0c",
+   "outputs/full_corpus_training_20260915/labels/MAIN_VALIDATION_features_pre_only.npz": "8c93127611047cc2449f231370bf45e4a130f7f5559ebdd1aa5df3d76eb7785b",
+   "outputs/full_corpus_training_20260915/labels/MAIN_VALIDATION_labels.npz": "b06a190b8357499d209eddacd0201ad10b6b55655dedae1a7832c8656117431e",
+   "outputs/full_corpus_training_20260915/models/q/h120/constant.joblib": "9efdabc91c1afd7c48738da4662969bd2bea4e30e75e79c028b45fdd40f3c2cc",
+   "outputs/full_corpus_training_20260915/models/q/h120/economic_isotonic.joblib": "c528d0dc6594f38290b985732b37b9e24aac13a62c7e375b9c0de21f663e4516",
+   "outputs/full_corpus_training_20260915/models/q/h120/economic_raw.joblib": "d9ebd359f83f1f39862232c8b69d767718e52ca44907772a75eacd88eba404f6",
+   "outputs/full_corpus_training_20260915/models/q/h120/economic_sigmoid.joblib": "c68b5be8d541e46c51a8c802e184dbfe0109b78952b65776736b71a28745b900",
+   "outputs/full_corpus_training_20260915/models/q/h120/p_pre_logistic.joblib": "8758839c7847389e27398437becc4dd77452278ca798a8c189c82e411309fec9",
+   "outputs/full_corpus_training_20260915/models/q/h120/p_pre_spline.joblib": "fef72d577b97fc449913ba5f82870435f924857471f37a3a93396a69425e79df",
+   "outputs/full_corpus_training_20260915/models/q/h120/ridge_isotonic.joblib": "0a954dab1aea38fb34ef2adfd5b4c5e1c18d2c1e92c4a722eeeb91800566a143",
+   "outputs/full_corpus_training_20260915/models/q/h120/ridge_raw.joblib": "5486392a2452dcb496be57b2ca683ade679ea89eafdf2a5760dd0de1cb5f0845",
+   "outputs/full_corpus_training_20260915/models/q/h120/ridge_sigmoid.joblib": "cbff191377bcdc8cb23b31a730e401cacf56ef76384cd9d7e7048c794d4f299b",
+   "outputs/full_corpus_training_20260915/models/q/h60/constant.joblib": "37efc6130d0efdabd1b28ae8ec3f6fa7e3709edd0d3f737c141918f3a2846e58",
+   "outputs/full_corpus_training_20260915/models/q/h60/economic_isotonic.joblib": "8be50d09f74b0bd5b7209b7786e482623ee2f2b97329d1d9a3c941d00f7ce4c7",
+   "outputs/full_corpus_training_20260915/models/q/h60/economic_raw.joblib": "e41e16a649b16ebbff914c6516a77e6fede066d996596c47d281580f83091629",
+   "outputs/full_corpus_training_20260915/models/q/h60/economic_sigmoid.joblib": "6c4c37dd7e2b12b96d6b3f19528676e740144f47b87e826fd179c5ae6dd673cd",
+   "outputs/full_corpus_training_20260915/models/q/h60/p_pre_logistic.joblib": "1dbfce9a201ecd276b38185f4741eb24349f3cd0006ad6de61690efe1466f18c",
+   "outputs/full_corpus_training_20260915/models/q/h60/p_pre_spline.joblib": "405baa1501806df538fdc03a6eb465997778fc306015efa96c411d5e5c724804",
+   "outputs/full_corpus_training_20260915/models/q/h60/ridge_isotonic.joblib": "0bf57e7e71004c288463bdc4fb07867a7c3f80316f1a48150df0a779aed6acf2",
+   "outputs/full_corpus_training_20260915/models/q/h60/ridge_raw.joblib": "3a5b7bd2b9e8cd8d5b28d3a59d43cd822e83d0b4287798e4054e863af529fe2b",
+   "outputs/full_corpus_training_20260915/models/q/h60/ridge_sigmoid.joblib": "8b9ce2afa1d456bdb34cda7400bd202057a38b5b1d1e4b88e38a81e315a75636",
+   "outputs/full_corpus_training_20260915/models/q/h90/constant.joblib": "d5f7d58521332f72dd23bd0a6ac634583d4ab7be640e88339375a60a7764be9b",
+   "outputs/full_corpus_training_20260915/models/q/h90/economic_isotonic.joblib": "e038582fd49af9393672662ee0555128cca0e5013194db53f96ee68453b98e5f",
+   "outputs/full_corpus_training_20260915/models/q/h90/economic_raw.joblib": "31830ec463033bbf8160f304484d8931d382ca196f2eb9edd6e9ca96e23667b6",
+   "outputs/full_corpus_training_20260915/models/q/h90/economic_sigmoid.joblib": "6550255e3e9e6a89412b245d1177f11bc84c0ade38b0ac72b882429e46d408d6",
+   "outputs/full_corpus_training_20260915/models/q/h90/p_pre_logistic.joblib": "2858fcf1e12499a07a955d7bfc2a5c300d938b5b1381d16aa721ae6d24baa6f8",
+   "outputs/full_corpus_training_20260915/models/q/h90/p_pre_spline.joblib": "1ba68762d1803b53cc596da0fa5ae77d61194333bb8dc7c77edda38eb2be584d",
+   "outputs/full_corpus_training_20260915/models/q/h90/ridge_isotonic.joblib": "5688fe91156c2724d8e718ad4f837f8d60f058bf2f7e9cd370b13fe172f6c093",
+   "outputs/full_corpus_training_20260915/models/q/h90/ridge_raw.joblib": "e968796c148561abf299e7427dbcb639fed7d1db1108dda24e024d05d672830f",
+   "outputs/full_corpus_training_20260915/models/q/h90/ridge_sigmoid.joblib": "685e548d37475a7efbf916e84bc669e2bf7968336035e06d583ae1b98074123f",
+   "outputs/full_corpus_training_20260915/q_pre_only_schema.json": "bc07a3c9b1ea1f4bdbd278a0c837bd59a96d89ff831b2a8ed393a3cc38249284",
+   "outputs/full_corpus_training_20260915/v_models_manifest.json": "92d57e3bee472ade1d498e50de5a41a599bf09d5dc1433302b13350234c9ead7",
+   "outputs/full_corpus_training_20260915/frozen_manifest.json": "8287804220b280f68a8ce2359532dbd1665b2d9d0c4a474c8666e8aed77b4f77",
+   "outputs/full_corpus_training_20260915/protocol.json": "60e95dfadcedeed7f08c47e50f5379e14e7c6b4b31cb9724e8b88f8b1518b8ba",
+   "outputs/full_corpus_training_20260915/selection_v.json": "bffdb56bd3647d8d02f22c17330a8adec96ac7e640eb31c458bc06e90a736ed6",
+   "outputs/full_corpus_training_20260915/validation.json": "716bc9a0d4bf7a990055cb388ef2ac1fb4c708aaed65575db20b3a22546a4771",
+   "outputs/full_corpus_training_20260915/outcome_access_log.jsonl": "470288d476c1f883ea2feb129f1d2ba66fef57ec8d8cc0415924d0279535e721",
+   "outputs/full_corpus_training_20260915/eval/results_q.json": "2ad4a2e58fb4bd45df0ca453c4f13d2b89eef72ae8d4bee0985b96ef9ad49d5e",
+   "outputs/incremental_q_training_20260915/frozen_manifest.json": "60527473bbca5b10f808c05d11e4fc6fa45c94e89e134d51c59faa9f4a5784d5",
+   "outputs/incremental_q_training_20260915/protocol.json": "2e47dc86a9e3535d21c91d84c668f952dd52079c5230c30dc1d3a1bedb33dae8",
+   "outputs/incremental_q_training_20260915/contract_tests/pytest_basetemp_run1/test_sealed_sets_refuse_before0/run/frozen_manifest.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+   "outputs/incremental_q_training_20260915/contract_tests/pytest_basetemp_run2/test_sealed_sets_refuse_before0/run/frozen_manifest.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+   "outputs/incremental_q_training_20260915/eval/hashes_after.json": "b81e91dd62be81ed959b596293cdb0662958f2c0c45bf828c76054623a91ac3f",
+   "outputs/incremental_q_training_20260915/eval/hashes_before.json": "062ef555ce501c0f2031b0db1a249ebb1931704d6ef94ecbfdfd088be6e62967",
+   "outputs/incremental_q_training_20260915/eval/results.json": "fdd5da60cdd62c174b08dd2c28a19019fb3237411a50faa33b44e97d24d3dbd3",
+   "outputs/incremental_q_training_20260915/eval/results_partial.json": "150903307c0f9fd1733ba54272e7f22fe096fe1e57f425acfbf67bd00b4db6ae",
+   "outputs/incremental_q_training_20260915/eval/predictions/EXT_KR_16.13_h90_N.npz": "e47865bbfe7b6932df2ba03e3d94e060faaff8501db91323bbce8501807d58b3",
+   "outputs/incremental_q_training_20260915/eval/predictions/EXT_KR_16.13_h90_T.npz": "27788c6f6f5faf7a0b75c36e8863ee3a35a73d8c72bc1dc0aa82c2e7cac81a5e",
+   "outputs/incremental_q_training_20260915/eval/predictions/EXT_KR_16.14_pilot_h90_N.npz": "c6535434c092060e73f550a5acf15ada3b8ec120661566469ebbdc65501335c3",
+   "outputs/incremental_q_training_20260915/eval/predictions/EXT_KR_16.14_pilot_h90_T.npz": "1d73086680bd5ec6cc54fcf47fc4ade604558a0ef3f83ee94f2dddded5dfcafb",
+   "outputs/incremental_q_training_20260915/eval/predictions/EXT_KR_16.15_h90_N.npz": "9e84be2bad66cd67b99573344ff95f91272ce01178664bb6b55921c110453dab",
+   "outputs/incremental_q_training_20260915/eval/predictions/EXT_KR_16.15_h90_T.npz": "70949d12fe4b08f2c9fea9b2e400dfa9af830bdc4e5c662c3e9f63a41f9d4c46",
+   "outputs/incremental_q_training_20260915/eval/predictions/EXT_NA1_16.13_h90_N.npz": "cfa3f954043dd2db9c6e2581ef8f87b60819f9c27bf115bd6801ff75dd7d87b6",
+   "outputs/incremental_q_training_20260915/eval/predictions/EXT_NA1_16.13_h90_T.npz": "ededa8cc177f956799a81b464ae1ce985ab3302923f60a5934eb46287a64bdab",
+   "outputs/incremental_q_training_20260915/eval/predictions/MAIN_TEST_h90_N.npz": "1dce0a6a42e18ccb4ea251b091d151ddf436fe0ffafd7e5aeac4f4d461b15bfa",
+   "outputs/incremental_q_training_20260915/eval/predictions/MAIN_TEST_h90_T.npz": "4b0dfc0d57f96f0bfad2644f5b54c1581829d22c7a189cb49d8e7180a4319e5d",
+   "outputs/incremental_q_training_20260915/selection/lgbm_N.json": "1251461b260b71dddb78a4ec1d6b53ea3de9c89a0b32014529b9aa9d8166e5be",
+   "outputs/incremental_q_training_20260915/selection/lgbm_T.json": "87d99cae8b4da5ed6126f3f29f42b6db7a779162b72fc87becd9c865fbb234e6",
+   "outputs/incremental_q_training_20260915/selection/logit_N.json": "085e4cf5e66e6ba8d93c6016cd01f4cba1b9a32a1a99091e09e79265ae03874e",
+   "outputs/incremental_q_training_20260915/selection/logit_T.json": "e7769e39c008ccef688dd003d2218fa5e8f504800ece0b554df2a751bfb9adeb",
+   "outputs/incremental_q_training_20260915/selection/pt_N.json": "e4226021e4ef5f5af30604cb8d30423fbf03462674d6613d659984fe753c73ff",
+   "outputs/incremental_q_training_20260915/selection/pt_T.json": "511636fac30dfdcc4c92009bcb6ce389764430953734b13ec29a07851d92f3cf",
+   "outputs/incremental_q_training_20260915/smoke_train_only/frozen_manifest.json": "a0263d05dd069bf144538df555f06459112140850195f3ce8132fc2dd898d0c5",
+   "outputs/incremental_q_training_20260915/smoke_train_only/eval/hashes_after.json": "5ea794534c125518c559bd09f62b0ba76a13dd60f88c54d3958288a1c12312a4",
+   "outputs/incremental_q_training_20260915/smoke_train_only/eval/hashes_before.json": "88af48f7f889237162b1a22c8ce29e12a267b6d0d6754d6c4baeed0c9777428d",
+   "outputs/incremental_q_training_20260915/smoke_train_only/eval/results.json": "77de50409b66762e9e5a4611fdc457ae982360941bda43a343d2240a1d64c1bc",
+   "outputs/incremental_q_training_20260915/smoke_train_only/eval/results_partial.json": "e83a69ceb11cace4490c900f80290e2411f99349bbdcbcaecba49b2f0657183a",
+   "outputs/incremental_q_training_20260915/smoke_train_only/eval/predictions/SMOKE_PSEUDO_Q_SELECT_h90_N.npz": "48e309d30bb0775fd4d965a225f51476be6281c270fc29bcd4bc3452243c4dc8",
+   "outputs/incremental_q_training_20260915/smoke_train_only/eval/predictions/SMOKE_PSEUDO_Q_SELECT_h90_T.npz": "655fc268cf3c97c0a2372213dc8b4a6c144e08385f9e973ab52bfc6387da7f62",
+   "outputs/incremental_q_training_20260915/smoke_train_only/selection/lgbm_N.json": "7b3a77567ee790e78d4661321ab2adf98ae0336860284b5d193a8b900e658f89",
+   "outputs/incremental_q_training_20260915/smoke_train_only/selection/lgbm_T.json": "201547c85067ab69cb97ce334037a30779cdaa4e03fbde42366ab53f3d0cdb55",
+   "outputs/incremental_q_training_20260915/smoke_train_only/selection/logit_N.json": "3d4e6c30b289fd84ec1edd8ec44e3f903deaad2a107d8692ebd29673e25d4791",
+   "outputs/incremental_q_training_20260915/smoke_train_only/selection/logit_T.json": "b4c8219c61ee9b6e356e4c97b69800140fe9eae49027ccce8d534265a145c4dc",
+   "outputs/incremental_q_training_20260915/smoke_train_only/selection/pt_N.json": "d03bc1242e8d8a5e98ec4b49bfc1acf871c5a7d0f6a4b30dd58501b0c9750192",
+   "outputs/incremental_q_training_20260915/smoke_train_only/selection/pt_T.json": "4afe105e844ec0fe33f30ed40852368f8d7858661b59630c59e12405fd724d9b",
+   "outputs/cohort_role_training_20260915/frozen_manifest.json": "3c738a3ff537a3a52fcf9d8bdcd4c8b0c80b94993e53a176226abb4813280454",
+   "outputs/cohort_role_training_20260915/cohorts/EXT_KR_16.13_cohort.npz": "8cc6d95039ca30d73e82429895dd2502408195452452793cb80b8bdd8f6dc98f",
+   "outputs/cohort_role_training_20260915/cohorts/EXT_KR_16.14_pilot_cohort.npz": "87c5cf979d274ab7d2b1b4234a32cc6b3262d845be39b3356d2aba056231c32e",
+   "outputs/cohort_role_training_20260915/cohorts/EXT_KR_16.15_cohort.npz": "4d120ca58e59865817cf6f11a02cc45512eeea17f82b5341d86b4e855f57cf97",
+   "outputs/cohort_role_training_20260915/cohorts/EXT_NA1_16.13_cohort.npz": "bd77c1b6f4824fe25ff00408cffd1d4fa10b8501e58fc265dcae04db4caea0ad",
+   "outputs/cohort_role_training_20260915/cohorts/MAIN_TEST_cohort.npz": "3239e4c7ac81678adf75e07ec1cc9035136c1572e82e06601695ad78bc162844",
+   "outputs/cohort_role_training_20260915/cohorts/MAIN_TRAIN_cohort.npz": "71fbe5239e9cb76bf97466f1018092755f4f34f6ac941f337593b4cd2d0b1746",
+   "outputs/cohort_role_training_20260915/cohorts/MAIN_VALIDATION_cohort.npz": "a4efc653ebdf698a06dfbb6b2b33dca2ef2759d094fa22d210e14f4936622bf6",
+   "outputs/cohort_role_training_20260915/cohorts/cohort_manifest.json": "e39a33df3afad820bb6fdcbcc0796a9bd3bf5ca27c522cd07b0e48184c2b3071",
+   "outputs/cohort_role_training_20260915/cohorts/detector_train_fixture.json": "ff4f1151a140a0817eff47febcb6f499ae0fde1c198d2c963a797eab13030a1a",
+   "outputs/cohort_role_training_20260915/cohorts/negative_count_provenance.json": "e4b7052a1c7faaf5f73922490f4a0e0a1ed293ce29c28fab8ed6b482ce6264a2"
+  }
+ },
+ "class_source": {
+  "tag_table": "outputs/champion_class_20260916/ddragon/tag_table.json",
+  "tag_table_sha256": "dc65085e9a155c523c5c5b0d55e2983d9a6bc620e530d439f586a368b429f21f",
+  "fetch_manifest_sha256": "3efb0a5ff984b9e2d9d8f2142fccef52dac1a02597435862f4a7ef4c8fa85906",
+  "source": "https://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/champion.json",
+  "fetched_at": "2026-09-16 03:45:08",
+  "approval": "user, 2026-09-16 (chat)",
+  "credentials": "none (public static CDN)",
+  "file_sha256": {
+   "15.14.1": "27d34bacddb39430d3c57e98ab61b74428a056040e5b41ee7cd3ab2b1576fcf1",
+   "15.15.1": "e8a288b77c4dffd01386e34046d298f74d06c5234b3fac9b0fcc62be21ffc124",
+   "15.16.1": "13888ccf953dff69292bb953b6aaf8fb994ff00adfa801432e8125543dbeba42",
+   "15.17.1": "a8be3aa3726bc17b05442007ab46badb2574c59887a837b32e0fab0a4fed3302",
+   "15.18.1": "4aaeb3766aeb8c458c3c2cdc289f76d6d17f81da1e928a4241fced31045367d8",
+   "15.19.1": "7cd077d7a056e3fd79357d53e92225cf40a89075ec521a7742590a17a361acb2",
+   "15.20.1": "6509e9526d2db309fa4545279904495a76331e0776c621be64a3d8e5a93bb38e",
+   "15.21.1": "de0ffaf524b7d800000d546ce35b763f033d20438497c9fa5247143cb01a6df2",
+   "15.22.1": "c32df84b1a1beab271d47ef145a0d2eae6776ec29589f3f20eea0adff197dfde",
+   "15.23.1": "997b7eb4770bf892e8635990cf7842d908f699f40cfe1d0fb513a943f4b6ceae",
+   "15.24.1": "a5e598fbfb80315b0665d5142dd1bba641463bb55190cc8d0094f260eccb9bf9",
+   "16.1.1": "d35272b230ee7f261125774e1e990206e51a01b811bac70cf894290c1285f756",
+   "16.2.1": "77699a8f593a8ffb1ecfe7487501f6062f6b4e4aaa56aee1e94018cee6953ed3",
+   "16.3.1": "11cadf35a0d5a26b3ac8ace2ab6ca9748a0ec06f0659277bf1db1c87f31f532b",
+   "16.4.1": "830f10ccb361cf93386a729dd36f737a8df561fcb4024abe106d9f5a88da8722",
+   "16.5.1": "788fa2f500fb8a2f50d3839593933e6e01979638dcadd782c69770fb278040ae",
+   "16.6.1": "ee42e7e1a610d482770a9825349e87feee35abd648c4b733e921372b3e163331",
+   "16.7.1": "fbf67958f54f46871a0dbaae68cf265a4f8761cf3a7203c2e0aba30d81d0653c",
+   "16.8.1": "370c454c9e631f4608b664592fa77b2c26d6717e23b7b920eb36237c4589c626",
+   "16.9.1": "f8125967975f45cbc01e0c7b9186fe93c1063afe5c809b5cd4f3e45ca4bfadc4",
+   "16.10.1": "530ca6f3b097ed86ee149b5f73ceefa02324234ae2d45fe704342de624d44ca1",
+   "16.11.1": "eec3b4e4d823696b744e22291faf5c02339f13d68ce874a3af6d378a5e30bfbd",
+   "16.12.1": "e085e6da28a4f2d9f80de746157e6ad4b5eda1f202c8caf831971842d8e02ee3",
+   "16.13.1": "0c849c4b396ae34f0c0ae09010cbf8462fb5352b6489ea63f897e067740dc51c",
+   "16.14.1": "19717cae1dd13aa448c6be423723ee57d787b34161e843a82c9ca03100dc9220",
+   "16.15.1": "152a1dad202b314b419f5f0952b8415b26b3830a18bd4a19f9eb6dc3c806c6c9"
+  },
+  "set_version": {
+   "MAIN_TRAIN": "15.14.1",
+   "MAIN_VALIDATION": "15.15.1",
+   "MAIN_TEST": "15.16.1",
+   "EXT_KR_16.13": "16.13.1",
+   "EXT_KR_16.14_pilot": "16.14.1",
+   "EXT_KR_16.15": "16.15.1",
+   "EXT_NA1_16.13": "16.13.1"
+  },
+  "tags": [
+   "Assassin",
+   "Fighter",
+   "Mage",
+   "Marksman",
+   "Support",
+   "Tank"
+  ],
+  "n_champions": {
+   "15.14.1": 171,
+   "15.15.1": 171,
+   "15.16.1": 171,
+   "15.17.1": 171,
+   "15.18.1": 171,
+   "15.19.1": 171,
+   "15.20.1": 171,
+   "15.21.1": 171,
+   "15.22.1": 171,
+   "15.23.1": 172,
+   "15.24.1": 172,
+   "16.1.1": 172,
+   "16.2.1": 172,
+   "16.3.1": 172,
+   "16.4.1": 172,
+   "16.5.1": 172,
+   "16.6.1": 172,
+   "16.7.1": 172,
+   "16.8.1": 172,
+   "16.9.1": 172,
+   "16.10.1": 172,
+   "16.11.1": 172,
+   "16.12.1": 172,
+   "16.13.1": 173,
+   "16.14.1": 173,
+   "16.15.1": 173
+  },
+  "excluded_entries": {
+   "16.15.1": [
+    "Jade_Ahri",
+    "Jade_Alistar",
+    "Jade_Amumu",
+    "Jade_Anivia",
+    "Jade_Annie",
+    "Jade_Ashe",
+    "Jade_Blitzcrank",
+    "Jade_Brand",
+    "Jade_Chogath",
+    "Jade_Corki",
+    "Jade_DrMundo",
+    "Jade_Evelynn",
+    "Jade_Ezreal",
+    "Jade_Fiddlesticks",
+    "Jade_Gangplank",
+    "Jade_Garen",
+    "Jade_Gragas",
+    "Jade_Heimerdinger",
+    "Jade_Janna",
+    "Jade_JarvanIV",
+    "Jade_Jax",
+    "Jade_Karthus",
+    "Jade_Kassadin",
+    "Jade_Katarina",
+    "Jade_Kayle",
+    "Jade_KogMaw",
+    "Jade_LeeSin",
+    "Jade_Leona",
+    "Jade_Lulu",
+    "Jade_Lux",
+    "Jade_Malphite",
+    "Jade_Malzahar",
+    "Jade_MasterYi",
+    "Jade_MissFortune",
+    "Jade_Morgana",
+    "Jade_Nasus",
+    "Jade_Nidalee",
+    "Jade_Nunu",
+    "Jade_Olaf",
+    "Jade_Pantheon",
+    "Jade_Rammus",
+    "Jade_Ryze",
+    "Jade_Shaco",
+    "Jade_Singed",
+    "Jade_Sion",
+    "Jade_Sivir",
+    "Jade_Skarner",
+    "Jade_Sona",
+    "Jade_Soraka",
+    "Jade_Taric",
+    "Jade_Teemo",
+    "Jade_Tristana",
+    "Jade_Tryndamere",
+    "Jade_TwistedFate",
+    "Jade_Twitch",
+    "Jade_Vayne",
+    "Jade_Veigar",
+    "Jade_Warwick",
+    "Jade_Wukong",
+    "Jade_Zilean"
+   ]
+  },
+  "rule": "Data Dragon champion.json `tags`: primary = tags[0], secondary = tags[1] or null; keys >= 60000 (Jade_* special-mode entries in 16.15.1) excluded"
+ },
+ "identity_vocab": {
+  "source": "MAIN_TRAIN h90-valid cohort rows (both cohorts), champion ids > 0, sorted",
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13,
+   14,
+   15,
+   16,
+   17,
+   18,
+   19,
+   20,
+   21,
+   22,
+   23,
+   24,
+   25,
+   26,
+   27,
+   28,
+   29,
+   30,
+   31,
+   32,
+   33,
+   34,
+   35,
+   36,
+   37,
+   38,
+   39,
+   40,
+   41,
+   42,
+   43,
+   44,
+   45,
+   48,
+   50,
+   51,
+   53,
+   54,
+   55,
+   56,
+   57,
+   58,
+   59,
+   60,
+   61,
+   62,
+   63,
+   64,
+   67,
+   68,
+   69,
+   72,
+   74,
+   75,
+   76,
+   77,
+   78,
+   79,
+   80,
+   81,
+   82,
+   83,
+   84,
+   85,
+   86,
+   89,
+   90,
+   91,
+   92,
+   96,
+   98,
+   99,
+   101,
+   102,
+   103,
+   104,
+   105,
+   106,
+   107,
+   110,
+   111,
+   112,
+   113,
+   114,
+   115,
+   117,
+   119,
+   120,
+   121,
+   122,
+   126,
+   127,
+   131,
+   133,
+   134,
+   136,
+   141,
+   142,
+   143,
+   145,
+   147,
+   150,
+   154,
+   157,
+   161,
+   163,
+   164,
+   166,
+   200,
+   201,
+   202,
+   203,
+   221,
+   222,
+   223,
+   233,
+   234,
+   235,
+   236,
+   238,
+   240,
+   245,
+   246,
+   254,
+   266,
+   267,
+   268,
+   350,
+   360,
+   412,
+   420,
+   421,
+   427,
+   429,
+   432,
+   497,
+   498,
+   516,
+   517,
+   518,
+   523,
+   526,
+   555,
+   711,
+   777,
+   799,
+   800,
+   804,
+   875,
+   876,
+   887,
+   888,
+   893,
+   895,
+   897,
+   901,
+   902,
+   910,
+   950
+  ],
+  "n": 171,
+  "sha256": "aa025a24322fbf08c76cc746ad1bd43247f1aae1206e207f8242098c6eb6576e",
+  "unseen_policy": "ids outside the vocabulary (external sets) are all-zero rows of the identity block"
+ },
+ "features": {
+  "positions": {
+   "0": "TOP",
+   "1": "JG",
+   "2": "MID",
+   "3": "BOT",
+   "4": "SUP"
+  },
+  "teams": {
+   "blue": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "red": [
+    5,
+    6,
+    7,
+    8,
+    9
+   ]
+  },
+  "slot_stats": [
+   "totalGold_norm",
+   "level_norm",
+   "kills",
+   "deaths",
+   "alive",
+   "hp_pct"
+  ],
+  "agg_names": [
+   "totalGold_norm_sum",
+   "level_norm_sum",
+   "kills_sum",
+   "deaths_sum",
+   "alive_sum",
+   "hp_pct_mean"
+  ],
+  "same_team_pairs": [
+   [
+    "TOP",
+    "JG"
+   ],
+   [
+    "JG",
+    "MID"
+   ],
+   [
+    "BOT",
+    "SUP"
+   ]
+  ],
+  "cross_team_matchups": "same position blue vs red",
+  "class_membership": "primary tag only for counts, aggregates and pairs; secondary tag only in the tags block",
+  "block_width": {
+   "tags": 120,
+   "class_count": 18,
+   "class_agg": 108,
+   "pairs": 396,
+   "identity": 1710
+  },
+  "arms": {
+   "base": {
+    "blocks": [],
+    "inputs": "352 ridge + blocks",
+    "width": 352
+   },
+   "tags": {
+    "blocks": [
+     "tags"
+    ],
+    "inputs": "352 ridge + blocks",
+    "width": 472
+   },
+   "class_state": {
+    "blocks": [
+     "tags",
+     "class_count",
+     "class_agg"
+    ],
+    "inputs": "352 ridge + blocks",
+    "width": 598
+   },
+   "class_pairs": {
+    "blocks": [
+     "tags",
+     "class_count",
+     "class_agg",
+     "pairs"
+    ],
+    "inputs": "352 ridge + blocks",
+    "width": 994
+   },
+   "identity": {
+    "blocks": [
+     "identity"
+    ],
+    "inputs": "352 ridge + blocks",
+    "width": 2062
+   },
+   "class_pairs_identity": {
+    "blocks": [
+     "tags",
+     "class_count",
+     "class_agg",
+     "pairs",
+     "identity"
+    ],
+    "inputs": "352 ridge + blocks",
+    "width": 2704
+   },
+   "draft_class": {
+    "blocks": [
+     "tags",
+     "class_count",
+     "pairs"
+    ],
+    "inputs": "blocks only (no state, no time, no p_pre)",
+    "width": 534
+   },
+   "draft_identity": {
+    "blocks": [
+     "identity"
+    ],
+    "inputs": "blocks only (no state, no time, no p_pre)",
+    "width": 1710
+   }
+  },
+  "block_names_sha256": {
+   "tags": "8f293bc00d967c70c4c062f6e21488f8620e36b3ae070c8ed1b65dc01608a215",
+   "class_count": "0cf86164d12df787af4a83d8ab91c734648b5c40451bc9fad06547b9f45da52c",
+   "class_agg": "e20a0d8783d1e16c8eea65c86cbfca759dfa41863aaca340bf1cd7a7c962c353",
+   "pairs": "20c06d9429c8f8aded177899092023599afb81b589833a0963d64ef8c2873436",
+   "identity": "351b2a5678e5e15e21ca34e6cde9b102f9f0ce4268a25f2194f5a6564b1bf2b3"
+  }
+ },
+ "data_contract": {
+  "corpus": "MAIN 210000 matches: TRAIN 15.14, VALIDATION 15.15 (Q_CAL / Q_SELECT), TEST 15.16; external KR_16.13, KR_16.14_pilot, KR_16.15, NA1_16.13 separately",
+  "labels": "Y_h90 = 1[delta_h90 > 0] from parent labels unchanged; TRAIN OOF V",
+  "cohorts": "T: known min >= 4; N: known min < 4",
+  "expected_counts": {
+   "TRAIN": {
+    "T": 39605,
+    "N": 159753
+   },
+   "Q_CAL": {
+    "T": 10390,
+    "N": 40565
+   },
+   "Q_SELECT": {
+    "T": 10195,
+    "N": 40180
+   },
+   "MAIN_TEST": {
+    "T": 32981,
+    "N": 130595
+   },
+   "EXT_KR_16.13": {
+    "T": 5202,
+    "N": 20228
+   },
+   "EXT_KR_16.14_pilot": {
+    "T": 101,
+    "N": 374
+   },
+   "EXT_KR_16.15": {
+    "T": 507,
+    "N": 1712
+   },
+   "EXT_NA1_16.13": {
+    "T": 5312,
+    "N": 21226
+   }
+  },
+  "count_mismatch_policy": "blocks fitting / evaluation"
+ },
+ "inputs": {
+  "ridge_names_sha256": "1ca61dee2fc08ff03b5255bb5dd722600b17bdd062afa40586ae4e9ab69a77c3",
+  "input_names_all_sha256": "cca21a11724d40cde51c92faf1a5e1ad4557aeb84114d9e5de04d812896cbb19",
+  "ridge_count": 352
+ },
+ "fixed_configurations": {
+  "registry": {
+   "T": {
+    "logit": "logit_C0.001",
+    "lgbm": "lgbm_L15_M100"
+   },
+   "N": {
+    "logit": "logit_C0.01",
+    "lgbm": "lgbm_L15_M100"
+   }
+  },
+  "source": "h90 family winners of incremental_q_training_20260915 (logit, lgbm), identical for every arm",
+  "rule": "configuration fixed; only the calibration (raw / sigmoid / isotonic) is selected per family, cohort and arm on Q_SELECT",
+  "stopping": "LightGBM iterations re-determined per arm by the unchanged stop10 rule (part of fitting)",
+  "lgbm_fixed": {
+   "objective": "binary",
+   "learning_rate": 0.04,
+   "n_estimators": 1000,
+   "reg_lambda": 1.0,
+   "colsample_bytree": 0.9,
+   "subsample": 1.0,
+   "n_jobs": 4,
+   "verbosity": -1,
+   "metric": "None",
+   "deterministic": true,
+   "force_col_wise": true
+  },
+  "seeds": {
+   "lgbm": [
+    7,
+    42,
+    123
+   ]
+  },
+  "limitation": "no retuning for wider inputs (stated limitation)"
+ },
+ "calibration_selection": {
+  "calibrators": "cr20260915_common.fit_calibrators on cohort Q_CAL (raw, sigmoid without positive-slope constraint, isotonic clip)",
+  "candidates_per_arm": 3,
+  "rule": "Q_SELECT match-weighted Brier, then log loss, then name",
+  "overall": "same rule over the 48 joint candidates of a cohort (descriptive)",
+  "freeze": "one frozen_manifest.json for all 32 selections before any TEST/external array or parent TEST prediction is opened"
+ },
+ "evaluation": {
+  "sets": [
+   "MAIN_TEST",
+   "EXT_KR_16.13",
+   "EXT_KR_16.14_pilot",
+   "EXT_KR_16.15",
+   "EXT_NA1_16.13"
+  ],
+  "cells": "all, B40, B45, time bins, B40 x time (frozen p_pre and pre time)",
+  "named": [
+   "logit_base",
+   "logit_tags",
+   "logit_class_state",
+   "logit_class_pairs",
+   "logit_identity",
+   "logit_class_pairs_identity",
+   "logit_draft_class",
+   "logit_draft_identity",
+   "lgbm_base",
+   "lgbm_tags",
+   "lgbm_class_state",
+   "lgbm_class_pairs",
+   "lgbm_identity",
+   "lgbm_class_pairs_identity",
+   "lgbm_draft_class",
+   "lgbm_draft_identity"
+  ],
+  "parent_named": [
+   "parent_lgbm_winner",
+   "parent_logit_winner"
+  ],
+  "parent_source": "incremental_q eval/predictions/<set>_h90_<cohort>.npz joined by exact (match, s_ms); metrics only; max |parent winner - base arm| reported",
+  "contrasts": [
+   {
+    "a": "logit_tags",
+    "b": "logit_base",
+    "label": "planned: logit tags - base"
+   },
+   {
+    "a": "logit_class_state",
+    "b": "logit_base",
+    "label": "planned: logit class_state - base"
+   },
+   {
+    "a": "logit_class_pairs",
+    "b": "logit_base",
+    "label": "planned: logit class_pairs - base"
+   },
+   {
+    "a": "logit_identity",
+    "b": "logit_base",
+    "label": "planned: logit identity - base"
+   },
+   {
+    "a": "logit_class_pairs_identity",
+    "b": "logit_base",
+    "label": "planned: logit class_pairs_identity - base"
+   },
+   {
+    "a": "logit_draft_class",
+    "b": "logit_base",
+    "label": "planned: logit draft_class - base"
+   },
+   {
+    "a": "logit_draft_identity",
+    "b": "logit_base",
+    "label": "planned: logit draft_identity - base"
+   },
+   {
+    "a": "logit_class_pairs",
+    "b": "logit_identity",
+    "label": "planned: logit class_pairs - identity"
+   },
+   {
+    "a": "logit_class_pairs_identity",
+    "b": "logit_identity",
+    "label": "planned: logit class_pairs_identity - identity"
+   },
+   {
+    "a": "logit_class_pairs_identity",
+    "b": "logit_class_pairs",
+    "label": "planned: logit class_pairs_identity - class_pairs"
+   },
+   {
+    "a": "lgbm_tags",
+    "b": "lgbm_base",
+    "label": "planned: lgbm tags - base"
+   },
+   {
+    "a": "lgbm_class_state",
+    "b": "lgbm_base",
+    "label": "planned: lgbm class_state - base"
+   },
+   {
+    "a": "lgbm_class_pairs",
+    "b": "lgbm_base",
+    "label": "PRIMARY: lgbm class_pairs - base"
+   },
+   {
+    "a": "lgbm_identity",
+    "b": "lgbm_base",
+    "label": "planned: lgbm identity - base"
+   },
+   {
+    "a": "lgbm_class_pairs_identity",
+    "b": "lgbm_base",
+    "label": "planned: lgbm class_pairs_identity - base"
+   },
+   {
+    "a": "lgbm_draft_class",
+    "b": "lgbm_base",
+    "label": "planned: lgbm draft_class - base"
+   },
+   {
+    "a": "lgbm_draft_identity",
+    "b": "lgbm_base",
+    "label": "planned: lgbm draft_identity - base"
+   },
+   {
+    "a": "lgbm_class_pairs",
+    "b": "lgbm_identity",
+    "label": "planned: lgbm class_pairs - identity"
+   },
+   {
+    "a": "lgbm_class_pairs_identity",
+    "b": "lgbm_identity",
+    "label": "planned: lgbm class_pairs_identity - identity"
+   },
+   {
+    "a": "lgbm_class_pairs_identity",
+    "b": "lgbm_class_pairs",
+    "label": "planned: lgbm class_pairs_identity - class_pairs"
+   }
+  ],
+  "primary": {
+   "a": "lgbm_class_pairs",
+   "b": "lgbm_base",
+   "cohort": "T",
+   "cell": "all",
+   "metric": "brier",
+   "set": "MAIN_TEST"
+  },
+  "bootstrap": {
+   "replicates": 1000,
+   "seed": 20260915,
+   "models": [
+    "logit_base",
+    "logit_tags",
+    "logit_class_state",
+    "logit_class_pairs",
+    "logit_identity",
+    "logit_class_pairs_identity",
+    "logit_draft_class",
+    "logit_draft_identity",
+    "lgbm_base",
+    "lgbm_tags",
+    "lgbm_class_state",
+    "lgbm_class_pairs",
+    "lgbm_identity",
+    "lgbm_class_pairs_identity",
+    "lgbm_draft_class",
+    "lgbm_draft_identity"
+   ],
+   "where": "all / B40 / B45 with >= 30 matches and both classes",
+   "time_cells": "CI not computed"
+  },
+  "multiplicity": "no adjustment; 20 planned contrasts, one primary"
+ },
+ "smoke": {
+  "rows": "TRAIN-only 1/8 matches, pseudo roles; all 2 x 2 x 8 fits, smoke freeze and pseudo Q_SELECT evaluation"
+ },
+ "deferred": [
+  "MLP / GPU arms",
+  "Track B graph adapter",
+  "subclass taxonomy (13 wiki classes)",
+  "changes to V or the labels",
+  "human review",
+  "causal reading"
+ ],
+ "environment": {
+  "python": "3.13.5 | packaged by Anaconda, Inc. | (main, Jun 12 2025, 16:37:03) [MSC v.1929 64 bit (AMD64)]",
+  "executable": "C:\\Users\\todtj\\anaconda3\\python.exe",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "numpy": "2.1.3",
+  "scipy": "1.15.3",
+  "sklearn": "1.6.1",
+  "lightgbm": "4.6.0",
+  "joblib": "1.4.2",
+  "threads": {
+   "OMP_NUM_THREADS": null,
+   "OPENBLAS_NUM_THREADS": null,
+   "MKL_NUM_THREADS": null
+  },
+  "dont_write_bytecode": true,
+  "cuda_visible_devices": ""
+ },
+ "source_sha256": {
+  "scripts/cc20260916_common.py": "ec8dc67dd6e0e03552624d90f15c1286a79b59f4126ba50117a35841da187f15",
+  "scripts/cc20260916_driver.py": "6a8fe847a3994dc3cc2d0d68978608004b5f8964e14113cfa86484f0e75ee53c",
+  "scripts/cc20260916_evaluate.py": "2ab24468d594a8378e20747d614de69089dc8c88e05201831a5752accfec3a15",
+  "scripts/cc20260916_fit.py": "cc7216d8e5546408516dcad7eb91d8f018b7ed7e7fddeb755d6dac2d79817e7e",
+  "scripts/cc20260916_freeze.py": "6a680abc5f980e96c15932f84a92ab8ada302ce4528bd0a3332a267634a9a976",
+  "scripts/cc20260916_postrun_checks.py": "53cf332eb131e3d127de9145a236b44a18faf21567f7e4d79f9ddb4f3edb9629",
+  "scripts/cc20260916_protocol.py": "a0af5a2611084f54ad610b99a45e7abad6a5f1038c303d96cba211d711ab713d",
+  "scripts/cc20260916_report.py": "5d97878e7a3992ba925b8adbd039ec93d66b2ef75470b7859ea0f4097647d86a",
+  "scripts/cc20260916_run_contract_tests.py": "2550f64eb31a2bf2e22ec87a0fd0aaacc73872756e4269280706fb1e7c0814b2",
+  "scripts/cc20260916_snapshot.py": "f012359f69e767390e23a574c45ebce0c43c7a42536f945e2d28f6aec10c7b98",
+  "tests/test_cc20260916_contracts.py": "e86b59927972ba7409d655964d9830d255a9f68ebb4d5a9b03699a815d7c41c2",
+  "scripts/fc20260915_common.py": "aeb9f3b07b5a5e68cc95de09a4a12870ac7e7f0728a66a30535c7dbbbad73405",
+  "scripts/cr20260915_common.py": "04d4a2eb9808888d6b5e4896bdc50405ffac4bde79ee65173046627aa146e081",
+  "scripts/iq20260915_common.py": "a51925020c626275b3b1db456490d2e2882e86cda59bc8531dfeeba81e6c7956",
+  "docs/CLAUDE_CHAMPION_CLASS_20260916.md": "5e56593f050b97641e1b2f6881528194b665df2dce7f86dbbadbb624b4b048fd",
+  "docs/CLAUDE_INCREMENTAL_Q_TRAIN_20260915.md": "c98fe463930e6ee7ff82d03f8d25cf3d28a2f869d29fd0988611b64be9ec7b2d",
+  "docs/DELTA_Q_FAIR_BALANCED_PROTOCOL_20260915.md": "c456fbde1146b35479395ea278328490666fa3388da00c432cd93c41ed8c6360",
+  "docs/COLLABORATOR_CRITIQUE_RESPONSE_20260915.md": "c847d82d00654f88cbe5f8f70370cf8498c3c722c89657b2d27064860f113396"
+ }
+}

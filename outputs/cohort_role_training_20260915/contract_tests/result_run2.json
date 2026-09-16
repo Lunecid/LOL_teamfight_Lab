@@ -1,0 +1,31 @@
+{
+ "run": 2,
+ "command": "-m pytest -q -p no:cacheprovider --basetemp=C:\\Users\\todtj\\문서\\LOL_Teamfight\\outputs\\cohort_role_training_20260915\\probes\\pytest_basetemp_run2 tests/test_cr20260915_contracts.py tests/test_state_value_v2_contract.py tests/test_fc20260915_contracts.py",
+ "returncode": 0,
+ "passed_count": 34,
+ "failed_count": 0,
+ "error_count": 0,
+ "skipped_count": 0,
+ "passed": true,
+ "seconds": 10.8,
+ "at": "2026-09-15 14:34:16",
+ "test_sha256": {
+  "tests/test_cr20260915_contracts.py": "a4f4396f4b844f61cc20b7e79c9afd9be8ad82d378c1b227e741fcf1d1dbc174",
+  "tests/test_state_value_v2_contract.py": "6897d295db463121aae64bc76198d3c93278bf36b0f88890a2e0991d812d9cde",
+  "tests/test_fc20260915_contracts.py": "817571f8c5566d73d6872ee120ec317a33981915fdb886b6407b1baf430c59a8"
+ },
+ "script_sha256": {
+  "cr20260915_cohorts.py": "b41868c4f6f929c6a345cf1f72291e1508e4c2784cc268ba3a9dfbe5b1267f6f",
+  "cr20260915_common.py": "47e4aedac846f78458aa9eb76c5cb3d0147f7a5ba1cec2ff79e158b6d080e505",
+  "cr20260915_data.py": "699a60745a0dd6d94829e9e3f7da4a975fd46a132f1b473179fc642348e13790",
+  "cr20260915_draft.py": "730c8c22059eacf1e81bb8a04b3303d2ffa0e91940271ccd4c48145ccf92d0ec",
+  "cr20260915_fit_arms.py": "10b20dd36ce84a54569772bc9c897b2346de067763185d2246fbe0824aa2f1fb",
+  "cr20260915_fit_cohort_q.py": "8d654924867447ed37cfbc199dc7f547a733c4890306ba43eaf2006ce3e77ae3",
+  "cr20260915_probe_shards.py": "f20a1371584b309df738bd229175ba3ff7e1808ced687b96312094476f50a7d4",
+  "cr20260915_role_models.py": "a18bc4c646682ed4c47eef5438930522c89a43af5722035a956214e8b097e62c",
+  "cr20260915_run_contract_tests.py": "0c7328450389ea356c64871ca9d213913648c99ac8982299612bf30baed29857",
+  "cr20260915_snapshot.py": "6d2b12a12b56d7e2787143509773da26aa0c48baf19c84a382b173bb908b00e1"
+ },
+ "log": "contract_tests/run2.txt",
+ "scope": "synthetic and TRAIN-only fixtures; no TEST/external rows or labels"
+}

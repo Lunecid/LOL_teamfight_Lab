@@ -1,0 +1,58 @@
+{
+ "version": "cohort_role_training_20260915",
+ "written_at": "2026-09-15 14:31:00",
+ "main": {
+  "file": "draft/MAIN_draft.npz",
+  "sha256": "ad27876a0e47178c52d27dcd54d44d76c540747344e165831fba108075faeb77",
+  "matches": 210000,
+  "roster_invalid": 0,
+  "meta_errors": 0,
+  "champion_missing_participants": 0,
+  "spell_missing_participants": 0,
+  "by_split": {
+   "TRAIN": 74673,
+   "VALIDATION": 74748,
+   "TEST": 60579
+  }
+ },
+ "external": {
+  "KR_16.13": {
+   "file": "draft/EXT_KR_16.13_draft.npz",
+   "sha256": "c6f0fece2e1d785abb2310b9e9b5a2aed7f890c8a4937a0c69ed33c253c639b2",
+   "matches": 10064,
+   "roster_invalid": 0,
+   "meta_errors": 0,
+   "champion_missing_participants": 0,
+   "spell_missing_participants": 0
+  },
+  "KR_16.14_pilot": {
+   "file": "draft/EXT_KR_16.14_pilot_draft.npz",
+   "sha256": "3e779614c635dc09ac50d042715553cc9d33b06f74e70b813e6f9fe3b70b87e4",
+   "matches": 200,
+   "roster_invalid": 0,
+   "meta_errors": 0,
+   "champion_missing_participants": 0,
+   "spell_missing_participants": 0
+  },
+  "KR_16.15": {
+   "file": "draft/EXT_KR_16.15_draft.npz",
+   "sha256": "9f12f7bcf4df602c9b8d78c6c133e733fa8083cf000095200641dd8a6b360c0d",
+   "matches": 926,
+   "roster_invalid": 0,
+   "meta_errors": 0,
+   "champion_missing_participants": 0,
+   "spell_missing_participants": 0
+  },
+  "NA1_16.13": {
+   "file": "draft/EXT_NA1_16.13_draft.npz",
+   "sha256": "1ba70099071866461a06e5df11bce49ad8f8cf7363965cff99dd3cf9b1c4ccea",
+   "matches": 10000,
+   "roster_invalid": 0,
+   "meta_errors": 0,
+   "champion_missing_participants": 0,
+   "spell_missing_participants": 0
+  }
+ },
+ "role_supervision_provenance_sha256": "b26d8e50195e59f96cf0eb00df3ccf5a9e40fda458deeaac660f6493eb67f0ed",
+ "slot_order": "StateV2 participant order: sorted by (teamId, participantId); slots 1-5 Blue(100), 6-10 Red(200)"
+}

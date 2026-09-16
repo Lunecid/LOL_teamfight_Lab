@@ -433,6 +433,16 @@ def _event_xy(e: dict) -> Optional[Tuple[float, float]]:
         return (safe_float(e.get("x")), safe_float(e.get("y")))
     return None
 
+def label_window_end_ts(fight_end_ts: int, engage_ts: int, horizon_ms: int) -> int:
+    """Exclusive end of the label window.
+
+    Events are read from the half-open interval [engage, end), so the end must sit one
+    millisecond past the fight's last kill for that kill to count; the minimum horizon
+    (engage + horizon_ms) is unchanged.
+    """
+    return int(max(int(fight_end_ts) + 1, int(engage_ts) + int(horizon_ms)))
+
+
 def build_anchors_from_events(events: List[dict]) -> Dict[str, Any]:
     obj = {k: [] for k in ["DRAGON", "BARON", "RIFTHERALD", "ATAKHAN", "HORDE"]}
     tower = {"TOWER_T100": [], "TOWER_T200": []}
@@ -829,9 +839,16 @@ def _validate_teamfight_at_engage(
     is_norm: bool,
     scale_factor: float,
     alive_mask: Optional[np.ndarray] = None,
-) -> bool:
-    """Check teamfight validity: at engage time, require min_per_team
-    ALIVE champions from each team within validity_radius of fight center.
+) -> Tuple[bool, int, int]:
+    """Check teamfight validity and report the at-cutoff presence counts.
+
+    Returns ``(ok, blue_in, red_in)``: whether min_per_team ALIVE champions
+    from each team sit within validity_radius of the fight center at engage
+    time, plus the raw per-team counts.  The counts read positions at the
+    prediction cutoff only, so they are usable as a *pre-fight* scale
+    measure -- unlike participation counts, which are known only once the
+    fight has resolved.  The anchor itself comes from the conditioning kill,
+    the same retrospective conditioning that defines the corpus.
 
     [A1] When ``alive_mask`` (a per-player 0/1 vector of length 10 at the
     engage minute) is provided, only living players count toward the in-radius
@@ -880,7 +897,8 @@ def _validate_teamfight_at_engage(
         if dx * dx + dy * dy <= R_sq:
             red_in += 1
 
-    return blue_in >= min_per_team and red_in >= min_per_team
+    ok = blue_in >= min_per_team and red_in >= min_per_team
+    return ok, blue_in, red_in
 
 
 def _merge_adjacent_candidates(
@@ -967,6 +985,13 @@ def _collect_interactions_in_radius(
         "ELITE_MONSTER_KILL", "BUILDING_KILL", "TURRET_PLATE_DESTROYED",
     }
 
+    # Shop events fire at the fountain and carry no position, so they are
+    # placed by interpolating the actor's own 5 s position. A fight inside the
+    # base can therefore count a shopping player as a participant. Excluding
+    # them is a config switch so the effect can be measured.
+    shop_types = {"ITEM_PURCHASED", "ITEM_SOLD", "ITEM_UNDO"}
+    exclude_shop = bool(getattr(cfg, "TF2_EXCLUDE_SHOP_INTERACTIONS", False)) if cfg else False
+
     for ev in events or []:
         if not isinstance(ev, dict):
             continue
@@ -988,6 +1013,9 @@ def _collect_interactions_in_radius(
         # Objectives/towers tracked only in post-fight outcome (Step 5),
         # NOT counted as radius-3000 interactions (prevents double-counting).
         if et in obj_building_types:
+            continue
+
+        if exclude_shop and et in shop_types:
             continue
 
         # Check spatial constraint (radius 3000)
@@ -1360,7 +1388,7 @@ def detect_fights_teamfight_v2(
             continue
 
         # §4A: Validate teamfight — at least 2 ALIVE per team within 1800 of fight center
-        if not _validate_teamfight_at_engage(
+        valid, present_blue, present_red = _validate_teamfight_at_engage(
             xy_dense=xy_dense,
             dense_ts=dense_ts,
             engage_ts=engage_ts_val,
@@ -1371,13 +1399,14 @@ def detect_fights_teamfight_v2(
             is_norm=is_norm,
             scale_factor=scale_factor,
             alive_mask=_alive_vec_at_ts(engage_ts_val),
-        ):
+        )
+        if not valid:
             diag["rejected_too_few_per_team"] += 1
             continue
 
         # §5: fight time window
         fight_end_ts = last_kill_ts + tail_buffer_ms
-        horizon_end_ts = int(max(fight_end_ts, engage_ts_val + horizon_ms))
+        horizon_end_ts = label_window_end_ts(fight_end_ts, engage_ts_val, horizon_ms)
 
         # Duration cap
         if fight_end_ts - engage_ts_val > int(config.max_merged_fight_duration_ms):
@@ -1435,6 +1464,9 @@ def detect_fights_teamfight_v2(
             "det_cluster_participants": int(len(all_participants)),
             "det_cluster_blue": int(blue_cnt),
             "det_cluster_red": int(red_cnt),
+            # presence at the prediction cutoff (pre-fight scale measure)
+            "det_present_blue": int(present_blue),
+            "det_present_red": int(present_red),
             "det_cluster_duration_ms": int(last_kill_ts - first_kill_ts),
             "det_interaction_count": int(len(interactions)),
         })

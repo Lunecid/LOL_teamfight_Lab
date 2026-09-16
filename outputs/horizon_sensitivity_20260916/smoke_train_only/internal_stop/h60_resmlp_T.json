@@ -1,0 +1,139 @@
+{
+ "role": "EXPLORATORY_FOLLOWUP_AFTER_PRIOR_TEST_EXPOSURE_MODEL_DEFINED_LABELS_NOT_CONFIRMATORY",
+ "horizon_s": 60,
+ "cohort": "T",
+ "family": "resmlp",
+ "config": "resmlp_W128_D0.1",
+ "stop_record": {
+  "allocation": "sha256('iq20260915_stop:'+match_id)[:8] mod 10 == 0 -> stop10 (iq allocation)",
+  "fit90": {
+   "rows": 2617,
+   "matches": 1945,
+   "weight_sum": 2617.0,
+   "weight_mean": 1.0,
+   "per_match_total_min": 1.3455012853470436,
+   "per_match_total_max": 1.3455012853470438,
+   "membership_sha256": "d33b83740aa35997812682475deaec070dd582f11f736a8797fbe15ef13e8916"
+  },
+  "stop10": {
+   "rows": 354,
+   "matches": 258,
+   "weight_sum": 354.0,
+   "weight_mean": 1.0,
+   "per_match_total_min": 1.372093023255814,
+   "per_match_total_max": 1.3720930232558142,
+   "membership_sha256": "c104ff3101bd6c519ea99d292b1961b5de83ae67863cac5e77e4ca6db70ab283"
+  },
+  "full": {
+   "rows": 2971,
+   "matches": 2203,
+   "weight_sum": 2971.0,
+   "weight_mean": 1.0,
+   "per_match_total_min": 1.3486155242850657,
+   "per_match_total_max": 1.348615524285066,
+   "membership_sha256": "e3e7d13e9224dc01d6180284a9c3e85d97cc8d936824182a9ba036f3824eb47f"
+  },
+  "fit90_stop10_match_overlap": 0,
+  "preprocessing_stop_phase": "median imputer + StandardScaler fit on fit90 rows only",
+  "preprocessing_full": "median imputer + StandardScaler refit on all cohort TRAIN rows",
+  "evaluator": "match-weighted Brier on stop10 (weights recomputed inside stop10), GPU float32 inference, eval mode",
+  "patience": 10,
+  "max_epochs": 100,
+  "device": "cuda",
+  "optimizer": {
+   "optimizer": "AdamW",
+   "lr": 0.001,
+   "weight_decay": 0.0001,
+   "weight_decay_scope": "all parameters (AdamW default)",
+   "batch_size": 512,
+   "max_epochs": 100,
+   "patience": 10,
+   "dtype_train": "float32",
+   "amp": false,
+   "grad_clip": null,
+   "init": "PyTorch default (kaiming_uniform for Linear)",
+   "shuffle": "uniform permutation per epoch from a CPU torch.Generator seeded with the seed",
+   "last_batch": "kept (partial)"
+  },
+  "seeds": {
+   "7": {
+    "best_epoch": 4,
+    "first_argmin_epoch": 4,
+    "epochs_evaluated": 14,
+    "cap_reached": false,
+    "early_stopped": true,
+    "best_stop_weighted_brier": 0.23592747747898102,
+    "stop_curve": [
+     0.2485341876745224,
+     0.23940415680408478,
+     0.23902246356010437,
+     0.23592747747898102,
+     0.24597258865833282,
+     0.24049675464630127,
+     0.23962928354740143,
+     0.24870052933692932,
+     0.2507340908050537,
+     0.2530604600906372,
+     0.25877007842063904,
+     0.2727910578250885,
+     0.2621890604496002,
+     0.27406632900238037
+    ],
+    "refit_epochs": 4,
+    "stop_seconds": 4.41,
+    "refit_seconds": 0.5
+   },
+   "42": {
+    "best_epoch": 2,
+    "first_argmin_epoch": 2,
+    "epochs_evaluated": 12,
+    "cap_reached": false,
+    "early_stopped": true,
+    "best_stop_weighted_brier": 0.23250198364257812,
+    "stop_curve": [
+     0.2370292991399765,
+     0.23250198364257812,
+     0.23441043496131897,
+     0.2345011681318283,
+     0.23749279975891113,
+     0.23733940720558167,
+     0.23670409619808197,
+     0.24204427003860474,
+     0.2468777894973755,
+     0.2581694722175598,
+     0.2794618308544159,
+     0.27262991666793823
+    ],
+    "refit_epochs": 2,
+    "stop_seconds": 1.48,
+    "refit_seconds": 0.28
+   },
+   "123": {
+    "best_epoch": 3,
+    "first_argmin_epoch": 3,
+    "epochs_evaluated": 13,
+    "cap_reached": false,
+    "early_stopped": true,
+    "best_stop_weighted_brier": 0.2335338294506073,
+    "stop_curve": [
+     0.2436753660440445,
+     0.2338162511587143,
+     0.2335338294506073,
+     0.23432840406894684,
+     0.23734380304813385,
+     0.24275867640972137,
+     0.24857422709465027,
+     0.24803224205970764,
+     0.25159087777137756,
+     0.27758052945137024,
+     0.25894302129745483,
+     0.26166537404060364,
+     0.2729766368865967
+    ],
+    "refit_epochs": 3,
+    "stop_seconds": 1.67,
+    "refit_seconds": 0.38
+   }
+  }
+ }
+}

@@ -1,0 +1,290 @@
+{
+ "version": "cohort_role_training_20260915",
+ "role": "EXPLORATORY_FOLLOWUP_MODEL_DEFINED_LABELS_PRIOR_TEST_EXPOSURE",
+ "frozen_at": "2026-09-15 14:47:42",
+ "protocol_sha256": "76419cab9c83d71880f91790ffa5256e062df4711a581a57d7baa5ec665a6a81",
+ "cohort_manifest_sha256": "e39a33df3afad820bb6fdcbcc0796a9bd3bf5ca27c522cd07b0e48184c2b3071",
+ "draft_manifest_sha256": "8a800cc7fc2c987cfd55bd96868837dcfab417cd4ab44f3d8f05762166f6ace5",
+ "role_supervision_provenance_sha256": "b26d8e50195e59f96cf0eb00df3ccf5a9e40fda458deeaac660f6493eb67f0ed",
+ "contract_tests_result_sha256": "0986e2f5df2a637d3c0575034f513d19b03c86faa42abf32cde3c936d44bdbc1",
+ "stage_status": {
+  "A": "selections complete",
+  "B": "role models fitted (weak supervision)",
+  "C": "arms selected for N,T"
+ },
+ "A_specialists": {
+  "T_h60": {
+   "chosen": "ridge_raw",
+   "selection_sha256": "e1704c481128846da505b3e44be5af4df08f8c450488772dc91049c6658e324b",
+   "written_at": "2026-09-15 14:43:34"
+  },
+  "T_h90": {
+   "chosen": "ridge_raw",
+   "selection_sha256": "621edd807cc9f11504e9263cb7b448fc7abcf3c0c2667b6e2245ef09d674e6d2",
+   "written_at": "2026-09-15 14:42:49"
+  },
+  "T_h120": {
+   "chosen": "ridge_raw",
+   "selection_sha256": "1977976f4cc6756b90ad3661a9d0b372365b6a7bf7b065ad2a36eebf8fde2c57",
+   "written_at": "2026-09-15 14:44:20"
+  },
+  "N_h60": {
+   "chosen": "economic_sigmoid",
+   "selection_sha256": "5ae046e71d63515e4dd5bf7fc746475708872bd2de1ade635430ad3639510c43",
+   "written_at": "2026-09-15 14:44:05"
+  },
+  "N_h90": {
+   "chosen": "ridge_isotonic",
+   "selection_sha256": "edc2685dc1976ecf87a15e5bf54bbd6a0dbffe701da65dfea8e547428eb6fffd",
+   "written_at": "2026-09-15 14:43:19"
+  },
+  "N_h120": {
+   "chosen": "ridge_isotonic",
+   "selection_sha256": "1f2e1e4e93ee24c075e5eaeb7a4aca57e0df520493c498a25f5558a1136ab874",
+   "written_at": "2026-09-15 14:44:50"
+  }
+ },
+ "role_models": {
+  "models": {
+   "final": {
+    "sha256": "b9a084949c8d1b2822af4a224d9c7f13b6881076dbac05de7eed4a59319ca17a",
+    "converged": true,
+    "n_iter": 94
+   },
+   "oof_fold0": {
+    "sha256": "3df80a223574c0c5210c362efd97385fff5152a54af2c4d8ff19c6173ccbdc44",
+    "converged": true,
+    "n_iter": 79
+   },
+   "oof_fold1": {
+    "sha256": "8b07763fe7744c5caa042dd39651e935eafee9b2ba7e66d4109bd21c6298f4c7",
+    "converged": true,
+    "n_iter": 85
+   },
+   "oof_fold2": {
+    "sha256": "eeac9ff6daf2b068cefcc4fd4145191d9919ad43a840ea3faa549530ff39c42e",
+    "converged": true,
+    "n_iter": 76
+   },
+   "oof_fold3": {
+    "sha256": "f79f732ddcc3302823889a71a56793d4a56247ff1fdfc148df9e01e3712293c0",
+    "converged": true,
+    "n_iter": 96
+   },
+   "oof_fold4": {
+    "sha256": "a88667cf2b0c5e8da4574963f3d77d1a341c13d09931e668ea7faff22fbd51e8",
+    "converged": true,
+    "n_iter": 93
+   }
+  },
+  "outputs": {
+   "MAIN_TRAIN": "c8ae5250701b6b3c1be9bf955d80502444e805cb71a46898b4124debcaa68ee7",
+   "MAIN_VALIDATION": "53edf7037bcdc8b95a9dea694195e6eacd05dee920c67ecc749c767e47f812c1"
+  }
+ },
+ "arms": {
+  "T": {
+   "arm_winners": {
+    "participant": "participant_lgbm_raw",
+    "draft": "draft_lgbm_raw",
+    "role": "role_lgbm_raw"
+   },
+   "overall": "role_lgbm_raw",
+   "A_specialist": "ridge_raw",
+   "selection_sha256": "69e3b3b26a1fb810b84deb33c3bda13a370ae5f3a37cca2f13ca52752fe804ae",
+   "written_at": "2026-09-15 14:46:03"
+  },
+  "N": {
+   "arm_winners": {
+    "participant": "participant_lgbm_sigmoid",
+    "draft": "draft_lgbm_sigmoid",
+    "role": "role_lgbm_sigmoid"
+   },
+   "overall": "role_lgbm_sigmoid",
+   "A_specialist": "ridge_isotonic",
+   "selection_sha256": "cd446bed376c4ebad7aaec31b6693563473826e13bc51e7f803cc98e6edab897",
+   "written_at": "2026-09-15 14:47:42"
+  }
+ },
+ "ablations": {
+  "preselected": "role_ridge_raw",
+  "primary_calibration": "raw",
+  "blocks": {
+   "role_TOP": {
+    "primary": "drop_role_TOP_ridge_raw",
+    "own": "drop_role_TOP_ridge_raw"
+   },
+   "role_JUNGLE": {
+    "primary": "drop_role_JUNGLE_ridge_raw",
+    "own": "drop_role_JUNGLE_ridge_raw"
+   },
+   "role_MIDDLE": {
+    "primary": "drop_role_MIDDLE_ridge_raw",
+    "own": "drop_role_MIDDLE_ridge_raw"
+   },
+   "role_BOTTOM": {
+    "primary": "drop_role_BOTTOM_ridge_raw",
+    "own": "drop_role_BOTTOM_ridge_raw"
+   },
+   "role_UTILITY": {
+    "primary": "drop_role_UTILITY_ridge_raw",
+    "own": "drop_role_UTILITY_ridge_raw"
+   }
+  },
+  "selection_sha256": "d0bee9b4793db3de05621aeef90d7c2b7ca969b77fc7a13fa91f17eb8ccd8547"
+ },
+ "pooled_reference": {
+  "prior_frozen_manifest_sha256": "8287804220b280f68a8ce2359532dbd1665b2d9d0c4a474c8666e8aed77b4f77",
+  "q_selections": {
+   "h90": {
+    "chosen": "ridge_isotonic",
+    "sha256": "e789627e60bb480ec51114ae42c368122182be27c273b35e6b839be1523a8fb0",
+    "ridge": "ridge_isotonic",
+    "economic": "economic_sigmoid"
+   },
+   "h60": {
+    "chosen": "ridge_sigmoid",
+    "sha256": "b272a8293f9c665e66f96f1ab9b3dbd63ff9efbccfa66be5e11ade829914ea4f",
+    "ridge": "ridge_sigmoid",
+    "economic": "economic_sigmoid"
+   },
+   "h120": {
+    "chosen": "ridge_isotonic",
+    "sha256": "01376cdca1e9ae1243172d9c1f74b37c239c08edf78d7b1be184e4d5bc8985f7",
+    "ridge": "ridge_isotonic",
+    "economic": "economic_sigmoid"
+   }
+  },
+  "chosen_bundle_sha256": {
+   "h90": "5688fe91156c2724d8e718ad4f837f8d60f058bf2f7e9cd370b13fe172f6c093",
+   "h60": "8b9ce2afa1d456bdb34cda7400bd202057a38b5b1d1e4b88e38a81e315a75636",
+   "h120": "0a954dab1aea38fb34ef2adfd5b4c5e1c18d2c1e92c4a722eeeb91800566a143"
+  }
+ },
+ "frozen_files_sha256": {
+  "selection\\q_specialist_T_h60.json": "e1704c481128846da505b3e44be5af4df08f8c450488772dc91049c6658e324b",
+  "models/q_specialist/T/h60/constant.joblib": "f3e8adf348887a278fecf4fe919cedc678df6f67e3c3471f9328c939823a8d32",
+  "models/q_specialist/T/h60/p_pre_logistic.joblib": "bd95ed4e2ad4d3601edcf1a1264e2aad0ae75c850eff6383b62bb5e145d5c0aa",
+  "models/q_specialist/T/h60/p_pre_spline.joblib": "a393d491d466ce460937810a4306f97beef948205a54ac79f43c10006320715e",
+  "models/q_specialist/T/h60/ridge_raw.joblib": "714309d8dd872125bc9ad1dcd040dadd99d0c030791fe20cdf457e91a83bffb8",
+  "models/q_specialist/T/h60/ridge_sigmoid.joblib": "8198ccf0a62465683083358cf2e7a0d5e3b6d44e57344da9d45700ed18d8b703",
+  "models/q_specialist/T/h60/ridge_isotonic.joblib": "a7f9101679bf70ec2a54de734a59e890f803eed8cc70f51c1b5302ad49543162",
+  "models/q_specialist/T/h60/economic_raw.joblib": "7fb1fd6cbd297d949998b4d493939f4fac0f0c0c3a64265ebeeaca43ba1c46f6",
+  "models/q_specialist/T/h60/economic_sigmoid.joblib": "7cb100b8021776b9fb90cfcc2e17b7140ac4c55e96ca898cda2725e5a99b584e",
+  "models/q_specialist/T/h60/economic_isotonic.joblib": "ba310006477a4a9d276c3abc79edd751372d27c6893c33af2eb37a836a1fb443",
+  "selection\\q_specialist_T_h90.json": "621edd807cc9f11504e9263cb7b448fc7abcf3c0c2667b6e2245ef09d674e6d2",
+  "models/q_specialist/T/h90/constant.joblib": "2b30084a79cbb1141897e04404bf6457f3893d3011e51b2d81fe4bebf17297b5",
+  "models/q_specialist/T/h90/p_pre_logistic.joblib": "2e94951f3b4072b618b0be96a6d78b3614d41644d725d28fa6e1eda32b9cb617",
+  "models/q_specialist/T/h90/p_pre_spline.joblib": "f64fadf2865a5a9594a88f4acc738028dcacc05189cb817eadc73cf204777c69",
+  "models/q_specialist/T/h90/ridge_raw.joblib": "a0bd13b3cad44b80994d2a54e9ef24e0029bfe09a60c24dbacdde612c45ffddf",
+  "models/q_specialist/T/h90/ridge_sigmoid.joblib": "5937c76d449eae2ec723fbf7eebd863950b3868264f8d344c291b0800c2eb436",
+  "models/q_specialist/T/h90/ridge_isotonic.joblib": "e42cdd8cf3e37577193f26679d2ef8a6a01bfbec02280261537f0948684f55c9",
+  "models/q_specialist/T/h90/economic_raw.joblib": "680fd41bd828cd253e72e74408b0a075bf7967f2dc3983816377f9f107cf1501",
+  "models/q_specialist/T/h90/economic_sigmoid.joblib": "beda61abc3af23e70ba05cd984aaba594ca9c48a26045fe8b5113a185ce2ed89",
+  "models/q_specialist/T/h90/economic_isotonic.joblib": "82f200b2fa740729938f8de6d4412efc22a3d3cca7d8f739ed50323172daa62b",
+  "selection\\q_specialist_T_h120.json": "1977976f4cc6756b90ad3661a9d0b372365b6a7bf7b065ad2a36eebf8fde2c57",
+  "models/q_specialist/T/h120/constant.joblib": "aee8872dcad419a17c72bfd64618562b1d8a2a9cfae0d5e28757bd822a32e6b2",
+  "models/q_specialist/T/h120/p_pre_logistic.joblib": "142234fed4a020ac38263ebbe05796b22321e232209976758ee656fca8dfe42f",
+  "models/q_specialist/T/h120/p_pre_spline.joblib": "002e5114f46b95850849a56024791817e8097e561873e6d3175d3c74d5e8c38d",
+  "models/q_specialist/T/h120/ridge_raw.joblib": "cb188cc601ae2c3ca9bc518ee699375dd09e6d586dedeb5790eb664e21413cce",
+  "models/q_specialist/T/h120/ridge_sigmoid.joblib": "4e13ab4b901b21fcac766ee59bd41500fdea1ce1000931d70840a4204f8c008e",
+  "models/q_specialist/T/h120/ridge_isotonic.joblib": "b59a7da389f8cde06d7e588d5af22dd6018ee016b7aeb5dc7ec7182edf1fd6ee",
+  "models/q_specialist/T/h120/economic_raw.joblib": "145afaf5688fb29921b9ad94084872fa48db488ae5559c9e021ffe2846dbcfb5",
+  "models/q_specialist/T/h120/economic_sigmoid.joblib": "0bc78689105ebbe5fc3d368378f642f3f74261d9063715f7edb8db8fe67e5c2b",
+  "models/q_specialist/T/h120/economic_isotonic.joblib": "fadd69f0b761929a308460afcc9506662959ece89d6537223fea42571a1db476",
+  "selection\\q_specialist_N_h60.json": "5ae046e71d63515e4dd5bf7fc746475708872bd2de1ade635430ad3639510c43",
+  "models/q_specialist/N/h60/constant.joblib": "45609a823816dd800155ba16bb02de5a685a64bd5414accee6e7e2b7a65c195b",
+  "models/q_specialist/N/h60/p_pre_logistic.joblib": "939da06e0801d43b9cf5d336245939c3568c7fb3e66b57dcd2ac3994972605fd",
+  "models/q_specialist/N/h60/p_pre_spline.joblib": "0677c50cb5b55cfb3acadad6dcddcc9fc736740d43209fa26c0e398f8eba23d7",
+  "models/q_specialist/N/h60/ridge_raw.joblib": "c8899fb8db8b00a7c79ed0e961660bbd7ea45f123d8e47d281f6930b15da8896",
+  "models/q_specialist/N/h60/ridge_sigmoid.joblib": "ef3ec0015f6f1a924d64005b16b1b2a21d14f3a92a8ca9caad613a4ef4063186",
+  "models/q_specialist/N/h60/ridge_isotonic.joblib": "56b87e9332cbd98b6fddde99d68a1199f9328887f4a4042fcd93f8535cccc655",
+  "models/q_specialist/N/h60/economic_raw.joblib": "714ffc641ab4a7b0570949aafa9a702002708f4ec393878e23ffac4a006a387d",
+  "models/q_specialist/N/h60/economic_sigmoid.joblib": "2eb131b236ef14224d1c32bd2f799268e480b13e5cca0584717ecaed86aa5ca6",
+  "models/q_specialist/N/h60/economic_isotonic.joblib": "950c87aa273d2f2e1efad38c49346297edf136bc0d1fd1075d5a40e45b31a2b4",
+  "selection\\q_specialist_N_h90.json": "edc2685dc1976ecf87a15e5bf54bbd6a0dbffe701da65dfea8e547428eb6fffd",
+  "models/q_specialist/N/h90/constant.joblib": "4d7d2061af9b3447a11b66d01cbeb413a9c09ae46aff5ad512b539ddbc921af7",
+  "models/q_specialist/N/h90/p_pre_logistic.joblib": "a3de67f0dc478db54b772c1ef130dafefb806670ed8297a6426c7a0ba29b3574",
+  "models/q_specialist/N/h90/p_pre_spline.joblib": "679e98f1c55a3ae2dbbe73465d47d22a5ef8914f103ca6668f95adfa83d0e50a",
+  "models/q_specialist/N/h90/ridge_raw.joblib": "422d60e19790ca5468da54e739939653c308699cfc84a2d7b7d8f12ec36f788d",
+  "models/q_specialist/N/h90/ridge_sigmoid.joblib": "60746b10fce576c42d6dc0b5157fb776508046c53a0944ad3040e177f39cf003",
+  "models/q_specialist/N/h90/ridge_isotonic.joblib": "29f517e35604665e8e2503344c88d28fbe78167834db76118c5c08e500b7f425",
+  "models/q_specialist/N/h90/economic_raw.joblib": "b1b2d7def319f228fe04988293f0464630c17e0d33e3522364179033b3bdd793",
+  "models/q_specialist/N/h90/economic_sigmoid.joblib": "1893021962c0eaa9094dc17cf283e29b153ba298a96f4d62384b47600fc1a274",
+  "models/q_specialist/N/h90/economic_isotonic.joblib": "990f9bca1fb54f0f7ecafe2d72c776850bc03c46282c3e7badda7607153591b9",
+  "selection\\q_specialist_N_h120.json": "1f2e1e4e93ee24c075e5eaeb7a4aca57e0df520493c498a25f5558a1136ab874",
+  "models/q_specialist/N/h120/constant.joblib": "ea8c8715999447f918f0f4d5704bab3d47c2fa9482b62d52ea1ca92ab22b63b2",
+  "models/q_specialist/N/h120/p_pre_logistic.joblib": "d518b7dc9e31a96dcc27aedee2f7fb6a1593ae52a962cde8f58a41bec39793ee",
+  "models/q_specialist/N/h120/p_pre_spline.joblib": "f6d0001e3ac152ddac060dc8ae9ac29f8f5e3e484a92f10b5044c066181007ad",
+  "models/q_specialist/N/h120/ridge_raw.joblib": "4e1eea96e1ee5c4551b0814b701d8d40160820d2184f82084ca2166a630e0a6f",
+  "models/q_specialist/N/h120/ridge_sigmoid.joblib": "779efcf0a1a365e618ef6baf826370e0446404d48fbc9830fa4adb97c2551ff0",
+  "models/q_specialist/N/h120/ridge_isotonic.joblib": "6dec88baf9c3f0a38f1a15520c2d7296af3bc903114b33d54b400c75860cc05e",
+  "models/q_specialist/N/h120/economic_raw.joblib": "e0f82ed5ab8bb0cc75287176f1e9a83941198e2f73526578e970272ddf77cd50",
+  "models/q_specialist/N/h120/economic_sigmoid.joblib": "83745ec72bb5ed0f319aa5c76fb357c16e4c24f3f106bd33617daf62d5667343",
+  "models/q_specialist/N/h120/economic_isotonic.joblib": "fad281b62cbb9c89077e7e5d5ab440e9cf0e87c6e101801c815a1aa6d4a0ebd8",
+  "role_models_manifest.json": "922408031a733526bbc0dee19af284f81a22b39ed608ee9d83e9cbf4258ff7c4",
+  "role_models/role_final.joblib": "b9a084949c8d1b2822af4a224d9c7f13b6881076dbac05de7eed4a59319ca17a",
+  "role_models/role_oof_fold0.joblib": "3df80a223574c0c5210c362efd97385fff5152a54af2c4d8ff19c6173ccbdc44",
+  "role_models/role_oof_fold1.joblib": "8b07763fe7744c5caa042dd39651e935eafee9b2ba7e66d4109bd21c6298f4c7",
+  "role_models/role_oof_fold2.joblib": "eeac9ff6daf2b068cefcc4fd4145191d9919ad43a840ea3faa549530ff39c42e",
+  "role_models/role_oof_fold3.joblib": "f79f732ddcc3302823889a71a56793d4a56247ff1fdfc148df9e01e3712293c0",
+  "role_models/role_oof_fold4.joblib": "a88667cf2b0c5e8da4574963f3d77d1a341c13d09931e668ea7faff22fbd51e8",
+  "role_outputs/MAIN_TRAIN_roles.npz": "c8ae5250701b6b3c1be9bf955d80502444e805cb71a46898b4124debcaa68ee7",
+  "role_outputs/MAIN_VALIDATION_roles.npz": "53edf7037bcdc8b95a9dea694195e6eacd05dee920c67ecc749c767e47f812c1",
+  "selection\\arms_T_h90.json": "69e3b3b26a1fb810b84deb33c3bda13a370ae5f3a37cca2f13ca52752fe804ae",
+  "models/arms/T/h90/participant_ridge_raw.joblib": "22bc93ac572a407d8571be4d0d4bdbad195c71d46c26897b29df7962600e8229",
+  "models/arms/T/h90/participant_ridge_sigmoid.joblib": "2fedc8460ef79f47aa51b925d4d492c44a0a2ab7843014974a2e3695392481a1",
+  "models/arms/T/h90/participant_ridge_isotonic.joblib": "cf5f67687f7e13decec6b8cc39602e08b1cc9933f0a2b4d602dc75ff56ee3056",
+  "models/arms/T/h90/participant_lgbm_raw.joblib": "40903ba18bb28408478d5ff001062d9b9693e5dee675910e841b65470f651359",
+  "models/arms/T/h90/participant_lgbm_sigmoid.joblib": "375e5e729ef3068fe042ef6f5fa2e96761390f528d410e29ebd59478b413904b",
+  "models/arms/T/h90/participant_lgbm_isotonic.joblib": "b8817de48077d1a961210967e011b85b6999f9826e7c122e26bd2c2dd4f53960",
+  "models/arms/T/h90/draft_ridge_raw.joblib": "290a6b33312712a6f150c172deedd9f0f546e6bdc96e38d563eea6ee15711be2",
+  "models/arms/T/h90/draft_ridge_sigmoid.joblib": "b3e59d02d512bcc6eeb6d313f6d7841e730b1359f4aa47e77fd3fcebfabca8b7",
+  "models/arms/T/h90/draft_ridge_isotonic.joblib": "d65b1adf7b862c67615218a1944bb07bfae84dcb5f8019126004b388c56f7735",
+  "models/arms/T/h90/draft_lgbm_raw.joblib": "e4e91fe270ad65564a0218fcf537f3097c5bc4cf442b4ed84fc382b0f31486b3",
+  "models/arms/T/h90/draft_lgbm_sigmoid.joblib": "3ed8b5f4d09f78bc8506d59981490db11863ff1e1257c05d26faa0be3a4c83e8",
+  "models/arms/T/h90/draft_lgbm_isotonic.joblib": "7e1e81a98ffab9be112b18b54aeec9a7956421f974f7df6489f0e3486c8ea967",
+  "models/arms/T/h90/role_ridge_raw.joblib": "77e0756fe0806521913402b3e470d20da797b9dbcd25b3664a89c992f073d33f",
+  "models/arms/T/h90/role_ridge_sigmoid.joblib": "4227e3d93b97569e730edea0c1aaee0aaec0062eb1b00ada922953a0022f65a4",
+  "models/arms/T/h90/role_ridge_isotonic.joblib": "fe2c26a59ba08687199e1fbbdb3640543dd7b0ef15153d9e1473354b5bded5e6",
+  "models/arms/T/h90/role_lgbm_raw.joblib": "e1535f6c005c55d40dc56a1288d0b0ef8ffc97787b8ec118147a512074c8f6fc",
+  "models/arms/T/h90/role_lgbm_sigmoid.joblib": "58bfb6a9d19a11d41fb18f0f76ff3ef1c0d5a38d29e9a78e2e268d0524d979e4",
+  "models/arms/T/h90/role_lgbm_isotonic.joblib": "84a3b51225d5d2039704ad4d603ccecff532b8ac1412acd01f66617ff20309a4",
+  "selection\\arms_N_h90.json": "cd446bed376c4ebad7aaec31b6693563473826e13bc51e7f803cc98e6edab897",
+  "models/arms/N/h90/participant_ridge_raw.joblib": "6046af2d341de4ab01cfe18f001757f9e70d69df690364984b790031431682ee",
+  "models/arms/N/h90/participant_ridge_sigmoid.joblib": "323f9d8c75821c98c9fcba2587add574f951c18b4c20cec51b357c15e84ec0da",
+  "models/arms/N/h90/participant_ridge_isotonic.joblib": "936d41c8564c0625cfcc40ce2d1f53c9258ef74b31c5d79ad60ecf31ec3689dc",
+  "models/arms/N/h90/participant_lgbm_raw.joblib": "b6042c6e4f52a473d88c8dd1290822a23dfc8126ffc23e7df504994ccc108feb",
+  "models/arms/N/h90/participant_lgbm_sigmoid.joblib": "7abce49c5b358fb34c810af93d5b3cc6819ac0220daed682927a4ef60f059d62",
+  "models/arms/N/h90/participant_lgbm_isotonic.joblib": "1ed5cbb324bc07d6140c3acd32c91f7ae3b69ba17143cde12b743f60952ed0b8",
+  "models/arms/N/h90/draft_ridge_raw.joblib": "7ac9e6cdd9a35de25c8c8e82d541d95c21ab4dd7684b839661c2ff27c80ef51d",
+  "models/arms/N/h90/draft_ridge_sigmoid.joblib": "68073a55abb364f26b33310a9f8041bb5891d588bf84f1e356f983a27b7d699d",
+  "models/arms/N/h90/draft_ridge_isotonic.joblib": "1ed015403eecb920b393d3ad21006a795497f832a8174f38320eff1bcbc9db6b",
+  "models/arms/N/h90/draft_lgbm_raw.joblib": "570a8638c06ac554bbf6d36b8cae20c84d99c76be15f7b4c1a421467e806d955",
+  "models/arms/N/h90/draft_lgbm_sigmoid.joblib": "2e9e602e1d425b6403db723846af408d800537c6d282a5b0197efff608bf98c8",
+  "models/arms/N/h90/draft_lgbm_isotonic.joblib": "f0ccad377dfa56a50f1e12594beb05a580b2b257df9dc80df7a3970a57ac15fb",
+  "models/arms/N/h90/role_ridge_raw.joblib": "05cc89fa1d5a03eaa4ae008402405df5c9d5235741daf6621f8fdebe4c65b5ad",
+  "models/arms/N/h90/role_ridge_sigmoid.joblib": "8b8e1d918e7ce732171d0a9fc136a77b0b3acfb2fdec2caa724e0d0676aa24db",
+  "models/arms/N/h90/role_ridge_isotonic.joblib": "eaced151acaa0b41668ed0cb6a0b56a86d4554c25d2adc50d52045f6af89f98f",
+  "models/arms/N/h90/role_lgbm_raw.joblib": "5231623bc35ced4ad3a26a0416514701a11bc0d7dda56384c249ad6bb7235f63",
+  "models/arms/N/h90/role_lgbm_sigmoid.joblib": "c73b36ce5e93c24c7a68409ad70c4d9573f19dc61c81cf54811d82eaa33a61f4",
+  "models/arms/N/h90/role_lgbm_isotonic.joblib": "b1e264e6c4055e3453c37e0e18fc1685ee8ea1b539c3b39a9ecb077e4eb171ab",
+  "selection\\ablations_T_h90.json": "d0bee9b4793db3de05621aeef90d7c2b7ca969b77fc7a13fa91f17eb8ccd8547",
+  "models/ablations/T/h90/drop_role_TOP_ridge_raw.joblib": "d80cc2ab998f251146afad647807cc68e31aa159c8c7023ad2bd149b030da17e",
+  "models/ablations/T/h90/drop_role_TOP_ridge_sigmoid.joblib": "5b5eb1ec4b0e10de35cd0487d6d0b1efb0198679227618730915edb6a5e53e8d",
+  "models/ablations/T/h90/drop_role_TOP_ridge_isotonic.joblib": "aaae708f3a215503a011c580ddec7c6a7a452cfecc3debce2b55505ef5073d6d",
+  "models/ablations/T/h90/drop_role_JUNGLE_ridge_raw.joblib": "eff9b1d8772f8c7fb76f2fe73bccce9875da346957c85d6713d4025ca4c35a65",
+  "models/ablations/T/h90/drop_role_JUNGLE_ridge_sigmoid.joblib": "0dbe85b0d3b4a9898a493db08c1a17e68a19bc2a160acff0ce02f5bccaea97f8",
+  "models/ablations/T/h90/drop_role_JUNGLE_ridge_isotonic.joblib": "9130ec115321480703b6d6d74e644c95c6ca6768bc2ea9104175510c4308d3f7",
+  "models/ablations/T/h90/drop_role_MIDDLE_ridge_raw.joblib": "dbf3f48a34edcd64ec80957351407c7966265fa3b2b4ac28abd902fd2e6fc4da",
+  "models/ablations/T/h90/drop_role_MIDDLE_ridge_sigmoid.joblib": "d2a599f773f280ef3c0992c25e0354b45f427b64b1871e6eab5e4bf6ee0ceb9e",
+  "models/ablations/T/h90/drop_role_MIDDLE_ridge_isotonic.joblib": "aefd12a4dd7d0429dc8ecfdfa9f87ccd84b745999a6f626549f93c4370ee6f61",
+  "models/ablations/T/h90/drop_role_BOTTOM_ridge_raw.joblib": "2554e59ed66949c0ede1b0ca8fbc762c4cc57826cea1c67cd05881c39905431a",
+  "models/ablations/T/h90/drop_role_BOTTOM_ridge_sigmoid.joblib": "2f20526a2abd01419e87cdb5b5868bbb9fe414cb4c6116cace48070c42e7be27",
+  "models/ablations/T/h90/drop_role_BOTTOM_ridge_isotonic.joblib": "255ec7d314c850a8b7e79592f88bc27165d9886dc8f029ebb78a2119534e347d",
+  "models/ablations/T/h90/drop_role_UTILITY_ridge_raw.joblib": "be06faf646d627a7361b35c281739d3fe38b26cf756adac99063e8f746263c8f",
+  "models/ablations/T/h90/drop_role_UTILITY_ridge_sigmoid.joblib": "ed8d3f8672a83da9aa795a7f7c5e8cb5044f1b2eaf894dd783cd80578978d3f8",
+  "models/ablations/T/h90/drop_role_UTILITY_ridge_isotonic.joblib": "e655e17ebd4f9b029914b310eb9372ed8bcf6a7ae43d7d0293c993519cbae952"
+ },
+ "statement": "All new cohort-specialist, role-model, representation-arm and ablation choices are frozen here, before any TEST 15.16 or external label is opened by this task. No refit, recalibration or reselection afterwards. TEST and external sets were already evaluated for the pooled q in the completed full run (prior exposure)."
+}

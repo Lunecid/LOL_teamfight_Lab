@@ -1,0 +1,42 @@
+{
+ "group": "fit_lgbm_identity_T_smoke",
+ "state": "complete",
+ "stage": "selected",
+ "pid": 27264,
+ "updated": "2026-09-16 04:14:50",
+ "elapsed_s": 5.7,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "next arm / family / cohort, then freeze",
+ "chosen": "lgbm_L15_M100__raw",
+ "selection_sha256": "a94dc18c62c4db0dcecafdca0490e63fffa6a0061b4c6cc0ed337a0201369bac",
+ "seconds": 3.8,
+ "select_brier": {
+  "lgbm_L15_M100__isotonic": 0.237655,
+  "lgbm_L15_M100__raw": 0.23454,
+  "lgbm_L15_M100__sigmoid": 0.236204
+ },
+ "history": [
+  {
+   "stage": "load",
+   "state": "running",
+   "at": "2026-09-16 04:14:45"
+  },
+  {
+   "stage": "features",
+   "state": "running",
+   "at": "2026-09-16 04:14:46"
+  },
+  {
+   "stage": "fit_lgbm_L15_M100",
+   "state": "running",
+   "at": "2026-09-16 04:14:46"
+  },
+  {
+   "stage": "selected",
+   "state": "complete",
+   "at": "2026-09-16 04:14:50"
+  }
+ ]
+}

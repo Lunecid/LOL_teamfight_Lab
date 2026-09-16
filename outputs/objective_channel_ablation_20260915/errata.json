@@ -1,0 +1,24 @@
+{
+ "created_at": "2026-09-15 16:46:52",
+ "items": [
+  {
+   "id": "ER1",
+   "type": "documentation_semantics_correction",
+   "found_by": "Codex source review (CODEX_SOURCE_SEMANTICS_NOTE.md), verified by Claude in source",
+   "affected_text": [
+    "protocol.json analysis.unknown_objective_team_count.semantics",
+    "feature_evidence.json unknown_objective_team_count.semantics",
+    "scripts/oc20260915_common.py UNKNOWN_SEMANTICS"
+   ],
+   "incorrect": "listed DRAGON_SOUL_GIVEN with teamId not 100/200 as incrementing the counter",
+   "correct": "in StateV2 the wrapper (gameplay/state_value_v2.py StateBuilder.__init__) removes DRAGON_SOUL_GIVEN events whose teamId is not 100/200 before the legacy builder and counts them separately as unassigned_soul_events (not a model input); the V2 counter therefore counts only unidentified-team ELITE_MONSTER_KILL and BUILDING_KILL/TURRET_PLATE_DESTROYED events",
+   "source": {
+    "state_value_v2": "C:\\Users\\todtj\\문서\\LOL_Teamfight\\worktrees\\engagement-state-value\\gameplay\\state_value_v2.py",
+    "state_value_v2_sha256": "418ff787b5cddd2af601dd758d1fdfa6e36d4ebec11b1503f7a68e02c84e1afa",
+    "state_value": "C:\\Users\\todtj\\문서\\LOL_Teamfight\\worktrees\\engagement-state-value\\gameplay\\state_value.py",
+    "state_value_sha256": "c9092265634db41cca40657407087cdf365c0f0ed73cd335afb1b473d038e752"
+   },
+   "impact": "none on the frozen 176/185 feature decision, retention of the column, models, labels, metrics or validation; frozen files kept unchanged for provenance; REPORT.md and DEFINITION_AND_EVIDENCE.md use the corrected V2 description"
+  }
+ ]
+}

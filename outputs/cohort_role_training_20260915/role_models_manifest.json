@@ -1,0 +1,207 @@
+{
+ "role": "EXPLORATORY_FOLLOWUP_MODEL_DEFINED_LABELS_PRIOR_TEST_EXPOSURE",
+ "provenance_sha256": "b26d8e50195e59f96cf0eb00df3ccf5a9e40fda458deeaac660f6493eb67f0ed",
+ "draft_sha256": "ad27876a0e47178c52d27dcd54d44d76c540747344e165831fba108075faeb77",
+ "classifier": "DraftEncoder -> LogisticRegression(C=1, solver=lbfgs, multinomial), no tuning",
+ "roles": [
+  "TOP",
+  "JUNGLE",
+  "MIDDLE",
+  "BOTTOM",
+  "UTILITY"
+ ],
+ "fold_rule": "sha256('full-v-oof-20260915:'+match)[:8] mod 5 (existing TRAIN folds)",
+ "models": {
+  "final": {
+   "path": "role_models\\role_final.joblib",
+   "sha256": "b9a084949c8d1b2822af4a224d9c7f13b6881076dbac05de7eed4a59319ca17a",
+   "fit_record": {
+    "model_id": "final",
+    "fit_split": "15.14 TRAIN all folds",
+    "fit_match_ids_sha256": "3c9e64b217dc88979a6b0001c1d116833cfa3437f8a5b07ec6409a0892e2dc9a",
+    "fit_matches": 74672,
+    "held_out_fold": null,
+    "n_iter": 94,
+    "max_iter": 2000,
+    "converged": true,
+    "C": 1.0,
+    "warnings": [],
+    "n_rows": 745810,
+    "weight_sum": 745810.000000001,
+    "champion_vocabulary_size": 171,
+    "spell_vocabulary_size": 9,
+    "multi_class": "multinomial (sklearn lbfgs default for >2 classes)",
+    "fit_seconds": 6.1
+   }
+  },
+  "oof_fold0": {
+   "path": "role_models\\role_oof_fold0.joblib",
+   "sha256": "3df80a223574c0c5210c362efd97385fff5152a54af2c4d8ff19c6173ccbdc44",
+   "fit_record": {
+    "model_id": "oof_fold0",
+    "fit_split": "15.14 TRAIN folds != 0",
+    "held_out_fold": 0,
+    "fit_match_ids_sha256": "a651597b616e240451756f4a17d1cdb69ab5fe06df3a88736ef4b447efc7fe9f",
+    "fit_matches": 59948,
+    "n_iter": 79,
+    "max_iter": 2000,
+    "converged": true,
+    "C": 1.0,
+    "warnings": [],
+    "n_rows": 598775,
+    "weight_sum": 598775.000000001,
+    "champion_vocabulary_size": 171,
+    "spell_vocabulary_size": 9,
+    "multi_class": "multinomial (sklearn lbfgs default for >2 classes)",
+    "fit_seconds": 3.7,
+    "held_out_matches_in_fit_set": 0
+   }
+  },
+  "oof_fold1": {
+   "path": "role_models\\role_oof_fold1.joblib",
+   "sha256": "8b07763fe7744c5caa042dd39651e935eafee9b2ba7e66d4109bd21c6298f4c7",
+   "fit_record": {
+    "model_id": "oof_fold1",
+    "fit_split": "15.14 TRAIN folds != 1",
+    "held_out_fold": 1,
+    "fit_match_ids_sha256": "6bff6d4901fd21bdc0f6f7c1d64582524ff282afef94d65ad5fddfa25378147e",
+    "fit_matches": 59550,
+    "n_iter": 85,
+    "max_iter": 2000,
+    "converged": true,
+    "C": 1.0,
+    "warnings": [],
+    "n_rows": 594765,
+    "weight_sum": 594765.000000001,
+    "champion_vocabulary_size": 171,
+    "spell_vocabulary_size": 9,
+    "multi_class": "multinomial (sklearn lbfgs default for >2 classes)",
+    "fit_seconds": 4.0,
+    "held_out_matches_in_fit_set": 0
+   }
+  },
+  "oof_fold2": {
+   "path": "role_models\\role_oof_fold2.joblib",
+   "sha256": "eeac9ff6daf2b068cefcc4fd4145191d9919ad43a840ea3faa549530ff39c42e",
+   "fit_record": {
+    "model_id": "oof_fold2",
+    "fit_split": "15.14 TRAIN folds != 2",
+    "held_out_fold": 2,
+    "fit_match_ids_sha256": "fa7b7b79ddd7fc4fa7acfc8c9b3b9485b18a990bb1c9726ce21a53315baa0049",
+    "fit_matches": 59778,
+    "n_iter": 76,
+    "max_iter": 2000,
+    "converged": true,
+    "C": 1.0,
+    "warnings": [],
+    "n_rows": 597065,
+    "weight_sum": 597065.0000000008,
+    "champion_vocabulary_size": 171,
+    "spell_vocabulary_size": 9,
+    "multi_class": "multinomial (sklearn lbfgs default for >2 classes)",
+    "fit_seconds": 3.7,
+    "held_out_matches_in_fit_set": 0
+   }
+  },
+  "oof_fold3": {
+   "path": "role_models\\role_oof_fold3.joblib",
+   "sha256": "f79f732ddcc3302823889a71a56793d4a56247ff1fdfc148df9e01e3712293c0",
+   "fit_record": {
+    "model_id": "oof_fold3",
+    "fit_split": "15.14 TRAIN folds != 3",
+    "held_out_fold": 3,
+    "fit_match_ids_sha256": "aa06bc3c1b30aeee494fb2948c944f84878e77b19af87e0629f29dd3296856fa",
+    "fit_matches": 59799,
+    "n_iter": 96,
+    "max_iter": 2000,
+    "converged": true,
+    "C": 1.0,
+    "warnings": [],
+    "n_rows": 597245,
+    "weight_sum": 597245.0000000007,
+    "champion_vocabulary_size": 171,
+    "spell_vocabulary_size": 9,
+    "multi_class": "multinomial (sklearn lbfgs default for >2 classes)",
+    "fit_seconds": 4.5,
+    "held_out_matches_in_fit_set": 0
+   }
+  },
+  "oof_fold4": {
+   "path": "role_models\\role_oof_fold4.joblib",
+   "sha256": "a88667cf2b0c5e8da4574963f3d77d1a341c13d09931e668ea7faff22fbd51e8",
+   "fit_record": {
+    "model_id": "oof_fold4",
+    "fit_split": "15.14 TRAIN folds != 4",
+    "held_out_fold": 4,
+    "fit_match_ids_sha256": "e945241e90b1fc2611236dfe536268a7d38de661a249109fd4fda0aecde8704d",
+    "fit_matches": 59613,
+    "n_iter": 93,
+    "max_iter": 2000,
+    "converged": true,
+    "C": 1.0,
+    "warnings": [],
+    "n_rows": 595390,
+    "weight_sum": 595390.0000000016,
+    "champion_vocabulary_size": 171,
+    "spell_vocabulary_size": 9,
+    "multi_class": "multinomial (sklearn lbfgs default for >2 classes)",
+    "fit_seconds": 4.4,
+    "held_out_matches_in_fit_set": 0
+   }
+  }
+ },
+ "outputs": {
+  "MAIN_TRAIN": {
+   "file": "role_outputs/MAIN_TRAIN_roles.npz",
+   "sha256": "c8ae5250701b6b3c1be9bf955d80502444e805cb71a46898b4124debcaa68ee7",
+   "matches": 74673,
+   "normalization": {
+    "row_sums_max_abs_dev": 1.5543122344752192e-15,
+    "col_sums_max_abs_dev": 1.5543122344752192e-15
+   },
+   "generators": {
+    "oof_fold0": 14725,
+    "oof_fold1": 15122,
+    "oof_fold2": 14894,
+    "oof_fold3": 14873,
+    "oof_fold4": 15059
+   },
+   "mean_assignment_entropy": 0.12060494337210595,
+   "mean_max_marginal": 0.9823570623652734,
+   "champion_unseen_participant_rate": 0.0,
+   "champion_missing_participant_rate": 0.0,
+   "OOF_agreement_with_WEAK_proxy_NOT_validated_accuracy": {
+    "participants": 745810,
+    "posterior_argmax_agreement": 0.9789209047880828,
+    "classifier_argmax_agreement": 0.9437443852992049,
+    "posterior_mean_prob_of_proxy_role": 0.9700017419974957,
+    "per_role_posterior_agreement": {
+     "TOP": 0.9537482736890093,
+     "JUNGLE": 0.9999932958796476,
+     "MIDDLE": 0.9502084981429587,
+     "BOTTOM": 0.994489213070353,
+     "UTILITY": 0.9961652431584452
+    },
+    "teams_exact_assignment": 0.9467728528142011
+   },
+   "oof_self_match_exclusion_violations": 0
+  },
+  "MAIN_VALIDATION": {
+   "file": "role_outputs/MAIN_VALIDATION_roles.npz",
+   "sha256": "53edf7037bcdc8b95a9dea694195e6eacd05dee920c67ecc749c767e47f812c1",
+   "matches": 74748,
+   "normalization": {
+    "row_sums_max_abs_dev": 1.3322676295501878e-15,
+    "col_sums_max_abs_dev": 1.3322676295501878e-15
+   },
+   "generators": {
+    "final": 74748
+   },
+   "mean_assignment_entropy": 0.11824179049209593,
+   "mean_max_marginal": 0.982682639076054,
+   "champion_unseen_participant_rate": 0.0,
+   "champion_missing_participant_rate": 0.0
+  }
+ },
+ "written_at": "2026-09-15 14:45:32"
+}

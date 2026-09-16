@@ -1,0 +1,101 @@
+{
+ "group": "shap",
+ "state": "complete",
+ "stage": "shap",
+ "pid": 40432,
+ "updated": "2026-09-16 03:15:49",
+ "elapsed_s": 383.1,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "snapshot after, post-run checks, report",
+ "summary_sha256": "1df1e591a9fa3abc0a06a8f7485495b464be41e6965c64e5b13d198e119f4f96",
+ "all_checks_pass": true,
+ "history": [
+  {
+   "stage": "final_q_T_all",
+   "state": "running",
+   "at": "2026-09-16 03:09:31"
+  },
+  {
+   "stage": "final_q_T_all_done",
+   "state": "running",
+   "at": "2026-09-16 03:10:01"
+  },
+  {
+   "stage": "final_q_T_B40",
+   "state": "running",
+   "at": "2026-09-16 03:10:01"
+  },
+  {
+   "stage": "final_q_T_B40_done",
+   "state": "running",
+   "at": "2026-09-16 03:10:29"
+  },
+  {
+   "stage": "final_q_N_all",
+   "state": "running",
+   "at": "2026-09-16 03:10:29"
+  },
+  {
+   "stage": "final_q_N_all_done",
+   "state": "running",
+   "at": "2026-09-16 03:11:48"
+  },
+  {
+   "stage": "final_q_N_B40",
+   "state": "running",
+   "at": "2026-09-16 03:11:48"
+  },
+  {
+   "stage": "final_q_N_B40_done",
+   "state": "running",
+   "at": "2026-09-16 03:13:00"
+  },
+  {
+   "stage": "plain_mlp_T_all",
+   "state": "running",
+   "at": "2026-09-16 03:13:00"
+  },
+  {
+   "stage": "plain_mlp_T_all_done",
+   "state": "running",
+   "at": "2026-09-16 03:13:44"
+  },
+  {
+   "stage": "plain_mlp_T_B40",
+   "state": "running",
+   "at": "2026-09-16 03:13:44"
+  },
+  {
+   "stage": "plain_mlp_T_B40_done",
+   "state": "running",
+   "at": "2026-09-16 03:14:26"
+  },
+  {
+   "stage": "plain_mlp_N_all",
+   "state": "running",
+   "at": "2026-09-16 03:14:26"
+  },
+  {
+   "stage": "plain_mlp_N_all_done",
+   "state": "running",
+   "at": "2026-09-16 03:15:07"
+  },
+  {
+   "stage": "plain_mlp_N_B40",
+   "state": "running",
+   "at": "2026-09-16 03:15:07"
+  },
+  {
+   "stage": "plain_mlp_N_B40_done",
+   "state": "running",
+   "at": "2026-09-16 03:15:49"
+  },
+  {
+   "stage": "shap",
+   "state": "complete",
+   "at": "2026-09-16 03:15:49"
+  }
+ ]
+}

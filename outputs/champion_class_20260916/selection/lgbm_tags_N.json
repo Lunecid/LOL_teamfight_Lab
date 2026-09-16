@@ -1,0 +1,422 @@
+{
+ "role": "EXPLORATORY_FOLLOWUP_AFTER_PRIOR_TEST_EXPOSURE_MODEL_DEFINED_LABELS_NOT_CONFIRMATORY",
+ "manifest": {
+  "role": "EXPLORATORY_FOLLOWUP_AFTER_PRIOR_TEST_EXPOSURE_MODEL_DEFINED_LABELS_NOT_CONFIRMATORY",
+  "version": "champion_class_20260916",
+  "cohort": "N",
+  "family": "lgbm",
+  "arm": "tags",
+  "blocks": [
+   "tags"
+  ],
+  "config": "lgbm_L15_M100",
+  "smoke_train_only": false,
+  "output_is": "q probability of generated label Y_h90 within the cohort (NOT a V win probability)",
+  "label_definition": "Y_h90 = 1[V(endpoint_h90) - V(s-1) > 0] (parent labels unchanged; TRAIN OOF V)",
+  "protocol_sha256": "cca8451d5aeedbc8a8ede7c9df1ff8d1fc795ab305155595400d075bbaca5a35",
+  "tag_table_sha256": "dc65085e9a155c523c5c5b0d55e2983d9a6bc620e530d439f586a368b429f21f",
+  "identity_vocab_sha256": "aa025a24322fbf08c76cc746ad1bd43247f1aae1206e207f8242098c6eb6576e",
+  "n_inputs": 472,
+  "patch_versions": {
+   "15.14.1": 159753,
+   "15.15.1": 80745
+  }
+ },
+ "cohort": "N",
+ "family": "lgbm",
+ "arm": "tags",
+ "blocks": [
+  "tags"
+ ],
+ "config": "lgbm_L15_M100",
+ "rule": "calibration-only selection: lowest cohort Q_SELECT match-weighted Brier, then log loss, then name; ineligible excluded",
+ "candidates_lexical_tie_order": [
+  "lgbm_L15_M100__isotonic",
+  "lgbm_L15_M100__raw",
+  "lgbm_L15_M100__sigmoid"
+ ],
+ "eligible": {
+  "lgbm_L15_M100__isotonic": true,
+  "lgbm_L15_M100__raw": true,
+  "lgbm_L15_M100__sigmoid": true
+ },
+ "chosen": "lgbm_L15_M100__sigmoid",
+ "chosen_config": "lgbm_L15_M100",
+ "chosen_calibration": "sigmoid",
+ "ranking": [
+  "lgbm_L15_M100__sigmoid",
+  "lgbm_L15_M100__raw",
+  "lgbm_L15_M100__isotonic"
+ ],
+ "select_metrics": {
+  "lgbm_L15_M100__isotonic": {
+   "brier": 0.238171524416752,
+   "logloss": 0.6688591944836603,
+   "auc": 0.6227223822452519,
+   "intercept": 0.011710137051128111,
+   "slope": 0.9956123660522103,
+   "ece_10bin": 0.0110926281470402
+  },
+  "lgbm_L15_M100__raw": {
+   "brier": 0.23812622155417185,
+   "logloss": 0.6688136597378421,
+   "auc": 0.6232755889972277,
+   "intercept": 0.0013697299471566882,
+   "slope": 1.1664018520541073,
+   "ece_10bin": 0.009023268744825041
+  },
+  "lgbm_L15_M100__sigmoid": {
+   "brier": 0.23793798273287944,
+   "logloss": 0.6683755908015624,
+   "auc": 0.6232755889972277,
+   "intercept": 0.011925939785194595,
+   "slope": 1.0359966425765907,
+   "ece_10bin": 0.007324677100733917
+  }
+ },
+ "calibrate_metrics": {
+  "lgbm_L15_M100__isotonic": {
+   "brier": 0.23818918474211617,
+   "logloss": 0.6688539054887029,
+   "auc": 0.6216020644145299
+  },
+  "lgbm_L15_M100__raw": {
+   "brier": 0.23884849487289236,
+   "logloss": 0.670329968327093,
+   "auc": 0.6201690283445398
+  },
+  "lgbm_L15_M100__sigmoid": {
+   "brier": 0.23872276186979569,
+   "logloss": 0.6700454996746106,
+   "auc": 0.6201690283445398
+  }
+ },
+ "train_in_sample_metrics_DESCRIPTIVE": {
+  "lgbm_L15_M100__isotonic": {
+   "brier": 0.2204457533514502,
+   "logloss": 0.6316039112421424,
+   "auc": 0.7167926327247316
+  },
+  "lgbm_L15_M100__raw": {
+   "brier": 0.22258279784959634,
+   "logloss": 0.6366231271212014,
+   "auc": 0.7180374802856152
+  },
+  "lgbm_L15_M100__sigmoid": {
+   "brier": 0.22060216428648907,
+   "logloss": 0.6321662594080651,
+   "auc": 0.7180374802856152
+  }
+ },
+ "seed_metrics_DESCRIPTIVE": {
+  "7": {
+   "Q_CAL": {
+    "auc": 0.6193544814529757,
+    "brier": 0.23893006737034625,
+    "logloss": 0.6704865045636765,
+    "n": 40565,
+    "observed": 0.5034542628638681,
+    "predicted": 0.5052115105797794,
+    "intercept": -0.00927789712701796,
+    "slope": 1.0954698795471716,
+    "matches": 16616,
+    "positives": 20335,
+    "auc_na_reason": null,
+    "citl_intercept_offset": -0.007304934837352473,
+    "ece_10bin": 0.008188359796474073,
+    "sparse_lt30_matches": false
+   },
+   "Q_SELECT": {
+    "auc": 0.6225620044976174,
+    "brier": 0.2381984234079002,
+    "logloss": 0.6689573005708991,
+    "n": 40180,
+    "observed": 0.5064054141156805,
+    "predicted": 0.5052451863395646,
+    "intercept": 0.0020697168373147224,
+    "slope": 1.1364299140383638,
+    "matches": 16598,
+    "positives": 20276,
+    "auc_na_reason": null,
+    "citl_intercept_offset": 0.004823454071396636,
+    "ece_10bin": 0.00839786012133112,
+    "sparse_lt30_matches": false
+   }
+  },
+  "42": {
+   "Q_CAL": {
+    "auc": 0.6188680884018621,
+    "brier": 0.23900476533125453,
+    "logloss": 0.6706527406838632,
+    "n": 40565,
+    "observed": 0.5034542628638681,
+    "predicted": 0.5052338451850643,
+    "intercept": -0.00920911397150318,
+    "slope": 1.0802483058678842,
+    "matches": 16616,
+    "positives": 20335,
+    "auc_na_reason": null,
+    "citl_intercept_offset": -0.0074016033504192575,
+    "ece_10bin": 0.007005475315277378,
+    "sparse_lt30_matches": false
+   },
+   "Q_SELECT": {
+    "auc": 0.622943409423996,
+    "brier": 0.23810108523134327,
+    "logloss": 0.6687373017538358,
+    "n": 40180,
+    "observed": 0.5064054141156805,
+    "predicted": 0.5052765163275352,
+    "intercept": 0.002095962663164382,
+    "slope": 1.1289579865090085,
+    "matches": 16598,
+    "positives": 20276,
+    "auc_na_reason": null,
+    "citl_intercept_offset": 0.00469692305003656,
+    "ece_10bin": 0.0070912100681361145,
+    "sparse_lt30_matches": false
+   }
+  },
+  "123": {
+   "Q_CAL": {
+    "auc": 0.6193376174323642,
+    "brier": 0.2390663983107856,
+    "logloss": 0.670794499838345,
+    "n": 40565,
+    "observed": 0.5034542628638681,
+    "predicted": 0.5052660684647413,
+    "intercept": -0.010598060964573938,
+    "slope": 1.147869796411345,
+    "matches": 16616,
+    "positives": 20335,
+    "auc_na_reason": null,
+    "citl_intercept_offset": -0.007505988667753085,
+    "ece_10bin": 0.012834071851615919,
+    "sparse_lt30_matches": false
+   },
+   "Q_SELECT": {
+    "auc": 0.6214133833437353,
+    "brier": 0.23853475557893128,
+    "logloss": 0.6696819267944133,
+    "n": 40180,
+    "observed": 0.5064054141156805,
+    "predicted": 0.5051972263753061,
+    "intercept": 0.0014121733403109477,
+    "slope": 1.176905179011971,
+    "matches": 16598,
+    "positives": 20276,
+    "auc_na_reason": null,
+    "citl_intercept_offset": 0.005006272636173601,
+    "ece_10bin": 0.010341548075932828,
+    "sparse_lt30_matches": false
+   }
+  }
+ },
+ "split_counts": {
+  "TRAIN": {
+   "rows": 159753,
+   "matches": 66545,
+   "positive_rate_match_weighted": 0.5061980614621684
+  },
+  "Q_CAL": {
+   "rows": 40565,
+   "matches": 16616,
+   "positive_rate_match_weighted": 0.5034542628638681
+  },
+  "Q_SELECT": {
+   "rows": 40180,
+   "matches": 16598,
+   "positive_rate_match_weighted": 0.5064054141156805
+  }
+ },
+ "weights": {
+  "TRAIN": {
+   "rows": 159753,
+   "matches": 66545,
+   "weight_sum": 159752.99999999997,
+   "weight_mean": 0.9999999999999998,
+   "per_match_total_min": 2.400676234127282,
+   "per_match_total_max": 2.4006762341272823,
+   "membership_sha256": "b3e30edcfed6d9bbbd30caff406ea7caf6519e6e8731ace2f2295104bfdddaf8"
+  },
+  "Q_CAL": {
+   "rows": 40565,
+   "matches": 16616,
+   "weight_sum": 40565.0,
+   "weight_mean": 1.0,
+   "per_match_total_min": 2.441321617717862,
+   "per_match_total_max": 2.4413216177178625,
+   "membership_sha256": "1d18c926e4824f8927dff01f767ed682e0bf3b673ed33ee205ea29b3ac1c4db4"
+  },
+  "Q_SELECT": {
+   "rows": 40180,
+   "matches": 16598,
+   "weight_sum": 40180.0,
+   "weight_mean": 1.0,
+   "per_match_total_min": 2.420773587179178,
+   "per_match_total_max": 2.4207735871791787,
+   "membership_sha256": "39eb5b32b8f83ddb06e5123d228f070ce40e61658358edfdae6bbfbdf7d8d146"
+  }
+ },
+ "fit_record": {
+  "params": {
+   "objective": "binary",
+   "learning_rate": 0.04,
+   "n_estimators": 1000,
+   "reg_lambda": 1.0,
+   "colsample_bytree": 0.9,
+   "subsample": 1.0,
+   "n_jobs": 4,
+   "verbosity": -1,
+   "metric": "None",
+   "deterministic": true,
+   "force_col_wise": true,
+   "num_leaves": 15,
+   "min_child_samples": 100
+  },
+  "seeds": [
+   7,
+   42,
+   123
+  ],
+  "seeds_summary": {
+   "7": {
+    "best_iteration": 923,
+    "first_argmin_iteration": 923,
+    "rounds_evaluated": 973,
+    "cap_reached": false,
+    "early_stopped": true,
+    "best_stop_weighted_brier": 0.24047097268233653,
+    "stop_brier_recomputed_from_predict": 0.24047097268233653,
+    "evaluator_metrics_seen": [
+     "weighted_brier"
+    ],
+    "final_n_estimators": 923,
+    "final_num_trees": 923,
+    "stop_seconds": 11.95,
+    "refit_seconds": 11.91
+   },
+   "42": {
+    "best_iteration": 961,
+    "first_argmin_iteration": 961,
+    "rounds_evaluated": 1000,
+    "cap_reached": true,
+    "early_stopped": false,
+    "best_stop_weighted_brier": 0.24050078333980993,
+    "stop_brier_recomputed_from_predict": 0.24050078333980993,
+    "evaluator_metrics_seen": [
+     "weighted_brier"
+    ],
+    "final_n_estimators": 961,
+    "final_num_trees": 961,
+    "stop_seconds": 12.26,
+    "refit_seconds": 12.36
+   },
+   "123": {
+    "best_iteration": 668,
+    "first_argmin_iteration": 668,
+    "rounds_evaluated": 718,
+    "cap_reached": false,
+    "early_stopped": true,
+    "best_stop_weighted_brier": 0.24079141045859181,
+    "stop_brier_recomputed_from_predict": 0.24079141045859181,
+    "evaluator_metrics_seen": [
+     "weighted_brier"
+    ],
+    "final_n_estimators": 668,
+    "final_num_trees": 668,
+    "stop_seconds": 9.46,
+    "refit_seconds": 9.34
+   }
+  },
+  "imputer_full_n_features": 472,
+  "seconds_fit": 75.2,
+  "seconds_predict": 4.6,
+  "seconds_features": 0.6
+ },
+ "calibrators": {
+  "sigmoid": {
+   "kind": "LogisticRegression(C=1e6, max_iter=1000) on clip(raw,1e-8) logit (cr20260915_common.fit_calibrators); no positive-slope constraint",
+   "slope": 1.1276583341443474,
+   "intercept": -0.010049883027332207,
+   "logit_clip": 1e-08,
+   "n_iter": 4,
+   "slope_positive": true
+  },
+  "isotonic": {
+   "kind": "IsotonicRegression(out_of_bounds='clip')",
+   "thresholds": 97,
+   "min_output": 0.0,
+   "max_output": 1.0
+  },
+  "raw_cal_min": 0.1345862974005336,
+  "raw_cal_max": 0.8311151546250884
+ },
+ "bundle_sha256": {
+  "lgbm_L15_M100": "148661daa18abf4c1c3bd0fc2e6c639b44815c6d32aaa56556c1195ac12153bb"
+ },
+ "reload_identity": {
+  "lgbm_L15_M100": {
+   "raw": true,
+   "sigmoid": true,
+   "isotonic": true
+  }
+ },
+ "oof_provenance": {
+  "rows": 159753,
+  "adapter_id_equals_own_heldout_fold": 159753,
+  "adapter_sha_equals_manifest_oof_hash": 159753,
+  "sub_role_equals_hash_fold": 159753
+ },
+ "input_names_sha256": "b3746030fc3e04cf1f225040eb39082dc7f0e566ae7996f0ad678d11f42ee995",
+ "n_inputs": 472,
+ "arm_matrix_sha256": {
+  "TRAIN": "03801c956f3a2881a1b76cc2d09f170b7c26e904de1c6e64eed26733f3612443",
+  "Q_CAL": "30e1d5e821624dd78fac529561094174f187212e7519aa6fd1510aa4632837b5",
+  "Q_SELECT": "090b41fc5c1ef06f2e9caf8da234de5f371fc02c4fd240c8e267e4fdfe6cf961"
+ },
+ "patch_versions": {
+  "15.14.1": 159753,
+  "15.15.1": 80745
+ },
+ "seconds_total": 86.4,
+ "environment": {
+  "python": "3.13.5 | packaged by Anaconda, Inc. | (main, Jun 12 2025, 16:37:03) [MSC v.1929 64 bit (AMD64)]",
+  "executable": "C:\\Users\\todtj\\anaconda3\\python.exe",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "numpy": "2.1.3",
+  "scipy": "1.15.3",
+  "sklearn": "1.6.1",
+  "lightgbm": "4.6.0",
+  "joblib": "1.4.2",
+  "threads": {
+   "OMP_NUM_THREADS": "4",
+   "OPENBLAS_NUM_THREADS": "4",
+   "MKL_NUM_THREADS": "4"
+  },
+  "dont_write_bytecode": true,
+  "cuda_visible_devices": ""
+ },
+ "source_sha256": {
+  "scripts/cc20260916_common.py": "f7a5d83b5cf07b17614f4a5e5192f8e1d857fc4852d5638b021f2e136275cbe4",
+  "scripts/cc20260916_driver.py": "6a8fe847a3994dc3cc2d0d68978608004b5f8964e14113cfa86484f0e75ee53c",
+  "scripts/cc20260916_evaluate.py": "2ab24468d594a8378e20747d614de69089dc8c88e05201831a5752accfec3a15",
+  "scripts/cc20260916_fit.py": "cc7216d8e5546408516dcad7eb91d8f018b7ed7e7fddeb755d6dac2d79817e7e",
+  "scripts/cc20260916_freeze.py": "6a680abc5f980e96c15932f84a92ab8ada302ce4528bd0a3332a267634a9a976",
+  "scripts/cc20260916_postrun_checks.py": "53cf332eb131e3d127de9145a236b44a18faf21567f7e4d79f9ddb4f3edb9629",
+  "scripts/cc20260916_protocol.py": "a0af5a2611084f54ad610b99a45e7abad6a5f1038c303d96cba211d711ab713d",
+  "scripts/cc20260916_report.py": "5d97878e7a3992ba925b8adbd039ec93d66b2ef75470b7859ea0f4097647d86a",
+  "scripts/cc20260916_run_contract_tests.py": "2550f64eb31a2bf2e22ec87a0fd0aaacc73872756e4269280706fb1e7c0814b2",
+  "scripts/cc20260916_snapshot.py": "f012359f69e767390e23a574c45ebce0c43c7a42536f945e2d28f6aec10c7b98",
+  "tests/test_cc20260916_contracts.py": "768194f9247dfbe664039784d7b96b9f96d1aa6b00536b3b508a3085c6f252a3",
+  "scripts/fc20260915_common.py": "aeb9f3b07b5a5e68cc95de09a4a12870ac7e7f0728a66a30535c7dbbbad73405",
+  "scripts/cr20260915_common.py": "04d4a2eb9808888d6b5e4896bdc50405ffac4bde79ee65173046627aa146e081",
+  "scripts/iq20260915_common.py": "a51925020c626275b3b1db456490d2e2882e86cda59bc8531dfeeba81e6c7956",
+  "docs/CLAUDE_CHAMPION_CLASS_20260916.md": "5e56593f050b97641e1b2f6881528194b665df2dce7f86dbbadbb624b4b048fd",
+  "docs/CLAUDE_INCREMENTAL_Q_TRAIN_20260915.md": "c98fe463930e6ee7ff82d03f8d25cf3d28a2f869d29fd0988611b64be9ec7b2d",
+  "docs/DELTA_Q_FAIR_BALANCED_PROTOCOL_20260915.md": "c456fbde1146b35479395ea278328490666fa3388da00c432cd93c41ed8c6360",
+  "docs/COLLABORATOR_CRITIQUE_RESPONSE_20260915.md": "c847d82d00654f88cbe5f8f70370cf8498c3c722c89657b2d27064860f113396"
+ },
+ "written_at": "2026-09-16 04:36:05",
+ "predictions_sha256": "01474479f44cab23d80f87be3244b1300e75b9a7024f6be6fd02a34cc5c0d4dd"
+}

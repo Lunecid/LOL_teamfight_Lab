@@ -1,0 +1,101 @@
+{
+ "group": "fit_mlp_N",
+ "state": "complete",
+ "stage": "selected",
+ "pid": 37488,
+ "updated": "2026-09-16 01:05:54",
+ "elapsed_s": 623.9,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "next family/cohort, then freeze",
+ "chosen": "mlp_W128_D0.3__sigmoid",
+ "selection_sha256": "835d35294ce50b9f2e8d1e241d76c2d249978e9fd42aed03d4a70466ed26fda2",
+ "seconds": 614.2,
+ "top3": [
+  [
+   "mlp_W128_D0.3__sigmoid",
+   0.239394
+  ],
+  [
+   "mlp_W128_D0.3__raw",
+   0.239411
+  ],
+  [
+   "mlp_W256_D0.3__sigmoid",
+   0.239497
+  ]
+ ],
+ "history": [
+  {
+   "stage": "load",
+   "state": "running",
+   "at": "2026-09-16 00:55:30"
+  },
+  {
+   "stage": "fit_mlp_W128_D0.1",
+   "state": "running",
+   "at": "2026-09-16 00:55:36"
+  },
+  {
+   "stage": "fitted_mlp_W128_D0.1",
+   "state": "running",
+   "at": "2026-09-16 00:57:42"
+  },
+  {
+   "stage": "fit_mlp_W128_D0.3",
+   "state": "running",
+   "at": "2026-09-16 00:57:42"
+  },
+  {
+   "stage": "fitted_mlp_W128_D0.3",
+   "state": "running",
+   "at": "2026-09-16 00:59:50"
+  },
+  {
+   "stage": "fit_mlp_W256_D0.1",
+   "state": "running",
+   "at": "2026-09-16 00:59:50"
+  },
+  {
+   "stage": "fitted_mlp_W256_D0.1",
+   "state": "running",
+   "at": "2026-09-16 01:01:13"
+  },
+  {
+   "stage": "fit_mlp_W256_D0.3",
+   "state": "running",
+   "at": "2026-09-16 01:01:13"
+  },
+  {
+   "stage": "fitted_mlp_W256_D0.3",
+   "state": "running",
+   "at": "2026-09-16 01:02:42"
+  },
+  {
+   "stage": "fit_mlp_W512_D0.1",
+   "state": "running",
+   "at": "2026-09-16 01:02:42"
+  },
+  {
+   "stage": "fitted_mlp_W512_D0.1",
+   "state": "running",
+   "at": "2026-09-16 01:04:15"
+  },
+  {
+   "stage": "fit_mlp_W512_D0.3",
+   "state": "running",
+   "at": "2026-09-16 01:04:15"
+  },
+  {
+   "stage": "fitted_mlp_W512_D0.3",
+   "state": "running",
+   "at": "2026-09-16 01:05:40"
+  },
+  {
+   "stage": "selected",
+   "state": "complete",
+   "at": "2026-09-16 01:05:54"
+  }
+ ]
+}

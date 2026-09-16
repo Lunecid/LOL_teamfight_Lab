@@ -1,0 +1,291 @@
+{
+ "role": "EXPLORATORY_FOLLOWUP_MODEL_DEFINED_LABELS_PRIOR_TEST_EXPOSURE",
+ "cohort": "N",
+ "horizon_s": 90,
+ "rule": "within arm: lowest cohort Q_SELECT match-weighted Brier, then log loss, then name; overall: same rule over the three arm winners and the unchanged A specialist choice",
+ "arm_winners": {
+  "participant": "participant_lgbm_sigmoid",
+  "draft": "draft_lgbm_sigmoid",
+  "role": "role_lgbm_sigmoid"
+ },
+ "A_specialist_choice": "economic_sigmoid",
+ "overall_choice": "role_lgbm_sigmoid",
+ "overall_ranking": [
+  "role_lgbm_sigmoid",
+  "participant_lgbm_sigmoid",
+  "draft_lgbm_sigmoid",
+  "A_specialist:economic_sigmoid"
+ ],
+ "select_metrics": {
+  "participant_ridge_raw": {
+   "brier": 0.24743893124344354,
+   "logloss": 0.6890231426999189,
+   "auc": 0.5721582249779431
+  },
+  "participant_ridge_sigmoid": {
+   "brier": 0.24659925995504386,
+   "logloss": 0.6863450392964611,
+   "auc": 0.5721582249779431
+  },
+  "participant_ridge_isotonic": {
+   "brier": 0.24631444036820738,
+   "logloss": 0.6905680601694242,
+   "auc": 0.5698627298948087
+  },
+  "participant_lgbm_raw": {
+   "brier": 0.24626499409744995,
+   "logloss": 0.6857064747551258,
+   "auc": 0.5730265020064029
+  },
+  "participant_lgbm_sigmoid": {
+   "brier": 0.24549460578085183,
+   "logloss": 0.6840400354168228,
+   "auc": 0.5730265020064029
+  },
+  "participant_lgbm_isotonic": {
+   "brier": 0.24699695291608517,
+   "logloss": 0.6871542893256974,
+   "auc": 0.5682470381530738
+  },
+  "draft_ridge_raw": {
+   "brier": 0.24993766073303028,
+   "logloss": 0.6943244910262841,
+   "auc": 0.5604842192216103
+  },
+  "draft_ridge_sigmoid": {
+   "brier": 0.24743240225252963,
+   "logloss": 0.6879892676617712,
+   "auc": 0.5604842192216103
+  },
+  "draft_ridge_isotonic": {
+   "brier": 0.24740394423021764,
+   "logloss": 0.6881490007256956,
+   "auc": 0.5588818285462432
+  },
+  "draft_lgbm_raw": {
+   "brier": 0.2465011403953411,
+   "logloss": 0.686168848925823,
+   "auc": 0.5729807471958726
+  },
+  "draft_lgbm_sigmoid": {
+   "brier": 0.24571074608481525,
+   "logloss": 0.6844763705550195,
+   "auc": 0.5729807471958726
+  },
+  "draft_lgbm_isotonic": {
+   "brier": 0.24632954258760675,
+   "logloss": 0.6858195262033301,
+   "auc": 0.5690993901131864
+  },
+  "role_ridge_raw": {
+   "brier": 0.24667100863042207,
+   "logloss": 0.6876277468632278,
+   "auc": 0.5806595620989469
+  },
+  "role_ridge_sigmoid": {
+   "brier": 0.24579846587024015,
+   "logloss": 0.6847635068080145,
+   "auc": 0.5806595620989469
+  },
+  "role_ridge_isotonic": {
+   "brier": 0.24537728664529992,
+   "logloss": 0.6886694186239747,
+   "auc": 0.5778204434885721
+  },
+  "role_lgbm_raw": {
+   "brier": 0.24497822622333826,
+   "logloss": 0.6832870655783567,
+   "auc": 0.5870444672451719
+  },
+  "role_lgbm_sigmoid": {
+   "brier": 0.2442961451849313,
+   "logloss": 0.6816623828323728,
+   "auc": 0.5870444672451719
+  },
+  "role_lgbm_isotonic": {
+   "brier": 0.24466991159862309,
+   "logloss": 0.682620588865164,
+   "auc": 0.5855028360524949
+  }
+ },
+ "A_specialist_select_metrics": {
+  "brier": 0.24576623266305647,
+  "logloss": 0.6846474903422681,
+  "auc": 0.5778575735430688
+ },
+ "split_counts": {
+  "train": {
+   "rows": 12274,
+   "matches": 5089
+  },
+  "calibrate": {
+   "rows": 4063,
+   "matches": 1671
+  },
+  "select": {
+   "rows": 4220,
+   "matches": 1727
+  }
+ },
+ "bundle_sha256": {
+  "participant_ridge_raw": "ea32aa1f1e4aaecc886d1f7737062c31cf479b9584c0c507a02efca828467570",
+  "participant_ridge_sigmoid": "b862605262c654277a8a620242cfa88fd06a0bf3bc76c6f3c12dc30ac9209d0b",
+  "participant_ridge_isotonic": "994e0fb8c2684093e7f2f119ea607f298118d48ca10166e7816727697230acec",
+  "participant_lgbm_raw": "378aaae3e05b124af25713ba6837298999358f6b8248bc1564e9edbdecdc8dc0",
+  "participant_lgbm_sigmoid": "98c7d6e1461c64914e6f6022ac71559112a2b203bc81409a94a1e7c1833ab444",
+  "participant_lgbm_isotonic": "280ac985a203ca14d91763dafd4034b7c1334ea97ba08bc98059f9f7f913df2a",
+  "draft_ridge_raw": "0c8c4f6bb52b372de3807fb68138b396ec6213c395df7236253948879c3684f6",
+  "draft_ridge_sigmoid": "fba7fae83a544c7a0922480b610f6b27e0ebfa60b3465cebe2f37ee89c356a86",
+  "draft_ridge_isotonic": "8dbf2906112a0dfc3dfef9a7cabb95ca8598c73acbdd78b1c3db6db3ee12c2a8",
+  "draft_lgbm_raw": "112ebb4cfc7260038d08a7642b4b40db875b49fe295b84b049c7b2d06e7835fc",
+  "draft_lgbm_sigmoid": "6f63360db923f8df7a5b835bbdb2046e2aac625c726c755d756b933128ee6fa6",
+  "draft_lgbm_isotonic": "bf48619e06cbeb6932a05179bfe5eaabddab207ab4e6e83569dbfe6995538cb8",
+  "role_ridge_raw": "ddbbc2a684ee42bbbec9260d2ae018f0c9fbaab8f4a113dcb6c1e84120f10245",
+  "role_ridge_sigmoid": "820e99bf45049159ea5414251df8e27b1e0c3e210dd569ba67b5f34f4e8eb58d",
+  "role_ridge_isotonic": "9f9ec5f408b442dc831dff0800918af6d19a67c0200e8845ba16f78f3e57f165",
+  "role_lgbm_raw": "58f222073d2df8ba0134b1da5038abe39ddf60e17a16af8ed19038a79381c556",
+  "role_lgbm_sigmoid": "43eee7a7ada00ff51c1a416827d0c03637db15a2d2048f6d081f4dd23da0a6a6",
+  "role_lgbm_isotonic": "f0a4359b4e75290e6698932f08bdb515d4af6699b0f5234c9ea32753bb2f191e"
+ },
+ "fit_logs": {
+  "participant": {
+   "features": 352,
+   "transform_seconds": 0.0,
+   "rows": 20557,
+   "ridge_seconds": 0.1,
+   "ridge_n_iter": 53,
+   "ridge_converged": true,
+   "lgbm_seconds": 1.5,
+   "warnings": [],
+   "ridge_isotonic_thresholds": 28,
+   "ridge_sigmoid": {
+    "slope": 0.4780315603453122,
+    "intercept": 0.006502838828001529
+   },
+   "lgbm_isotonic_thresholds": 31,
+   "lgbm_sigmoid": {
+    "slope": 0.7412818175705475,
+    "intercept": -0.014157457216110989
+   },
+   "serialization_identity_select": {
+    "participant_ridge_raw": true,
+    "participant_ridge_sigmoid": true,
+    "participant_ridge_isotonic": true,
+    "participant_lgbm_raw": true,
+    "participant_lgbm_sigmoid": true,
+    "participant_lgbm_isotonic": true
+   },
+   "serialization_max_abs_diff_select": {
+    "participant_ridge_raw": 0.0,
+    "participant_ridge_sigmoid": 0.0,
+    "participant_ridge_isotonic": 0.0,
+    "participant_lgbm_raw": 0.0,
+    "participant_lgbm_sigmoid": 0.0,
+    "participant_lgbm_isotonic": 0.0
+   },
+   "ranking": [
+    "participant_lgbm_sigmoid",
+    "participant_lgbm_raw",
+    "participant_ridge_isotonic",
+    "participant_ridge_sigmoid",
+    "participant_lgbm_isotonic",
+    "participant_ridge_raw"
+   ],
+   "ridge_raw_equals_A_specialist_ridge_raw_select": {
+    "bitwise": false,
+    "max_abs_diff": 2.094269202501664e-11
+   }
+  },
+  "draft": {
+   "features": 1405,
+   "transform_seconds": 0.1,
+   "rows": 20557,
+   "ridge_seconds": 0.4,
+   "ridge_n_iter": 70,
+   "ridge_converged": true,
+   "lgbm_seconds": 1.9,
+   "warnings": [],
+   "ridge_isotonic_thresholds": 22,
+   "ridge_sigmoid": {
+    "slope": 0.3784687609043597,
+    "intercept": 0.006856268087502784
+   },
+   "lgbm_isotonic_thresholds": 32,
+   "lgbm_sigmoid": {
+    "slope": 0.7615169061658259,
+    "intercept": -0.013304663621942069
+   },
+   "serialization_identity_select": {
+    "draft_ridge_raw": true,
+    "draft_ridge_sigmoid": true,
+    "draft_ridge_isotonic": true,
+    "draft_lgbm_raw": true,
+    "draft_lgbm_sigmoid": true,
+    "draft_lgbm_isotonic": true
+   },
+   "serialization_max_abs_diff_select": {
+    "draft_ridge_raw": 0.0,
+    "draft_ridge_sigmoid": 0.0,
+    "draft_ridge_isotonic": 0.0,
+    "draft_lgbm_raw": 0.0,
+    "draft_lgbm_sigmoid": 0.0,
+    "draft_lgbm_isotonic": 0.0
+   },
+   "ranking": [
+    "draft_lgbm_sigmoid",
+    "draft_lgbm_isotonic",
+    "draft_lgbm_raw",
+    "draft_ridge_isotonic",
+    "draft_ridge_sigmoid",
+    "draft_ridge_raw"
+   ]
+  },
+  "role": {
+   "features": 461,
+   "transform_seconds": 0.1,
+   "rows": 20557,
+   "ridge_seconds": 0.2,
+   "ridge_n_iter": 62,
+   "ridge_converged": true,
+   "lgbm_seconds": 2.9,
+   "warnings": [],
+   "ridge_isotonic_thresholds": 34,
+   "ridge_sigmoid": {
+    "slope": 0.5056144143182775,
+    "intercept": 0.0032772308776922096
+   },
+   "lgbm_isotonic_thresholds": 45,
+   "lgbm_sigmoid": {
+    "slope": 0.7054213123688741,
+    "intercept": -0.010210675298601242
+   },
+   "serialization_identity_select": {
+    "role_ridge_raw": true,
+    "role_ridge_sigmoid": true,
+    "role_ridge_isotonic": true,
+    "role_lgbm_raw": true,
+    "role_lgbm_sigmoid": true,
+    "role_lgbm_isotonic": true
+   },
+   "serialization_max_abs_diff_select": {
+    "role_ridge_raw": 0.0,
+    "role_ridge_sigmoid": 0.0,
+    "role_ridge_isotonic": 0.0,
+    "role_lgbm_raw": 0.0,
+    "role_lgbm_sigmoid": 0.0,
+    "role_lgbm_isotonic": 0.0
+   },
+   "ranking": [
+    "role_lgbm_sigmoid",
+    "role_lgbm_isotonic",
+    "role_lgbm_raw",
+    "role_ridge_isotonic",
+    "role_ridge_sigmoid",
+    "role_ridge_raw"
+   ]
+  }
+ },
+ "written_at": "2026-09-15 14:40:39",
+ "new_frozen_manifest_exists": false,
+ "note": "participant ridge arm uses the same inputs, rows and C as the A specialist ridge (identity recorded); the full-feature LightGBM and the draft/role arms are new models"
+}

@@ -1,0 +1,1497 @@
+{
+ "version": "track_a_mlp_20260916",
+ "role": "EXPLORATORY_FOLLOWUP_AFTER_PRIOR_TEST_EXPOSURE_MODEL_DEFINED_LABELS_NOT_CONFIRMATORY",
+ "written_at": "2026-09-16 00:42:46",
+ "design": "docs/CLAUDE_TRACK_A_MLP_20260916.md (Claude, continuing the Codex design line); implementation and execution in the same session",
+ "spec_sha256": "b15a1371298511f3fd7d84c89ccbc3b1271d348c78219146bf41f936e978c021",
+ "provenance_docs_sha256": {
+  "CLAUDE_INCREMENTAL_Q_TRAIN_20260915.md": "c98fe463930e6ee7ff82d03f8d25cf3d28a2f869d29fd0988611b64be9ec7b2d",
+  "DELTA_Q_FAIR_BALANCED_PROTOCOL_20260915.md": "c456fbde1146b35479395ea278328490666fa3388da00c432cd93c41ed8c6360",
+  "COLLABORATOR_CRITIQUE_RESPONSE_20260915.md": "c847d82d00654f88cbe5f8f70370cf8498c3c722c89657b2d27064860f113396",
+  "COG_MODEL_COVERAGE_DELTA_Q_20260915.md": "5bdeddda6ce774a38a70a71b7f05d4cc6b4eaa9860a37608f18879a3c555ce5c"
+ },
+ "gpu_authorisation": "user authorised GPU (cuda) for this stage on 2026-09-16; the old-target deep search shares the device",
+ "prior_test_exposure": "Exploratory follow-up. MAIN TEST 15.16 and all four external sets were already evaluated for the pooled q, the old T/N specialists, role arms and the iq PT / logistic / LightGBM winners. Old TEST results are known; this run is not an untouched confirmation. No choice here uses TEST performance.",
+ "parents": {
+  "read_only": [
+   "outputs/full_corpus_training_20260915",
+   "outputs/cohort_role_training_20260915",
+   "outputs/incremental_q_training_20260915",
+   "outputs/label_validity_full_20260915",
+   "outputs/objective_channel_ablation_20260915",
+   "outputs/collaborator_critique_audit_20260915",
+   "source implementations",
+   "raw data",
+   "original manuscript"
+  ],
+  "integrity_snapshot_before_sha256": "d2badaa3825188b9568f76356e41e8bcc912752c0ae74fad65aab63d69078383",
+  "full_corpus_frozen_manifest_sha256": "8287804220b280f68a8ce2359532dbd1665b2d9d0c4a474c8666e8aed77b4f77",
+  "cohort_role_frozen_manifest_sha256": "3c738a3ff537a3a52fcf9d8bdcd4c8b0c80b94993e53a176226abb4813280454",
+  "incremental_q_frozen_manifest_sha256": "60527473bbca5b10f808c05d11e4fc6fa45c94e89e134d51c59faa9f4a5784d5",
+  "incremental_q_protocol_sha256": "2e47dc86a9e3535d21c91d84c668f952dd52079c5230c30dc1d3a1bedb33dae8",
+  "incremental_q_family_winners": {
+   "pt_T": "pt_C1__raw",
+   "logit_T": "logit_C0.001__raw",
+   "lgbm_T": "lgbm_L15_M100__raw",
+   "pt_N": "pt_C1__raw",
+   "logit_N": "logit_C0.01__isotonic",
+   "lgbm_N": "lgbm_L15_M100__sigmoid"
+  },
+  "incremental_q_overall_winner": {
+   "T": "lgbm_L15_M100__raw",
+   "N": "lgbm_L15_M100__sigmoid"
+  },
+  "cohort_manifest_sha256": "e39a33df3afad820bb6fdcbcc0796a9bd3bf5ca27c522cd07b0e48184c2b3071",
+  "q_pre_only_schema_sha256": "bc07a3c9b1ea1f4bdbd278a0c837bd59a96d89ff831b2a8ed393a3cc38249284",
+  "v_models_manifest_sha256": "92d57e3bee472ade1d498e50de5a41a599bf09d5dc1433302b13350234c9ead7",
+  "v_oof_sha256": {
+   "fold0": "c557a083f7cb3ca77e0735cda86ace790e1ed94da28e3ec9bc722df8730e94d8",
+   "fold1": "40cf216b5ce86a4a8099e40df6b3b7e1af418267ee03a45df799d98f48a4c89d",
+   "fold2": "f8b26f77a6a5324b5b4b05864362dd74d539e3373778b28ee362f437cb9be8e2",
+   "fold3": "69cb248f46384957bebf6ecec899ea718d93e897d7e4ef80966b1add33e9fa3b",
+   "fold4": "e8464c9535bf30067edf663a7bfdc39e2dc6979a2fb0fb49c8b132d8351ec819"
+  },
+  "v_final_sha256": "392db878132ee4ce00ab908f84a9a5ef780db0b602c7c8eca6582d845f73d105",
+  "labels_trainval_manifest_sha256": "9a4449ebbf147e629698f97a08f6a0c5db2ba26eccf313911137d5852d2622f7",
+  "labels_test_external_manifest_sha256": "023a6b854027657818cf1b28fe2df368902f589bce9b6d3e154a46445f73faa6",
+  "parent_oof_self_outcome_exclusion": {
+   "rows_checked": 199480,
+   "rows_whose_adapter_fit_includes_match": 0,
+   "engagement_matches_without_V_rows_not_in_any_fit": 0,
+   "adapter_membership": {
+    "fold0": {
+     "reconstructed_fit_set_sha_equals_adapter": true,
+     "held_out_fold": 0
+    },
+    "fold1": {
+     "reconstructed_fit_set_sha_equals_adapter": true,
+     "held_out_fold": 1
+    },
+    "fold2": {
+     "reconstructed_fit_set_sha_equals_adapter": true,
+     "held_out_fold": 2
+    },
+    "fold3": {
+     "reconstructed_fit_set_sha_equals_adapter": true,
+     "held_out_fold": 3
+    },
+    "fold4": {
+     "reconstructed_fit_set_sha_equals_adapter": true,
+     "held_out_fold": 4
+    }
+   }
+  },
+  "expected_parent_file_sha256": {
+   "outputs/full_corpus_training_20260915/labels/EXT_KR_16.13_features_pre_only.npz": "cef03c6d16927fedcaa5df8c3986d828337c37bf8e2c740a56b44e64098086ce",
+   "outputs/full_corpus_training_20260915/labels/EXT_KR_16.13_labels.npz": "fa5f6150e7a4aa4e2fbd267dcbe76c702f0e025c83f3a2d057b25ca272782213",
+   "outputs/full_corpus_training_20260915/labels/EXT_KR_16.14_pilot_features_pre_only.npz": "0b6d08880b6b729f5b36b3522ecc41062b341d8d65a76d64be84f1930f3e4eef",
+   "outputs/full_corpus_training_20260915/labels/EXT_KR_16.14_pilot_labels.npz": "e5dd804570349f519a9dd97bcaf2dd6f96fd27e933088ed5fdbdc050e2f723c9",
+   "outputs/full_corpus_training_20260915/labels/EXT_KR_16.15_features_pre_only.npz": "462ab4312b91c34a3307344bb54a66498161131b5c2d4d530b0d6c7bfc2b7b1c",
+   "outputs/full_corpus_training_20260915/labels/EXT_KR_16.15_labels.npz": "dd3e51a8455f0de6ef09d3b691f0c59e9e48d56207e46d499ef516fdf9a51a9f",
+   "outputs/full_corpus_training_20260915/labels/EXT_NA1_16.13_features_pre_only.npz": "c7aa4396de605a98085f7400d0c7fbfba5785dcf74395f5f7b0831b2ea2c41f7",
+   "outputs/full_corpus_training_20260915/labels/EXT_NA1_16.13_labels.npz": "91cefb42eaae94a6bde3f7007cf34d4d8a9c7f5f42c6098651a96de76fe32065",
+   "outputs/full_corpus_training_20260915/labels/labels_test_external_manifest.json": "023a6b854027657818cf1b28fe2df368902f589bce9b6d3e154a46445f73faa6",
+   "outputs/full_corpus_training_20260915/labels/labels_trainval_manifest.json": "9a4449ebbf147e629698f97a08f6a0c5db2ba26eccf313911137d5852d2622f7",
+   "outputs/full_corpus_training_20260915/labels/MAIN_TEST_features_pre_only.npz": "fb0945a68087b4198622d1a4713497fae6690327317d82d387503a29c8a1a933",
+   "outputs/full_corpus_training_20260915/labels/MAIN_TEST_labels.npz": "eec6e0388792985d0fb2d2d15039ed058bc4041ae082ee99cc2e778f08e2d96e",
+   "outputs/full_corpus_training_20260915/labels/MAIN_TRAIN_features_pre_only.npz": "1f8eee36c21de0146fd6879cfa57abb9421d494b6425663d0db1e3aafea44ca2",
+   "outputs/full_corpus_training_20260915/labels/MAIN_TRAIN_labels.npz": "f0a1bdcfcce497c6e443126d16d09fab5b69b5a93d2acf525324509fc6c07b0c",
+   "outputs/full_corpus_training_20260915/labels/MAIN_VALIDATION_features_pre_only.npz": "8c93127611047cc2449f231370bf45e4a130f7f5559ebdd1aa5df3d76eb7785b",
+   "outputs/full_corpus_training_20260915/labels/MAIN_VALIDATION_labels.npz": "b06a190b8357499d209eddacd0201ad10b6b55655dedae1a7832c8656117431e",
+   "outputs/full_corpus_training_20260915/models/q/h120/constant.joblib": "9efdabc91c1afd7c48738da4662969bd2bea4e30e75e79c028b45fdd40f3c2cc",
+   "outputs/full_corpus_training_20260915/models/q/h120/economic_isotonic.joblib": "c528d0dc6594f38290b985732b37b9e24aac13a62c7e375b9c0de21f663e4516",
+   "outputs/full_corpus_training_20260915/models/q/h120/economic_raw.joblib": "d9ebd359f83f1f39862232c8b69d767718e52ca44907772a75eacd88eba404f6",
+   "outputs/full_corpus_training_20260915/models/q/h120/economic_sigmoid.joblib": "c68b5be8d541e46c51a8c802e184dbfe0109b78952b65776736b71a28745b900",
+   "outputs/full_corpus_training_20260915/models/q/h120/p_pre_logistic.joblib": "8758839c7847389e27398437becc4dd77452278ca798a8c189c82e411309fec9",
+   "outputs/full_corpus_training_20260915/models/q/h120/p_pre_spline.joblib": "fef72d577b97fc449913ba5f82870435f924857471f37a3a93396a69425e79df",
+   "outputs/full_corpus_training_20260915/models/q/h120/ridge_isotonic.joblib": "0a954dab1aea38fb34ef2adfd5b4c5e1c18d2c1e92c4a722eeeb91800566a143",
+   "outputs/full_corpus_training_20260915/models/q/h120/ridge_raw.joblib": "5486392a2452dcb496be57b2ca683ade679ea89eafdf2a5760dd0de1cb5f0845",
+   "outputs/full_corpus_training_20260915/models/q/h120/ridge_sigmoid.joblib": "cbff191377bcdc8cb23b31a730e401cacf56ef76384cd9d7e7048c794d4f299b",
+   "outputs/full_corpus_training_20260915/models/q/h60/constant.joblib": "37efc6130d0efdabd1b28ae8ec3f6fa7e3709edd0d3f737c141918f3a2846e58",
+   "outputs/full_corpus_training_20260915/models/q/h60/economic_isotonic.joblib": "8be50d09f74b0bd5b7209b7786e482623ee2f2b97329d1d9a3c941d00f7ce4c7",
+   "outputs/full_corpus_training_20260915/models/q/h60/economic_raw.joblib": "e41e16a649b16ebbff914c6516a77e6fede066d996596c47d281580f83091629",
+   "outputs/full_corpus_training_20260915/models/q/h60/economic_sigmoid.joblib": "6c4c37dd7e2b12b96d6b3f19528676e740144f47b87e826fd179c5ae6dd673cd",
+   "outputs/full_corpus_training_20260915/models/q/h60/p_pre_logistic.joblib": "1dbfce9a201ecd276b38185f4741eb24349f3cd0006ad6de61690efe1466f18c",
+   "outputs/full_corpus_training_20260915/models/q/h60/p_pre_spline.joblib": "405baa1501806df538fdc03a6eb465997778fc306015efa96c411d5e5c724804",
+   "outputs/full_corpus_training_20260915/models/q/h60/ridge_isotonic.joblib": "0bf57e7e71004c288463bdc4fb07867a7c3f80316f1a48150df0a779aed6acf2",
+   "outputs/full_corpus_training_20260915/models/q/h60/ridge_raw.joblib": "3a5b7bd2b9e8cd8d5b28d3a59d43cd822e83d0b4287798e4054e863af529fe2b",
+   "outputs/full_corpus_training_20260915/models/q/h60/ridge_sigmoid.joblib": "8b9ce2afa1d456bdb34cda7400bd202057a38b5b1d1e4b88e38a81e315a75636",
+   "outputs/full_corpus_training_20260915/models/q/h90/constant.joblib": "d5f7d58521332f72dd23bd0a6ac634583d4ab7be640e88339375a60a7764be9b",
+   "outputs/full_corpus_training_20260915/models/q/h90/economic_isotonic.joblib": "e038582fd49af9393672662ee0555128cca0e5013194db53f96ee68453b98e5f",
+   "outputs/full_corpus_training_20260915/models/q/h90/economic_raw.joblib": "31830ec463033bbf8160f304484d8931d382ca196f2eb9edd6e9ca96e23667b6",
+   "outputs/full_corpus_training_20260915/models/q/h90/economic_sigmoid.joblib": "6550255e3e9e6a89412b245d1177f11bc84c0ade38b0ac72b882429e46d408d6",
+   "outputs/full_corpus_training_20260915/models/q/h90/p_pre_logistic.joblib": "2858fcf1e12499a07a955d7bfc2a5c300d938b5b1381d16aa721ae6d24baa6f8",
+   "outputs/full_corpus_training_20260915/models/q/h90/p_pre_spline.joblib": "1ba68762d1803b53cc596da0fa5ae77d61194333bb8dc7c77edda38eb2be584d",
+   "outputs/full_corpus_training_20260915/models/q/h90/ridge_isotonic.joblib": "5688fe91156c2724d8e718ad4f837f8d60f058bf2f7e9cd370b13fe172f6c093",
+   "outputs/full_corpus_training_20260915/models/q/h90/ridge_raw.joblib": "e968796c148561abf299e7427dbcb639fed7d1db1108dda24e024d05d672830f",
+   "outputs/full_corpus_training_20260915/models/q/h90/ridge_sigmoid.joblib": "685e548d37475a7efbf916e84bc669e2bf7968336035e06d583ae1b98074123f",
+   "outputs/full_corpus_training_20260915/q_pre_only_schema.json": "bc07a3c9b1ea1f4bdbd278a0c837bd59a96d89ff831b2a8ed393a3cc38249284",
+   "outputs/full_corpus_training_20260915/v_models_manifest.json": "92d57e3bee472ade1d498e50de5a41a599bf09d5dc1433302b13350234c9ead7",
+   "outputs/full_corpus_training_20260915/frozen_manifest.json": "8287804220b280f68a8ce2359532dbd1665b2d9d0c4a474c8666e8aed77b4f77",
+   "outputs/full_corpus_training_20260915/protocol.json": "60e95dfadcedeed7f08c47e50f5379e14e7c6b4b31cb9724e8b88f8b1518b8ba",
+   "outputs/full_corpus_training_20260915/selection_v.json": "bffdb56bd3647d8d02f22c17330a8adec96ac7e640eb31c458bc06e90a736ed6",
+   "outputs/full_corpus_training_20260915/validation.json": "716bc9a0d4bf7a990055cb388ef2ac1fb4c708aaed65575db20b3a22546a4771",
+   "outputs/full_corpus_training_20260915/outcome_access_log.jsonl": "470288d476c1f883ea2feb129f1d2ba66fef57ec8d8cc0415924d0279535e721",
+   "outputs/full_corpus_training_20260915/eval/results_q.json": "2ad4a2e58fb4bd45df0ca453c4f13d2b89eef72ae8d4bee0985b96ef9ad49d5e",
+   "outputs/incremental_q_training_20260915/frozen_manifest.json": "60527473bbca5b10f808c05d11e4fc6fa45c94e89e134d51c59faa9f4a5784d5",
+   "outputs/incremental_q_training_20260915/protocol.json": "2e47dc86a9e3535d21c91d84c668f952dd52079c5230c30dc1d3a1bedb33dae8",
+   "outputs/incremental_q_training_20260915/contract_tests/pytest_basetemp_run1/test_sealed_sets_refuse_before0/run/frozen_manifest.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+   "outputs/incremental_q_training_20260915/contract_tests/pytest_basetemp_run2/test_sealed_sets_refuse_before0/run/frozen_manifest.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+   "outputs/incremental_q_training_20260915/eval/predictions/EXT_KR_16.13_h90_N.npz": "e47865bbfe7b6932df2ba03e3d94e060faaff8501db91323bbce8501807d58b3",
+   "outputs/incremental_q_training_20260915/eval/predictions/EXT_KR_16.13_h90_T.npz": "27788c6f6f5faf7a0b75c36e8863ee3a35a73d8c72bc1dc0aa82c2e7cac81a5e",
+   "outputs/incremental_q_training_20260915/eval/predictions/EXT_KR_16.14_pilot_h90_N.npz": "c6535434c092060e73f550a5acf15ada3b8ec120661566469ebbdc65501335c3",
+   "outputs/incremental_q_training_20260915/eval/predictions/EXT_KR_16.14_pilot_h90_T.npz": "1d73086680bd5ec6cc54fcf47fc4ade604558a0ef3f83ee94f2dddded5dfcafb",
+   "outputs/incremental_q_training_20260915/eval/predictions/EXT_KR_16.15_h90_N.npz": "9e84be2bad66cd67b99573344ff95f91272ce01178664bb6b55921c110453dab",
+   "outputs/incremental_q_training_20260915/eval/predictions/EXT_KR_16.15_h90_T.npz": "70949d12fe4b08f2c9fea9b2e400dfa9af830bdc4e5c662c3e9f63a41f9d4c46",
+   "outputs/incremental_q_training_20260915/eval/predictions/EXT_NA1_16.13_h90_N.npz": "cfa3f954043dd2db9c6e2581ef8f87b60819f9c27bf115bd6801ff75dd7d87b6",
+   "outputs/incremental_q_training_20260915/eval/predictions/EXT_NA1_16.13_h90_T.npz": "ededa8cc177f956799a81b464ae1ce985ab3302923f60a5934eb46287a64bdab",
+   "outputs/incremental_q_training_20260915/eval/predictions/MAIN_TEST_h90_N.npz": "1dce0a6a42e18ccb4ea251b091d151ddf436fe0ffafd7e5aeac4f4d461b15bfa",
+   "outputs/incremental_q_training_20260915/eval/predictions/MAIN_TEST_h90_T.npz": "4b0dfc0d57f96f0bfad2644f5b54c1581829d22c7a189cb49d8e7180a4319e5d",
+   "outputs/incremental_q_training_20260915/predictions/lgbm_N_trainval.npz": "aa2acba1c737b157bc4c73feab17e077e0d161566cae398d8af0df2ef96fccae",
+   "outputs/incremental_q_training_20260915/predictions/lgbm_T_trainval.npz": "d60636a279d8ea3d830aed063d62440f845074755d35cb295f5ba6d1d23a920e",
+   "outputs/incremental_q_training_20260915/predictions/logit_N_trainval.npz": "a8a042c9906683e33f56be8da3742531323a2937aa23912a712fc9ed19fa4284",
+   "outputs/incremental_q_training_20260915/predictions/logit_T_trainval.npz": "63cf11e8d3b9c5b7791e5d29303f59e4d171f129f5d0dc76018e6ca358690473",
+   "outputs/incremental_q_training_20260915/predictions/pt_N_trainval.npz": "7540cb3199b30cee34f339e620ace8c20e0fe7ec02c42de4342071c7858b6758",
+   "outputs/incremental_q_training_20260915/predictions/pt_T_trainval.npz": "83c410d9f6db710f1bd4e86f2cd33d2a920a7ad9eb24145bd236cf0ab49b6251",
+   "outputs/incremental_q_training_20260915/selection/lgbm_N.json": "1251461b260b71dddb78a4ec1d6b53ea3de9c89a0b32014529b9aa9d8166e5be",
+   "outputs/incremental_q_training_20260915/selection/lgbm_T.json": "87d99cae8b4da5ed6126f3f29f42b6db7a779162b72fc87becd9c865fbb234e6",
+   "outputs/incremental_q_training_20260915/selection/logit_N.json": "085e4cf5e66e6ba8d93c6016cd01f4cba1b9a32a1a99091e09e79265ae03874e",
+   "outputs/incremental_q_training_20260915/selection/logit_T.json": "e7769e39c008ccef688dd003d2218fa5e8f504800ece0b554df2a751bfb9adeb",
+   "outputs/incremental_q_training_20260915/selection/pt_N.json": "e4226021e4ef5f5af30604cb8d30423fbf03462674d6613d659984fe753c73ff",
+   "outputs/incremental_q_training_20260915/selection/pt_T.json": "511636fac30dfdcc4c92009bcb6ce389764430953734b13ec29a07851d92f3cf",
+   "outputs/incremental_q_training_20260915/smoke_train_only/frozen_manifest.json": "a0263d05dd069bf144538df555f06459112140850195f3ce8132fc2dd898d0c5",
+   "outputs/incremental_q_training_20260915/smoke_train_only/eval/predictions/SMOKE_PSEUDO_Q_SELECT_h90_N.npz": "48e309d30bb0775fd4d965a225f51476be6281c270fc29bcd4bc3452243c4dc8",
+   "outputs/incremental_q_training_20260915/smoke_train_only/eval/predictions/SMOKE_PSEUDO_Q_SELECT_h90_T.npz": "655fc268cf3c97c0a2372213dc8b4a6c144e08385f9e973ab52bfc6387da7f62",
+   "outputs/incremental_q_training_20260915/smoke_train_only/predictions/lgbm_N_trainval.npz": "6b5e14a1815fb4f19ef6e17f9f6c773c759747f64218af615a5da17afe3a21ec",
+   "outputs/incremental_q_training_20260915/smoke_train_only/predictions/lgbm_T_trainval.npz": "742a418bbfb5f55d7c5e38dd1e25d5e44aa38ba7f2d81013d2827bdb6effbcb0",
+   "outputs/incremental_q_training_20260915/smoke_train_only/predictions/logit_N_trainval.npz": "540b59a06c93fe7cc6ac6cedc3e0247fa5ec017d7f12334d25cd2a138ea24722",
+   "outputs/incremental_q_training_20260915/smoke_train_only/predictions/logit_T_trainval.npz": "018fe6613486e4f06b7d25e082f57b45663b0a3294e4d3599b07383f12a5b807",
+   "outputs/incremental_q_training_20260915/smoke_train_only/predictions/pt_N_trainval.npz": "c244241bd58d365044b38e87608f02dc92ecd65498d2048dcb3725af1d280fe7",
+   "outputs/incremental_q_training_20260915/smoke_train_only/predictions/pt_T_trainval.npz": "b3f2bef33b617d882a3d557a714eb81e3d12f3eddf37589d709c2628ed72fb8f",
+   "outputs/incremental_q_training_20260915/smoke_train_only/selection/lgbm_N.json": "7b3a77567ee790e78d4661321ab2adf98ae0336860284b5d193a8b900e658f89",
+   "outputs/incremental_q_training_20260915/smoke_train_only/selection/lgbm_T.json": "201547c85067ab69cb97ce334037a30779cdaa4e03fbde42366ab53f3d0cdb55",
+   "outputs/incremental_q_training_20260915/smoke_train_only/selection/logit_N.json": "3d4e6c30b289fd84ec1edd8ec44e3f903deaad2a107d8692ebd29673e25d4791",
+   "outputs/incremental_q_training_20260915/smoke_train_only/selection/logit_T.json": "b4c8219c61ee9b6e356e4c97b69800140fe9eae49027ccce8d534265a145c4dc",
+   "outputs/incremental_q_training_20260915/smoke_train_only/selection/pt_N.json": "d03bc1242e8d8a5e98ec4b49bfc1acf871c5a7d0f6a4b30dd58501b0c9750192",
+   "outputs/incremental_q_training_20260915/smoke_train_only/selection/pt_T.json": "4afe105e844ec0fe33f30ed40852368f8d7858661b59630c59e12405fd724d9b",
+   "outputs/cohort_role_training_20260915/frozen_manifest.json": "3c738a3ff537a3a52fcf9d8bdcd4c8b0c80b94993e53a176226abb4813280454",
+   "outputs/cohort_role_training_20260915/cohorts/EXT_KR_16.13_cohort.npz": "8cc6d95039ca30d73e82429895dd2502408195452452793cb80b8bdd8f6dc98f",
+   "outputs/cohort_role_training_20260915/cohorts/EXT_KR_16.14_pilot_cohort.npz": "87c5cf979d274ab7d2b1b4234a32cc6b3262d845be39b3356d2aba056231c32e",
+   "outputs/cohort_role_training_20260915/cohorts/EXT_KR_16.15_cohort.npz": "4d120ca58e59865817cf6f11a02cc45512eeea17f82b5341d86b4e855f57cf97",
+   "outputs/cohort_role_training_20260915/cohorts/EXT_NA1_16.13_cohort.npz": "bd77c1b6f4824fe25ff00408cffd1d4fa10b8501e58fc265dcae04db4caea0ad",
+   "outputs/cohort_role_training_20260915/cohorts/MAIN_TEST_cohort.npz": "3239e4c7ac81678adf75e07ec1cc9035136c1572e82e06601695ad78bc162844",
+   "outputs/cohort_role_training_20260915/cohorts/MAIN_TRAIN_cohort.npz": "71fbe5239e9cb76bf97466f1018092755f4f34f6ac941f337593b4cd2d0b1746",
+   "outputs/cohort_role_training_20260915/cohorts/MAIN_VALIDATION_cohort.npz": "a4efc653ebdf698a06dfbb6b2b33dca2ef2759d094fa22d210e14f4936622bf6",
+   "outputs/cohort_role_training_20260915/cohorts/cohort_manifest.json": "e39a33df3afad820bb6fdcbcc0796a9bd3bf5ca27c522cd07b0e48184c2b3071",
+   "outputs/cohort_role_training_20260915/cohorts/detector_train_fixture.json": "ff4f1151a140a0817eff47febcb6f499ae0fde1c198d2c963a797eab13030a1a",
+   "outputs/cohort_role_training_20260915/cohorts/negative_count_provenance.json": "e4b7052a1c7faaf5f73922490f4a0e0a1ed293ce29c28fab8ed6b482ce6264a2"
+  }
+ },
+ "data_contract": {
+  "corpus": "MAIN 210000 matches: TRAIN 15.14 (74673), VALIDATION 15.15 (74748), TEST 15.16 (60579); external KR_16.13, KR_16.14_pilot, KR_16.15, NA1_16.13 separately",
+  "horizon": "h90 only; h60/h120 NOT refit in this bounded stage",
+  "label": "Y = 1[delta_h90 > 0] from parent labels unchanged; TRAIN p_pre/Y from own-match-excluded OOF V (verified, V not refit)",
+  "cohorts": "T: known min(cluster_blue, cluster_red) >= 4; N: known min < 4; parent cohort arrays joined row-exact",
+  "expected_h90_counts": {
+   "TRAIN": {
+    "T": 39605,
+    "N": 159753
+   },
+   "Q_CAL": {
+    "T": 10390,
+    "N": 40565
+   },
+   "Q_SELECT": {
+    "T": 10195,
+    "N": 40180
+   },
+   "MAIN_TEST": {
+    "T": 32981,
+    "N": 130595
+   },
+   "EXT_KR_16.13": {
+    "T": 5202,
+    "N": 20228
+   },
+   "EXT_KR_16.14_pilot": {
+    "T": 101,
+    "N": 374
+   },
+   "EXT_KR_16.15": {
+    "T": 507,
+    "N": 1712
+   },
+   "EXT_NA1_16.13": {
+    "T": 5312,
+    "N": 21226
+   }
+  },
+  "count_mismatch_policy": "any mismatch blocks fitting / evaluation until traced",
+  "roles": "TRAIN = parent sub_role fold0..4; Q_CAL / Q_SELECT = parent VALIDATION roles; V_CAL / V_SELECT unused",
+  "final_training": "ALL eligible cohort TRAIN rows; no balanced-only training, per-class or delta reweighting, no new exclusions"
+ },
+ "inputs": {
+  "learners": "predictor_sets[\"ridge\"] of parent q_pre_only_schema.json in exact order (352 numeric incl. p_pre_V; no champion IDs, no snapshot_age)",
+  "ridge_names": [
+   "time_minutes",
+   "time_minutes_sq",
+   "unknown_objective_team_count",
+   "participant_slot0_totalGold_norm",
+   "participant_slot0_curGold_norm",
+   "participant_slot0_level_norm",
+   "participant_slot0_xp_norm",
+   "participant_slot0_hp_pct",
+   "participant_slot0_mp_pct",
+   "participant_slot0_alive",
+   "participant_slot0_laneCS_norm",
+   "participant_slot0_jgCS_norm",
+   "participant_slot0_kills",
+   "participant_slot0_deaths",
+   "participant_slot0_death_since_snapshot",
+   "participant_slot0_death_last_30s",
+   "participant_slot0_death_age_minutes",
+   "participant_slot0_baron_death_since_acquisition",
+   "participant_slot0_elder_death_since_acquisition",
+   "participant_slot1_totalGold_norm",
+   "participant_slot1_curGold_norm",
+   "participant_slot1_level_norm",
+   "participant_slot1_xp_norm",
+   "participant_slot1_hp_pct",
+   "participant_slot1_mp_pct",
+   "participant_slot1_alive",
+   "participant_slot1_laneCS_norm",
+   "participant_slot1_jgCS_norm",
+   "participant_slot1_kills",
+   "participant_slot1_deaths",
+   "participant_slot1_death_since_snapshot",
+   "participant_slot1_death_last_30s",
+   "participant_slot1_death_age_minutes",
+   "participant_slot1_baron_death_since_acquisition",
+   "participant_slot1_elder_death_since_acquisition",
+   "participant_slot2_totalGold_norm",
+   "participant_slot2_curGold_norm",
+   "participant_slot2_level_norm",
+   "participant_slot2_xp_norm",
+   "participant_slot2_hp_pct",
+   "participant_slot2_mp_pct",
+   "participant_slot2_alive",
+   "participant_slot2_laneCS_norm",
+   "participant_slot2_jgCS_norm",
+   "participant_slot2_kills",
+   "participant_slot2_deaths",
+   "participant_slot2_death_since_snapshot",
+   "participant_slot2_death_last_30s",
+   "participant_slot2_death_age_minutes",
+   "participant_slot2_baron_death_since_acquisition",
+   "participant_slot2_elder_death_since_acquisition",
+   "participant_slot3_totalGold_norm",
+   "participant_slot3_curGold_norm",
+   "participant_slot3_level_norm",
+   "participant_slot3_xp_norm",
+   "participant_slot3_hp_pct",
+   "participant_slot3_mp_pct",
+   "participant_slot3_alive",
+   "participant_slot3_laneCS_norm",
+   "participant_slot3_jgCS_norm",
+   "participant_slot3_kills",
+   "participant_slot3_deaths",
+   "participant_slot3_death_since_snapshot",
+   "participant_slot3_death_last_30s",
+   "participant_slot3_death_age_minutes",
+   "participant_slot3_baron_death_since_acquisition",
+   "participant_slot3_elder_death_since_acquisition",
+   "participant_slot4_totalGold_norm",
+   "participant_slot4_curGold_norm",
+   "participant_slot4_level_norm",
+   "participant_slot4_xp_norm",
+   "participant_slot4_hp_pct",
+   "participant_slot4_mp_pct",
+   "participant_slot4_alive",
+   "participant_slot4_laneCS_norm",
+   "participant_slot4_jgCS_norm",
+   "participant_slot4_kills",
+   "participant_slot4_deaths",
+   "participant_slot4_death_since_snapshot",
+   "participant_slot4_death_last_30s",
+   "participant_slot4_death_age_minutes",
+   "participant_slot4_baron_death_since_acquisition",
+   "participant_slot4_elder_death_since_acquisition",
+   "participant_slot5_totalGold_norm",
+   "participant_slot5_curGold_norm",
+   "participant_slot5_level_norm",
+   "participant_slot5_xp_norm",
+   "participant_slot5_hp_pct",
+   "participant_slot5_mp_pct",
+   "participant_slot5_alive",
+   "participant_slot5_laneCS_norm",
+   "participant_slot5_jgCS_norm",
+   "participant_slot5_kills",
+   "participant_slot5_deaths",
+   "participant_slot5_death_since_snapshot",
+   "participant_slot5_death_last_30s",
+   "participant_slot5_death_age_minutes",
+   "participant_slot5_baron_death_since_acquisition",
+   "participant_slot5_elder_death_since_acquisition",
+   "participant_slot6_totalGold_norm",
+   "participant_slot6_curGold_norm",
+   "participant_slot6_level_norm",
+   "participant_slot6_xp_norm",
+   "participant_slot6_hp_pct",
+   "participant_slot6_mp_pct",
+   "participant_slot6_alive",
+   "participant_slot6_laneCS_norm",
+   "participant_slot6_jgCS_norm",
+   "participant_slot6_kills",
+   "participant_slot6_deaths",
+   "participant_slot6_death_since_snapshot",
+   "participant_slot6_death_last_30s",
+   "participant_slot6_death_age_minutes",
+   "participant_slot6_baron_death_since_acquisition",
+   "participant_slot6_elder_death_since_acquisition",
+   "participant_slot7_totalGold_norm",
+   "participant_slot7_curGold_norm",
+   "participant_slot7_level_norm",
+   "participant_slot7_xp_norm",
+   "participant_slot7_hp_pct",
+   "participant_slot7_mp_pct",
+   "participant_slot7_alive",
+   "participant_slot7_laneCS_norm",
+   "participant_slot7_jgCS_norm",
+   "participant_slot7_kills",
+   "participant_slot7_deaths",
+   "participant_slot7_death_since_snapshot",
+   "participant_slot7_death_last_30s",
+   "participant_slot7_death_age_minutes",
+   "participant_slot7_baron_death_since_acquisition",
+   "participant_slot7_elder_death_since_acquisition",
+   "participant_slot8_totalGold_norm",
+   "participant_slot8_curGold_norm",
+   "participant_slot8_level_norm",
+   "participant_slot8_xp_norm",
+   "participant_slot8_hp_pct",
+   "participant_slot8_mp_pct",
+   "participant_slot8_alive",
+   "participant_slot8_laneCS_norm",
+   "participant_slot8_jgCS_norm",
+   "participant_slot8_kills",
+   "participant_slot8_deaths",
+   "participant_slot8_death_since_snapshot",
+   "participant_slot8_death_last_30s",
+   "participant_slot8_death_age_minutes",
+   "participant_slot8_baron_death_since_acquisition",
+   "participant_slot8_elder_death_since_acquisition",
+   "participant_slot9_totalGold_norm",
+   "participant_slot9_curGold_norm",
+   "participant_slot9_level_norm",
+   "participant_slot9_xp_norm",
+   "participant_slot9_hp_pct",
+   "participant_slot9_mp_pct",
+   "participant_slot9_alive",
+   "participant_slot9_laneCS_norm",
+   "participant_slot9_jgCS_norm",
+   "participant_slot9_kills",
+   "participant_slot9_deaths",
+   "participant_slot9_death_since_snapshot",
+   "participant_slot9_death_last_30s",
+   "participant_slot9_death_age_minutes",
+   "participant_slot9_baron_death_since_acquisition",
+   "participant_slot9_elder_death_since_acquisition",
+   "blue_kills",
+   "blue_dragons",
+   "blue_plates",
+   "blue_inhibitor_kills",
+   "blue_baron",
+   "blue_elder",
+   "blue_herald",
+   "blue_horde",
+   "blue_atakhan",
+   "blue_dragon_AIR",
+   "blue_dragon_EARTH",
+   "blue_dragon_FIRE",
+   "blue_dragon_WATER",
+   "blue_dragon_HEXTECH",
+   "blue_dragon_CHEMTECH",
+   "blue_dragon_OTHER",
+   "blue_tower_OUTER_TURRET",
+   "blue_tower_INNER_TURRET",
+   "blue_tower_BASE_TURRET",
+   "blue_tower_NEXUS_TURRET",
+   "blue_tower_OTHER",
+   "blue_soul_AIR",
+   "blue_soul_EARTH",
+   "blue_soul_FIRE",
+   "blue_soul_WATER",
+   "blue_soul_HEXTECH",
+   "blue_soul_CHEMTECH",
+   "blue_soul_OTHER",
+   "blue_soul_event_recorded",
+   "blue_baron_ever",
+   "blue_baron_age_minutes",
+   "blue_baron_acquired_last_60s",
+   "blue_baron_acquired_last_120s",
+   "blue_baron_acquired_last_180s",
+   "blue_baron_acquired_last_300s",
+   "blue_elder_ever",
+   "blue_elder_age_minutes",
+   "blue_elder_acquired_last_60s",
+   "blue_elder_acquired_last_120s",
+   "blue_elder_acquired_last_180s",
+   "blue_elder_acquired_last_300s",
+   "blue_herald_ever",
+   "blue_herald_age_minutes",
+   "blue_horde_ever",
+   "blue_horde_age_minutes",
+   "blue_atakhan_ever",
+   "blue_atakhan_age_minutes",
+   "red_kills",
+   "red_dragons",
+   "red_plates",
+   "red_inhibitor_kills",
+   "red_baron",
+   "red_elder",
+   "red_herald",
+   "red_horde",
+   "red_atakhan",
+   "red_dragon_AIR",
+   "red_dragon_EARTH",
+   "red_dragon_FIRE",
+   "red_dragon_WATER",
+   "red_dragon_HEXTECH",
+   "red_dragon_CHEMTECH",
+   "red_dragon_OTHER",
+   "red_tower_OUTER_TURRET",
+   "red_tower_INNER_TURRET",
+   "red_tower_BASE_TURRET",
+   "red_tower_NEXUS_TURRET",
+   "red_tower_OTHER",
+   "red_soul_AIR",
+   "red_soul_EARTH",
+   "red_soul_FIRE",
+   "red_soul_WATER",
+   "red_soul_HEXTECH",
+   "red_soul_CHEMTECH",
+   "red_soul_OTHER",
+   "red_soul_event_recorded",
+   "red_baron_ever",
+   "red_baron_age_minutes",
+   "red_baron_acquired_last_60s",
+   "red_baron_acquired_last_120s",
+   "red_baron_acquired_last_180s",
+   "red_baron_acquired_last_300s",
+   "red_elder_ever",
+   "red_elder_age_minutes",
+   "red_elder_acquired_last_60s",
+   "red_elder_acquired_last_120s",
+   "red_elder_acquired_last_180s",
+   "red_elder_acquired_last_300s",
+   "red_herald_ever",
+   "red_herald_age_minutes",
+   "red_horde_ever",
+   "red_horde_age_minutes",
+   "red_atakhan_ever",
+   "red_atakhan_age_minutes",
+   "blue_kills_x_time",
+   "blue_dragons_x_time",
+   "blue_plates_x_time",
+   "blue_inhibitor_kills_x_time",
+   "blue_baron_x_time",
+   "blue_elder_x_time",
+   "blue_herald_x_time",
+   "blue_horde_x_time",
+   "blue_atakhan_x_time",
+   "blue_dragon_AIR_x_time",
+   "blue_dragon_EARTH_x_time",
+   "blue_dragon_FIRE_x_time",
+   "blue_dragon_WATER_x_time",
+   "blue_dragon_HEXTECH_x_time",
+   "blue_dragon_CHEMTECH_x_time",
+   "blue_dragon_OTHER_x_time",
+   "blue_tower_OUTER_TURRET_x_time",
+   "blue_tower_INNER_TURRET_x_time",
+   "blue_tower_BASE_TURRET_x_time",
+   "blue_tower_NEXUS_TURRET_x_time",
+   "blue_tower_OTHER_x_time",
+   "blue_soul_AIR_x_time",
+   "blue_soul_EARTH_x_time",
+   "blue_soul_FIRE_x_time",
+   "blue_soul_WATER_x_time",
+   "blue_soul_HEXTECH_x_time",
+   "blue_soul_CHEMTECH_x_time",
+   "blue_soul_OTHER_x_time",
+   "blue_soul_event_recorded_x_time",
+   "blue_baron_ever_x_time",
+   "blue_baron_age_minutes_x_time",
+   "blue_baron_acquired_last_60s_x_time",
+   "blue_baron_acquired_last_120s_x_time",
+   "blue_baron_acquired_last_180s_x_time",
+   "blue_baron_acquired_last_300s_x_time",
+   "blue_elder_ever_x_time",
+   "blue_elder_age_minutes_x_time",
+   "blue_elder_acquired_last_60s_x_time",
+   "blue_elder_acquired_last_120s_x_time",
+   "blue_elder_acquired_last_180s_x_time",
+   "blue_elder_acquired_last_300s_x_time",
+   "blue_herald_ever_x_time",
+   "blue_herald_age_minutes_x_time",
+   "blue_horde_ever_x_time",
+   "blue_horde_age_minutes_x_time",
+   "blue_atakhan_ever_x_time",
+   "blue_atakhan_age_minutes_x_time",
+   "red_kills_x_time",
+   "red_dragons_x_time",
+   "red_plates_x_time",
+   "red_inhibitor_kills_x_time",
+   "red_baron_x_time",
+   "red_elder_x_time",
+   "red_herald_x_time",
+   "red_horde_x_time",
+   "red_atakhan_x_time",
+   "red_dragon_AIR_x_time",
+   "red_dragon_EARTH_x_time",
+   "red_dragon_FIRE_x_time",
+   "red_dragon_WATER_x_time",
+   "red_dragon_HEXTECH_x_time",
+   "red_dragon_CHEMTECH_x_time",
+   "red_dragon_OTHER_x_time",
+   "red_tower_OUTER_TURRET_x_time",
+   "red_tower_INNER_TURRET_x_time",
+   "red_tower_BASE_TURRET_x_time",
+   "red_tower_NEXUS_TURRET_x_time",
+   "red_tower_OTHER_x_time",
+   "red_soul_AIR_x_time",
+   "red_soul_EARTH_x_time",
+   "red_soul_FIRE_x_time",
+   "red_soul_WATER_x_time",
+   "red_soul_HEXTECH_x_time",
+   "red_soul_CHEMTECH_x_time",
+   "red_soul_OTHER_x_time",
+   "red_soul_event_recorded_x_time",
+   "red_baron_ever_x_time",
+   "red_baron_age_minutes_x_time",
+   "red_baron_acquired_last_60s_x_time",
+   "red_baron_acquired_last_120s_x_time",
+   "red_baron_acquired_last_180s_x_time",
+   "red_baron_acquired_last_300s_x_time",
+   "red_elder_ever_x_time",
+   "red_elder_age_minutes_x_time",
+   "red_elder_acquired_last_60s_x_time",
+   "red_elder_acquired_last_120s_x_time",
+   "red_elder_acquired_last_180s_x_time",
+   "red_elder_acquired_last_300s_x_time",
+   "red_herald_ever_x_time",
+   "red_herald_age_minutes_x_time",
+   "red_horde_ever_x_time",
+   "red_horde_age_minutes_x_time",
+   "red_atakhan_ever_x_time",
+   "red_atakhan_age_minutes_x_time",
+   "p_pre_V"
+  ],
+  "ridge_names_sha256": "1ca61dee2fc08ff03b5255bb5dd722600b17bdd062afa40586ae4e9ab69a77c3",
+  "predictor_sets_sha256": "d3bada48f45133116101ee9eef915bb307448735950d2a57444d43f6e9ef22b9",
+  "input_names_all_sha256": "cca21a11724d40cde51c92faf1a5e1ad4557aeb84114d9e5de04d812896cbb19",
+  "finiteness": "assert finite on every TRAIN/Q_CAL/Q_SELECT/evaluation input row; stop and document otherwise",
+  "preprocessing": "SimpleImputer(median) then StandardScaler, both fit on the applicable TRAIN subset (fit90 in the stop phase; all cohort TRAIN in the refit)",
+  "no_additions": "no draft / role / position / cohort / post-state / final winner inputs"
+ },
+ "families": {
+  "grid": {
+   "width": [
+    128,
+    256,
+    512
+   ],
+   "dropout": [
+    0.1,
+    0.3
+   ],
+   "configurations": [
+    {
+     "width": 128,
+     "dropout": 0.1
+    },
+    {
+     "width": 128,
+     "dropout": 0.3
+    },
+    {
+     "width": 256,
+     "dropout": 0.1
+    },
+    {
+     "width": 256,
+     "dropout": 0.3
+    },
+    {
+     "width": 512,
+     "dropout": 0.1
+    },
+    {
+     "width": 512,
+     "dropout": 0.3
+    }
+   ]
+  },
+  "mlp": "Linear(352,w)-ReLU-Dropout(d)-Linear(w,w)-ReLU-Dropout(d)-Linear(w,1) (plain matched-input MLP, CoG lineage)",
+  "resmlp": "Linear(352,w) projection; 2 x [LayerNorm(w)-Linear(w,2w)-ReLU-Dropout(d)-Linear(2w,w)-Dropout(d)-residual]; LayerNorm(w)-ReLU-Linear(w,1)",
+  "architectures": {
+   "mlp_W128_D0.1": {
+    "n_params": 61825,
+    "layers": {
+     "0.weight": [
+      128,
+      352
+     ],
+     "0.bias": [
+      128
+     ],
+     "3.weight": [
+      128,
+      128
+     ],
+     "3.bias": [
+      128
+     ],
+     "6.weight": [
+      1,
+      128
+     ],
+     "6.bias": [
+      1
+     ]
+    },
+    "repr": "Sequential(\n  (0): Linear(in_features=352, out_features=128, bias=True)\n  (1): ReLU()\n  (2): Dropout(p=0.1, inplace=False)\n  (3): Linear(in_features=128, out_features=128, bias=True)\n  (4): ReLU()\n  (5): Dropout(p=0.1, inplace=False)\n  (6): Linear(in_features=128, out_features=1, bias=True)\n)"
+   },
+   "mlp_W128_D0.3": {
+    "n_params": 61825,
+    "layers": {
+     "0.weight": [
+      128,
+      352
+     ],
+     "0.bias": [
+      128
+     ],
+     "3.weight": [
+      128,
+      128
+     ],
+     "3.bias": [
+      128
+     ],
+     "6.weight": [
+      1,
+      128
+     ],
+     "6.bias": [
+      1
+     ]
+    },
+    "repr": "Sequential(\n  (0): Linear(in_features=352, out_features=128, bias=True)\n  (1): ReLU()\n  (2): Dropout(p=0.3, inplace=False)\n  (3): Linear(in_features=128, out_features=128, bias=True)\n  (4): ReLU()\n  (5): Dropout(p=0.3, inplace=False)\n  (6): Linear(in_features=128, out_features=1, bias=True)\n)"
+   },
+   "mlp_W256_D0.1": {
+    "n_params": 156417,
+    "layers": {
+     "0.weight": [
+      256,
+      352
+     ],
+     "0.bias": [
+      256
+     ],
+     "3.weight": [
+      256,
+      256
+     ],
+     "3.bias": [
+      256
+     ],
+     "6.weight": [
+      1,
+      256
+     ],
+     "6.bias": [
+      1
+     ]
+    },
+    "repr": "Sequential(\n  (0): Linear(in_features=352, out_features=256, bias=True)\n  (1): ReLU()\n  (2): Dropout(p=0.1, inplace=False)\n  (3): Linear(in_features=256, out_features=256, bias=True)\n  (4): ReLU()\n  (5): Dropout(p=0.1, inplace=False)\n  (6): Linear(in_features=256, out_features=1, bias=True)\n)"
+   },
+   "mlp_W256_D0.3": {
+    "n_params": 156417,
+    "layers": {
+     "0.weight": [
+      256,
+      352
+     ],
+     "0.bias": [
+      256
+     ],
+     "3.weight": [
+      256,
+      256
+     ],
+     "3.bias": [
+      256
+     ],
+     "6.weight": [
+      1,
+      256
+     ],
+     "6.bias": [
+      1
+     ]
+    },
+    "repr": "Sequential(\n  (0): Linear(in_features=352, out_features=256, bias=True)\n  (1): ReLU()\n  (2): Dropout(p=0.3, inplace=False)\n  (3): Linear(in_features=256, out_features=256, bias=True)\n  (4): ReLU()\n  (5): Dropout(p=0.3, inplace=False)\n  (6): Linear(in_features=256, out_features=1, bias=True)\n)"
+   },
+   "mlp_W512_D0.1": {
+    "n_params": 443905,
+    "layers": {
+     "0.weight": [
+      512,
+      352
+     ],
+     "0.bias": [
+      512
+     ],
+     "3.weight": [
+      512,
+      512
+     ],
+     "3.bias": [
+      512
+     ],
+     "6.weight": [
+      1,
+      512
+     ],
+     "6.bias": [
+      1
+     ]
+    },
+    "repr": "Sequential(\n  (0): Linear(in_features=352, out_features=512, bias=True)\n  (1): ReLU()\n  (2): Dropout(p=0.1, inplace=False)\n  (3): Linear(in_features=512, out_features=512, bias=True)\n  (4): ReLU()\n  (5): Dropout(p=0.1, inplace=False)\n  (6): Linear(in_features=512, out_features=1, bias=True)\n)"
+   },
+   "mlp_W512_D0.3": {
+    "n_params": 443905,
+    "layers": {
+     "0.weight": [
+      512,
+      352
+     ],
+     "0.bias": [
+      512
+     ],
+     "3.weight": [
+      512,
+      512
+     ],
+     "3.bias": [
+      512
+     ],
+     "6.weight": [
+      1,
+      512
+     ],
+     "6.bias": [
+      1
+     ]
+    },
+    "repr": "Sequential(\n  (0): Linear(in_features=352, out_features=512, bias=True)\n  (1): ReLU()\n  (2): Dropout(p=0.3, inplace=False)\n  (3): Linear(in_features=512, out_features=512, bias=True)\n  (4): ReLU()\n  (5): Dropout(p=0.3, inplace=False)\n  (6): Linear(in_features=512, out_features=1, bias=True)\n)"
+   },
+   "resmlp_W128_D0.1": {
+    "n_params": 177921,
+    "layers": {
+     "proj.weight": [
+      128,
+      352
+     ],
+     "proj.bias": [
+      128
+     ],
+     "blocks.0.norm.weight": [
+      128
+     ],
+     "blocks.0.norm.bias": [
+      128
+     ],
+     "blocks.0.lin1.weight": [
+      256,
+      128
+     ],
+     "blocks.0.lin1.bias": [
+      256
+     ],
+     "blocks.0.lin2.weight": [
+      128,
+      256
+     ],
+     "blocks.0.lin2.bias": [
+      128
+     ],
+     "blocks.1.norm.weight": [
+      128
+     ],
+     "blocks.1.norm.bias": [
+      128
+     ],
+     "blocks.1.lin1.weight": [
+      256,
+      128
+     ],
+     "blocks.1.lin1.bias": [
+      256
+     ],
+     "blocks.1.lin2.weight": [
+      128,
+      256
+     ],
+     "blocks.1.lin2.bias": [
+      128
+     ],
+     "norm.weight": [
+      128
+     ],
+     "norm.bias": [
+      128
+     ],
+     "head.weight": [
+      1,
+      128
+     ],
+     "head.bias": [
+      1
+     ]
+    },
+    "repr": "ResMLP(\n  (proj): Linear(in_features=352, out_features=128, bias=True)\n  (blocks): ModuleList(\n    (0-1): 2 x ResBlock(\n      (norm): LayerNorm((128,), eps=1e-05, elementwise_affine=True)\n      (lin1): Linear(in_features=128, out_features=256, bias=True)\n      (act): ReLU()\n      (drop1): Dropout(p=0.1, inplace=False)\n      (lin2): Linear(in_features=256, out_features=128, bias=True)\n      (drop2): Dropout(p=0.1, inplace=False)\n    )\n  )\n  (norm): LayerNorm((128,), eps=1e-05, elementwise_affine=True)\n  (act): ReLU()\n  (head): Linear(in_features=128, out_features=1, bias=True)\n)"
+   },
+   "resmlp_W128_D0.3": {
+    "n_params": 177921,
+    "layers": {
+     "proj.weight": [
+      128,
+      352
+     ],
+     "proj.bias": [
+      128
+     ],
+     "blocks.0.norm.weight": [
+      128
+     ],
+     "blocks.0.norm.bias": [
+      128
+     ],
+     "blocks.0.lin1.weight": [
+      256,
+      128
+     ],
+     "blocks.0.lin1.bias": [
+      256
+     ],
+     "blocks.0.lin2.weight": [
+      128,
+      256
+     ],
+     "blocks.0.lin2.bias": [
+      128
+     ],
+     "blocks.1.norm.weight": [
+      128
+     ],
+     "blocks.1.norm.bias": [
+      128
+     ],
+     "blocks.1.lin1.weight": [
+      256,
+      128
+     ],
+     "blocks.1.lin1.bias": [
+      256
+     ],
+     "blocks.1.lin2.weight": [
+      128,
+      256
+     ],
+     "blocks.1.lin2.bias": [
+      128
+     ],
+     "norm.weight": [
+      128
+     ],
+     "norm.bias": [
+      128
+     ],
+     "head.weight": [
+      1,
+      128
+     ],
+     "head.bias": [
+      1
+     ]
+    },
+    "repr": "ResMLP(\n  (proj): Linear(in_features=352, out_features=128, bias=True)\n  (blocks): ModuleList(\n    (0-1): 2 x ResBlock(\n      (norm): LayerNorm((128,), eps=1e-05, elementwise_affine=True)\n      (lin1): Linear(in_features=128, out_features=256, bias=True)\n      (act): ReLU()\n      (drop1): Dropout(p=0.3, inplace=False)\n      (lin2): Linear(in_features=256, out_features=128, bias=True)\n      (drop2): Dropout(p=0.3, inplace=False)\n    )\n  )\n  (norm): LayerNorm((128,), eps=1e-05, elementwise_affine=True)\n  (act): ReLU()\n  (head): Linear(in_features=128, out_features=1, bias=True)\n)"
+   },
+   "resmlp_W256_D0.1": {
+    "n_params": 617985,
+    "layers": {
+     "proj.weight": [
+      256,
+      352
+     ],
+     "proj.bias": [
+      256
+     ],
+     "blocks.0.norm.weight": [
+      256
+     ],
+     "blocks.0.norm.bias": [
+      256
+     ],
+     "blocks.0.lin1.weight": [
+      512,
+      256
+     ],
+     "blocks.0.lin1.bias": [
+      512
+     ],
+     "blocks.0.lin2.weight": [
+      256,
+      512
+     ],
+     "blocks.0.lin2.bias": [
+      256
+     ],
+     "blocks.1.norm.weight": [
+      256
+     ],
+     "blocks.1.norm.bias": [
+      256
+     ],
+     "blocks.1.lin1.weight": [
+      512,
+      256
+     ],
+     "blocks.1.lin1.bias": [
+      512
+     ],
+     "blocks.1.lin2.weight": [
+      256,
+      512
+     ],
+     "blocks.1.lin2.bias": [
+      256
+     ],
+     "norm.weight": [
+      256
+     ],
+     "norm.bias": [
+      256
+     ],
+     "head.weight": [
+      1,
+      256
+     ],
+     "head.bias": [
+      1
+     ]
+    },
+    "repr": "ResMLP(\n  (proj): Linear(in_features=352, out_features=256, bias=True)\n  (blocks): ModuleList(\n    (0-1): 2 x ResBlock(\n      (norm): LayerNorm((256,), eps=1e-05, elementwise_affine=True)\n      (lin1): Linear(in_features=256, out_features=512, bias=True)\n      (act): ReLU()\n      (drop1): Dropout(p=0.1, inplace=False)\n      (lin2): Linear(in_features=512, out_features=256, bias=True)\n      (drop2): Dropout(p=0.1, inplace=False)\n    )\n  )\n  (norm): LayerNorm((256,), eps=1e-05, elementwise_affine=True)\n  (act): ReLU()\n  (head): Linear(in_features=256, out_features=1, bias=True)\n)"
+   },
+   "resmlp_W256_D0.3": {
+    "n_params": 617985,
+    "layers": {
+     "proj.weight": [
+      256,
+      352
+     ],
+     "proj.bias": [
+      256
+     ],
+     "blocks.0.norm.weight": [
+      256
+     ],
+     "blocks.0.norm.bias": [
+      256
+     ],
+     "blocks.0.lin1.weight": [
+      512,
+      256
+     ],
+     "blocks.0.lin1.bias": [
+      512
+     ],
+     "blocks.0.lin2.weight": [
+      256,
+      512
+     ],
+     "blocks.0.lin2.bias": [
+      256
+     ],
+     "blocks.1.norm.weight": [
+      256
+     ],
+     "blocks.1.norm.bias": [
+      256
+     ],
+     "blocks.1.lin1.weight": [
+      512,
+      256
+     ],
+     "blocks.1.lin1.bias": [
+      512
+     ],
+     "blocks.1.lin2.weight": [
+      256,
+      512
+     ],
+     "blocks.1.lin2.bias": [
+      256
+     ],
+     "norm.weight": [
+      256
+     ],
+     "norm.bias": [
+      256
+     ],
+     "head.weight": [
+      1,
+      256
+     ],
+     "head.bias": [
+      1
+     ]
+    },
+    "repr": "ResMLP(\n  (proj): Linear(in_features=352, out_features=256, bias=True)\n  (blocks): ModuleList(\n    (0-1): 2 x ResBlock(\n      (norm): LayerNorm((256,), eps=1e-05, elementwise_affine=True)\n      (lin1): Linear(in_features=256, out_features=512, bias=True)\n      (act): ReLU()\n      (drop1): Dropout(p=0.3, inplace=False)\n      (lin2): Linear(in_features=512, out_features=256, bias=True)\n      (drop2): Dropout(p=0.3, inplace=False)\n    )\n  )\n  (norm): LayerNorm((256,), eps=1e-05, elementwise_affine=True)\n  (act): ReLU()\n  (head): Linear(in_features=256, out_features=1, bias=True)\n)"
+   },
+   "resmlp_W512_D0.1": {
+    "n_params": 2284545,
+    "layers": {
+     "proj.weight": [
+      512,
+      352
+     ],
+     "proj.bias": [
+      512
+     ],
+     "blocks.0.norm.weight": [
+      512
+     ],
+     "blocks.0.norm.bias": [
+      512
+     ],
+     "blocks.0.lin1.weight": [
+      1024,
+      512
+     ],
+     "blocks.0.lin1.bias": [
+      1024
+     ],
+     "blocks.0.lin2.weight": [
+      512,
+      1024
+     ],
+     "blocks.0.lin2.bias": [
+      512
+     ],
+     "blocks.1.norm.weight": [
+      512
+     ],
+     "blocks.1.norm.bias": [
+      512
+     ],
+     "blocks.1.lin1.weight": [
+      1024,
+      512
+     ],
+     "blocks.1.lin1.bias": [
+      1024
+     ],
+     "blocks.1.lin2.weight": [
+      512,
+      1024
+     ],
+     "blocks.1.lin2.bias": [
+      512
+     ],
+     "norm.weight": [
+      512
+     ],
+     "norm.bias": [
+      512
+     ],
+     "head.weight": [
+      1,
+      512
+     ],
+     "head.bias": [
+      1
+     ]
+    },
+    "repr": "ResMLP(\n  (proj): Linear(in_features=352, out_features=512, bias=True)\n  (blocks): ModuleList(\n    (0-1): 2 x ResBlock(\n      (norm): LayerNorm((512,), eps=1e-05, elementwise_affine=True)\n      (lin1): Linear(in_features=512, out_features=1024, bias=True)\n      (act): ReLU()\n      (drop1): Dropout(p=0.1, inplace=False)\n      (lin2): Linear(in_features=1024, out_features=512, bias=True)\n      (drop2): Dropout(p=0.1, inplace=False)\n    )\n  )\n  (norm): LayerNorm((512,), eps=1e-05, elementwise_affine=True)\n  (act): ReLU()\n  (head): Linear(in_features=512, out_features=1, bias=True)\n)"
+   },
+   "resmlp_W512_D0.3": {
+    "n_params": 2284545,
+    "layers": {
+     "proj.weight": [
+      512,
+      352
+     ],
+     "proj.bias": [
+      512
+     ],
+     "blocks.0.norm.weight": [
+      512
+     ],
+     "blocks.0.norm.bias": [
+      512
+     ],
+     "blocks.0.lin1.weight": [
+      1024,
+      512
+     ],
+     "blocks.0.lin1.bias": [
+      1024
+     ],
+     "blocks.0.lin2.weight": [
+      512,
+      1024
+     ],
+     "blocks.0.lin2.bias": [
+      512
+     ],
+     "blocks.1.norm.weight": [
+      512
+     ],
+     "blocks.1.norm.bias": [
+      512
+     ],
+     "blocks.1.lin1.weight": [
+      1024,
+      512
+     ],
+     "blocks.1.lin1.bias": [
+      1024
+     ],
+     "blocks.1.lin2.weight": [
+      512,
+      1024
+     ],
+     "blocks.1.lin2.bias": [
+      512
+     ],
+     "norm.weight": [
+      512
+     ],
+     "norm.bias": [
+      512
+     ],
+     "head.weight": [
+      1,
+      512
+     ],
+     "head.bias": [
+      1
+     ]
+    },
+    "repr": "ResMLP(\n  (proj): Linear(in_features=352, out_features=512, bias=True)\n  (blocks): ModuleList(\n    (0-1): 2 x ResBlock(\n      (norm): LayerNorm((512,), eps=1e-05, elementwise_affine=True)\n      (lin1): Linear(in_features=512, out_features=1024, bias=True)\n      (act): ReLU()\n      (drop1): Dropout(p=0.3, inplace=False)\n      (lin2): Linear(in_features=1024, out_features=512, bias=True)\n      (drop2): Dropout(p=0.3, inplace=False)\n    )\n  )\n  (norm): LayerNorm((512,), eps=1e-05, elementwise_affine=True)\n  (act): ReLU()\n  (head): Linear(in_features=512, out_features=1, bias=True)\n)"
+   }
+  },
+  "optimizer": {
+   "optimizer": "AdamW",
+   "lr": 0.001,
+   "weight_decay": 0.0001,
+   "weight_decay_scope": "all parameters (AdamW default)",
+   "batch_size": 512,
+   "max_epochs": 100,
+   "patience": 10,
+   "dtype_train": "float32",
+   "amp": false,
+   "grad_clip": null,
+   "init": "PyTorch default (kaiming_uniform for Linear)",
+   "shuffle": "uniform permutation per epoch from a CPU torch.Generator seeded with the seed",
+   "last_batch": "kept (partial)"
+  },
+  "seeds": [
+   7,
+   42,
+   123
+  ],
+  "loss": "minibatch mean(w_i * BCEWithLogits_i), uniform shuffled minibatches, no per-batch renormalisation, no weighted sampler; population loss sum(w*BCE)/sum(w) (fixture in the contract tests)",
+  "prediction": "mean raw probability over seeds 7, 42, 123 (never best seed); seed probabilities stored",
+  "prediction_definition": "saved float32 weights evaluated on CPU in float64, torch threads 1, chunk 8192 rows; the stop curve is a GPU float32 diagnostic",
+  "stopping": {
+   "allocation": "int(sha256('iq20260915_stop:'+match_id).hexdigest()[:8],16) % 10 == 0 -> stop10 (iq allocation; same matches as the LightGBM arm, same for T and N)",
+   "preprocessing": "imputer + scaler fit on fit90 rows only in the stop phase",
+   "metric": "match-weighted Brier on stop10 after every epoch (weights recomputed inside stop10; GPU float32, eval mode)",
+   "patience": 10,
+   "cap": 100,
+   "ties": "strict improvement required -> earlier epoch kept (first minimum)",
+   "refit": "from scratch on ALL cohort TRAIN rows, preprocessing refit there, exactly best_epoch epochs, same seed, per config and seed",
+   "never": "Q_CAL / Q_SELECT / TEST never used for stopping"
+  },
+  "determinism": "torch.manual_seed(seed), CPU generator for minibatch order, cudnn deterministic, torch.use_deterministic_algorithms(True), CUBLAS_WORKSPACE_CONFIG=:4096:8",
+  "device": "cuda (training); cpu float64 (predictions)",
+  "threads": 4,
+  "weights": "fc20260915_common.weights: equal total weight per match within EVERY fit subset (TRAIN, fit90, stop10, Q_CAL, Q_SELECT, evaluation cell), row mean 1",
+  "comparison_note": "Both families read the identical 352 inputs as the iq full logistic / LightGBM; the PT baseline reads only p_pre and time. Six configurations per family is a bounded search convention, not equal computation or global optimality."
+ },
+ "calibration_selection": {
+  "calibrators": "raw identity; sigmoid and isotonic fit on cohort Q_CAL only via cr20260915_common.fit_calibrators (sigmoid: LogisticRegression(C=1e6, max_iter=1000) on logit(clip(raw, 1e-8)); no positive-slope constraint; isotonic out_of_bounds=clip)",
+  "order": "three-seed raw mean first, then calibration (never per seed)",
+  "q_cal_weights": "weights(match ids of cohort Q_CAL rows)",
+  "q_select_weights": "weights(match ids of cohort Q_SELECT rows)",
+  "registry": {
+   "mlp": {
+    "configs": {
+     "mlp_W128_D0.1": {
+      "width": 128,
+      "dropout": 0.1
+     },
+     "mlp_W128_D0.3": {
+      "width": 128,
+      "dropout": 0.3
+     },
+     "mlp_W256_D0.1": {
+      "width": 256,
+      "dropout": 0.1
+     },
+     "mlp_W256_D0.3": {
+      "width": 256,
+      "dropout": 0.3
+     },
+     "mlp_W512_D0.1": {
+      "width": 512,
+      "dropout": 0.1
+     },
+     "mlp_W512_D0.3": {
+      "width": 512,
+      "dropout": 0.3
+     }
+    },
+    "candidates_lexical_tie_order": [
+     "mlp_W128_D0.1__isotonic",
+     "mlp_W128_D0.1__raw",
+     "mlp_W128_D0.1__sigmoid",
+     "mlp_W128_D0.3__isotonic",
+     "mlp_W128_D0.3__raw",
+     "mlp_W128_D0.3__sigmoid",
+     "mlp_W256_D0.1__isotonic",
+     "mlp_W256_D0.1__raw",
+     "mlp_W256_D0.1__sigmoid",
+     "mlp_W256_D0.3__isotonic",
+     "mlp_W256_D0.3__raw",
+     "mlp_W256_D0.3__sigmoid",
+     "mlp_W512_D0.1__isotonic",
+     "mlp_W512_D0.1__raw",
+     "mlp_W512_D0.1__sigmoid",
+     "mlp_W512_D0.3__isotonic",
+     "mlp_W512_D0.3__raw",
+     "mlp_W512_D0.3__sigmoid"
+    ],
+    "n_candidates": 18
+   },
+   "resmlp": {
+    "configs": {
+     "resmlp_W128_D0.1": {
+      "width": 128,
+      "dropout": 0.1
+     },
+     "resmlp_W128_D0.3": {
+      "width": 128,
+      "dropout": 0.3
+     },
+     "resmlp_W256_D0.1": {
+      "width": 256,
+      "dropout": 0.1
+     },
+     "resmlp_W256_D0.3": {
+      "width": 256,
+      "dropout": 0.3
+     },
+     "resmlp_W512_D0.1": {
+      "width": 512,
+      "dropout": 0.1
+     },
+     "resmlp_W512_D0.3": {
+      "width": 512,
+      "dropout": 0.3
+     }
+    },
+    "candidates_lexical_tie_order": [
+     "resmlp_W128_D0.1__isotonic",
+     "resmlp_W128_D0.1__raw",
+     "resmlp_W128_D0.1__sigmoid",
+     "resmlp_W128_D0.3__isotonic",
+     "resmlp_W128_D0.3__raw",
+     "resmlp_W128_D0.3__sigmoid",
+     "resmlp_W256_D0.1__isotonic",
+     "resmlp_W256_D0.1__raw",
+     "resmlp_W256_D0.1__sigmoid",
+     "resmlp_W256_D0.3__isotonic",
+     "resmlp_W256_D0.3__raw",
+     "resmlp_W256_D0.3__sigmoid",
+     "resmlp_W512_D0.1__isotonic",
+     "resmlp_W512_D0.1__raw",
+     "resmlp_W512_D0.1__sigmoid",
+     "resmlp_W512_D0.3__isotonic",
+     "resmlp_W512_D0.3__raw",
+     "resmlp_W512_D0.3__sigmoid"
+    ],
+    "n_candidates": 18
+   }
+  },
+  "rule": "rank all 18 joint candidates of a family by cohort Q_SELECT match-weighted Brier, then log loss, then candidate name (lexical)",
+  "metric_implementation": "fc20260915_common.evaluate (sklearn brier_score_loss / log_loss with match weights)",
+  "overall_mlp_families": "same rule over the 36 joint candidates of the two MLP families (alias overall_winner_mlp_families)",
+  "five_family_ranking": "information only: same rule over the iq PT / logistic / LightGBM winners and the two MLP winners on the identical cohort Q_SELECT rows (iq winners not refit)",
+  "no_subset_selection": "no selection within balanced / time / external subsets",
+  "freeze": "frozen_manifest.json with all bundles, selections and hashes for BOTH cohorts, plus the iq frozen manifest and iq evaluation prediction file hashes, before any TEST/external array or iq/parent TEST prediction is opened; sealed access gated on THIS run's freeze",
+  "reload": "all saved bundles reloaded and predictions compared exactly before the freeze"
+ },
+ "evaluation": {
+  "sets": [
+   "MAIN_TEST",
+   "EXT_KR_16.13",
+   "EXT_KR_16.14_pilot",
+   "EXT_KR_16.15",
+   "EXT_NA1_16.13"
+  ],
+  "primary": "T h90",
+  "secondary": "N h90",
+  "cells": {
+   "all": "all h90-valid cohort rows",
+   "B40": "0.40 <= p_pre <= 0.60 (inclusive)",
+   "B45": "0.45 <= p_pre <= 0.55 (inclusive)",
+   "time": "time_minutes bins [0,10), [10,20), [20,30), [30,inf)",
+   "B40_x_time": "B40 within each time bin",
+   "membership": "frozen p_pre and pre time only; common to all models; no small-delta exclusion; empty/single-class cells reported"
+  },
+  "comparators": {
+   "new": [
+    "mlp_winner",
+    "resmlp_winner"
+   ],
+   "overall_mlp": "alias overall_winner_mlp_families",
+   "iq": {
+    "source": "outputs/incremental_q_training_20260915/eval/predictions/<set>_h90_<cohort>.npz named__* columns joined by exact (match, s_ms)",
+    "winners": [
+     "pt_winner",
+     "logit_winner",
+     "lgbm_winner"
+    ],
+    "legacy": [
+     "old_A_specialist",
+     "old_pooled",
+     "old_p_pre_spline",
+     "old_p_pre_logistic",
+     "old_constant"
+    ],
+    "label": "frozen iq winners (same protocol, older stage) and legacy references with an older fixed fitting budget"
+   }
+  },
+  "metrics": "rows, distinct matches, positives / rate, match-weighted Brier / log loss / AUC, calibration intercept / slope (descriptive), fixed 10-bin reliability incl. empty bins, ECE, exact 0/1 probability counts; weights recomputed inside each cell; AUC NA for single-class cells; <30 matches marked sparse without intervals or broad conclusions",
+  "contrasts": [
+   {
+    "a": "resmlp_winner",
+    "b": "lgbm_winner",
+    "label": "PRIMARY: residual MLP - full LightGBM"
+   },
+   {
+    "a": "mlp_winner",
+    "b": "logit_winner",
+    "label": "planned: plain MLP - full logistic"
+   },
+   {
+    "a": "resmlp_winner",
+    "b": "mlp_winner",
+    "label": "planned: residual MLP - plain MLP"
+   },
+   {
+    "a": "mlp_winner",
+    "b": "lgbm_winner",
+    "label": "planned: plain MLP - full LightGBM"
+   },
+   {
+    "a": "resmlp_winner",
+    "b": "pt_winner",
+    "label": "planned: residual MLP - PT baseline"
+   },
+   {
+    "a": "mlp_winner",
+    "b": "pt_winner",
+    "label": "planned: plain MLP - PT baseline"
+   }
+  ],
+  "bootstrap": {
+   "replicates": 1000,
+   "seed": 20260915,
+   "unit": "match",
+   "paired": "same draw for all models in a cell",
+   "where": "all / B40 / B45 cells of every set and cohort with >= 30 matches and both label classes; all six planned contrasts",
+   "time_cells": "point estimates and reliability only; CI explicitly not computed",
+   "implementation": "per-match weighted loss sums; exact weighted AUC (ties 1/2); degenerate replicates counted",
+   "scope": "fixed-model evaluation uncertainty only; no multiple-comparison adjustment"
+  }
+ },
+ "deferred": [
+  "h60/h120 refits",
+  "SHAP",
+  "revised V",
+  "logit-label decomposition",
+  "Track B CoG representation adapters",
+  "development-only detector re-estimation",
+  "C role models (outside this comparison)"
+ ],
+ "not_tested": "final-W causal effects; semantic correctness of Y",
+ "interpretation_choices": [
+  "Preprocessing (median imputer, StandardScaler) is fit on unweighted rows of the applicable TRAIN subset, as in the parent pipelines; the model loss uses the equal-per-match weights.",
+  "The refit uses the same seed as the stop phase, so the initial weights coincide; the data (all TRAIN rows) and the fixed epoch count differ.",
+  "A candidate needs finite Q_CAL/Q_SELECT predictions to be eligible; MLP fits have no convergence criterion beyond the epoch rule.",
+  "Predictions are defined on CPU in float64 (device-independent); GPU float32 stop-curve values may differ in the last digits from a CPU recomputation and are diagnostics only.",
+  "Smoke = TRAIN-only rows of matches with sha256('iq20260915_smoke_subset:'+match)[:8] mod 8 == 0 and pseudo roles fold0-2 TRAIN / fold3 Q_CAL / fold4 Q_SELECT, output under smoke_train_only/, identical settings; smoke evaluation uses pseudo Q_SELECT rows and stand-in comparator columns; smoke models are never final models."
+ ],
+ "environment": {
+  "python": "3.13.5 | packaged by Anaconda, Inc. | (main, Jun 12 2025, 16:37:03) [MSC v.1929 64 bit (AMD64)]",
+  "executable": "C:\\Users\\todtj\\anaconda3\\python.exe",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "numpy": "2.1.3",
+  "scipy": "1.15.3",
+  "sklearn": "1.6.1",
+  "lightgbm": "4.6.0",
+  "joblib": "1.4.2",
+  "threads": {
+   "OMP_NUM_THREADS": null,
+   "OPENBLAS_NUM_THREADS": null,
+   "MKL_NUM_THREADS": null
+  },
+  "dont_write_bytecode": true,
+  "cuda_visible_devices": null,
+  "torch": "2.10.0+cu128",
+  "cuda": "12.8",
+  "cuda_available": true,
+  "cuda_device": "NVIDIA GeForce RTX 5080",
+  "cudnn": 91002,
+  "cublas_workspace_config": ":4096:8",
+  "mkl_cbwr": "AVX2,STRICT",
+  "torch_mkl": true,
+  "torch_num_threads": 8,
+  "pred_threads": 1,
+  "pred_chunk": 8192
+ },
+ "source_sha256": {
+  "scripts/ta20260916_common.py": "78b0938085cc10511b3bdaefd7cfc599a599070a3b8387b3da72c47937969f47",
+  "scripts/ta20260916_driver.py": "994554966f30cd415d7d319ee870adf8cc8d6e1088f21a6d65cde80a2effee7a",
+  "scripts/ta20260916_evaluate.py": "9e9a12f9071ef1c6d44e5b93e030f6e33a5d51603f1e35128dc857977689ceaa",
+  "scripts/ta20260916_fit.py": "e9f0acea0259b441f2ad44d137ecbf43df1f2d0e44fc511055401364b41ae05a",
+  "scripts/ta20260916_freeze.py": "abb7e11dd727d3cd267ef7cc2b0485c63d76f32e424e339183cd4d7edf882903",
+  "scripts/ta20260916_protocol.py": "ab368525fe543d4b8598b21bd3e5b6d088e85fdff26d60a9c6c413a289271ca5",
+  "scripts/ta20260916_run_contract_tests.py": "0be3f807824dacf5827b812d974b877130875b0ec278b794f83478d52f2216c0",
+  "scripts/ta20260916_snapshot.py": "999c0810d5da8ec4c5d856c449888a8ee9882fadcc8884632dc5ec6c4a52623d",
+  "tests/test_ta20260916_contracts.py": "4ea62eb047832e12464ec0796d7e9d55c8944ece0c33df05740a09957bfb8423",
+  "scripts/fc20260915_common.py": "aeb9f3b07b5a5e68cc95de09a4a12870ac7e7f0728a66a30535c7dbbbad73405",
+  "scripts/cr20260915_common.py": "04d4a2eb9808888d6b5e4896bdc50405ffac4bde79ee65173046627aa146e081",
+  "scripts/iq20260915_common.py": "a51925020c626275b3b1db456490d2e2882e86cda59bc8531dfeeba81e6c7956",
+  "docs/CLAUDE_TRACK_A_MLP_20260916.md": "b15a1371298511f3fd7d84c89ccbc3b1271d348c78219146bf41f936e978c021",
+  "docs/CLAUDE_INCREMENTAL_Q_TRAIN_20260915.md": "c98fe463930e6ee7ff82d03f8d25cf3d28a2f869d29fd0988611b64be9ec7b2d",
+  "docs/DELTA_Q_FAIR_BALANCED_PROTOCOL_20260915.md": "c456fbde1146b35479395ea278328490666fa3388da00c432cd93c41ed8c6360",
+  "docs/COLLABORATOR_CRITIQUE_RESPONSE_20260915.md": "c847d82d00654f88cbe5f8f70370cf8498c3c722c89657b2d27064860f113396",
+  "docs/COG_MODEL_COVERAGE_DELTA_Q_20260915.md": "5bdeddda6ce774a38a70a71b7f05d4cc6b4eaa9860a37608f18879a3c555ce5c"
+ }
+}

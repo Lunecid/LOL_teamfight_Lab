@@ -1,0 +1,38 @@
+{
+ "run": 1,
+ "command": "-B -m pytest -q -p no:cacheprovider --basetemp=C:\\Users\\todtj\\문서\\LOL_Teamfight\\outputs\\balanced_shap_20260916\\contract_tests\\pytest_basetemp_run1 tests/test_bsh20260916_contracts.py",
+ "returncode": 0,
+ "passed_count": 10,
+ "failed_count": 0,
+ "error_count": 0,
+ "skipped_count": 0,
+ "passed": true,
+ "seconds": 8.8,
+ "at": "2026-09-16 03:08:50",
+ "test_sha256": {
+  "tests/test_bsh20260916_contracts.py": "93ed56af0fa1673130840be19462208266c82d38badbe5e8327fb4c573e4218c"
+ },
+ "source_sha256": {
+  "scripts/bsh20260916_common.py": "4974e67c969b6f09af59e478b429934dfca26f86f737ca5b1c41f945565a1503",
+  "scripts/bsh20260916_driver.py": "41607d26d20742b833c1eabb18ea4c9613abc27dc35302b2dc4da7905037b205",
+  "scripts/bsh20260916_freeze.py": "62d70d2f090910e1550014115448f3218319351481a8d8cd7d16ba1d972fa2da",
+  "scripts/bsh20260916_postrun_checks.py": "9aec9d15dcd6fb2dd761fa516279d829f21049db7f37cce9e0f2e99c73f98464",
+  "scripts/bsh20260916_protocol.py": "d8f7ced682204cf75d47b7a606048790294ef1e1a52c497be245e78c8d11f000",
+  "scripts/bsh20260916_report.py": "405e0304a71c2db97a96f123a9228dafd9798fe7fc2dc656ec7cda0a8ca30fd0",
+  "scripts/bsh20260916_run_contract_tests.py": "d4fb6a7d4d9c3835d04979fa9f3450c778ff3969de5e5014c77fd034b5b2837a",
+  "scripts/bsh20260916_shap.py": "aa43eecd0446d51d13b6f4082459f8b0221669c3e269f9afad63fc2cf36fd32d",
+  "scripts/bsh20260916_snapshot.py": "d09d0fb8200585df423a57b8cdfee5f446b1bcf43bc6b9c4a28182b50be0bb01",
+  "tests/test_bsh20260916_contracts.py": "93ed56af0fa1673130840be19462208266c82d38badbe5e8327fb4c573e4218c",
+  "scripts/fc20260915_common.py": "aeb9f3b07b5a5e68cc95de09a4a12870ac7e7f0728a66a30535c7dbbbad73405",
+  "scripts/fc20260915_shap.py": "c086275ee04c40cd100a0f2cc91b0205c89f93b846ea9ab128c491026f8e2a52",
+  "scripts/cr20260915_common.py": "04d4a2eb9808888d6b5e4896bdc50405ffac4bde79ee65173046627aa146e081",
+  "scripts/iq20260915_common.py": "a51925020c626275b3b1db456490d2e2882e86cda59bc8531dfeeba81e6c7956",
+  "scripts/ta20260916_common.py": "78b0938085cc10511b3bdaefd7cfc599a599070a3b8387b3da72c47937969f47",
+  "docs/CLAUDE_BALANCED_SHAP_20260916.md": "cf95f0f53ceb3d7f3ea9a94ff98ae8ebd16d77ecdc1965a76485532e31ac2334",
+  "docs/CLAUDE_INCREMENTAL_Q_TRAIN_20260915.md": "c98fe463930e6ee7ff82d03f8d25cf3d28a2f869d29fd0988611b64be9ec7b2d",
+  "docs/CLAUDE_TRACK_A_MLP_20260916.md": "b15a1371298511f3fd7d84c89ccbc3b1271d348c78219146bf41f936e978c021",
+  "docs/DELTA_Q_FAIR_BALANCED_PROTOCOL_20260915.md": "c456fbde1146b35479395ea278328490666fa3388da00c432cd93c41ed8c6360",
+  "docs/COLLABORATOR_CRITIQUE_RESPONSE_20260915.md": "c847d82d00654f88cbe5f8f70370cf8498c3c722c89657b2d27064860f113396"
+ },
+ "log": "contract_tests/run1.txt"
+}

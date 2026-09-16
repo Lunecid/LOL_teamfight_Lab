@@ -310,7 +310,7 @@ Each detected fight becomes a `FightRef`:
 
 ```python
 FightRef(
-    match_id     = "KR_7123456789",
+    match_id     = "EXAMPLE_MATCH_REDACTED",
     patch        = "14.10",
     t_start      = 8,              # minute index
     t_start_ts   = 532000,         # engage timestamp in ms (primary key)
@@ -318,7 +318,7 @@ FightRef(
 )
 ```
 
-**Primary key:** `ref_key = "KR_7123456789|t_start_ts=532000"`
+**Primary key:** `ref_key = "EXAMPLE_MATCH_REDACTED|t_start_ts=532000"`
 
 This key is used throughout the pipeline for sample identification, prediction alignment, and leakage prevention.
 
@@ -663,7 +663,7 @@ for batch in dataloader:
 ## Full End-to-End Example
 
 ```
-MATCH: KR_7123456789, Patch 14.10, Duration 32:00
+MATCH: EXAMPLE_MATCH_REDACTED, Patch 14.10, Duration 32:00
 ==========================================================
 
 [1] Cache Build
@@ -685,10 +685,10 @@ MATCH: KR_7123456789, Patch 14.10, Duration 32:00
     -> 4 fights detected
 
 [3] FightRef Index
-    -> Fight 1: "KR_7123456789|t_start_ts=420000"
-    -> Fight 3: "KR_7123456789|t_start_ts=910000"
-    -> Fight 4: "KR_7123456789|t_start_ts=1195000"
-    -> Fight 5: "KR_7123456789|t_start_ts=1580000"
+    -> Fight 1: "EXAMPLE_MATCH_REDACTED|t_start_ts=420000"
+    -> Fight 3: "EXAMPLE_MATCH_REDACTED|t_start_ts=910000"
+    -> Fight 4: "EXAMPLE_MATCH_REDACTED|t_start_ts=1195000"
+    -> Fight 5: "EXAMPLE_MATCH_REDACTED|t_start_ts=1580000"
     -> Split: match grouped into "train" partition
 
 [4] Sample Build (Fight 1: engage_ts = 420000)
@@ -711,7 +711,7 @@ MATCH: KR_7123456789, Patch 14.10, Duration 32:00
     -> Prediction: blue team wins (confidence 79%)
 
 [7] Evaluation
-    -> Aligned by ref_key: "KR_7123456789|t_start_ts=420000"
+    -> Aligned by ref_key: "EXAMPLE_MATCH_REDACTED|t_start_ts=420000"
     -> True label: y=1, Predicted: 0.79 -> correct
     -> Contributes to AUC, AP, accuracy metrics
 ```

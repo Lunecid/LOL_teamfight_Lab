@@ -1,0 +1,66 @@
+{
+ "sha256_full_corpus_read_targets": {
+  "checked": 51,
+  "changed": [],
+  "removed": [],
+  "added": [],
+  "equal": true
+ },
+ "sha256_extract_states": {
+  "checked": 1050,
+  "changed": [],
+  "removed": [],
+  "added": [],
+  "equal": true
+ },
+ "sha256_cohort_role_cohorts": {
+  "checked": 10,
+  "changed": [],
+  "removed": [],
+  "added": [],
+  "equal": true
+ },
+ "inventory_full_corpus": {
+  "checked": 66854,
+  "changed": [],
+  "removed": [],
+  "added": [],
+  "equal": true
+ },
+ "sha256_parent_scripts": {
+  "checked": 148,
+  "changed": [],
+  "removed": [],
+  "added": [],
+  "equal": true
+ },
+ "sha256_parent_tests": {
+  "checked": 21,
+  "changed": [],
+  "removed": [],
+  "added": [],
+  "equal": true
+ },
+ "inventory_docs": {
+  "checked": 76,
+  "changed": [],
+  "removed": [],
+  "added": [],
+  "equal": true
+ },
+ "pycache_scripts": {
+  "checked": 22,
+  "changed": [],
+  "removed": [],
+  "added": [],
+  "equal": true
+ },
+ "pycache_tests": {
+  "checked": 15,
+  "changed": [],
+  "removed": [],
+  "added": [],
+  "equal": true
+ },
+ "all_equal": true
+}

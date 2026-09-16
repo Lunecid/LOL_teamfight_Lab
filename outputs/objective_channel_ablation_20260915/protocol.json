@@ -1,0 +1,227 @@
+{
+ "version": "objective_channel_ablation_20260915",
+ "role": "EXPLORATORY_NAMED_OBJECTIVE_CHANNEL_ABLATION_AFTER_PRIOR_TEST_EXPOSURE_NOT_CAUSAL_NOT_GROUND_TRUTH",
+ "written_at": "2026-09-15 16:28:15",
+ "design": "docs/CLAUDE_OBJECTIVE_CHANNEL_ABLATION_20260915.md (Codex, frozen); implementation and execution Claude Opus 5",
+ "spec_sha256": "c78438341966d8ccbb35850f9e05901ef2b01bc55e4bbb3bc1c4502815b77c2d",
+ "findings_doc_sha256": "e49333c5258a955d1dd8121fa35fd42604aae4dd7f32824b7fc7ee7b5ff3040f",
+ "audit_doc_sha256": "473acf3141943fa828a0253fa35a87cb473b5c5fb3d3ac47cbaea5b9a09169e5",
+ "written_before": [
+  "any B_noobj fit (including TRAIN smoke fits)",
+  "any TEST/external/Q_CAL/Q_SELECT outcome access",
+  "any new TEST/external comparison"
+ ],
+ "prior_exposure": "EXPLORATORY, NOT CONFIRMATORY. Already seen before this protocol: parent full-corpus V/q TEST and external results, cohort/role results, ToG audit recalculations, and the label-validity study (A vs B_reg/B_econ agreement on TEST/external, observed-direction and objective tables, PH1 stale-frame mechanism).",
+ "human_review": "not part of this task (user scope decision); semantic validation remains unperformed",
+ "resources": {
+  "python": "C:/Users/todtj/anaconda3/python.exe",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "numpy": "2.1.3",
+  "scipy": "1.15.3",
+  "sklearn": "1.6.1",
+  "joblib": "1.4.2",
+  "cpu": "<= 4 concurrent single-threaded processes",
+  "gpu": "not used",
+  "prohibited": [
+   "installs",
+   "deletions",
+   "commits/pushes",
+   "credentials",
+   "external messages",
+   "writes to parents, raw caches, original repo, manuscript",
+   "GPU queue changes"
+  ]
+ },
+ "inputs": {
+  "parent_full": "C:\\Users\\todtj\\문서\\LOL_Teamfight\\outputs\\full_corpus_training_20260915",
+  "parent_cohort": "C:\\Users\\todtj\\문서\\LOL_Teamfight\\outputs\\cohort_role_training_20260915",
+  "parent_label_validity": "C:\\Users\\todtj\\문서\\LOL_Teamfight\\outputs\\label_validity_full_20260915",
+  "parent_v_models_manifest_sha256": "92d57e3bee472ade1d498e50de5a41a599bf09d5dc1433302b13350234c9ead7",
+  "parent_frozen_manifest_sha256": "8287804220b280f68a8ce2359532dbd1665b2d9d0c4a474c8666e8aed77b4f77",
+  "label_validity_frozen_manifest_sha256": "7132d4c6db21116849d77926fed570d85233cf1bf20b5710d713a783514e824b",
+  "feature_evidence_sha256": "b6f4406022aea6af0d93267d7c89030b51e46090df1f33a7df54cd5ea05961b6",
+  "parent_hashes_before_sha256": "0ecb0a51a3baad14f15dfed9058ddcb7119b9161aea707eb4d0c6b3ea4cd8c03",
+  "parent_inventory_before_sha256": "969a9e41bb34fe639b7b5d5eca9fb4167cf8c974501423d5947a0eedb641f57b",
+  "source_hashes_sha256": "7f953a3c17f0ea6da304af702e9de75bc5d5d74a055186747cf0dba42098d32a"
+ },
+ "parent_access": "lv20260915_common.ParentReadOnly(base=this root): parent pure readers, preserved role checks, access logs here only",
+ "analysis": {
+  "status_of_choices": "fixed by the Codex specification; our design choices or inherited operational definitions, not prescribed by cited papers",
+  "comparison": {
+   "A": "untouched parent primary: expanded StateV2 logistic C=.01, raw final + 5 OOF adapters",
+   "B_noobj": "same train.state_value_experiment.logistic (median impute + StandardScaler numeric, one-hot champions, liblinear, random_state 7), C=.01, equal-match weights, TRAIN-only preprocessing inside the Pipeline, same folds; columns = primary expanded columns minus EXACTLY those whose lower-cased name contains baron/elder/dragon/soul/herald/horde/atakhan",
+   "retained_note": "kills/deaths/alive/HP/MP, economy/growth/CS/champions, time, towers/plates/inhibitors and their interactions, and the mixed unknown_objective_team_count are kept verbatim; snapshot_age_s excluded as in A",
+   "scope": "EXPLICIT NAMED OBJECTIVE-CHANNEL ABLATION; gold/XP/CS, structures, time and the mixed missing-team count can retain indirect objective information; not a conditional causal effect and not objective-free data",
+   "max_iter": "1500 as A; repeat the same fit with [1500, 5000, 20000] only if n_iter_ >= max_iter; every attempt logged"
+  },
+  "fit_rows": "exact parent TRAIN bucket query keys (424160 queries / 74168 matches); final on all TRAIN; fold-k on the other 4 folds",
+  "calibration": {
+   "primary": "RAW B probabilities (matching A raw); primary W, labels, agreement, objectives and q tables use raw B only",
+   "secondary": "positive-slope sigmoid fitted on V_CAL for the final base and each fold base; raw vs sigmoid chosen on V_SELECT by match-weighted log loss, then Brier, then name; chosen family frozen before TEST and reported separately",
+   "sign_invariance": "shared strictly increasing calibration cannot change sign(delta) except clipping/finite precision; verified on all sets as an implementation check, not independent label evidence"
+  },
+  "w_evaluation": {
+   "sets": [
+    "MAIN_TEST",
+    "EXT_KR_16.13",
+    "EXT_KR_16.14_pilot",
+    "EXT_KR_16.15",
+    "EXT_NA1_16.13",
+    "MAIN_V_CAL",
+    "MAIN_V_SELECT",
+    "MAIN_Q_CAL",
+    "MAIN_Q_SELECT",
+    "MAIN_TRAIN held-out fold"
+   ],
+   "keys": "identical saved bucket query keys (is_bucket_sample = 1); A predictions must equal the parent saved values",
+   "metrics": "AUC, Brier, log loss with equal-match weights (primary table) AND row weights; logistic recalibration slope/intercept, CITL, 10-bin ECE; time bands <2 (explicit), 2-10, 10-20, 20-30, 30+ minutes",
+   "bootstrap": "MAIN_TEST: 1000 paired match bootstrap (seed 20260915) of B-minus-A Brier and log loss under both weightings; fixed-model uncertainty only"
+  },
+  "labels": {
+   "sets": [
+    "MAIN_TRAIN",
+    "MAIN_VALIDATION",
+    "MAIN_TEST",
+    "EXT_KR_16.13",
+    "EXT_KR_16.14_pilot",
+    "EXT_KR_16.15",
+    "EXT_NA1_16.13"
+   ],
+   "horizons": [
+    60,
+    90,
+    120
+   ],
+   "primary_horizon": 90,
+   "adapter": "TRAIN row -> B OOF adapter of its fold; other sets -> B final; the same adapter at q_pre and endpoint",
+   "formula": "delta = V_B(endpoint state) - V_B(q_pre state); Y = 1[delta > 0]; exact zeros counted",
+   "identity": "keys, endpoints, valid masks, snapshots equal to parent label files; A recomputed bit-for-bit"
+  },
+  "agreement": {
+   "metrics": [
+    "sign disagreement row / equal-match",
+    "positive rates",
+    "exact zeros",
+    "delta difference B-A mean, mean/median/p90 abs, Pearson, Spearman"
+   ],
+   "bootstrap": "h90 E/T/N for every main role and external set: 1000 paired match bootstrap, seed 20260915",
+   "indicators": "rows, matches, empty, sparse (<30 matches)"
+  },
+  "strata_h90": {
+   "abs_delta_A": [
+    "[0,.005]",
+    "(.005,.01]",
+    "(.01,.02]",
+    ">.02"
+   ],
+   "start_minutes": [
+    "<2",
+    "[2,10)",
+    "[10,20)",
+    "[20,30)",
+    ">=30"
+   ],
+   "p_pre_A": [
+    "[0,.2)",
+    "[.2,.4)",
+    "[.4,.6)",
+    "[.6,.8)",
+    "[.8,1]"
+   ],
+   "ending_reason": "parent tied reason string",
+   "post_snapshot_after_L": [
+    "1",
+    "0"
+   ],
+   "same_pre_post_frame": [
+    "1 (post frame == pre frame)",
+    "0"
+   ],
+   "note": "diagnostic only; no exclusion or threshold change"
+  },
+  "objectives_h90": {
+   "source": "parent label counters during_counts (q_pre, L] and after_counts_h90 (L, e]; element team from lv20260915 observed StateV2 differences over (q_pre, e] with exact (match, s) key verification; no new raw decoding",
+   "windows": [
+    "full (q_pre, e]",
+    "after_last_kill (L, e]"
+   ],
+   "categories": [
+    "baron",
+    "dragon (all elemental, team)",
+    "dragon_AIR/EARTH/FIRE/WATER/HEXTECH/CHEMTECH/OTHER",
+    "elder",
+    "herald",
+    "horde (grubs)",
+    "atakhan",
+    "soul_owned"
+   ],
+   "subgroups": {
+    "descriptive": [
+     "blue_only",
+     "red_only"
+    ],
+    "diagnostic": [
+     "both_teams",
+     "multiple_acquisitions (count >= 2)",
+     "unknown_team_present",
+     "soul_teamid0_unassigned",
+     "element team ambiguous in (L, e] when the element was also acquired in (q_pre, L]"
+    ]
+   },
+   "element_team_rule": "(q_pre, e]: StateV2 element count difference per team; (L, e]: the same team difference only when that element had no acquisition in (q_pre, L] (all interval acquisitions after L), otherwise ambiguous",
+   "statistics": [
+    "rows, matches, sparse",
+    "A-B disagreement row / equal-match",
+    "mean delta A and B",
+    "small |delta|<=.01 A and B",
+    "P(Y=1) A and B",
+    "acquisition-team-oriented delta (+delta for Blue-only, -delta for Red-only) for A, B and A-B"
+   ],
+   "reference": "rows without a known-team acquisition in the window (pre-existing objective history possible)",
+   "interpretation": "descriptive; not event causal value, not timing counterfactual, not immediate object reward; overlapping; sparse and pilot cells carry no broad conclusion"
+  },
+  "q_dependence": {
+   "predictions": "cohort_role_training_20260915 A_MAIN_TEST_h90_{T,N}.npz chosen specialists (T spec_ridge_raw, N spec_ridge_isotonic)",
+   "keys": "exact main TEST h90 (match, s)",
+   "reproduction": "A scores equal tog_readiness_audit calculations.json",
+   "scope": "target dependence; no refit, no ranking"
+  },
+  "unknown_objective_team_count": {
+   "semantics": "StateV2 (gameplay/state_value.py): count of events with timestamp <= query whose team is not 100/200 — ELITE_MONSTER_KILL with killerTeamId (or killer roster team) missing/other, DRAGON_SOUL_GIVEN with teamId not 100/200 (unassigned soul), BUILDING_KILL/TURRET_PLATE_DESTROYED with teamId not 100/200. It mixes neutral objectives, souls and structures, so it cannot be split without changing another input; retained verbatim.",
+   "report": "nonzero prevalence (row and equal-match) on TRAIN and every evaluation bucket set and on engagement pre states of every label set"
+  },
+  "multiplicity": "no adjustment; intervals descriptive"
+ },
+ "contracts": [
+  "exact feature removal (361/176/185, token rule, order, no token in retained)",
+  "retained values identical to A inputs",
+  "TRAIN key identity with parent (424160/74168) and fold hash",
+  "OOF own-match exclusion",
+  "preprocessing membership",
+  "same adapter at both label ends",
+  "freeze before sealed access",
+  "parents unchanged",
+  "exact label keys/endpoints/masks",
+  "A bit-for-bit",
+  "exact zeros and label formula",
+  "calibration sign invariance",
+  "observed-array key identity",
+  "independent metric/bootstrap recomputation",
+  "q A-score reproduction"
+ ],
+ "literature": {
+  "Maymin2021": "doi:10.1515/jqas-2019-0096: state win probability change valuation rationale",
+  "KimCoG2020": "https://ieee-cog.org/2020/papers/paper_221.pdf: win-probability quality/calibration motivation, not reproduced",
+  "JacobsWallach": "arXiv:1912.05511: construct vs operationalized measurement",
+  "not_prescribed": "the 176-column rule, 90 s, C=.01, strata and thresholds are our choices or inherited operational definitions"
+ },
+ "claims_not_made": [
+  "causal objective effect",
+  "objective-free data or complete removal of objective proxies",
+  "semantic correctness of labels",
+  "fresh confirmation",
+  "best q performance for B labels",
+  "human validation"
+ ],
+ "protocol_sha256_of_content": "ff627cbb4a3eff32afa8eb8b99f5c534df8c46ff03178022373960e5de8a883d"
+}

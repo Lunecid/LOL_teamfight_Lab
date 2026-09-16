@@ -1,0 +1,71 @@
+{
+ "group": "evaluate",
+ "state": "complete",
+ "stage": "evaluate",
+ "pid": 38008,
+ "updated": "2026-09-16 02:57:47",
+ "elapsed_s": 171.3,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "snapshot after, post-run checks, report",
+ "results_sha256": "3daa885346c420fcf4bf9bee8d768e251fdc81247b484ae41ff293bcd39e0e07",
+ "hashes_unchanged": true,
+ "history": [
+  {
+   "stage": "evaluate_h60_MAIN_TEST",
+   "state": "running",
+   "at": "2026-09-16 02:54:58"
+  },
+  {
+   "stage": "evaluate_h60_EXT_KR_16.13",
+   "state": "running",
+   "at": "2026-09-16 02:56:02"
+  },
+  {
+   "stage": "evaluate_h60_EXT_KR_16.14_pilot",
+   "state": "running",
+   "at": "2026-09-16 02:56:11"
+  },
+  {
+   "stage": "evaluate_h60_EXT_KR_16.15",
+   "state": "running",
+   "at": "2026-09-16 02:56:12"
+  },
+  {
+   "stage": "evaluate_h60_EXT_NA1_16.13",
+   "state": "running",
+   "at": "2026-09-16 02:56:14"
+  },
+  {
+   "stage": "evaluate_h120_MAIN_TEST",
+   "state": "running",
+   "at": "2026-09-16 02:56:24"
+  },
+  {
+   "stage": "evaluate_h120_EXT_KR_16.13",
+   "state": "running",
+   "at": "2026-09-16 02:57:24"
+  },
+  {
+   "stage": "evaluate_h120_EXT_KR_16.14_pilot",
+   "state": "running",
+   "at": "2026-09-16 02:57:33"
+  },
+  {
+   "stage": "evaluate_h120_EXT_KR_16.15",
+   "state": "running",
+   "at": "2026-09-16 02:57:35"
+  },
+  {
+   "stage": "evaluate_h120_EXT_NA1_16.13",
+   "state": "running",
+   "at": "2026-09-16 02:57:37"
+  },
+  {
+   "stage": "evaluate",
+   "state": "complete",
+   "at": "2026-09-16 02:57:47"
+  }
+ ]
+}

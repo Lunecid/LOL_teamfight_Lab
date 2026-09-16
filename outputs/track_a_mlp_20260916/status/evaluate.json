@@ -1,0 +1,96 @@
+{
+ "group": "evaluate",
+ "state": "complete",
+ "stage": "evaluate",
+ "pid": 25788,
+ "updated": "2026-09-16 01:50:36",
+ "elapsed_s": 253.2,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "snapshot after, post-run checks, report",
+ "results_sha256": "d4d4e4f3d7324f4b28fff594dc95e20527cca62afaf1072c658a0e3f9fdc2d45",
+ "hashes_unchanged": true,
+ "history": [
+  {
+   "stage": "evaluate_MAIN_TEST",
+   "state": "running",
+   "at": "2026-09-16 01:46:24"
+  },
+  {
+   "stage": "evaluated_MAIN_TEST_T",
+   "state": "running",
+   "at": "2026-09-16 01:47:01"
+  },
+  {
+   "stage": "evaluated_MAIN_TEST_N",
+   "state": "running",
+   "at": "2026-09-16 01:49:30"
+  },
+  {
+   "stage": "evaluate_EXT_KR_16.13",
+   "state": "running",
+   "at": "2026-09-16 01:49:30"
+  },
+  {
+   "stage": "evaluated_EXT_KR_16.13_T",
+   "state": "running",
+   "at": "2026-09-16 01:49:37"
+  },
+  {
+   "stage": "evaluated_EXT_KR_16.13_N",
+   "state": "running",
+   "at": "2026-09-16 01:49:59"
+  },
+  {
+   "stage": "evaluate_EXT_KR_16.14_pilot",
+   "state": "running",
+   "at": "2026-09-16 01:49:59"
+  },
+  {
+   "stage": "evaluated_EXT_KR_16.14_pilot_T",
+   "state": "running",
+   "at": "2026-09-16 01:50:00"
+  },
+  {
+   "stage": "evaluated_EXT_KR_16.14_pilot_N",
+   "state": "running",
+   "at": "2026-09-16 01:50:01"
+  },
+  {
+   "stage": "evaluate_EXT_KR_16.15",
+   "state": "running",
+   "at": "2026-09-16 01:50:01"
+  },
+  {
+   "stage": "evaluated_EXT_KR_16.15_T",
+   "state": "running",
+   "at": "2026-09-16 01:50:03"
+  },
+  {
+   "stage": "evaluated_EXT_KR_16.15_N",
+   "state": "running",
+   "at": "2026-09-16 01:50:05"
+  },
+  {
+   "stage": "evaluate_EXT_NA1_16.13",
+   "state": "running",
+   "at": "2026-09-16 01:50:06"
+  },
+  {
+   "stage": "evaluated_EXT_NA1_16.13_T",
+   "state": "running",
+   "at": "2026-09-16 01:50:12"
+  },
+  {
+   "stage": "evaluated_EXT_NA1_16.13_N",
+   "state": "running",
+   "at": "2026-09-16 01:50:35"
+  },
+  {
+   "stage": "evaluate",
+   "state": "complete",
+   "at": "2026-09-16 01:50:36"
+  }
+ ]
+}

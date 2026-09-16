@@ -1,0 +1,49 @@
+{
+ "group": "driver_smoke",
+ "state": "complete",
+ "stage": "smoke",
+ "pid": 42032,
+ "updated": "2026-09-16 00:47:46",
+ "elapsed_s": 298.3,
+ "processed": 6,
+ "total": 6,
+ "error": null,
+ "next_step": "next plan",
+ "history": [
+  {
+   "stage": "fit_smoke_T_mlp",
+   "state": "running",
+   "at": "2026-09-16 00:42:48"
+  },
+  {
+   "stage": "fit_smoke_T_resmlp",
+   "state": "running",
+   "at": "2026-09-16 00:43:22"
+  },
+  {
+   "stage": "fit_smoke_N_mlp",
+   "state": "running",
+   "at": "2026-09-16 00:44:14"
+  },
+  {
+   "stage": "fit_smoke_N_resmlp",
+   "state": "running",
+   "at": "2026-09-16 00:45:13"
+  },
+  {
+   "stage": "freeze_smoke",
+   "state": "running",
+   "at": "2026-09-16 00:47:22"
+  },
+  {
+   "stage": "evaluate_smoke",
+   "state": "running",
+   "at": "2026-09-16 00:47:32"
+  },
+  {
+   "stage": "smoke",
+   "state": "complete",
+   "at": "2026-09-16 00:47:46"
+  }
+ ]
+}

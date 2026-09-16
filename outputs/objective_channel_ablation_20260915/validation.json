@@ -1,0 +1,186 @@
+{
+ "role": "EXPLORATORY_NAMED_OBJECTIVE_CHANNEL_ABLATION_AFTER_PRIOR_TEST_EXPOSURE_NOT_CAUSAL_NOT_GROUND_TRUTH",
+ "version": "objective_channel_ablation_20260915",
+ "checked_at": "2026-09-15 16:40:40",
+ "checks": {
+  "data_roles_freeze_gate_and_order": {
+   "pass_": true,
+   "outcome_records": 12,
+   "sealed_outcome_records": 7,
+   "label_records": 14,
+   "frozen_at": "2026-09-15 16:34:25",
+   "secondary_selection_at": "2026-09-15 16:32:19",
+   "manifest_completed_at": "2026-09-15 16:34:06",
+   "violations": []
+  },
+  "adapters_membership_preprocessing_retained_values_reload": {
+   "pass_": true,
+   "adapters_passed": 12,
+   "adapters": 12,
+   "retained_values_identical_to_A_inputs": true
+  },
+  "frozen_hashes_and_pre_freeze_checks": {
+   "pass_": true,
+   "adapter_files": 12
+  },
+  "fits_converged_single_attempt": {
+   "pass_": true,
+   "final_n_iter": 10,
+   "fold_n_iter": [
+    10,
+    9,
+    9,
+    10,
+    9
+   ]
+  },
+  "feature_removal_exact": {
+   "pass_": true,
+   "retained": 185,
+   "dropped": 176
+  },
+  "oof_own_match_exclusion_and_adapter_roles": {
+   "pass_": true,
+   "per_set": {
+    "MAIN_TRAIN": true,
+    "MAIN_VALIDATION": true,
+    "MAIN_TEST": true,
+    "EXT_KR_16.13": true,
+    "EXT_KR_16.14_pilot": true,
+    "EXT_KR_16.15": true,
+    "EXT_NA1_16.13": true
+   }
+  },
+  "parent_read_targets_unchanged": {
+   "pass_": true,
+   "hashed": 2419,
+   "changed": []
+  },
+  "parent_inventory_unchanged": {
+   "pass_": true,
+   "files": 67427,
+   "differences": []
+  },
+  "exact_keys_endpoints_masks_and_A_bit_for_bit": {
+   "pass_": true,
+   "per_set": {
+    "MAIN_TRAIN": true,
+    "MAIN_VALIDATION": true,
+    "MAIN_TEST": true,
+    "EXT_KR_16.13": true,
+    "EXT_KR_16.14_pilot": true,
+    "EXT_KR_16.15": true,
+    "EXT_NA1_16.13": true
+   }
+  },
+  "label_formula_invalid_rows_and_exact_zeros": {
+   "pass_": true,
+   "exact_zero_total": 0
+  },
+  "shared_monotone_calibration_sign_invariance": {
+   "pass_": true,
+   "label_mismatch_total": 0,
+   "note": "implementation check, not independent label evidence"
+  },
+  "observed_arrays_exact_key_identity": {
+   "pass_": true,
+   "per_set": {
+    "MAIN_TRAIN": true,
+    "MAIN_VALIDATION": true,
+    "MAIN_TEST": true,
+    "EXT_KR_16.13": true,
+    "EXT_KR_16.14_pilot": true,
+    "EXT_KR_16.15": true,
+    "EXT_NA1_16.13": true
+   }
+  },
+  "same_adapter_endpoints_repredicted": {
+   "pass_": true,
+   "samples": {
+    "MAIN_TRAIN": {
+     "rows": 2240,
+     "bitwise_equal": 2240,
+     "max_abs_diff": 0.0
+    },
+    "MAIN_TEST": {
+     "rows": 1838,
+     "bitwise_equal": 1838,
+     "max_abs_diff": 0.0
+    },
+    "EXT_KR_16.15": {
+     "rows": 25,
+     "bitwise_equal": 25,
+     "max_abs_diff": 0.0
+    }
+   }
+  },
+  "saved_label_files_reload_hashes": {
+   "pass_": true
+  },
+  "independent_metric_bootstrap_and_reproduction": {
+   "pass_": true,
+   "detail": {
+    "W_A_raw_match_weighted": 5.083711229758592e-13,
+    "W_A_raw_row_weighted": 1.1102230246251565e-16,
+    "W_B_noobj_raw_match_weighted": 4.99933427988708e-13,
+    "W_B_noobj_raw_row_weighted": 0.0,
+    "W_A_equals_parent_results_v": 0.0,
+    "bootstrap_W_first5_match_logloss": 4.0419056990259605e-16,
+    "agreement_T_row": 0.0,
+    "agreement_T_match": 6.938893903907228e-18,
+    "bootstrap_labels_first5": 1.2975731600306517e-15,
+    "q_A_reproduction_max": 0.0,
+    "W_primary_identity_all_sets": true
+   }
+  },
+  "unknown_objective_team_count_prevalence_reported": {
+   "pass_": true,
+   "w_bucket": {
+    "MAIN_TEST": 0.002470956185166199,
+    "EXT_KR_16.13": 0.021069093976242355,
+    "EXT_KR_16.14_pilot": 0.009777777777777778,
+    "EXT_KR_16.15": 0.01714175654853621,
+    "EXT_NA1_16.13": 0.050867323019221755,
+    "MAIN_V_SELECT": 0.0021647414285451095,
+    "MAIN_V_CAL": 0.0019328204165884781,
+    "MAIN_Q_CAL": 0.002869173156463092,
+    "MAIN_Q_SELECT": 0.0025637172961703886
+   },
+   "engagement_pre": {
+    "MAIN_TRAIN": 0.0020152396230198517,
+    "MAIN_VALIDATION": 0.002129941168368652,
+    "MAIN_TEST": 0.002113880742913001,
+    "EXT_KR_16.13": 0.01988759187202767,
+    "EXT_KR_16.14_pilot": 0.002105263157894737,
+    "EXT_KR_16.15": 0.013970256872465074,
+    "EXT_NA1_16.13": 0.04693208783758333
+   },
+   "train_bucket": {
+    "rows": 424160,
+    "nonzero_rows": 1041,
+    "nonzero_row_share": 0.0024542625424368164,
+    "nonzero_match_weighted": 0.0022157654094608023,
+    "max": 4.0
+   }
+  },
+  "no_human_review_artifacts_created": {
+   "pass_": true
+  },
+  "all_stage_groups_complete": {
+   "pass_": true,
+   "groups": {
+    "analyze": "complete",
+    "eval_v": "complete",
+    "fit_B_noobj": "complete",
+    "freeze": "complete",
+    "labels": "complete",
+    "postrun_checks": "running",
+    "protocol": "complete"
+   }
+  }
+ },
+ "passed": 18,
+ "total": 18,
+ "all_pass": true,
+ "scope": "computation, identity, gating and reproducibility checks; not semantic or causal validation"
+}

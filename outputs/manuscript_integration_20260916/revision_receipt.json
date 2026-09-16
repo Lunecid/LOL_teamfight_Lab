@@ -1,0 +1,372 @@
+{
+  "receipt_version": "revision_receipt_20260916_v1",
+  "supersedes_as_current_validation_record": "outputs/manuscript_integration_20260916/writer_receipt.json (first pass; PRESERVED UNCHANGED as a historical record, not deleted, not edited)",
+  "produced_by": "Claude (documentation correction role)",
+  "produced_for": "Codex/root scientific verification and acceptance",
+  "date": "2026-09-16",
+  "contract": "docs/CLAUDE_MANUSCRIPT_INTEGRATION_20260916.md",
+  "correction_inputs": [
+    "outputs/manuscript_integration_20260916/revision_request.md (items 1-15)",
+    "outputs/manuscript_integration_20260916/independent_scientific_review.md (findings 1-12 and addenda)",
+    "outputs/manuscript_integration_20260916/manuscript_map.md (present; read and reconciled in this pass)"
+  ],
+  "task_type": "SCIENTIFIC_TEXT_CORRECTION_ONLY",
+  "status": "CORRECTED_WORKING_DRAFT_AWAITING_ROOT_VERIFICATION_AND_ACCEPTANCE",
+  "explicit_statement": "This pass corrects errors in the first draft. It does NOT claim the first draft was already correct, and it is NOT an acceptance record.",
+
+  "files_written": [
+    "docs/tog_delta_v_20260916/manuscript.md (edited in place)",
+    "docs/tog_delta_v_20260916/reviewer_response_matrix.md (edited in place)",
+    "docs/tog_delta_v_20260916/collaborator_specification.md (edited in place)",
+    "docs/tog_delta_v_20260916/claim_evidence_ledger.md (edited in place)",
+    "docs/tog_delta_v_20260916/README.md (edited in place)",
+    "outputs/manuscript_integration_20260916/revision_receipt.json (new, this file)"
+  ],
+  "files_not_touched_in_this_pass": [
+    "docs/tog_delta_v_20260916/references.bib (no correction required; Schubert2016 entry already present and verified)",
+    "outputs/manuscript_integration_20260916/writer_receipt.json",
+    "outputs/manuscript_integration_20260916/* (all other audit, evidence and dispatch artefacts)",
+    "all parent findings, experiment outputs, scripts, protocols, frozen manifests, models, predictions and raw data",
+    "C:/Users/todtj/PycharmProjects/LOL_teamfight/docs/tog_manuscript/* (original manuscript, read-only)"
+  ],
+
+  "corrections_by_revision_request_item": {
+    "1_no_tie_no_equivalence": {
+      "applied_in": [
+        "manuscript.md Abstract",
+        "manuscript.md 1.3 contribution 3",
+        "manuscript.md 8.2 Reading",
+        "manuscript.md 8.2 absolute-ordering paragraph",
+        "manuscript.md 8.7 plain-MLP comparison sentences",
+        "manuscript.md 9 third and fifth paragraphs",
+        "manuscript.md 10.6",
+        "manuscript.md 11.1",
+        "reviewer_response_matrix.md R2-2, CE-3",
+        "collaborator_specification.md 11 preamble, 11.2, 12.2",
+        "claim_evidence_ledger.md C-83, section 3.1 X-21, section 5 item 10",
+        "README.md status banner, section 2, section 3.1 item 9"
+      ],
+      "wording_now_used": "the specified contrast's interval includes zero; equivalence was not tested; residual MLP measurably worse",
+      "note": "No equivalence or non-inferiority procedure exists anywhere in the evidence, and this is now stated explicitly in manuscript 10.6 and specification 11."
+    },
+    "2_no_universal_ranking_invariance_no_easier_task_no_test_tuned_h90": {
+      "applied_in": [
+        "manuscript.md Abstract",
+        "manuscript.md 1.3 contribution 4",
+        "manuscript.md 5.4 (90 s rationale paragraph)",
+        "manuscript.md 8.3 Reading",
+        "manuscript.md 11.1",
+        "reviewer_response_matrix.md R2-2",
+        "collaborator_specification.md 11.3, 17 table row 'Strong, fair model comparison'",
+        "claim_evidence_ledger.md C-46, C-50, section 3.1 X-22/X-23, section 5 items 10-11",
+        "README.md section 3.1 item 10"
+      ],
+      "retained_statements": "LightGBM-PT negative with intervals excluding zero at h60/h120; residual MLP behind LightGBM at all caps; LightGBM ahead of both networks on N; LightGBM-logistic and plain-LightGBM intervals contain zero at all caps",
+      "removed_statements": "ordering unchanged/stable; lower h60 Brier implies an easier label; any TEST-ranking justification of h90"
+    },
+    "3_definition_sensitivity_scope": {
+      "applied_in": [
+        "manuscript.md Abstract",
+        "manuscript.md 8.4 Reading (now four explicitly numbered qualifications)",
+        "manuscript.md 10.5",
+        "manuscript.md 11.1",
+        "collaborator_specification.md 16.3",
+        "claim_evidence_ledger.md C-56, section 3.1 X-24, section 5 item 12",
+        "README.md section 3.1 item 11"
+      ],
+      "numbers_now_stated": {
+        "main_T_frozen_lgbm": "0.228391 -> 0.22837 (descriptive, two different row populations)",
+        "dev_T_refit_minus_frozen": "-0.00007 [-0.00023, +0.00010] inconclusive",
+        "dev_N_refit_minus_frozen": "+0.00023 [+0.00011, +0.00034] worse",
+        "EXT_KR_16.13_T_refit_minus_frozen": "+0.00052 [+0.00010, +0.00099] worse",
+        "largest_external_frozen_old_to_dev_change": "EXT_KR_16.15 N 0.24062 -> 0.23996 (about 0.0007); EXT_KR_16.13 T 0.23510 -> 0.23476",
+        "retained_limitation": "the definition's original TEST-patch dependence is bounded in the measured cells, not removed"
+      }
+    },
+    "4_frame_staleness_populations_separated": {
+      "applied_in": [
+        "manuscript.md 5.4 (table row relabelled 'all 163,576 valid rows' plus a new paragraph separating the two diagnostics)",
+        "manuscript.md 8.6 strata paragraph",
+        "manuscript.md 9 fourth paragraph",
+        "manuscript.md 10.3",
+        "reviewer_response_matrix.md R2-3",
+        "collaborator_specification.md 12.3",
+        "claim_evidence_ledger.md C-17, new C-17b, C-77, section 3.1 X-25, section 5 item 13",
+        "README.md section 3.1 item 12"
+      ],
+      "facts_now_stated": {
+        "no_new_frame_after_last_kill_all_valid_rows": "35.145% (outputs/tog_readiness_audit_20260915/calculations.json -> labels/MAIN_TEST/horizons/90/no_new_frame_after_last_kill_fraction = 0.35145131315107353)",
+        "no_new_frame_after_last_kill_T": "35.27%",
+        "identical_pre_and_post_frame_T": "2,224 / 32,981 = 6.74%",
+        "even_in_identical_frame_stratum": "time-only block 0.5% and time-related accounting 25.0%, so event columns alone do not determine the label"
+      },
+      "also_removed": "the claim that exact decomposability distinguishes this label from a hand-weighted score (manuscript 8.6 Reading and 9; specification 12.3)"
+    },
+    "5_mechanism_quantities": {
+      "applied_in": [
+        "manuscript.md 8.6 (identity paragraph, strata paragraph, Reading (ii))",
+        "collaborator_specification.md 12.3",
+        "claim_evidence_ledger.md C-73, C-74, C-77, C-78, section 3.1 X-27/X-28/X-29",
+        "README.md section 3.1 item 13"
+      ],
+      "facts_now_stated": {
+        "0.110_0.102": "mean absolute column contributions of numeric__blue_kills_x_time (0.1095) and numeric__red_kills_x_time (0.1020), NOT coefficients",
+        "fitted_beta": "blue -1.0564, red +0.9901; main kill terms also differ in sign by side; detailed sign generalisation removed",
+        "structures_19.3_percent_comparator": "9.6% over all TEST T, with 7.9% named as the |DeltaV| > 2 pp stratum",
+        "champion_block": "transformed_columns 1733; group_sizes/champion_identity 1382; 351 numeric + 1382 = 1733; grouping rule scripts/vd20260916_common.py:column_group ('champions__' prefix); 1,372 removed everywhere",
+        "label_identity_form": "1[Delta logit > 0] = Y (not sign(Delta logit) = Y)",
+        "verification_errors": "measured 3.042e-14 (max_abs_sum_minus_decision) and 6.231e-12 (max_abs_logit_diff_minus_decision); bounds 4e-14 / 7e-12 permitted; former '<=3e-14' and '<=6.2e-12' removed as false"
+      }
+    },
+    "6_B40_and_unsupported_mechanisms": {
+      "applied_in": [
+        "manuscript.md Abstract (logistic B40 contrast added)",
+        "manuscript.md 9 first paragraph (N-gain mechanism explanation withdrawn)",
+        "manuscript.md 9 second, third and fifth paragraph headings rewritten as scoped empirical statements",
+        "reviewer_response_matrix.md CE-2",
+        "claim_evidence_ledger.md section 3.1 X-30/X-31"
+      ],
+      "headings_changed": {
+        "Predictability is carried by state, not by composition": "Adding composition features to the state gave no detected benefit; the state-versus-composition question is not settled",
+        "The learner matters less than the information": "Under a fixed input contract, the tested family differences on teamfights were mostly unresolved - with one exception",
+        "Balanced states shift what the model uses, not how well it does": "Balanced states shift the attribution profile; the incremental question there is partly unresolved"
+      },
+      "B40_scope": "inconclusiveness restricted to LightGBM-PT (-0.00043 [-0.00144, +0.00060]); logistic-PT (-0.00157 [-0.00306, -0.00013]) preserved as an exploratory secondary contrast with an explicit multiplicity caveat; the claim that remaining balanced-state signal is unresolvable was removed"
+    },
+    "7_interval_classes_distinguished": {
+      "applied_in": [
+        "manuscript.md 7.3 (rewritten as three numbered interval classes plus a literature note)",
+        "manuscript.md 8 preamble",
+        "manuscript.md 10.6",
+        "collaborator_specification.md 11 preamble, 12.2",
+        "reviewer_response_matrix.md CE-3",
+        "claim_evidence_ledger.md C-82, section 3.1 X-34",
+        "README.md section 3.1 item 16"
+      ],
+      "classes": [
+        "fixed-model paired MATCH bootstrap for metric contrasts (sections 8.1-8.5)",
+        "descriptive ROW bootstrap over the 256 explained rows for SHAP attribution (section 8.7)",
+        "boundary-estimator bootstrap for G and D (section 4.1)",
+        "intervals from cited literature, which belong to those authors' designs"
+      ]
+    },
+    "8_three_label_lineages": {
+      "applied_in": [
+        "manuscript.md 1.4 (market_event parenthetical removed; published CoG 308 formula preserved; three lineages named)",
+        "reviewer_response_matrix.md 6.2 preamble",
+        "collaborator_specification.md 2",
+        "README.md section 2",
+        "claim_evidence_ledger.md section 5 item 9"
+      ],
+      "note": "The published CoG 308 exchange score is no longer identified with the intermediate market_event implementation; no implementation evidence was inspected in this pass."
+    },
+    "9_scope_precision_of_protocol_history": {
+      "applied_in": [
+        "manuscript.md 5.4 (no-TEST-horizon-tuning statement now explicitly scoped to this follow-up, with pointers to 4.3 pooled-constant TEST inclusion and 7.5 prior exposure)",
+        "manuscript.md 8.3 Reading",
+        "manuscript.md 8 preamble",
+        "collaborator_specification.md 11 preamble",
+        "claim_evidence_ledger.md C-25"
+      ],
+      "preserved_unchanged": "operational definition, chronological split, OOF exclusion, pilot vs full corpus, initial feature snapshot and retrospective cohort limits were left as written; no limitation was weakened"
+    },
+    "10_additional_review_findings": "Review findings 1-12 were each mapped to one or more of the items above; see the per-file section list below and ledger section 3.1 rows X-21 to X-34.",
+    "11_matrix_specific": {
+      "applied_in": [
+        "reviewer_response_matrix.md new section 1.1 (new consolidated IDs declared, full old-to-new crosswalk table, X-1..X-4 disposition)",
+        "reviewer_response_matrix.md R1-2 remaining condition",
+        "reviewer_response_matrix.md R2-2 implemented change",
+        "reviewer_response_matrix.md section 6 preamble, CE-1..CE-4 provenance labels, CE-5, CE-6",
+        "reviewer_response_matrix.md section 7 tally sentence"
+      ],
+      "facts_now_stated": {
+        "reviewer_references": "[1] Schubert/Drachen/Mahlmann 2016 re-verified and cited as Schubert2016 (supports encounter segmentation and the kill-free share, not spectator utility); the remaining FIVE audience/narrative references ([2] Block 2018, [3] Kokkinakis 2020, [4] Pedrassoli Chitayat 2024 IMX, [5] Charleer 2018, [6] Pedrassoli Chitayat 2024 CHI PLAY) not re-verified and not in references.bib",
+        "family_budget": "six candidate configurations per family (six C values for logistic; 3 widths x 2 dropouts per MLP; 3 leaf counts x 2 min-child for LightGBM); three-seed averaging (7/42/123) only for the stochastic LightGBM and MLP families; the logistic is not a three-seed ensemble",
+        "CE-5": "relabelled as an author-proposed extension inspired by the paper the collaborator recommended reading; it is not an incoming request and has not been executed",
+        "CE-6": "relabelled as our own preliminary result included in our outgoing reply draft, not a collaborator-supplied figure",
+        "genuine_incoming_items": "balanced/even game states (CE-1, CE-2, CE-3) and how the exchange coefficients were chosen (section 6.2)"
+      }
+    },
+    "12_champion_column_count": "1,372 replaced by the recorded 1,382-column champions__ block with source everywhere (manuscript 8.6, specification 12.3, ledger C-74); see item 5.",
+    "13_markdown_table_integrity": {
+      "C-46_fix": "inline JSON pointer rewritten as two separate paths ('results/h60/MAIN_TEST/T/metrics_named/all/*' and 'results/h120/MAIN_TEST/T/metrics_named/all/*') with no pipe character",
+      "other_tables": "all tables edited or added in this pass were re-read for cell counts and for unescaped pipe characters; |DeltaV|, |Delta logit|, |phi| and |c_j| inside table cells use the escaped form",
+      "one_self_inflicted_defect_found_and_fixed": "a new ledger row X-34 initially contained a literal pipe inside inline code; rewritten as the words 'unescaped pipe character'"
+    },
+    "14_predeclared_not_pre_registered": {
+      "applied_in": [
+        "manuscript.md 8 preamble (definition), 8.1 table and Reading, 8.5 table",
+        "reviewer_response_matrix.md CE-1, CE-2",
+        "collaborator_specification.md 11 preamble, 11.1 table, 16.4",
+        "claim_evidence_ledger.md C-25, C-62, section 3.1 X-32, section 5 item 15",
+        "README.md section 3.1 item 15"
+      ],
+      "wording": "'predeclared in this exploratory follow-up protocol' with the prior-TEST-exposure fact restated; no external preregistration record was verified"
+    },
+    "15_manuscript_map_status": {
+      "applied_in": [
+        "README.md section 6 (renamed 'audit handoff status (current)'; manuscript_map.md now recorded as PRESENT and reconciled)",
+        "README.md section 7 (next-step 1 rewritten; no longer asks for reissue)",
+        "README.md section 1 file table (writer_receipt.json marked historical first pass; revision_receipt.json linked as the current validation record and root acceptance named as the future one)",
+        "README.md status banner"
+      ],
+      "reconciliation_result": "Section layout, evidence roots and rewrite/preserve policy agree with manuscript_map.md sections 4-6. The map's section 3 uses the historical issue IDs; because the new matrix uses consolidated IDs, an explicit old-to-new crosswalk was added rather than renumbering the matrix.",
+      "historical_record_preserved": "writer_receipt.json still says the map was missing; that file was not edited, and this receipt records the resolution instead."
+    }
+  },
+
+  "corrected_sections_by_file": {
+    "docs/tog_delta_v_20260916/manuscript.md": [
+      "Abstract",
+      "1.3 Contributions (items 3, 4, 5)",
+      "1.4 Lineage (three label lineages; internal cross-reference corrected from '2.3' to this subsection)",
+      "5.4 endpoint table row label; new frame-staleness paragraph; 90 s rationale scope sentence",
+      "7.3 Weighting and uncertainty (three interval classes)",
+      "8 preamble (interval pointer; definition of 'predeclared')",
+      "8.1 contrast table label and Reading",
+      "8.2 absolute-ordering paragraph and Reading (family budget and seeds corrected)",
+      "8.3 Reading",
+      "8.4 Reading (cell-by-cell metric scope; four qualifications)",
+      "8.5 arm table label",
+      "8.6 identity paragraph, strata paragraph, Reading (i)-(iv)",
+      "8.7 plain-MLP comparison sentences",
+      "9 Interpretation (all five paragraphs, three headings replaced)",
+      "10.3 Retrospective population and live operation",
+      "10.5 Definition and generalisation",
+      "10.6 Statistical reading",
+      "11.1 What this draft establishes"
+    ],
+    "docs/tog_delta_v_20260916/reviewer_response_matrix.md": [
+      "new 1.1 ID scheme, crosswalk and X-1..X-4 disposition",
+      "R1-2 (implemented change wording; verified vs unverified references)",
+      "R2-2 (per-family budget, seeds, results wording)",
+      "R2-3 (frame-staleness populations)",
+      "6 preamble (incoming vs outgoing provenance warning)",
+      "6.1 CE-1, CE-2, CE-3, CE-4 (provenance labels and corrected readings)",
+      "6.2 preamble (three lineages)",
+      "6.3 CE-5 and CE-6 (provenance and status)",
+      "7 status tally sentence"
+    ],
+    "docs/tog_delta_v_20260916/collaborator_specification.md": [
+      "2 Research lineage (three label lineages)",
+      "11 preamble (interval classes; 'predeclared')",
+      "11.1 contrast table label",
+      "11.2 (per-family budget and seeds; inconclusive-not-equivalent reading)",
+      "11.3 (ordering not invariant; easier-label inference removed; TEST-ranking scope)",
+      "12.2 (plain-MLP wording; row-bootstrap distinction)",
+      "12.3 (identity values, 1,382-column champion block, strata, contributions vs coefficients, decomposability)",
+      "16.3 (definition-sensitivity metric scope)",
+      "16.4 heading and 'predeclared'",
+      "16.5 (Kim comparison is our proposed extension)",
+      "17 table rows 'Strong, fair model comparison' and 'Champion composition'"
+    ],
+    "docs/tog_delta_v_20260916/claim_evidence_ledger.md": [
+      "C-17 (population scope and JSON pointer) and new C-17b (two frame diagnostics)",
+      "C-25 and C-62 (predeclared wording)",
+      "new C-44b (per-family candidate budget and seed policy)",
+      "C-46 (pipe removed; cross-cap comparability wording)",
+      "C-50 (ranking movement)",
+      "C-56 (main-TEST vs external frozen movement)",
+      "C-73, C-74 (measured errors, indicator form, 1,382-column block with source)",
+      "C-77 (identical-frame condition; named comparators)",
+      "C-78 (contributions are not coefficients; beta values)",
+      "C-82 (row bootstrap), C-83 (unresolved contrast, not 'equal Brier')",
+      "new 3.1 correction ledger X-21..X-34 for this bundle's own first-draft errors",
+      "5 forbidden-statement list extended with items 9-16"
+    ],
+    "docs/tog_delta_v_20260916/README.md": [
+      "status banner",
+      "1 file table (historical writer receipt vs current revision receipt vs future root acceptance)",
+      "2 scope bullets (equivalence prohibition; three lineages)",
+      "new 3.1 second-pass correction summary (items 9-17)",
+      "6 audit-handoff status (manuscript_map.md present and reconciled)",
+      "7 next steps"
+    ]
+  },
+
+  "checks_performed_in_this_pass": [
+    {
+      "check": "source_reverification_of_every_changed_number",
+      "method": "read the retained aggregate artefacts directly",
+      "sources": [
+        "outputs/v_mechanism_20260916/results.json (checks/max_abs_sum_minus_decision 3.042011087472929e-14; max_abs_logit_diff_minus_decision 6.231459792616079e-12; max_abs_champion 0.0; transformed_columns 1733; group_sizes/champion_identity 1382)",
+        "outputs/v_mechanism_20260916/protocol.json and frozen_manifest.json (same column counts)",
+        "outputs/v_mechanism_20260916/REPORT.md (MAIN_TEST T: same-frame 2,224 rows with combat 72.2 / objectives 13.6 / structures 13.7 / time-only 0.5 / time-related 25.0; |DeltaV| 0-0.5pp 3,251 rows structures 19.3; |DeltaV| >2pp structures 7.9; overall structures 9.6; top-column table mean |c_j| 0.1095 / 0.1020 with beta -1.0564 / +0.9901)",
+        "outputs/definition_dev_20260916/REPORT.md (T frozen 0.22839 -> 0.22837; refit-frozen T -0.00007 [-0.00023,+0.00010], N +0.00023 [+0.00011,+0.00034]; external table: KR 16.13 T 0.23510 -> 0.23476 and refit-frozen +0.00052 [+0.00010,+0.00099]; KR 16.15 N 0.24062 -> 0.23996)",
+        "outputs/tog_readiness_audit_20260915/calculations.json (MAIN_TEST h90 no_new_frame_after_last_kill_fraction 0.35145131315107353)",
+        "docs/LABEL_VALIDITY_FINDINGS_20260915.md and docs/COLLABORATOR_RESEARCH_SPECIFICATION_20260915.md (main TEST T 35.27%; identical pre/post frames 2,224 = 6.74%)",
+        "outputs/track_a_mlp_20260916/protocol.json (seeds 7/42/123; 'mean raw probability over seeds'; 18 joint candidates per MLP family; selection rule)",
+        "scripts/vd20260916_common.py (column_group assigns the champions__ prefix group)",
+        "C:/Users/todtj/.codex/attachments/68cfc3ee-c632-4cff-a469-80304ef81c41/pasted-text.txt (reviewer reference list [1]-[6], read-only)",
+        "docs/COG_COLLABORATION_EMAIL_DRAFT_20260915.md (our outgoing draft contains the ~5.4% objective-removal figure and the proposal to compare Kim et al.'s method)"
+      ],
+      "result": "pass; every number written in this pass was read from one of these artefacts, and no number was altered in any source"
+    },
+    {
+      "check": "banned_phrase_sweep_after_editing",
+      "method": "content search across docs/tog_delta_v_20260916/ for 'tie', 'equal Brier', 'documented null', 'indistinguishable', 'immaterial', 'pre-registered', 'ordering ... unchanged/survives', '1,372', 'sign(Delta logit)', 'within 0.0002', '35.1%'",
+      "result": "pass; the only remaining matches are unrelated uses (the CoG 308 'near-zero ties below 1e-8' coin-flip rule, 'objective tier' table rows, 'participant ordering', and the explicit corrective sentences that quote the removed wording in order to forbid it)"
+    },
+    {
+      "check": "cross_document_agreement_after_correction",
+      "method": "manual comparison of the corrected statements across manuscript, matrix, specification, ledger and README",
+      "items": [
+        "learner-family wording identical in abstract, 1.3, 8.2, 9, 11.1, matrix R2-2, specification 11.2",
+        "horizon wording identical in abstract, 8.3, 11.1, specification 11.3, ledger C-46/C-50",
+        "definition-sensitivity figures identical in abstract, 8.4, 10.5, 11.1, specification 16.3, ledger C-56",
+        "frame diagnostics identical in 5.4, 8.6, 9, 10.3, matrix R2-3, specification 12.3, ledger C-17/C-17b/C-77",
+        "champion block 1,382 identical in 8.6, specification 12.3, ledger C-74"
+      ],
+      "result": "pass"
+    },
+    {
+      "check": "markdown_table_integrity",
+      "method": "cell-count and pipe inspection of every table row added or edited",
+      "result": "pass after fixing C-46 and one newly introduced pipe in ledger row X-34"
+    },
+    {
+      "check": "link_targets_preserved",
+      "method": "no existing relative link was removed or retargeted except manuscript 1.4's incorrect internal '2.3' cross-reference, which pointed at the Attribution subsection rather than the lineage text; new links added in README point to independent_scientific_review.md, revision_request.md, manuscript_map.md and revision_receipt.json, all of which exist in outputs/manuscript_integration_20260916/",
+      "result": "pass"
+    },
+    {
+      "check": "preservation_of_history_and_sources",
+      "method": "no write outside docs/tog_delta_v_20260916/ and this receipt",
+      "result": "pass; writer_receipt.json, all audit evidence, all experiment outputs and the original manuscript are unmodified, and contradictory historical text in parent findings is left in place as history"
+    }
+  ],
+
+  "not_done": {
+    "experiments_launched": 0,
+    "models_trained_or_refit": 0,
+    "evaluations_rerun": 0,
+    "raw_corpus_records_read": false,
+    "external_messages_sent": false,
+    "package_installation": false,
+    "gpu_use": false,
+    "commits_or_publication": false,
+    "latex_or_pdf_build_attempted": false,
+    "new_results_invented": false,
+    "parent_documents_or_experiments_modified": false
+  },
+
+  "unresolved_limitations": [
+    "sha256 of the corrected files was not computed: only file read/write tools were available in this session, so root must compute and record the final hashes (first-pass hashes remain in first_pass_document_hashes.json for comparison).",
+    "This pass corrected text only. No equivalence test, no additional model fit, no new cell and no re-run bootstrap was produced, so every unresolved contrast stays unresolved.",
+    "Review finding 3's full cell-by-cell inventory is summarised, not exhaustively enumerated: the manuscript names the main-TEST cells, the two worsened refit cells and the largest external frozen movement, but does not tabulate every external cell's old-to-dev frozen change.",
+    "The independent review's suggestion to state that the raw-role inspection covered only two TRAIN matches was not added: that coverage detail lives in position_audit.md, and this pass did not re-verify it against the audit's own text.",
+    "The kill-free encounter share of our own corpus is still not re-measured (matrix R4-1 remains partial).",
+    "Label semantic validity, untouched confirmatory data, the representation track, V(S(L)) decomposition, alternative-label variants on the new target, background/glossary section, figures, artefact release, author block and PDF build all remain open exactly as recorded in the first pass.",
+    "references.bib was not modified; if the five unverified audience/narrative references are ever cited, they must be verified first.",
+    "Only the six documents named above were reviewed for these defects; other project documents outside docs/tog_delta_v_20260916/ may still contain the original wording and were deliberately left untouched as history."
+  ],
+
+  "verification_requested_from_root": [
+    "Recompute sha256 for the five corrected documents plus this receipt and record them.",
+    "Re-verify each number changed in this pass against the JSON keys and report tables named in checks_performed_in_this_pass.",
+    "Confirm writer_receipt.json, the audit evidence files and every experiment output are byte-identical to their pre-revision state.",
+    "Re-resolve all relative markdown links in docs/tog_delta_v_20260916/.",
+    "Re-render the edited Markdown tables (ledger 2.1-2.11 and 3.1, matrix 1.1 and 6) to confirm column integrity.",
+    "Decide whether the residual limitations above require a further pass before acceptance; this receipt makes no acceptance claim."
+  ]
+}

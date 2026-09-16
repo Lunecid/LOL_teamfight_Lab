@@ -1,0 +1,24 @@
+{
+ "group": "driver_fit",
+ "state": "complete",
+ "stage": "fit",
+ "pid": 31732,
+ "updated": "2026-09-16 08:14:24",
+ "elapsed_s": 105.2,
+ "processed": 1,
+ "total": 1,
+ "error": null,
+ "next_step": "next plan",
+ "history": [
+  {
+   "stage": "fit_freeze",
+   "state": "running",
+   "at": "2026-09-16 08:12:38"
+  },
+  {
+   "stage": "fit",
+   "state": "complete",
+   "at": "2026-09-16 08:14:24"
+  }
+ ]
+}

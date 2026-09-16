@@ -1,0 +1,179 @@
+{
+ "group": "driver_full",
+ "state": "complete",
+ "stage": "full",
+ "pid": 23276,
+ "updated": "2026-09-16 04:47:07",
+ "elapsed_s": 1753.4,
+ "processed": 32,
+ "total": 32,
+ "error": null,
+ "next_step": "next plan",
+ "history": [
+  {
+   "stage": "fit_T_logit_base",
+   "state": "running",
+   "at": "2026-09-16 04:17:54"
+  },
+  {
+   "stage": "fit_T_logit_tags",
+   "state": "running",
+   "at": "2026-09-16 04:18:03"
+  },
+  {
+   "stage": "fit_T_logit_class_state",
+   "state": "running",
+   "at": "2026-09-16 04:18:12"
+  },
+  {
+   "stage": "fit_T_logit_class_pairs",
+   "state": "running",
+   "at": "2026-09-16 04:18:22"
+  },
+  {
+   "stage": "fit_T_logit_identity",
+   "state": "running",
+   "at": "2026-09-16 04:18:36"
+  },
+  {
+   "stage": "fit_T_logit_class_pairs_identity",
+   "state": "running",
+   "at": "2026-09-16 04:18:57"
+  },
+  {
+   "stage": "fit_T_logit_draft_class",
+   "state": "running",
+   "at": "2026-09-16 04:19:24"
+  },
+  {
+   "stage": "fit_T_logit_draft_identity",
+   "state": "running",
+   "at": "2026-09-16 04:19:33"
+  },
+  {
+   "stage": "fit_T_lgbm_base",
+   "state": "running",
+   "at": "2026-09-16 04:19:48"
+  },
+  {
+   "stage": "fit_T_lgbm_tags",
+   "state": "running",
+   "at": "2026-09-16 04:20:04"
+  },
+  {
+   "stage": "fit_T_lgbm_class_state",
+   "state": "running",
+   "at": "2026-09-16 04:20:21"
+  },
+  {
+   "stage": "fit_T_lgbm_class_pairs",
+   "state": "running",
+   "at": "2026-09-16 04:20:42"
+  },
+  {
+   "stage": "fit_T_lgbm_identity",
+   "state": "running",
+   "at": "2026-09-16 04:21:04"
+  },
+  {
+   "stage": "fit_T_lgbm_class_pairs_identity",
+   "state": "running",
+   "at": "2026-09-16 04:21:30"
+  },
+  {
+   "stage": "fit_T_lgbm_draft_class",
+   "state": "running",
+   "at": "2026-09-16 04:22:03"
+  },
+  {
+   "stage": "fit_T_lgbm_draft_identity",
+   "state": "running",
+   "at": "2026-09-16 04:22:13"
+  },
+  {
+   "stage": "fit_N_logit_base",
+   "state": "running",
+   "at": "2026-09-16 04:22:29"
+  },
+  {
+   "stage": "fit_N_logit_tags",
+   "state": "running",
+   "at": "2026-09-16 04:23:03"
+  },
+  {
+   "stage": "fit_N_logit_class_state",
+   "state": "running",
+   "at": "2026-09-16 04:23:47"
+  },
+  {
+   "stage": "fit_N_logit_class_pairs",
+   "state": "running",
+   "at": "2026-09-16 04:24:41"
+  },
+  {
+   "stage": "fit_N_logit_identity",
+   "state": "running",
+   "at": "2026-09-16 04:26:03"
+  },
+  {
+   "stage": "fit_N_logit_class_pairs_identity",
+   "state": "running",
+   "at": "2026-09-16 04:28:24"
+  },
+  {
+   "stage": "fit_N_logit_draft_class",
+   "state": "running",
+   "at": "2026-09-16 04:31:44"
+  },
+  {
+   "stage": "fit_N_logit_draft_identity",
+   "state": "running",
+   "at": "2026-09-16 04:32:09"
+  },
+  {
+   "stage": "fit_N_lgbm_base",
+   "state": "running",
+   "at": "2026-09-16 04:33:05"
+  },
+  {
+   "stage": "fit_N_lgbm_tags",
+   "state": "running",
+   "at": "2026-09-16 04:34:32"
+  },
+  {
+   "stage": "fit_N_lgbm_class_state",
+   "state": "running",
+   "at": "2026-09-16 04:36:06"
+  },
+  {
+   "stage": "fit_N_lgbm_class_pairs",
+   "state": "running",
+   "at": "2026-09-16 04:38:38"
+  },
+  {
+   "stage": "fit_N_lgbm_identity",
+   "state": "running",
+   "at": "2026-09-16 04:40:53"
+  },
+  {
+   "stage": "fit_N_lgbm_class_pairs_identity",
+   "state": "running",
+   "at": "2026-09-16 04:42:44"
+  },
+  {
+   "stage": "fit_N_lgbm_draft_class",
+   "state": "running",
+   "at": "2026-09-16 04:45:46"
+  },
+  {
+   "stage": "fit_N_lgbm_draft_identity",
+   "state": "running",
+   "at": "2026-09-16 04:46:17"
+  },
+  {
+   "stage": "full",
+   "state": "complete",
+   "at": "2026-09-16 04:47:07"
+  }
+ ]
+}

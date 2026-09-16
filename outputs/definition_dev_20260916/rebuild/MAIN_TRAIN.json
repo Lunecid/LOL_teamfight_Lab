@@ -1,0 +1,35 @@
+{
+ "set": "MAIN_TRAIN",
+ "sealed": false,
+ "changed_matches": 2467,
+ "parent_rows": 199480,
+ "parent_rows_copied": 190131,
+ "parent_rows_dropped": 9349,
+ "rebuilt_rows": 7962,
+ "dev_rows": 198093,
+ "chunks": 13,
+ "names_sha256": "d5ce72200161989e28dca8c85d66735fc117d65f7acea2d796c91d25e58ba95b",
+ "valid_h90": {
+  "parent_side": 199358,
+  "dev": 197973,
+  "by_cohort_dev": {
+   "T": 39586,
+   "N": 158387
+  },
+  "by_cohort_parent": {
+   "T": 39605,
+   "N": 159753
+  },
+  "rebuilt_valid": {
+   "T": 1972,
+   "N": 5985
+  }
+ },
+ "cohort_unknown_rebuilt": 0,
+ "files": {
+  "features": "5c803506c3e89438fd320efa813658bf230c58edd517cbde93390f2139976c99",
+  "labels": "f4c526283114ad05696fa1c001b4f1042eb6e89b4dea6b58a2ec01ea896c18ae",
+  "cohorts": "b089ce2daacb6fe771f7736d8957c01f841c5f668910ee52ccbabe3e7d475720"
+ },
+ "written_at": "2026-09-16 08:11:39"
+}

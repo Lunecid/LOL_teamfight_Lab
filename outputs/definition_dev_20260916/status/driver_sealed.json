@@ -1,0 +1,49 @@
+{
+ "group": "driver_sealed",
+ "state": "complete",
+ "stage": "sealed",
+ "pid": 16084,
+ "updated": "2026-09-16 08:15:58",
+ "elapsed_s": 94.3,
+ "processed": 6,
+ "total": 6,
+ "error": null,
+ "next_step": "next plan",
+ "history": [
+  {
+   "stage": "rebuild_MAIN_TEST",
+   "state": "running",
+   "at": "2026-09-16 08:14:24"
+  },
+  {
+   "stage": "rebuild_EXT_KR_16.13",
+   "state": "running",
+   "at": "2026-09-16 08:14:48"
+  },
+  {
+   "stage": "rebuild_EXT_KR_16.14_pilot",
+   "state": "running",
+   "at": "2026-09-16 08:14:58"
+  },
+  {
+   "stage": "rebuild_EXT_KR_16.15",
+   "state": "running",
+   "at": "2026-09-16 08:15:02"
+  },
+  {
+   "stage": "rebuild_EXT_NA1_16.13",
+   "state": "running",
+   "at": "2026-09-16 08:15:07"
+  },
+  {
+   "stage": "evaluate",
+   "state": "running",
+   "at": "2026-09-16 08:15:16"
+  },
+  {
+   "stage": "sealed",
+   "state": "complete",
+   "at": "2026-09-16 08:15:58"
+  }
+ ]
+}

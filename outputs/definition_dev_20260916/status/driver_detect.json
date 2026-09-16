@@ -1,0 +1,54 @@
+{
+ "group": "driver_detect",
+ "state": "complete",
+ "stage": "detect",
+ "pid": 34524,
+ "updated": "2026-09-16 08:10:53",
+ "elapsed_s": 1299.2,
+ "processed": 7,
+ "total": 7,
+ "error": null,
+ "next_step": "next plan",
+ "history": [
+  {
+   "stage": "redetect_MAIN_frozen_2000",
+   "state": "running",
+   "at": "2026-09-16 07:49:13"
+  },
+  {
+   "stage": "redetect_MAIN_dev",
+   "state": "running",
+   "at": "2026-09-16 07:49:27"
+  },
+  {
+   "stage": "redetect_EXT_KR_16.13_dev",
+   "state": "running",
+   "at": "2026-09-16 08:08:06"
+  },
+  {
+   "stage": "redetect_EXT_KR_16.14_pilot_dev",
+   "state": "running",
+   "at": "2026-09-16 08:09:13"
+  },
+  {
+   "stage": "redetect_EXT_KR_16.15_dev",
+   "state": "running",
+   "at": "2026-09-16 08:09:21"
+  },
+  {
+   "stage": "redetect_EXT_NA1_16.13_dev",
+   "state": "running",
+   "at": "2026-09-16 08:09:32"
+  },
+  {
+   "stage": "census",
+   "state": "running",
+   "at": "2026-09-16 08:10:40"
+  },
+  {
+   "stage": "detect",
+   "state": "complete",
+   "at": "2026-09-16 08:10:53"
+  }
+ ]
+}

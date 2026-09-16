@@ -1,0 +1,1247 @@
+{
+  "scope": "Independent arithmetic on saved arrays, source/definition trace and manuscript inventory; not a raw-telemetry re-extraction or expert semantic validation",
+  "labels": {
+    "EXT_KR_16.13": {
+      "rows": 25443,
+      "matches": 9051,
+      "duplicate_keys": 0,
+      "pre_time_errors": 0,
+      "cohort_key_match": true,
+      "teamfight_rule_errors": 0,
+      "horizons": {
+        "60": {
+          "valid_rows": 25430,
+          "valid_matches": 9051,
+          "excluded": 13,
+          "T": 5202,
+          "N": 20228,
+          "unknown": 0,
+          "endpoint_formula_errors_all_rows": 0,
+          "delta_formula_max_error": 0.0,
+          "label_formula_errors": 0,
+          "future_pre_frames": 0,
+          "future_post_frames": 0,
+          "extra_kills_recorded": 0,
+          "no_new_frame_after_last_kill_fraction": 0.3758159653952025,
+          "post_l_duration_mean_s": 37.26619551710578,
+          "post_l_duration_median_s": 36.4835,
+          "horizon_reach_fraction": 0.2878096736138419,
+          "near_zero_fraction": {
+            "0.005": 0.08836020448289422,
+            "0.01": 0.1469524184034605,
+            "0.02": 0.23314982304364923
+          },
+          "exact_zero": 0,
+          "termination_counts": {
+            "horizon": 7318,
+            "next_kill": 16671,
+            "next_engagement_start": 728,
+            "game_end": 712,
+            "horizon|next_kill": 1
+          }
+        },
+        "90": {
+          "valid_rows": 25430,
+          "valid_matches": 9051,
+          "excluded": 13,
+          "T": 5202,
+          "N": 20228,
+          "unknown": 0,
+          "endpoint_formula_errors_all_rows": 0,
+          "delta_formula_max_error": 0.0,
+          "label_formula_errors": 0,
+          "future_pre_frames": 0,
+          "future_post_frames": 0,
+          "extra_kills_recorded": 0,
+          "no_new_frame_after_last_kill_fraction": 0.37554069996067635,
+          "post_l_duration_mean_s": 42.979826622099885,
+          "post_l_duration_median_s": 36.4835,
+          "horizon_reach_fraction": 0.11167911915060952,
+          "near_zero_fraction": {
+            "0.005": 0.08946126622099881,
+            "0.01": 0.14750294927251278,
+            "0.02": 0.23318914667715296
+          },
+          "exact_zero": 0,
+          "termination_counts": {
+            "next_kill": 20838,
+            "horizon": 2840,
+            "next_engagement_start": 1023,
+            "game_end": 729
+          }
+        },
+        "120": {
+          "valid_rows": 25430,
+          "valid_matches": 9051,
+          "excluded": 13,
+          "T": 5202,
+          "N": 20228,
+          "unknown": 0,
+          "endpoint_formula_errors_all_rows": 0,
+          "delta_formula_max_error": 0.0,
+          "label_formula_errors": 0,
+          "future_pre_frames": 0,
+          "future_post_frames": 0,
+          "extra_kills_recorded": 0,
+          "no_new_frame_after_last_kill_fraction": 0.37554069996067635,
+          "post_l_duration_mean_s": 45.059001376327174,
+          "post_l_duration_median_s": 36.4835,
+          "horizon_reach_fraction": 0.03995281163979552,
+          "near_zero_fraction": {
+            "0.005": 0.08961856075501376,
+            "0.01": 0.14758159653952024,
+            "0.02": 0.23291388124262682
+          },
+          "exact_zero": 0,
+          "termination_counts": {
+            "next_kill": 22436,
+            "next_engagement_start": 1244,
+            "horizon": 1016,
+            "game_end": 734
+          }
+        }
+      },
+      "horizon_sign_disagreement": {
+        "60_90": 0.014117184427841132,
+        "90_120": 0.004954777821470704,
+        "60_120": 0.016791191506095163
+      }
+    },
+    "EXT_KR_16.14_pilot": {
+      "rows": 475,
+      "matches": 177,
+      "duplicate_keys": 0,
+      "pre_time_errors": 0,
+      "cohort_key_match": true,
+      "teamfight_rule_errors": 0,
+      "horizons": {
+        "60": {
+          "valid_rows": 475,
+          "valid_matches": 177,
+          "excluded": 0,
+          "T": 101,
+          "N": 374,
+          "unknown": 0,
+          "endpoint_formula_errors_all_rows": 0,
+          "delta_formula_max_error": 0.0,
+          "label_formula_errors": 0,
+          "future_pre_frames": 0,
+          "future_post_frames": 0,
+          "extra_kills_recorded": 0,
+          "no_new_frame_after_last_kill_fraction": 0.391578947368421,
+          "post_l_duration_mean_s": 35.777707368421055,
+          "post_l_duration_median_s": 34.126,
+          "horizon_reach_fraction": 0.26526315789473687,
+          "near_zero_fraction": {
+            "0.005": 0.10526315789473684,
+            "0.01": 0.17894736842105263,
+            "0.02": 0.2736842105263158
+          },
+          "exact_zero": 0,
+          "termination_counts": {
+            "next_kill": 317,
+            "horizon": 126,
+            "next_engagement_start": 13,
+            "game_end": 19
+          }
+        },
+        "90": {
+          "valid_rows": 475,
+          "valid_matches": 177,
+          "excluded": 0,
+          "T": 101,
+          "N": 374,
+          "unknown": 0,
+          "endpoint_formula_errors_all_rows": 0,
+          "delta_formula_max_error": 0.0,
+          "label_formula_errors": 0,
+          "future_pre_frames": 0,
+          "future_post_frames": 0,
+          "extra_kills_recorded": 0,
+          "no_new_frame_after_last_kill_fraction": 0.391578947368421,
+          "post_l_duration_mean_s": 41.15660210526316,
+          "post_l_duration_median_s": 34.126,
+          "horizon_reach_fraction": 0.10947368421052632,
+          "near_zero_fraction": {
+            "0.005": 0.10736842105263159,
+            "0.01": 0.18736842105263157,
+            "0.02": 0.2736842105263158
+          },
+          "exact_zero": 0,
+          "termination_counts": {
+            "next_kill": 388,
+            "horizon": 52,
+            "next_engagement_start": 16,
+            "game_end": 19
+          }
+        },
+        "120": {
+          "valid_rows": 475,
+          "valid_matches": 177,
+          "excluded": 0,
+          "T": 101,
+          "N": 374,
+          "unknown": 0,
+          "endpoint_formula_errors_all_rows": 0,
+          "delta_formula_max_error": 0.0,
+          "label_formula_errors": 0,
+          "future_pre_frames": 0,
+          "future_post_frames": 0,
+          "extra_kills_recorded": 0,
+          "no_new_frame_after_last_kill_fraction": 0.391578947368421,
+          "post_l_duration_mean_s": 43.34935789473684,
+          "post_l_duration_median_s": 34.126,
+          "horizon_reach_fraction": 0.042105263157894736,
+          "near_zero_fraction": {
+            "0.005": 0.10947368421052632,
+            "0.01": 0.1831578947368421,
+            "0.02": 0.27157894736842103
+          },
+          "exact_zero": 0,
+          "termination_counts": {
+            "next_kill": 420,
+            "horizon": 20,
+            "next_engagement_start": 16,
+            "game_end": 19
+          }
+        }
+      },
+      "horizon_sign_disagreement": {
+        "60_90": 0.010526315789473684,
+        "90_120": 0.002105263157894737,
+        "60_120": 0.01263157894736842
+      }
+    },
+    "EXT_KR_16.15": {
+      "rows": 2219,
+      "matches": 813,
+      "duplicate_keys": 0,
+      "pre_time_errors": 0,
+      "cohort_key_match": true,
+      "teamfight_rule_errors": 0,
+      "horizons": {
+        "60": {
+          "valid_rows": 2219,
+          "valid_matches": 813,
+          "excluded": 0,
+          "T": 507,
+          "N": 1712,
+          "unknown": 0,
+          "endpoint_formula_errors_all_rows": 0,
+          "delta_formula_max_error": 0.0,
+          "label_formula_errors": 0,
+          "future_pre_frames": 0,
+          "future_post_frames": 0,
+          "extra_kills_recorded": 0,
+          "no_new_frame_after_last_kill_fraction": 0.380802163136548,
+          "post_l_duration_mean_s": 37.42814826498424,
+          "post_l_duration_median_s": 37.022,
+          "horizon_reach_fraction": 0.27985579089680035,
+          "near_zero_fraction": {
+            "0.005": 0.0964398377647589,
+            "0.01": 0.14646237043713384,
+            "0.02": 0.24155024785939613
+          },
+          "exact_zero": 0,
+          "termination_counts": {
+            "next_kill": 1458,
+            "horizon": 621,
+            "game_end": 66,
+            "next_engagement_start": 74
+          }
+        },
+        "90": {
+          "valid_rows": 2219,
+          "valid_matches": 813,
+          "excluded": 0,
+          "T": 507,
+          "N": 1712,
+          "unknown": 0,
+          "endpoint_formula_errors_all_rows": 0,
+          "delta_formula_max_error": 0.0,
+          "label_formula_errors": 0,
+          "future_pre_frames": 0,
+          "future_post_frames": 0,
+          "extra_kills_recorded": 0,
+          "no_new_frame_after_last_kill_fraction": 0.3803515096890491,
+          "post_l_duration_mean_s": 42.97740378548896,
+          "post_l_duration_median_s": 37.022,
+          "horizon_reach_fraction": 0.10725552050473186,
+          "near_zero_fraction": {
+            "0.005": 0.0964398377647589,
+            "0.01": 0.14961694456962596,
+            "0.02": 0.2438035150968905
+          },
+          "exact_zero": 0,
+          "termination_counts": {
+            "next_kill": 1814,
+            "horizon": 238,
+            "game_end": 67,
+            "next_engagement_start": 100
+          }
+        },
+        "120": {
+          "valid_rows": 2219,
+          "valid_matches": 813,
+          "excluded": 0,
+          "T": 507,
+          "N": 1712,
+          "unknown": 0,
+          "endpoint_formula_errors_all_rows": 0,
+          "delta_formula_max_error": 0.0,
+          "label_formula_errors": 0,
+          "future_pre_frames": 0,
+          "future_post_frames": 0,
+          "extra_kills_recorded": 0,
+          "no_new_frame_after_last_kill_fraction": 0.3803515096890491,
+          "post_l_duration_mean_s": 45.02418386660658,
+          "post_l_duration_median_s": 37.022,
+          "horizon_reach_fraction": 0.035601622352410996,
+          "near_zero_fraction": {
+            "0.005": 0.0964398377647589,
+            "0.01": 0.1473636773321316,
+            "0.02": 0.242000901306895
+          },
+          "exact_zero": 0,
+          "termination_counts": {
+            "next_kill": 1957,
+            "horizon": 79,
+            "game_end": 67,
+            "next_engagement_start": 116
+          }
+        }
+      },
+      "horizon_sign_disagreement": {
+        "60_90": 0.013068949977467327,
+        "90_120": 0.00405588102748986,
+        "60_120": 0.014420910319963948
+      }
+    },
+    "EXT_NA1_16.13": {
+      "rows": 26549,
+      "matches": 9090,
+      "duplicate_keys": 0,
+      "pre_time_errors": 0,
+      "cohort_key_match": true,
+      "teamfight_rule_errors": 0,
+      "horizons": {
+        "60": {
+          "valid_rows": 26538,
+          "valid_matches": 9090,
+          "excluded": 11,
+          "T": 5312,
+          "N": 21226,
+          "unknown": 0,
+          "endpoint_formula_errors_all_rows": 0,
+          "delta_formula_max_error": 0.0,
+          "label_formula_errors": 0,
+          "future_pre_frames": 0,
+          "future_post_frames": 0,
+          "extra_kills_recorded": 0,
+          "no_new_frame_after_last_kill_fraction": 0.3628758761021931,
+          "post_l_duration_mean_s": 38.08958369131057,
+          "post_l_duration_median_s": 38.4005,
+          "horizon_reach_fraction": 0.30567488130228354,
+          "near_zero_fraction": {
+            "0.005": 0.10140176350893058,
+            "0.01": 0.15811289471700957,
+            "0.02": 0.24534629587760948
+          },
+          "exact_zero": 0,
+          "termination_counts": {
+            "horizon": 8112,
+            "next_kill": 16866,
+            "game_end": 805,
+            "next_engagement_start": 755
+          }
+        },
+        "90": {
+          "valid_rows": 26538,
+          "valid_matches": 9090,
+          "excluded": 11,
+          "T": 5312,
+          "N": 21226,
+          "unknown": 0,
+          "endpoint_formula_errors_all_rows": 0,
+          "delta_formula_max_error": 0.0,
+          "label_formula_errors": 0,
+          "future_pre_frames": 0,
+          "future_post_frames": 0,
+          "extra_kills_recorded": 0,
+          "no_new_frame_after_last_kill_fraction": 0.3626121033988997,
+          "post_l_duration_mean_s": 44.38770758911749,
+          "post_l_duration_median_s": 38.4005,
+          "horizon_reach_fraction": 0.12985153364986057,
+          "near_zero_fraction": {
+            "0.005": 0.10181626347124878,
+            "0.01": 0.15811289471700957,
+            "0.02": 0.24474338684151029
+          },
+          "exact_zero": 0,
+          "termination_counts": {
+            "horizon": 3446,
+            "next_kill": 21257,
+            "game_end": 812,
+            "next_engagement_start": 1023
+          }
+        },
+        "120": {
+          "valid_rows": 26538,
+          "valid_matches": 9090,
+          "excluded": 11,
+          "T": 5312,
+          "N": 21226,
+          "unknown": 0,
+          "endpoint_formula_errors_all_rows": 0,
+          "delta_formula_max_error": 0.0,
+          "label_formula_errors": 0,
+          "future_pre_frames": 0,
+          "future_post_frames": 0,
+          "extra_kills_recorded": 0,
+          "no_new_frame_after_last_kill_fraction": 0.3626121033988997,
+          "post_l_duration_mean_s": 46.899038435451054,
+          "post_l_duration_median_s": 38.4005,
+          "horizon_reach_fraction": 0.04996608636671942,
+          "near_zero_fraction": {
+            "0.005": 0.10140176350893058,
+            "0.01": 0.15758534931042278,
+            "0.02": 0.2444419323234607
+          },
+          "exact_zero": 0,
+          "termination_counts": {
+            "next_engagement_start": 1253,
+            "next_kill": 23144,
+            "horizon": 1326,
+            "game_end": 815
+          }
+        }
+      },
+      "horizon_sign_disagreement": {
+        "60_90": 0.016353907604190216,
+        "90_120": 0.006594317582334765,
+        "60_120": 0.02053658904212827
+      }
+    },
+    "MAIN_TEST": {
+      "rows": 163680,
+      "matches": 56254,
+      "duplicate_keys": 0,
+      "pre_time_errors": 0,
+      "cohort_key_match": true,
+      "teamfight_rule_errors": 0,
+      "horizons": {
+        "60": {
+          "valid_rows": 163576,
+          "valid_matches": 56254,
+          "excluded": 104,
+          "T": 32981,
+          "N": 130595,
+          "unknown": 0,
+          "endpoint_formula_errors_all_rows": 0,
+          "delta_formula_max_error": 0.0,
+          "label_formula_errors": 0,
+          "future_pre_frames": 0,
+          "future_post_frames": 0,
+          "extra_kills_recorded": 0,
+          "no_new_frame_after_last_kill_fraction": 0.3517325279992175,
+          "post_l_duration_mean_s": 38.61856916662591,
+          "post_l_duration_median_s": 39.439499999999995,
+          "horizon_reach_fraction": 0.328092140656331,
+          "near_zero_fraction": {
+            "0.005": 0.07472367584486722,
+            "0.01": 0.1263204871130239,
+            "0.02": 0.2075915782266347
+          },
+          "exact_zero": 0,
+          "termination_counts": {
+            "next_kill": 100844,
+            "horizon": 53668,
+            "next_engagement_start": 4516,
+            "game_end": 4548
+          }
+        },
+        "90": {
+          "valid_rows": 163576,
+          "valid_matches": 56254,
+          "excluded": 104,
+          "T": 32981,
+          "N": 130595,
+          "unknown": 0,
+          "endpoint_formula_errors_all_rows": 0,
+          "delta_formula_max_error": 0.0,
+          "label_formula_errors": 0,
+          "future_pre_frames": 0,
+          "future_post_frames": 0,
+          "extra_kills_recorded": 0,
+          "no_new_frame_after_last_kill_fraction": 0.35145131315107353,
+          "post_l_duration_mean_s": 45.49323667286154,
+          "post_l_duration_median_s": 39.439499999999995,
+          "horizon_reach_fraction": 0.14285714285714285,
+          "near_zero_fraction": {
+            "0.005": 0.0750415708905952,
+            "0.01": 0.12695627720447988,
+            "0.02": 0.20905267276373063
+          },
+          "exact_zero": 0,
+          "termination_counts": {
+            "next_kill": 129036,
+            "horizon": 23367,
+            "next_engagement_start": 6514,
+            "game_end": 4658,
+            "horizon|next_kill": 1
+          }
+        },
+        "120": {
+          "valid_rows": 163576,
+          "valid_matches": 56254,
+          "excluded": 104,
+          "T": 32981,
+          "N": 130595,
+          "unknown": 0,
+          "endpoint_formula_errors_all_rows": 0,
+          "delta_formula_max_error": 0.0,
+          "label_formula_errors": 0,
+          "future_pre_frames": 0,
+          "future_post_frames": 0,
+          "extra_kills_recorded": 0,
+          "no_new_frame_after_last_kill_fraction": 0.35145131315107353,
+          "post_l_duration_mean_s": 48.23763795422312,
+          "post_l_duration_median_s": 39.439499999999995,
+          "horizon_reach_fraction": 0.053932117181004546,
+          "near_zero_fraction": {
+            "0.005": 0.0750660243556512,
+            "0.01": 0.12722526532009587,
+            "0.02": 0.20893040543845062
+          },
+          "exact_zero": 0,
+          "termination_counts": {
+            "next_kill": 141816,
+            "next_engagement_start": 8236,
+            "horizon": 8821,
+            "game_end": 4702,
+            "horizon|next_kill": 1
+          }
+        }
+      },
+      "horizon_sign_disagreement": {
+        "60_90": 0.01545458991539101,
+        "90_120": 0.006076686066415611,
+        "60_120": 0.019085929476206777
+      }
+    },
+    "MAIN_TRAIN": {
+      "rows": 199480,
+      "matches": 69124,
+      "duplicate_keys": 0,
+      "pre_time_errors": 0,
+      "cohort_key_match": true,
+      "teamfight_rule_errors": 0,
+      "horizons": {
+        "60": {
+          "valid_rows": 199358,
+          "valid_matches": 69124,
+          "excluded": 122,
+          "T": 39605,
+          "N": 159753,
+          "unknown": 0,
+          "endpoint_formula_errors_all_rows": 0,
+          "delta_formula_max_error": 0.0,
+          "label_formula_errors": 0,
+          "future_pre_frames": 0,
+          "future_post_frames": 0,
+          "extra_kills_recorded": 0,
+          "no_new_frame_after_last_kill_fraction": 0.35257677143631055,
+          "post_l_duration_mean_s": 38.7234095446383,
+          "post_l_duration_median_s": 39.7915,
+          "horizon_reach_fraction": 0.33173988503094937,
+          "near_zero_fraction": {
+            "0.005": 0.07012008547437273,
+            "0.01": 0.12022090911826964,
+            "0.02": 0.20047351999919744
+          },
+          "exact_zero": 0,
+          "termination_counts": {
+            "next_kill": 122478,
+            "horizon": 66134,
+            "game_end": 5170,
+            "next_engagement_start": 5575,
+            "horizon|next_kill": 1
+          }
+        },
+        "90": {
+          "valid_rows": 199358,
+          "valid_matches": 69124,
+          "excluded": 122,
+          "T": 39605,
+          "N": 159753,
+          "unknown": 0,
+          "endpoint_formula_errors_all_rows": 0,
+          "delta_formula_max_error": 0.0,
+          "label_formula_errors": 0,
+          "future_pre_frames": 0,
+          "future_post_frames": 0,
+          "extra_kills_recorded": 0,
+          "no_new_frame_after_last_kill_fraction": 0.35221059601320237,
+          "post_l_duration_mean_s": 45.72589903088917,
+          "post_l_duration_median_s": 39.7915,
+          "horizon_reach_fraction": 0.1478596294104074,
+          "near_zero_fraction": {
+            "0.005": 0.07016523038955046,
+            "0.01": 0.12069743877847891,
+            "0.02": 0.20171249711574152
+          },
+          "exact_zero": 0,
+          "termination_counts": {
+            "next_kill": 156528,
+            "horizon": 29475,
+            "game_end": 5335,
+            "next_engagement_start": 8018,
+            "horizon|next_engagement_start": 1,
+            "horizon|next_kill": 1
+          }
+        },
+        "120": {
+          "valid_rows": 199358,
+          "valid_matches": 69124,
+          "excluded": 122,
+          "T": 39605,
+          "N": 159753,
+          "unknown": 0,
+          "endpoint_formula_errors_all_rows": 0,
+          "delta_formula_max_error": 0.0,
+          "label_formula_errors": 0,
+          "future_pre_frames": 0,
+          "future_post_frames": 0,
+          "extra_kills_recorded": 0,
+          "no_new_frame_after_last_kill_fraction": 0.35221059601320237,
+          "post_l_duration_mean_s": 48.56229430471814,
+          "post_l_duration_median_s": 39.7915,
+          "horizon_reach_fraction": 0.0554580202449864,
+          "near_zero_fraction": {
+            "0.005": 0.07007995666088143,
+            "0.01": 0.12058206843969141,
+            "0.02": 0.2017827225393513
+          },
+          "exact_zero": 0,
+          "termination_counts": {
+            "next_kill": 172707,
+            "game_end": 5393,
+            "horizon": 11054,
+            "next_engagement_start": 10202,
+            "horizon|next_kill": 2
+          }
+        }
+      },
+      "horizon_sign_disagreement": {
+        "60_90": 0.01598129997291305,
+        "90_120": 0.006270127108016734,
+        "60_120": 0.019853730474824187
+      }
+    },
+    "MAIN_VALIDATION": {
+      "rows": 203292,
+      "matches": 69298,
+      "duplicate_keys": 0,
+      "pre_time_errors": 0,
+      "cohort_key_match": true,
+      "teamfight_rule_errors": 0,
+      "horizons": {
+        "60": {
+          "valid_rows": 203170,
+          "valid_matches": 69298,
+          "excluded": 122,
+          "T": 41315,
+          "N": 161855,
+          "unknown": 0,
+          "endpoint_formula_errors_all_rows": 0,
+          "delta_formula_max_error": 0.0,
+          "label_formula_errors": 0,
+          "future_pre_frames": 0,
+          "future_post_frames": 0,
+          "extra_kills_recorded": 0,
+          "no_new_frame_after_last_kill_fraction": 0.3500910567505045,
+          "post_l_duration_mean_s": 38.84487778707486,
+          "post_l_duration_median_s": 40.115,
+          "horizon_reach_fraction": 0.33521681350593097,
+          "near_zero_fraction": {
+            "0.005": 0.07505045036176601,
+            "0.01": 0.12510213122016045,
+            "0.02": 0.20625092287247132
+          },
+          "exact_zero": 0,
+          "termination_counts": {
+            "next_kill": 123614,
+            "horizon": 68106,
+            "game_end": 5668,
+            "next_engagement_start": 5782
+          }
+        },
+        "90": {
+          "valid_rows": 203170,
+          "valid_matches": 69298,
+          "excluded": 122,
+          "T": 41315,
+          "N": 161855,
+          "unknown": 0,
+          "endpoint_formula_errors_all_rows": 0,
+          "delta_formula_max_error": 0.0,
+          "label_formula_errors": 0,
+          "future_pre_frames": 0,
+          "future_post_frames": 0,
+          "extra_kills_recorded": 0,
+          "no_new_frame_after_last_kill_fraction": 0.3498006595461928,
+          "post_l_duration_mean_s": 45.948176472904464,
+          "post_l_duration_median_s": 40.115,
+          "horizon_reach_fraction": 0.15080966678151303,
+          "near_zero_fraction": {
+            "0.005": 0.0752227198897475,
+            "0.01": 0.12631293990254466,
+            "0.02": 0.20759462519072697
+          },
+          "exact_zero": 0,
+          "termination_counts": {
+            "next_kill": 158506,
+            "horizon": 30639,
+            "game_end": 5792,
+            "next_engagement_start": 8232,
+            "horizon|next_kill": 1
+          }
+        },
+        "120": {
+          "valid_rows": 203170,
+          "valid_matches": 69298,
+          "excluded": 122,
+          "T": 41315,
+          "N": 161855,
+          "unknown": 0,
+          "endpoint_formula_errors_all_rows": 0,
+          "delta_formula_max_error": 0.0,
+          "label_formula_errors": 0,
+          "future_pre_frames": 0,
+          "future_post_frames": 0,
+          "extra_kills_recorded": 0,
+          "no_new_frame_after_last_kill_fraction": 0.3498006595461928,
+          "post_l_duration_mean_s": 48.8922676970025,
+          "post_l_duration_median_s": 40.115,
+          "horizon_reach_fraction": 0.05958556873554167,
+          "near_zero_fraction": {
+            "0.005": 0.07521779790323374,
+            "0.01": 0.12620957818575576,
+            "0.02": 0.2074764975143968
+          },
+          "exact_zero": 0,
+          "termination_counts": {
+            "next_kill": 174851,
+            "game_end": 5832,
+            "next_engagement_start": 10381,
+            "horizon": 12106
+          }
+        }
+      },
+      "horizon_sign_disagreement": {
+        "60_90": 0.01640990303686568,
+        "90_120": 0.0062213909533887874,
+        "60_120": 0.020081704976128364
+      }
+    }
+  },
+  "metrics": {
+    "T": {
+      "pooled": {
+        "auc": 0.6640658066712452,
+        "brier": 0.22983481932661254,
+        "logloss": 0.6527605437029844
+      },
+      "spec_constant": {
+        "auc": 0.5,
+        "brier": 0.2499958761936568,
+        "logloss": 0.6931389349732434
+      },
+      "spec_p_pre_logistic": {
+        "auc": 0.664191034302757,
+        "brier": 0.23030345747073092,
+        "logloss": 0.6527806481081375
+      },
+      "spec_p_pre_spline": {
+        "auc": 0.664191034302757,
+        "brier": 0.22978596096560344,
+        "logloss": 0.6515704598686218
+      },
+      "spec_ridge_raw": {
+        "auc": 0.6701883963087207,
+        "brier": 0.2281709686351847,
+        "logloss": 0.648109319200296
+      }
+    },
+    "N": {
+      "pooled": {
+        "auc": 0.5967900591130385,
+        "brier": 0.24309666307350292,
+        "logloss": 0.6796176145405273
+      },
+      "spec_constant": {
+        "auc": 0.5,
+        "brier": 0.2500185699545732,
+        "logloss": 0.6931843243395783
+      },
+      "spec_p_pre_logistic": {
+        "auc": 0.5549065177266627,
+        "brier": 0.24736296180792955,
+        "logloss": 0.6878275266464636
+      },
+      "spec_p_pre_spline": {
+        "auc": 0.5601675687565055,
+        "brier": 0.2463371358120182,
+        "logloss": 0.6857268383352761
+      },
+      "spec_ridge_isotonic": {
+        "auc": 0.5984035119677699,
+        "brier": 0.24267507409966518,
+        "logloss": 0.679583475654149
+      }
+    }
+  },
+  "posthoc_specialist_vs_p_pre_spline": {
+    "T": {
+      "n_matches": 24020,
+      "bootstrap": 1000,
+      "seed": 20260915,
+      "multiple_comparison_adjustment": false,
+      "losses": {
+        "brier": {
+          "difference": -0.0016149923304187015,
+          "percentile_95_ci": [
+            -0.002276079689074015,
+            -0.0009449876750999562
+          ]
+        },
+        "logloss": {
+          "difference": -0.0034611406683257963,
+          "percentile_95_ci": [
+            -0.0049054211190551885,
+            -0.0020870173709897155
+          ]
+        }
+      }
+    },
+    "N": {
+      "n_matches": 54182,
+      "bootstrap": 1000,
+      "seed": 20260915,
+      "multiple_comparison_adjustment": false,
+      "losses": {
+        "brier": {
+          "difference": -0.0036620617123530592,
+          "percentile_95_ci": [
+            -0.0040912625730160565,
+            -0.0032243615908042244
+          ]
+        },
+        "logloss": {
+          "difference": -0.006198652643936109,
+          "percentile_95_ci": [
+            -0.0073928000797010155,
+            -0.004670405697194925
+          ]
+        }
+      }
+    }
+  },
+  "pre_probability_baseline_direction": {
+    "scope": "Recover existing prediction function; no fitting to outcomes",
+    "intercept": -0.7895048730890267,
+    "slope": 1.6051699549879703,
+    "max_logit_reconstruction_error": 1.1102230246251565e-15
+  },
+  "main_engagement_match_overlap": {
+    "TRAIN_VALIDATION": 0,
+    "TRAIN_TEST": 0,
+    "VALIDATION_TEST": 0
+  },
+  "manuscript": {
+    "pending_occurrences": 53,
+    "pending_by_key": {
+      "authors": 1,
+      "abstract": 1,
+      "anon-url": 1,
+      "release-doi": 1,
+      "data-licence": 1,
+      "learners": 43,
+      "price\\_diag": 1,
+      "dragon\\_per\\_member": 1,
+      "audit": 1,
+      "sequence-arms": 1,
+      "rulefact": 1
+    },
+    "pending": [
+      {
+        "file": "main.tex",
+        "line": 31,
+        "key": "authors"
+      },
+      {
+        "file": "main.tex",
+        "line": 37,
+        "key": "abstract"
+      },
+      {
+        "file": "sec_availability.tex",
+        "line": 51,
+        "key": "anon-url"
+      },
+      {
+        "file": "sec_availability.tex",
+        "line": 58,
+        "key": "release-doi"
+      },
+      {
+        "file": "sec_availability.tex",
+        "line": 104,
+        "key": "data-licence"
+      },
+      {
+        "file": "sec_intro.tex",
+        "line": 501,
+        "key": "learners"
+      },
+      {
+        "file": "sec_label.tex",
+        "line": 454,
+        "key": "price\\_diag"
+      },
+      {
+        "file": "sec_label.tex",
+        "line": 777,
+        "key": "dragon\\_per\\_member"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 423,
+        "key": "audit"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 513,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 513,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 513,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 513,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 514,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 514,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 514,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 514,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 517,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 517,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 517,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 517,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 518,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 518,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 518,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 518,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 519,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 519,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 519,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 519,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 520,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 520,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 520,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 520,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 521,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 521,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 521,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 521,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 522,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 522,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 522,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 522,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 696,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 760,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 787,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 788,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 789,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 790,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 791,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 792,
+        "key": "learners"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 942,
+        "key": "sequence-arms"
+      },
+      {
+        "file": "sec_learners.tex",
+        "line": 1047,
+        "key": "learners"
+      },
+      {
+        "file": "sec_limitations.tex",
+        "line": 165,
+        "key": "rulefact"
+      },
+      {
+        "file": "sec_limitations.tex",
+        "line": 539,
+        "key": "learners"
+      }
+    ],
+    "new_run_path_mentions_noncomment": [],
+    "conclusion_exists": false,
+    "not_compiled_this_audit": true
+  },
+  "definition_spec": {
+    "scope": "pooled",
+    "patches": [
+      "15.14",
+      "15.15",
+      "15.16"
+    ],
+    "n_matches": 208141,
+    "n_intervals": 10417458,
+    "n_pairs_in_window": 5460008,
+    "gap_s": 13.724609610075618,
+    "gap_source": "valley",
+    "gap_ci_s": [
+      12.160114802037889,
+      15.667510701081493
+    ],
+    "gap_depth": 0.8659863557385548,
+    "gap_ok": true,
+    "gap_plateau_s": [
+      10.0,
+      18.0
+    ],
+    "plateau_ari": 0.9,
+    "diameter_u": 4263.868841984671,
+    "diameter_source": "crossover",
+    "diameter_ci_u": [
+      4256.0475062103815,
+      4273.967703556964
+    ],
+    "diameter_mass_near": 0.017330926987652765,
+    "validity_radius_u": 1600.0,
+    "radius_source": "rule:champion-death experience share radius",
+    "radius_coverage": null,
+    "min_per_team": 2,
+    "lead_s": 15.0,
+    "lead_source": "rule:kill/assist credit window (Summoner's Rift)",
+    "pick_max_min": 1,
+    "skirmish_max_min": 3,
+    "provenance": {
+      "created": "2026-09-09T11:38:34",
+      "seed": 7,
+      "n_boot": 200,
+      "bandwidth": 0.08,
+      "gaps_swept_s": [
+        6,
+        8,
+        10,
+        12,
+        13,
+        14,
+        15,
+        16,
+        18,
+        20,
+        22,
+        24,
+        27,
+        30,
+        36,
+        45,
+        60
+      ]
+    }
+  },
+  "older_similar_path_not_authoritative": {
+    "path": "D:\\LOL_Project\\fusion_2615\\features\\fight_boundary\\spec_pooled.json",
+    "n_matches": 8927
+  },
+  "legacy_queue": {
+    "c_saint_d32_pretrain5_published_config": {
+      "ok": true,
+      "running_marker": false
+    },
+    "d1_hparam_search_lightgbm": {
+      "ok": true,
+      "running_marker": false
+    },
+    "d2_hparam_search_deep": {
+      "ok": false,
+      "running_marker": true
+    },
+    "d3_hparam_search_summary": {
+      "ok": false,
+      "running_marker": false
+    }
+  },
+  "source_hashes": {
+    "C:\\Users\\todtj\\PycharmProjects\\LOL_teamfight\\config\\fight_boundary\\spec_pooled.json": "fe0d8eff10804e448d83b34d2bf3ced6ea0371a5ebdd83256db8e862c29f51c5",
+    "C:\\Users\\todtj\\PycharmProjects\\LOL_teamfight\\config\\fight_boundary\\drift.json": "32c1806a44994211b162d0589ac7d330032c677417fb3490532d7c34c358407b",
+    "C:\\Users\\todtj\\문서\\LOL_Teamfight\\outputs\\full_corpus_training_20260915\\protocol.json": "60e95dfadcedeed7f08c47e50f5379e14e7c6b4b31cb9724e8b88f8b1518b8ba",
+    "C:\\Users\\todtj\\문서\\LOL_Teamfight\\outputs\\full_corpus_training_20260915\\REPORT.md": "e456c47ae4b8b33dc20c0be5e8fa51bb5622b906b792f4d59df74de4e9668ffd",
+    "C:\\Users\\todtj\\문서\\LOL_Teamfight\\outputs\\full_corpus_training_20260915\\validation.json": "716bc9a0d4bf7a990055cb388ef2ac1fb4c708aaed65575db20b3a22546a4771",
+    "C:\\Users\\todtj\\문서\\LOL_Teamfight\\outputs\\cohort_role_training_20260915\\protocol.json": "76419cab9c83d71880f91790ffa5256e062df4711a581a57d7baa5ec665a6a81",
+    "C:\\Users\\todtj\\문서\\LOL_Teamfight\\outputs\\cohort_role_training_20260915\\REPORT.md": "dcafe38c5079cfcc7d3aa1b9d0225b50ef1a8bfa89b3ed139b6ccd8f1e067323",
+    "C:\\Users\\todtj\\문서\\LOL_Teamfight\\outputs\\cohort_role_training_20260915\\validation.json": "0c2f61f5abac71e8862b4f09ac073c4efb3991c821b4172d280fb415bffa79a6",
+    "C:\\Users\\todtj\\PycharmProjects\\LOL_teamfight\\docs\\tog_manuscript\\main.tex": "4d87b8b720c1aa0d07dd565559cdd52dba3759759685720be1ca557ddacbd9f0",
+    "C:\\Users\\todtj\\PycharmProjects\\LOL_teamfight\\docs\\tog_manuscript\\sec_label.tex": "611c27039b36879d843bb3e68243db14318f72797b96509fa042bf460fa16241",
+    "C:\\Users\\todtj\\PycharmProjects\\LOL_teamfight\\docs\\tog_manuscript\\REVISION_TODO.md": "69dd6768e67165208caa9e3b42e8e423156ab42481e9c6b214419f87a7b24e76",
+    "C:\\Users\\todtj\\문서\\LOL_Teamfight\\scripts\\audit_tog_readiness_20260915.py": "16544608f52d8e5248e9588a326f7b60c377fc6d69114f4d8efd7df1c877545d"
+  }
+}

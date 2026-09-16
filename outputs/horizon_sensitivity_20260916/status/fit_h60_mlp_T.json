@@ -1,0 +1,37 @@
+{
+ "group": "fit_h60_mlp_T",
+ "state": "complete",
+ "stage": "selected",
+ "pid": 40632,
+ "updated": "2026-09-16 02:33:52",
+ "elapsed_s": 29.6,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "next family / cohort / horizon, then freeze",
+ "chosen": "mlp_W128_D0.3__raw",
+ "selection_sha256": "439f0e67caa2109552f8c5a38b017dd12c77f93384e59587a41903abfb6dd1ef",
+ "seconds": 24.7,
+ "select_brier": {
+  "mlp_W128_D0.3__isotonic": 0.229366,
+  "mlp_W128_D0.3__raw": 0.22852,
+  "mlp_W128_D0.3__sigmoid": 0.228553
+ },
+ "history": [
+  {
+   "stage": "load",
+   "state": "running",
+   "at": "2026-09-16 02:33:22"
+  },
+  {
+   "stage": "fit_mlp_W128_D0.3",
+   "state": "running",
+   "at": "2026-09-16 02:33:26"
+  },
+  {
+   "stage": "selected",
+   "state": "complete",
+   "at": "2026-09-16 02:33:52"
+  }
+ ]
+}

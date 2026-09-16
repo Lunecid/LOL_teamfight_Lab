@@ -1,0 +1,12 @@
+{
+  "written_at": "2026-09-16 08:18:04",
+  "failed_check": "census_changed_lists_and_rebuild_summaries_consistent (validation run 1, 52/53 passed)",
+  "cause": "the check required census.matches_missing_in_dev == 0, but that census field counts matches that have NO row in the dev re-detection csv, i.e. matches without any engagement (5,637 TRAIN / 5,528 VALIDATION / 4,383 TEST ...), not matches that were skipped: the re-detection summaries show every match loaded with 0 errors (check dev_redetection_complete_no_errors passed).",
+  "fix": "the check now recomputes, from the parent exposures and the dev csv, the set of matches without exposures on each side and requires the two sets to be identical and their size to equal the census field; census.json (frozen-hashed) is unchanged. Only dd20260916_postrun_checks.py changed (not part of the frozen source-hash gate).",
+  "run2": {
+    "at": "2026-09-16 08:19:19",
+    "result": "52/53 passed; the corrected check still failed because it required the matches without exposures to be the same set under both definitions.",
+    "observation": "TRAIN: 5,549 matches have no parent exposures, 5,637 none under the dev definition: 88 matches lost every engagement (their only cluster no longer satisfies the validity rule after the longer gap merges kills); TEST 58, KR 16.13 10, NA1 15. The census had already classified them as changed matches (parent rows present, dev rows empty) and the rebuild dropped their parent rows, so the populations are right; only the check invariant was wrong.",
+    "fix": "invariant restated: matches without exposures on exactly one side must all be in the changed list (symmetric difference is a subset of changed), and the dev count equals the census field."
+  }
+}

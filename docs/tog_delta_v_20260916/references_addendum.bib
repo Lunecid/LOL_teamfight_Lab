@@ -1,0 +1,241 @@
+% Addendum to references.bib (2026-09-16 literature pass). Every entry carries `verified` (full | partial | abstract | standard)
+% and `annote` with the exact support limit. Metadata marked "to verify" must be checked against the publisher page before submission.
+
+@inproceedings{Xenopoulos2020,
+  author    = {Xenopoulos, Peter and Doraiswamy, Harish and Silva, Claudio},
+  title     = {Valuing Player Actions in Counter-Strike: Global Offensive},
+  booktitle = {2020 IEEE International Conference on Big Data (Big Data)},
+  year      = {2020},
+  note      = {arXiv:2011.01324},
+  url       = {https://arxiv.org/abs/2011.01324},
+  verified  = {full text (arXiv HTML v2); conference pages/DOI to verify},
+  annote    = {Supports: value of an observed damage event = difference of predicted round-win probability between consecutive states (WPA); the probability model is evaluated on a temporal holdout with log loss, Brier, AUC and calibration plots; value estimates depend on that model. Does not support: any LoL result, our window, prospective prediction.}
+}
+
+@inproceedings{Decroos2019,
+  author    = {Decroos, Tom and Bransen, Lotte and Van Haaren, Jan and Davis, Jesse},
+  title     = {Actions Speak Louder than Goals: Valuing Player Actions in Soccer},
+  booktitle = {Proceedings of the 25th ACM SIGKDD International Conference on Knowledge Discovery \& Data Mining},
+  year      = {2019},
+  note      = {arXiv:1802.07127},
+  url       = {https://arxiv.org/abs/1802.07127},
+  verified  = {full text (arXiv HTML v2); page numbers to verify},
+  annote    = {Supports: action value = change in P(score) minus change in P(concede) within the next k=10 actions; state truncated to the last three actions; Brier used for model selection; calibration required. Does not support: LoL, final-match-win targets, prospective prediction, causal reading.}
+}
+
+@article{Maymin2021,
+  author    = {Maymin, Philip Z.},
+  title     = {Smart kills and worthless deaths: eSports analytics for League of Legends},
+  journal   = {Journal of Quantitative Analysis in Sports},
+  volume    = {17},
+  number    = {1},
+  pages     = {11--27},
+  year      = {2021},
+  doi       = {10.1515/jqas-2019-0096},
+  verified  = {full text (author PDF); metadata from the 2026-09-16 citation audit},
+  annote    = {Supports: logistic in-game win probability on elapsed minutes and cumulative kills/towers/large monsters; one random minute per game to reduce within-game dependence; kills/deaths classified by the sign of the estimated win-probability change (post hoc). Does not support: our features, population, window, V, q, calibration results, causal claims.}
+}
+
+@inproceedings{Ke2022,
+  author    = {Ke, Chen Yang and others},
+  title     = {DOTA 2 match prediction through deep learning team fight models},
+  booktitle = {2022 IEEE Conference on Games (CoG)},
+  pages     = {96--103},
+  year      = {2022},
+  verified  = {abstract / institutional page only; author list, DOI and pages to verify},
+  annote    = {Supports (framing only): team fights defined procedurally from kills and proximity and used as a sequence to predict the MATCH result. Do not cite architectures, thresholds or accuracies from this entry until the full text is obtained.}
+}
+
+@inproceedings{Yang2014,
+  author    = {Yang, Pu and Harrison, Brent and Roberts, David L.},
+  title     = {Identifying Patterns in Combat that are Predictive of Success in MOBA Games},
+  booktitle = {Proceedings of the 9th International Conference on the Foundations of Digital Games (FDG)},
+  year      = {2014},
+  verified  = {abstract / index page only (PDF fetch failed)},
+  annote    = {Supports (framing only): combat represented as graphs over participants; graph patterns used to predict the match winner. No numbers to be cited.}
+}
+
+@inproceedings{Tot2021,
+  author    = {Tot, Marko and others},
+  title     = {What Are You Looking At? Team Fight Prediction Through Player Camera},
+  booktitle = {2021 IEEE Conference on Games (CoG)},
+  year      = {2021},
+  verified  = {abstract / institutional page only},
+  annote    = {Supports (framing only): team-fight occurrence prediction/detection from positions and player camera; a different task (detection) and an input we do not have. No numbers to be cited.}
+}
+
+@article{Ringer2023,
+  author    = {Ringer, Charles and others},
+  title     = {Time to Die 2: Improved in-game death prediction in Dota 2},
+  journal   = {Machine Learning with Applications},
+  volume    = {12},
+  pages     = {100466},
+  year      = {2023},
+  verified  = {abstract / repository page only (PDF fetch failed)},
+  annote    = {Supports (framing only): local short-horizon event prediction (player death within seconds) as a research lineage distinct from match-outcome prediction. No numbers to be cited.}
+}
+
+@inproceedings{Gu2021,
+  author    = {Gu, Yin and others},
+  title     = {NeuralAC: Learning Cooperation and Competition Effects for Match Outcome Prediction},
+  booktitle = {Proceedings of the AAAI Conference on Artificial Intelligence},
+  year      = {2021},
+  url       = {https://ojs.aaai.org/index.php/AAAI/article/view/16528},
+  verified  = {partial text; author list and headline numbers to re-verify},
+  annote    = {Supports (framing): roster-level match-outcome prediction with separate intra-team cooperation and inter-team competition terms and attention. The margin over a tuned LightGBM baseline reported by our reader was small; re-verify before quoting.}
+}
+
+@inproceedings{Rubachev2025,
+  author    = {Rubachev, Ivan and Kartashev, Nikolay and Gorishniy, Yury and Babenko, Artem},
+  title     = {TabReD: Analyzing Pitfalls and Filling the Gaps in Tabular Deep Learning Benchmarks},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2025},
+  note      = {arXiv:2406.19380},
+  url       = {https://arxiv.org/abs/2406.19380},
+  verified  = {full text (arXiv)},
+  annote    = {Supports: benchmark of industry-grade tabular datasets with time-based splits and many correlated engineered features; under such splits the GBDT advantage shrinks, MLP-with-embeddings is competitive, attention/retrieval models underperform; protocol = tuned budgets and 15 seeds. Does not report Brier/log loss.}
+}
+
+@inproceedings{Gorishniy2021,
+  author    = {Gorishniy, Yury and Rubachev, Ivan and Khrulkov, Valentin and Babenko, Artem},
+  title     = {Revisiting Deep Learning Models for Tabular Data},
+  booktitle = {Advances in Neural Information Processing Systems 34 (NeurIPS)},
+  year      = {2021},
+  note      = {arXiv:2106.11959},
+  url       = {https://arxiv.org/abs/2106.11959},
+  verified  = {full text (arXiv HTML v2)},
+  annote    = {Supports: FT-Transformer and a strong ResNet baseline under one tuning protocol; no universally superior family between GBDT and networks; FT-Transformer costs 1.3-3.5x a ResNet (more on wide inputs). Does not report probabilistic quality.}
+}
+
+@inproceedings{Gorishniy2025,
+  author    = {Gorishniy, Yury and Kotelnikov, Akim and Babenko, Artem},
+  title     = {TabM: Advancing Tabular Deep Learning with Parameter-Efficient Ensembling},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2025},
+  note      = {arXiv:2410.24210},
+  url       = {https://arxiv.org/abs/2410.24210},
+  verified  = {full text (arXiv)},
+  annote    = {Supports: parameter-efficient ensembling (BatchEnsemble-style adapters, k=32 default) inside one MLP; strong on random splits, GBDT more competitive on distribution-shift splits; cost modestly above a plain MLP. Code licence not verified.}
+}
+
+@inproceedings{Holzmuller2024,
+  author    = {Holzm{\"u}ller, David and Grinsztajn, L{\'e}o and Steinwart, Ingo},
+  title     = {Better by Default: Strong Pre-Tuned MLPs and Boosted Trees on Tabular Data},
+  booktitle = {Advances in Neural Information Processing Systems 37 (NeurIPS)},
+  year      = {2024},
+  note      = {arXiv:2407.04491},
+  url       = {https://arxiv.org/abs/2407.04491},
+  verified  = {full text (arXiv)},
+  annote    = {Supports: meta-tuned default MLP recipe (numerical embeddings, scaling, schedules) and improved GBDT defaults; explicit caveat that its label-smoothed cross-entropy is not a proper scoring rule. Package licence to verify.}
+}
+
+@inproceedings{Gorishniy2022,
+  author    = {Gorishniy, Yury and Rubachev, Ivan and Babenko, Artem},
+  title     = {On Embeddings for Numerical Features in Tabular Deep Learning},
+  booktitle = {Advances in Neural Information Processing Systems 35 (NeurIPS)},
+  year      = {2022},
+  note      = {arXiv:2203.05556},
+  url       = {https://arxiv.org/abs/2203.05556},
+  verified  = {full text (arXiv)},
+  annote    = {Supports: piecewise-linear and periodic numerical embeddings close much of the MLP-GBDT gap at modest cost. Does not report probabilistic quality.}
+}
+
+@article{Chen2022,
+  author    = {Chen, Hugh and Lundberg, Scott M. and Lee, Su-In},
+  title     = {Explaining a series of models by propagating Shapley values},
+  journal   = {Nature Communications},
+  volume    = {13},
+  pages     = {4512},
+  year      = {2022},
+  doi       = {10.1038/s41467-022-31384-3},
+  verified  = {full text},
+  annote    = {Supports: explaining a composition of models (upstream output feeds downstream) by propagating attributions through both stages with the same baseline pair, averaging over many background baselines; interventional lift; upstream output recomputed under masking. Warns that the method is for model debugging, not axiomatic or causal claims.}
+}
+
+@article{Aas2021,
+  author    = {Aas, Kjersti and Jullum, Martin and L{\o}land, Anders},
+  title     = {Explaining individual predictions when features are dependent: More accurate approximations to Shapley values},
+  journal   = {Artificial Intelligence},
+  year      = {2021},
+  note      = {arXiv:1903.10464; volume/article number to verify},
+  url       = {https://arxiv.org/abs/1903.10464},
+  verified  = {full text (arXiv)},
+  annote    = {Supports: marginal (independence) masking produces unrealistic feature combinations for dependent features and can misattribute; Gaussian, copula and empirical conditional estimators as alternatives. We use this to bound what our interventional explanations answer.}
+}
+
+@article{Fisher2019,
+  author    = {Fisher, Aaron and Rudin, Cynthia and Dominici, Francesca},
+  title     = {All Models are Wrong, but Many are Useful: Learning a Variable's Importance by Studying an Entire Class of Prediction Models Simultaneously},
+  journal   = {Journal of Machine Learning Research},
+  volume    = {20},
+  number    = {177},
+  pages     = {1--81},
+  year      = {2019},
+  url       = {https://jmlr.org/papers/v20/18-760.html},
+  verified  = {full text},
+  annote    = {Supports: model reliance (switch/permutation loss ratio), epsilon-Rashomon set, and model class reliance as the range over near-optimal models; reliance is not a causal effect. Our Rashomon analysis is an empirical set of fitted candidates, not the full class optimisation.}
+}
+
+@inproceedings{Jacobs2021,
+  author    = {Jacobs, Abigail Z. and Wallach, Hanna},
+  title     = {Measurement and Fairness},
+  booktitle = {Proceedings of the 2021 ACM Conference on Fairness, Accountability, and Transparency (FAccT)},
+  year      = {2021},
+  note      = {arXiv:1912.05511},
+  url       = {https://arxiv.org/abs/1912.05511},
+  verified  = {full text (arXiv)},
+  annote    = {Supports: construct / operationalization / measurement distinction and the reliability and validity vocabulary (content, convergent, discriminant, predictive, hypothesis, consequential, face). Used only for framing our label's validity table.}
+}
+
+@article{Dimitriadis2021,
+  author    = {Dimitriadis, Timo and Gneiting, Tilmann and Jordan, Alexander I.},
+  title     = {Stable reliability diagrams for probabilistic classifiers},
+  journal   = {Proceedings of the National Academy of Sciences},
+  year      = {2021},
+  note      = {arXiv:2008.03033; volume/issue to verify},
+  url       = {https://arxiv.org/abs/2008.03033},
+  verified  = {full text (arXiv)},
+  annote    = {Supports: CORP reliability diagrams via pool-adjacent-violators isotonic regression and the score decomposition miscalibration - discrimination + uncertainty. Not yet applied in this draft.}
+}
+
+@article{Gneiting2007,
+  author    = {Gneiting, Tilmann and Raftery, Adrian E.},
+  title     = {Strictly Proper Scoring Rules, Prediction, and Estimation},
+  journal   = {Journal of the American Statistical Association},
+  volume    = {102},
+  number    = {477},
+  pages     = {359--378},
+  year      = {2007},
+  verified  = {standard reference; not re-read in this pass},
+  annote    = {Supports: Brier score and log loss as strictly proper scoring rules for probability forecasts.}
+}
+
+@article{Che2018,
+  author    = {Che, Zhengping and Purushotham, Sanjay and Cho, Kyunghyun and Sontag, David and Liu, Yan},
+  title     = {Recurrent Neural Networks for Multivariate Time Series with Missing Values},
+  journal   = {Scientific Reports},
+  volume    = {8},
+  pages     = {6085},
+  year      = {2018},
+  note      = {arXiv:1606.01865},
+  verified  = {full text (arXiv)},
+  annote    = {Supports: GRU-D input/hidden decay from time-since-last-observation and masks; gains under informative missingness only. Reserved for a representation track; not cited in the proposed §2.}
+}
+
+@inproceedings{Lee2019,
+  author    = {Lee, Juho and Lee, Yoonho and Kim, Jungtaek and Kosiorek, Adam R. and Choi, Seungjin and Teh, Yee Whye},
+  title     = {Set Transformer: A Framework for Attention-based Permutation-Invariant Neural Networks},
+  booktitle = {Proceedings of the 36th International Conference on Machine Learning (PMLR 97)},
+  year      = {2019},
+  verified  = {full text},
+  annote    = {Supports: permutation-invariant attention blocks (SAB, ISAB, PMA); useful when interactions among set elements matter. Reserved for a representation track.}
+}
+
+@inproceedings{Zaheer2017,
+  author    = {Zaheer, Manzil and Kottur, Satwik and Ravanbakhsh, Siamak and P{\'o}czos, Barnab{\'a}s and Salakhutdinov, Ruslan and Smola, Alexander J.},
+  title     = {Deep Sets},
+  booktitle = {Advances in Neural Information Processing Systems 30 (NeurIPS)},
+  year      = {2017},
+  verified  = {full text},
+  annote    = {Supports: sum-decomposition of permutation-invariant functions. Reserved for a representation track.}
+}

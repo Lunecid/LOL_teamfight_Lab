@@ -1,0 +1,74 @@
+{
+ "group": "eval_v",
+ "state": "complete",
+ "stage": "eval_v",
+ "pid": 36668,
+ "updated": "2026-09-15 16:35:41",
+ "elapsed_s": 66.2,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "labels",
+ "history": [
+  {
+   "stage": "w_eval_MAIN_TEST",
+   "state": "running",
+   "at": "2026-09-15 16:34:35"
+  },
+  {
+   "stage": "bootstrap_MAIN_TEST",
+   "state": "running",
+   "at": "2026-09-15 16:34:55"
+  },
+  {
+   "stage": "w_eval_EXT_KR_16.13",
+   "state": "running",
+   "at": "2026-09-15 16:34:56"
+  },
+  {
+   "stage": "w_eval_EXT_KR_16.14_pilot",
+   "state": "running",
+   "at": "2026-09-15 16:34:59"
+  },
+  {
+   "stage": "w_eval_EXT_KR_16.15",
+   "state": "running",
+   "at": "2026-09-15 16:34:59"
+  },
+  {
+   "stage": "w_eval_EXT_NA1_16.13",
+   "state": "running",
+   "at": "2026-09-15 16:34:59"
+  },
+  {
+   "stage": "w_eval_MAIN_V_SELECT",
+   "state": "running",
+   "at": "2026-09-15 16:35:02"
+  },
+  {
+   "stage": "w_eval_MAIN_V_CAL",
+   "state": "running",
+   "at": "2026-09-15 16:35:11"
+  },
+  {
+   "stage": "w_eval_MAIN_Q_CAL",
+   "state": "running",
+   "at": "2026-09-15 16:35:20"
+  },
+  {
+   "stage": "w_eval_MAIN_Q_SELECT",
+   "state": "running",
+   "at": "2026-09-15 16:35:28"
+  },
+  {
+   "stage": "heldout_train",
+   "state": "running",
+   "at": "2026-09-15 16:35:37"
+  },
+  {
+   "stage": "eval_v",
+   "state": "complete",
+   "at": "2026-09-15 16:35:41"
+  }
+ ]
+}

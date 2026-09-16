@@ -1,0 +1,189 @@
+{
+ "group": "driver_smoke",
+ "state": "complete",
+ "stage": "smoke",
+ "pid": 35752,
+ "updated": "2026-09-16 04:17:45",
+ "elapsed_s": 241.8,
+ "processed": 34,
+ "total": 34,
+ "error": null,
+ "next_step": "next plan",
+ "history": [
+  {
+   "stage": "fit_smoke_T_logit_base",
+   "state": "running",
+   "at": "2026-09-16 04:13:43"
+  },
+  {
+   "stage": "fit_smoke_T_logit_tags",
+   "state": "running",
+   "at": "2026-09-16 04:13:47"
+  },
+  {
+   "stage": "fit_smoke_T_logit_class_state",
+   "state": "running",
+   "at": "2026-09-16 04:13:52"
+  },
+  {
+   "stage": "fit_smoke_T_logit_class_pairs",
+   "state": "running",
+   "at": "2026-09-16 04:13:56"
+  },
+  {
+   "stage": "fit_smoke_T_logit_identity",
+   "state": "running",
+   "at": "2026-09-16 04:14:01"
+  },
+  {
+   "stage": "fit_smoke_T_logit_class_pairs_identity",
+   "state": "running",
+   "at": "2026-09-16 04:14:06"
+  },
+  {
+   "stage": "fit_smoke_T_logit_draft_class",
+   "state": "running",
+   "at": "2026-09-16 04:14:12"
+  },
+  {
+   "stage": "fit_smoke_T_logit_draft_identity",
+   "state": "running",
+   "at": "2026-09-16 04:14:17"
+  },
+  {
+   "stage": "fit_smoke_T_lgbm_base",
+   "state": "running",
+   "at": "2026-09-16 04:14:22"
+  },
+  {
+   "stage": "fit_smoke_T_lgbm_tags",
+   "state": "running",
+   "at": "2026-09-16 04:14:27"
+  },
+  {
+   "stage": "fit_smoke_T_lgbm_class_state",
+   "state": "running",
+   "at": "2026-09-16 04:14:33"
+  },
+  {
+   "stage": "fit_smoke_T_lgbm_class_pairs",
+   "state": "running",
+   "at": "2026-09-16 04:14:38"
+  },
+  {
+   "stage": "fit_smoke_T_lgbm_identity",
+   "state": "running",
+   "at": "2026-09-16 04:14:44"
+  },
+  {
+   "stage": "fit_smoke_T_lgbm_class_pairs_identity",
+   "state": "running",
+   "at": "2026-09-16 04:14:50"
+  },
+  {
+   "stage": "fit_smoke_T_lgbm_draft_class",
+   "state": "running",
+   "at": "2026-09-16 04:14:57"
+  },
+  {
+   "stage": "fit_smoke_T_lgbm_draft_identity",
+   "state": "running",
+   "at": "2026-09-16 04:15:02"
+  },
+  {
+   "stage": "fit_smoke_N_logit_base",
+   "state": "running",
+   "at": "2026-09-16 04:15:07"
+  },
+  {
+   "stage": "fit_smoke_N_logit_tags",
+   "state": "running",
+   "at": "2026-09-16 04:15:12"
+  },
+  {
+   "stage": "fit_smoke_N_logit_class_state",
+   "state": "running",
+   "at": "2026-09-16 04:15:18"
+  },
+  {
+   "stage": "fit_smoke_N_logit_class_pairs",
+   "state": "running",
+   "at": "2026-09-16 04:15:24"
+  },
+  {
+   "stage": "fit_smoke_N_logit_identity",
+   "state": "running",
+   "at": "2026-09-16 04:15:31"
+  },
+  {
+   "stage": "fit_smoke_N_logit_class_pairs_identity",
+   "state": "running",
+   "at": "2026-09-16 04:15:41"
+  },
+  {
+   "stage": "fit_smoke_N_logit_draft_class",
+   "state": "running",
+   "at": "2026-09-16 04:15:54"
+  },
+  {
+   "stage": "fit_smoke_N_logit_draft_identity",
+   "state": "running",
+   "at": "2026-09-16 04:16:00"
+  },
+  {
+   "stage": "fit_smoke_N_lgbm_base",
+   "state": "running",
+   "at": "2026-09-16 04:16:08"
+  },
+  {
+   "stage": "fit_smoke_N_lgbm_tags",
+   "state": "running",
+   "at": "2026-09-16 04:16:16"
+  },
+  {
+   "stage": "fit_smoke_N_lgbm_class_state",
+   "state": "running",
+   "at": "2026-09-16 04:16:24"
+  },
+  {
+   "stage": "fit_smoke_N_lgbm_class_pairs",
+   "state": "running",
+   "at": "2026-09-16 04:16:33"
+  },
+  {
+   "stage": "fit_smoke_N_lgbm_identity",
+   "state": "running",
+   "at": "2026-09-16 04:16:42"
+  },
+  {
+   "stage": "fit_smoke_N_lgbm_class_pairs_identity",
+   "state": "running",
+   "at": "2026-09-16 04:16:53"
+  },
+  {
+   "stage": "fit_smoke_N_lgbm_draft_class",
+   "state": "running",
+   "at": "2026-09-16 04:17:06"
+  },
+  {
+   "stage": "fit_smoke_N_lgbm_draft_identity",
+   "state": "running",
+   "at": "2026-09-16 04:17:12"
+  },
+  {
+   "stage": "freeze_smoke",
+   "state": "running",
+   "at": "2026-09-16 04:17:19"
+  },
+  {
+   "stage": "evaluate_smoke",
+   "state": "running",
+   "at": "2026-09-16 04:17:31"
+  },
+  {
+   "stage": "smoke",
+   "state": "complete",
+   "at": "2026-09-16 04:17:45"
+  }
+ ]
+}

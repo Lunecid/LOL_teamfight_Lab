@@ -307,3 +307,17 @@ poetry.toml
 pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/pycharm,python
+
+# Research snapshot: local data and assistant runtime stay local
+.codex/
+.agents/
+.tmp/
+worktrees/
+*.env
+!*.env.example
+*.pt
+*.pkl
+*.joblib
+*.parquet
+*.npz
+*.npy

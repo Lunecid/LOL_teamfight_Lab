@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from core.config import cfg
+from core.config import GLOBAL_IDX, cfg
 from core.common import Any, Dict, List, Optional, Tuple, np
 from core.timeutils import _get_bin_ms, _get_context_ms, _get_horizon_ms
 from gameplay.event_aggregation import aggregate_events as _aggregate_events
@@ -19,6 +19,7 @@ from gameplay.pipeline_cache import (
     parse_timeline_to_minute_cache,
 )
 from gameplay.pipeline_interp import (
+    interpolate_abs_xy,
     _interp_xy_guarded,
     _prev_snapshot_idx,
     global_from_prev_snapshot,
@@ -51,6 +52,7 @@ def compute_label(
     horizon_ms: Optional[int] = None,
     first_kill_ts: Optional[int] = None,
     last_kill_ts: Optional[int] = None,
+    anchor_xy=None,
 ) -> Optional[int]:
     return _compute_label(
         cache,
@@ -62,6 +64,7 @@ def compute_label(
         first_kill_ts=first_kill_ts,
         last_kill_ts=last_kill_ts,
         interp_node_global=interpolate_node_global,
+        anchor_xy=anchor_xy,
     )
 
 
@@ -75,6 +78,7 @@ def compute_label_targets(
     horizon_ms: Optional[int] = None,
     first_kill_ts: Optional[int] = None,
     last_kill_ts: Optional[int] = None,
+    anchor_xy=None,
 ) -> Optional[Dict[str, float]]:
     return _compute_label_targets(
         cache,
@@ -86,6 +90,7 @@ def compute_label_targets(
         first_kill_ts=first_kill_ts,
         last_kill_ts=last_kill_ts,
         interp_node_global=interpolate_node_global,
+        anchor_xy=anchor_xy,
     )
 
 
@@ -102,6 +107,7 @@ def build_ms_sequence(
     bin_ms: Optional[int] = None,
     horizon_ms: Optional[int] = None,
     prediction_gap_ms: Optional[int] = None,
+    anchor_xy=None,
 ) -> Optional[Dict[str, Any]]:
     if ctx_ms is None:
         ctx_ms = _get_context_ms()
@@ -150,6 +156,7 @@ def build_ms_sequence(
         return None
 
     glob_seq, node_seq, ev_seq, item_seq = [], [], [], []
+    xy_abs_seq = []
     glob_snap_ts_seq: List[int] = []
     node_max_snapshot_ms: Optional[int] = None
     if engage_ts is not None and engage_ts >= 0:
@@ -165,11 +172,19 @@ def build_ms_sequence(
             q,
             max_snapshot_ms=node_max_snapshot_ms,
         )
+        xy_abs_seq.append(interpolate_abs_xy(cache, q, max_snapshot_ms=node_max_snapshot_ms))
         g_ref_ms = int(q)
         if engage_ts is not None and engage_ts >= 0:
             g_ref_ms = min(int(g_ref_ms), int(label_start_ms) - 1)
         glob_i, g_ts = global_from_prev_snapshot(cache, g_ref_ms, strict_before=True)
         glob_snap_ts_seq.append(int(g_ts))
+        if bool(getattr(cfg, "TIME_NORM_ABSOLUTE", True)):
+            # the snapshot carries the cached t / (T - 1); rewrite as absolute game time
+            tj = GLOBAL_IDX.get("time_norm", None)
+            if tj is not None and int(tj) < len(glob_i):
+                denom_ms = float(getattr(cfg, "TIME_NORM_DENOM_MIN", 45.0)) * 60000.0
+                glob_i = np.asarray(glob_i, dtype=np.float32).copy()
+                glob_i[int(tj)] = float(np.clip(float(q) / max(1.0, denom_ms), 0.0, 1.0))
         ev_i, it_i = aggregate_events(cache, tm, b0, b1)
 
         node_seq.append(node_i)
@@ -187,6 +202,7 @@ def build_ms_sequence(
             horizon_ms=horizon_ms,
             first_kill_ts=first_kill_ts,
             last_kill_ts=last_kill_ts,
+            anchor_xy=anchor_xy,
         )
     else:
         y_pack = compute_label_targets(
@@ -198,6 +214,7 @@ def build_ms_sequence(
             horizon_ms=horizon_ms,
             first_kill_ts=first_kill_ts,
             last_kill_ts=last_kill_ts,
+            anchor_xy=anchor_xy,
         )
 
     if y_pack is None:
@@ -256,7 +273,14 @@ def build_ms_sequence(
         )
         sample.update(tok)
 
-    anchors = cache.get("meta", {}).get("anchors", None)
-    if isinstance(anchors, dict):
-        sample["anchors"] = anchors
+    sample["xy_abs_seq"] = np.stack(xy_abs_seq, axis=0).astype(np.float32)   # (L, 10, 2), absolute, normalised
+    if bool(getattr(cfg, "ANCHORS_CAUSAL", True)):
+        from gameplay.anchors import causal_anchors
+        cutoff_ms = int(label_start_ms) - 1 if (engage_ts is not None and engage_ts >= 0) else int(end_ms)
+        sample["anchors"] = causal_anchors(cache, cutoff_ms)
+        sample["anchor_is_norm"] = False
+    else:
+        anchors = cache.get("meta", {}).get("anchors", None)
+        if isinstance(anchors, dict):
+            sample["anchors"] = anchors
     return sample

@@ -1,0 +1,22 @@
+{
+ "group": "report",
+ "state": "complete",
+ "stage": "report",
+ "pid": 35300,
+ "updated": "2026-09-15 15:02:14",
+ "elapsed_s": 0.0,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "none (task complete)",
+ "report_sha256": "dcafe38c5079cfcc7d3aa1b9d0225b50ef1a8bfa89b3ed139b6ccd8f1e067323",
+ "definitions_sha256": "a6953929f0977781492cd3d3d88472a0831cae5f5d887c2c2233a0e95c2158e5",
+ "validation_failed": [],
+ "history": [
+  {
+   "stage": "report",
+   "state": "complete",
+   "at": "2026-09-15 15:02:14"
+  }
+ ]
+}

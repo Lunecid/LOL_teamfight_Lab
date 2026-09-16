@@ -1,0 +1,28 @@
+{
+ "group": "redetect_EXT_KR_16.15_dev",
+ "state": "complete",
+ "stage": "written",
+ "pid": 2208,
+ "updated": "2026-09-16 08:09:32",
+ "elapsed_s": 11.1,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "census",
+ "rows": 2193,
+ "errors": 0,
+ "mismatching": null,
+ "seconds": 11.0,
+ "history": [
+  {
+   "stage": "detect",
+   "state": "running",
+   "at": "2026-09-16 08:09:21"
+  },
+  {
+   "stage": "written",
+   "state": "complete",
+   "at": "2026-09-16 08:09:32"
+  }
+ ]
+}

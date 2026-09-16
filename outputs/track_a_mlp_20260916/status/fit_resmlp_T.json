@@ -1,0 +1,101 @@
+{
+ "group": "fit_resmlp_T",
+ "state": "complete",
+ "stage": "selected",
+ "pid": 25868,
+ "updated": "2026-09-16 00:55:29",
+ "elapsed_s": 294.3,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "next family/cohort, then freeze",
+ "chosen": "resmlp_W128_D0.1__raw",
+ "selection_sha256": "d5f218f1e4711ec58971a78dde6556f3818e756cdb62bd330578214d14252a37",
+ "seconds": 288.6,
+ "top3": [
+  [
+   "resmlp_W128_D0.1__raw",
+   0.229131
+  ],
+  [
+   "resmlp_W128_D0.1__sigmoid",
+   0.229201
+  ],
+  [
+   "resmlp_W256_D0.3__raw",
+   0.229207
+  ]
+ ],
+ "history": [
+  {
+   "stage": "load",
+   "state": "running",
+   "at": "2026-09-16 00:50:35"
+  },
+  {
+   "stage": "fit_resmlp_W128_D0.1",
+   "state": "running",
+   "at": "2026-09-16 00:50:39"
+  },
+  {
+   "stage": "fitted_resmlp_W128_D0.1",
+   "state": "running",
+   "at": "2026-09-16 00:51:23"
+  },
+  {
+   "stage": "fit_resmlp_W128_D0.3",
+   "state": "running",
+   "at": "2026-09-16 00:51:23"
+  },
+  {
+   "stage": "fitted_resmlp_W128_D0.3",
+   "state": "running",
+   "at": "2026-09-16 00:52:14"
+  },
+  {
+   "stage": "fit_resmlp_W256_D0.1",
+   "state": "running",
+   "at": "2026-09-16 00:52:14"
+  },
+  {
+   "stage": "fitted_resmlp_W256_D0.1",
+   "state": "running",
+   "at": "2026-09-16 00:52:50"
+  },
+  {
+   "stage": "fit_resmlp_W256_D0.3",
+   "state": "running",
+   "at": "2026-09-16 00:52:50"
+  },
+  {
+   "stage": "fitted_resmlp_W256_D0.3",
+   "state": "running",
+   "at": "2026-09-16 00:53:45"
+  },
+  {
+   "stage": "fit_resmlp_W512_D0.1",
+   "state": "running",
+   "at": "2026-09-16 00:53:45"
+  },
+  {
+   "stage": "fitted_resmlp_W512_D0.1",
+   "state": "running",
+   "at": "2026-09-16 00:54:38"
+  },
+  {
+   "stage": "fit_resmlp_W512_D0.3",
+   "state": "running",
+   "at": "2026-09-16 00:54:38"
+  },
+  {
+   "stage": "fitted_resmlp_W512_D0.3",
+   "state": "running",
+   "at": "2026-09-16 00:55:25"
+  },
+  {
+   "stage": "selected",
+   "state": "complete",
+   "at": "2026-09-16 00:55:29"
+  }
+ ]
+}

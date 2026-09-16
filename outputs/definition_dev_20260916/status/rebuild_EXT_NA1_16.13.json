@@ -1,0 +1,33 @@
+{
+ "group": "rebuild_EXT_NA1_16.13",
+ "state": "complete",
+ "stage": "assembled",
+ "pid": 13876,
+ "updated": "2026-09-16 08:15:16",
+ "elapsed_s": 8.9,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "next set / fit",
+ "changed_matches": 401,
+ "parent_rows_copied": 25072,
+ "rebuilt_rows": 1247,
+ "dev_rows": 26319,
+ "history": [
+  {
+   "stage": "items",
+   "state": "running",
+   "at": "2026-09-16 08:15:07"
+  },
+  {
+   "stage": "extract",
+   "state": "running",
+   "at": "2026-09-16 08:15:10"
+  },
+  {
+   "stage": "assembled",
+   "state": "complete",
+   "at": "2026-09-16 08:15:16"
+  }
+ ]
+}

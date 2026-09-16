@@ -1,0 +1,59 @@
+{
+ "group": "driver_smoke",
+ "state": "failed",
+ "stage": "evaluate_smoke",
+ "pid": 31808,
+ "updated": "2026-09-15 20:40:04",
+ "elapsed_s": 77.2,
+ "processed": 7,
+ "total": 8,
+ "error": "evaluate_smoke returncode 3",
+ "next_step": "inspect logs; failure retained",
+ "history": [
+  {
+   "stage": "fit_smoke_T_pt",
+   "state": "running",
+   "at": "2026-09-15 20:38:47"
+  },
+  {
+   "stage": "fit_smoke_T_logit",
+   "state": "running",
+   "at": "2026-09-15 20:38:52"
+  },
+  {
+   "stage": "fit_smoke_T_lgbm",
+   "state": "running",
+   "at": "2026-09-15 20:38:58"
+  },
+  {
+   "stage": "fit_smoke_N_pt",
+   "state": "running",
+   "at": "2026-09-15 20:39:11"
+  },
+  {
+   "stage": "fit_smoke_N_logit",
+   "state": "running",
+   "at": "2026-09-15 20:39:17"
+  },
+  {
+   "stage": "fit_smoke_N_lgbm",
+   "state": "running",
+   "at": "2026-09-15 20:39:32"
+  },
+  {
+   "stage": "freeze_smoke",
+   "state": "running",
+   "at": "2026-09-15 20:39:58"
+  },
+  {
+   "stage": "evaluate_smoke",
+   "state": "running",
+   "at": "2026-09-15 20:40:04"
+  },
+  {
+   "stage": "evaluate_smoke",
+   "state": "failed",
+   "at": "2026-09-15 20:40:04"
+  }
+ ]
+}

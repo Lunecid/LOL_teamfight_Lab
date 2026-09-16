@@ -1,0 +1,93 @@
+{
+ "sha256_track_a": {
+  "checked": 189,
+  "changed": [],
+  "removed": [],
+  "added": [],
+  "equal": true
+ },
+ "sha256_incremental_q": {
+  "checked": 267,
+  "changed": [],
+  "removed": [],
+  "added": [],
+  "equal": true
+ },
+ "sha256_horizon_sensitivity": {
+  "checked": 327,
+  "changed": [],
+  "removed": [],
+  "added": [],
+  "equal": true
+ },
+ "sha256_cohort_role": {
+  "checked": 402,
+  "changed": [],
+  "removed": [],
+  "added": [],
+  "equal": true
+ },
+ "sha256_full_corpus_read_targets": {
+  "checked": 51,
+  "changed": [],
+  "removed": [],
+  "added": [],
+  "equal": true
+ },
+ "inventory_full_corpus": {
+  "checked": 66854,
+  "changed": [],
+  "removed": [],
+  "added": [],
+  "equal": true
+ },
+ "sha256_parent_scripts": {
+  "checked": 139,
+  "changed": [],
+  "removed": [],
+  "added": [],
+  "equal": true
+ },
+ "sha256_parent_tests": {
+  "checked": 20,
+  "changed": [],
+  "removed": [],
+  "added": [],
+  "equal": true
+ },
+ "inventory_docs": {
+  "checked": 74,
+  "changed": [],
+  "removed": [],
+  "added": [],
+  "equal": true
+ },
+ "pycache_scripts": {
+  "checked": 22,
+  "changed": [],
+  "removed": [],
+  "added": [],
+  "equal": true
+ },
+ "pycache_tests": {
+  "checked": 15,
+  "changed": [],
+  "removed": [],
+  "added": [],
+  "equal": true
+ },
+ "main_cache_dir_stat": {
+  "equal": true,
+  "before": {
+   "files": 630000,
+   "bytes": 64170597264,
+   "max_mtime_ns": 1772610773505905100
+  },
+  "after": {
+   "files": 630000,
+   "bytes": 64170597264,
+   "max_mtime_ns": 1772610773505905100
+  }
+ },
+ "all_equal": true
+}

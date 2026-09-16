@@ -1,0 +1,190 @@
+{
+  "source": "https://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/champion.json",
+  "fetched_at": "2026-09-16 03:45:08",
+  "approved_by": "user, 2026-09-16 (chat)",
+  "credentials": "none (public static CDN)",
+  "files": {
+    "15.14.1": {
+      "url": "https://ddragon.leagueoflegends.com/cdn/15.14.1/data/en_US/champion.json",
+      "bytes": 157441,
+      "sha256": "27d34bacddb39430d3c57e98ab61b74428a056040e5b41ee7cd3ab2b1576fcf1",
+      "n_champions": 171,
+      "ddragon_version": "15.14.1"
+    },
+    "15.15.1": {
+      "url": "https://ddragon.leagueoflegends.com/cdn/15.15.1/data/en_US/champion.json",
+      "bytes": 157443,
+      "sha256": "e8a288b77c4dffd01386e34046d298f74d06c5234b3fac9b0fcc62be21ffc124",
+      "n_champions": 171,
+      "ddragon_version": "15.15.1"
+    },
+    "15.16.1": {
+      "url": "https://ddragon.leagueoflegends.com/cdn/15.16.1/data/en_US/champion.json",
+      "bytes": 157447,
+      "sha256": "13888ccf953dff69292bb953b6aaf8fb994ff00adfa801432e8125543dbeba42",
+      "n_champions": 171,
+      "ddragon_version": "15.16.1"
+    },
+    "15.17.1": {
+      "url": "https://ddragon.leagueoflegends.com/cdn/15.17.1/data/en_US/champion.json",
+      "bytes": 157446,
+      "sha256": "a8be3aa3726bc17b05442007ab46badb2574c59887a837b32e0fab0a4fed3302",
+      "n_champions": 171,
+      "ddragon_version": "15.17.1"
+    },
+    "15.18.1": {
+      "url": "https://ddragon.leagueoflegends.com/cdn/15.18.1/data/en_US/champion.json",
+      "bytes": 157446,
+      "sha256": "4aaeb3766aeb8c458c3c2cdc289f76d6d17f81da1e928a4241fced31045367d8",
+      "n_champions": 171,
+      "ddragon_version": "15.18.1"
+    },
+    "15.19.1": {
+      "url": "https://ddragon.leagueoflegends.com/cdn/15.19.1/data/en_US/champion.json",
+      "bytes": 157444,
+      "sha256": "7cd077d7a056e3fd79357d53e92225cf40a89075ec521a7742590a17a361acb2",
+      "n_champions": 171,
+      "ddragon_version": "15.19.1"
+    },
+    "15.20.1": {
+      "url": "https://ddragon.leagueoflegends.com/cdn/15.20.1/data/en_US/champion.json",
+      "bytes": 157443,
+      "sha256": "6509e9526d2db309fa4545279904495a76331e0776c621be64a3d8e5a93bb38e",
+      "n_champions": 171,
+      "ddragon_version": "15.20.1"
+    },
+    "15.21.1": {
+      "url": "https://ddragon.leagueoflegends.com/cdn/15.21.1/data/en_US/champion.json",
+      "bytes": 157445,
+      "sha256": "de0ffaf524b7d800000d546ce35b763f033d20438497c9fa5247143cb01a6df2",
+      "n_champions": 171,
+      "ddragon_version": "15.21.1"
+    },
+    "15.22.1": {
+      "url": "https://ddragon.leagueoflegends.com/cdn/15.22.1/data/en_US/champion.json",
+      "bytes": 157445,
+      "sha256": "c32df84b1a1beab271d47ef145a0d2eae6776ec29589f3f20eea0adff197dfde",
+      "n_champions": 171,
+      "ddragon_version": "15.22.1"
+    },
+    "15.23.1": {
+      "url": "https://ddragon.leagueoflegends.com/cdn/15.23.1/data/en_US/champion.json",
+      "bytes": 158369,
+      "sha256": "997b7eb4770bf892e8635990cf7842d908f699f40cfe1d0fb513a943f4b6ceae",
+      "n_champions": 172,
+      "ddragon_version": "15.23.1"
+    },
+    "15.24.1": {
+      "url": "https://ddragon.leagueoflegends.com/cdn/15.24.1/data/en_US/champion.json",
+      "bytes": 158369,
+      "sha256": "a5e598fbfb80315b0665d5142dd1bba641463bb55190cc8d0094f260eccb9bf9",
+      "n_champions": 172,
+      "ddragon_version": "15.24.1"
+    },
+    "16.1.1": {
+      "url": "https://ddragon.leagueoflegends.com/cdn/16.1.1/data/en_US/champion.json",
+      "bytes": 158178,
+      "sha256": "d35272b230ee7f261125774e1e990206e51a01b811bac70cf894290c1285f756",
+      "n_champions": 172,
+      "ddragon_version": "16.1.1"
+    },
+    "16.2.1": {
+      "url": "https://ddragon.leagueoflegends.com/cdn/16.2.1/data/en_US/champion.json",
+      "bytes": 158180,
+      "sha256": "77699a8f593a8ffb1ecfe7487501f6062f6b4e4aaa56aee1e94018cee6953ed3",
+      "n_champions": 172,
+      "ddragon_version": "16.2.1"
+    },
+    "16.3.1": {
+      "url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/data/en_US/champion.json",
+      "bytes": 158189,
+      "sha256": "11cadf35a0d5a26b3ac8ace2ab6ca9748a0ec06f0659277bf1db1c87f31f532b",
+      "n_champions": 172,
+      "ddragon_version": "16.3.1"
+    },
+    "16.4.1": {
+      "url": "https://ddragon.leagueoflegends.com/cdn/16.4.1/data/en_US/champion.json",
+      "bytes": 158187,
+      "sha256": "830f10ccb361cf93386a729dd36f737a8df561fcb4024abe106d9f5a88da8722",
+      "n_champions": 172,
+      "ddragon_version": "16.4.1"
+    },
+    "16.5.1": {
+      "url": "https://ddragon.leagueoflegends.com/cdn/16.5.1/data/en_US/champion.json",
+      "bytes": 157949,
+      "sha256": "788fa2f500fb8a2f50d3839593933e6e01979638dcadd782c69770fb278040ae",
+      "n_champions": 172,
+      "ddragon_version": "16.5.1"
+    },
+    "16.6.1": {
+      "url": "https://ddragon.leagueoflegends.com/cdn/16.6.1/data/en_US/champion.json",
+      "bytes": 157943,
+      "sha256": "ee42e7e1a610d482770a9825349e87feee35abd648c4b733e921372b3e163331",
+      "n_champions": 172,
+      "ddragon_version": "16.6.1"
+    },
+    "16.7.1": {
+      "url": "https://ddragon.leagueoflegends.com/cdn/16.7.1/data/en_US/champion.json",
+      "bytes": 157941,
+      "sha256": "fbf67958f54f46871a0dbaae68cf265a4f8761cf3a7203c2e0aba30d81d0653c",
+      "n_champions": 172,
+      "ddragon_version": "16.7.1"
+    },
+    "16.8.1": {
+      "url": "https://ddragon.leagueoflegends.com/cdn/16.8.1/data/en_US/champion.json",
+      "bytes": 157941,
+      "sha256": "370c454c9e631f4608b664592fa77b2c26d6717e23b7b920eb36237c4589c626",
+      "n_champions": 172,
+      "ddragon_version": "16.8.1"
+    },
+    "16.9.1": {
+      "url": "https://ddragon.leagueoflegends.com/cdn/16.9.1/data/en_US/champion.json",
+      "bytes": 157940,
+      "sha256": "f8125967975f45cbc01e0c7b9186fe93c1063afe5c809b5cd4f3e45ca4bfadc4",
+      "n_champions": 172,
+      "ddragon_version": "16.9.1"
+    },
+    "16.10.1": {
+      "url": "https://ddragon.leagueoflegends.com/cdn/16.10.1/data/en_US/champion.json",
+      "bytes": 158112,
+      "sha256": "530ca6f3b097ed86ee149b5f73ceefa02324234ae2d45fe704342de624d44ca1",
+      "n_champions": 172,
+      "ddragon_version": "16.10.1"
+    },
+    "16.11.1": {
+      "url": "https://ddragon.leagueoflegends.com/cdn/16.11.1/data/en_US/champion.json",
+      "bytes": 158111,
+      "sha256": "eec3b4e4d823696b744e22291faf5c02339f13d68ce874a3af6d378a5e30bfbd",
+      "n_champions": 172,
+      "ddragon_version": "16.11.1"
+    },
+    "16.12.1": {
+      "url": "https://ddragon.leagueoflegends.com/cdn/16.12.1/data/en_US/champion.json",
+      "bytes": 158111,
+      "sha256": "e085e6da28a4f2d9f80de746157e6ad4b5eda1f202c8caf831971842d8e02ee3",
+      "n_champions": 172,
+      "ddragon_version": "16.12.1"
+    },
+    "16.13.1": {
+      "url": "https://ddragon.leagueoflegends.com/cdn/16.13.1/data/en_US/champion.json",
+      "bytes": 159026,
+      "sha256": "0c849c4b396ae34f0c0ae09010cbf8462fb5352b6489ea63f897e067740dc51c",
+      "n_champions": 173,
+      "ddragon_version": "16.13.1"
+    },
+    "16.14.1": {
+      "url": "https://ddragon.leagueoflegends.com/cdn/16.14.1/data/en_US/champion.json",
+      "bytes": 159026,
+      "sha256": "19717cae1dd13aa448c6be423723ee57d787b34161e843a82c9ca03100dc9220",
+      "n_champions": 173,
+      "ddragon_version": "16.14.1"
+    },
+    "16.15.1": {
+      "url": "https://ddragon.leagueoflegends.com/cdn/16.15.1/data/en_US/champion.json",
+      "bytes": 207090,
+      "sha256": "152a1dad202b314b419f5f0952b8415b26b3830a18bd4a19f9eb6dc3c806c6c9",
+      "n_champions": 233,
+      "ddragon_version": "16.15.1"
+    }
+  }
+}

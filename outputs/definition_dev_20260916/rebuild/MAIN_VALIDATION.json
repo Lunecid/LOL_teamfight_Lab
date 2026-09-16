@@ -1,0 +1,35 @@
+{
+ "set": "MAIN_VALIDATION",
+ "sealed": false,
+ "changed_matches": 2593,
+ "parent_rows": 203292,
+ "parent_rows_copied": 193487,
+ "parent_rows_dropped": 9805,
+ "rebuilt_rows": 8332,
+ "dev_rows": 201819,
+ "chunks": 13,
+ "names_sha256": "d5ce72200161989e28dca8c85d66735fc117d65f7acea2d796c91d25e58ba95b",
+ "valid_h90": {
+  "parent_side": 203170,
+  "dev": 201697,
+  "by_cohort_dev": {
+   "T": 41299,
+   "N": 160398
+  },
+  "by_cohort_parent": {
+   "T": 41315,
+   "N": 161855
+  },
+  "rebuilt_valid": {
+   "T": 2082,
+   "N": 6244
+  }
+ },
+ "cohort_unknown_rebuilt": 0,
+ "files": {
+  "features": "2298ed5d472e2885a4b1b2852aa7b8225e0179ac015676dd506070b75973c086",
+  "labels": "0f55e838b9d53176412e552ded2e4831399ec6ed15786d4ff4f8937605fa76bf",
+  "cohorts": "6726726b0d867ff19da6e9bbfd3b4d5160ccdbef0715e76c581ae8d4cf80083d"
+ },
+ "written_at": "2026-09-16 08:12:12"
+}

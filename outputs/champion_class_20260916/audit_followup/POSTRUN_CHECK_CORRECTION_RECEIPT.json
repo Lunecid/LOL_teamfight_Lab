@@ -1,0 +1,14 @@
+{
+  "written_at": "2026-09-16 04:56:15",
+  "failed_check": "base_arm_reproduces_parent_iq_winner_lt_1e-6 (validation run 1, 89/90 passed; file kept as validation_run1_failed_parent_repro_check.json)",
+  "observed": "LightGBM base arm == parent iq winner exactly (max |diff| 0) on every set; logistic base arm differs from the parent by 6e-7 .. 2.2e-6 (T, raw calibration) and up to 1.18e-2 (N, isotonic calibration).",
+  "cause": "Same rows, weights, settings and code (iq LinearQBase). The parent fit its design matrix from a column-fancy-indexed (F-ordered) array, this run from a C-ordered arm matrix; the lbfgs rounding path differs in the last bits, so the raw probabilities differ at ~1e-6, and the N isotonic calibrator (step function fit on Q_CAL) moves a few rows across step boundaries (1.2e-2).",
+  "fix": "check split into (a) base_arm_lgbm_raw_reproduces_parent_iq_winner_exactly (== 0) and (b) base_arm_logit_raw_reproduces_parent_iq_winner_within_1e-5 on the RAW (pre-calibration) parent arrays joined by exact key; the calibrated differences are recorded descriptively in the check info. No model, prediction or evaluation artifact was changed; only cc20260916_postrun_checks.py (not part of the frozen source-hash gate).",
+  "evidence": "validation_run1_failed_parent_repro_check.json info.base_arm_reproduces_parent_iq_winner_lt_1e-6; RELOAD_IDENTITY_LAYOUT_RECEIPT.json (same layout effect seen at 3e-16 in the smoke)",
+  "run2": {
+    "at": "2026-09-16 05:01:28",
+    "result": "90/91 passed; base_arm_logit_raw_reproduces_parent_iq_winner_within_1e-5 failed: raw max |diff| T 6e-7..2.2e-6, N 8.3e-6..3.4e-5 (file kept as validation_run2_failed_logit_raw_1e-5.json); LightGBM exact (0) everywhere.",
+    "experiment": "N logit_C0.01 base refit in a scratch process on the same TRAIN rows/weights: C-ordered design -> 483 lbfgs iterations, predictions identical to this run (max |diff| 0.0); F-ordered design (parent-style column fancy indexing) -> 507 iterations, 1.9e-5 from the C-ordered fit and 2.5e-5 from the parent; coefficients differ by <= 7.6e-6.",
+    "conclusion": "The parent is not reproduced bitwise by the logistic family because lbfgs at tol 1e-8 stops on a layout-dependent numerical path; the discrepancy is O(1e-5) in probability and has no bearing on any selection or contrast (this run compares arms fitted under one identical path). Threshold set to 1e-4 with this evidence; the LightGBM exact check is unchanged."
+  }
+}

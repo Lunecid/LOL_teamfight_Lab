@@ -1,0 +1,525 @@
+{
+ "version": "horizon_sensitivity_20260916",
+ "role": "EXPLORATORY_FOLLOWUP_AFTER_PRIOR_TEST_EXPOSURE_MODEL_DEFINED_LABELS_NOT_CONFIRMATORY",
+ "written_at": "2026-09-16 02:29:51",
+ "design": "docs/CLAUDE_HORIZON_SENSITIVITY_20260916.md (Claude, continuing the Codex design line)",
+ "spec_sha256": "d25a2ad9de902ed1fd7bd7eca309b4aaa3fba8d241d9032f1180d3110b3bbf04",
+ "provenance_docs_sha256": {
+  "CLAUDE_INCREMENTAL_Q_TRAIN_20260915.md": "c98fe463930e6ee7ff82d03f8d25cf3d28a2f869d29fd0988611b64be9ec7b2d",
+  "CLAUDE_TRACK_A_MLP_20260916.md": "b15a1371298511f3fd7d84c89ccbc3b1271d348c78219146bf41f936e978c021",
+  "DELTA_Q_FAIR_BALANCED_PROTOCOL_20260915.md": "c456fbde1146b35479395ea278328490666fa3388da00c432cd93c41ed8c6360",
+  "COLLABORATOR_CRITIQUE_RESPONSE_20260915.md": "c847d82d00654f88cbe5f8f70370cf8498c3c722c89657b2d27064860f113396"
+ },
+ "prior_test_exposure": "Exploratory follow-up; MAIN TEST and the external sets were evaluated before at h60/h90/h120 (cohort-role) and at h90 (iq, ta). No choice here uses TEST performance.",
+ "horizons": [
+  60,
+  120
+ ],
+ "h90_reference": "not refit; the iq and ta h90 results are quoted descriptively",
+ "parents": {
+  "read_only": [
+   "outputs/full_corpus_training_20260915",
+   "outputs/cohort_role_training_20260915",
+   "outputs/incremental_q_training_20260915",
+   "outputs/track_a_mlp_20260916",
+   "source implementations",
+   "raw data",
+   "original manuscript"
+  ],
+  "integrity_snapshot_before_sha256": "6fd7e6815482c1b17cf75d3f3824a580b87ca231fe2b139568269618263a8a94",
+  "iq_frozen_manifest_sha256": "60527473bbca5b10f808c05d11e4fc6fa45c94e89e134d51c59faa9f4a5784d5",
+  "ta_frozen_manifest_sha256": "6a2fafe6fde0fb97433717ec6cb05741f38efd00bfada781dc9781479164833d",
+  "cohort_role_frozen_manifest_sha256": "3c738a3ff537a3a52fcf9d8bdcd4c8b0c80b94993e53a176226abb4813280454",
+  "cohort_manifest_sha256": "e39a33df3afad820bb6fdcbcc0796a9bd3bf5ca27c522cd07b0e48184c2b3071",
+  "q_pre_only_schema_sha256": "bc07a3c9b1ea1f4bdbd278a0c837bd59a96d89ff831b2a8ed393a3cc38249284",
+  "v_models_manifest_sha256": "92d57e3bee472ade1d498e50de5a41a599bf09d5dc1433302b13350234c9ead7",
+  "legacy_A_specialists": {
+   "T_h60": "ridge_raw",
+   "T_h90": "ridge_raw",
+   "T_h120": "ridge_raw",
+   "N_h60": "economic_sigmoid",
+   "N_h90": "ridge_isotonic",
+   "N_h120": "ridge_isotonic"
+  },
+  "legacy_pooled": {
+   "h90": "ridge_isotonic",
+   "h60": "ridge_sigmoid",
+   "h120": "ridge_isotonic"
+  },
+  "expected_parent_file_sha256": {
+   "outputs/full_corpus_training_20260915/labels/EXT_KR_16.13_features_pre_only.npz": "cef03c6d16927fedcaa5df8c3986d828337c37bf8e2c740a56b44e64098086ce",
+   "outputs/full_corpus_training_20260915/labels/EXT_KR_16.13_labels.npz": "fa5f6150e7a4aa4e2fbd267dcbe76c702f0e025c83f3a2d057b25ca272782213",
+   "outputs/full_corpus_training_20260915/labels/EXT_KR_16.14_pilot_features_pre_only.npz": "0b6d08880b6b729f5b36b3522ecc41062b341d8d65a76d64be84f1930f3e4eef",
+   "outputs/full_corpus_training_20260915/labels/EXT_KR_16.14_pilot_labels.npz": "e5dd804570349f519a9dd97bcaf2dd6f96fd27e933088ed5fdbdc050e2f723c9",
+   "outputs/full_corpus_training_20260915/labels/EXT_KR_16.15_features_pre_only.npz": "462ab4312b91c34a3307344bb54a66498161131b5c2d4d530b0d6c7bfc2b7b1c",
+   "outputs/full_corpus_training_20260915/labels/EXT_KR_16.15_labels.npz": "dd3e51a8455f0de6ef09d3b691f0c59e9e48d56207e46d499ef516fdf9a51a9f",
+   "outputs/full_corpus_training_20260915/labels/EXT_NA1_16.13_features_pre_only.npz": "c7aa4396de605a98085f7400d0c7fbfba5785dcf74395f5f7b0831b2ea2c41f7",
+   "outputs/full_corpus_training_20260915/labels/EXT_NA1_16.13_labels.npz": "91cefb42eaae94a6bde3f7007cf34d4d8a9c7f5f42c6098651a96de76fe32065",
+   "outputs/full_corpus_training_20260915/labels/labels_test_external_manifest.json": "023a6b854027657818cf1b28fe2df368902f589bce9b6d3e154a46445f73faa6",
+   "outputs/full_corpus_training_20260915/labels/labels_trainval_manifest.json": "9a4449ebbf147e629698f97a08f6a0c5db2ba26eccf313911137d5852d2622f7",
+   "outputs/full_corpus_training_20260915/labels/MAIN_TEST_features_pre_only.npz": "fb0945a68087b4198622d1a4713497fae6690327317d82d387503a29c8a1a933",
+   "outputs/full_corpus_training_20260915/labels/MAIN_TEST_labels.npz": "eec6e0388792985d0fb2d2d15039ed058bc4041ae082ee99cc2e778f08e2d96e",
+   "outputs/full_corpus_training_20260915/labels/MAIN_TRAIN_features_pre_only.npz": "1f8eee36c21de0146fd6879cfa57abb9421d494b6425663d0db1e3aafea44ca2",
+   "outputs/full_corpus_training_20260915/labels/MAIN_TRAIN_labels.npz": "f0a1bdcfcce497c6e443126d16d09fab5b69b5a93d2acf525324509fc6c07b0c",
+   "outputs/full_corpus_training_20260915/labels/MAIN_VALIDATION_features_pre_only.npz": "8c93127611047cc2449f231370bf45e4a130f7f5559ebdd1aa5df3d76eb7785b",
+   "outputs/full_corpus_training_20260915/labels/MAIN_VALIDATION_labels.npz": "b06a190b8357499d209eddacd0201ad10b6b55655dedae1a7832c8656117431e",
+   "outputs/full_corpus_training_20260915/models/q/h120/constant.joblib": "9efdabc91c1afd7c48738da4662969bd2bea4e30e75e79c028b45fdd40f3c2cc",
+   "outputs/full_corpus_training_20260915/models/q/h120/economic_isotonic.joblib": "c528d0dc6594f38290b985732b37b9e24aac13a62c7e375b9c0de21f663e4516",
+   "outputs/full_corpus_training_20260915/models/q/h120/economic_raw.joblib": "d9ebd359f83f1f39862232c8b69d767718e52ca44907772a75eacd88eba404f6",
+   "outputs/full_corpus_training_20260915/models/q/h120/economic_sigmoid.joblib": "c68b5be8d541e46c51a8c802e184dbfe0109b78952b65776736b71a28745b900",
+   "outputs/full_corpus_training_20260915/models/q/h120/p_pre_logistic.joblib": "8758839c7847389e27398437becc4dd77452278ca798a8c189c82e411309fec9",
+   "outputs/full_corpus_training_20260915/models/q/h120/p_pre_spline.joblib": "fef72d577b97fc449913ba5f82870435f924857471f37a3a93396a69425e79df",
+   "outputs/full_corpus_training_20260915/models/q/h120/ridge_isotonic.joblib": "0a954dab1aea38fb34ef2adfd5b4c5e1c18d2c1e92c4a722eeeb91800566a143",
+   "outputs/full_corpus_training_20260915/models/q/h120/ridge_raw.joblib": "5486392a2452dcb496be57b2ca683ade679ea89eafdf2a5760dd0de1cb5f0845",
+   "outputs/full_corpus_training_20260915/models/q/h120/ridge_sigmoid.joblib": "cbff191377bcdc8cb23b31a730e401cacf56ef76384cd9d7e7048c794d4f299b",
+   "outputs/full_corpus_training_20260915/models/q/h60/constant.joblib": "37efc6130d0efdabd1b28ae8ec3f6fa7e3709edd0d3f737c141918f3a2846e58",
+   "outputs/full_corpus_training_20260915/models/q/h60/economic_isotonic.joblib": "8be50d09f74b0bd5b7209b7786e482623ee2f2b97329d1d9a3c941d00f7ce4c7",
+   "outputs/full_corpus_training_20260915/models/q/h60/economic_raw.joblib": "e41e16a649b16ebbff914c6516a77e6fede066d996596c47d281580f83091629",
+   "outputs/full_corpus_training_20260915/models/q/h60/economic_sigmoid.joblib": "6c4c37dd7e2b12b96d6b3f19528676e740144f47b87e826fd179c5ae6dd673cd",
+   "outputs/full_corpus_training_20260915/models/q/h60/p_pre_logistic.joblib": "1dbfce9a201ecd276b38185f4741eb24349f3cd0006ad6de61690efe1466f18c",
+   "outputs/full_corpus_training_20260915/models/q/h60/p_pre_spline.joblib": "405baa1501806df538fdc03a6eb465997778fc306015efa96c411d5e5c724804",
+   "outputs/full_corpus_training_20260915/models/q/h60/ridge_isotonic.joblib": "0bf57e7e71004c288463bdc4fb07867a7c3f80316f1a48150df0a779aed6acf2",
+   "outputs/full_corpus_training_20260915/models/q/h60/ridge_raw.joblib": "3a5b7bd2b9e8cd8d5b28d3a59d43cd822e83d0b4287798e4054e863af529fe2b",
+   "outputs/full_corpus_training_20260915/models/q/h60/ridge_sigmoid.joblib": "8b9ce2afa1d456bdb34cda7400bd202057a38b5b1d1e4b88e38a81e315a75636",
+   "outputs/full_corpus_training_20260915/models/q/h90/constant.joblib": "d5f7d58521332f72dd23bd0a6ac634583d4ab7be640e88339375a60a7764be9b",
+   "outputs/full_corpus_training_20260915/models/q/h90/economic_isotonic.joblib": "e038582fd49af9393672662ee0555128cca0e5013194db53f96ee68453b98e5f",
+   "outputs/full_corpus_training_20260915/models/q/h90/economic_raw.joblib": "31830ec463033bbf8160f304484d8931d382ca196f2eb9edd6e9ca96e23667b6",
+   "outputs/full_corpus_training_20260915/models/q/h90/economic_sigmoid.joblib": "6550255e3e9e6a89412b245d1177f11bc84c0ade38b0ac72b882429e46d408d6",
+   "outputs/full_corpus_training_20260915/models/q/h90/p_pre_logistic.joblib": "2858fcf1e12499a07a955d7bfc2a5c300d938b5b1381d16aa721ae6d24baa6f8",
+   "outputs/full_corpus_training_20260915/models/q/h90/p_pre_spline.joblib": "1ba68762d1803b53cc596da0fa5ae77d61194333bb8dc7c77edda38eb2be584d",
+   "outputs/full_corpus_training_20260915/models/q/h90/ridge_isotonic.joblib": "5688fe91156c2724d8e718ad4f837f8d60f058bf2f7e9cd370b13fe172f6c093",
+   "outputs/full_corpus_training_20260915/models/q/h90/ridge_raw.joblib": "e968796c148561abf299e7427dbcb639fed7d1db1108dda24e024d05d672830f",
+   "outputs/full_corpus_training_20260915/models/q/h90/ridge_sigmoid.joblib": "685e548d37475a7efbf916e84bc669e2bf7968336035e06d583ae1b98074123f",
+   "outputs/full_corpus_training_20260915/q_pre_only_schema.json": "bc07a3c9b1ea1f4bdbd278a0c837bd59a96d89ff831b2a8ed393a3cc38249284",
+   "outputs/full_corpus_training_20260915/v_models_manifest.json": "92d57e3bee472ade1d498e50de5a41a599bf09d5dc1433302b13350234c9ead7",
+   "outputs/full_corpus_training_20260915/frozen_manifest.json": "8287804220b280f68a8ce2359532dbd1665b2d9d0c4a474c8666e8aed77b4f77",
+   "outputs/full_corpus_training_20260915/protocol.json": "60e95dfadcedeed7f08c47e50f5379e14e7c6b4b31cb9724e8b88f8b1518b8ba",
+   "outputs/full_corpus_training_20260915/selection_v.json": "bffdb56bd3647d8d02f22c17330a8adec96ac7e640eb31c458bc06e90a736ed6",
+   "outputs/full_corpus_training_20260915/validation.json": "716bc9a0d4bf7a990055cb388ef2ac1fb4c708aaed65575db20b3a22546a4771",
+   "outputs/full_corpus_training_20260915/outcome_access_log.jsonl": "470288d476c1f883ea2feb129f1d2ba66fef57ec8d8cc0415924d0279535e721",
+   "outputs/full_corpus_training_20260915/eval/results_q.json": "2ad4a2e58fb4bd45df0ca453c4f13d2b89eef72ae8d4bee0985b96ef9ad49d5e",
+   "outputs/incremental_q_training_20260915/frozen_manifest.json": "60527473bbca5b10f808c05d11e4fc6fa45c94e89e134d51c59faa9f4a5784d5",
+   "outputs/incremental_q_training_20260915/protocol.json": "2e47dc86a9e3535d21c91d84c668f952dd52079c5230c30dc1d3a1bedb33dae8",
+   "outputs/incremental_q_training_20260915/contract_tests/pytest_basetemp_run1/test_sealed_sets_refuse_before0/run/frozen_manifest.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+   "outputs/incremental_q_training_20260915/contract_tests/pytest_basetemp_run2/test_sealed_sets_refuse_before0/run/frozen_manifest.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+   "outputs/incremental_q_training_20260915/eval/hashes_after.json": "b81e91dd62be81ed959b596293cdb0662958f2c0c45bf828c76054623a91ac3f",
+   "outputs/incremental_q_training_20260915/eval/hashes_before.json": "062ef555ce501c0f2031b0db1a249ebb1931704d6ef94ecbfdfd088be6e62967",
+   "outputs/incremental_q_training_20260915/eval/results.json": "fdd5da60cdd62c174b08dd2c28a19019fb3237411a50faa33b44e97d24d3dbd3",
+   "outputs/incremental_q_training_20260915/eval/results_partial.json": "150903307c0f9fd1733ba54272e7f22fe096fe1e57f425acfbf67bd00b4db6ae",
+   "outputs/incremental_q_training_20260915/eval/predictions/EXT_KR_16.13_h90_N.npz": "e47865bbfe7b6932df2ba03e3d94e060faaff8501db91323bbce8501807d58b3",
+   "outputs/incremental_q_training_20260915/eval/predictions/EXT_KR_16.13_h90_T.npz": "27788c6f6f5faf7a0b75c36e8863ee3a35a73d8c72bc1dc0aa82c2e7cac81a5e",
+   "outputs/incremental_q_training_20260915/eval/predictions/EXT_KR_16.14_pilot_h90_N.npz": "c6535434c092060e73f550a5acf15ada3b8ec120661566469ebbdc65501335c3",
+   "outputs/incremental_q_training_20260915/eval/predictions/EXT_KR_16.14_pilot_h90_T.npz": "1d73086680bd5ec6cc54fcf47fc4ade604558a0ef3f83ee94f2dddded5dfcafb",
+   "outputs/incremental_q_training_20260915/eval/predictions/EXT_KR_16.15_h90_N.npz": "9e84be2bad66cd67b99573344ff95f91272ce01178664bb6b55921c110453dab",
+   "outputs/incremental_q_training_20260915/eval/predictions/EXT_KR_16.15_h90_T.npz": "70949d12fe4b08f2c9fea9b2e400dfa9af830bdc4e5c662c3e9f63a41f9d4c46",
+   "outputs/incremental_q_training_20260915/eval/predictions/EXT_NA1_16.13_h90_N.npz": "cfa3f954043dd2db9c6e2581ef8f87b60819f9c27bf115bd6801ff75dd7d87b6",
+   "outputs/incremental_q_training_20260915/eval/predictions/EXT_NA1_16.13_h90_T.npz": "ededa8cc177f956799a81b464ae1ce985ab3302923f60a5934eb46287a64bdab",
+   "outputs/incremental_q_training_20260915/eval/predictions/MAIN_TEST_h90_N.npz": "1dce0a6a42e18ccb4ea251b091d151ddf436fe0ffafd7e5aeac4f4d461b15bfa",
+   "outputs/incremental_q_training_20260915/eval/predictions/MAIN_TEST_h90_T.npz": "4b0dfc0d57f96f0bfad2644f5b54c1581829d22c7a189cb49d8e7180a4319e5d",
+   "outputs/incremental_q_training_20260915/selection/lgbm_N.json": "1251461b260b71dddb78a4ec1d6b53ea3de9c89a0b32014529b9aa9d8166e5be",
+   "outputs/incremental_q_training_20260915/selection/lgbm_T.json": "87d99cae8b4da5ed6126f3f29f42b6db7a779162b72fc87becd9c865fbb234e6",
+   "outputs/incremental_q_training_20260915/selection/logit_N.json": "085e4cf5e66e6ba8d93c6016cd01f4cba1b9a32a1a99091e09e79265ae03874e",
+   "outputs/incremental_q_training_20260915/selection/logit_T.json": "e7769e39c008ccef688dd003d2218fa5e8f504800ece0b554df2a751bfb9adeb",
+   "outputs/incremental_q_training_20260915/selection/pt_N.json": "e4226021e4ef5f5af30604cb8d30423fbf03462674d6613d659984fe753c73ff",
+   "outputs/incremental_q_training_20260915/selection/pt_T.json": "511636fac30dfdcc4c92009bcb6ce389764430953734b13ec29a07851d92f3cf",
+   "outputs/incremental_q_training_20260915/smoke_train_only/frozen_manifest.json": "a0263d05dd069bf144538df555f06459112140850195f3ce8132fc2dd898d0c5",
+   "outputs/incremental_q_training_20260915/smoke_train_only/eval/hashes_after.json": "5ea794534c125518c559bd09f62b0ba76a13dd60f88c54d3958288a1c12312a4",
+   "outputs/incremental_q_training_20260915/smoke_train_only/eval/hashes_before.json": "88af48f7f889237162b1a22c8ce29e12a267b6d0d6754d6c4baeed0c9777428d",
+   "outputs/incremental_q_training_20260915/smoke_train_only/eval/results.json": "77de50409b66762e9e5a4611fdc457ae982360941bda43a343d2240a1d64c1bc",
+   "outputs/incremental_q_training_20260915/smoke_train_only/eval/results_partial.json": "e83a69ceb11cace4490c900f80290e2411f99349bbdcbcaecba49b2f0657183a",
+   "outputs/incremental_q_training_20260915/smoke_train_only/eval/predictions/SMOKE_PSEUDO_Q_SELECT_h90_N.npz": "48e309d30bb0775fd4d965a225f51476be6281c270fc29bcd4bc3452243c4dc8",
+   "outputs/incremental_q_training_20260915/smoke_train_only/eval/predictions/SMOKE_PSEUDO_Q_SELECT_h90_T.npz": "655fc268cf3c97c0a2372213dc8b4a6c144e08385f9e973ab52bfc6387da7f62",
+   "outputs/incremental_q_training_20260915/smoke_train_only/selection/lgbm_N.json": "7b3a77567ee790e78d4661321ab2adf98ae0336860284b5d193a8b900e658f89",
+   "outputs/incremental_q_training_20260915/smoke_train_only/selection/lgbm_T.json": "201547c85067ab69cb97ce334037a30779cdaa4e03fbde42366ab53f3d0cdb55",
+   "outputs/incremental_q_training_20260915/smoke_train_only/selection/logit_N.json": "3d4e6c30b289fd84ec1edd8ec44e3f903deaad2a107d8692ebd29673e25d4791",
+   "outputs/incremental_q_training_20260915/smoke_train_only/selection/logit_T.json": "b4c8219c61ee9b6e356e4c97b69800140fe9eae49027ccce8d534265a145c4dc",
+   "outputs/incremental_q_training_20260915/smoke_train_only/selection/pt_N.json": "d03bc1242e8d8a5e98ec4b49bfc1acf871c5a7d0f6a4b30dd58501b0c9750192",
+   "outputs/incremental_q_training_20260915/smoke_train_only/selection/pt_T.json": "4afe105e844ec0fe33f30ed40852368f8d7858661b59630c59e12405fd724d9b",
+   "outputs/track_a_mlp_20260916/frozen_manifest.json": "6a2fafe6fde0fb97433717ec6cb05741f38efd00bfada781dc9781479164833d",
+   "outputs/track_a_mlp_20260916/protocol.json": "d77edb43b88595b5c6810caa364cf5fd76f7d4d6fc1cbbbbfc33d4b3ae4a41ec",
+   "outputs/track_a_mlp_20260916/contract_tests/pytest_basetemp_run1/test_sealed_sets_refuse_until_0/run/frozen_manifest.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+   "outputs/track_a_mlp_20260916/contract_tests/pytest_basetemp_run2/test_sealed_sets_refuse_until_0/run/frozen_manifest.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+   "outputs/track_a_mlp_20260916/eval/hashes_after.json": "e8db396fe4834ac1589cddf868de75dfe1c39c89626b19616674d51d7e3d2376",
+   "outputs/track_a_mlp_20260916/eval/hashes_before.json": "a0ab1931a2d277d6930905cf59b9c94dd3bb4f496b0cb3d449b48fa54fda9551",
+   "outputs/track_a_mlp_20260916/eval/results.json": "d4d4e4f3d7324f4b28fff594dc95e20527cca62afaf1072c658a0e3f9fdc2d45",
+   "outputs/track_a_mlp_20260916/eval/results_partial.json": "84f56d37e91a8a5e88898a9ee9a6a21280df0a708d7745c48e5b6daaba660bb0",
+   "outputs/track_a_mlp_20260916/eval/predictions/EXT_KR_16.13_h90_N.npz": "32f7bd1b580603a83a7639458a66241665190661de5a8d74fdff010c01232ef2",
+   "outputs/track_a_mlp_20260916/eval/predictions/EXT_KR_16.13_h90_T.npz": "2730233c11f93889717e70b9f490012bd4d43dae69b903432bf32884471ecbfe",
+   "outputs/track_a_mlp_20260916/eval/predictions/EXT_KR_16.14_pilot_h90_N.npz": "0db0883f89466ff44d9823403db5098188249df23884a75401682e2f8ef979f8",
+   "outputs/track_a_mlp_20260916/eval/predictions/EXT_KR_16.14_pilot_h90_T.npz": "37d26e67c456a7d9b6ad1f407ddb8b08c01ab66ea7feec5350c0991b4c249457",
+   "outputs/track_a_mlp_20260916/eval/predictions/EXT_KR_16.15_h90_N.npz": "c5b92c3cef566900c047914baca89d9d89ed3030949551bc1a850f67fb1ce3dd",
+   "outputs/track_a_mlp_20260916/eval/predictions/EXT_KR_16.15_h90_T.npz": "531c532d4705300dc731f1c74725e7ddd9402a066984f39cfa344e860ec4f76e",
+   "outputs/track_a_mlp_20260916/eval/predictions/EXT_NA1_16.13_h90_N.npz": "a8539c36a095c210de7f65559e1bb41c1cadab1d6e443ab863073a729a22f3f5",
+   "outputs/track_a_mlp_20260916/eval/predictions/EXT_NA1_16.13_h90_T.npz": "c5ac3e56ab01dcaeee2e646dfd9a7663d620032dc7840abd6ec132bc337502ea",
+   "outputs/track_a_mlp_20260916/eval/predictions/MAIN_TEST_h90_N.npz": "57d71a402f05a5e925f1802c1e5c0c0b1e3e14b59dd758acb316ecc4ccd30a23",
+   "outputs/track_a_mlp_20260916/eval/predictions/MAIN_TEST_h90_T.npz": "ae41c2773ecb16f2f220492da43d23d0a6c8ed2e5297040c120217f82250d5b8",
+   "outputs/track_a_mlp_20260916/selection/mlp_N.json": "835d35294ce50b9f2e8d1e241d76c2d249978e9fd42aed03d4a70466ed26fda2",
+   "outputs/track_a_mlp_20260916/selection/mlp_T.json": "d954b568f3916c4378ff2a61cbcbabd06cd61c1766f9acc2f99b847863332fe4",
+   "outputs/track_a_mlp_20260916/selection/resmlp_N.json": "14762a9298e6d62af2574fc1be63bfeafd8f0fe598eac10893f9476930095ee0",
+   "outputs/track_a_mlp_20260916/selection/resmlp_T.json": "d5f218f1e4711ec58971a78dde6556f3818e756cdb62bd330578214d14252a37",
+   "outputs/track_a_mlp_20260916/smoke_train_only/frozen_manifest.json": "26542cb2743291b5b36f5a34c0e1f429883b9619c6eccfb5b1715fba0d64320b",
+   "outputs/track_a_mlp_20260916/smoke_train_only/eval/hashes_after.json": "9ded84f9fe7300485d714faa68b806ae0af0eb50d55d8a8bd6852f680c1a185f",
+   "outputs/track_a_mlp_20260916/smoke_train_only/eval/hashes_before.json": "b7f57aa4f13c84b761aed16164a239c6433f8ed53446a166ce9b591861339ed4",
+   "outputs/track_a_mlp_20260916/smoke_train_only/eval/results.json": "f564c632d05162c4af9d9183ecf377ccb80447af2ceccf093f81e30982d84826",
+   "outputs/track_a_mlp_20260916/smoke_train_only/eval/results_partial.json": "c00694c76036bb21f0bceac088597c5465639c71c8f6ca5bc1d56c329e72b54b",
+   "outputs/track_a_mlp_20260916/smoke_train_only/eval/predictions/SMOKE_PSEUDO_Q_SELECT_h90_N.npz": "ccab9da43aa81e6e9e6cf3b091bf65ab1a6caa9cf25e10cd107935d3d7a931d1",
+   "outputs/track_a_mlp_20260916/smoke_train_only/eval/predictions/SMOKE_PSEUDO_Q_SELECT_h90_T.npz": "bbde64b78d19b27a42cf21036aa71df55103f04f9120fe9883163f8543a29e2a",
+   "outputs/track_a_mlp_20260916/smoke_train_only/selection/mlp_N.json": "ede9e2df052b3c9b30659131bcc9bbdc002ca6a479207835e56e98128bcd9861",
+   "outputs/track_a_mlp_20260916/smoke_train_only/selection/mlp_T.json": "03d3e1e71e28c838dedd873a5c4993a041f1a5fe3dfc9ed2e6c55bcdea9c8d31",
+   "outputs/track_a_mlp_20260916/smoke_train_only/selection/resmlp_N.json": "44d8ff1d378b1c4aea5a6a034f26ec52e5d991fa30808adb08cceeddd83f56b8",
+   "outputs/track_a_mlp_20260916/smoke_train_only/selection/resmlp_T.json": "771e5889d160a8d290ae2d4dd98374ba0b6d343b7908b6f59ef53279c3145db5",
+   "outputs/cohort_role_training_20260915/frozen_manifest.json": "3c738a3ff537a3a52fcf9d8bdcd4c8b0c80b94993e53a176226abb4813280454",
+   "outputs/cohort_role_training_20260915/cohorts/EXT_KR_16.13_cohort.npz": "8cc6d95039ca30d73e82429895dd2502408195452452793cb80b8bdd8f6dc98f",
+   "outputs/cohort_role_training_20260915/cohorts/EXT_KR_16.14_pilot_cohort.npz": "87c5cf979d274ab7d2b1b4234a32cc6b3262d845be39b3356d2aba056231c32e",
+   "outputs/cohort_role_training_20260915/cohorts/EXT_KR_16.15_cohort.npz": "4d120ca58e59865817cf6f11a02cc45512eeea17f82b5341d86b4e855f57cf97",
+   "outputs/cohort_role_training_20260915/cohorts/EXT_NA1_16.13_cohort.npz": "bd77c1b6f4824fe25ff00408cffd1d4fa10b8501e58fc265dcae04db4caea0ad",
+   "outputs/cohort_role_training_20260915/cohorts/MAIN_TEST_cohort.npz": "3239e4c7ac81678adf75e07ec1cc9035136c1572e82e06601695ad78bc162844",
+   "outputs/cohort_role_training_20260915/cohorts/MAIN_TRAIN_cohort.npz": "71fbe5239e9cb76bf97466f1018092755f4f34f6ac941f337593b4cd2d0b1746",
+   "outputs/cohort_role_training_20260915/cohorts/MAIN_VALIDATION_cohort.npz": "a4efc653ebdf698a06dfbb6b2b33dca2ef2759d094fa22d210e14f4936622bf6",
+   "outputs/cohort_role_training_20260915/cohorts/cohort_manifest.json": "e39a33df3afad820bb6fdcbcc0796a9bd3bf5ca27c522cd07b0e48184c2b3071",
+   "outputs/cohort_role_training_20260915/cohorts/detector_train_fixture.json": "ff4f1151a140a0817eff47febcb6f499ae0fde1c198d2c963a797eab13030a1a",
+   "outputs/cohort_role_training_20260915/cohorts/negative_count_provenance.json": "e4b7052a1c7faaf5f73922490f4a0e0a1ed293ce29c28fab8ed6b482ce6264a2",
+   "outputs/cohort_role_training_20260915/eval/results_A.json": "755af4c198badb495c022de50688e9281219d4beb1e729bbab9023be24762049",
+   "outputs/cohort_role_training_20260915/eval/predictions/A_EXT_KR_16.13_h120_N.npz": "aa00bab3291e88b86bc8c3de24ac6183850802f96f24fb0320598fe39f999fb7",
+   "outputs/cohort_role_training_20260915/eval/predictions/A_EXT_KR_16.13_h120_T.npz": "ec5b6059d68c1fc0124b9c905dff841d06cb2f7de52f6fc380bab6309cbcc874",
+   "outputs/cohort_role_training_20260915/eval/predictions/A_EXT_KR_16.13_h60_N.npz": "f0a0a440b6e8fcd334340238c0be62d385edf811a10bfd759cf5fb25570b9c86",
+   "outputs/cohort_role_training_20260915/eval/predictions/A_EXT_KR_16.13_h60_T.npz": "1320152661ac092f6ea38a2bd2a7ee3da218efc91fe7722142862bb8e5bce495",
+   "outputs/cohort_role_training_20260915/eval/predictions/A_EXT_KR_16.14_pilot_h120_N.npz": "7f5099affd219a9db11bca27907712dd35736059f299a3f86837248df06396da",
+   "outputs/cohort_role_training_20260915/eval/predictions/A_EXT_KR_16.14_pilot_h120_T.npz": "36acde52ade83166d8c63717ca7a7f834e9c3667bfb677f763f5d3a42b0e1f1c",
+   "outputs/cohort_role_training_20260915/eval/predictions/A_EXT_KR_16.14_pilot_h60_N.npz": "29afb9e606a195692bfa8e4c289b8ec6f1b53571a9790002ffd74683a88defd0",
+   "outputs/cohort_role_training_20260915/eval/predictions/A_EXT_KR_16.14_pilot_h60_T.npz": "6c8294b2b7eb1e0d637fa110e8d44c3d80a428720c13fed9ede1cd097a939ec3",
+   "outputs/cohort_role_training_20260915/eval/predictions/A_EXT_KR_16.15_h120_N.npz": "8d6ddbc9024711e8b946c377a79651e2f8b7dfd2fcbbaab624497305b8fe10a5",
+   "outputs/cohort_role_training_20260915/eval/predictions/A_EXT_KR_16.15_h120_T.npz": "abaa19cc0c5eee2c9ff2dce67d3504d8d27c8d38931fe124cdbe61a49da83a56",
+   "outputs/cohort_role_training_20260915/eval/predictions/A_EXT_KR_16.15_h60_N.npz": "974d55a5558dcc26f2af6759f6ea5b58bf5e95b1ce9c63cce4a3e587956a498d",
+   "outputs/cohort_role_training_20260915/eval/predictions/A_EXT_KR_16.15_h60_T.npz": "a14919d79b6465ec2c8844521c112e54843f80aa098c2d0d061b2cbe67609f6c",
+   "outputs/cohort_role_training_20260915/eval/predictions/A_EXT_NA1_16.13_h120_N.npz": "79557864c42b7acc3af6b546e31a67ededccb23b6bc66503d6ee194578a6552e",
+   "outputs/cohort_role_training_20260915/eval/predictions/A_EXT_NA1_16.13_h120_T.npz": "a5773ad2227761134c92fe4911edc9751d9273f4f991a2499695f5822971bb88",
+   "outputs/cohort_role_training_20260915/eval/predictions/A_EXT_NA1_16.13_h60_N.npz": "ce37f0d74dd0e2bc1425c1dcb927995ea82a0a064b2dbb84a790d7b69d4ba7a4",
+   "outputs/cohort_role_training_20260915/eval/predictions/A_EXT_NA1_16.13_h60_T.npz": "13df6323e3aaf9d2c6a9013e43dfd474b6cb9e66e1801351ee6c14f2dc3b9ed6",
+   "outputs/cohort_role_training_20260915/eval/predictions/A_MAIN_TEST_h120_N.npz": "0383b0f00e197d4e5825ae0e8142ab350a156492ad2e0aeff015dc35135615a3",
+   "outputs/cohort_role_training_20260915/eval/predictions/A_MAIN_TEST_h120_T.npz": "a351c7a471e9f75e753366c6cc249970c64fb6d4f1965f1d9a73c80f589b7023",
+   "outputs/cohort_role_training_20260915/eval/predictions/A_MAIN_TEST_h60_N.npz": "a3cba0bb408cb377221fbb2e7ac532bcd0d528c11a35c9aa1ada4f04b7c96338",
+   "outputs/cohort_role_training_20260915/eval/predictions/A_MAIN_TEST_h60_T.npz": "f1984465312f07e9a05207522559db67f12665dc5fe3c1471dc3eefb6f286c1b"
+  }
+ },
+ "data_contract": {
+  "corpus": "MAIN 210000 matches: TRAIN 15.14, VALIDATION 15.15 (Q_CAL / Q_SELECT), TEST 15.16; external KR_16.13, KR_16.14_pilot, KR_16.15, NA1_16.13 separately",
+  "labels": {
+   "h60": "Y_h60 = 1[delta_h60 > 0] from parent labels unchanged; TRAIN OOF V",
+   "h120": "Y_h120 = 1[delta_h120 > 0] from parent labels unchanged; TRAIN OOF V"
+  },
+  "endpoint": "e(h) = min(last kill + h, next kill - 1 ms, next engagement start - 1 ms, game end - 1 ms) (parent)",
+  "cohorts": "T: known min >= 4; N: known min < 4",
+  "expected_counts_by_horizon": {
+   "h60": {
+    "TRAIN": {
+     "T": 39605,
+     "N": 159753
+    },
+    "Q_CAL": {
+     "T": 10390,
+     "N": 40565
+    },
+    "Q_SELECT": {
+     "T": 10195,
+     "N": 40180
+    },
+    "MAIN_TEST": {
+     "T": 32981,
+     "N": 130595
+    },
+    "EXT_KR_16.13": {
+     "T": 5202,
+     "N": 20228
+    },
+    "EXT_KR_16.14_pilot": {
+     "T": 101,
+     "N": 374
+    },
+    "EXT_KR_16.15": {
+     "T": 507,
+     "N": 1712
+    },
+    "EXT_NA1_16.13": {
+     "T": 5312,
+     "N": 21226
+    }
+   },
+   "h120": {
+    "TRAIN": {
+     "T": 39605,
+     "N": 159753
+    },
+    "Q_CAL": {
+     "T": 10390,
+     "N": 40565
+    },
+    "Q_SELECT": {
+     "T": 10195,
+     "N": 40180
+    },
+    "MAIN_TEST": {
+     "T": 32981,
+     "N": 130595
+    },
+    "EXT_KR_16.13": {
+     "T": 5202,
+     "N": 20228
+    },
+    "EXT_KR_16.14_pilot": {
+     "T": 101,
+     "N": 374
+    },
+    "EXT_KR_16.15": {
+     "T": 507,
+     "N": 1712
+    },
+    "EXT_NA1_16.13": {
+     "T": 5312,
+     "N": 21226
+    }
+   },
+   "h90": {
+    "TRAIN": {
+     "T": 39605,
+     "N": 159753
+    },
+    "Q_CAL": {
+     "T": 10390,
+     "N": 40565
+    },
+    "Q_SELECT": {
+     "T": 10195,
+     "N": 40180
+    },
+    "MAIN_TEST": {
+     "T": 32981,
+     "N": 130595
+    },
+    "EXT_KR_16.13": {
+     "T": 5202,
+     "N": 20228
+    },
+    "EXT_KR_16.14_pilot": {
+     "T": 101,
+     "N": 374
+    },
+    "EXT_KR_16.15": {
+     "T": 507,
+     "N": 1712
+    },
+    "EXT_NA1_16.13": {
+     "T": 5312,
+     "N": 21226
+    }
+   }
+  },
+  "count_mismatch_policy": "blocks fitting / evaluation",
+  "rows": "valid_h{h} and cohort; counts identical at h60 / h90 / h120 per the cohort manifest, so the evaluation rows coincide across horizons"
+ },
+ "inputs": {
+  "learners": "predictor_sets[\"ridge\"] (352) for logistic / LightGBM / MLPs; (p_pre_V, time_minutes) for PT",
+  "ridge_names_sha256": "1ca61dee2fc08ff03b5255bb5dd722600b17bdd062afa40586ae4e9ab69a77c3",
+  "input_names_all_sha256": "cca21a11724d40cde51c92faf1a5e1ad4557aeb84114d9e5de04d812896cbb19"
+ },
+ "fixed_configurations": {
+  "registry": {
+   "T": {
+    "pt": "pt_C1",
+    "logit": "logit_C0.001",
+    "lgbm": "lgbm_L15_M100",
+    "mlp": "mlp_W128_D0.3",
+    "resmlp": "resmlp_W128_D0.1"
+   },
+   "N": {
+    "pt": "pt_C1",
+    "logit": "logit_C0.01",
+    "lgbm": "lgbm_L15_M100",
+    "mlp": "mlp_W128_D0.3",
+    "resmlp": "resmlp_W128_D0.1"
+   }
+  },
+  "source": "h90 family winners of incremental_q_training_20260915 (pt, logit, lgbm) and track_a_mlp_20260916 (mlp, resmlp)",
+  "rule": "configuration fixed; only the calibration (raw / sigmoid / isotonic) is selected per family, cohort and horizon on Q_SELECT",
+  "stopping": "LightGBM iterations and MLP epochs re-determined on the horizon labels by the unchanged stop10 rule (part of fitting)",
+  "mlp_architectures": {
+   "mlp_W128_D0.3": {
+    "n_params": 61825
+   },
+   "resmlp_W128_D0.1": {
+    "n_params": 177921
+   }
+  },
+  "lgbm_fixed": {
+   "objective": "binary",
+   "learning_rate": 0.04,
+   "n_estimators": 1000,
+   "reg_lambda": 1.0,
+   "colsample_bytree": 0.9,
+   "subsample": 1.0,
+   "n_jobs": 4,
+   "verbosity": -1,
+   "metric": "None",
+   "deterministic": true,
+   "force_col_wise": true
+  },
+  "mlp_optimizer": {
+   "optimizer": "AdamW",
+   "lr": 0.001,
+   "weight_decay": 0.0001,
+   "weight_decay_scope": "all parameters (AdamW default)",
+   "batch_size": 512,
+   "max_epochs": 100,
+   "patience": 10,
+   "dtype_train": "float32",
+   "amp": false,
+   "grad_clip": null,
+   "init": "PyTorch default (kaiming_uniform for Linear)",
+   "shuffle": "uniform permutation per epoch from a CPU torch.Generator seeded with the seed",
+   "last_batch": "kept (partial)"
+  },
+  "seeds": {
+   "lgbm": [
+    7,
+    42,
+    123
+   ],
+   "mlp": [
+    7,
+    42,
+    123
+   ],
+   "resmlp": [
+    7,
+    42,
+    123
+   ]
+  },
+  "prediction_definition_mlp": "CPU float64, 1 thread, chunk 8192 (as Track A)"
+ },
+ "calibration_selection": {
+  "calibrators": "cr20260915_common.fit_calibrators on cohort Q_CAL (raw, sigmoid without positive-slope constraint, isotonic clip)",
+  "candidates_per_family": 3,
+  "rule": "Q_SELECT match-weighted Brier, then log loss, then name",
+  "overall": "same rule over the 15 joint candidates of a horizon and cohort",
+  "freeze": "one frozen_manifest.json for both horizons before any TEST/external array or parent TEST prediction is opened"
+ },
+ "evaluation": {
+  "sets": [
+   "MAIN_TEST",
+   "EXT_KR_16.13",
+   "EXT_KR_16.14_pilot",
+   "EXT_KR_16.15",
+   "EXT_NA1_16.13"
+  ],
+  "cells": "all, B40, B45, time bins, B40 x time (frozen p_pre and pre time)",
+  "named": [
+   "pt_winner",
+   "logit_winner",
+   "lgbm_winner",
+   "mlp_winner",
+   "resmlp_winner",
+   "overall_winner",
+   "old_A_specialist",
+   "old_pooled",
+   "old_p_pre_spline",
+   "old_p_pre_logistic",
+   "old_constant"
+  ],
+  "legacy_source": "cohort_role eval/predictions/A_<set>_h<h>_<cohort>.npz joined by exact (match, s_ms)",
+  "contrasts": [
+   {
+    "a": "lgbm_winner",
+    "b": "pt_winner",
+    "label": "PRIMARY: full LightGBM - PT baseline"
+   },
+   {
+    "a": "logit_winner",
+    "b": "pt_winner",
+    "label": "planned: full logistic - PT baseline"
+   },
+   {
+    "a": "lgbm_winner",
+    "b": "logit_winner",
+    "label": "planned: full LightGBM - full logistic"
+   },
+   {
+    "a": "mlp_winner",
+    "b": "lgbm_winner",
+    "label": "planned: plain MLP - full LightGBM"
+   },
+   {
+    "a": "resmlp_winner",
+    "b": "lgbm_winner",
+    "label": "planned: residual MLP - full LightGBM"
+   },
+   {
+    "a": "mlp_winner",
+    "b": "logit_winner",
+    "label": "planned: plain MLP - full logistic"
+   }
+  ],
+  "bootstrap": {
+   "replicates": 1000,
+   "seed": 20260915,
+   "where": "all / B40 / B45 with >= 30 matches and both classes",
+   "time_cells": "CI not computed"
+  },
+  "cross_horizon": "descriptive only (labels differ); no cross-horizon interval"
+ },
+ "deferred": [
+  "SHAP",
+  "Track B",
+  "revised V",
+  "logit-label decomposition",
+  "development-only detector re-estimation"
+ ],
+ "environment": {
+  "python": "3.13.5 | packaged by Anaconda, Inc. | (main, Jun 12 2025, 16:37:03) [MSC v.1929 64 bit (AMD64)]",
+  "executable": "C:\\Users\\todtj\\anaconda3\\python.exe",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "numpy": "2.1.3",
+  "scipy": "1.15.3",
+  "sklearn": "1.6.1",
+  "lightgbm": "4.6.0",
+  "joblib": "1.4.2",
+  "threads": {
+   "OMP_NUM_THREADS": null,
+   "OPENBLAS_NUM_THREADS": null,
+   "MKL_NUM_THREADS": null
+  },
+  "dont_write_bytecode": true,
+  "cuda_visible_devices": null,
+  "torch": "2.10.0+cu128",
+  "cuda": "12.8",
+  "cuda_available": true,
+  "cuda_device": "NVIDIA GeForce RTX 5080",
+  "cudnn": 91002,
+  "cublas_workspace_config": ":4096:8",
+  "mkl_cbwr": "AVX2,STRICT",
+  "torch_mkl": true,
+  "torch_num_threads": 8,
+  "pred_threads": 1,
+  "pred_chunk": 8192
+ },
+ "source_sha256": {
+  "scripts/hs20260916_common.py": "2dd0c3dc77d29b6b34ba88b043872efa88879bd6f97834ff6f25cea2f05b2225",
+  "scripts/hs20260916_driver.py": "b85d634efb1c570c53c55c719c184f38a85cd846db0171959ed50366321c5229",
+  "scripts/hs20260916_evaluate.py": "48a08a7a356cf1a6f00f2a2a5296700b21b03933de3e40e55cb135d838506f2f",
+  "scripts/hs20260916_fit.py": "511dbd15e1373b2a1e3c40de8a8b282429d6eab5f01a4cae8cccd0ed1cbca5d4",
+  "scripts/hs20260916_freeze.py": "3a4ab8d1ad92bac421bbc9f805aa1451782a81f81abe08c7770aceea4d61978f",
+  "scripts/hs20260916_protocol.py": "967b3130ea0a22d93c33d3c20d06d6591c3fa4d52028133fbae858c2f279add3",
+  "scripts/hs20260916_run_contract_tests.py": "0d0ae12bfcd69c144f860f21fcb9a2f3b5ce8769e7c8f0798836df080900902a",
+  "scripts/hs20260916_snapshot.py": "d1d16c01a667f889de5f87f5f19eb2ee48bccad85c53b53e87475e3d0e4baee9",
+  "tests/test_hs20260916_contracts.py": "74fbc9f3ebecb48dfb2c2db46fb4bba0c753535b1a36e0d5f8657c93939869b3",
+  "scripts/fc20260915_common.py": "aeb9f3b07b5a5e68cc95de09a4a12870ac7e7f0728a66a30535c7dbbbad73405",
+  "scripts/cr20260915_common.py": "04d4a2eb9808888d6b5e4896bdc50405ffac4bde79ee65173046627aa146e081",
+  "scripts/iq20260915_common.py": "a51925020c626275b3b1db456490d2e2882e86cda59bc8531dfeeba81e6c7956",
+  "scripts/ta20260916_common.py": "78b0938085cc10511b3bdaefd7cfc599a599070a3b8387b3da72c47937969f47",
+  "docs/CLAUDE_HORIZON_SENSITIVITY_20260916.md": "d25a2ad9de902ed1fd7bd7eca309b4aaa3fba8d241d9032f1180d3110b3bbf04",
+  "docs/CLAUDE_INCREMENTAL_Q_TRAIN_20260915.md": "c98fe463930e6ee7ff82d03f8d25cf3d28a2f869d29fd0988611b64be9ec7b2d",
+  "docs/CLAUDE_TRACK_A_MLP_20260916.md": "b15a1371298511f3fd7d84c89ccbc3b1271d348c78219146bf41f936e978c021",
+  "docs/DELTA_Q_FAIR_BALANCED_PROTOCOL_20260915.md": "c456fbde1146b35479395ea278328490666fa3388da00c432cd93c41ed8c6360",
+  "docs/COLLABORATOR_CRITIQUE_RESPONSE_20260915.md": "c847d82d00654f88cbe5f8f70370cf8498c3c722c89657b2d27064860f113396"
+ }
+}

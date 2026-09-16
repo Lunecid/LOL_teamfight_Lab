@@ -1,0 +1,34 @@
+{
+ "group": "freeze",
+ "state": "complete",
+ "stage": "frozen",
+ "pid": 4572,
+ "updated": "2026-09-16 04:48:22",
+ "elapsed_s": 74.1,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "sealed evaluation",
+ "frozen_manifest_sha256": "1909f76aa172d17ffeb7fd374e44359e833de4d1843d18b22778efdfab8da7d5",
+ "overall": {
+  "T": "lgbm_class_state:lgbm_L15_M100__isotonic",
+  "N": "lgbm_tags:lgbm_L15_M100__sigmoid"
+ },
+ "history": [
+  {
+   "stage": "verify_T",
+   "state": "running",
+   "at": "2026-09-16 04:47:08"
+  },
+  {
+   "stage": "verify_N",
+   "state": "running",
+   "at": "2026-09-16 04:47:25"
+  },
+  {
+   "stage": "frozen",
+   "state": "complete",
+   "at": "2026-09-16 04:48:22"
+  }
+ ]
+}

@@ -1,0 +1,40 @@
+{
+  "source": "outputs/full_corpus_training_20260915/eval/counts_and_exclusions.json",
+  "sha256": "4a7d0999dc7d4dc7b65e47541cfbd29d74254b72990b9d80fabc7bc103fb333b",
+  "groups": {
+    "VALIDATION": {
+      "raw_matches": 74748,
+      "order_differs": 1251,
+      "partitions": [
+        "Q_CAL",
+        "Q_SELECT",
+        "V_CAL",
+        "V_SELECT"
+      ],
+      "rate": 0.016736233745384493
+    },
+    "TEST": {
+      "raw_matches": 60579,
+      "order_differs": 1042,
+      "partitions": [
+        "TEST"
+      ],
+      "rate": 0.017200680103666287
+    },
+    "TRAIN": {
+      "raw_matches": 74673,
+      "order_differs": 1255,
+      "partitions": [
+        "fold0",
+        "fold1",
+        "fold2",
+        "fold3",
+        "fold4"
+      ],
+      "rate": 0.016806610153603043
+    }
+  },
+  "all_order_differs": 3548,
+  "interpretation": "Match-level order disagreement vs weak cached role order; not per-slot semantic role accuracy.",
+  "correction": "Initial exploratory extraction misclassified fold0-4 as validation; grouping corrected explicitly and expected partition totals asserted. No source data changed."
+}

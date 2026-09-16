@@ -1,0 +1,159 @@
+{
+ "group": "labels",
+ "state": "complete",
+ "stage": "labels",
+ "pid": 240,
+ "updated": "2026-09-15 16:36:14",
+ "elapsed_s": 99.2,
+ "processed": 7,
+ "total": 7,
+ "error": null,
+ "next_step": "analysis",
+ "history": [
+  {
+   "stage": "load_MAIN_TRAIN",
+   "state": "running",
+   "at": "2026-09-15 16:34:34"
+  },
+  {
+   "stage": "MAIN_TRAIN_A",
+   "state": "running",
+   "at": "2026-09-15 16:34:45"
+  },
+  {
+   "stage": "MAIN_TRAIN_B_raw",
+   "state": "running",
+   "at": "2026-09-15 16:34:55"
+  },
+  {
+   "stage": "MAIN_TRAIN_B_sigmoid_pos",
+   "state": "running",
+   "at": "2026-09-15 16:35:00"
+  },
+  {
+   "stage": "load_MAIN_VALIDATION",
+   "state": "running",
+   "at": "2026-09-15 16:35:09"
+  },
+  {
+   "stage": "MAIN_VALIDATION_A",
+   "state": "running",
+   "at": "2026-09-15 16:35:19"
+  },
+  {
+   "stage": "MAIN_VALIDATION_B_raw",
+   "state": "running",
+   "at": "2026-09-15 16:35:27"
+  },
+  {
+   "stage": "MAIN_VALIDATION_B_sigmoid_pos",
+   "state": "running",
+   "at": "2026-09-15 16:35:32"
+  },
+  {
+   "stage": "load_MAIN_TEST",
+   "state": "running",
+   "at": "2026-09-15 16:35:40"
+  },
+  {
+   "stage": "MAIN_TEST_A",
+   "state": "running",
+   "at": "2026-09-15 16:35:49"
+  },
+  {
+   "stage": "MAIN_TEST_B_raw",
+   "state": "running",
+   "at": "2026-09-15 16:35:55"
+  },
+  {
+   "stage": "MAIN_TEST_B_sigmoid_pos",
+   "state": "running",
+   "at": "2026-09-15 16:35:59"
+  },
+  {
+   "stage": "load_EXT_KR_16.13",
+   "state": "running",
+   "at": "2026-09-15 16:36:05"
+  },
+  {
+   "stage": "EXT_KR_16.13_A",
+   "state": "running",
+   "at": "2026-09-15 16:36:06"
+  },
+  {
+   "stage": "EXT_KR_16.13_B_raw",
+   "state": "running",
+   "at": "2026-09-15 16:36:07"
+  },
+  {
+   "stage": "EXT_KR_16.13_B_sigmoid_pos",
+   "state": "running",
+   "at": "2026-09-15 16:36:08"
+  },
+  {
+   "stage": "load_EXT_KR_16.14_pilot",
+   "state": "running",
+   "at": "2026-09-15 16:36:09"
+  },
+  {
+   "stage": "EXT_KR_16.14_pilot_A",
+   "state": "running",
+   "at": "2026-09-15 16:36:09"
+  },
+  {
+   "stage": "EXT_KR_16.14_pilot_B_raw",
+   "state": "running",
+   "at": "2026-09-15 16:36:09"
+  },
+  {
+   "stage": "EXT_KR_16.14_pilot_B_sigmoid_pos",
+   "state": "running",
+   "at": "2026-09-15 16:36:09"
+  },
+  {
+   "stage": "load_EXT_KR_16.15",
+   "state": "running",
+   "at": "2026-09-15 16:36:09"
+  },
+  {
+   "stage": "EXT_KR_16.15_A",
+   "state": "running",
+   "at": "2026-09-15 16:36:09"
+  },
+  {
+   "stage": "EXT_KR_16.15_B_raw",
+   "state": "running",
+   "at": "2026-09-15 16:36:09"
+  },
+  {
+   "stage": "EXT_KR_16.15_B_sigmoid_pos",
+   "state": "running",
+   "at": "2026-09-15 16:36:09"
+  },
+  {
+   "stage": "load_EXT_NA1_16.13",
+   "state": "running",
+   "at": "2026-09-15 16:36:10"
+  },
+  {
+   "stage": "EXT_NA1_16.13_A",
+   "state": "running",
+   "at": "2026-09-15 16:36:11"
+  },
+  {
+   "stage": "EXT_NA1_16.13_B_raw",
+   "state": "running",
+   "at": "2026-09-15 16:36:12"
+  },
+  {
+   "stage": "EXT_NA1_16.13_B_sigmoid_pos",
+   "state": "running",
+   "at": "2026-09-15 16:36:13"
+  },
+  {
+   "stage": "labels",
+   "state": "complete",
+   "at": "2026-09-15 16:36:14"
+  }
+ ]
+}

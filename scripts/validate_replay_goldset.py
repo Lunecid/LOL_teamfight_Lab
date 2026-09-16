@@ -397,13 +397,8 @@ def digest_fights(fights: Sequence[dict]) -> List[dict]:
                 "first_kill_ts": int(fight.get("first_kill_ts", engage)),
                 "last_kill_ts": int(fight.get("last_kill_ts", engage)),
                 "fight_type": str(fight.get("fight_type", "unknown")),
-                "fight_scale": str(fight.get("fight_scale", fight.get("fight_type", "unknown"))),
-                "fight_context": str(fight.get("fight_context", "unknown")),
-                "fight_label": str(fight.get("fight_label", fight.get("fight_type", "unknown"))),
                 "centroid_x": round(float(fight.get("centroid_x", 0.0)), 6),
                 "centroid_y": round(float(fight.get("centroid_y", 0.0)), 6),
-                "blue_participants": int(fight.get("det_cluster_blue", 0)),
-                "red_participants": int(fight.get("det_cluster_red", 0)),
                 "n_kills": int(fight.get("det_kill_count_window", 0)),
             }
         )
@@ -430,8 +425,6 @@ def run_detector(selected: Sequence[dict], args: argparse.Namespace, out_dir: Pa
     diag_errors: List[str] = []
     unknown_monsters: Counter[str] = Counter()
     fight_types: Counter[str] = Counter()
-    fight_scales: Counter[str] = Counter()
-    fight_contexts: Counter[str] = Counter()
     counts: List[int] = []
     zero_fight_matches: List[str] = []
     candidate_rows: List[dict] = []
@@ -463,8 +456,6 @@ def run_detector(selected: Sequence[dict], args: argparse.Namespace, out_dir: Pa
                 if fight_index and engage < first[fight_index - 1]["last_kill_ts"]:
                     overlaps.append(f"{match_id}:{fight_index - 1}-{fight_index}")
                 fight_types[fight["fight_type"]] += 1
-                fight_scales[fight["fight_scale"]] += 1
-                fight_contexts[fight["fight_context"]] += 1
                 candidate_rows.append(
                     {
                         "match_id": match_id,
@@ -514,13 +505,8 @@ def run_detector(selected: Sequence[dict], args: argparse.Namespace, out_dir: Pa
             "first_kill_ts",
             "last_kill_ts",
             "fight_type",
-            "fight_scale",
-            "fight_context",
-            "fight_label",
             "centroid_x",
             "centroid_y",
-            "blue_participants",
-            "red_participants",
             "n_kills",
         ]
         writer = csv.DictWriter(handle, fieldnames=fields)
@@ -540,8 +526,6 @@ def run_detector(selected: Sequence[dict], args: argparse.Namespace, out_dir: Pa
             "max": max(counts) if counts else 0,
         },
         "fight_types": dict(sorted(fight_types.items())),
-        "fight_scales": dict(sorted(fight_scales.items())),
-        "fight_contexts": dict(sorted(fight_contexts.items())),
         "zero_fight_matches": len(zero_fight_matches),
         "checks": {
             "exceptions": exceptions,

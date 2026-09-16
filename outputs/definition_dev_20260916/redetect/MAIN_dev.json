@@ -1,0 +1,31 @@
+{
+ "set": "MAIN",
+ "definition": "dev",
+ "constants": {
+  "TF2_KILL_CLUSTER_GAP_MS": 14000,
+  "CLUSTER_MAX_DIAMETER": 4285.0
+ },
+ "detector_settings": {
+  "TF2_KILL_CLUSTER_GAP_MS": 14000,
+  "CLUSTER_MAX_DIAMETER": 4285.0,
+  "TF2_VALIDITY_RADIUS": 1600.0,
+  "TF2_ENGAGE_PRE_KILL_MS": 15000,
+  "TF2_MIN_PER_TEAM": 2,
+  "TF2_INTERACTION_RADIUS": 3000.0,
+  "TF2_EXCLUDE_SHOP_INTERACTIONS": false,
+  "FIGHT_HORIZON_SEC": 35,
+  "FEATURE_VERSION": "featV7_schema_pruned_status_runes_bans_spells_styles_bin5s",
+  "FRAME_MS": 60000,
+  "PATCH_LEVEL": "major_minor"
+ },
+ "matches": 210000,
+ "loaded": 210000,
+ "errors": 0,
+ "rows": 562417,
+ "seconds": 1117.1,
+ "cache_dir": "D:\\LOL_Project\\cache\\match_cache_fresh_v3_engage_status13",
+ "file": "redetect\\MAIN_dev.csv",
+ "file_sha256": "169a200d047dd41c8eb1d150519187f00cb9c96ef999ca0e29e580064b23a0dc",
+ "per_match": {},
+ "written_at": "2026-09-16 08:08:05"
+}

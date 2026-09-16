@@ -1,0 +1,32 @@
+{
+ "group": "protocol",
+ "state": "complete",
+ "stage": "protocol",
+ "pid": 11576,
+ "updated": "2026-09-15 16:28:15",
+ "elapsed_s": 7.3,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "contracts",
+ "protocol_sha256": "84c20e3e9122b8f60173804d1873e2fdda61c5935a4d6dca8580b0f221ffa6fa",
+ "counts": {
+  "primary": 361,
+  "dropped": 176,
+  "retained": 185
+ },
+ "parent_files_hashed": 2419,
+ "parent_inventory_files": 67427,
+ "history": [
+  {
+   "stage": "parent_inventory",
+   "state": "running",
+   "at": "2026-09-15 16:28:08"
+  },
+  {
+   "stage": "protocol",
+   "state": "complete",
+   "at": "2026-09-15 16:28:15"
+  }
+ ]
+}

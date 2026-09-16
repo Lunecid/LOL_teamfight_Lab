@@ -1,0 +1,101 @@
+{
+ "group": "fit_resmlp_N_smoke",
+ "state": "complete",
+ "stage": "selected",
+ "pid": 27184,
+ "updated": "2026-09-16 00:47:21",
+ "elapsed_s": 128.1,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "next family/cohort, then freeze",
+ "chosen": "resmlp_W512_D0.1__sigmoid",
+ "selection_sha256": "44d8ff1d378b1c4aea5a6a034f26ec52e5d991fa30808adb08cceeddd83f56b8",
+ "seconds": 124.6,
+ "top3": [
+  [
+   "resmlp_W512_D0.1__sigmoid",
+   0.243001
+  ],
+  [
+   "resmlp_W256_D0.3__isotonic",
+   0.243138
+  ],
+  [
+   "resmlp_W512_D0.1__raw",
+   0.243279
+  ]
+ ],
+ "history": [
+  {
+   "stage": "load",
+   "state": "running",
+   "at": "2026-09-16 00:45:13"
+  },
+  {
+   "stage": "fit_resmlp_W128_D0.1",
+   "state": "running",
+   "at": "2026-09-16 00:45:16"
+  },
+  {
+   "stage": "fitted_resmlp_W128_D0.1",
+   "state": "running",
+   "at": "2026-09-16 00:45:42"
+  },
+  {
+   "stage": "fit_resmlp_W128_D0.3",
+   "state": "running",
+   "at": "2026-09-16 00:45:42"
+  },
+  {
+   "stage": "fitted_resmlp_W128_D0.3",
+   "state": "running",
+   "at": "2026-09-16 00:46:05"
+  },
+  {
+   "stage": "fit_resmlp_W256_D0.1",
+   "state": "running",
+   "at": "2026-09-16 00:46:05"
+  },
+  {
+   "stage": "fitted_resmlp_W256_D0.1",
+   "state": "running",
+   "at": "2026-09-16 00:46:22"
+  },
+  {
+   "stage": "fit_resmlp_W256_D0.3",
+   "state": "running",
+   "at": "2026-09-16 00:46:22"
+  },
+  {
+   "stage": "fitted_resmlp_W256_D0.3",
+   "state": "running",
+   "at": "2026-09-16 00:46:37"
+  },
+  {
+   "stage": "fit_resmlp_W512_D0.1",
+   "state": "running",
+   "at": "2026-09-16 00:46:37"
+  },
+  {
+   "stage": "fitted_resmlp_W512_D0.1",
+   "state": "running",
+   "at": "2026-09-16 00:46:58"
+  },
+  {
+   "stage": "fit_resmlp_W512_D0.3",
+   "state": "running",
+   "at": "2026-09-16 00:46:58"
+  },
+  {
+   "stage": "fitted_resmlp_W512_D0.3",
+   "state": "running",
+   "at": "2026-09-16 00:47:19"
+  },
+  {
+   "stage": "selected",
+   "state": "complete",
+   "at": "2026-09-16 00:47:21"
+  }
+ ]
+}

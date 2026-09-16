@@ -1,0 +1,13 @@
+{
+ "time": "2026-09-16 01:52:45",
+ "what": "validation run 1 failed 4 checks (*_scaler_equals_train_refit) because the check compared StandardScaler.scale_ with np.std; StandardScaler sets scale_=1 on the 12 zero-variance TRAIN columns (OTHER soul/dragon/tower and their time interactions). The saved scalers equal a StandardScaler refit on cohort TRAIN exactly (mean_, scale_, var_, n_samples_seen_). Fix: compare with the refit scaler exactly. No model, prediction, selection, freeze or evaluation artifact changed.",
+ "failed_run_kept": "audit_followup/validation_run1_failed_scaler_check.json",
+ "postrun_checks_sha256_after_fix": "352af3581115214c96da1554ea72a40795d1d1acb7470c9e2e9341cedd106ed9",
+ "validation_run2": {
+  "n_checks": 115,
+  "failed": [],
+  "checked_at": "2026-09-16 01:52:44"
+ },
+ "frozen_manifest_sha256": "6a2fafe6fde0fb97433717ec6cb05741f38efd00bfada781dc9781479164833d",
+ "results_sha256": "d4d4e4f3d7324f4b28fff594dc95e20527cca62afaf1072c658a0e3f9fdc2d45"
+}

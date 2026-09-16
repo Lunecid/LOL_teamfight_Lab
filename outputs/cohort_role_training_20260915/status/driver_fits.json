@@ -1,0 +1,39 @@
+{
+ "group": "driver_fits",
+ "state": "complete",
+ "stage": "driver_fits",
+ "pid": 35636,
+ "updated": "2026-09-15 14:47:42",
+ "elapsed_s": 306.2,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "evaluation",
+ "history": [
+  {
+   "stage": "fit_cohort_q",
+   "state": "running",
+   "at": "2026-09-15 14:42:36"
+  },
+  {
+   "stage": "role_models",
+   "state": "running",
+   "at": "2026-09-15 14:44:58"
+  },
+  {
+   "stage": "fit_arms",
+   "state": "running",
+   "at": "2026-09-15 14:45:32"
+  },
+  {
+   "stage": "freeze",
+   "state": "running",
+   "at": "2026-09-15 14:47:42"
+  },
+  {
+   "stage": "driver_fits",
+   "state": "complete",
+   "at": "2026-09-15 14:47:42"
+  }
+ ]
+}

@@ -1,0 +1,72 @@
+{
+  "corpus": {
+    "rows": 566452,
+    "labelled": 532547,
+    "draw": 33905,
+    "base_y_disagree_labelled": 0,
+    "negative_cutoff": 0
+  },
+  "unique_matches": 194676,
+  "duplicate_match_cutoff_keys": 0,
+  "duplicate_excess_rows": 0,
+  "matches_in_multiple_patches": 0,
+  "patches": {
+    "15.14": {
+      "rows": 199480,
+      "labelled": 187547
+    },
+    "15.15": {
+      "rows": 203292,
+      "labelled": 191184
+    },
+    "15.16": {
+      "rows": 163680,
+      "labelled": 153816
+    }
+  },
+  "schema_versions": 1,
+  "X_sample_one_shard": {
+    "rows": 17546,
+    "columns": 7106,
+    "nonfinite_cells": 0,
+    "rows_with_nonfinite": 0
+  },
+  "value_partition_overlap": {
+    "fit__calibrate": 0,
+    "fit__select": 0,
+    "fit__test": 0,
+    "fit__engagement": 0,
+    "calibrate__select": 0,
+    "calibrate__test": 0,
+    "calibrate__engagement": 0,
+    "select__test": 0,
+    "select__engagement": 0,
+    "test__engagement": 0
+  },
+  "prior_data_use": "same 50k exploratory corpus; this is not a newly untouched external test",
+  "value_rows": {
+    "n": 26712,
+    "unique_ids": 26712,
+    "snapshots_after_query": 0,
+    "end_before_pre": 0,
+    "end_delta_nonfinite": 0,
+    "end_delta_zero": 0,
+    "end_to_60_sign_comparable": 25350,
+    "end_to_60_sign_flips": 5159,
+    "end_to_60_sign_flip_rate": 0.20351084812623274,
+    "pre_to_end_seconds_quantiles": [
+      15.001,
+      18.7915,
+      32.0615,
+      59.457
+    ],
+    "test_match_overlap_value_fit": 0
+  },
+  "predict_train_test_match_overlap": 0,
+  "two_axis": {
+    "n": 26712,
+    "labelled": 25177,
+    "auc_match_weighted_recomputed": 0.6648860688902738,
+    "outcome_value_sign_disagreement": 0.07709417325336616
+  }
+}

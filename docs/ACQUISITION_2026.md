@@ -19,9 +19,6 @@ An optional `--key-refresh-command` may call an external, user-owned secret
 provisioner that atomically replaces the file. It must not scrape the Riot
 Developer Portal or store Riot login/2FA cookies. For unattended research,
 apply for a Personal API key instead of automating a development-key login.
-Keeping a signed-in Whale tab open does not provide a supported refresh API;
-the collector intentionally does not attach to Chromium remote debugging or
-extract credentials from browser state.
 
 Official references:
 
@@ -136,11 +133,8 @@ annotation.
 
 ## Windows Task Scheduler
 
-The installer registers one limited task with an at-logon trigger, a five-minute
-watchdog trigger, and restart-on-failure settings. A running instance ignores
-the watchdog trigger; if the task is stopped unexpectedly, the next trigger
-starts it without losing the SQLite checkpoint. Run it only after the probe and
-small-cycle checks pass:
+The installer registers one limited, at-logon task and configures restart on
+failure. Run it only after the probe and small-cycle checks pass:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\install_riot_collector_task.ps1 `
@@ -149,7 +143,6 @@ powershell -ExecutionPolicy Bypass -File scripts\install_riot_collector_task.ps1
   -KeyFile C:\Users\todtj\.secrets\riot.env `
   -OutputRoot D:\LOL_Project\data\raw\2026_current `
   -MinApiPatch 16.13 `
-  -WatchdogMinutes 5 `
   -StartNow
 ```
 

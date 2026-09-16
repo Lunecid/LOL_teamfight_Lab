@@ -1,0 +1,101 @@
+{
+ "group": "shap_smoke",
+ "state": "complete",
+ "stage": "shap",
+ "pid": 20048,
+ "updated": "2026-09-16 03:09:08",
+ "elapsed_s": 7.2,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "snapshot after, post-run checks, report",
+ "summary_sha256": "d583e1b24c87f36a0d6c0bd7715430ccc0a7ba777f91eacb1fea423c18eedad6",
+ "all_checks_pass": true,
+ "history": [
+  {
+   "stage": "final_q_T_all",
+   "state": "running",
+   "at": "2026-09-16 03:09:03"
+  },
+  {
+   "stage": "final_q_T_all_done",
+   "state": "running",
+   "at": "2026-09-16 03:09:03"
+  },
+  {
+   "stage": "final_q_T_B40",
+   "state": "running",
+   "at": "2026-09-16 03:09:03"
+  },
+  {
+   "stage": "final_q_T_B40_done",
+   "state": "running",
+   "at": "2026-09-16 03:09:04"
+  },
+  {
+   "stage": "final_q_N_all",
+   "state": "running",
+   "at": "2026-09-16 03:09:04"
+  },
+  {
+   "stage": "final_q_N_all_done",
+   "state": "running",
+   "at": "2026-09-16 03:09:04"
+  },
+  {
+   "stage": "final_q_N_B40",
+   "state": "running",
+   "at": "2026-09-16 03:09:04"
+  },
+  {
+   "stage": "final_q_N_B40_done",
+   "state": "running",
+   "at": "2026-09-16 03:09:05"
+  },
+  {
+   "stage": "plain_mlp_T_all",
+   "state": "running",
+   "at": "2026-09-16 03:09:05"
+  },
+  {
+   "stage": "plain_mlp_T_all_done",
+   "state": "running",
+   "at": "2026-09-16 03:09:07"
+  },
+  {
+   "stage": "plain_mlp_T_B40",
+   "state": "running",
+   "at": "2026-09-16 03:09:07"
+  },
+  {
+   "stage": "plain_mlp_T_B40_done",
+   "state": "running",
+   "at": "2026-09-16 03:09:07"
+  },
+  {
+   "stage": "plain_mlp_N_all",
+   "state": "running",
+   "at": "2026-09-16 03:09:07"
+  },
+  {
+   "stage": "plain_mlp_N_all_done",
+   "state": "running",
+   "at": "2026-09-16 03:09:07"
+  },
+  {
+   "stage": "plain_mlp_N_B40",
+   "state": "running",
+   "at": "2026-09-16 03:09:07"
+  },
+  {
+   "stage": "plain_mlp_N_B40_done",
+   "state": "running",
+   "at": "2026-09-16 03:09:08"
+  },
+  {
+   "stage": "shap",
+   "state": "complete",
+   "at": "2026-09-16 03:09:08"
+  }
+ ]
+}

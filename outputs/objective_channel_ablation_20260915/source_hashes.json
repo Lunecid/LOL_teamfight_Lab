@@ -1,0 +1,33 @@
+{
+ "written_at": "2026-09-15 16:28:14",
+ "sources": {
+  "C:\\Users\\todtj\\문서\\LOL_Teamfight\\docs\\CLAUDE_LABEL_VALIDITY_FULL_20260915.md": "2ec2563772170608103f343497f71312355da1311200f56603dfd7c10cbf4925",
+  "C:\\Users\\todtj\\문서\\LOL_Teamfight\\docs\\TOG_END_TO_END_READINESS_AUDIT_20260915.md": "473acf3141943fa828a0253fa35a87cb473b5c5fb3d3ac47cbaea5b9a09169e5",
+  "C:\\Users\\todtj\\문서\\LOL_Teamfight\\scripts\\fc20260915_common.py": "aeb9f3b07b5a5e68cc95de09a4a12870ac7e7f0728a66a30535c7dbbbad73405",
+  "C:\\Users\\todtj\\문서\\LOL_Teamfight\\scripts\\fc20260915_data.py": "45787a22445b7fc9595e337d79723c9adecdee956080303035de5e162df7c512",
+  "C:\\Users\\todtj\\문서\\LOL_Teamfight\\scripts\\fc20260915_fit_v.py": "55821e85299382053d1d906a872b4e8774fdc850b712a08b9d702c11d4b7f1ea",
+  "C:\\Users\\todtj\\문서\\LOL_Teamfight\\scripts\\fc20260915_labels.py": "ad17412a712523da4d50b875bd4d52bd1a62953986e6b738e63ad5349ba078af",
+  "C:\\Users\\todtj\\문서\\LOL_Teamfight\\scripts\\fc20260915_extract.py": "dd0c869e17c58fee508a40984e2e5320111f69d9469edf91a12264b13b582b29",
+  "C:\\Users\\todtj\\문서\\LOL_Teamfight\\scripts\\fc20260915_evaluate.py": "0485d62ced4e3fb9a0bb70679880c9198fa63cf072453d534abb715b02cade53",
+  "C:\\Users\\todtj\\문서\\LOL_Teamfight\\scripts\\engagement_labels_v3_rules.py": "ffa87493b4afddbbbb16938e34368261aa226c9a6721f372ba4ab9af89fd34f2",
+  "C:\\Users\\todtj\\문서\\LOL_Teamfight\\scripts\\cr20260915_common.py": "04d4a2eb9808888d6b5e4896bdc50405ffac4bde79ee65173046627aa146e081",
+  "C:\\Users\\todtj\\문서\\LOL_Teamfight\\scripts\\cr20260915_data.py": "85f859d5df36bd7426d30dcce59108d8934bf41b516d1ee2dfc27bd6405812b9",
+  "C:\\Users\\todtj\\문서\\LOL_Teamfight\\scripts\\audit_tog_readiness_20260915.py": "16544608f52d8e5248e9588a326f7b60c377fc6d69114f4d8efd7df1c877545d",
+  "C:\\Users\\todtj\\문서\\LOL_Teamfight\\worktrees\\engagement-state-value\\gameplay\\state_value.py": "c9092265634db41cca40657407087cdf365c0f0ed73cd335afb1b473d038e752",
+  "C:\\Users\\todtj\\문서\\LOL_Teamfight\\worktrees\\engagement-state-value\\gameplay\\state_value_v2.py": "418ff787b5cddd2af601dd758d1fdfa6e36d4ebec11b1503f7a68e02c84e1afa",
+  "C:\\Users\\todtj\\문서\\LOL_Teamfight\\worktrees\\engagement-state-value\\train\\state_value_experiment.py": "b8a2070e231a4ae1169fb48f4b18ac269e8b2087f108b37beadbaf333a6e0d0e",
+  "C:\\Users\\todtj\\문서\\LOL_Teamfight\\worktrees\\engagement-state-value\\train\\temporal_winprob.py": "b48b20770c497f402260e4d4350e38ad3c50673d8ed67dbfdea3294a837ec6f6",
+  "C:\\Users\\todtj\\PycharmProjects\\LOL_teamfight\\gameplay\\pipeline_cache.py": "ea5a8eb4331248ea529d3119a7223395f9d172d50a3bc43ab391462cc2639d43",
+  "C:\\Users\\todtj\\PycharmProjects\\LOL_teamfight\\data\\cache_io.py": "67f48ca7233ece77bf69eac8e25156bddebd6faf80d1bbe2af7ee2ec8ffd0375",
+  "C:\\Users\\todtj\\PycharmProjects\\LOL_teamfight\\gameplay\\pipeline.py": "b02eed0e7a68fe0e48b55890c1f99a1d174c1e6b1e9878756a05fc8fbd512428",
+  "C:\\Users\\todtj\\문서\\LOL_Teamfight\\docs\\CLAUDE_OBJECTIVE_CHANNEL_ABLATION_20260915.md": "c78438341966d8ccbb35850f9e05901ef2b01bc55e4bbb3bc1c4502815b77c2d",
+  "C:\\Users\\todtj\\문서\\LOL_Teamfight\\docs\\LABEL_VALIDITY_FINDINGS_20260915.md": "e49333c5258a955d1dd8121fa35fd42604aae4dd7f32824b7fc7ee7b5ff3040f",
+  "C:\\Users\\todtj\\문서\\LOL_Teamfight\\docs\\DELTA_LABEL_MONOTONE_CALIBRATION_NOTE_20260915.md": "70d31fec13b1ed3035600a18d5cf2426e7336ad49ae3dd94336f63b322a7c5bc",
+  "C:\\Users\\todtj\\문서\\LOL_Teamfight\\scripts\\lv20260915_common.py": "b2ac93a34e15a24b884daaa1f5789cfe14feba18d5ab1bd275e2229dd1d21c78",
+  "C:\\Users\\todtj\\문서\\LOL_Teamfight\\scripts\\lv20260915_analysis.py": "4901e450147977b961c52e3309902ad4a617a15a4b0ead485da918829ed42194",
+  "C:\\Users\\todtj\\문서\\LOL_Teamfight\\scripts\\lv20260915_fit_v.py": "fb69b056fe2270628f4810c1cc16e911da1d7c9f4144b6b171d5eb795ec35596",
+  "C:\\Users\\todtj\\문서\\LOL_Teamfight\\scripts\\lv20260915_labels.py": "f6322e2519ccb95a90dca3e369ca8e63406ffcd4aa013f723574f53662db78a4",
+  "C:\\Users\\todtj\\문서\\LOL_Teamfight\\scripts\\lv20260915_analyze.py": "d2dd8ea515aebb9073b1c03635a4245a8daa1505499030fac30f3f939885be5c",
+  "C:\\Users\\todtj\\문서\\LOL_Teamfight\\outputs\\label_validity_full_20260915\\DEFINITION_AND_EVIDENCE.md": "13d34b873cc3c933f977df037a995c7aca20d04a9b98775e1c58b7a116c18a96"
+ }
+}

@@ -1,0 +1,29 @@
+{
+ "group": "driver_freeze_eval",
+ "state": "complete",
+ "stage": "freeze_eval",
+ "pid": 24176,
+ "updated": "2026-09-16 04:52:30",
+ "elapsed_s": 322.3,
+ "processed": 2,
+ "total": 2,
+ "error": null,
+ "next_step": "next plan",
+ "history": [
+  {
+   "stage": "freeze",
+   "state": "running",
+   "at": "2026-09-16 04:47:08"
+  },
+  {
+   "stage": "evaluate",
+   "state": "running",
+   "at": "2026-09-16 04:48:22"
+  },
+  {
+   "stage": "freeze_eval",
+   "state": "complete",
+   "at": "2026-09-16 04:52:30"
+  }
+ ]
+}

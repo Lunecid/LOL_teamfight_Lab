@@ -1,0 +1,33 @@
+{
+ "group": "rebuild_EXT_KR_16.13",
+ "state": "complete",
+ "stage": "assembled",
+ "pid": 16144,
+ "updated": "2026-09-16 08:14:57",
+ "elapsed_s": 8.9,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "next set / fit",
+ "changed_matches": 408,
+ "parent_rows_copied": 23894,
+ "rebuilt_rows": 1324,
+ "dev_rows": 25218,
+ "history": [
+  {
+   "stage": "items",
+   "state": "running",
+   "at": "2026-09-16 08:14:48"
+  },
+  {
+   "stage": "extract",
+   "state": "running",
+   "at": "2026-09-16 08:14:51"
+  },
+  {
+   "stage": "assembled",
+   "state": "complete",
+   "at": "2026-09-16 08:14:57"
+  }
+ ]
+}

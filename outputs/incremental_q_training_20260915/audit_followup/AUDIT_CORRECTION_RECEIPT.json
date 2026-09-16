@@ -1,0 +1,152 @@
+{
+ "receipt": "incremental_q_training_20260915 audit correction",
+ "written_at": "2026-09-15 21:16:54",
+ "scope": "bounded post-run correction; NO refit, reselection, label change, bootstrap regeneration or change to frozen model/prediction/selection artifacts",
+ "inputs_read": [
+  "outputs/claude_dispatch_incremental_q/independent_code_review.json",
+  "outputs/claude_dispatch_incremental_q/independent_result_verification.json",
+  "outputs/claude_dispatch_incremental_q/training_source_snapshot/manifest.json"
+ ],
+ "findings": [
+  {
+   "id": 1,
+   "file": "scripts/iq20260915_report.py",
+   "finding": "hardcoded improvement magnitude and Y baseline Brier ~.25 inferred from p_pre ~.5",
+   "removed_text": "절대 개선 폭은 Brier 소수 셋째~넷째 자리 수준이다. B40/B45는 p_pre가 .5 근처인 모집단이라 기저 Brier가 0.25에 가깝고, 구성·유병률·시간대가 달라 전체와의 차이를 \"어려움의 인과효과\"로 해석하지 않는다. p_pre .5는 V 모델의 추정 균형이지 실제 승률의 정답이 아니다.",
+   "change": "replaced by (a) signed ranges of saved MAIN TEST contrast estimates and primary LightGBM-PT estimates relative to PT Brier, (b) explicit p_pre = P(final Blue win | S_pre) vs q = P(deltaV>0 | S_pre) distinction (balanced V does not imply balanced Y), (c) measured match-weighted Y prevalence and constant-q Brier per cell; the non-causal caution is kept; DEFINITION table gains a q row; report section 9 discloses this correction"
+  },
+  {
+   "id": 2,
+   "file": "scripts/iq20260915_postrun_checks.py",
+   "finding": "bootstrap gates checked point estimates only and skipped computed=False cells",
+   "change": "bootstrap_cell_acceptance() + check bootstrap_acceptance_all_B40_B45_cells: eligibility from saved evaluation prediction cell masks (>=30 distinct matches and 2 Y classes); eligible cells require 1000 replicates, seed 20260915, matches/rows equal to the cell, the five bootstrap models, the five planned contrasts in protocol order, finite ordered CIs, finite replicates = 1000 (Brier/log loss) and 1000 - degenerate (AUC), 0 <= degenerate < 1000; ineligible cells require explicit computed=False with a reason; each set/cohort needs the explicit time-cell CI-not-computed statement. The contract-test timing gate now selects the latest PASSING contract_tests run before the first full fit (run 2) instead of reading result.json. --output lets a candidate validation be written first.",
+   "result": {
+    "eligible_cells_accepted": 28,
+    "explicit_skips": 2,
+    "skipped_cells": "EXT_KR_16.14_pilot T B40 and T B45 (<30 matches)",
+    "problems": []
+   }
+  },
+  {
+   "id": 3,
+   "file": "scripts/iq20260915_fit.py",
+   "finding": "no explicit unique(match, s_ms) assertion; partial-family rerun could overwrite config bundles",
+   "change": "assert_unique_keys() right after loading, before any fit (SystemExit on duplicates; count stored as pre_fit_unique_row_keys); partial_family_artifacts() refusal before loading/fitting when config bundles, predictions or internal_stop files exist without a selection file (artifacts retained, actionable message, status failed through the existing handler). No resume framework.",
+   "status": "CODE-ONLY POST-RUN GUARD; the modified file was NOT the training source and nothing was rerun",
+   "training_source_evidence": {
+    "frozen_manifest_source_sha256": "321fa4dfb0ab8741f4efa2db5c9ccfebdfa212a9efe905514f63f944c0da24ed",
+    "dispatch_training_source_snapshot_sha256": "321fa4dfb0ab8741f4efa2db5c9ccfebdfa212a9efe905514f63f944c0da24ed",
+    "preserved_pre_correction_copy": "audit_followup/history/pre_correction_v1/scripts/iq20260915_fit.py",
+    "preserved_copy_sha256": "321fa4dfb0ab8741f4efa2db5c9ccfebdfa212a9efe905514f63f944c0da24ed"
+   },
+   "root_key_audit": "outputs/claude_dispatch_incremental_q/pre_fit_key_audit.json (all 402772 TRAIN+VAL keys unique before training)"
+  }
+ ],
+ "source_files": {
+  "scripts/iq20260915_report.py": {
+   "at_freeze": "c3db63a378e0806ce3b6d8bc82d7c7307a57160e7e05cc37afbeb37a37007a72",
+   "before_correction": "94ab2714ef91d36e398dc346e48409c272673235855e63d53a46846438b5cb21",
+   "after_correction": "be6423edbdb34897a6ceeb7f7cfe72f66ae5ead1c652e9f6e0b7df52556d7681"
+  },
+  "scripts/iq20260915_postrun_checks.py": {
+   "at_freeze": "6c03abb78daba3a83665fe94a56754cd49f9e80782ec846db86a28ea53b44e38",
+   "before_correction": "926633f0cc72b3f21cff6a0d041e6ddb405f964649adfc6f64f257344b9f1bf4",
+   "after_correction": "e6f5f1a878a10f2b52c4ce758bd048ffb9a8086b208e98e16741a7e0826a793f"
+  },
+  "scripts/iq20260915_fit.py": {
+   "at_freeze": "321fa4dfb0ab8741f4efa2db5c9ccfebdfa212a9efe905514f63f944c0da24ed",
+   "before_correction": "321fa4dfb0ab8741f4efa2db5c9ccfebdfa212a9efe905514f63f944c0da24ed",
+   "after_correction": "7d302dd5758e2c5aa216cf14a71e5f42d4b6d61501463cf8fced1f2f5dc4b1ed"
+  }
+ },
+ "post_freeze_code_changes_disclosed": {
+  "note": "Only report, snapshot, postrun_checks and fit scripts differ from the freeze-time sources. report/snapshot/postrun_checks had already been edited after the freeze in the original run (report wording, final integrity phase, ordering and legacy checks); fit was edited only in this correction. None of these edits produced or changed models, selections or predictions.",
+  "unchanged_freeze_sources": {
+   "scripts/iq20260915_common.py": true,
+   "scripts/iq20260915_driver.py": true,
+   "scripts/iq20260915_evaluate.py": true,
+   "scripts/iq20260915_freeze.py": true,
+   "scripts/iq20260915_protocol.py": true,
+   "scripts/iq20260915_run_contract_tests.py": true,
+   "tests/test_iq20260915_contracts.py": true,
+   "scripts/fc20260915_common.py": true,
+   "scripts/cr20260915_common.py": true,
+   "docs/CLAUDE_INCREMENTAL_Q_TRAIN_20260915.md": true,
+   "docs/DELTA_Q_FAIR_BALANCED_PROTOCOL_20260915.md": true,
+   "docs/COLLABORATOR_CRITIQUE_RESPONSE_20260915.md": true
+  },
+  "snapshot_py": {
+   "at_freeze": "8f662289e8da375b3c11a5fc9b661858988853bbf8008d0a564a49af1daae654",
+   "now": "907539017f155765bb8fb5d5bac9349ffdf9efad0e76b602e6660edb0fc84d3d"
+  }
+ },
+ "frozen_artifacts_verified_now": {
+  "all_equal": true,
+  "files": 51
+ },
+ "eval_results_sha256": {
+  "now": "fdd5da60cdd62c174b08dd2c28a19019fb3237411a50faa33b44e97d24d3dbd3",
+  "root_verified": "fdd5da60cdd62c174b08dd2c28a19019fb3237411a50faa33b44e97d24d3dbd3",
+  "equal": true
+ },
+ "eval_prediction_files_equal_recorded": true,
+ "tests": {
+  "file": "audit_followup/test_iq20260915_audit_followup.py",
+  "sha256": "bd1347c7cb9f754e5e79f744003c53b0aad2a85dca5cefd1479c9de2a7da93f3",
+  "runs": [
+   {
+    "run": 1,
+    "log": "audit_followup/tests_run1.txt",
+    "result": "============================= 17 passed in 0.29s =============================="
+   },
+   {
+    "run": 2,
+    "log": "audit_followup/tests_run2.txt",
+    "result": "============================= 17 passed in 0.28s ==============================",
+    "note": "rerun after the final p_pre wording edit of report.py"
+   }
+  ],
+  "not_a_prerequisite": "audit tests are outside contract_tests/; the timing gate uses contract_tests run 2 (before the first full fit)"
+ },
+ "validation": {
+  "before": {
+   "file": "audit_followup/history/pre_correction_v1/run/validation.json",
+   "sha256": "573811824f8f464a2889fb73edf38420cec38ec2d90cf73bd41e5ae8c48b38cb",
+   "n_checks": 116,
+   "failed": []
+  },
+  "candidate": {
+   "file": "audit_followup/validation_candidate_run1.json",
+   "sha256": "3ceecddb9f2c6df31774e447700ee234bcdb3b167c9439bd97124de5f0307653",
+   "n_checks": 117,
+   "failed": []
+  },
+  "final": {
+   "file": "validation.json",
+   "sha256": "f03e369e5f362d3e062d9403912828ff62292c7de6d81c580da36f2becd0447d",
+   "n_checks": 117,
+   "failed": [],
+   "added_checks": [
+    "bootstrap_acceptance_all_B40_B45_cells"
+   ],
+   "removed_checks": []
+  }
+ },
+ "report": {
+  "before": {
+   "REPORT_md": "de3a3d2da22a017d889bdb2795e988ccaa851219970bce2e2a6e929f39d183f5",
+   "DEFINITION_AND_EVIDENCE_md": "5ad529e9a5cc3ea6a0044b9964103511aa1a0c2c3fae4dddece941a204ce1569"
+  },
+  "after": {
+   "REPORT_md": "da5fd14b7c8fcf8f26b44f8d9e503864491635a92200a948565481e33e659483",
+   "DEFINITION_AND_EVIDENCE_md": "aa1a8d7fd61f638fdd34bfec5031bbb6aa0ce26a9c87916a4111053e47a3e4d3"
+  }
+ },
+ "parent_integrity_after_correction": {
+  "file": "integrity/snapshot_final_diff.json",
+  "all_equal": true,
+  "previous_final_diff_preserved": "audit_followup/history/pre_correction_v1/run/integrity/"
+ },
+ "sealed_access_note": "the candidate and final post-run check runs re-opened MAIN TEST after the freeze for the existing reload-identity check (logged in access_log.jsonl); no fitting, selection or bootstrap computation",
+ "history": "audit_followup/history/pre_correction_v1/manifest.json"
+}

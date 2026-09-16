@@ -10,7 +10,7 @@ import hashlib
 import time
 from collections import defaultdict
 from pathlib import Path
-from typing import Iterable
+from typing import Tuple, Iterable
 from core.common import Any, Dict, List, Optional, Tuple, np, dataclass, field
 from core.config import CACHE_DIR, META_DIR, cfg
 
@@ -62,6 +62,18 @@ _FIGHT_INDEX_CACHE_CFG_KEYS: Tuple[str, ...] = (
     "REQUIRE_LCC_TOTAL",
     "REQUIRE_LCC_PER_TEAM",
     "CLUSTER_MAX_DIAMETER",
+    # teamfight_v2 kill-cluster detector constants (presence gate, chaining, merge)
+    "TF2_KILL_CLUSTER_GAP_MS",
+    "TF2_ENGAGE_PRE_KILL_MS",
+    "TF2_VALIDITY_RADIUS",
+    "TF2_INTERACTION_RADIUS",
+    "TF2_POST_FIGHT_WINDOW_MS",
+    "TF2_TAIL_BUFFER_MS",
+    "TF2_MIN_PER_TEAM",
+    "TF2_EXCLUDE_SHOP_INTERACTIONS",
+    "TF2_GRID_STEP_MS",
+    "TF2_USE_FRAME_INTERP",
+    "TF2_USE_KILL_TRAJECTORY_INTERP",
     # Per-match sampling controls
     "MAX_FIGHTS_PER_MATCH",
     "FIGHT_SUBSAMPLE_STRATEGY",
@@ -139,6 +151,10 @@ def _load_cached_fight_index(path: Path, cache_key: str) -> Optional[List[FightR
         for r in rows:
             if not isinstance(r, dict):
                 continue
+            if "det_present_blue" not in r or "anchor_x" not in r:
+                # entry predates the scale fields: treat as a miss so the
+                # index is rebuilt once with participant counts populated
+                return None
             try:
                 refs.append(
                     FightRef(
@@ -149,6 +165,12 @@ def _load_cached_fight_index(path: Path, cache_key: str) -> Optional[List[FightR
                         label_end_ts=int(r.get("label_end_ts", -1)),
                         first_kill_ts=int(r.get("first_kill_ts", -1)),
                         last_kill_ts=int(r.get("last_kill_ts", -1)),
+                        det_cluster_blue=int(r.get("det_cluster_blue", -1)),
+                        det_cluster_red=int(r.get("det_cluster_red", -1)),
+                        det_present_blue=int(r.get("det_present_blue", -1)),
+                        det_present_red=int(r.get("det_present_red", -1)),
+                        anchor_x=float(r.get("anchor_x", -1.0)),
+                        anchor_y=float(r.get("anchor_y", -1.0)),
                     )
                 )
             except Exception:
@@ -171,6 +193,12 @@ def _save_cached_fight_index(path: Path, cache_key: str, cfg_sig: Dict[str, Any]
                 "label_end_ts": int(getattr(r, "label_end_ts", -1)),
                 "first_kill_ts": int(getattr(r, "first_kill_ts", -1)),
                 "last_kill_ts": int(getattr(r, "last_kill_ts", -1)),
+                "det_cluster_blue": int(getattr(r, "det_cluster_blue", -1)),
+                "det_cluster_red": int(getattr(r, "det_cluster_red", -1)),
+                "det_present_blue": int(getattr(r, "det_present_blue", -1)),
+                "det_present_red": int(getattr(r, "det_present_red", -1)),
+                "anchor_x": float(getattr(r, "anchor_x", -1.0)),
+                "anchor_y": float(getattr(r, "anchor_y", -1.0)),
             }
             for r in refs
         ]
@@ -330,7 +358,28 @@ def _fight_to_ref_row(
         "label_end_ts": int(label_end_ts),
         "first_kill_ts": int(first_kill_ts_val),
         "last_kill_ts": int(last_kill_ts_val),
+        "det_cluster_blue": int(fight.get("det_cluster_blue", -1) or -1),
+        "det_cluster_red": int(fight.get("det_cluster_red", -1) or -1),
+        "det_present_blue": int(fight.get("det_present_blue", -1) or -1),
+        "det_present_red": int(fight.get("det_present_red", -1) or -1),
+        "anchor_x": float(_fight_anchor(fight)[0]),
+        "anchor_y": float(_fight_anchor(fight)[1]),
     }
+
+
+def _fight_anchor(fight: Dict[str, Any]) -> Tuple[float, float]:
+    """Fight centre in game units: the detector stores it as centroid_x / centroid_y
+    (the first kill's position); older dumps used a fight_center pair."""
+    try:
+        cx, cy = fight.get("centroid_x", None), fight.get("centroid_y", None)
+        if cx is not None and cy is not None and float(cx) >= 0 and float(cy) >= 0:
+            return float(cx), float(cy)
+        fc = fight.get("fight_center", None)
+        if fc is not None and len(fc) >= 2:
+            return float(fc[0]), float(fc[1])
+    except Exception:
+        pass
+    return -1.0, -1.0
 
 
 def _build_fight_rows_for_match(
@@ -487,6 +536,12 @@ def build_fight_index(
                         label_end_ts=int(row.get("label_end_ts", -1)),
                         first_kill_ts=int(row.get("first_kill_ts", -1)),
                         last_kill_ts=int(row.get("last_kill_ts", -1)),
+                        det_cluster_blue=int(row.get("det_cluster_blue", -1)),
+                        det_cluster_red=int(row.get("det_cluster_red", -1)),
+                        det_present_blue=int(row.get("det_present_blue", -1)),
+                        det_present_red=int(row.get("det_present_red", -1)),
+                        anchor_x=float(row.get("anchor_x", -1.0)),
+                        anchor_y=float(row.get("anchor_y", -1.0)),
                     )
                 )
             except Exception:

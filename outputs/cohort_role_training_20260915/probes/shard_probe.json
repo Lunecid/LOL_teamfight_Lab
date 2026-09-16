@@ -1,0 +1,59 @@
+{
+ "shard_files": 32,
+ "shard_member_names": [
+  "X",
+  "cluster_blue",
+  "cluster_red",
+  "engage_ts",
+  "groups",
+  "patch",
+  "present_blue",
+  "present_red",
+  "y",
+  "y_attention_value_win",
+  "y_market_event",
+  "y_market_event@window",
+  "y_market_lex",
+  "y_market_lex@window"
+ ],
+ "rows": 566452,
+ "matches": 194676,
+ "patches": {
+  "15.14": 199480,
+  "15.15": 203292,
+  "15.16": 163680
+ },
+ "duplicate_keys": 0,
+ "duplicate_key_rows": 0,
+ "exposure_rows": 566452,
+ "exposure_unique_keys": 566452,
+ "exposure_keys_with_multiple_L": 0,
+ "exposure_keys_in_shards": 566452,
+ "exposure_keys_missing_from_shards": 0,
+ "shard_keys_not_in_exposures": 0,
+ "missing_matches": 0,
+ "exposure_matches": 194676,
+ "matches_all_exposures_missing": 0,
+ "cluster_negative_rows": 59,
+ "cluster_blue_values": {
+  "2": 187456,
+  "3": 151391,
+  "4": 100836,
+  "1": 51824,
+  "5": 74917,
+  "-1": 28
+ },
+ "cluster_red_values": {
+  "2": 185604,
+  "3": 150486,
+  "1": 53741,
+  "4": 102607,
+  "5": 73983,
+  "-1": 31
+ },
+ "present_negative_rows": 0,
+ "y_market_event_labelled": 532547,
+ "example_missing": [],
+ "example_extra": [],
+ "seconds": 1.9
+}

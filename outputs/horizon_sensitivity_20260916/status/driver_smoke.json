@@ -1,0 +1,79 @@
+{
+ "group": "driver_smoke",
+ "state": "complete",
+ "stage": "smoke",
+ "pid": 39748,
+ "updated": "2026-09-16 02:32:13",
+ "elapsed_s": 139.9,
+ "processed": 12,
+ "total": 12,
+ "error": null,
+ "next_step": "next plan",
+ "history": [
+  {
+   "stage": "fit_smoke_60_T_pt",
+   "state": "running",
+   "at": "2026-09-16 02:29:54"
+  },
+  {
+   "stage": "fit_smoke_60_T_logit",
+   "state": "running",
+   "at": "2026-09-16 02:30:01"
+  },
+  {
+   "stage": "fit_smoke_60_T_lgbm",
+   "state": "running",
+   "at": "2026-09-16 02:30:08"
+  },
+  {
+   "stage": "fit_smoke_60_T_mlp",
+   "state": "running",
+   "at": "2026-09-16 02:30:15"
+  },
+  {
+   "stage": "fit_smoke_60_T_resmlp",
+   "state": "running",
+   "at": "2026-09-16 02:30:27"
+  },
+  {
+   "stage": "fit_smoke_60_N_pt",
+   "state": "running",
+   "at": "2026-09-16 02:30:41"
+  },
+  {
+   "stage": "fit_smoke_60_N_logit",
+   "state": "running",
+   "at": "2026-09-16 02:30:48"
+  },
+  {
+   "stage": "fit_smoke_60_N_lgbm",
+   "state": "running",
+   "at": "2026-09-16 02:30:55"
+  },
+  {
+   "stage": "fit_smoke_60_N_mlp",
+   "state": "running",
+   "at": "2026-09-16 02:31:05"
+  },
+  {
+   "stage": "fit_smoke_60_N_resmlp",
+   "state": "running",
+   "at": "2026-09-16 02:31:25"
+  },
+  {
+   "stage": "freeze_smoke",
+   "state": "running",
+   "at": "2026-09-16 02:31:54"
+  },
+  {
+   "stage": "evaluate_smoke",
+   "state": "running",
+   "at": "2026-09-16 02:32:03"
+  },
+  {
+   "stage": "smoke",
+   "state": "complete",
+   "at": "2026-09-16 02:32:13"
+  }
+ ]
+}

@@ -1,0 +1,61 @@
+{
+ "group": "fit_freeze",
+ "state": "complete",
+ "stage": "frozen",
+ "pid": 39192,
+ "updated": "2026-09-16 08:14:24",
+ "elapsed_s": 104.9,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "rebuild sealed sets, evaluate",
+ "frozen_manifest_sha256": "f30e15e2ab2a533728ed1acb2685ff7400dc376237b11e3448389b7c8d9d782f",
+ "winners": {
+  "logit_T": "logit_C0.001__raw",
+  "lgbm_T": "lgbm_L15_M100__raw",
+  "logit_N": "logit_C0.01__isotonic",
+  "lgbm_N": "lgbm_L15_M100__sigmoid"
+ },
+ "history": [
+  {
+   "stage": "load_T",
+   "state": "running",
+   "at": "2026-09-16 08:12:39"
+  },
+  {
+   "stage": "fit_logit_T",
+   "state": "running",
+   "at": "2026-09-16 08:12:42"
+  },
+  {
+   "stage": "fit_lgbm_T",
+   "state": "running",
+   "at": "2026-09-16 08:12:46"
+  },
+  {
+   "stage": "load_N",
+   "state": "running",
+   "at": "2026-09-16 08:12:55"
+  },
+  {
+   "stage": "fit_logit_N",
+   "state": "running",
+   "at": "2026-09-16 08:12:59"
+  },
+  {
+   "stage": "fit_lgbm_N",
+   "state": "running",
+   "at": "2026-09-16 08:13:21"
+  },
+  {
+   "stage": "freeze",
+   "state": "running",
+   "at": "2026-09-16 08:14:14"
+  },
+  {
+   "stage": "frozen",
+   "state": "complete",
+   "at": "2026-09-16 08:14:24"
+  }
+ ]
+}

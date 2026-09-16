@@ -167,7 +167,7 @@ def _label_event_team_sign(e: dict, tm: Dict[int, int]) -> int:
     et = str(e.get("type", "")).upper()
     tid = 0
     try:
-        if et in ("CHAMPION_KILL", "CHAMPION_SPECIAL_KILL"):
+        if et in ("CHAMPION_KILL", "CHAMPION_SPECIAL_KILL", "WARD_KILL"):
             tid = int(tm.get(int(e.get("killerId", 0) or 0), 0) or 0)
         elif et == "ELITE_MONSTER_KILL":
             tid = int(e.get("killerTeamId", 0) or 0)
@@ -252,13 +252,13 @@ def _compute_label_attention_value_win(evs: List[dict], tm: Dict[int, int], *, t
             + special_bonus
         )
         prior_e = (
-            0.25 * is_kill
-            + 0.30 * shutdown_norm
-            + 0.15 * streak_norm
-            + 0.10 * assist_norm
-            + 0.20 * bounty_norm
-            + 0.35 * obj_tier
-            + 0.15 * lane_pri
+            float(getattr(cfg, "LABEL_ATTN_PRIOR_W_KILL", 0.25)) * is_kill
+            + float(getattr(cfg, "LABEL_ATTN_PRIOR_W_SHUTDOWN", 0.30)) * shutdown_norm
+            + float(getattr(cfg, "LABEL_ATTN_PRIOR_W_STREAK", 0.15)) * streak_norm
+            + float(getattr(cfg, "LABEL_ATTN_PRIOR_W_ASSIST", 0.10)) * assist_norm
+            + float(getattr(cfg, "LABEL_ATTN_PRIOR_W_BOUNTY", 0.20)) * bounty_norm
+            + float(getattr(cfg, "LABEL_ATTN_PRIOR_W_OBJECTIVE", 0.35)) * obj_tier
+            + float(getattr(cfg, "LABEL_ATTN_PRIOR_W_LANE", 0.15)) * lane_pri
             + special_bonus
         )
 
@@ -328,6 +328,49 @@ def _resolve_label_window(
     return s_ms, e_ms, int(horizon_ms)
 
 
+def _event_xy(e: dict):
+    pos = e.get("position", None)
+    if isinstance(pos, dict) and "x" in pos and "y" in pos:
+        return float(pos["x"]), float(pos["y"])
+    if isinstance(pos, (list, tuple)) and len(pos) >= 2:
+        return float(pos[0]), float(pos[1])
+    return None
+
+
+def _split_label_type(label_type: str):
+    """'market_event@window' -> ('market_event', 'window'); no suffix -> cfg default."""
+    lt = str(label_type or "").lower()
+    if "@" in lt:
+        base, attr = lt.split("@", 1)
+        return base.strip(), attr.strip()
+    return lt, str(getattr(cfg, "LABEL_EVENT_ATTRIBUTION", "engagement")).lower()
+
+
+def attribute_events(evs: List[dict], anchor_xy, attribution: str) -> List[dict]:
+    """Keep the events the engagement may claim.
+
+    "engagement": events with a position within the attribution radius of the fight centre
+    (kills, buildings, plates, monsters); events without a position (ward kills) are dropped.
+    "window": every event.  Without an anchor the filter cannot be applied and all events are kept.
+    """
+    if str(attribution).lower() != "engagement" or anchor_xy is None:
+        return list(evs)
+    ax, ay = float(anchor_xy[0]), float(anchor_xy[1])
+    if ax < 0 or ay < 0:
+        return list(evs)
+    radius = float(getattr(cfg, "LABEL_ATTRIBUTION_RADIUS_U", 0.0) or 0.0)
+    if radius <= 0:
+        radius = float(getattr(cfg, "CLUSTER_MAX_DIAMETER", 4000.0) or 4000.0)
+    out = []
+    for e in evs:
+        xy = _event_xy(e)
+        if xy is None:
+            continue
+        if (xy[0] - ax) ** 2 + (xy[1] - ay) ** 2 <= radius * radius:
+            out.append(e)
+    return out
+
+
 def compute_label(
     cache: Dict[str, Any],
     tm: Dict[int, int],
@@ -339,6 +382,7 @@ def compute_label(
     first_kill_ts: Optional[int] = None,
     last_kill_ts: Optional[int] = None,
     interp_node_global: InterpNodeGlobalFn,
+    anchor_xy=None,
 ) -> Optional[int]:
     win = _resolve_label_window(
         cache,
@@ -352,6 +396,8 @@ def compute_label(
     s_ms, e_ms, _ = win
 
     evs = _events_in_window(cache, s_ms, e_ms)
+    label_type, attribution = _split_label_type(str(getattr(cfg, "LABEL_TYPE", "micro_win")))
+    evs = attribute_events(evs, anchor_xy, attribution)
 
     if getattr(cfg, "REQUIRE_SIGNAL_IN_HORIZON", False):
         has_sig = any(
@@ -361,7 +407,6 @@ def compute_label(
         if not has_sig:
             return None
 
-    label_type = str(getattr(cfg, "LABEL_TYPE", "micro_win")).lower()
     tie_key = f"{s_ms}:{e_ms}:{first_kill_ts if first_kill_ts is not None else -1}:{last_kill_ts if last_kill_ts is not None else -1}"
 
     if label_type == "micro_win":
@@ -380,6 +425,20 @@ def compute_label(
         )
     if label_type in ("attention_value_win", "attention_value", "attn_value", "attn"):
         return _compute_label_attention_value_win(evs, tm, tie_key=tie_key)
+    if label_type in ("market_lex", "market_lexicographic", "gold_lex"):
+        return _compute_label_market_lex(
+            evs, tm, cache, s_ms, e_ms,
+            interp_node_global=interp_node_global,
+            first_kill_ts=first_kill_ts, last_kill_ts=last_kill_ts,
+            tie_key=tie_key,
+        )
+    if label_type in ("market_event", "event_market", "kill_bounty_lex"):
+        return _compute_label_market_event(
+            evs, tm, cache, s_ms, e_ms,
+            interp_node_global=interp_node_global,
+            first_kill_ts=first_kill_ts, last_kill_ts=last_kill_ts,
+            tie_key=tie_key,
+        )
     if label_type in ("weighted", "composite", "weight"):
         return _compute_label_weighted(evs, tm, cache, s_ms, e_ms, tie_key=tie_key)
     return _compute_label_kill_survival(
@@ -494,6 +553,204 @@ def _compute_label_kill_survival(
         return None
 
     return 1 if score > 0 else 0
+
+
+def _compute_label_market_lex(
+    evs: List[dict],
+    tm: Dict[int, int],
+    cache: Dict[str, Any],
+    s_ms: int,
+    e_ms: int,
+    *,
+    interp_node_global: InterpNodeGlobalFn,
+    first_kill_ts: Optional[int] = None,
+    last_kill_ts: Optional[int] = None,
+    tie_key: str = "",
+) -> Optional[int]:
+    """Market verdict first, lexicographic refinement inside the dead zone.
+
+    The window team-gold-swing difference decides whenever it exceeds
+    LABEL_GOLD_DEADZONE (default 300 g, one base kill bounty): kills,
+    turrets, plates and monsters are already priced in gold by the game,
+    so no researcher weights are involved.  When the market is silent
+    (|swing| within the dead zone), discrete material facts refine in a
+    fixed order -- cluster kills, then survivors at the last kill, then
+    structure events in the window -- and an engagement even on all of
+    them is a genuine draw handled by the tie policy.
+    """
+    tie_policy = str(getattr(cfg, "LABEL_TIE_POLICY", getattr(cfg, "LABEL_TIE_STRATEGY", "drop"))).lower()
+    deadzone = float(getattr(cfg, "LABEL_GOLD_DEADZONE", 300.0))
+
+    gold_method = str(getattr(cfg, "LABEL_GOLD_METHOD", "linear")).lower()
+    g0 = gold_at_ms(cache, s_ms, method=gold_method)
+    g1 = gold_at_ms(cache, e_ms, method=gold_method)
+    gd = float((g1[0] - g0[0]) - (g1[1] - g0[1]))
+    if gd > deadzone:
+        return 1
+    if gd < -deadzone:
+        return 0
+
+    return _lex_refine(evs, tm, cache, e_ms, interp_node_global=interp_node_global,
+                       first_kill_ts=first_kill_ts, last_kill_ts=last_kill_ts, tie_key=tie_key, tie_policy=tie_policy)
+
+
+def _lex_refine(
+    evs: List[dict],
+    tm: Dict[int, int],
+    cache: Dict[str, Any],
+    e_ms: int,
+    *,
+    interp_node_global: InterpNodeGlobalFn,
+    first_kill_ts: Optional[int] = None,
+    last_kill_ts: Optional[int] = None,
+    tie_key: str = "",
+    tie_policy: str = "drop",
+) -> Optional[int]:
+    """Refinement inside the market's dead zone: cluster kills -> survivors at the
+    last kill -> structure events in the window -> tie policy (shared by the
+    market_lex and market_event labels)."""
+    kd = 0
+    struct = 0
+    for e in evs:
+        et = str(e.get("type", "")).upper()
+        if et == "CHAMPION_KILL":
+            if first_kill_ts is not None and last_kill_ts is not None:
+                kill_ts = int(e.get("timestamp", 0) or 0)
+                if kill_ts < first_kill_ts or kill_ts > last_kill_ts:
+                    continue
+            killer = int(e.get("killerId", 0) or 0)
+            if tm.get(killer, 0) == 100:
+                kd += 1
+            elif tm.get(killer, 0) == 200:
+                kd -= 1
+        elif et in ("ELITE_MONSTER_KILL", "BUILDING_KILL", "TURRET_PLATE_DESTROYED"):
+            struct += _label_event_team_sign(e, tm)
+    if kd != 0:
+        return 1 if kd > 0 else 0
+
+    alive_measure_ts = e_ms if not (last_kill_ts and last_kill_ts > 0) else last_kill_ts
+    node_end, _ = interp_node_global(cache, alive_measure_ts)
+    alive_idx = NODE_IDX.get("alive", None)
+    if alive_idx is not None:
+        tids = np.array([tm.get(i, 100 if i <= 5 else 200) for i in range(1, 11)])
+        blue_alive = float(node_end[np.where(tids == 100)[0], alive_idx].sum())
+        red_alive = float(node_end[np.where(tids == 200)[0], alive_idx].sum())
+        if blue_alive != red_alive:
+            return 1 if blue_alive > red_alive else 0
+
+    if struct != 0:
+        return 1 if struct > 0 else 0
+
+    if tie_policy in ("random", "stochastic", "coinflip"):
+        return _seeded_tie_coin(evs, tm, tie_key)
+    if tie_policy == "blue":
+        return 1
+    if tie_policy == "red":
+        return 0
+    return None
+
+
+
+_EVENT_PRICE_CACHE: Dict[str, Any] = {}
+
+
+def _event_price_table() -> Dict[str, float]:
+    """Team gold per priced event (pooled regression table), loaded once; {} = kills only."""
+    rel = str(getattr(cfg, "LABEL_EVENT_PRICE_TABLE", "") or "").strip()
+    if not rel:
+        return {}
+    if rel in _EVENT_PRICE_CACHE:
+        return _EVENT_PRICE_CACHE[rel]
+    from pathlib import Path as _P
+    path = _P(rel)
+    if not path.is_absolute():
+        path = _P(__file__).resolve().parents[1] / rel
+    table: Dict[str, float] = {}
+    if path.exists():
+        import json as _json
+        blob = _json.load(open(path, encoding="utf-8"))
+        table = {str(k): float(v) for k, v in (blob.get("pooled") or {}).items()}
+    _EVENT_PRICE_CACHE[rel] = table
+    return table
+
+
+def _priced_event_gold(e: dict, table: Dict[str, float], first_tower_ts: Optional[int]) -> float:
+    """Team gold the game paid for a non-kill event, from the price table (0 if unpriced)."""
+    if not table:
+        return 0.0
+    et = str(e.get("type", "")).upper()
+    if et == "TURRET_PLATE_DESTROYED":
+        return float(table.get("plates", 0.0))
+    if et == "BUILDING_KILL":
+        if str(e.get("buildingType", "")).upper() == "INHIBITOR_BUILDING":
+            return float(table.get("inhibitor", 0.0))
+        g = float(table.get(f"tower_{str(e.get('towerType', '')).lower()}", 0.0))
+        if first_tower_ts is not None and int(e.get("timestamp", -1) or -1) == int(first_tower_ts):
+            g += float(table.get("first_tower", 0.0))
+        return g
+    if et == "ELITE_MONSTER_KILL":
+        mt = str(e.get("monsterType", "")).upper()
+        st = str(e.get("monsterSubType", "")).upper()
+        key = "elder_dragon" if (mt == "DRAGON" and st == "ELDER_DRAGON") else mt.lower()
+        return float(table.get(key, 0.0))
+    if et == "WARD_KILL":
+        return float(table.get("ward_kills", 0.0))
+    return 0.0
+
+
+def _first_tower_ts(cache: Dict[str, Any]) -> Optional[int]:
+    best = None
+    for e in cache.get("events") or []:
+        if str(e.get("type", "")).upper() == "BUILDING_KILL" and str(e.get("buildingType", "")).upper() != "INHIBITOR_BUILDING":
+            ts = int(e.get("timestamp", 0) or 0)
+            best = ts if best is None or ts < best else best
+    return best
+
+
+def _compute_label_market_event(
+    evs: List[dict],
+    tm: Dict[int, int],
+    cache: Dict[str, Any],
+    s_ms: int,
+    e_ms: int,
+    *,
+    interp_node_global: InterpNodeGlobalFn,
+    first_kill_ts: Optional[int] = None,
+    last_kill_ts: Optional[int] = None,
+    tie_key: str = "",
+) -> Optional[int]:
+    """Market verdict priced by the events themselves, millisecond-exact.
+
+    Kill events carry the gold the game actually paid (``bounty`` +
+    ``shutdownBounty``); structure and monster events carry no usable bounty
+    in Match-V5 and stay in the refinement tier.  Same dead zone and same
+    order as market_lex, so the only difference is the currency: paid kill
+    gold at event resolution instead of minute-frame team gold interpolated
+    linearly across the window.
+    """
+    tie_policy = str(getattr(cfg, "LABEL_TIE_POLICY", getattr(cfg, "LABEL_TIE_STRATEGY", "drop"))).lower()
+    deadzone = float(getattr(cfg, "LABEL_GOLD_DEADZONE", 300.0))
+    table = _event_price_table()
+    first_tower = _first_tower_ts(cache) if table else None
+    gd = 0.0
+    for e in evs:
+        et = str(e.get("type", "")).upper()
+        sign = _label_event_team_sign(e, tm)
+        if sign == 0:
+            continue
+        if et == "CHAMPION_KILL":
+            g = max(0.0, safe_float(e.get("bounty", 0.0))) + max(0.0, safe_float(e.get("shutdownBounty", 0.0)))
+            assists = e.get("assistingParticipantIds", [])
+            g += float(table.get("kills", 0.0)) + float(table.get("assists", 0.0)) * (len(assists) if isinstance(assists, list) else 0)
+            gd += float(sign) * g
+        else:
+            gd += float(sign) * _priced_event_gold(e, table, first_tower)
+    if gd > deadzone:
+        return 1
+    if gd < -deadzone:
+        return 0
+    return _lex_refine(evs, tm, cache, e_ms, interp_node_global=interp_node_global,
+                       first_kill_ts=first_kill_ts, last_kill_ts=last_kill_ts, tie_key=tie_key, tie_policy=tie_policy)
 
 
 def _compute_label_weighted(
@@ -648,6 +905,7 @@ def compute_label_targets(
     first_kill_ts: Optional[int] = None,
     last_kill_ts: Optional[int] = None,
     interp_node_global: InterpNodeGlobalFn,
+    anchor_xy=None,
 ) -> Optional[Dict[str, float]]:
     win = _resolve_label_window(
         cache,
@@ -670,11 +928,13 @@ def compute_label_targets(
         first_kill_ts=first_kill_ts,
         last_kill_ts=last_kill_ts,
         interp_node_global=interp_node_global,
+        anchor_xy=anchor_xy,
     )
     if y is None:
         return None
 
     evs = _events_in_window(cache, s_ms, e_ms)
+    evs = attribute_events(evs, anchor_xy, _split_label_type(str(getattr(cfg, "LABEL_TYPE", "micro_win")))[1])
     raw = _compute_window_targets(
         evs, tm, cache, s_ms, e_ms,
         interp_node_global=interp_node_global,

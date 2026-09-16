@@ -1,0 +1,884 @@
+{
+ "role": "EXPLORATORY_FOLLOWUP_AFTER_PRIOR_TEST_EXPOSURE_MODEL_DEFINED_LABELS_NOT_CONFIRMATORY",
+ "version": "track_a_mlp_20260916",
+ "checked_at": "2026-09-16 01:52:44",
+ "n_checks": 115,
+ "failed": [],
+ "passed": 115,
+ "checks": {
+  "parent_unchanged_sha256_incremental_q": true,
+  "parent_unchanged_sha256_cohort_role": true,
+  "parent_unchanged_sha256_label_validity": true,
+  "parent_unchanged_sha256_objective_ablation": true,
+  "parent_unchanged_sha256_critique_audit": true,
+  "parent_unchanged_sha256_full_corpus_read_targets": true,
+  "parent_unchanged_inventory_full_corpus": true,
+  "parent_unchanged_sha256_parent_scripts": true,
+  "parent_unchanged_sha256_parent_tests": true,
+  "parent_unchanged_inventory_docs": true,
+  "parent_unchanged_inventory_deliverables": true,
+  "parent_unchanged_inventory_reports": true,
+  "parent_unchanged_pycache_scripts": true,
+  "parent_unchanged_pycache_tests": true,
+  "parent_unchanged_original_repo_py_sha256": true,
+  "parent_unchanged_worktree_py_sha256": true,
+  "parent_unchanged_shards_inventory": true,
+  "parent_unchanged_main_cache_dir_stat": true,
+  "parent_expected_hashes_protocol_equal_now": true,
+  "spec_unchanged_since_protocol": true,
+  "iq_frozen_manifest_unchanged": true,
+  "iq_eval_prediction_files_unchanged": true,
+  "order_snapshot_tests_protocol_smoke_latest_tests_before_full_fits": true,
+  "smoke_evaluation_completed_before_full_fits": true,
+  "all_selections_before_freeze": true,
+  "contract_tests_passed_no_skips": true,
+  "final_source_hashes_equal_frozen_for_fit_freeze_evaluate_common": true,
+  "sealed_accesses_only_after_freeze": true,
+  "no_sealed_access_before_freeze_recorded_in_manifest": true,
+  "smoke_read_train_only": true,
+  "evaluation_after_freeze": true,
+  "frozen_artifacts_unchanged_now": true,
+  "frozen_artifacts_unchanged_through_evaluation": true,
+  "protocol_hash_in_freeze": true,
+  "freeze_prechecks_all_pass": true,
+  "overall_winner_rule_consistent": true,
+  "five_family_ranking_on_identical_rows": true,
+  "T_counts_equal_specification": true,
+  "T_train_rows_use_own_heldout_fold_oof_V": true,
+  "mlp_T_selection_counts_equal_specification": true,
+  "mlp_T_input_schema": true,
+  "mlp_T_weights_equal_per_match": true,
+  "mlp_T_weight_membership_matches_roles": true,
+  "mlp_T_prediction_rows_match_data": true,
+  "mlp_T_selection_reproduced_independently": true,
+  "mlp_T_calibrators_equal_q_cal_refit": true,
+  "mlp_T_imputer_median_equals_train": true,
+  "mlp_T_scaler_equals_train_refit": true,
+  "mlp_T_stop_records_consistent": true,
+  "mlp_T_raw_equals_seed_mean": true,
+  "mlp_T_architecture_parameter_counts_equal_protocol": true,
+  "mlp_T_reload_identity_at_fit": true,
+  "resmlp_T_selection_counts_equal_specification": true,
+  "resmlp_T_input_schema": true,
+  "resmlp_T_weights_equal_per_match": true,
+  "resmlp_T_weight_membership_matches_roles": true,
+  "resmlp_T_prediction_rows_match_data": true,
+  "resmlp_T_selection_reproduced_independently": true,
+  "resmlp_T_calibrators_equal_q_cal_refit": true,
+  "resmlp_T_imputer_median_equals_train": true,
+  "resmlp_T_scaler_equals_train_refit": true,
+  "resmlp_T_stop_records_consistent": true,
+  "resmlp_T_raw_equals_seed_mean": true,
+  "resmlp_T_architecture_parameter_counts_equal_protocol": true,
+  "resmlp_T_reload_identity_at_fit": true,
+  "N_counts_equal_specification": true,
+  "N_train_rows_use_own_heldout_fold_oof_V": true,
+  "mlp_N_selection_counts_equal_specification": true,
+  "mlp_N_input_schema": true,
+  "mlp_N_weights_equal_per_match": true,
+  "mlp_N_weight_membership_matches_roles": true,
+  "mlp_N_prediction_rows_match_data": true,
+  "mlp_N_selection_reproduced_independently": true,
+  "mlp_N_calibrators_equal_q_cal_refit": true,
+  "mlp_N_imputer_median_equals_train": true,
+  "mlp_N_scaler_equals_train_refit": true,
+  "mlp_N_stop_records_consistent": true,
+  "mlp_N_raw_equals_seed_mean": true,
+  "mlp_N_architecture_parameter_counts_equal_protocol": true,
+  "mlp_N_reload_identity_at_fit": true,
+  "resmlp_N_selection_counts_equal_specification": true,
+  "resmlp_N_input_schema": true,
+  "resmlp_N_weights_equal_per_match": true,
+  "resmlp_N_weight_membership_matches_roles": true,
+  "resmlp_N_prediction_rows_match_data": true,
+  "resmlp_N_selection_reproduced_independently": true,
+  "resmlp_N_calibrators_equal_q_cal_refit": true,
+  "resmlp_N_imputer_median_equals_train": true,
+  "resmlp_N_scaler_equals_train_refit": true,
+  "resmlp_N_stop_records_consistent": true,
+  "resmlp_N_raw_equals_seed_mean": true,
+  "resmlp_N_architecture_parameter_counts_equal_protocol": true,
+  "resmlp_N_reload_identity_at_fit": true,
+  "stop_allocation_same_for_T_and_N": true,
+  "eval_MAIN_TEST_T_named_winners_equal_frozen_candidates": true,
+  "eval_MAIN_TEST_N_named_winners_equal_frozen_candidates": true,
+  "eval_EXT_KR_16.13_T_named_winners_equal_frozen_candidates": true,
+  "eval_EXT_KR_16.13_N_named_winners_equal_frozen_candidates": true,
+  "eval_EXT_KR_16.14_pilot_T_named_winners_equal_frozen_candidates": true,
+  "eval_EXT_KR_16.14_pilot_N_named_winners_equal_frozen_candidates": true,
+  "eval_EXT_KR_16.15_T_named_winners_equal_frozen_candidates": true,
+  "eval_EXT_KR_16.15_N_named_winners_equal_frozen_candidates": true,
+  "eval_EXT_NA1_16.13_T_named_winners_equal_frozen_candidates": true,
+  "eval_EXT_NA1_16.13_N_named_winners_equal_frozen_candidates": true,
+  "iq_comparator_columns_reproduce_iq_reported_metrics_lt_1e-12": true,
+  "evaluation_counts_equal_specification": true,
+  "iq_joins_complete_and_consistent": true,
+  "cell_membership_recomputed_equal": true,
+  "independent_metric_reconstruction_lt_1e-10": true,
+  "bootstrap_point_estimates_equal_cell_metrics_lt_1e-10": true,
+  "bootstrap_acceptance_all_B40_B45_cells": true,
+  "MAIN_TEST_T_frozen_winners_reload_identical_in_fresh_process": true,
+  "MAIN_TEST_N_frozen_winners_reload_identical_in_fresh_process": true,
+  "required_stage_groups_complete": true,
+  "no_bytecode_written_in_parent_scripts_tests": true
+ },
+ "info": {
+  "parent_unchanged_sha256_incremental_q": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 267
+  },
+  "parent_unchanged_sha256_cohort_role": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 402
+  },
+  "parent_unchanged_sha256_label_validity": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 171
+  },
+  "parent_unchanged_sha256_objective_ablation": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 127
+  },
+  "parent_unchanged_sha256_critique_audit": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 6
+  },
+  "parent_unchanged_sha256_full_corpus_read_targets": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 51
+  },
+  "parent_unchanged_inventory_full_corpus": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 66854
+  },
+  "parent_unchanged_sha256_parent_scripts": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 119
+  },
+  "parent_unchanged_sha256_parent_tests": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 18
+  },
+  "parent_unchanged_inventory_docs": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 70
+  },
+  "parent_unchanged_inventory_deliverables": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 9
+  },
+  "parent_unchanged_inventory_reports": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 4
+  },
+  "parent_unchanged_pycache_scripts": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 22
+  },
+  "parent_unchanged_pycache_tests": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 15
+  },
+  "parent_unchanged_original_repo_py_sha256": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 107
+  },
+  "parent_unchanged_worktree_py_sha256": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 125
+  },
+  "parent_unchanged_shards_inventory": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 35
+  },
+  "parent_unchanged_main_cache_dir_stat": {
+   "changed": null,
+   "removed": null,
+   "added": null,
+   "checked": null
+  },
+  "parent_expected_hashes_protocol_equal_now": {
+   "files": 103
+  },
+  "iq_eval_prediction_files_unchanged": {
+   "files": 10
+  },
+  "order_snapshot_tests_protocol_smoke_latest_tests_before_full_fits": {
+   "snapshot": "2026-09-16 00:42:19",
+   "first_tests": "2026-09-16 00:42:44",
+   "protocol": "2026-09-16 00:42:46",
+   "smoke_frozen": "2026-09-16 00:47:31",
+   "smoke_evaluated": "2026-09-16 00:47:46",
+   "latest_passing_tests": "2026-09-16 00:48:03",
+   "first_full_fit": "2026-09-16 00:48:03"
+  },
+  "all_selections_before_freeze": {
+   "frozen_at": "2026-09-16 01:46:22"
+  },
+  "contract_tests_passed_no_skips": {
+   "passed": 19,
+   "run": 2
+  },
+  "final_source_hashes_equal_frozen_for_fit_freeze_evaluate_common": {
+   "note": "report / post-run scripts may be edited after the freeze; fitting, freezing and evaluation sources must not"
+  },
+  "sealed_accesses_only_after_freeze": {
+   "n_sealed": 16
+  },
+  "smoke_read_train_only": {
+   "smoke_sets": [
+    "MAIN_TRAIN"
+   ]
+  },
+  "frozen_artifacts_unchanged_now": {
+   "files": 37
+  },
+  "overall_winner_rule_consistent": {
+   "overall": {
+    "T": "mlp_W128_D0.3__raw",
+    "N": "mlp_W128_D0.3__sigmoid"
+   }
+  },
+  "five_family_ranking_on_identical_rows": {
+   "ranking": {
+    "T": [
+     "iq_lgbm:lgbm_L15_M100__raw",
+     "ta_mlp:mlp_W128_D0.3__raw",
+     "iq_logit:logit_C0.001__raw",
+     "ta_resmlp:resmlp_W128_D0.1__raw",
+     "iq_pt:pt_C1__raw"
+    ],
+    "N": [
+     "iq_lgbm:lgbm_L15_M100__sigmoid",
+     "ta_mlp:mlp_W128_D0.3__sigmoid",
+     "ta_resmlp:resmlp_W128_D0.1__sigmoid",
+     "iq_logit:logit_C0.01__isotonic",
+     "iq_pt:pt_C1__raw"
+    ]
+   }
+  },
+  "T_counts_equal_specification": {
+   "counts": {
+    "TRAIN": 39605,
+    "Q_CAL": 10390,
+    "Q_SELECT": 10195
+   }
+  },
+  "T_train_rows_use_own_heldout_fold_oof_V": {
+   "rows": 39605,
+   "adapter_id_equals_own_heldout_fold": 39605,
+   "adapter_sha_equals_manifest_oof_hash": 39605,
+   "sub_role_equals_hash_fold": 39605
+  },
+  "mlp_T_selection_reproduced_independently": {
+   "chosen": "mlp_W128_D0.3__raw",
+   "max_abs_diff": 0.0
+  },
+  "mlp_T_calibrators_equal_q_cal_refit": {
+   "per_config": {
+    "mlp_W128_D0.1": true,
+    "mlp_W128_D0.3": true,
+    "mlp_W256_D0.1": true,
+    "mlp_W256_D0.3": true,
+    "mlp_W512_D0.1": true,
+    "mlp_W512_D0.3": true
+   }
+  },
+  "mlp_T_imputer_median_equals_train": {
+   "per_config": {
+    "mlp_W128_D0.1": true,
+    "mlp_W128_D0.3": true,
+    "mlp_W256_D0.1": true,
+    "mlp_W256_D0.3": true,
+    "mlp_W512_D0.1": true,
+    "mlp_W512_D0.3": true
+   }
+  },
+  "mlp_T_scaler_equals_train_refit": {
+   "per_config": {
+    "mlp_W128_D0.1": true,
+    "mlp_W128_D0.3": true,
+    "mlp_W256_D0.1": true,
+    "mlp_W256_D0.3": true,
+    "mlp_W512_D0.1": true,
+    "mlp_W512_D0.3": true
+   },
+   "zero_variance_train_columns": 12,
+   "note": "exact equality with a StandardScaler refit on cohort TRAIN (scale_ = 1 on zero-variance columns)"
+  },
+  "mlp_T_stop_records_consistent": {
+   "per_config": {
+    "mlp_W128_D0.1": true,
+    "mlp_W128_D0.3": true,
+    "mlp_W256_D0.1": true,
+    "mlp_W256_D0.3": true,
+    "mlp_W512_D0.1": true,
+    "mlp_W512_D0.3": true
+   },
+   "best_epochs": {
+    "mlp_W128_D0.1": {
+     "7": 1,
+     "42": 4,
+     "123": 1
+    },
+    "mlp_W128_D0.3": {
+     "7": 3,
+     "42": 4,
+     "123": 3
+    },
+    "mlp_W256_D0.1": {
+     "7": 1,
+     "42": 2,
+     "123": 1
+    },
+    "mlp_W256_D0.3": {
+     "7": 5,
+     "42": 2,
+     "123": 4
+    },
+    "mlp_W512_D0.1": {
+     "7": 1,
+     "42": 2,
+     "123": 4
+    },
+    "mlp_W512_D0.3": {
+     "7": 1,
+     "42": 2,
+     "123": 4
+    }
+   },
+   "cap_reached": {
+    "mlp_W128_D0.1": {
+     "7": false,
+     "42": false,
+     "123": false
+    },
+    "mlp_W128_D0.3": {
+     "7": false,
+     "42": false,
+     "123": false
+    },
+    "mlp_W256_D0.1": {
+     "7": false,
+     "42": false,
+     "123": false
+    },
+    "mlp_W256_D0.3": {
+     "7": false,
+     "42": false,
+     "123": false
+    },
+    "mlp_W512_D0.1": {
+     "7": false,
+     "42": false,
+     "123": false
+    },
+    "mlp_W512_D0.3": {
+     "7": false,
+     "42": false,
+     "123": false
+    }
+   }
+  },
+  "mlp_T_raw_equals_seed_mean": {
+   "per_config": {
+    "mlp_W128_D0.1": true,
+    "mlp_W128_D0.3": true,
+    "mlp_W256_D0.1": true,
+    "mlp_W256_D0.3": true,
+    "mlp_W512_D0.1": true,
+    "mlp_W512_D0.3": true
+   }
+  },
+  "mlp_T_architecture_parameter_counts_equal_protocol": {
+   "per_config": {
+    "mlp_W128_D0.1": true,
+    "mlp_W128_D0.3": true,
+    "mlp_W256_D0.1": true,
+    "mlp_W256_D0.3": true,
+    "mlp_W512_D0.1": true,
+    "mlp_W512_D0.3": true
+   }
+  },
+  "resmlp_T_selection_reproduced_independently": {
+   "chosen": "resmlp_W128_D0.1__raw",
+   "max_abs_diff": 0.0
+  },
+  "resmlp_T_calibrators_equal_q_cal_refit": {
+   "per_config": {
+    "resmlp_W128_D0.1": true,
+    "resmlp_W128_D0.3": true,
+    "resmlp_W256_D0.1": true,
+    "resmlp_W256_D0.3": true,
+    "resmlp_W512_D0.1": true,
+    "resmlp_W512_D0.3": true
+   }
+  },
+  "resmlp_T_imputer_median_equals_train": {
+   "per_config": {
+    "resmlp_W128_D0.1": true,
+    "resmlp_W128_D0.3": true,
+    "resmlp_W256_D0.1": true,
+    "resmlp_W256_D0.3": true,
+    "resmlp_W512_D0.1": true,
+    "resmlp_W512_D0.3": true
+   }
+  },
+  "resmlp_T_scaler_equals_train_refit": {
+   "per_config": {
+    "resmlp_W128_D0.1": true,
+    "resmlp_W128_D0.3": true,
+    "resmlp_W256_D0.1": true,
+    "resmlp_W256_D0.3": true,
+    "resmlp_W512_D0.1": true,
+    "resmlp_W512_D0.3": true
+   },
+   "zero_variance_train_columns": 12,
+   "note": "exact equality with a StandardScaler refit on cohort TRAIN (scale_ = 1 on zero-variance columns)"
+  },
+  "resmlp_T_stop_records_consistent": {
+   "per_config": {
+    "resmlp_W128_D0.1": true,
+    "resmlp_W128_D0.3": true,
+    "resmlp_W256_D0.1": true,
+    "resmlp_W256_D0.3": true,
+    "resmlp_W512_D0.1": true,
+    "resmlp_W512_D0.3": true
+   },
+   "best_epochs": {
+    "resmlp_W128_D0.1": {
+     "7": 1,
+     "42": 1,
+     "123": 1
+    },
+    "resmlp_W128_D0.3": {
+     "7": 1,
+     "42": 1,
+     "123": 1
+    },
+    "resmlp_W256_D0.1": {
+     "7": 1,
+     "42": 2,
+     "123": 1
+    },
+    "resmlp_W256_D0.3": {
+     "7": 1,
+     "42": 2,
+     "123": 4
+    },
+    "resmlp_W512_D0.1": {
+     "7": 1,
+     "42": 2,
+     "123": 1
+    },
+    "resmlp_W512_D0.3": {
+     "7": 1,
+     "42": 2,
+     "123": 1
+    }
+   },
+   "cap_reached": {
+    "resmlp_W128_D0.1": {
+     "7": false,
+     "42": false,
+     "123": false
+    },
+    "resmlp_W128_D0.3": {
+     "7": false,
+     "42": false,
+     "123": false
+    },
+    "resmlp_W256_D0.1": {
+     "7": false,
+     "42": false,
+     "123": false
+    },
+    "resmlp_W256_D0.3": {
+     "7": false,
+     "42": false,
+     "123": false
+    },
+    "resmlp_W512_D0.1": {
+     "7": false,
+     "42": false,
+     "123": false
+    },
+    "resmlp_W512_D0.3": {
+     "7": false,
+     "42": false,
+     "123": false
+    }
+   }
+  },
+  "resmlp_T_raw_equals_seed_mean": {
+   "per_config": {
+    "resmlp_W128_D0.1": true,
+    "resmlp_W128_D0.3": true,
+    "resmlp_W256_D0.1": true,
+    "resmlp_W256_D0.3": true,
+    "resmlp_W512_D0.1": true,
+    "resmlp_W512_D0.3": true
+   }
+  },
+  "resmlp_T_architecture_parameter_counts_equal_protocol": {
+   "per_config": {
+    "resmlp_W128_D0.1": true,
+    "resmlp_W128_D0.3": true,
+    "resmlp_W256_D0.1": true,
+    "resmlp_W256_D0.3": true,
+    "resmlp_W512_D0.1": true,
+    "resmlp_W512_D0.3": true
+   }
+  },
+  "N_counts_equal_specification": {
+   "counts": {
+    "TRAIN": 159753,
+    "Q_CAL": 40565,
+    "Q_SELECT": 40180
+   }
+  },
+  "N_train_rows_use_own_heldout_fold_oof_V": {
+   "rows": 159753,
+   "adapter_id_equals_own_heldout_fold": 159753,
+   "adapter_sha_equals_manifest_oof_hash": 159753,
+   "sub_role_equals_hash_fold": 159753
+  },
+  "mlp_N_selection_reproduced_independently": {
+   "chosen": "mlp_W128_D0.3__sigmoid",
+   "max_abs_diff": 0.0
+  },
+  "mlp_N_calibrators_equal_q_cal_refit": {
+   "per_config": {
+    "mlp_W128_D0.1": true,
+    "mlp_W128_D0.3": true,
+    "mlp_W256_D0.1": true,
+    "mlp_W256_D0.3": true,
+    "mlp_W512_D0.1": true,
+    "mlp_W512_D0.3": true
+   }
+  },
+  "mlp_N_imputer_median_equals_train": {
+   "per_config": {
+    "mlp_W128_D0.1": true,
+    "mlp_W128_D0.3": true,
+    "mlp_W256_D0.1": true,
+    "mlp_W256_D0.3": true,
+    "mlp_W512_D0.1": true,
+    "mlp_W512_D0.3": true
+   }
+  },
+  "mlp_N_scaler_equals_train_refit": {
+   "per_config": {
+    "mlp_W128_D0.1": true,
+    "mlp_W128_D0.3": true,
+    "mlp_W256_D0.1": true,
+    "mlp_W256_D0.3": true,
+    "mlp_W512_D0.1": true,
+    "mlp_W512_D0.3": true
+   },
+   "zero_variance_train_columns": 12,
+   "note": "exact equality with a StandardScaler refit on cohort TRAIN (scale_ = 1 on zero-variance columns)"
+  },
+  "mlp_N_stop_records_consistent": {
+   "per_config": {
+    "mlp_W128_D0.1": true,
+    "mlp_W128_D0.3": true,
+    "mlp_W256_D0.1": true,
+    "mlp_W256_D0.3": true,
+    "mlp_W512_D0.1": true,
+    "mlp_W512_D0.3": true
+   },
+   "best_epochs": {
+    "mlp_W128_D0.1": {
+     "7": 4,
+     "42": 4,
+     "123": 4
+    },
+    "mlp_W128_D0.3": {
+     "7": 7,
+     "42": 7,
+     "123": 10
+    },
+    "mlp_W256_D0.1": {
+     "7": 4,
+     "42": 4,
+     "123": 4
+    },
+    "mlp_W256_D0.3": {
+     "7": 5,
+     "42": 7,
+     "123": 6
+    },
+    "mlp_W512_D0.1": {
+     "7": 6,
+     "42": 3,
+     "123": 4
+    },
+    "mlp_W512_D0.3": {
+     "7": 3,
+     "42": 4,
+     "123": 3
+    }
+   },
+   "cap_reached": {
+    "mlp_W128_D0.1": {
+     "7": false,
+     "42": false,
+     "123": false
+    },
+    "mlp_W128_D0.3": {
+     "7": false,
+     "42": false,
+     "123": false
+    },
+    "mlp_W256_D0.1": {
+     "7": false,
+     "42": false,
+     "123": false
+    },
+    "mlp_W256_D0.3": {
+     "7": false,
+     "42": false,
+     "123": false
+    },
+    "mlp_W512_D0.1": {
+     "7": false,
+     "42": false,
+     "123": false
+    },
+    "mlp_W512_D0.3": {
+     "7": false,
+     "42": false,
+     "123": false
+    }
+   }
+  },
+  "mlp_N_raw_equals_seed_mean": {
+   "per_config": {
+    "mlp_W128_D0.1": true,
+    "mlp_W128_D0.3": true,
+    "mlp_W256_D0.1": true,
+    "mlp_W256_D0.3": true,
+    "mlp_W512_D0.1": true,
+    "mlp_W512_D0.3": true
+   }
+  },
+  "mlp_N_architecture_parameter_counts_equal_protocol": {
+   "per_config": {
+    "mlp_W128_D0.1": true,
+    "mlp_W128_D0.3": true,
+    "mlp_W256_D0.1": true,
+    "mlp_W256_D0.3": true,
+    "mlp_W512_D0.1": true,
+    "mlp_W512_D0.3": true
+   }
+  },
+  "resmlp_N_selection_reproduced_independently": {
+   "chosen": "resmlp_W128_D0.1__sigmoid",
+   "max_abs_diff": 0.0
+  },
+  "resmlp_N_calibrators_equal_q_cal_refit": {
+   "per_config": {
+    "resmlp_W128_D0.1": true,
+    "resmlp_W128_D0.3": true,
+    "resmlp_W256_D0.1": true,
+    "resmlp_W256_D0.3": true,
+    "resmlp_W512_D0.1": true,
+    "resmlp_W512_D0.3": true
+   }
+  },
+  "resmlp_N_imputer_median_equals_train": {
+   "per_config": {
+    "resmlp_W128_D0.1": true,
+    "resmlp_W128_D0.3": true,
+    "resmlp_W256_D0.1": true,
+    "resmlp_W256_D0.3": true,
+    "resmlp_W512_D0.1": true,
+    "resmlp_W512_D0.3": true
+   }
+  },
+  "resmlp_N_scaler_equals_train_refit": {
+   "per_config": {
+    "resmlp_W128_D0.1": true,
+    "resmlp_W128_D0.3": true,
+    "resmlp_W256_D0.1": true,
+    "resmlp_W256_D0.3": true,
+    "resmlp_W512_D0.1": true,
+    "resmlp_W512_D0.3": true
+   },
+   "zero_variance_train_columns": 12,
+   "note": "exact equality with a StandardScaler refit on cohort TRAIN (scale_ = 1 on zero-variance columns)"
+  },
+  "resmlp_N_stop_records_consistent": {
+   "per_config": {
+    "resmlp_W128_D0.1": true,
+    "resmlp_W128_D0.3": true,
+    "resmlp_W256_D0.1": true,
+    "resmlp_W256_D0.3": true,
+    "resmlp_W512_D0.1": true,
+    "resmlp_W512_D0.3": true
+   },
+   "best_epochs": {
+    "resmlp_W128_D0.1": {
+     "7": 7,
+     "42": 2,
+     "123": 4
+    },
+    "resmlp_W128_D0.3": {
+     "7": 7,
+     "42": 6,
+     "123": 4
+    },
+    "resmlp_W256_D0.1": {
+     "7": 7,
+     "42": 2,
+     "123": 6
+    },
+    "resmlp_W256_D0.3": {
+     "7": 7,
+     "42": 9,
+     "123": 7
+    },
+    "resmlp_W512_D0.1": {
+     "7": 7,
+     "42": 4,
+     "123": 4
+    },
+    "resmlp_W512_D0.3": {
+     "7": 7,
+     "42": 4,
+     "123": 6
+    }
+   },
+   "cap_reached": {
+    "resmlp_W128_D0.1": {
+     "7": false,
+     "42": false,
+     "123": false
+    },
+    "resmlp_W128_D0.3": {
+     "7": false,
+     "42": false,
+     "123": false
+    },
+    "resmlp_W256_D0.1": {
+     "7": false,
+     "42": false,
+     "123": false
+    },
+    "resmlp_W256_D0.3": {
+     "7": false,
+     "42": false,
+     "123": false
+    },
+    "resmlp_W512_D0.1": {
+     "7": false,
+     "42": false,
+     "123": false
+    },
+    "resmlp_W512_D0.3": {
+     "7": false,
+     "42": false,
+     "123": false
+    }
+   }
+  },
+  "resmlp_N_raw_equals_seed_mean": {
+   "per_config": {
+    "resmlp_W128_D0.1": true,
+    "resmlp_W128_D0.3": true,
+    "resmlp_W256_D0.1": true,
+    "resmlp_W256_D0.3": true,
+    "resmlp_W512_D0.1": true,
+    "resmlp_W512_D0.3": true
+   }
+  },
+  "resmlp_N_architecture_parameter_counts_equal_protocol": {
+   "per_config": {
+    "resmlp_W128_D0.1": true,
+    "resmlp_W128_D0.3": true,
+    "resmlp_W256_D0.1": true,
+    "resmlp_W256_D0.3": true,
+    "resmlp_W512_D0.1": true,
+    "resmlp_W512_D0.3": true
+   }
+  },
+  "stop_allocation_same_for_T_and_N": {
+   "shared_matches": 26410,
+   "stop_share": {
+    "T": 0.1011418124116044,
+    "N": 0.10135998196708994
+   }
+  },
+  "iq_comparator_columns_reproduce_iq_reported_metrics_lt_1e-12": {
+   "max_abs": 0.0
+  },
+  "independent_metric_reconstruction_lt_1e-10": {
+   "max_abs": {
+    "auc": 1.1246559239452836e-13,
+    "brier": 0.0,
+    "logloss": 0.0
+   },
+   "cells": 1210
+  },
+  "bootstrap_point_estimates_equal_cell_metrics_lt_1e-10": {
+   "max_abs": 1.1246559239452836e-13
+  },
+  "bootstrap_acceptance_all_B40_B45_cells": {
+   "counts": {
+    "eligible": 28,
+    "ineligible_explicit_skip": 2
+   },
+   "problems": [],
+   "rule": "eligible (>=30 matches, 2 classes): 1000 reps, seed 20260915, 6 planned contrasts, finite ordered CI, finite replicates (AUC = reps - degenerate), 0 <= degenerate < reps; ineligible: explicit computed=False with reason; eligibility from saved cell masks"
+  },
+  "required_stage_groups_complete": {
+   "states": {
+    "driver_full": "complete",
+    "freeze": "complete",
+    "evaluate": "complete",
+    "fit_mlp_T": "complete",
+    "fit_mlp_N": "complete",
+    "fit_resmlp_T": "complete",
+    "fit_resmlp_N": "complete"
+   }
+  }
+ },
+ "frozen_manifest_sha256": "6a2fafe6fde0fb97433717ec6cb05741f38efd00bfada781dc9781479164833d",
+ "results_sha256": "d4d4e4f3d7324f4b28fff594dc95e20527cca62afaf1072c658a0e3f9fdc2d45",
+ "scope": "implementation, identity, split, hash and numeric verification; not semantic validity of Y, not causal effects, not an untouched confirmation"
+}

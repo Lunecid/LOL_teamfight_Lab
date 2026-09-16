@@ -1,0 +1,101 @@
+{
+ "group": "fit_mlp_T_smoke",
+ "state": "complete",
+ "stage": "selected",
+ "pid": 3268,
+ "updated": "2026-09-16 00:43:21",
+ "elapsed_s": 33.0,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "next family/cohort, then freeze",
+ "chosen": "mlp_W512_D0.1__raw",
+ "selection_sha256": "03d3e1e71e28c838dedd873a5c4993a041f1a5fe3dfc9ed2e6c55bcdea9c8d31",
+ "seconds": 30.2,
+ "top3": [
+  [
+   "mlp_W512_D0.1__raw",
+   0.235851
+  ],
+  [
+   "mlp_W512_D0.1__sigmoid",
+   0.238605
+  ],
+  [
+   "mlp_W512_D0.3__sigmoid",
+   0.238954
+  ]
+ ],
+ "history": [
+  {
+   "stage": "load",
+   "state": "running",
+   "at": "2026-09-16 00:42:48"
+  },
+  {
+   "stage": "fit_mlp_W128_D0.1",
+   "state": "running",
+   "at": "2026-09-16 00:42:50"
+  },
+  {
+   "stage": "fitted_mlp_W128_D0.1",
+   "state": "running",
+   "at": "2026-09-16 00:42:59"
+  },
+  {
+   "stage": "fit_mlp_W128_D0.3",
+   "state": "running",
+   "at": "2026-09-16 00:42:59"
+  },
+  {
+   "stage": "fitted_mlp_W128_D0.3",
+   "state": "running",
+   "at": "2026-09-16 00:43:05"
+  },
+  {
+   "stage": "fit_mlp_W256_D0.1",
+   "state": "running",
+   "at": "2026-09-16 00:43:05"
+  },
+  {
+   "stage": "fitted_mlp_W256_D0.1",
+   "state": "running",
+   "at": "2026-09-16 00:43:09"
+  },
+  {
+   "stage": "fit_mlp_W256_D0.3",
+   "state": "running",
+   "at": "2026-09-16 00:43:09"
+  },
+  {
+   "stage": "fitted_mlp_W256_D0.3",
+   "state": "running",
+   "at": "2026-09-16 00:43:13"
+  },
+  {
+   "stage": "fit_mlp_W512_D0.1",
+   "state": "running",
+   "at": "2026-09-16 00:43:13"
+  },
+  {
+   "stage": "fitted_mlp_W512_D0.1",
+   "state": "running",
+   "at": "2026-09-16 00:43:16"
+  },
+  {
+   "stage": "fit_mlp_W512_D0.3",
+   "state": "running",
+   "at": "2026-09-16 00:43:16"
+  },
+  {
+   "stage": "fitted_mlp_W512_D0.3",
+   "state": "running",
+   "at": "2026-09-16 00:43:20"
+  },
+  {
+   "stage": "selected",
+   "state": "complete",
+   "at": "2026-09-16 00:43:21"
+  }
+ ]
+}

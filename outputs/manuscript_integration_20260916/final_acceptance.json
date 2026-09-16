@@ -1,0 +1,63 @@
+{
+  "created_at": "2026-09-16T14:32:09.152688",
+  "status": "ACCEPTED_SCIENTIFICALLY_QUALIFIED_WORKING_DRAFT",
+  "submission_ready": false,
+  "scope": "Documentation integration and targeted scientific correction; no new experiment or training",
+  "division_of_work": "Codex design/audit/integration; Claude Opus5 writing and correction; independent scientific reviewer closure",
+  "document_validation": {
+    "scope": "Document presence, encoding, links and reference-key integrity; semantic/numeric review recorded separately",
+    "checks": 703,
+    "passed": 703,
+    "failed": []
+  },
+  "aggregate_validation": {
+    "scope": "Read-only aggregate hash, JSON-pointer and contrast checks; no training or original gate rerun",
+    "checks": 6158,
+    "passed": 6158,
+    "failed": [],
+    "recorded_original_checks": 410
+  },
+  "source_preservation": {
+    "checked_files": 140,
+    "unchanged": true,
+    "changed": [],
+    "scope": "Named documentation, scripts and aggregate manifests/results; not a rehash of all raw data/models."
+  },
+  "files_sha256": {
+    "claim_evidence_ledger.md": "98ba09b6d8c944eb6d4204a7de9e7418dc7f32438d8598a36b3dec8b3943f0a6",
+    "collaborator_specification.md": "fb0628d20493709ca8e0a085734a8673c2fb94c5ccd2b36240bb84b2d7b03b57",
+    "manuscript.md": "17c613aba1d19682eb90aff0f210441238886fd33cb9c373891cb7360fe33310",
+    "README.md": "8ffb6ab4c055c322033af960687d2851f1baa03f297afca074ace2ef22178e54",
+    "references.bib": "9931267e7d4d3341a8845170b97e88107b330f190d58e6e1889a346c6994118f",
+    "reviewer_response_matrix.md": "28208a9b6b28779187a5cc154cd21efa1e835a5c60d06aca04c727e9a6f9b894"
+  },
+  "scientific_review_sha256": "fed8a8bfdc0bd993ca6abcc51ece5a86787e8dc46ce69f90a72f87e802825f85",
+  "root_final_corrections": [
+    "Experiment-specific sensitivity scope",
+    "No blanket unresolved-difference claim",
+    "SHAP error bound below 4e-16",
+    "Brier versus AUC change scope",
+    "Collaborator-request provenance",
+    "README Markdown and status"
+  ],
+  "remaining_conditions": [
+    "Independent semantic validation of model-defined labels",
+    "Untouched confirmation data",
+    "Unexecuted architecture and live-operation claims remain open",
+    "Reviewer background/terminology and figures",
+    "Release/licensing/author details and LaTeX/PDF submission format"
+  ],
+  "not_performed": [
+    "Training",
+    "Original experiment gate rerun",
+    "Whole raw/model rehash",
+    "PDF compilation",
+    "Publication",
+    "External email",
+    "Git commit"
+  ],
+  "historical_receipts_preserved": [
+    "writer_receipt.json",
+    "revision_receipt.json"
+  ]
+}

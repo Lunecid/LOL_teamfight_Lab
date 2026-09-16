@@ -1,0 +1,28 @@
+{
+ "group": "redetect_MAIN_frozen_first2000",
+ "state": "complete",
+ "stage": "written",
+ "pid": 3556,
+ "updated": "2026-09-16 07:49:27",
+ "elapsed_s": 13.5,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "census",
+ "rows": 5247,
+ "errors": 0,
+ "mismatching": 0,
+ "seconds": 11.5,
+ "history": [
+  {
+   "stage": "detect",
+   "state": "running",
+   "at": "2026-09-16 07:49:14"
+  },
+  {
+   "stage": "written",
+   "state": "complete",
+   "at": "2026-09-16 07:49:27"
+  }
+ ]
+}

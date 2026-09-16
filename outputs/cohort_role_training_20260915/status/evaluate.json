@@ -1,0 +1,70 @@
+{
+ "group": "evaluate",
+ "state": "complete",
+ "stage": "evaluate",
+ "pid": 38656,
+ "updated": "2026-09-15 14:51:05",
+ "elapsed_s": 153.7,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "SHAP",
+ "hashes_unchanged": true,
+ "history": [
+  {
+   "stage": "load_MAIN_TEST",
+   "state": "running",
+   "at": "2026-09-15 14:48:33"
+  },
+  {
+   "stage": "load_EXT_KR_16.13",
+   "state": "running",
+   "at": "2026-09-15 14:50:13"
+  },
+  {
+   "stage": "load_EXT_KR_16.14_pilot",
+   "state": "running",
+   "at": "2026-09-15 14:50:27"
+  },
+  {
+   "stage": "load_EXT_KR_16.15",
+   "state": "running",
+   "at": "2026-09-15 14:50:28"
+  },
+  {
+   "stage": "load_EXT_NA1_16.13",
+   "state": "running",
+   "at": "2026-09-15 14:50:31"
+  },
+  {
+   "stage": "role_reliability",
+   "state": "running",
+   "at": "2026-09-15 14:50:45"
+  },
+  {
+   "stage": "role_reliability_KR_16.13",
+   "state": "running",
+   "at": "2026-09-15 14:50:55"
+  },
+  {
+   "stage": "role_reliability_KR_16.14_pilot",
+   "state": "running",
+   "at": "2026-09-15 14:50:55"
+  },
+  {
+   "stage": "role_reliability_KR_16.15",
+   "state": "running",
+   "at": "2026-09-15 14:50:56"
+  },
+  {
+   "stage": "role_reliability_NA1_16.13",
+   "state": "running",
+   "at": "2026-09-15 14:51:05"
+  },
+  {
+   "stage": "evaluate",
+   "state": "complete",
+   "at": "2026-09-15 14:51:05"
+  }
+ ]
+}

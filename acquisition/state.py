@@ -573,26 +573,6 @@ class CollectionState:
         )
         return counts
 
-    def complete_count(
-        self,
-        *,
-        platform: Optional[str] = None,
-        api_patch: Optional[str] = None,
-    ) -> int:
-        clauses = ["status='complete'"]
-        params: List[Any] = []
-        if platform is not None:
-            clauses.append("lower(platform)=?")
-            params.append(str(platform).lower())
-        if api_patch is not None:
-            clauses.append("api_patch=?")
-            params.append(str(api_patch))
-        row = self.conn.execute(
-            f"SELECT COUNT(*) AS n FROM matches WHERE {' AND '.join(clauses)}",
-            params,
-        ).fetchone()
-        return int(row["n"] or 0)
-
     def raw_bytes(self) -> int:
         row = self.conn.execute(
             """

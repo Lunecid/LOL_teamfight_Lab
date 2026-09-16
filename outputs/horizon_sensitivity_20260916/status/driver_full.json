@@ -1,0 +1,119 @@
+{
+ "group": "driver_full",
+ "state": "complete",
+ "stage": "full",
+ "pid": 27168,
+ "updated": "2026-09-16 02:54:21",
+ "elapsed_s": 1298.2,
+ "processed": 20,
+ "total": 20,
+ "error": null,
+ "next_step": "next plan",
+ "history": [
+  {
+   "stage": "fit_60_T_pt",
+   "state": "running",
+   "at": "2026-09-16 02:32:43"
+  },
+  {
+   "stage": "fit_60_T_logit",
+   "state": "running",
+   "at": "2026-09-16 02:32:53"
+  },
+  {
+   "stage": "fit_60_T_lgbm",
+   "state": "running",
+   "at": "2026-09-16 02:33:04"
+  },
+  {
+   "stage": "fit_60_T_mlp",
+   "state": "running",
+   "at": "2026-09-16 02:33:22"
+  },
+  {
+   "stage": "fit_60_T_resmlp",
+   "state": "running",
+   "at": "2026-09-16 02:33:53"
+  },
+  {
+   "stage": "fit_60_N_pt",
+   "state": "running",
+   "at": "2026-09-16 02:34:44"
+  },
+  {
+   "stage": "fit_60_N_logit",
+   "state": "running",
+   "at": "2026-09-16 02:35:05"
+  },
+  {
+   "stage": "fit_60_N_lgbm",
+   "state": "running",
+   "at": "2026-09-16 02:35:36"
+  },
+  {
+   "stage": "fit_60_N_mlp",
+   "state": "running",
+   "at": "2026-09-16 02:36:51"
+  },
+  {
+   "stage": "fit_60_N_resmlp",
+   "state": "running",
+   "at": "2026-09-16 02:38:55"
+  },
+  {
+   "stage": "fit_120_T_pt",
+   "state": "running",
+   "at": "2026-09-16 02:42:37"
+  },
+  {
+   "stage": "fit_120_T_logit",
+   "state": "running",
+   "at": "2026-09-16 02:42:46"
+  },
+  {
+   "stage": "fit_120_T_lgbm",
+   "state": "running",
+   "at": "2026-09-16 02:42:55"
+  },
+  {
+   "stage": "fit_120_T_mlp",
+   "state": "running",
+   "at": "2026-09-16 02:43:14"
+  },
+  {
+   "stage": "fit_120_T_resmlp",
+   "state": "running",
+   "at": "2026-09-16 02:44:00"
+  },
+  {
+   "stage": "fit_120_N_pt",
+   "state": "running",
+   "at": "2026-09-16 02:45:01"
+  },
+  {
+   "stage": "fit_120_N_logit",
+   "state": "running",
+   "at": "2026-09-16 02:45:19"
+  },
+  {
+   "stage": "fit_120_N_lgbm",
+   "state": "running",
+   "at": "2026-09-16 02:45:49"
+  },
+  {
+   "stage": "fit_120_N_mlp",
+   "state": "running",
+   "at": "2026-09-16 02:46:56"
+  },
+  {
+   "stage": "fit_120_N_resmlp",
+   "state": "running",
+   "at": "2026-09-16 02:50:13"
+  },
+  {
+   "stage": "full",
+   "state": "complete",
+   "at": "2026-09-16 02:54:21"
+  }
+ ]
+}

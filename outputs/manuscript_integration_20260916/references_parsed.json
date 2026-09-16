@@ -1,0 +1,218 @@
+[
+  {
+    "DOI": "10.1109/CoG47356.2020.9231878",
+    "URL": "https://ieee-cog.org/2020/papers/paper_221.pdf",
+    "annote": "SUPPORTS: motivation to assess probability calibration and input-dependent uncertainty for League of Legends win prediction, which matters here because the Delta V label is built from probabilities. DOES NOT SUPPORT: any claim that this project implements their neural density/MLP architecture, their data-uncertainty-aware loss or their Monte Carlo softmax calibration; our V is a raw logistic model. Their reported calibration numbers, features, population and accuracies are not Delta V results.",
+    "author": [
+      {
+        "family": "Kim",
+        "given": "Dong-Hee"
+      },
+      {
+        "family": "Lee",
+        "given": "Changwoo"
+      },
+      {
+        "family": "Chung",
+        "given": "Ki-Seok"
+      }
+    ],
+    "container-title": "2020 IEEE conference on games (CoG)",
+    "id": "Kim2020",
+    "issued": {
+      "date-parts": [
+        [
+          2020
+        ]
+      ]
+    },
+    "note": "Verified against the conference PDF; page and DOI metadata from the Hanyang institutional record https://scholarworks.bwise.kr/hanyang/handle/2021.sw.hanyang/3695",
+    "page": "622-625",
+    "title": "A confidence-calibrated MOBA game winner predictor",
+    "type": "paper-conference"
+  },
+  {
+    "DOI": "10.1515/jqas-2019-0096",
+    "URL": "https://d-nb.info/1367424143/34",
+    "annote": "SUPPORTS: the lineage of a simple time/state logistic in-game win-probability model for League of Legends, and of evaluating events by the change in a frozen estimated win probability. The paper fits on elapsed minutes and both teams’ cumulative kills, towers and large monsters, sampling one random minute per game for that step. DOES NOT SUPPORT: our feature schema, patch/cohort population, engagement definition, endpoint rule, V, q, calibration results, or any causal reading. Delta V remains a model-derived probability difference over our own window, not a counterfactual.",
+    "author": [
+      {
+        "family": "Maymin",
+        "given": "Philip Z."
+      }
+    ],
+    "container-title": "Journal of Quantitative Analysis in Sports",
+    "id": "Maymin2021",
+    "issue": "1",
+    "issued": {
+      "date-parts": [
+        [
+          2021
+        ]
+      ]
+    },
+    "note": "Published online 2020-09-21, assigned to the 2021 volume/issue; cite the 2021 journal record. Verified against the full text and the author publication page https://philipmaymin.com/academic-papers",
+    "page": "11-27",
+    "title": "Smart kills and worthless deaths: eSports analytics for League of Legends",
+    "title-short": "Smart kills and worthless deaths",
+    "type": "article-journal",
+    "volume": "17"
+  },
+  {
+    "DOI": "10.1109/TG.2019.2948469",
+    "URL": "https://eprints.whiterose.ac.uk/id/eprint/152931/",
+    "annote": "SUPPORTS: live runtime MOBA win prediction as an established setting, with a five-minute sliding state window, minute-indexed models, chronological evaluation and explicit data-availability, temporal and domain limits. DOES NOT SUPPORT: our LoL V, features, calibration, q, Delta V, any engagement effect, or live availability of our inputs. Their reported accuracies, including the abstract’s \"up to 85",
+    "author": [
+      {
+        "family": "Hodge",
+        "given": "Victoria J."
+      },
+      {
+        "family": "Devlin",
+        "given": "Sam"
+      },
+      {
+        "family": "Sephton",
+        "given": "Nick"
+      },
+      {
+        "family": "Block",
+        "given": "Florian"
+      },
+      {
+        "family": "Cowling",
+        "given": "Peter I."
+      },
+      {
+        "family": "Drachen",
+        "given": "Anders"
+      }
+    ],
+    "container-title": "IEEE Transactions on Games",
+    "id": "Hodge2021",
+    "issue": "4",
+    "issued": {
+      "date-parts": [
+        [
+          2021
+        ]
+      ]
+    },
+    "note": "Accepted 2019, online 2019-11-19, issue assignment 2021; cite the 2021 issue with the DOI. Verified against the White Rose repository record and accepted manuscript",
+    "page": "368-379",
+    "title": "Win prediction in multiplayer esports: Live professional match prediction",
+    "title-short": "Win prediction in multiplayer esports",
+    "type": "article-journal",
+    "volume": "13"
+  },
+  {
+    "DOI": "10.1145/2736277.2741117",
+    "URL": "https://arxiv.org/abs/1411.2878",
+    "annote": "SUPPORTS: inspecting an inter-activity-time distribution and separating within- from between-session components to derive an activity boundary. The paper fits an EM Gaussian mixture on log times and takes the likelihood intersection, offering about one hour as a rule of thumb while showing fitted intersections range from roughly 29 to 115 minutes across logs. DOES NOT SUPPORT: G = 13.7 s, which is this project’s pooled KDE-valley estimate on kill gaps; a KDE valley and a mixture intersection are different estimators on different populations. It justifies neither our engagement window nor any causal claim.",
+    "author": [
+      {
+        "family": "Halfaker",
+        "given": "Aaron"
+      },
+      {
+        "family": "Keyes",
+        "given": "Oliver"
+      },
+      {
+        "family": "Kluver",
+        "given": "Daniel"
+      },
+      {
+        "family": "Thebault-Spieker",
+        "given": "Jacob"
+      },
+      {
+        "family": "Nguyen",
+        "given": "Tien"
+      },
+      {
+        "family": "Shores",
+        "given": "Kenneth"
+      },
+      {
+        "family": "Uduwage",
+        "given": "Anuradha"
+      },
+      {
+        "family": "Warncke-Wang",
+        "given": "Morten"
+      }
+    ],
+    "container-title": "Proceedings of the 24th international conference on world wide web (WWW)",
+    "id": "Halfaker2015",
+    "issued": {
+      "date-parts": [
+        [
+          2015
+        ]
+      ]
+    },
+    "note": "2015 WWW publication; the arXiv author copy was used for method verification but is not the publication record. Institutional record: https://experts.umn.edu/en/publications/user-session-identification-based-on-strong-regularities-in-inter/",
+    "page": "410-418",
+    "title": "User session identification based on strong regularities in inter-activity time",
+    "type": "paper-conference"
+  },
+  {
+    "URL": "https://proceedings.neurips.cc/paper_files/paper/2017/file/8a20a8621978632d76c43dfd28b67767-Paper.pdf",
+    "annote": "SUPPORTS: additive feature attribution as a unified framework, with attributions defined relative to an explanation mapping and summing to the represented model output under stated assumptions, and with feature dependence and background data affecting interpretation. DOES NOT SUPPORT: causal explanation. Our seven-group exact Shapley computation with fixed p_pre as one group, a 128-row background and 256 explained rows per cell explains the fitted, calibrated q output under those choices; it does not explain V or Delta V and does not show that a feature caused a teamfight to go well.",
+    "author": [
+      {
+        "family": "Lundberg",
+        "given": "Scott M."
+      },
+      {
+        "family": "Lee",
+        "given": "Su-In"
+      }
+    ],
+    "container-title": "Advances in neural information processing systems 30 (NeurIPS 2017)",
+    "id": "Lundberg2017",
+    "issued": {
+      "date-parts": [
+        [
+          2017
+        ]
+      ]
+    },
+    "note": "Verified against the official NeurIPS proceedings PDF and abstract page",
+    "page": "4765-4774",
+    "title": "A unified approach to interpreting model predictions",
+    "type": "paper-conference"
+  },
+  {
+    "URL": "https://andersdrachen.com/wp-content/uploads/2014/07/esportsanalytics_ssac.pdf",
+    "annote": "SUPPORTS: defining encounters from spatio-temporal links among units using team/opponent relations and distance/range rules, and relating encounter summaries to outcome and win-probability prediction. Also supports the explicit statement that a kill-conditioned population is a strict subset of combat: 18,744 of 23,110 encounters (81.1 contain no kill event. DOES NOT SUPPORT: our specific G, D, B or R, our kill-conditioned population, or any claim that an engagement causes a positive Delta V.",
+    "author": [
+      {
+        "family": "Schubert",
+        "given": "Matthias"
+      },
+      {
+        "family": "Drachen",
+        "given": "Anders"
+      },
+      {
+        "family": "Mahlmann",
+        "given": "Tobias"
+      }
+    ],
+    "collection-number": "1458",
+    "container-title": "MIT sloan sports analytics conference, research papers competition",
+    "id": "Schubert2016",
+    "issued": {
+      "date-parts": [
+        [
+          2016
+        ]
+      ]
+    },
+    "note": "No journal DOI or issue metadata. Archived official conference page: https://web.archive.org/web/20170626141008/http://www.sloansportsconference.com/content/esports-analytics-through-encounter-detection/ ; archived official PDF: https://web.archive.org/web/20171017210220/http://www.sloansportsconference.com/wp-content/uploads/2016/02/1458.pdf",
+    "title": "Esports analytics through encounter detection",
+    "type": "paper-conference"
+  }
+]

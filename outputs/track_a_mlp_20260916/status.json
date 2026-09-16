@@ -1,0 +1,200 @@
+{
+ "version": "track_a_mlp_20260916",
+ "role": "EXPLORATORY_FOLLOWUP_AFTER_PRIOR_TEST_EXPOSURE_MODEL_DEFINED_LABELS_NOT_CONFIRMATORY",
+ "updated": "2026-09-16 01:52:45",
+ "running_groups": [],
+ "failed_groups": [
+  "driver_post"
+ ],
+ "groups": {
+  "driver_freeze_eval": {
+   "state": "complete",
+   "stage": "freeze_eval",
+   "processed": 2,
+   "total": 2,
+   "pid": 28644,
+   "elapsed_s": 271.4,
+   "error": null,
+   "next_step": "next plan",
+   "updated": "2026-09-16 01:50:36"
+  },
+  "driver_full": {
+   "state": "complete",
+   "stage": "full",
+   "processed": 4,
+   "total": 4,
+   "pid": 39604,
+   "elapsed_s": 3481.5,
+   "error": null,
+   "next_step": "next plan",
+   "updated": "2026-09-16 01:46:05"
+  },
+  "driver_post": {
+   "state": "failed",
+   "stage": "postrun_checks",
+   "processed": 1,
+   "total": 3,
+   "pid": 42840,
+   "elapsed_s": 35.4,
+   "error": "postrun_checks returncode 1",
+   "next_step": "inspect logs; failure retained",
+   "updated": "2026-09-16 01:51:12"
+  },
+  "driver_smoke": {
+   "state": "complete",
+   "stage": "smoke",
+   "processed": 6,
+   "total": 6,
+   "pid": 42032,
+   "elapsed_s": 298.3,
+   "error": null,
+   "next_step": "next plan",
+   "updated": "2026-09-16 00:47:46"
+  },
+  "evaluate": {
+   "state": "complete",
+   "stage": "evaluate",
+   "processed": null,
+   "total": null,
+   "pid": 25788,
+   "elapsed_s": 253.2,
+   "error": null,
+   "next_step": "snapshot after, post-run checks, report",
+   "updated": "2026-09-16 01:50:36"
+  },
+  "evaluate_smoke": {
+   "state": "complete",
+   "stage": "evaluate",
+   "processed": null,
+   "total": null,
+   "pid": 43132,
+   "elapsed_s": 13.8,
+   "error": null,
+   "next_step": "snapshot after, post-run checks, report",
+   "updated": "2026-09-16 00:47:46"
+  },
+  "fit_mlp_N": {
+   "state": "complete",
+   "stage": "selected",
+   "processed": null,
+   "total": null,
+   "pid": 37488,
+   "elapsed_s": 623.9,
+   "error": null,
+   "next_step": "next family/cohort, then freeze",
+   "updated": "2026-09-16 01:05:54"
+  },
+  "fit_mlp_N_smoke": {
+   "state": "complete",
+   "stage": "selected",
+   "processed": null,
+   "total": null,
+   "pid": 40796,
+   "elapsed_s": 58.4,
+   "error": null,
+   "next_step": "next family/cohort, then freeze",
+   "updated": "2026-09-16 00:45:12"
+  },
+  "fit_mlp_T": {
+   "state": "complete",
+   "stage": "selected",
+   "processed": null,
+   "total": null,
+   "pid": 37416,
+   "elapsed_s": 150.8,
+   "error": null,
+   "next_step": "next family/cohort, then freeze",
+   "updated": "2026-09-16 00:50:34"
+  },
+  "fit_mlp_T_smoke": {
+   "state": "complete",
+   "stage": "selected",
+   "processed": null,
+   "total": null,
+   "pid": 3268,
+   "elapsed_s": 33.0,
+   "error": null,
+   "next_step": "next family/cohort, then freeze",
+   "updated": "2026-09-16 00:43:21"
+  },
+  "fit_resmlp_N": {
+   "state": "complete",
+   "stage": "selected",
+   "processed": null,
+   "total": null,
+   "pid": 42176,
+   "elapsed_s": 2408.7,
+   "error": null,
+   "next_step": "next family/cohort, then freeze",
+   "updated": "2026-09-16 01:46:04"
+  },
+  "fit_resmlp_N_smoke": {
+   "state": "complete",
+   "stage": "selected",
+   "processed": null,
+   "total": null,
+   "pid": 27184,
+   "elapsed_s": 128.1,
+   "error": null,
+   "next_step": "next family/cohort, then freeze",
+   "updated": "2026-09-16 00:47:21"
+  },
+  "fit_resmlp_T": {
+   "state": "complete",
+   "stage": "selected",
+   "processed": null,
+   "total": null,
+   "pid": 25868,
+   "elapsed_s": 294.3,
+   "error": null,
+   "next_step": "next family/cohort, then freeze",
+   "updated": "2026-09-16 00:55:29"
+  },
+  "fit_resmlp_T_smoke": {
+   "state": "complete",
+   "stage": "selected",
+   "processed": null,
+   "total": null,
+   "pid": 19072,
+   "elapsed_s": 51.1,
+   "error": null,
+   "next_step": "next family/cohort, then freeze",
+   "updated": "2026-09-16 00:44:13"
+  },
+  "freeze": {
+   "state": "complete",
+   "stage": "frozen",
+   "processed": null,
+   "total": null,
+   "pid": 42448,
+   "elapsed_s": 16.9,
+   "error": null,
+   "next_step": "sealed evaluation",
+   "updated": "2026-09-16 01:46:22"
+  },
+  "freeze_smoke": {
+   "state": "complete",
+   "stage": "frozen",
+   "processed": null,
+   "total": null,
+   "pid": 23300,
+   "elapsed_s": 9.3,
+   "error": null,
+   "next_step": "sealed evaluation (smoke pseudo rows)",
+   "updated": "2026-09-16 00:47:31"
+  },
+  "postrun_checks": {
+   "state": "complete",
+   "stage": "validated",
+   "processed": null,
+   "total": null,
+   "pid": 36484,
+   "elapsed_s": 27.7,
+   "error": null,
+   "next_step": "report",
+   "updated": "2026-09-16 01:52:44"
+  }
+ },
+ "state_vocabulary": "running; complete = stage finished; failed (attempt logs retained in logs/ and failures.jsonl); verified only via validation.json",
+ "failed_run_history": "logs/*.log, commands.txt and failures.jsonl keep every attempt"
+}

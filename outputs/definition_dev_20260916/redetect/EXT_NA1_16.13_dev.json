@@ -1,0 +1,31 @@
+{
+ "set": "EXT_NA1_16.13",
+ "definition": "dev",
+ "constants": {
+  "TF2_KILL_CLUSTER_GAP_MS": 14000,
+  "CLUSTER_MAX_DIAMETER": 4285.0
+ },
+ "detector_settings": {
+  "TF2_KILL_CLUSTER_GAP_MS": 14000,
+  "CLUSTER_MAX_DIAMETER": 4285.0,
+  "TF2_VALIDITY_RADIUS": 1600.0,
+  "TF2_ENGAGE_PRE_KILL_MS": 15000,
+  "TF2_MIN_PER_TEAM": 2,
+  "TF2_INTERACTION_RADIUS": 3000.0,
+  "TF2_EXCLUDE_SHOP_INTERACTIONS": false,
+  "FIGHT_HORIZON_SEC": 35,
+  "FEATURE_VERSION": "featV7_schema_pruned_status_runes_bans_spells_styles_bin5s",
+  "FRAME_MS": 60000,
+  "PATCH_LEVEL": "major_minor"
+ },
+ "matches": 10000,
+ "loaded": 10000,
+ "errors": 0,
+ "rows": 26319,
+ "seconds": 67.6,
+ "cache_dir": "C:\\Users\\todtj\\문서\\LOL_Teamfight\\outputs\\full_corpus_training_20260915\\external\\NA1_16.13\\cache",
+ "file": "redetect\\EXT_NA1_16.13_dev.csv",
+ "file_sha256": "ad21d245a288026c3170e14e63df57567d4d9eedea7f8327457ab94f48200dd7",
+ "per_match": {},
+ "written_at": "2026-09-16 08:10:40"
+}

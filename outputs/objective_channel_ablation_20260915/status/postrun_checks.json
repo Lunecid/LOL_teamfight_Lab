@@ -1,0 +1,45 @@
+{
+ "group": "postrun_checks",
+ "state": "complete",
+ "stage": "postrun_checks",
+ "pid": 36556,
+ "updated": "2026-09-15 16:40:40",
+ "elapsed_s": 40.4,
+ "processed": null,
+ "total": 18,
+ "error": null,
+ "next_step": "report",
+ "passed": 18,
+ "history": [
+  {
+   "stage": "access",
+   "state": "running",
+   "at": "2026-09-15 16:40:00"
+  },
+  {
+   "stage": "models",
+   "state": "running",
+   "at": "2026-09-15 16:40:00"
+  },
+  {
+   "stage": "parents",
+   "state": "running",
+   "at": "2026-09-15 16:40:11"
+  },
+  {
+   "stage": "repredict",
+   "state": "running",
+   "at": "2026-09-15 16:40:19"
+  },
+  {
+   "stage": "recompute",
+   "state": "running",
+   "at": "2026-09-15 16:40:38"
+  },
+  {
+   "stage": "postrun_checks",
+   "state": "complete",
+   "at": "2026-09-15 16:40:40"
+  }
+ ]
+}

@@ -1,0 +1,37 @@
+{
+ "set": "MAIN",
+ "definition": "frozen",
+ "constants": {
+  "TF2_KILL_CLUSTER_GAP_MS": 13700,
+  "CLUSTER_MAX_DIAMETER": 4264.0
+ },
+ "detector_settings": {
+  "TF2_KILL_CLUSTER_GAP_MS": 13700,
+  "CLUSTER_MAX_DIAMETER": 4264.0,
+  "TF2_VALIDITY_RADIUS": 1600.0,
+  "TF2_ENGAGE_PRE_KILL_MS": 15000,
+  "TF2_MIN_PER_TEAM": 2,
+  "TF2_INTERACTION_RADIUS": 3000.0,
+  "TF2_EXCLUDE_SHOP_INTERACTIONS": false,
+  "FIGHT_HORIZON_SEC": 35,
+  "FEATURE_VERSION": "featV7_schema_pruned_status_runes_bans_spells_styles_bin5s",
+  "FRAME_MS": 60000,
+  "PATCH_LEVEL": "major_minor"
+ },
+ "matches": 2000,
+ "loaded": 2000,
+ "errors": 0,
+ "rows": 5247,
+ "seconds": 11.5,
+ "cache_dir": "D:\\LOL_Project\\cache\\match_cache_fresh_v3_engage_status13",
+ "file": "redetect\\MAIN_frozen_first2000.csv",
+ "file_sha256": "fc8673b12cea7940f17454c2c26c3e7e79017f893231e934262a927373b58e13",
+ "per_match": {},
+ "written_at": "2026-09-16 07:49:26",
+ "parent_exposures_sha256": "6e07eef42a68ab5deabe6bca544885c64d26533a88bd5b5c9e8116036e6a7977",
+ "matches_compared": 2000,
+ "mismatching_matches": 0,
+ "mismatches": [],
+ "exposure_rows_parent": 5247,
+ "cluster_counts_unknown_rows": 0
+}

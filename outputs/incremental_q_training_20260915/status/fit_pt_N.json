@@ -1,0 +1,101 @@
+{
+ "group": "fit_pt_N",
+ "state": "complete",
+ "stage": "selected",
+ "pid": 23332,
+ "updated": "2026-09-15 20:45:20",
+ "elapsed_s": 47.6,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "next family/cohort, then freeze",
+ "chosen": "pt_C1__raw",
+ "selection_sha256": "e4226021e4ef5f5af30604cb8d30423fbf03462674d6613d659984fe753c73ff",
+ "seconds": 39.8,
+ "top3": [
+  [
+   "pt_C1__raw",
+   0.24421
+  ],
+  [
+   "pt_C1__sigmoid",
+   0.244214
+  ],
+  [
+   "pt_C0.1__raw",
+   0.244216
+  ]
+ ],
+ "history": [
+  {
+   "stage": "load",
+   "state": "running",
+   "at": "2026-09-15 20:44:33"
+  },
+  {
+   "stage": "fit_pt_C0.0001",
+   "state": "running",
+   "at": "2026-09-15 20:44:38"
+  },
+  {
+   "stage": "fitted_pt_C0.0001",
+   "state": "running",
+   "at": "2026-09-15 20:44:40"
+  },
+  {
+   "stage": "fit_pt_C0.001",
+   "state": "running",
+   "at": "2026-09-15 20:44:40"
+  },
+  {
+   "stage": "fitted_pt_C0.001",
+   "state": "running",
+   "at": "2026-09-15 20:44:41"
+  },
+  {
+   "stage": "fit_pt_C0.01",
+   "state": "running",
+   "at": "2026-09-15 20:44:41"
+  },
+  {
+   "stage": "fitted_pt_C0.01",
+   "state": "running",
+   "at": "2026-09-15 20:44:42"
+  },
+  {
+   "stage": "fit_pt_C0.1",
+   "state": "running",
+   "at": "2026-09-15 20:44:42"
+  },
+  {
+   "stage": "fitted_pt_C0.1",
+   "state": "running",
+   "at": "2026-09-15 20:44:46"
+  },
+  {
+   "stage": "fit_pt_C1",
+   "state": "running",
+   "at": "2026-09-15 20:44:46"
+  },
+  {
+   "stage": "fitted_pt_C1",
+   "state": "running",
+   "at": "2026-09-15 20:44:53"
+  },
+  {
+   "stage": "fit_pt_C10",
+   "state": "running",
+   "at": "2026-09-15 20:44:53"
+  },
+  {
+   "stage": "fitted_pt_C10",
+   "state": "running",
+   "at": "2026-09-15 20:45:11"
+  },
+  {
+   "stage": "selected",
+   "state": "complete",
+   "at": "2026-09-15 20:45:20"
+  }
+ ]
+}

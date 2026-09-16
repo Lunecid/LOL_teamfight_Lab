@@ -1,0 +1,12 @@
+{
+ "sets": [
+  "MAIN_TRAIN",
+  "MAIN_VALIDATION",
+  "MAIN_TEST",
+  "EXT_KR_16.13",
+  "EXT_KR_16.14_pilot",
+  "EXT_KR_16.15",
+  "EXT_NA1_16.13"
+ ],
+ "written_at": "2026-09-15 16:38:05"
+}

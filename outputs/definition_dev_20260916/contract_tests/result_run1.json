@@ -1,0 +1,39 @@
+{
+ "run": 1,
+ "command": "-B -m pytest -q -p no:cacheprovider --basetemp=C:\\Users\\todtj\\문서\\LOL_Teamfight\\outputs\\definition_dev_20260916\\contract_tests\\pytest_basetemp_run1 tests/test_dd20260916_contracts.py",
+ "returncode": 0,
+ "passed_count": 8,
+ "failed_count": 0,
+ "error_count": 0,
+ "skipped_count": 0,
+ "passed": true,
+ "seconds": 24.5,
+ "at": "2026-09-16 07:48:20",
+ "test_sha256": {
+  "tests/test_dd20260916_contracts.py": "5b0d579f141f859f03442272b8f0b3a321622bbfe7781e98116f2b79ebad2ca7"
+ },
+ "source_sha256": {
+  "scripts/dd20260916_census.py": "2c478b27bbe6bc36ade717610279a4f64aeb3ca77f9e0e062d1bcb1d99aba745",
+  "scripts/dd20260916_common.py": "1849fbcb4e7fef78bdc3ef891ee17d717f57a681f1a8ee69a81b453f19fc6717",
+  "scripts/dd20260916_driver.py": "915960ba45b339fc71f5ab7e7a343164dacc5a0d7aa5a74d4e12ddad58b83acb",
+  "scripts/dd20260916_evaluate.py": "4d0d902c28c1e5c0fda26b9195617cc78778b3b0639ec6b70bac963d3af638dd",
+  "scripts/dd20260916_fit_freeze.py": "d9cb67b13493df2b486c92d6e529c6b5551722584a764251e54df5f6eee3665d",
+  "scripts/dd20260916_postrun_checks.py": "70f7ac80404025629a52dc7fc3be8113103f99dacddcc919cbba6fa5f17bdfa7",
+  "scripts/dd20260916_protocol.py": "055baeacebefd486735741ee5937e9ab298f5e7d34baa6adb92bf99b8ec2025e",
+  "scripts/dd20260916_rebuild.py": "754b637fe71357612a01f700d93e07f12a4f04ab569a9986663ce64db1410bf8",
+  "scripts/dd20260916_redetect.py": "46d259c31a5bebae55efc915fc2c52964cddd9dd3bcda27bcbff062320a57825",
+  "scripts/dd20260916_report.py": "35bda8225cc645355d3ab5d115a68a2ee90d0fbfffabdc90d7e969a32c344e69",
+  "scripts/dd20260916_run_contract_tests.py": "570d71d376624a80f0b7de73613bae361b47115e17210b31c5614a0ac7d101bf",
+  "scripts/dd20260916_snapshot.py": "b7b1d1684879e6c7ab0356009823b756bddc37e0a429a8be8bd119cb6feaf97b",
+  "tests/test_dd20260916_contracts.py": "5b0d579f141f859f03442272b8f0b3a321622bbfe7781e98116f2b79ebad2ca7",
+  "scripts/fc20260915_common.py": "aeb9f3b07b5a5e68cc95de09a4a12870ac7e7f0728a66a30535c7dbbbad73405",
+  "scripts/cr20260915_common.py": "04d4a2eb9808888d6b5e4896bdc50405ffac4bde79ee65173046627aa146e081",
+  "scripts/iq20260915_common.py": "a51925020c626275b3b1db456490d2e2882e86cda59bc8531dfeeba81e6c7956",
+  "scripts/fc20260915_extract.py": "dd0c869e17c58fee508a40984e2e5320111f69d9469edf91a12264b13b582b29",
+  "scripts/measure_postkill_objective_delay.py": "5011c6fe8d8061e5df2e0ca8c668db79c538d723423739f407395bfb9f35020b",
+  "docs/CLAUDE_DEFINITION_DEV_20260916.md": "ef8d5d8f6e5de552dd56e358e07eb6b217f3f61206f6263e0cd7fc8db2b77f1b",
+  "docs/TOG_END_TO_END_READINESS_AUDIT_20260915.md": "473acf3141943fa828a0253fa35a87cb473b5c5fb3d3ac47cbaea5b9a09169e5",
+  "docs/COLLABORATOR_CRITIQUE_RESPONSE_20260915.md": "c847d82d00654f88cbe5f8f70370cf8498c3c722c89657b2d27064860f113396"
+ },
+ "log": "contract_tests/run1.txt"
+}

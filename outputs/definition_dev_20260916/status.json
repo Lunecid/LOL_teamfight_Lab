@@ -1,0 +1,264 @@
+{
+ "version": "definition_dev_20260916",
+ "role": "EXPLORATORY_FOLLOWUP_AFTER_PRIOR_TEST_EXPOSURE_MODEL_DEFINED_LABELS_NOT_CONFIRMATORY",
+ "updated": "2026-09-16 08:20:10",
+ "running_groups": [],
+ "failed_groups": [
+  "driver_post"
+ ],
+ "groups": {
+  "census": {
+   "state": "complete",
+   "stage": "census",
+   "processed": null,
+   "total": null,
+   "pid": 7856,
+   "elapsed_s": 12.0,
+   "error": null,
+   "next_step": "rebuild MAIN_TRAIN / MAIN_VALIDATION",
+   "updated": "2026-09-16 08:10:52"
+  },
+  "driver_detect": {
+   "state": "complete",
+   "stage": "detect",
+   "processed": 7,
+   "total": 7,
+   "pid": 34524,
+   "elapsed_s": 1299.2,
+   "error": null,
+   "next_step": "next plan",
+   "updated": "2026-09-16 08:10:53"
+  },
+  "driver_fit": {
+   "state": "complete",
+   "stage": "fit",
+   "processed": 1,
+   "total": 1,
+   "pid": 31732,
+   "elapsed_s": 105.2,
+   "error": null,
+   "next_step": "next plan",
+   "updated": "2026-09-16 08:14:24"
+  },
+  "driver_post": {
+   "state": "failed",
+   "stage": "postrun_checks",
+   "processed": 1,
+   "total": 3,
+   "pid": 39628,
+   "elapsed_s": 42.6,
+   "error": "postrun_checks returncode 1",
+   "next_step": "inspect logs; failure retained",
+   "updated": "2026-09-16 08:16:41"
+  },
+  "driver_rebuild_dev": {
+   "state": "complete",
+   "stage": "rebuild_dev",
+   "processed": 3,
+   "total": 3,
+   "pid": 27812,
+   "elapsed_s": 79.6,
+   "error": null,
+   "next_step": "next plan",
+   "updated": "2026-09-16 08:12:12"
+  },
+  "driver_sealed": {
+   "state": "complete",
+   "stage": "sealed",
+   "processed": 6,
+   "total": 6,
+   "pid": 16084,
+   "elapsed_s": 94.3,
+   "error": null,
+   "next_step": "next plan",
+   "updated": "2026-09-16 08:15:58"
+  },
+  "evaluate": {
+   "state": "complete",
+   "stage": "evaluate",
+   "processed": null,
+   "total": null,
+   "pid": 13228,
+   "elapsed_s": 41.5,
+   "error": null,
+   "next_step": "snapshot after, post-run checks, report",
+   "updated": "2026-09-16 08:15:58"
+  },
+  "fit_freeze": {
+   "state": "complete",
+   "stage": "frozen",
+   "processed": null,
+   "total": null,
+   "pid": 39192,
+   "elapsed_s": 104.9,
+   "error": null,
+   "next_step": "rebuild sealed sets, evaluate",
+   "updated": "2026-09-16 08:14:24"
+  },
+  "postrun_checks": {
+   "state": "complete",
+   "stage": "validated",
+   "processed": null,
+   "total": null,
+   "pid": 19060,
+   "elapsed_s": 41.9,
+   "error": null,
+   "next_step": "report",
+   "updated": "2026-09-16 08:20:10"
+  },
+  "rebuild_EXT_KR_16.13": {
+   "state": "complete",
+   "stage": "assembled",
+   "processed": null,
+   "total": null,
+   "pid": 16144,
+   "elapsed_s": 8.9,
+   "error": null,
+   "next_step": "next set / fit",
+   "updated": "2026-09-16 08:14:57"
+  },
+  "rebuild_EXT_KR_16.14_pilot": {
+   "state": "complete",
+   "stage": "assembled",
+   "processed": null,
+   "total": null,
+   "pid": 3128,
+   "elapsed_s": 3.9,
+   "error": null,
+   "next_step": "next set / fit",
+   "updated": "2026-09-16 08:15:02"
+  },
+  "rebuild_EXT_KR_16.15": {
+   "state": "complete",
+   "stage": "assembled",
+   "processed": null,
+   "total": null,
+   "pid": 37340,
+   "elapsed_s": 4.6,
+   "error": null,
+   "next_step": "next set / fit",
+   "updated": "2026-09-16 08:15:07"
+  },
+  "rebuild_EXT_NA1_16.13": {
+   "state": "complete",
+   "stage": "assembled",
+   "processed": null,
+   "total": null,
+   "pid": 13876,
+   "elapsed_s": 8.9,
+   "error": null,
+   "next_step": "next set / fit",
+   "updated": "2026-09-16 08:15:16"
+  },
+  "rebuild_fixture100": {
+   "state": "complete",
+   "stage": "fixture",
+   "processed": null,
+   "total": null,
+   "pid": 35460,
+   "elapsed_s": 11.1,
+   "error": null,
+   "next_step": "full rebuild",
+   "updated": "2026-09-16 08:11:04"
+  },
+  "rebuild_MAIN_TEST": {
+   "state": "complete",
+   "stage": "assembled",
+   "processed": null,
+   "total": null,
+   "pid": 38660,
+   "elapsed_s": 23.9,
+   "error": null,
+   "next_step": "next set / fit",
+   "updated": "2026-09-16 08:14:48"
+  },
+  "rebuild_MAIN_TRAIN": {
+   "state": "complete",
+   "stage": "assembled",
+   "processed": null,
+   "total": null,
+   "pid": 31232,
+   "elapsed_s": 34.1,
+   "error": null,
+   "next_step": "next set / fit",
+   "updated": "2026-09-16 08:11:39"
+  },
+  "rebuild_MAIN_VALIDATION": {
+   "state": "complete",
+   "stage": "assembled",
+   "processed": null,
+   "total": null,
+   "pid": 28812,
+   "elapsed_s": 32.9,
+   "error": null,
+   "next_step": "next set / fit",
+   "updated": "2026-09-16 08:12:12"
+  },
+  "redetect_EXT_KR_16.13_dev": {
+   "state": "complete",
+   "stage": "written",
+   "processed": null,
+   "total": null,
+   "pid": 34440,
+   "elapsed_s": 66.7,
+   "error": null,
+   "next_step": "census",
+   "updated": "2026-09-16 08:09:13"
+  },
+  "redetect_EXT_KR_16.14_pilot_dev": {
+   "state": "complete",
+   "stage": "written",
+   "processed": null,
+   "total": null,
+   "pid": 38856,
+   "elapsed_s": 7.7,
+   "error": null,
+   "next_step": "census",
+   "updated": "2026-09-16 08:09:21"
+  },
+  "redetect_EXT_KR_16.15_dev": {
+   "state": "complete",
+   "stage": "written",
+   "processed": null,
+   "total": null,
+   "pid": 2208,
+   "elapsed_s": 11.1,
+   "error": null,
+   "next_step": "census",
+   "updated": "2026-09-16 08:09:32"
+  },
+  "redetect_EXT_NA1_16.13_dev": {
+   "state": "complete",
+   "stage": "written",
+   "processed": null,
+   "total": null,
+   "pid": 30232,
+   "elapsed_s": 67.7,
+   "error": null,
+   "next_step": "census",
+   "updated": "2026-09-16 08:10:40"
+  },
+  "redetect_MAIN_dev": {
+   "state": "complete",
+   "stage": "written",
+   "processed": null,
+   "total": null,
+   "pid": 7484,
+   "elapsed_s": 1117.9,
+   "error": null,
+   "next_step": "census",
+   "updated": "2026-09-16 08:08:05"
+  },
+  "redetect_MAIN_frozen_first2000": {
+   "state": "complete",
+   "stage": "written",
+   "processed": null,
+   "total": null,
+   "pid": 3556,
+   "elapsed_s": 13.5,
+   "error": null,
+   "next_step": "census",
+   "updated": "2026-09-16 07:49:27"
+  }
+ }
+}

@@ -1,0 +1,35 @@
+{
+ "set": "EXT_KR_16.13",
+ "sealed": true,
+ "changed_matches": 408,
+ "parent_rows": 25443,
+ "parent_rows_copied": 23894,
+ "parent_rows_dropped": 1549,
+ "rebuilt_rows": 1324,
+ "dev_rows": 25218,
+ "chunks": 3,
+ "names_sha256": "d5ce72200161989e28dca8c85d66735fc117d65f7acea2d796c91d25e58ba95b",
+ "valid_h90": {
+  "parent_side": 25430,
+  "dev": 25206,
+  "by_cohort_dev": {
+   "T": 5186,
+   "N": 20020
+  },
+  "by_cohort_parent": {
+   "T": 5202,
+   "N": 20228
+  },
+  "rebuilt_valid": {
+   "T": 328,
+   "N": 995
+  }
+ },
+ "cohort_unknown_rebuilt": 0,
+ "files": {
+  "features": "959ffbf6866bda2166ca9751203f785d322eb10f78699c3fc1a96b587d555189",
+  "labels": "f5939c1e7c1bdde246142e7bb4b967f179ee1ee38cb569fd2483334e978f842e",
+  "cohorts": "0ffa9390d5b2ca004d483d83ed251229a3b1d04f39cfeef6f2425eb9b08a40b4"
+ },
+ "written_at": "2026-09-16 08:14:57"
+}

@@ -1,0 +1,42 @@
+{
+ "version": "v_mechanism_20260916",
+ "role": "EXPLORATORY_FOLLOWUP_AFTER_PRIOR_TEST_EXPOSURE_MODEL_DEFINED_LABELS_NOT_CONFIRMATORY",
+ "updated": "2026-09-16 03:26:51",
+ "running_groups": [],
+ "failed_groups": [],
+ "groups": {
+  "analyze": {
+   "state": "complete",
+   "stage": "analyze",
+   "processed": null,
+   "total": null,
+   "pid": 36940,
+   "elapsed_s": 48.9,
+   "error": null,
+   "next_step": "snapshot after, post-run checks, report",
+   "updated": "2026-09-16 03:26:41"
+  },
+  "analyze_smoke": {
+   "state": "complete",
+   "stage": "analyze",
+   "processed": null,
+   "total": null,
+   "pid": 40196,
+   "elapsed_s": 5.5,
+   "error": null,
+   "next_step": "snapshot after, post-run checks, report",
+   "updated": "2026-09-16 03:25:48"
+  },
+  "postrun_checks": {
+   "state": "complete",
+   "stage": "validated",
+   "processed": null,
+   "total": null,
+   "pid": 10800,
+   "elapsed_s": 1.9,
+   "error": null,
+   "next_step": "report",
+   "updated": "2026-09-16 03:26:51"
+  }
+ }
+}

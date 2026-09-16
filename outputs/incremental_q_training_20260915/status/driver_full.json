@@ -1,0 +1,49 @@
+{
+ "group": "driver_full",
+ "state": "complete",
+ "stage": "full",
+ "pid": 1572,
+ "updated": "2026-09-15 21:00:53",
+ "elapsed_s": 1163.4,
+ "processed": 6,
+ "total": 6,
+ "error": null,
+ "next_step": "next plan",
+ "history": [
+  {
+   "stage": "fit_T_pt",
+   "state": "running",
+   "at": "2026-09-15 20:41:29"
+  },
+  {
+   "stage": "fit_T_logit",
+   "state": "running",
+   "at": "2026-09-15 20:41:43"
+  },
+  {
+   "stage": "fit_T_lgbm",
+   "state": "running",
+   "at": "2026-09-15 20:43:27"
+  },
+  {
+   "stage": "fit_N_pt",
+   "state": "running",
+   "at": "2026-09-15 20:44:33"
+  },
+  {
+   "stage": "fit_N_logit",
+   "state": "running",
+   "at": "2026-09-15 20:45:21"
+  },
+  {
+   "stage": "fit_N_lgbm",
+   "state": "running",
+   "at": "2026-09-15 20:55:28"
+  },
+  {
+   "stage": "full",
+   "state": "complete",
+   "at": "2026-09-15 21:00:53"
+  }
+ ]
+}

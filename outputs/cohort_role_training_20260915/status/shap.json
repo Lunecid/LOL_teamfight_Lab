@@ -1,0 +1,39 @@
+{
+ "group": "shap",
+ "state": "complete",
+ "stage": "shap",
+ "pid": 35212,
+ "updated": "2026-09-15 14:52:13",
+ "elapsed_s": 59.0,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "post-run checks, report",
+ "history": [
+  {
+   "stage": "T_group_shapley",
+   "state": "running",
+   "at": "2026-09-15 14:51:21"
+  },
+  {
+   "stage": "T_done",
+   "state": "running",
+   "at": "2026-09-15 14:51:43"
+  },
+  {
+   "stage": "N_group_shapley",
+   "state": "running",
+   "at": "2026-09-15 14:51:47"
+  },
+  {
+   "stage": "N_done",
+   "state": "running",
+   "at": "2026-09-15 14:52:13"
+  },
+  {
+   "stage": "shap",
+   "state": "complete",
+   "at": "2026-09-15 14:52:13"
+  }
+ ]
+}

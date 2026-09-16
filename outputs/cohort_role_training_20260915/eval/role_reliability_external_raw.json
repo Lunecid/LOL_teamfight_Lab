@@ -1,0 +1,317 @@
+{
+ "role": "EXPLORATORY_FOLLOWUP_MODEL_DEFINED_LABELS_PRIOR_TEST_EXPOSURE",
+ "statement": "post-freeze diagnostic on independent external raw teamPosition annotations (16.13-16.15, KR/NA1); teamPosition is Riot position assignment, not observed spatial lane",
+ "results": {
+  "KR_16.13": {
+   "matches": 10064,
+   "raw_read_errors": 0,
+   "raw_sha256_mismatch": 0,
+   "draft_vs_raw_champion_or_spell_mismatch_matches": 0,
+   "teams": 20128,
+   "teams_with_valid_unique_teamPosition": 20116,
+   "participants_evaluated": 100580,
+   "posterior_argmax_accuracy": 0.9503479817061046,
+   "classifier_argmax_accuracy": 0.8796380990256513,
+   "mean_posterior_prob_true_role": 0.9353976065575783,
+   "posterior_log_loss": 0.15048420827843814,
+   "team_exact_assignment_rate": 0.8808411214953271,
+   "per_role_recall": {
+    "TOP": 0.9202127659574468,
+    "JUNGLE": 1.0,
+    "MIDDLE": 0.8943129846888049,
+    "BOTTOM": 0.9528733346589779,
+    "UTILITY": 0.9843408232252933
+   },
+   "confusion_rows_teamPosition_cols_posterior_argmax": [
+    [
+     18511,
+     0,
+     1201,
+     269,
+     135
+    ],
+    [
+     0,
+     20116,
+     0,
+     0,
+     0
+    ],
+    [
+     1352,
+     0,
+     17990,
+     597,
+     177
+    ],
+    [
+     146,
+     0,
+     783,
+     19168,
+     19
+    ],
+    [
+     118,
+     0,
+     138,
+     59,
+     19801
+    ]
+   ],
+   "seen_champion": {
+    "participants": 98833,
+    "accuracy": 0.9515344065241367
+   },
+   "unseen_champion": {
+    "participants": 1747,
+    "accuracy": 0.8832283915283343
+   },
+   "empty_teamPosition_participants": 12,
+   "individualPosition_when_teamPosition_empty": {
+    "Invalid": 9,
+    "JUNGLE": 3
+   },
+   "proxy_mechanism_audit": {
+    "note": "core/roles.get_role_slots_from_detail applied to external raw detail vs teamPosition (estimates how the weak TRAIN proxy behaves; different patches)",
+    "valid_teams_proxy_equals_teamPosition_participant_rate": 1.0,
+    "invalid_teams": 12,
+    "invalid_teams_detectable_by_key_order": 10,
+    "invalid_teams_undetectable": 2,
+    "detectable_flag_on_valid_teams": 0
+   }
+  },
+  "KR_16.14_pilot": {
+   "matches": 200,
+   "raw_read_errors": 0,
+   "raw_sha256_mismatch": 0,
+   "draft_vs_raw_champion_or_spell_mismatch_matches": 0,
+   "teams": 400,
+   "teams_with_valid_unique_teamPosition": 400,
+   "participants_evaluated": 2000,
+   "posterior_argmax_accuracy": 0.917,
+   "classifier_argmax_accuracy": 0.8385,
+   "mean_posterior_prob_true_role": 0.8971756418573601,
+   "posterior_log_loss": 0.26389659698210177,
+   "team_exact_assignment_rate": 0.7975,
+   "per_role_recall": {
+    "TOP": 0.895,
+    "JUNGLE": 1.0,
+    "MIDDLE": 0.8275,
+    "BOTTOM": 0.875,
+    "UTILITY": 0.9875
+   },
+   "confusion_rows_teamPosition_cols_posterior_argmax": [
+    [
+     358,
+     0,
+     22,
+     16,
+     4
+    ],
+    [
+     0,
+     400,
+     0,
+     0,
+     0
+    ],
+    [
+     32,
+     0,
+     331,
+     34,
+     3
+    ],
+    [
+     5,
+     0,
+     45,
+     350,
+     0
+    ],
+    [
+     1,
+     0,
+     4,
+     0,
+     395
+    ]
+   ],
+   "seen_champion": {
+    "participants": 1957,
+    "accuracy": 0.9197751660705161
+   },
+   "unseen_champion": {
+    "participants": 43,
+    "accuracy": 0.7906976744186046
+   },
+   "empty_teamPosition_participants": 0,
+   "individualPosition_when_teamPosition_empty": {},
+   "proxy_mechanism_audit": {
+    "note": "core/roles.get_role_slots_from_detail applied to external raw detail vs teamPosition (estimates how the weak TRAIN proxy behaves; different patches)",
+    "valid_teams_proxy_equals_teamPosition_participant_rate": 1.0,
+    "invalid_teams": 0,
+    "invalid_teams_detectable_by_key_order": 0,
+    "invalid_teams_undetectable": 0,
+    "detectable_flag_on_valid_teams": 0
+   }
+  },
+  "KR_16.15": {
+   "matches": 926,
+   "raw_read_errors": 0,
+   "raw_sha256_mismatch": 0,
+   "draft_vs_raw_champion_or_spell_mismatch_matches": 0,
+   "teams": 1852,
+   "teams_with_valid_unique_teamPosition": 1850,
+   "participants_evaluated": 9250,
+   "posterior_argmax_accuracy": 0.9222702702702703,
+   "classifier_argmax_accuracy": 0.8568648648648649,
+   "mean_posterior_prob_true_role": 0.9067748341629726,
+   "posterior_log_loss": 0.23713125726142917,
+   "team_exact_assignment_rate": 0.8172972972972973,
+   "per_role_recall": {
+    "TOP": 0.898918918918919,
+    "JUNGLE": 1.0,
+    "MIDDLE": 0.845945945945946,
+    "BOTTOM": 0.8924324324324324,
+    "UTILITY": 0.9740540540540541
+   },
+   "confusion_rows_teamPosition_cols_posterior_argmax": [
+    [
+     1663,
+     0,
+     115,
+     58,
+     14
+    ],
+    [
+     0,
+     1850,
+     0,
+     0,
+     0
+    ],
+    [
+     139,
+     0,
+     1565,
+     119,
+     27
+    ],
+    [
+     32,
+     0,
+     158,
+     1651,
+     9
+    ],
+    [
+     14,
+     0,
+     16,
+     18,
+     1802
+    ]
+   ],
+   "seen_champion": {
+    "participants": 9110,
+    "accuracy": 0.924807903402854
+   },
+   "unseen_champion": {
+    "participants": 140,
+    "accuracy": 0.7571428571428571
+   },
+   "empty_teamPosition_participants": 2,
+   "individualPosition_when_teamPosition_empty": {
+    "Invalid": 2
+   },
+   "proxy_mechanism_audit": {
+    "note": "core/roles.get_role_slots_from_detail applied to external raw detail vs teamPosition (estimates how the weak TRAIN proxy behaves; different patches)",
+    "valid_teams_proxy_equals_teamPosition_participant_rate": 1.0,
+    "invalid_teams": 2,
+    "invalid_teams_detectable_by_key_order": 2,
+    "invalid_teams_undetectable": 0,
+    "detectable_flag_on_valid_teams": 0
+   }
+  },
+  "NA1_16.13": {
+   "matches": 10000,
+   "raw_read_errors": 0,
+   "raw_sha256_mismatch": 0,
+   "draft_vs_raw_champion_or_spell_mismatch_matches": 0,
+   "teams": 20000,
+   "teams_with_valid_unique_teamPosition": 19985,
+   "participants_evaluated": 99925,
+   "posterior_argmax_accuracy": 0.9245334000500375,
+   "classifier_argmax_accuracy": 0.8477758318739055,
+   "mean_posterior_prob_true_role": 0.9089565303758421,
+   "posterior_log_loss": 0.2314541316966805,
+   "team_exact_assignment_rate": 0.8209156867650738,
+   "per_role_recall": {
+    "TOP": 0.8807105328996747,
+    "JUNGLE": 1.0,
+    "MIDDLE": 0.8434826119589692,
+    "BOTTOM": 0.9286965223917939,
+    "UTILITY": 0.9697773329997498
+   },
+   "confusion_rows_teamPosition_cols_posterior_argmax": [
+    [
+     17601,
+     0,
+     1791,
+     345,
+     248
+    ],
+    [
+     0,
+     19985,
+     0,
+     0,
+     0
+    ],
+    [
+     1974,
+     0,
+     16857,
+     858,
+     296
+    ],
+    [
+     245,
+     0,
+     1082,
+     18560,
+     98
+    ],
+    [
+     186,
+     0,
+     232,
+     186,
+     19381
+    ]
+   ],
+   "seen_champion": {
+    "participants": 98042,
+    "accuracy": 0.9265110870851267
+   },
+   "unseen_champion": {
+    "participants": 1883,
+    "accuracy": 0.8215613382899628
+   },
+   "empty_teamPosition_participants": 15,
+   "individualPosition_when_teamPosition_empty": {
+    "Invalid": 15
+   },
+   "proxy_mechanism_audit": {
+    "note": "core/roles.get_role_slots_from_detail applied to external raw detail vs teamPosition (estimates how the weak TRAIN proxy behaves; different patches)",
+    "valid_teams_proxy_equals_teamPosition_participant_rate": 1.0,
+    "invalid_teams": 15,
+    "invalid_teams_detectable_by_key_order": 10,
+    "invalid_teams_undetectable": 5,
+    "detectable_flag_on_valid_teams": 0
+   }
+  }
+ }
+}

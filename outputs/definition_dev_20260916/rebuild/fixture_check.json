@@ -1,0 +1,31 @@
+{
+ "matches": 100,
+ "definition": "frozen",
+ "exposures": "parent",
+ "checks": {
+  "rows": 250,
+  "rows_expected": 250,
+  "keys_all_found": true,
+  "input_names_equal": true,
+  "X_input_equal": true,
+  "pre_ok_equal": true,
+  "p_pre_equal": true,
+  "sub_role_equal": true,
+  "adapter_equal": true,
+  "valid_h60_equal": true,
+  "Y_h60_equal": true,
+  "p_post_h60_equal": true,
+  "endpoint_h60_equal": true,
+  "valid_h90_equal": true,
+  "Y_h90_equal": true,
+  "p_post_h90_equal": true,
+  "endpoint_h90_equal": true,
+  "valid_h120_equal": true,
+  "Y_h120_equal": true,
+  "p_post_h120_equal": true,
+  "endpoint_h120_equal": true,
+  "all_equal": true
+ },
+ "names_sha256": "d5ce72200161989e28dca8c85d66735fc117d65f7acea2d796c91d25e58ba95b",
+ "written_at": "2026-09-16 08:11:04"
+}

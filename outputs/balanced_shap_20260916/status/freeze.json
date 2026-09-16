@@ -1,0 +1,20 @@
+{
+ "group": "freeze",
+ "state": "complete",
+ "stage": "frozen",
+ "pid": 20364,
+ "updated": "2026-09-16 03:09:23",
+ "elapsed_s": 6.1,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "sealed explanation",
+ "frozen_manifest_sha256": "5a192ac0eb4fdc209f1d03bad358a72410912b5ac4431efc73f3189862311aae",
+ "history": [
+  {
+   "stage": "frozen",
+   "state": "complete",
+   "at": "2026-09-16 03:09:23"
+  }
+ ]
+}

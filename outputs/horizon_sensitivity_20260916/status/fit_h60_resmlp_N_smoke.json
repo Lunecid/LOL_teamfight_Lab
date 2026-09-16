@@ -1,0 +1,37 @@
+{
+ "group": "fit_h60_resmlp_N_smoke",
+ "state": "complete",
+ "stage": "selected",
+ "pid": 11756,
+ "updated": "2026-09-16 02:31:53",
+ "elapsed_s": 28.5,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "next family / cohort / horizon, then freeze",
+ "chosen": "resmlp_W128_D0.1__sigmoid",
+ "selection_sha256": "19e82217a13fac3765a46ea6f99c776cacacb6291774216c55e45388ee5614e2",
+ "seconds": 25.3,
+ "select_brier": {
+  "resmlp_W128_D0.1__isotonic": 0.244655,
+  "resmlp_W128_D0.1__raw": 0.245372,
+  "resmlp_W128_D0.1__sigmoid": 0.243686
+ },
+ "history": [
+  {
+   "stage": "load",
+   "state": "running",
+   "at": "2026-09-16 02:31:25"
+  },
+  {
+   "stage": "fit_resmlp_W128_D0.1",
+   "state": "running",
+   "at": "2026-09-16 02:31:27"
+  },
+  {
+   "stage": "selected",
+   "state": "complete",
+   "at": "2026-09-16 02:31:53"
+  }
+ ]
+}

@@ -16,8 +16,6 @@ param(
     [string[]]$Tiers = @("MASTER"),
     [double]$MaxStorageGB = 40,
     [double]$MinFreeGB = 150,
-    [ValidateRange(1, 60)]
-    [int]$WatchdogMinutes = 5,
     [string]$KeyRefreshCommand = "",
     [switch]$StartNow
 )
@@ -57,20 +55,14 @@ $action = New-ScheduledTaskAction `
     -Argument $arguments `
     -WorkingDirectory $project
 
-$logonTrigger = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
-$watchdogTrigger = New-ScheduledTaskTrigger `
-    -Once `
-    -At (Get-Date).AddMinutes($WatchdogMinutes) `
-    -RepetitionInterval (New-TimeSpan -Minutes $WatchdogMinutes)
-$triggers = @($logonTrigger, $watchdogTrigger)
+$trigger = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
 $settings = New-ScheduledTaskSettingsSet `
     -AllowStartIfOnBatteries `
     -DontStopIfGoingOnBatteries `
     -StartWhenAvailable `
     -ExecutionTimeLimit ([TimeSpan]::Zero) `
     -RestartCount 10 `
-    -RestartInterval (New-TimeSpan -Minutes 5) `
-    -MultipleInstances IgnoreNew
+    -RestartInterval (New-TimeSpan -Minutes 5)
 
 $principal = New-ScheduledTaskPrincipal `
     -UserId ("{0}\{1}" -f $env:USERDOMAIN, $env:USERNAME) `
@@ -79,7 +71,7 @@ $principal = New-ScheduledTaskPrincipal `
 
 $task = New-ScheduledTask `
     -Action $action `
-    -Trigger $triggers `
+    -Trigger $trigger `
     -Settings $settings `
     -Principal $principal `
     -Description "Resumable Riot API collector with auth pause/hot reload and hourly rank snapshots"

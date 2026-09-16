@@ -1,0 +1,42 @@
+{
+  "stat_map": {
+    "FlatPhysicalDamageMod": "attackDamage",
+    "FlatMagicDamageMod": "abilityPower",
+    "FlatArmorMod": "armor",
+    "FlatSpellBlockMod": "magicResist",
+    "FlatHPPoolMod": "healthMax",
+    "FlatMPPoolMod": "powerMax",
+    "PercentAttackSpeedMod": "attackSpeed_pct",
+    "FlatMovementSpeedMod": "movementSpeed",
+    "PercentMovementSpeedMod": "movementSpeed_pct",
+    "FlatCritChanceMod": "critChance",
+    "PercentLifeStealMod": "lifesteal",
+    "FlatHPRegenMod": "healthRegen",
+    "FlatMPRegenMod": "powerRegen"
+  },
+  "patches": {
+    "15.14": {
+      "version": "15.14.1",
+      "items": 619,
+      "champions": 171,
+      "raw_bytes": 2208354,
+      "unmapped_item_stat_keys": []
+    },
+    "15.15": {
+      "version": "15.15.1",
+      "items": 619,
+      "champions": 171,
+      "raw_bytes": 2208947,
+      "unmapped_item_stat_keys": []
+    },
+    "15.16": {
+      "version": "15.16.1",
+      "items": 619,
+      "champions": 171,
+      "raw_bytes": 2209323,
+      "unmapped_item_stat_keys": []
+    }
+  },
+  "growth_formula": "stat(L) = base + growth * (L-1) * (0.7025 + 0.0175*(L-1))",
+  "note": "Data Dragon stats omit ability haste, lethality/armor pen, magic pen, omnivamp; those fields are held, not reconstructed"
+}

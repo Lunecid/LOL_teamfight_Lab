@@ -1,0 +1,397 @@
+{
+  "y_key": "y_market_event",
+  "n": 532547,
+  "n_matches": 191940,
+  "n_features": 6164,
+  "seed": 7,
+  "split": {
+    "kind": "patch holdout",
+    "train": "15.14",
+    "val": "15.15",
+    "test": "15.16",
+    "rows": {
+      "train": 187547,
+      "val": 191184,
+      "test": 153816
+    },
+    "why": "a random match split lets a learner see the patch it is tested on"
+  },
+  "corpus_manifest": {
+    "run_id": "20260909_101558",
+    "git_commit": "aac7131527f2ab4f5a401e07a58292ea9aa437d2",
+    "detector": {
+      "TF2_KILL_CLUSTER_GAP_MS": 13700,
+      "CLUSTER_MAX_DIAMETER": 4264.0,
+      "TF2_VALIDITY_RADIUS": 1600.0,
+      "TF2_ENGAGE_PRE_KILL_MS": 15000,
+      "FIGHT_HORIZON_SEC": 35
+    },
+    "effective_overrides": {
+      "TF2_KILL_CLUSTER_GAP_MS": 13700,
+      "CLUSTER_MAX_DIAMETER": 4264.0,
+      "TF2_VALIDITY_RADIUS": 1600.0,
+      "TF2_ENGAGE_PRE_KILL_MS": 15000,
+      "FIGHT_HORIZON_SEC": 35
+    },
+    "label": {
+      "row_label": "market_event",
+      "row_tie_policy": "random",
+      "extra_labels": "market_event,market_event@window,market_lex,market_lex@window,attention_value_win",
+      "extra_tie_policy": "drop",
+      "gold_deadzone": 300.0,
+      "price_table_sha1": "d731292bc21d3803934c0bab8c9324a25033df87",
+      "map_anchors_sha1": "108932f8c5b12bdee16de8cc44dcb50ba4fbb42a"
+    },
+    "scale": {
+      "pick_max": 1,
+      "skirmish_min": 2,
+      "teamfight_min": 4
+    },
+    "seed": 7,
+    "num_shards": 32,
+    "n_matches": null,
+    "definition": "docs/DEFINITION_EVIDENCE.md section 17",
+    "shards": {
+      "3": {
+        "rc": 0,
+        "file": "shard_003.npz",
+        "exists": true,
+        "bytes": 73983572
+      },
+      "5": {
+        "rc": 0,
+        "file": "shard_005.npz",
+        "exists": true,
+        "bytes": 73392708
+      },
+      "6": {
+        "rc": 0,
+        "file": "shard_006.npz",
+        "exists": true,
+        "bytes": 74429937
+      },
+      "0": {
+        "rc": 0,
+        "file": "shard_000.npz",
+        "exists": true,
+        "bytes": 72876174
+      },
+      "1": {
+        "rc": 0,
+        "file": "shard_001.npz",
+        "exists": true,
+        "bytes": 74538631
+      },
+      "2": {
+        "rc": 0,
+        "file": "shard_002.npz",
+        "exists": true,
+        "bytes": 73145555
+      },
+      "4": {
+        "rc": 0,
+        "file": "shard_004.npz",
+        "exists": true,
+        "bytes": 74080907
+      },
+      "7": {
+        "rc": 0,
+        "file": "shard_007.npz",
+        "exists": true,
+        "bytes": 73867402
+      },
+      "8": {
+        "rc": 0,
+        "file": "shard_008.npz",
+        "exists": true,
+        "bytes": 73702670
+      },
+      "9": {
+        "rc": 0,
+        "file": "shard_009.npz",
+        "exists": true,
+        "bytes": 72357887
+      },
+      "10": {
+        "rc": 0,
+        "file": "shard_010.npz",
+        "exists": true,
+        "bytes": 73019683
+      },
+      "12": {
+        "rc": 0,
+        "file": "shard_012.npz",
+        "exists": true,
+        "bytes": 73273437
+      },
+      "14": {
+        "rc": 0,
+        "file": "shard_014.npz",
+        "exists": true,
+        "bytes": 73066392
+      },
+      "15": {
+        "rc": 0,
+        "file": "shard_015.npz",
+        "exists": true,
+        "bytes": 74072946
+      },
+      "11": {
+        "rc": 0,
+        "file": "shard_011.npz",
+        "exists": true,
+        "bytes": 73871903
+      },
+      "13": {
+        "rc": 0,
+        "file": "shard_013.npz",
+        "exists": true,
+        "bytes": 74292703
+      },
+      "18": {
+        "rc": 0,
+        "file": "shard_018.npz",
+        "exists": true,
+        "bytes": 72846342
+      },
+      "16": {
+        "rc": 0,
+        "file": "shard_016.npz",
+        "exists": true,
+        "bytes": 73214280
+      },
+      "17": {
+        "rc": 0,
+        "file": "shard_017.npz",
+        "exists": true,
+        "bytes": 73839059
+      },
+      "19": {
+        "rc": 0,
+        "file": "shard_019.npz",
+        "exists": true,
+        "bytes": 73269024
+      },
+      "20": {
+        "rc": 0,
+        "file": "shard_020.npz",
+        "exists": true,
+        "bytes": 72188027
+      },
+      "22": {
+        "rc": 0,
+        "file": "shard_022.npz",
+        "exists": true,
+        "bytes": 72819856
+      },
+      "21": {
+        "rc": 0,
+        "file": "shard_021.npz",
+        "exists": true,
+        "bytes": 73643223
+      },
+      "23": {
+        "rc": 0,
+        "file": "shard_023.npz",
+        "exists": true,
+        "bytes": 73018971
+      },
+      "24": {
+        "rc": 0,
+        "file": "shard_024.npz",
+        "exists": true,
+        "bytes": 73600925
+      },
+      "26": {
+        "rc": 0,
+        "file": "shard_026.npz",
+        "exists": true,
+        "bytes": 72807454
+      },
+      "25": {
+        "rc": 0,
+        "file": "shard_025.npz",
+        "exists": true,
+        "bytes": 74544377
+      },
+      "29": {
+        "rc": 0,
+        "file": "shard_029.npz",
+        "exists": true,
+        "bytes": 72428234
+      },
+      "27": {
+        "rc": 0,
+        "file": "shard_027.npz",
+        "exists": true,
+        "bytes": 74136036
+      },
+      "28": {
+        "rc": 0,
+        "file": "shard_028.npz",
+        "exists": true,
+        "bytes": 74382619
+      },
+      "30": {
+        "rc": 0,
+        "file": "shard_030.npz",
+        "exists": true,
+        "bytes": 72889160
+      },
+      "31": {
+        "rc": 0,
+        "file": "shard_031.npz",
+        "exists": true,
+        "bytes": 72723162
+      }
+    },
+    "complete": true,
+    "feature_names_sha1": "3c97f60383d303aa9d53e107ecb350cc0e1b4886"
+  },
+  "models": {
+    "lead_only": {
+      "overall_auc": 0.6261169822809435,
+      "by_participation_scale": {
+        "pick": {
+          "n": 29005,
+          "auc": 0.6016620743925393
+        },
+        "skirmish": {
+          "n": 92988,
+          "auc": 0.6155919704290045
+        },
+        "teamfight": {
+          "n": 31801,
+          "auc": 0.6718141891480296
+        }
+      },
+      "by_presence_scale": {
+        "skirmish": {
+          "n": 150560,
+          "auc": 0.6246331371038372
+        },
+        "teamfight": {
+          "n": 3256,
+          "auc": 0.6842184610740027
+        }
+      },
+      "val_auc": 0.6273816685760738,
+      "best_iteration": 102,
+      "seconds": 4.4,
+      "n_features": 8
+    },
+    "linear": {
+      "overall_auc": 0.6407714949028083,
+      "by_participation_scale": {
+        "pick": {
+          "n": 29005,
+          "auc": 0.6413320691906735
+        },
+        "skirmish": {
+          "n": 92988,
+          "auc": 0.6340396793424873
+        },
+        "teamfight": {
+          "n": 31801,
+          "auc": 0.6590072586758471
+        }
+      },
+      "by_presence_scale": {
+        "skirmish": {
+          "n": 150560,
+          "auc": 0.6396777853671043
+        },
+        "teamfight": {
+          "n": 3256,
+          "auc": 0.6865413789199593
+        }
+      },
+      "val_auc": 0.6443988158636438,
+      "best_iteration": null,
+      "seconds": 37.1,
+      "n_features": 6164
+    },
+    "lgbm_paper": {
+      "overall_auc": 0.6664835319909197,
+      "by_participation_scale": {
+        "pick": {
+          "n": 29005,
+          "auc": 0.6761205666876227
+        },
+        "skirmish": {
+          "n": 92988,
+          "auc": 0.6589459800829441
+        },
+        "teamfight": {
+          "n": 31801,
+          "auc": 0.6794697279072479
+        }
+      },
+      "by_presence_scale": {
+        "skirmish": {
+          "n": 150560,
+          "auc": 0.6654437698012761
+        },
+        "teamfight": {
+          "n": 3256,
+          "auc": 0.709699233933356
+        }
+      },
+      "val_auc": 0.6670869943055897,
+      "best_iteration": 381,
+      "seconds": 143.8,
+      "n_features": 6164
+    },
+    "lgbm_deep": {
+      "overall_auc": 0.6692117876536658,
+      "by_participation_scale": {
+        "pick": {
+          "n": 29005,
+          "auc": 0.6799008687732156
+        },
+        "skirmish": {
+          "n": 92988,
+          "auc": 0.6618795516716817
+        },
+        "teamfight": {
+          "n": 31801,
+          "auc": 0.6807840694248136
+        }
+      },
+      "by_presence_scale": {
+        "skirmish": {
+          "n": 150560,
+          "auc": 0.6682390764220104
+        },
+        "teamfight": {
+          "n": 3256,
+          "auc": 0.7097815011887241
+        }
+      },
+      "val_auc": 0.669809519932902,
+      "best_iteration": 544,
+      "seconds": 680.0,
+      "n_features": 6164
+    }
+  },
+  "vs_lgbm_paper": {
+    "lead_only": {
+      "mean": -0.040343286808805924,
+      "lo": -0.04244969360096592,
+      "hi": -0.03834842723631058,
+      "n_boot": 300
+    },
+    "linear": {
+      "mean": -0.025659022160638808,
+      "lo": -0.027354742219355625,
+      "hi": -0.023906934408185844,
+      "n_boot": 300
+    },
+    "lgbm_deep": {
+      "mean": 0.0027295435606280558,
+      "lo": 0.0020598718156671857,
+      "hi": 0.0034366762956853925,
+      "n_boot": 300
+    }
+  }
+}

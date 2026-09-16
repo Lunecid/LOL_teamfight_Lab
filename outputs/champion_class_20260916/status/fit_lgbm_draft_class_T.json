@@ -1,0 +1,42 @@
+{
+ "group": "fit_lgbm_draft_class_T",
+ "state": "complete",
+ "stage": "selected",
+ "pid": 36184,
+ "updated": "2026-09-16 04:22:13",
+ "elapsed_s": 10.3,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "next arm / family / cohort, then freeze",
+ "chosen": "lgbm_L15_M100__raw",
+ "selection_sha256": "7f0cd3c4c5c9b25c06bd3a034e7db6a75727253338da6082add2c050cc0f411e",
+ "seconds": 5.5,
+ "select_brier": {
+  "lgbm_L15_M100__isotonic": 0.250087,
+  "lgbm_L15_M100__raw": 0.249969,
+  "lgbm_L15_M100__sigmoid": 0.249981
+ },
+ "history": [
+  {
+   "stage": "load",
+   "state": "running",
+   "at": "2026-09-16 04:22:03"
+  },
+  {
+   "stage": "features",
+   "state": "running",
+   "at": "2026-09-16 04:22:07"
+  },
+  {
+   "stage": "fit_lgbm_L15_M100",
+   "state": "running",
+   "at": "2026-09-16 04:22:07"
+  },
+  {
+   "stage": "selected",
+   "state": "complete",
+   "at": "2026-09-16 04:22:13"
+  }
+ ]
+}

@@ -1,0 +1,22 @@
+{
+  "command": "C:\\Users\\todtj\\문서\\LOL_Teamfight\\.venv_multimodal\\Scripts\\python.exe scripts/train_engagement_predictor_v3.py",
+  "python": "3.13.5 | packaged by Anaconda, Inc. | (main, Jun 12 2025, 16:37:03) [MSC v.1929 64 bit (AMD64)]",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "packages": {
+    "numpy": "2.1.3",
+    "scikit-learn": "1.6.1",
+    "lightgbm": "4.6.0",
+    "joblib": "1.4.2"
+  },
+  "inputs": {
+    "engagement_changes.npz": "030e45c54ca5e0b2dd53f7bb1c9bea82ffe1ed7a6da361cdc7cf1385b8f782c3",
+    "engagement_changes_predict_train.npz": "d79870a5a5781fa66e2bd55fd0c634d178e23bfc79c52ee9976aef3259b9c62f",
+    "expanded_model.joblib": "8a28717d9af0abd7649d98a13685f16d9535163540a9f337a8baed6c9258d7c0",
+    "maymin_model.joblib": "d1cea75d73d49c028ec35a309941c2ad951cac5e1ac9251d87add6ed6f32cc31"
+  },
+  "source": {
+    "scripts/train_engagement_predictor_v3.py": "784ff285f6318e46b64ac9b424f82bb5af17ef8a853792afa0027e567eb93f3d",
+    "train/state_value_experiment.py": "b8a2070e231a4ae1169fb48f4b18ac269e8b2087f108b37beadbaf333a6e0d0e"
+  },
+  "elapsed_seconds": 484.93
+}

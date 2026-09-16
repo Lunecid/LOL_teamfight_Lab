@@ -1,0 +1,278 @@
+{
+ "role": "EXPLORATORY_NAMED_OBJECTIVE_CHANNEL_ABLATION_AFTER_PRIOR_TEST_EXPOSURE_NOT_CAUSAL_NOT_GROUND_TRUTH",
+ "stage": "SECONDARY calibration selection (primary stays raw)",
+ "protocol_sha256": "84c20e3e9122b8f60173804d1873e2fdda61c5935a4d6dca8580b0f221ffa6fa",
+ "smoke": true,
+ "rule": "lowest V_SELECT match-weighted log loss, then Brier, then name",
+ "secondary_chosen": "raw",
+ "primary": "raw",
+ "select_scores": {
+  "raw": {
+   "logloss": 0.4876538488463736,
+   "brier": 0.16363512678528558,
+   "auc": 0.8395988991009011
+  },
+  "sigmoid_pos": {
+   "logloss": 0.4883935704719599,
+   "brier": 0.16402073439622178,
+   "auc": 0.8395988991009011
+  }
+ },
+ "select_evaluation": {
+  "raw": {
+   "auc": 0.8395988991009011,
+   "brier": 0.16363512678528558,
+   "logloss": 0.4876538488463736,
+   "n": 7336,
+   "observed": 0.5031446540880503,
+   "predicted": 0.519148217565114,
+   "intercept": -0.09362575335793455,
+   "slope": 0.9251158818147647,
+   "bins": [
+    {
+     "lo": 0.0,
+     "n": 904,
+     "predicted": 0.04017909841124262,
+     "observed": 0.043766075906749226
+    },
+    {
+     "lo": 0.1,
+     "n": 558,
+     "predicted": 0.15006787473869473,
+     "observed": 0.16219322279499332
+    },
+    {
+     "lo": 0.2,
+     "n": 576,
+     "predicted": 0.2505785753550819,
+     "observed": 0.23924431156261966
+    },
+    {
+     "lo": 0.30000000000000004,
+     "n": 610,
+     "predicted": 0.35067679184116146,
+     "observed": 0.3476560425470575
+    },
+    {
+     "lo": 0.4,
+     "n": 787,
+     "predicted": 0.4516315726961218,
+     "observed": 0.43983142972019135
+    },
+    {
+     "lo": 0.5,
+     "n": 879,
+     "predicted": 0.5487784452151125,
+     "observed": 0.5225237588774145
+    },
+    {
+     "lo": 0.6000000000000001,
+     "n": 745,
+     "predicted": 0.6485464637178608,
+     "observed": 0.6234309493397479
+    },
+    {
+     "lo": 0.7000000000000001,
+     "n": 629,
+     "predicted": 0.7499890408377845,
+     "observed": 0.6814648452405612
+    },
+    {
+     "lo": 0.8,
+     "n": 598,
+     "predicted": 0.8519348244033371,
+     "observed": 0.8310687425731672
+    },
+    {
+     "lo": 0.9,
+     "n": 1050,
+     "predicted": 0.9614862153089886,
+     "observed": 0.9494643845031934
+    }
+   ],
+   "matches": 1272,
+   "positives": 3650,
+   "auc_na_reason": null,
+   "citl_intercept_offset": -0.10201720131717062,
+   "ece_10bin": 0.018724521466588952,
+   "sparse_lt30_matches": false
+  },
+  "sigmoid_pos": {
+   "auc": 0.8395988991009011,
+   "brier": 0.16402073439622178,
+   "logloss": 0.4883935704719599,
+   "n": 7336,
+   "observed": 0.5031446540880503,
+   "predicted": 0.5293012299862118,
+   "intercept": -0.15830567951267457,
+   "slope": 0.976490684551636,
+   "bins": [
+    {
+     "lo": 0.0,
+     "n": 808,
+     "predicted": 0.04215464857763914,
+     "observed": 0.031204208205335603
+    },
+    {
+     "lo": 0.1,
+     "n": 524,
+     "predicted": 0.1487156014082037,
+     "observed": 0.1634835888552943
+    },
+    {
+     "lo": 0.2,
+     "n": 560,
+     "predicted": 0.24913626662606067,
+     "observed": 0.21061498180490376
+    },
+    {
+     "lo": 0.30000000000000004,
+     "n": 620,
+     "predicted": 0.35129934480916014,
+     "observed": 0.31551293547454784
+    },
+    {
+     "lo": 0.4,
+     "n": 792,
+     "predicted": 0.45353986687921616,
+     "observed": 0.42893541331154
+    },
+    {
+     "lo": 0.5,
+     "n": 928,
+     "predicted": 0.5503624915315403,
+     "observed": 0.5144260772752463
+    },
+    {
+     "lo": 0.6000000000000001,
+     "n": 793,
+     "predicted": 0.6485040466742849,
+     "observed": 0.6075265227929119
+    },
+    {
+     "lo": 0.7000000000000001,
+     "n": 669,
+     "predicted": 0.7493816207425553,
+     "observed": 0.6824879095057242
+    },
+    {
+     "lo": 0.8,
+     "n": 623,
+     "predicted": 0.8517238324872254,
+     "observed": 0.8376707305561406
+    },
+    {
+     "lo": 0.9,
+     "n": 1019,
+     "predicted": 0.9600476659710354,
+     "observed": 0.9511756139509357
+    }
+   ],
+   "matches": 1272,
+   "positives": 3650,
+   "auc_na_reason": null,
+   "citl_intercept_offset": -0.16260548008634093,
+   "ece_10bin": 0.0282258651345567,
+   "sparse_lt30_matches": false
+  }
+ },
+ "calibrate_scores_diagnostic": {
+  "raw": {
+   "auc": 0.8360536694685892,
+   "brier": 0.1641656732539009,
+   "logloss": 0.48583879800437907
+  },
+  "sigmoid_pos": {
+   "auc": 0.8360536694685892,
+   "brier": 0.16383918498584635,
+   "logloss": 0.4852186403556638
+  }
+ },
+ "final_sha256": {
+  "raw": "0bf954c5cbbbe7b421255421c39d42bb0df54d1f1d0b3966b0b20f2082bae88d",
+  "sigmoid_pos": "d6f66a99b04300fab6276dab1a34062ff6197f4d534a165ecdc2190d18bd6e7f"
+ },
+ "sigmoid_fit": {
+  "optimizer": "scipy.optimize.minimize L-BFGS-B",
+  "success": true,
+  "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+  "nit": 6,
+  "objective": 0.4852186403556638,
+  "intercept_a": 0.0660981141963832,
+  "slope_b": 0.947258734994977,
+  "slope_lower_bound": 1e-06,
+  "slope_bound_active": false,
+  "final_gradient": [
+   1.400371815035717e-10,
+   -5.159427431730007e-11
+  ],
+  "n": 7083,
+  "weight_sum": 7083.0,
+  "logit_clip": 1e-12
+ },
+ "final_fit": {
+  "label": "B_noobj_final_all_train",
+  "rows": 21625,
+  "matches": 3768,
+  "C": 0.01,
+  "solver": "liblinear",
+  "random_state": 7,
+  "max_iter_final": 1500,
+  "attempts": [
+   {
+    "max_iter": 1500,
+    "n_iter": 7,
+    "seconds": 0.5,
+    "converged": true,
+    "convergence_warnings": [],
+    "other_warnings": []
+   }
+  ],
+  "n_iter": 7,
+  "converged": true,
+  "n_features_in": 185,
+  "n_numeric_scaled": 175,
+  "champion_categories_per_slot": [
+   113,
+   70,
+   112,
+   53,
+   105,
+   130,
+   71,
+   114,
+   45,
+   101
+  ],
+  "coef_count": 1089,
+  "preprocessing_membership": {
+   "scaler_n_samples_seen": 21625,
+   "fit_rows": 21625,
+   "onehot_categories_equal_fit_values": true
+  },
+  "weight_sum": 21625.0,
+  "positive_rate_match_weighted": 0.5217622080679406,
+  "fit_match_ids_sha256": "4560bb6bb08633c20758b0903f913adccd6cc346ad76922bf848800fca8b1645"
+ },
+ "census": {
+  "TRAIN": {
+   "rows": 21625,
+   "matches": 3768
+  },
+  "V_CAL": {
+   "rows": 7083,
+   "matches": 1242
+  },
+  "V_SELECT": {
+   "rows": 7336,
+   "matches": 1272
+  }
+ },
+ "key_check": {},
+ "written_at": "2026-09-15 16:31:18",
+ "written_before": [
+  "OOF adapters",
+  "freeze",
+  "TEST/external access"
+ ]
+}

@@ -1,0 +1,191 @@
+{
+ "role": "EXPLORATORY_FOLLOWUP_MODEL_DEFINED_LABELS_PRIOR_TEST_EXPOSURE",
+ "provenance_sha256": "b26d8e50195e59f96cf0eb00df3ccf5a9e40fda458deeaac660f6493eb67f0ed",
+ "draft_sha256": "ad27876a0e47178c52d27dcd54d44d76c540747344e165831fba108075faeb77",
+ "classifier": "DraftEncoder -> LogisticRegression(C=1, solver=lbfgs, multinomial), no tuning",
+ "roles": [
+  "TOP",
+  "JUNGLE",
+  "MIDDLE",
+  "BOTTOM",
+  "UTILITY"
+ ],
+ "fold_rule": "SMOKE pseudo folds",
+ "models": {
+  "final": {
+   "path": "smoke_train_only\\role_models\\role_final.joblib",
+   "sha256": "33510bc34b15ef1e54783faae8ac3bdd207250641048482cc5a66ab3b4411c92",
+   "fit_record": {
+    "model_id": "final",
+    "fit_split": "15.14 TRAIN all folds",
+    "fit_match_ids_sha256": "8f71b3631de1bd80e544485575b24536d5c0d86c34012bab7aa8edd5c3da9ada",
+    "fit_matches": 9474,
+    "held_out_fold": null,
+    "n_iter": 77,
+    "max_iter": 2000,
+    "converged": true,
+    "C": 1.0,
+    "warnings": [],
+    "n_rows": 94660,
+    "weight_sum": 94660.00000000004,
+    "champion_vocabulary_size": 171,
+    "spell_vocabulary_size": 9,
+    "multi_class": "multinomial (sklearn lbfgs default for >2 classes)",
+    "fit_seconds": 1.4
+   }
+  },
+  "oof_fold0": {
+   "path": "smoke_train_only\\role_models\\role_oof_fold0.joblib",
+   "sha256": "68ff25938406de1488dc4d6cd492ae00bf9a9dfa8ddd6709e66d7f75ba3e2060",
+   "fit_record": {
+    "model_id": "oof_fold0",
+    "fit_split": "15.14 TRAIN folds != 0",
+    "held_out_fold": 0,
+    "fit_match_ids_sha256": "c8d9261d3c50bad8c7e074b527c322ead905db3df56d3fb938ad483afe9926e3",
+    "fit_matches": 7569,
+    "n_iter": 71,
+    "max_iter": 2000,
+    "converged": true,
+    "C": 1.0,
+    "warnings": [],
+    "n_rows": 75625,
+    "weight_sum": 75624.99999999999,
+    "champion_vocabulary_size": 171,
+    "spell_vocabulary_size": 9,
+    "multi_class": "multinomial (sklearn lbfgs default for >2 classes)",
+    "fit_seconds": 0.4,
+    "held_out_matches_in_fit_set": 0
+   }
+  },
+  "oof_fold1": {
+   "path": "smoke_train_only\\role_models\\role_oof_fold1.joblib",
+   "sha256": "5160f38462a4513044443fbdd71ab0fd358fdd851dc5ab012bb66ceb432b9b59",
+   "fit_record": {
+    "model_id": "oof_fold1",
+    "fit_split": "15.14 TRAIN folds != 1",
+    "held_out_fold": 1,
+    "fit_match_ids_sha256": "f0ecdb58b03ad5fa7f19aa4d9d9da474a7cf352af266f1546d6900047fddb0b3",
+    "fit_matches": 7519,
+    "n_iter": 73,
+    "max_iter": 2000,
+    "converged": true,
+    "C": 1.0,
+    "warnings": [],
+    "n_rows": 75125,
+    "weight_sum": 75125.00000000001,
+    "champion_vocabulary_size": 171,
+    "spell_vocabulary_size": 9,
+    "multi_class": "multinomial (sklearn lbfgs default for >2 classes)",
+    "fit_seconds": 0.4,
+    "held_out_matches_in_fit_set": 0
+   }
+  },
+  "oof_fold2": {
+   "path": "smoke_train_only\\role_models\\role_oof_fold2.joblib",
+   "sha256": "c601855b7e84b8605d75f3743c226e05cf1e5fdf5774040a7721c83e54815c58",
+   "fit_record": {
+    "model_id": "oof_fold2",
+    "fit_split": "15.14 TRAIN folds != 2",
+    "held_out_fold": 2,
+    "fit_match_ids_sha256": "4c2a2de7fc677b1a4eb9f9186ce2f8b105fdbbf8b225abacdb0feb3d5e942395",
+    "fit_matches": 7619,
+    "n_iter": 77,
+    "max_iter": 2000,
+    "converged": true,
+    "C": 1.0,
+    "warnings": [],
+    "n_rows": 76115,
+    "weight_sum": 76114.99999999996,
+    "champion_vocabulary_size": 171,
+    "spell_vocabulary_size": 9,
+    "multi_class": "multinomial (sklearn lbfgs default for >2 classes)",
+    "fit_seconds": 0.5,
+    "held_out_matches_in_fit_set": 0
+   }
+  },
+  "oof_fold3": {
+   "path": "smoke_train_only\\role_models\\role_oof_fold3.joblib",
+   "sha256": "5f20c7c40deffb386955f6165d3ef0e65862a5e9917e9a78a6738e8acb53442e",
+   "fit_record": {
+    "model_id": "oof_fold3",
+    "fit_split": "15.14 TRAIN folds != 3",
+    "held_out_fold": 3,
+    "fit_match_ids_sha256": "9dc16311fc4dd9886eb51d6647164db8922feef97b07a5bc0ce599ea70f03301",
+    "fit_matches": 7579,
+    "n_iter": 76,
+    "max_iter": 2000,
+    "converged": true,
+    "C": 1.0,
+    "warnings": [],
+    "n_rows": 75720,
+    "weight_sum": 75719.99999999996,
+    "champion_vocabulary_size": 171,
+    "spell_vocabulary_size": 9,
+    "multi_class": "multinomial (sklearn lbfgs default for >2 classes)",
+    "fit_seconds": 0.5,
+    "held_out_matches_in_fit_set": 0
+   }
+  },
+  "oof_fold4": {
+   "path": "smoke_train_only\\role_models\\role_oof_fold4.joblib",
+   "sha256": "08db033daeacdc0828b687876afcd63822d209350fc839b552f00ae24154a61e",
+   "fit_record": {
+    "model_id": "oof_fold4",
+    "fit_split": "15.14 TRAIN folds != 4",
+    "held_out_fold": 4,
+    "fit_match_ids_sha256": "43fee1331fb2e9d088741acc4e66617e03bf58a0159b2a4581dc2b0b964bf611",
+    "fit_matches": 7610,
+    "n_iter": 84,
+    "max_iter": 2000,
+    "converged": true,
+    "C": 1.0,
+    "warnings": [],
+    "n_rows": 76055,
+    "weight_sum": 76055.00000000006,
+    "champion_vocabulary_size": 171,
+    "spell_vocabulary_size": 9,
+    "multi_class": "multinomial (sklearn lbfgs default for >2 classes)",
+    "fit_seconds": 0.7,
+    "held_out_matches_in_fit_set": 0
+   }
+  }
+ },
+ "outputs": {
+  "MAIN_TRAIN": {
+   "file": "role_outputs/MAIN_TRAIN_roles.npz",
+   "sha256": "ebeb45546bb9380fdca5320590eb2441b2159a10b685c2a93614e73f8ce3e1a4",
+   "matches": 9474,
+   "normalization": {
+    "row_sums_max_abs_dev": 1.2212453270876722e-15,
+    "col_sums_max_abs_dev": 1.1102230246251565e-15
+   },
+   "generators": {
+    "oof_fold0": 1905,
+    "oof_fold1": 1955,
+    "oof_fold2": 1855,
+    "oof_fold3": 1895,
+    "oof_fold4": 1864
+   },
+   "mean_assignment_entropy": 0.13088578369439588,
+   "mean_max_marginal": 0.9809892524732317,
+   "champion_unseen_participant_rate": 0.0,
+   "champion_missing_participant_rate": 0.0,
+   "OOF_agreement_with_WEAK_proxy_NOT_validated_accuracy": {
+    "participants": 94660,
+    "posterior_argmax_agreement": 0.9786287766744137,
+    "classifier_argmax_agreement": 0.9435770124656666,
+    "posterior_mean_prob_of_proxy_role": 0.9685902455330844,
+    "per_role_posterior_agreement": {
+     "TOP": 0.9529896471582506,
+     "JUNGLE": 1.0,
+     "MIDDLE": 0.9495563067821677,
+     "BOTTOM": 0.9939784491865624,
+     "UTILITY": 0.9966194802450877
+    },
+    "teams_exact_assignment": 0.9458117671912961
+   },
+   "oof_self_match_exclusion_violations": 0
+  }
+ },
+ "written_at": "2026-09-15 14:36:31"
+}

@@ -1,0 +1,33 @@
+{
+ "run": 1,
+ "command": "-B -m pytest -q -p no:cacheprovider --basetemp=C:\\Users\\todtj\\문서\\LOL_Teamfight\\outputs\\v_mechanism_20260916\\contract_tests\\pytest_basetemp_run1 tests/test_vd20260916_contracts.py",
+ "returncode": 0,
+ "passed_count": 7,
+ "failed_count": 0,
+ "error_count": 0,
+ "skipped_count": 0,
+ "passed": true,
+ "seconds": 3.1,
+ "at": "2026-09-16 03:25:40",
+ "test_sha256": {
+  "tests/test_vd20260916_contracts.py": "0db048a46326a0d81c79755eb56b39e709d813feaace7ecd4d16a3f0c1fe1134"
+ },
+ "source_sha256": {
+  "scripts/vd20260916_analyze.py": "a15ab1fc511ff1b51688b40a1715157360f02b6e9b40a5ad9f72adb20b878018",
+  "scripts/vd20260916_common.py": "6301eb129d4ed9a873a94025e0bc3a4b1242e3c6278fbf6e0f6aaa64cb9b64f7",
+  "scripts/vd20260916_postrun_checks.py": "f7a0d41fef4751126ffb3e177a499c4f648692c79676a67f370883998c1094d0",
+  "scripts/vd20260916_protocol_freeze.py": "7cdb87eec5cb7143b3286d1f9fbadd023ed3b3a8571f64a19a739269692b8ae6",
+  "scripts/vd20260916_report.py": "0bd38916bea67f72b4ff07da3f7f5076abf5cb01419534c3c2b8b9a61821327e",
+  "scripts/vd20260916_run_contract_tests.py": "ee95fa561f45d09e03d5522a266102a2152825314456b6325c554b5e87133a77",
+  "scripts/vd20260916_snapshot.py": "56bc1b9ea3736f19d2f3ac3c7728c99acb48d95395f0a3f06e12c3d4df200435",
+  "tests/test_vd20260916_contracts.py": "0db048a46326a0d81c79755eb56b39e709d813feaace7ecd4d16a3f0c1fe1134",
+  "scripts/fc20260915_common.py": "aeb9f3b07b5a5e68cc95de09a4a12870ac7e7f0728a66a30535c7dbbbad73405",
+  "scripts/cr20260915_common.py": "04d4a2eb9808888d6b5e4896bdc50405ffac4bde79ee65173046627aa146e081",
+  "scripts/iq20260915_common.py": "a51925020c626275b3b1db456490d2e2882e86cda59bc8531dfeeba81e6c7956",
+  "scripts/ta20260916_common.py": "78b0938085cc10511b3bdaefd7cfc599a599070a3b8387b3da72c47937969f47",
+  "docs/CLAUDE_V_MECHANISM_20260916.md": "59b1227fb68e588223284a6f22e78af6e792356aab1d90fcd468cbae78e04e01",
+  "docs/COLLABORATOR_CRITIQUE_RESPONSE_20260915.md": "c847d82d00654f88cbe5f8f70370cf8498c3c722c89657b2d27064860f113396",
+  "docs/TOG_END_TO_END_READINESS_AUDIT_20260915.md": "473acf3141943fa828a0253fa35a87cb473b5c5fb3d3ac47cbaea5b9a09169e5"
+ },
+ "log": "contract_tests/run1.txt"
+}

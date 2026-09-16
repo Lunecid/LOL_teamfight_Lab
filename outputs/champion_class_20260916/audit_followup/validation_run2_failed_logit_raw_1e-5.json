@@ -1,0 +1,394 @@
+{
+ "role": "EXPLORATORY_FOLLOWUP_AFTER_PRIOR_TEST_EXPOSURE_MODEL_DEFINED_LABELS_NOT_CONFIRMATORY",
+ "version": "champion_class_20260916",
+ "checked_at": "2026-09-16 04:59:26",
+ "n_checks": 91,
+ "failed": [
+  "base_arm_logit_raw_reproduces_parent_iq_winner_within_1e-5"
+ ],
+ "passed": 90,
+ "checks": {
+  "parent_unchanged_sha256_incremental_q": true,
+  "parent_unchanged_sha256_cohort_role": true,
+  "parent_unchanged_sha256_full_corpus_read_targets": true,
+  "parent_unchanged_inventory_full_corpus": true,
+  "parent_unchanged_sha256_parent_scripts": true,
+  "parent_unchanged_sha256_parent_tests": true,
+  "parent_unchanged_inventory_docs": true,
+  "parent_unchanged_inventory_deliverables": true,
+  "parent_unchanged_pycache_scripts": true,
+  "parent_unchanged_pycache_tests": true,
+  "parent_unchanged_original_repo_py_sha256": true,
+  "parent_unchanged_shards_inventory": true,
+  "parent_unchanged_main_cache_dir_stat": true,
+  "parent_unchanged_sha256_ddragon": true,
+  "parent_expected_hashes_protocol_equal_now": true,
+  "spec_unchanged_since_protocol": true,
+  "parent_frozen_manifests_unchanged": true,
+  "parent_prediction_files_unchanged": true,
+  "tag_table_and_ddragon_files_pinned_and_unchanged": true,
+  "registry_equals_iq_h90_winners": true,
+  "identity_vocab_reproduced_from_train": true,
+  "block_names_equal_protocol": true,
+  "order_snapshot_tests_protocol_smoke_latest_tests_before_full_fits": true,
+  "all_selections_before_freeze": true,
+  "contract_tests_passed_no_skips": true,
+  "final_source_hashes_equal_frozen_for_fit_freeze_evaluate_common": true,
+  "sealed_accesses_only_after_freeze": true,
+  "no_sealed_access_before_freeze_recorded_in_manifest": true,
+  "smoke_read_train_only": true,
+  "evaluation_after_freeze": true,
+  "frozen_artifacts_unchanged_now": true,
+  "frozen_artifacts_unchanged_through_evaluation": true,
+  "freeze_prechecks_all_pass": true,
+  "T_counts_equal_specification": true,
+  "T_train_rows_use_own_heldout_fold_oof_V": true,
+  "logit_base_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "lgbm_base_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "logit_tags_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "lgbm_tags_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "logit_class_state_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "lgbm_class_state_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "logit_class_pairs_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "lgbm_class_pairs_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "logit_identity_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "lgbm_identity_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "logit_class_pairs_identity_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "lgbm_class_pairs_identity_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "logit_draft_class_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "lgbm_draft_class_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "logit_draft_identity_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "lgbm_draft_identity_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "N_counts_equal_specification": true,
+  "N_train_rows_use_own_heldout_fold_oof_V": true,
+  "logit_base_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "lgbm_base_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "logit_tags_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "lgbm_tags_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "logit_class_state_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "lgbm_class_state_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "logit_class_pairs_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "lgbm_class_pairs_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "logit_identity_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "lgbm_identity_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "logit_class_pairs_identity_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "lgbm_class_pairs_identity_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "logit_draft_class_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "lgbm_draft_class_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "logit_draft_identity_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "lgbm_draft_identity_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "eval_MAIN_TEST_T_named_winners_equal_frozen_candidates": true,
+  "eval_MAIN_TEST_N_named_winners_equal_frozen_candidates": true,
+  "eval_EXT_KR_16.13_T_named_winners_equal_frozen_candidates": true,
+  "eval_EXT_KR_16.13_N_named_winners_equal_frozen_candidates": true,
+  "eval_EXT_KR_16.14_pilot_T_named_winners_equal_frozen_candidates": true,
+  "eval_EXT_KR_16.14_pilot_N_named_winners_equal_frozen_candidates": true,
+  "eval_EXT_KR_16.15_T_named_winners_equal_frozen_candidates": true,
+  "eval_EXT_KR_16.15_N_named_winners_equal_frozen_candidates": true,
+  "eval_EXT_NA1_16.13_T_named_winners_equal_frozen_candidates": true,
+  "eval_EXT_NA1_16.13_N_named_winners_equal_frozen_candidates": true,
+  "evaluation_counts_equal_specification": true,
+  "parent_joins_complete_and_consistent": true,
+  "cell_membership_recomputed_equal": true,
+  "independent_metric_reconstruction_lt_1e-10": true,
+  "bootstrap_point_estimates_equal_cell_metrics_lt_1e-10": true,
+  "bootstrap_acceptance_all_B40_B45_cells": true,
+  "base_arm_lgbm_raw_reproduces_parent_iq_winner_exactly": true,
+  "base_arm_logit_raw_reproduces_parent_iq_winner_within_1e-5": false,
+  "MAIN_TEST_T_frozen_winners_reload_identical_in_fresh_process": true,
+  "MAIN_TEST_N_frozen_winners_reload_identical_in_fresh_process": true,
+  "required_stage_groups_complete": true,
+  "no_bytecode_written_in_parent_scripts_tests": true
+ },
+ "info": {
+  "parent_unchanged_sha256_incremental_q": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 267
+  },
+  "parent_unchanged_sha256_cohort_role": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 402
+  },
+  "parent_unchanged_sha256_full_corpus_read_targets": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 51
+  },
+  "parent_unchanged_inventory_full_corpus": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 66854
+  },
+  "parent_unchanged_sha256_parent_scripts": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 155
+  },
+  "parent_unchanged_sha256_parent_tests": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 22
+  },
+  "parent_unchanged_inventory_docs": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 78
+  },
+  "parent_unchanged_inventory_deliverables": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 9
+  },
+  "parent_unchanged_pycache_scripts": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 22
+  },
+  "parent_unchanged_pycache_tests": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 15
+  },
+  "parent_unchanged_original_repo_py_sha256": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 107
+  },
+  "parent_unchanged_shards_inventory": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 35
+  },
+  "parent_unchanged_main_cache_dir_stat": {
+   "changed": null,
+   "removed": null,
+   "added": null,
+   "checked": null
+  },
+  "parent_unchanged_sha256_ddragon": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 28
+  },
+  "parent_expected_hashes_protocol_equal_now": {
+   "files": 99
+  },
+  "parent_prediction_files_unchanged": {
+   "files": 10
+  },
+  "registry_equals_iq_h90_winners": {
+   "registry": {
+    "T": {
+     "logit": "logit_C0.001",
+     "lgbm": "lgbm_L15_M100"
+    },
+    "N": {
+     "logit": "logit_C0.01",
+     "lgbm": "lgbm_L15_M100"
+    }
+   }
+  },
+  "identity_vocab_reproduced_from_train": {
+   "n": 171
+  },
+  "order_snapshot_tests_protocol_smoke_latest_tests_before_full_fits": {
+   "first_full_fit": "2026-09-16 04:17:54",
+   "latest_passing_tests": "2026-09-16 04:17:54"
+  },
+  "all_selections_before_freeze": {
+   "frozen_at": "2026-09-16 04:48:22"
+  },
+  "contract_tests_passed_no_skips": {
+   "passed": 10,
+   "run": 3
+  },
+  "sealed_accesses_only_after_freeze": {
+   "n_sealed": 16
+  },
+  "frozen_artifacts_unchanged_now": {
+   "files": 113
+  },
+  "logit_base_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "logit_C0.001__raw"
+  },
+  "lgbm_base_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "lgbm_L15_M100__raw"
+  },
+  "logit_tags_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "logit_C0.001__raw"
+  },
+  "lgbm_tags_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "lgbm_L15_M100__sigmoid"
+  },
+  "logit_class_state_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "logit_C0.001__raw"
+  },
+  "lgbm_class_state_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "lgbm_L15_M100__isotonic"
+  },
+  "logit_class_pairs_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "logit_C0.001__raw"
+  },
+  "lgbm_class_pairs_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "lgbm_L15_M100__sigmoid"
+  },
+  "logit_identity_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "logit_C0.001__isotonic"
+  },
+  "lgbm_identity_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "lgbm_L15_M100__raw"
+  },
+  "logit_class_pairs_identity_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "logit_C0.001__isotonic"
+  },
+  "lgbm_class_pairs_identity_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "lgbm_L15_M100__sigmoid"
+  },
+  "logit_draft_class_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "logit_C0.001__sigmoid"
+  },
+  "lgbm_draft_class_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "lgbm_L15_M100__raw"
+  },
+  "logit_draft_identity_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "logit_C0.001__sigmoid"
+  },
+  "lgbm_draft_identity_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "lgbm_L15_M100__sigmoid"
+  },
+  "logit_base_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "logit_C0.01__isotonic"
+  },
+  "lgbm_base_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "lgbm_L15_M100__sigmoid"
+  },
+  "logit_tags_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "logit_C0.01__raw"
+  },
+  "lgbm_tags_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "lgbm_L15_M100__sigmoid"
+  },
+  "logit_class_state_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "logit_C0.01__raw"
+  },
+  "lgbm_class_state_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "lgbm_L15_M100__sigmoid"
+  },
+  "logit_class_pairs_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "logit_C0.01__raw"
+  },
+  "lgbm_class_pairs_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "lgbm_L15_M100__sigmoid"
+  },
+  "logit_identity_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "logit_C0.01__isotonic"
+  },
+  "lgbm_identity_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "lgbm_L15_M100__sigmoid"
+  },
+  "logit_class_pairs_identity_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "logit_C0.01__isotonic"
+  },
+  "lgbm_class_pairs_identity_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "lgbm_L15_M100__sigmoid"
+  },
+  "logit_draft_class_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "logit_C0.01__isotonic"
+  },
+  "lgbm_draft_class_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "lgbm_L15_M100__sigmoid"
+  },
+  "logit_draft_identity_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "logit_C0.01__isotonic"
+  },
+  "lgbm_draft_identity_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "lgbm_L15_M100__raw"
+  },
+  "independent_metric_reconstruction_lt_1e-10": {
+   "max_abs": {
+    "auc": 1.1513012765362873e-13,
+    "brier": 0.0,
+    "logloss": 0.0
+   },
+   "cells": 1980
+  },
+  "bootstrap_point_estimates_equal_cell_metrics_lt_1e-10": {
+   "max_abs": 1.1513012765362873e-13
+  },
+  "bootstrap_acceptance_all_B40_B45_cells": {
+   "counts": {
+    "eligible": 28,
+    "ineligible_explicit_skip": 2
+   },
+   "problems": []
+  },
+  "base_arm_lgbm_raw_reproduces_parent_iq_winner_exactly": {
+   "max_abs_diff": {
+    "MAIN_TEST_T_lgbm": 0.0,
+    "MAIN_TEST_N_lgbm": 0.0,
+    "EXT_KR_16.13_T_lgbm": 0.0,
+    "EXT_KR_16.13_N_lgbm": 0.0,
+    "EXT_KR_16.14_pilot_T_lgbm": 0.0,
+    "EXT_KR_16.14_pilot_N_lgbm": 0.0,
+    "EXT_KR_16.15_T_lgbm": 0.0,
+    "EXT_KR_16.15_N_lgbm": 0.0,
+    "EXT_NA1_16.13_T_lgbm": 0.0,
+    "EXT_NA1_16.13_N_lgbm": 0.0
+   }
+  },
+  "base_arm_logit_raw_reproduces_parent_iq_winner_within_1e-5": {
+   "max_abs_diff": {
+    "MAIN_TEST_T_logit": 2.2497924879738562e-06,
+    "MAIN_TEST_N_logit": 3.365128532728523e-05,
+    "EXT_KR_16.13_T_logit": 2.021311312661034e-06,
+    "EXT_KR_16.13_N_logit": 1.701278665244832e-05,
+    "EXT_KR_16.14_pilot_T_logit": 5.959305031666418e-07,
+    "EXT_KR_16.14_pilot_N_logit": 8.30040489652184e-06,
+    "EXT_KR_16.15_T_logit": 8.728493643417323e-07,
+    "EXT_KR_16.15_N_logit": 2.4012847191223763e-05,
+    "EXT_NA1_16.13_T_logit": 1.900068382243436e-06,
+    "EXT_NA1_16.13_N_logit": 2.154046271962695e-05
+   },
+   "note": "same data and settings; the parent fit its design from a column-fancy-indexed (F-ordered) array, this run from a C-ordered one, so the lbfgs rounding path differs in the last bits; calibrated differences (isotonic step boundaries) are reported descriptively",
+   "calibrated_max_abs_diff": {
+    "MAIN_TEST_T_lgbm": 0.0,
+    "MAIN_TEST_T_logit": 2.2497924879738562e-06,
+    "MAIN_TEST_N_lgbm": 0.0,
+    "MAIN_TEST_N_logit": 0.011771373702443466,
+    "EXT_KR_16.13_T_lgbm": 0.0,
+    "EXT_KR_16.13_T_logit": 2.021311312661034e-06,
+    "EXT_KR_16.13_N_lgbm": 0.0,
+    "EXT_KR_16.13_N_logit": 0.0064224146845365815,
+    "EXT_KR_16.14_pilot_T_lgbm": 0.0,
+    "EXT_KR_16.14_pilot_T_logit": 5.959305031666418e-07,
+    "EXT_KR_16.14_pilot_N_lgbm": 0.0,
+    "EXT_KR_16.14_pilot_N_logit": 0.0013470330409122155,
+    "EXT_KR_16.15_T_lgbm": 0.0,
+    "EXT_KR_16.15_T_logit": 8.728493643417323e-07,
+    "EXT_KR_16.15_N_lgbm": 0.0,
+    "EXT_KR_16.15_N_logit": 0.0004467858443928385,
+    "EXT_NA1_16.13_T_lgbm": 0.0,
+    "EXT_NA1_16.13_T_logit": 1.900068382243436e-06,
+    "EXT_NA1_16.13_N_lgbm": 0.0,
+    "EXT_NA1_16.13_N_logit": 0.0064224146845365815
+   }
+  }
+ },
+ "frozen_manifest_sha256": "1909f76aa172d17ffeb7fd374e44359e833de4d1843d18b22778efdfab8da7d5",
+ "results_sha256": "9b4568ef2dc526f6a815e05d029cd736a74b4ee581e5311cd5c50895373d839d"
+}

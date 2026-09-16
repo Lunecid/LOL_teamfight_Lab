@@ -1,0 +1,101 @@
+{
+ "group": "fit_lgbm_T",
+ "state": "complete",
+ "stage": "selected",
+ "pid": 33224,
+ "updated": "2026-09-15 20:44:32",
+ "elapsed_s": 64.7,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "next family/cohort, then freeze",
+ "chosen": "lgbm_L15_M100__raw",
+ "selection_sha256": "87d99cae8b4da5ed6126f3f29f42b6db7a779162b72fc87becd9c865fbb234e6",
+ "seconds": 60.3,
+ "top3": [
+  [
+   "lgbm_L15_M100__raw",
+   0.228488
+  ],
+  [
+   "lgbm_L15_M100__sigmoid",
+   0.228504
+  ],
+  [
+   "lgbm_L31_M100__sigmoid",
+   0.22863
+  ]
+ ],
+ "history": [
+  {
+   "stage": "load",
+   "state": "running",
+   "at": "2026-09-15 20:43:28"
+  },
+  {
+   "stage": "fit_lgbm_L15_M50",
+   "state": "running",
+   "at": "2026-09-15 20:43:31"
+  },
+  {
+   "stage": "fitted_lgbm_L15_M50",
+   "state": "running",
+   "at": "2026-09-15 20:43:42"
+  },
+  {
+   "stage": "fit_lgbm_L15_M100",
+   "state": "running",
+   "at": "2026-09-15 20:43:42"
+  },
+  {
+   "stage": "fitted_lgbm_L15_M100",
+   "state": "running",
+   "at": "2026-09-15 20:43:51"
+  },
+  {
+   "stage": "fit_lgbm_L31_M50",
+   "state": "running",
+   "at": "2026-09-15 20:43:51"
+  },
+  {
+   "stage": "fitted_lgbm_L31_M50",
+   "state": "running",
+   "at": "2026-09-15 20:43:59"
+  },
+  {
+   "stage": "fit_lgbm_L31_M100",
+   "state": "running",
+   "at": "2026-09-15 20:43:59"
+  },
+  {
+   "stage": "fitted_lgbm_L31_M100",
+   "state": "running",
+   "at": "2026-09-15 20:44:09"
+  },
+  {
+   "stage": "fit_lgbm_L63_M50",
+   "state": "running",
+   "at": "2026-09-15 20:44:09"
+  },
+  {
+   "stage": "fitted_lgbm_L63_M50",
+   "state": "running",
+   "at": "2026-09-15 20:44:18"
+  },
+  {
+   "stage": "fit_lgbm_L63_M100",
+   "state": "running",
+   "at": "2026-09-15 20:44:18"
+  },
+  {
+   "stage": "fitted_lgbm_L63_M100",
+   "state": "running",
+   "at": "2026-09-15 20:44:29"
+  },
+  {
+   "stage": "selected",
+   "state": "complete",
+   "at": "2026-09-15 20:44:32"
+  }
+ ]
+}

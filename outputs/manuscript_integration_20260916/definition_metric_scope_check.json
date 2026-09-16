@@ -1,0 +1,71 @@
+{
+  "brier": [
+    {
+      "abs_difference": 6.642593600975077e-05,
+      "cohort": "T",
+      "cell": "all",
+      "model": "frozen_logit",
+      "difference": -6.642593600975077e-05
+    },
+    {
+      "abs_difference": 5.5702721596745386e-05,
+      "cohort": "N",
+      "cell": "B45",
+      "model": "frozen_lgbm",
+      "difference": -5.5702721596745386e-05
+    },
+    {
+      "abs_difference": 3.867764925127859e-05,
+      "cohort": "N",
+      "cell": "B45",
+      "model": "frozen_logit",
+      "difference": -3.867764925127859e-05
+    }
+  ],
+  "auc": [
+    {
+      "abs_difference": 0.0007508094888420969,
+      "cohort": "T",
+      "cell": "B45",
+      "model": "frozen_logit",
+      "difference": -0.0007508094888420969
+    },
+    {
+      "abs_difference": 0.0006653141157501041,
+      "cohort": "T",
+      "cell": "B40",
+      "model": "frozen_pt",
+      "difference": -0.0006653141157501041
+    },
+    {
+      "abs_difference": 0.0005501264093186187,
+      "cohort": "T",
+      "cell": "B45",
+      "model": "frozen_pt",
+      "difference": 0.0005501264093186187
+    }
+  ],
+  "logloss": [
+    {
+      "abs_difference": 0.00018179777799731678,
+      "cohort": "T",
+      "cell": "all",
+      "model": "frozen_logit",
+      "difference": -0.00018179777799731678
+    },
+    {
+      "abs_difference": 0.00011998166004323352,
+      "cohort": "N",
+      "cell": "B45",
+      "model": "frozen_lgbm",
+      "difference": -0.00011998166004323352
+    },
+    {
+      "abs_difference": 7.84900447289294e-05,
+      "cohort": "N",
+      "cell": "B45",
+      "model": "frozen_logit",
+      "difference": -7.84900447289294e-05
+    }
+  ]
+}

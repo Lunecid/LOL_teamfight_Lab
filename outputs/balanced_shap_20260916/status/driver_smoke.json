@@ -1,0 +1,29 @@
+{
+ "group": "driver_smoke",
+ "state": "complete",
+ "stage": "smoke",
+ "pid": 42652,
+ "updated": "2026-09-16 03:09:08",
+ "elapsed_s": 14.3,
+ "processed": 2,
+ "total": 2,
+ "error": null,
+ "next_step": "next plan",
+ "history": [
+  {
+   "stage": "freeze_smoke",
+   "state": "running",
+   "at": "2026-09-16 03:08:54"
+  },
+  {
+   "stage": "shap_smoke",
+   "state": "running",
+   "at": "2026-09-16 03:08:59"
+  },
+  {
+   "stage": "smoke",
+   "state": "complete",
+   "at": "2026-09-16 03:09:08"
+  }
+ ]
+}

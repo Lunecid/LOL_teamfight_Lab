@@ -1,0 +1,29 @@
+{
+ "group": "driver_post",
+ "state": "failed",
+ "stage": "postrun_checks",
+ "pid": 42840,
+ "updated": "2026-09-16 01:51:12",
+ "elapsed_s": 35.4,
+ "processed": 1,
+ "total": 3,
+ "error": "postrun_checks returncode 1",
+ "next_step": "inspect logs; failure retained",
+ "history": [
+  {
+   "stage": "snapshot_after",
+   "state": "running",
+   "at": "2026-09-16 01:50:36"
+  },
+  {
+   "stage": "postrun_checks",
+   "state": "running",
+   "at": "2026-09-16 01:50:46"
+  },
+  {
+   "stage": "postrun_checks",
+   "state": "failed",
+   "at": "2026-09-16 01:51:12"
+  }
+ ]
+}

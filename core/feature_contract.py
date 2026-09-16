@@ -47,8 +47,15 @@ def tabular_feature_names(base_names: Sequence[str]) -> Tuple[str, ...]:
 
     This is the canonical way to produce tabular column names.
     All modules MUST use this instead of local suffix lists.
+
+    Order must match ``gameplay.features.seq_to_tabular``, which concatenates
+    whole statistic blocks (``[last(D), mean(D), std(D), min(D), max(D),
+    delta(D), slope(D)]``). Emitting names feature-major instead transposed
+    the mapping, so every column but the first carried the wrong name --
+    invisible to the models, which never read names, but wrong for any
+    name-based selection or attribution.
     """
-    return tuple(f"{n}__{s}" for n in base_names for s in TABULAR_SUFFIXES)
+    return tuple(f"{n}__{s}" for s in TABULAR_SUFFIXES for n in base_names)
 
 
 def _as_tuple_str(xs: Sequence[str]) -> Tuple[str, ...]:

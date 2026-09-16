@@ -1,0 +1,54 @@
+{
+ "group": "analyze",
+ "state": "complete",
+ "stage": "analyze",
+ "pid": 11124,
+ "updated": "2026-09-15 16:38:05",
+ "elapsed_s": 84.7,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "post-run checks",
+ "history": [
+  {
+   "stage": "analyze_MAIN_TRAIN",
+   "state": "running",
+   "at": "2026-09-15 16:36:40"
+  },
+  {
+   "stage": "analyze_MAIN_VALIDATION",
+   "state": "running",
+   "at": "2026-09-15 16:37:08"
+  },
+  {
+   "stage": "analyze_MAIN_TEST",
+   "state": "running",
+   "at": "2026-09-15 16:37:36"
+  },
+  {
+   "stage": "analyze_EXT_KR_16.13",
+   "state": "running",
+   "at": "2026-09-15 16:37:57"
+  },
+  {
+   "stage": "analyze_EXT_KR_16.14_pilot",
+   "state": "running",
+   "at": "2026-09-15 16:38:00"
+  },
+  {
+   "stage": "analyze_EXT_KR_16.15",
+   "state": "running",
+   "at": "2026-09-15 16:38:00"
+  },
+  {
+   "stage": "analyze_EXT_NA1_16.13",
+   "state": "running",
+   "at": "2026-09-15 16:38:01"
+  },
+  {
+   "stage": "analyze",
+   "state": "complete",
+   "at": "2026-09-15 16:38:05"
+  }
+ ]
+}

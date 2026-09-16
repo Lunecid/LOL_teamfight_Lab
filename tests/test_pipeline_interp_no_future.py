@@ -70,7 +70,7 @@ def test_build_ms_sequence_passes_engage_guard_to_node_interp(monkeypatch):
         horizon_ms=None,
         first_kill_ts=None,
         last_kill_ts=None,
-    ):
+        **_ignored_kwargs):
         st = int(engage_ts if engage_ts is not None else 0)
         ed = int(label_end_ts if label_end_ts is not None else st + 30_000)
         return {

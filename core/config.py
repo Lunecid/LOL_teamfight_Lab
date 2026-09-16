@@ -36,6 +36,7 @@ Changes from original:
 """
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -431,6 +432,20 @@ class CFG:
     FIGHT_CONTEXT_SEC: int = 30
     FIGHT_CONTEXT_MIN: int = 1
     FIGHT_HORIZON_SEC: int = 30
+    # time_norm as cached is t / (T - 1), i.e. normalised by the match's own length, which
+    # is not known at the cutoff (short games are stomps).  With TIME_NORM_ABSOLUTE the
+    # feature path rewrites it as min(t / TIME_NORM_DENOM_MIN, 1) and the phase encoding
+    # recovers minutes with the same constant.  False reproduces the CoG corpus.
+    TIME_NORM_ABSOLUTE: bool = True
+    TIME_NORM_DENOM_MIN: float = 45.0
+    # Spatial anchors (towers, objective pits) for the fight-position features.  The cache's
+    # meta["anchors"] holds the positions of every tower that fell and every objective killed
+    # anywhere in the match; with ANCHORS_CAUSAL the sample instead uses the static map and
+    # only the buildings destroyed at or before the cutoff (gameplay/anchors.py).
+    ANCHORS_CAUSAL: bool = True
+    # Tabular representation: append the age of the last frame before the cutoff (seconds,
+    # 0-60).  Frame-held features are up to a minute stale and the model should know by how much.
+    TAB_FRAME_AGE_FEATURE: bool = True
     FIGHT_HORIZON_MIN: int = 1
     # Predict earlier than engage by this gap:
     # observation window ends at (engage_ts - prediction_gap_ms),
@@ -464,6 +479,11 @@ class CFG:
     TF2_TAIL_BUFFER_MS: int = 0
     # Minimum champions per team within validity radius.
     TF2_MIN_PER_TEAM: int = 2
+    # Shop events (ITEM_PURCHASED/SOLD/UNDO) have no position and are placed
+    # by the actor's interpolated location, so a base fight can count a
+    # shopping player as an interaction participant. False reproduces the
+    # published detector; see scripts/run_shop_event_sensitivity.py.
+    TF2_EXCLUDE_SHOP_INTERACTIONS: bool = False
     # Dense XY grid step used by teamfight_v2 detector.
     # Default 5s preserves current behavior.
     TF2_GRID_STEP_MS: int = 5000
@@ -583,6 +603,20 @@ class CFG:
     #   "red"     — ties → red win.
     #   "random"  — ties → seeded deterministic coin flip per label window.
     LABEL_TIE_STRATEGY: str = "random"
+    # market_lex label: gold-swing differences within this dead zone (one base
+    # kill bounty) are "materially even" and refined by discrete facts instead.
+    LABEL_GOLD_DEADZONE: float = 300.0
+    # market_event: team gold per event for structures / monsters / assists / ward kills,
+    # recovered by regression on the frames (scripts/estimate_event_prices.py).  Kill gold is
+    # read from the event itself.  Empty string = kills only (the unpriced pilot variant).
+    LABEL_EVENT_PRICE_TABLE: str = "config/game_rules/event_prices.json"
+    # Which events the outcome label may read: "engagement" = only events with a position
+    # within LABEL_ATTRIBUTION_RADIUS_U of the fight centre (0 = CLUSTER_MAX_DIAMETER), so a
+    # kill or tower on the other side of the map cannot decide this fight; "window" = every
+    # event in the time window (the CoG / v3 behaviour).  A label type may carry "@window"
+    # or "@engagement" to override per label (e.g. "market_event@window").
+    LABEL_EVENT_ATTRIBUTION: str = "engagement"
+    LABEL_ATTRIBUTION_RADIUS_U: float = 0.0
     LABEL_TIE_SEED: int = 7
 
     # weighted label
@@ -1033,6 +1067,47 @@ class CFG:
 # Singleton instance + directory creation
 # -------------------------------------------------------------------
 cfg = CFG()
+
+
+def _apply_env_overrides(c: "CFG") -> None:
+    """Apply ``LOL_CFG_OVERRIDES`` (a JSON object of CFG field -> value) on top of the defaults.
+
+    The environment is inherited by multiprocessing workers, so this is the one way to change
+    detector constants (``TF2_*``), ``RUN_DIRNAME`` etc. for a whole run, including the
+    ``build_fight_index`` worker processes that re-import this module.  Values are coerced to
+    the type of the default; unknown fields raise so a typo cannot silently run the defaults.
+    """
+    raw = str(os.environ.get("LOL_CFG_OVERRIDES", "")).strip()
+    if not raw:
+        return
+    try:
+        overrides = json.loads(raw)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"LOL_CFG_OVERRIDES is not valid JSON: {e}") from e
+    if not isinstance(overrides, dict):
+        raise ValueError("LOL_CFG_OVERRIDES must be a JSON object")
+    for key, val in overrides.items():
+        if not hasattr(c, key):
+            raise KeyError(f"LOL_CFG_OVERRIDES: unknown CFG field {key!r}")
+        cur = getattr(c, key)
+        if isinstance(cur, bool):
+            val = bool(val)
+        elif isinstance(cur, int):
+            val = int(val)
+        elif isinstance(cur, float):
+            val = float(val)
+        elif isinstance(cur, Path):
+            val = Path(str(val))
+        elif isinstance(cur, tuple) and isinstance(val, list):
+            val = tuple(val)
+        setattr(c, key, val)
+
+
+_PRESET_NAME = str(os.environ.get("LOL_CFG_PRESET", "")).strip()
+if _PRESET_NAME:
+    from core.presets import apply_preset as _apply_preset  # noqa: E402
+    _apply_preset(cfg, _PRESET_NAME)
+_apply_env_overrides(cfg)
 
 # Directory creation is best-effort: on a machine where OUTPUT_ROOT lives on a
 # missing/read-only drive, mkdir() would raise at import time and make the whole

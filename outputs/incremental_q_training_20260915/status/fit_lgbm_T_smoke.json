@@ -1,0 +1,101 @@
+{
+ "group": "fit_lgbm_T_smoke",
+ "state": "complete",
+ "stage": "selected",
+ "pid": 37356,
+ "updated": "2026-09-15 20:39:11",
+ "elapsed_s": 12.9,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "next family/cohort, then freeze",
+ "chosen": "lgbm_L15_M100__isotonic",
+ "selection_sha256": "201547c85067ab69cb97ce334037a30779cdaa4e03fbde42366ab53f3d0cdb55",
+ "seconds": 11.0,
+ "top3": [
+  [
+   "lgbm_L15_M100__isotonic",
+   0.234352
+  ],
+  [
+   "lgbm_L15_M100__raw",
+   0.2344
+  ],
+  [
+   "lgbm_L31_M100__raw",
+   0.235017
+  ]
+ ],
+ "history": [
+  {
+   "stage": "load",
+   "state": "running",
+   "at": "2026-09-15 20:38:58"
+  },
+  {
+   "stage": "fit_lgbm_L15_M50",
+   "state": "running",
+   "at": "2026-09-15 20:39:00"
+  },
+  {
+   "stage": "fitted_lgbm_L15_M50",
+   "state": "running",
+   "at": "2026-09-15 20:39:03"
+  },
+  {
+   "stage": "fit_lgbm_L15_M100",
+   "state": "running",
+   "at": "2026-09-15 20:39:03"
+  },
+  {
+   "stage": "fitted_lgbm_L15_M100",
+   "state": "running",
+   "at": "2026-09-15 20:39:04"
+  },
+  {
+   "stage": "fit_lgbm_L31_M50",
+   "state": "running",
+   "at": "2026-09-15 20:39:04"
+  },
+  {
+   "stage": "fitted_lgbm_L31_M50",
+   "state": "running",
+   "at": "2026-09-15 20:39:06"
+  },
+  {
+   "stage": "fit_lgbm_L31_M100",
+   "state": "running",
+   "at": "2026-09-15 20:39:06"
+  },
+  {
+   "stage": "fitted_lgbm_L31_M100",
+   "state": "running",
+   "at": "2026-09-15 20:39:07"
+  },
+  {
+   "stage": "fit_lgbm_L63_M50",
+   "state": "running",
+   "at": "2026-09-15 20:39:07"
+  },
+  {
+   "stage": "fitted_lgbm_L63_M50",
+   "state": "running",
+   "at": "2026-09-15 20:39:09"
+  },
+  {
+   "stage": "fit_lgbm_L63_M100",
+   "state": "running",
+   "at": "2026-09-15 20:39:09"
+  },
+  {
+   "stage": "fitted_lgbm_L63_M100",
+   "state": "running",
+   "at": "2026-09-15 20:39:10"
+  },
+  {
+   "stage": "selected",
+   "state": "complete",
+   "at": "2026-09-15 20:39:11"
+  }
+ ]
+}

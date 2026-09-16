@@ -1,0 +1,35 @@
+{
+ "set": "EXT_KR_16.14_pilot",
+ "sealed": true,
+ "changed_matches": 3,
+ "parent_rows": 475,
+ "parent_rows_copied": 462,
+ "parent_rows_dropped": 13,
+ "rebuilt_rows": 10,
+ "dev_rows": 472,
+ "chunks": 1,
+ "names_sha256": "d5ce72200161989e28dca8c85d66735fc117d65f7acea2d796c91d25e58ba95b",
+ "valid_h90": {
+  "parent_side": 475,
+  "dev": 472,
+  "by_cohort_dev": {
+   "T": 101,
+   "N": 371
+  },
+  "by_cohort_parent": {
+   "T": 101,
+   "N": 374
+  },
+  "rebuilt_valid": {
+   "T": 2,
+   "N": 8
+  }
+ },
+ "cohort_unknown_rebuilt": 0,
+ "files": {
+  "features": "c5f57ad8d4637b05ecbcf348efd6a67c2e88a16a25fbac8b4e4ac043d921da49",
+  "labels": "947cdce5d837ee114e6610f76e91eec63db48adda512c0cc7a17c49b917f0179",
+  "cohorts": "3ce07df24d8e8bfc4aae95a1e159bb036c320ec67829fdde2ead08f8ee42a8e0"
+ },
+ "written_at": "2026-09-16 08:15:02"
+}

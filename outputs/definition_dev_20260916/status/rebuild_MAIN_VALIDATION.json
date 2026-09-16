@@ -1,0 +1,33 @@
+{
+ "group": "rebuild_MAIN_VALIDATION",
+ "state": "complete",
+ "stage": "assembled",
+ "pid": 28812,
+ "updated": "2026-09-16 08:12:12",
+ "elapsed_s": 32.9,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "next set / fit",
+ "changed_matches": 2593,
+ "parent_rows_copied": 193487,
+ "rebuilt_rows": 8332,
+ "dev_rows": 201819,
+ "history": [
+  {
+   "stage": "items",
+   "state": "running",
+   "at": "2026-09-16 08:11:39"
+  },
+  {
+   "stage": "extract",
+   "state": "running",
+   "at": "2026-09-16 08:11:47"
+  },
+  {
+   "stage": "assembled",
+   "state": "complete",
+   "at": "2026-09-16 08:12:12"
+  }
+ ]
+}

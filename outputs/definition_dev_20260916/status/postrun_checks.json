@@ -1,0 +1,21 @@
+{
+ "group": "postrun_checks",
+ "state": "complete",
+ "stage": "validated",
+ "pid": 19060,
+ "updated": "2026-09-16 08:20:10",
+ "elapsed_s": 41.9,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "report",
+ "n_checks": 53,
+ "failed": [],
+ "history": [
+  {
+   "stage": "validated",
+   "state": "complete",
+   "at": "2026-09-16 08:20:10"
+  }
+ ]
+}

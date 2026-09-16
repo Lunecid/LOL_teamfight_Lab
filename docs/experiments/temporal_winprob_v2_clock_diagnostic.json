@@ -1,0 +1,19 @@
+{
+  "snapshot_age_seconds": [
+    0,
+    30,
+    60
+  ],
+  "old_v1": [
+    0.07108861018638435,
+    0.18570851581320208,
+    0.40463385979846983
+  ],
+  "corrected_v2": [
+    0.40428450911648345,
+    0.40428450911648345,
+    0.40428450911648345
+  ],
+  "all_other_covariates": "held fixed",
+  "purpose": "diagnose off-grid clock extrapolation, not causal effect"
+}

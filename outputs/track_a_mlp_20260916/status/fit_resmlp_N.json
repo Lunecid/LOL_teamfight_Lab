@@ -1,0 +1,101 @@
+{
+ "group": "fit_resmlp_N",
+ "state": "complete",
+ "stage": "selected",
+ "pid": 42176,
+ "updated": "2026-09-16 01:46:04",
+ "elapsed_s": 2408.7,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "next family/cohort, then freeze",
+ "chosen": "resmlp_W128_D0.1__sigmoid",
+ "selection_sha256": "14762a9298e6d62af2574fc1be63bfeafd8f0fe598eac10893f9476930095ee0",
+ "seconds": 2398.8,
+ "top3": [
+  [
+   "resmlp_W128_D0.1__sigmoid",
+   0.239443
+  ],
+  [
+   "resmlp_W128_D0.1__raw",
+   0.239464
+  ],
+  [
+   "resmlp_W256_D0.3__sigmoid",
+   0.239524
+  ]
+ ],
+ "history": [
+  {
+   "stage": "load",
+   "state": "running",
+   "at": "2026-09-16 01:05:55"
+  },
+  {
+   "stage": "fit_resmlp_W128_D0.1",
+   "state": "running",
+   "at": "2026-09-16 01:06:01"
+  },
+  {
+   "stage": "fitted_resmlp_W128_D0.1",
+   "state": "running",
+   "at": "2026-09-16 01:10:17"
+  },
+  {
+   "stage": "fit_resmlp_W128_D0.3",
+   "state": "running",
+   "at": "2026-09-16 01:10:17"
+  },
+  {
+   "stage": "fitted_resmlp_W128_D0.3",
+   "state": "running",
+   "at": "2026-09-16 01:13:58"
+  },
+  {
+   "stage": "fit_resmlp_W256_D0.1",
+   "state": "running",
+   "at": "2026-09-16 01:13:58"
+  },
+  {
+   "stage": "fitted_resmlp_W256_D0.1",
+   "state": "running",
+   "at": "2026-09-16 01:17:31"
+  },
+  {
+   "stage": "fit_resmlp_W256_D0.3",
+   "state": "running",
+   "at": "2026-09-16 01:17:31"
+  },
+  {
+   "stage": "fitted_resmlp_W256_D0.3",
+   "state": "running",
+   "at": "2026-09-16 01:30:30"
+  },
+  {
+   "stage": "fit_resmlp_W512_D0.1",
+   "state": "running",
+   "at": "2026-09-16 01:30:30"
+  },
+  {
+   "stage": "fitted_resmlp_W512_D0.1",
+   "state": "running",
+   "at": "2026-09-16 01:38:24"
+  },
+  {
+   "stage": "fit_resmlp_W512_D0.3",
+   "state": "running",
+   "at": "2026-09-16 01:38:24"
+  },
+  {
+   "stage": "fitted_resmlp_W512_D0.3",
+   "state": "running",
+   "at": "2026-09-16 01:45:50"
+  },
+  {
+   "stage": "selected",
+   "state": "complete",
+   "at": "2026-09-16 01:46:04"
+  }
+ ]
+}

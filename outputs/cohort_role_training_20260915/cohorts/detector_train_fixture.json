@@ -1,0 +1,26 @@
+{
+ "selection": "first N TRAIN (15.14) manifest matches by sha256('cr20260915-detector-fixture:'+match_id)",
+ "n": 400,
+ "fixture_matches_sha256": "ef3ba7aece55619ac4981d32d216ed6acd915946b347997d46d7b8c234e29331",
+ "counts": {
+  "matches": 400,
+  "exposure_tuple_equal": 400,
+  "engagements": 1070,
+  "counts_equal_shard": 1070,
+  "raw_keys_present_int": 1070,
+  "raw_zero_side": 0
+ },
+ "mismatches": [],
+ "detector_settings": {
+  "TF2_KILL_CLUSTER_GAP_MS": 13700,
+  "CLUSTER_MAX_DIAMETER": 4264.0,
+  "TF2_VALIDITY_RADIUS": 1600.0,
+  "TF2_ENGAGE_PRE_KILL_MS": 15000,
+  "TF2_MIN_PER_TEAM": 2,
+  "TF2_INTERACTION_RADIUS": 3000.0,
+  "TF2_EXCLUDE_SHOP_INTERACTIONS": false,
+  "FIGHT_HORIZON_SEC": 35,
+  "FEATURE_VERSION": "featV7_schema_pruned_status_runes_bans_spells_styles_bin5s"
+ },
+ "pass_": true
+}

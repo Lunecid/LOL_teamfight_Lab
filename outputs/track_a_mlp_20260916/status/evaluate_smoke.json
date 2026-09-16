@@ -1,0 +1,26 @@
+{
+ "group": "evaluate_smoke",
+ "state": "complete",
+ "stage": "evaluate",
+ "pid": 43132,
+ "updated": "2026-09-16 00:47:46",
+ "elapsed_s": 13.8,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "snapshot after, post-run checks, report",
+ "results_sha256": "f564c632d05162c4af9d9183ecf377ccb80447af2ceccf093f81e30982d84826",
+ "hashes_unchanged": true,
+ "history": [
+  {
+   "stage": "evaluate_SMOKE_PSEUDO_Q_SELECT",
+   "state": "running",
+   "at": "2026-09-16 00:47:33"
+  },
+  {
+   "stage": "evaluate",
+   "state": "complete",
+   "at": "2026-09-16 00:47:46"
+  }
+ ]
+}

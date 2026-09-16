@@ -41,7 +41,6 @@ class CycleSummary:
     matches_retried: int = 0
     raw_bytes_added: int = 0
     storage_pause_reason: Optional[str] = None
-    quota_reached: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -67,20 +66,6 @@ class CollectionAgent:
     def rank_refresh_due(self, now: int) -> bool:
         previous = self.state.metadata_int("last_rank_refresh")
         return previous is None or now - previous >= self.config.rank_refresh_seconds
-
-    def _target_patch_label(self) -> Optional[str]:
-        patch = self.config.exact_api_patch
-        return f"{patch[0]}.{patch[1]}" if patch is not None else None
-
-    def complete_count(self) -> int:
-        return self.state.complete_count(
-            platform=self.config.platform,
-            api_patch=self._target_patch_label(),
-        )
-
-    def quota_reached(self) -> bool:
-        target = self.config.max_complete_matches
-        return target is not None and self.complete_count() >= target
 
     async def refresh_rank_snapshot(self, now: int, summary: CycleSummary) -> None:
         captured_at = int(now)
@@ -215,8 +200,6 @@ class CollectionAgent:
             return "malformed_game_version"
         if self.config.min_api_patch is not None and patch < self.config.min_api_patch:
             return "before_min_api_patch"
-        if self.config.exact_api_patch is not None and patch != self.config.exact_api_patch:
-            return "outside_exact_api_patch"
         return None
 
     def _recover_existing_pair(
@@ -339,9 +322,6 @@ class CollectionAgent:
         )
         initial_raw_bytes = self.state.raw_bytes()
         for item in pending:
-            if self.quota_reached():
-                summary.quota_reached = True
-                break
             if deadline is not None and self._monotonic() >= deadline:
                 break
             storage_reason = self._storage_pause_reason(
@@ -375,16 +355,10 @@ class CollectionAgent:
         now = int(time.time())
         deadline = self._monotonic() + self.config.cycle_work_budget_seconds
         summary = CycleSummary(started_at=now)
-        if self.quota_reached():
-            summary.quota_reached = True
-            summary.finished_at = int(time.time())
-            self.state.record_event("cycle_complete", summary.to_dict())
-            return summary
         if self.rank_refresh_due(now):
             await self.refresh_rank_snapshot(now, summary)
         await self.discover_matches(now, summary, deadline)
         await self.download_pending(summary, deadline)
-        summary.quota_reached = self.quota_reached()
         summary.finished_at = int(time.time())
         self.state.record_event("cycle_complete", summary.to_dict())
         return summary

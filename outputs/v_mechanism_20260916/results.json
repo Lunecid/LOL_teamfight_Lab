@@ -1,0 +1,2801 @@
+{
+ "role": "EXPLORATORY_FOLLOWUP_AFTER_PRIOR_TEST_EXPOSURE_MODEL_DEFINED_LABELS_NOT_CONFIRMATORY",
+ "version": "v_mechanism_20260916",
+ "smoke": false,
+ "frozen_manifest_sha256": "a4c53b1d871677ce4bd275e6ed32036cc0703f54723034c89fc21b49cdbeecf8",
+ "adapter_sha256": "392db878132ee4ce00ab908f84a9a5ef780db0b602c7c8eca6582d845f73d105",
+ "transformed_columns": 1733,
+ "groups": [
+  "time_and_observation_age",
+  "economy_and_experience",
+  "combat_and_survival",
+  "objectives",
+  "structures",
+  "health_mana_other",
+  "champion_identity"
+ ],
+ "group_sizes": {
+  "time_and_observation_age": 2,
+  "economy_and_experience": 60,
+  "combat_and_survival": 68,
+  "objectives": 176,
+  "structures": 24,
+  "health_mana_other": 21,
+  "champion_identity": 1382
+ },
+ "time_related_columns": 96,
+ "checks": {
+  "chunks": 677,
+  "rows": 366746,
+  "names_equal": true,
+  "version_equal": true,
+  "p_pre_exact": 366746,
+  "p_post_exact": 366746,
+  "p_pre_rows": 366746,
+  "adapter_final_rows": 366746,
+  "max_abs_sum_minus_decision": 3.042011087472929e-14,
+  "max_abs_champion": 0.0,
+  "max_abs_logit_diff_minus_decision": 6.231459792616079e-12,
+  "sign_equals_Y": 366746,
+  "sign_rows": 366746,
+  "seconds_stream": 43.5,
+  "pass": true
+ },
+ "sets": {
+  "MAIN_VALIDATION": {
+   "rows": 203170,
+   "matches": 69298,
+   "valid_rows_expected": 203170,
+   "same_frame_share": {
+    "T": 0.0692726612610432,
+    "N": 0.14392511816131723
+   },
+   "strata": {
+    "T:all": {
+     "n": 41315,
+     "mean_abs_delta_logit": 0.9732055555627712,
+     "median_abs_delta_logit": 0.8492248944175699,
+     "mean_abs_delta_V": 0.11372596166301277,
+     "positive_rate": 0.5039816047440397,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.008429073974834646,
+      "economy_and_experience": 0.359000251779868,
+      "combat_and_survival": 0.45770099864365393,
+      "objectives": 0.24532983024444174,
+      "structures": 0.12364826199651936,
+      "health_mana_other": 0.08983610785949504,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.006564982998876009,
+      "economy_and_experience": 0.2796072921608538,
+      "combat_and_survival": 0.35648035402644623,
+      "objectives": 0.19107510142636902,
+      "structures": 0.0963034302784892,
+      "health_mana_other": 0.06996883910896583,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.008429073974834646,
+      "economy_and_experience": 0.02109319904776062,
+      "combat_and_survival": -0.0013928161475872986,
+      "objectives": -0.024261659551364948,
+      "structures": 0.009463119909572505,
+      "health_mana_other": 0.00039537263924861174,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.1981534226872712,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 2.420428415829602e-05,
+      "economy_and_experience": 0.3324700471983541,
+      "combat_and_survival": 0.4420428415829602,
+      "objectives": 0.1665980878615515,
+      "structures": 0.03930775747307273,
+      "health_mana_other": 0.019557061599903183,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.9570373956190246,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 2.420428415829602e-05,
+      "economy_and_experience": 0.3393198596151519,
+      "combat_and_survival": 0.43860583323248215,
+      "objectives": 0.15960304973980394,
+      "structures": 0.0407358102384122,
+      "health_mana_other": 0.021711242889991527,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.2783250635362459
+    },
+    "T:same_frame": {
+     "n": 2862,
+     "mean_abs_delta_logit": 0.8773336763290357,
+     "median_abs_delta_logit": 0.7978053129525932,
+     "mean_abs_delta_V": 0.07317780621275942,
+     "positive_rate": 0.5195667365478687,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.004622527825439686,
+      "economy_and_experience": 0.0,
+      "combat_and_survival": 0.7453870269910831,
+      "objectives": 0.15456181475491496,
+      "structures": 0.1445534134235127,
+      "health_mana_other": 6.420982436530765e-05,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.004405810446998986,
+      "economy_and_experience": 0.0,
+      "combat_and_survival": 0.7104411427231286,
+      "objectives": 0.1473155130417314,
+      "structures": 0.13777633430472588,
+      "health_mana_other": 6.11994834150585e-05,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.004622527825439686,
+      "economy_and_experience": 0.0,
+      "combat_and_survival": 0.05303133159404024,
+      "objectives": -0.006915305317188357,
+      "structures": 0.010347963741234234,
+      "health_mana_other": -6.420982436530765e-05,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.25102272299215683,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.00034940600978336826,
+      "economy_and_experience": 0.0,
+      "combat_and_survival": 0.8563941299790356,
+      "objectives": 0.09119496855345911,
+      "structures": 0.052061495457721874,
+      "health_mana_other": 0.0,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.9909154437456325,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.00034940600978336826,
+      "economy_and_experience": 0.0,
+      "combat_and_survival": 0.856743535988819,
+      "objectives": 0.09084556254367575,
+      "structures": 0.052061495457721874,
+      "health_mana_other": 0.0,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.4112508735150245
+    },
+    "T:new_frame": {
+     "n": 38453,
+     "mean_abs_delta_logit": 0.9803411579440404,
+     "median_abs_delta_logit": 0.8527189696288104,
+     "mean_abs_delta_V": 0.11674390098890738,
+     "positive_rate": 0.502821626401061,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.008712389582968431,
+      "economy_and_experience": 0.3857201103239083,
+      "combat_and_survival": 0.4362889524280052,
+      "objectives": 0.25208555958496204,
+      "structures": 0.12209232244995458,
+      "health_mana_other": 0.0965176976490184,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.006694540926249735,
+      "economy_and_experience": 0.29638471053783727,
+      "combat_and_survival": 0.335241465029249,
+      "objectives": 0.19370083023572818,
+      "structures": 0.09381491055219975,
+      "health_mana_other": 0.0741635427187362,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.008712389582968431,
+      "economy_and_experience": 0.022663134701017607,
+      "combat_and_survival": -0.005443525086721777,
+      "objectives": -0.02555272307874157,
+      "structures": 0.009397262289979346,
+      "health_mana_other": 0.0004295786832728239,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.1959456201219231,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.35721530179699895,
+      "combat_and_survival": 0.4112032871297428,
+      "objectives": 0.172210230671209,
+      "structures": 0.038358515590461086,
+      "health_mana_other": 0.021012664811588172,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.9545159025303618,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.36457493563571114,
+      "combat_and_survival": 0.4074844615504642,
+      "objectives": 0.16472056796608847,
+      "structures": 0.03989285621407952,
+      "health_mana_other": 0.023327178633656673,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.26843159181338255
+    },
+    "T:absdelta_0-0.5pp": {
+     "n": 4150,
+     "mean_abs_delta_logit": 0.5930434085261238,
+     "median_abs_delta_logit": 0.2947636182714741,
+     "mean_abs_delta_V": 0.002201032392475026,
+     "positive_rate": 0.5050602409638554,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.007261723630874432,
+      "economy_and_experience": 0.27064699009630516,
+      "combat_and_survival": 0.41139601173116086,
+      "objectives": 0.18440912333055137,
+      "structures": 0.22382706728602011,
+      "health_mana_other": 0.08500509212358845,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.006140753577898417,
+      "economy_and_experience": 0.22886804252851936,
+      "combat_and_survival": 0.34789006844468123,
+      "objectives": 0.15594245133132845,
+      "structures": 0.18927556791384378,
+      "health_mana_other": 0.07188311620372882,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.007261723630874432,
+      "economy_and_experience": 0.01693799474326988,
+      "combat_and_survival": 0.00026767882580984865,
+      "objectives": -0.011258709656625104,
+      "structures": -0.0022919495978717345,
+      "health_mana_other": -0.0008862390392078772,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.19368603764445777,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.00024096385542168674,
+      "economy_and_experience": 0.2616867469879518,
+      "combat_and_survival": 0.4296385542168675,
+      "objectives": 0.13903614457831326,
+      "structures": 0.13349397590361445,
+      "health_mana_other": 0.03590361445783133,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.8279518072289157,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.00024096385542168674,
+      "economy_and_experience": 0.27325301204819274,
+      "combat_and_survival": 0.4183132530120482,
+      "objectives": 0.12530120481927712,
+      "structures": 0.13975903614457832,
+      "health_mana_other": 0.043132530120481925,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.5939759036144578
+    },
+    "T:absdelta_0.5-1pp": {
+     "n": 2489,
+     "mean_abs_delta_logit": 0.6690272911294524,
+     "median_abs_delta_logit": 0.39491444469035075,
+     "mean_abs_delta_V": 0.007366653888291174,
+     "positive_rate": 0.5054238650060265,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.007839373935283533,
+      "economy_and_experience": 0.2873501638475047,
+      "combat_and_survival": 0.4046213653516211,
+      "objectives": 0.1893955333872185,
+      "structures": 0.17031787514125743,
+      "health_mana_other": 0.08797651858453936,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.006831693475631912,
+      "economy_and_experience": 0.250413904960353,
+      "combat_and_survival": 0.35261095651179303,
+      "objectives": 0.1650504543394369,
+      "structures": 0.14842505613223253,
+      "health_mana_other": 0.07666793458055261,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.007839373935283533,
+      "economy_and_experience": 0.016299706531472103,
+      "combat_and_survival": 7.737772080845576e-05,
+      "objectives": -0.023855355974062867,
+      "structures": 0.014184280064764264,
+      "health_mana_other": -0.0013671056752324225,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.19556053567370837,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.284451586982724,
+      "combat_and_survival": 0.4539975893933307,
+      "objectives": 0.1566894335074327,
+      "structures": 0.07071112896745681,
+      "health_mana_other": 0.034150261149055845,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.8854961832061069,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.2965046203294496,
+      "combat_and_survival": 0.4431498593812776,
+      "objectives": 0.14302932904781038,
+      "structures": 0.07633587786259542,
+      "health_mana_other": 0.04098031337886701,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.5142627561269586
+    },
+    "T:absdelta_1-2pp": {
+     "n": 3616,
+     "mean_abs_delta_logit": 0.6911028094932808,
+     "median_abs_delta_logit": 0.44604315369186076,
+     "mean_abs_delta_V": 0.01479782362346468,
+     "positive_rate": 0.5063606194690266,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.007884194283985587,
+      "economy_and_experience": 0.2763734390347818,
+      "combat_and_survival": 0.40422135289223027,
+      "objectives": 0.18579950950560434,
+      "structures": 0.14809913230555102,
+      "health_mana_other": 0.08853043730285302,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.007097071783054341,
+      "economy_and_experience": 0.24878155777357358,
+      "combat_and_survival": 0.3638657108623761,
+      "objectives": 0.16725012204429993,
+      "structures": 0.13331358095975596,
+      "health_mana_other": 0.07969195657694021,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.007884194283985587,
+      "economy_and_experience": 0.01872636583448667,
+      "combat_and_survival": -0.0028422356724584017,
+      "objectives": -0.01857720635578053,
+      "structures": 0.010508009528801546,
+      "health_mana_other": -0.00018174787048955536,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.19527977222775203,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.2831858407079646,
+      "combat_and_survival": 0.46432522123893805,
+      "objectives": 0.15486725663716813,
+      "structures": 0.06001106194690266,
+      "health_mana_other": 0.03761061946902655,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.9245022123893806,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.3008849557522124,
+      "combat_and_survival": 0.45271017699115046,
+      "objectives": 0.14131637168141592,
+      "structures": 0.06111725663716814,
+      "health_mana_other": 0.043971238938053096,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.4690265486725664
+    },
+    "T:absdelta_>2pp": {
+     "n": 31060,
+     "mean_abs_delta_logit": 1.0812176656775134,
+     "median_abs_delta_logit": 0.9598149863705181,
+     "mean_abs_delta_V": 0.1486673950395427,
+     "positive_rate": 0.5034449452672247,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.008695736958993946,
+      "economy_and_experience": 0.3861664352871657,
+      "combat_and_survival": 0.47436755698196253,
+      "objectives": 0.2648824071395451,
+      "structures": 0.10367668903753224,
+      "health_mana_other": 0.09078261583574086,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.006545178293815927,
+      "economy_and_experience": 0.29066290550884516,
+      "combat_and_survival": 0.35705084593635683,
+      "objectives": 0.19937385293494944,
+      "structures": 0.07803621681096347,
+      "health_mana_other": 0.06833100051506914,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.008695736958993946,
+      "economy_and_experience": 0.022308059628439222,
+      "combat_and_survival": -0.0015637519388333179,
+      "objectives": -0.026693356731735476,
+      "structures": 0.010533765433284326,
+      "health_mana_other": 0.0007750366686610694,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.19924940999066884,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.351513200257566,
+      "combat_and_survival": 0.4401481004507405,
+      "objectives": 0.1724404378622022,
+      "structures": 0.021796522858982613,
+      "health_mana_other": 0.014101738570508693,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.9838055376690277,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.356052801030264,
+      "combat_and_survival": 0.43931101094655506,
+      "objectives": 0.16764327108821636,
+      "structures": 0.022279459111397296,
+      "health_mana_other": 0.01471345782356729,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.19504185447520928
+    },
+    "T:time_0_10": {
+     "n": 2783,
+     "mean_abs_delta_logit": 0.6780087356293052,
+     "median_abs_delta_logit": 0.6019183744997638,
+     "mean_abs_delta_V": 0.13737002033435405,
+     "positive_rate": 0.5023356090549767,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.004607821157036949,
+      "economy_and_experience": 0.20199339235050198,
+      "combat_and_survival": 0.485657070404864,
+      "objectives": 0.10059922119914759,
+      "structures": 0.06661046470335637,
+      "health_mana_other": 0.07122353782406635,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.004950965082647322,
+      "economy_and_experience": 0.2170358176609233,
+      "combat_and_survival": 0.5218238980571599,
+      "objectives": 0.10809083393739452,
+      "structures": 0.07157093855120401,
+      "health_mana_other": 0.07652754671067101,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.004607821157036949,
+      "economy_and_experience": 0.015997675862853042,
+      "combat_and_survival": -0.016303805452099945,
+      "objectives": -0.006193895977385956,
+      "structures": 0.004819719048303934,
+      "health_mana_other": 0.00364312406025177,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.07696357183406102,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.18289615522817104,
+      "combat_and_survival": 0.6866690621631333,
+      "objectives": 0.08408192597915919,
+      "structures": 0.02335609054976644,
+      "health_mana_other": 0.022996766079770033,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.9601149838303988,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.18505210204814948,
+      "combat_and_survival": 0.6848724398131513,
+      "objectives": 0.08156665468918434,
+      "structures": 0.021918792669780814,
+      "health_mana_other": 0.0265900107797341,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.34243621990657563
+    },
+    "T:time_10_20": {
+     "n": 15013,
+     "mean_abs_delta_logit": 0.7872574585487321,
+     "median_abs_delta_logit": 0.6989714977831945,
+     "mean_abs_delta_V": 0.10730349819359242,
+     "positive_rate": 0.5094251648571239,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.007452953620695808,
+      "economy_and_experience": 0.3242363461619453,
+      "combat_and_survival": 0.4192958141813285,
+      "objectives": 0.14664731496619493,
+      "structures": 0.0904034090700341,
+      "health_mana_other": 0.08188654664940963,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.006965882504773087,
+      "economy_and_experience": 0.30304660488819507,
+      "combat_and_survival": 0.39189367396836433,
+      "objectives": 0.1370635076620262,
+      "structures": 0.08449529645053695,
+      "health_mana_other": 0.07653503452610431,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.007452953620695808,
+      "economy_and_experience": 0.028256825522348424,
+      "combat_and_survival": -0.006037690886969849,
+      "objectives": -0.01794291859645962,
+      "structures": 0.006825388366752359,
+      "health_mana_other": -0.0005865177084572883,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.15678735805389396,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.3674815160194498,
+      "combat_and_survival": 0.48118297475521216,
+      "objectives": 0.10564177712649038,
+      "structures": 0.022513821354825818,
+      "health_mana_other": 0.02317991074402185,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.9526410444281622,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.3766069406514354,
+      "combat_and_survival": 0.4705921534669953,
+      "objectives": 0.10124558715779658,
+      "structures": 0.02571105042296676,
+      "health_mana_other": 0.025844268300805967,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.3029374542063545
+    },
+    "T:time_20_30": {
+     "n": 19353,
+     "mean_abs_delta_logit": 1.1136961507989203,
+     "median_abs_delta_logit": 1.003413806537955,
+     "mean_abs_delta_V": 0.11006608582391848,
+     "positive_rate": 0.5005425515423966,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.009301183672211525,
+      "economy_and_experience": 0.41056900663189555,
+      "combat_and_survival": 0.46694286383044836,
+      "objectives": 0.3223668292404617,
+      "structures": 0.14205035855651613,
+      "health_mana_other": 0.09482867918420894,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.00643209176084953,
+      "economy_and_experience": 0.28392273692078257,
+      "combat_and_survival": 0.3229072183795714,
+      "objectives": 0.22292786589341168,
+      "structures": 0.09823275973216478,
+      "health_mana_other": 0.0655773273132201,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.009301183672211525,
+      "economy_and_experience": 0.017405156138918364,
+      "combat_and_survival": 0.003358947739456916,
+      "objectives": -0.03219783797364794,
+      "structures": 0.010031450970482737,
+      "health_mana_other": 0.0002146121614938582,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.22034821479224778,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 5.167157546633597e-05,
+      "economy_and_experience": 0.3431509326719372,
+      "combat_and_survival": 0.37828760398904565,
+      "objectives": 0.2144887097607606,
+      "structures": 0.04671110422156772,
+      "health_mana_other": 0.01730997778122255,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.9596444995607916,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 5.167157546633597e-05,
+      "economy_and_experience": 0.3496615511806955,
+      "combat_and_survival": 0.3789076628946417,
+      "objectives": 0.20549785562961814,
+      "structures": 0.04691779052343306,
+      "health_mana_other": 0.018963468196145302,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.2581511910298145
+    },
+    "T:time_30_inf": {
+     "n": 4166,
+     "mean_abs_delta_logit": 1.187861590306269,
+     "median_abs_delta_logit": 1.1003478286293813,
+     "mean_abs_delta_V": 0.13807752332841294,
+     "positive_rate": 0.5014402304368699,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.010448061611724393,
+      "economy_and_experience": 0.34960286632199655,
+      "combat_and_survival": 0.534493478159115,
+      "objectives": 0.3397630624276866,
+      "structures": 0.19606914344793044,
+      "health_mana_other": 0.10772480493304823,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.0067928301065946425,
+      "economy_and_experience": 0.22729506811473466,
+      "combat_and_survival": 0.3475021037532427,
+      "objectives": 0.22089769809336623,
+      "structures": 0.12747478241253488,
+      "health_mana_other": 0.07003751751952703,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.010448061611724393,
+      "economy_and_experience": 0.015814277102353815,
+      "combat_and_survival": 0.003232700220833795,
+      "objectives": -0.022235011201853325,
+      "structures": 0.019430459618519608,
+      "health_mana_other": 0.002603938436522887,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.27234347754193733,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.25660105616898704,
+      "combat_and_survival": 0.43374939990398464,
+      "objectives": 0.21891502640422467,
+      "structures": 0.07609217474795968,
+      "health_mana_other": 0.014642342774843975,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.9587133941430629,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.2599615938550168,
+      "combat_and_survival": 0.43614978396543447,
+      "objectives": 0.2088334133461354,
+      "structures": 0.07873259721555449,
+      "health_mana_other": 0.01632261161785886,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.24051848295727316
+    },
+    "N:all": {
+     "n": 161855,
+     "mean_abs_delta_logit": 0.547017016335989,
+     "median_abs_delta_logit": 0.45789472427751154,
+     "mean_abs_delta_V": 0.08985725817909054,
+     "positive_rate": 0.5039448889438077,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.004754532126350508,
+      "economy_and_experience": 0.19908659853657626,
+      "combat_and_survival": 0.3642041111014901,
+      "objectives": 0.10319663011280453,
+      "structures": 0.06966298013462897,
+      "health_mana_other": 0.06896269634624604,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.005870752737271321,
+      "economy_and_experience": 0.24582612174076993,
+      "combat_and_survival": 0.44970824160057743,
+      "objectives": 0.1274240835084979,
+      "structures": 0.08601774484711953,
+      "health_mana_other": 0.085153055565764,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.004754532126350508,
+      "economy_and_experience": 0.011772324638575537,
+      "combat_and_survival": -0.00446779755010415,
+      "objectives": -0.009428498032625061,
+      "structures": 0.0018073754628600562,
+      "health_mana_other": -0.001247115497449529,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.11749533561483391,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 3.707021716968892e-05,
+      "economy_and_experience": 0.233604151864323,
+      "combat_and_survival": 0.6021315374872571,
+      "objectives": 0.09889716103920175,
+      "structures": 0.03639677489110624,
+      "health_mana_other": 0.0289333045009422,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.950307373884032,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 6.178369528281487e-05,
+      "economy_and_experience": 0.2423527231163696,
+      "combat_and_survival": 0.5914800284204998,
+      "objectives": 0.09665441290043557,
+      "structures": 0.03878162552902289,
+      "health_mana_other": 0.0306694263383893,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.3898180470173921
+    },
+    "N:same_frame": {
+     "n": 23295,
+     "mean_abs_delta_logit": 0.5169948313010704,
+     "median_abs_delta_logit": 0.44978937406029973,
+     "mean_abs_delta_V": 0.0897789058927901,
+     "positive_rate": 0.5162481219145739,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.0022624599072105767,
+      "economy_and_experience": 0.0,
+      "combat_and_survival": 0.48691061605929714,
+      "objectives": 0.04407015733235852,
+      "structures": 0.049853143454740165,
+      "health_mana_other": 2.3666261086092785e-05,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.0038799213546387573,
+      "economy_and_experience": 0.0,
+      "combat_and_survival": 0.835009226474194,
+      "objectives": 0.07557647496477515,
+      "structures": 0.08549379163337048,
+      "health_mana_other": 4.058557302153389e-05,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.0022624599072105767,
+      "economy_and_experience": 0.0,
+      "combat_and_survival": 0.025041335892013464,
+      "objectives": -0.0018617176929901166,
+      "structures": 5.698163904114199e-05,
+      "health_mana_other": -2.3666261086092785e-05,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.17421133862860994,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.00025756600128783,
+      "economy_and_experience": 0.0,
+      "combat_and_survival": 0.9204550332689418,
+      "objectives": 0.03837733419188667,
+      "structures": 0.04086713887100236,
+      "health_mana_other": 4.2927666881305004e-05,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.994376475638549,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.00042927666881305,
+      "economy_and_experience": 0.0,
+      "combat_and_survival": 0.9207555269371109,
+      "objectives": 0.03803391285683623,
+      "structures": 0.04073835587035845,
+      "health_mana_other": 4.2927666881305004e-05,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.46623738999785364
+    },
+    "N:new_frame": {
+     "n": 138560,
+     "mean_abs_delta_logit": 0.5520644095258591,
+     "median_abs_delta_logit": 0.4607985474563576,
+     "mean_abs_delta_V": 0.08987043093103458,
+     "positive_rate": 0.5018764434180139,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.005173504573989542,
+      "economy_and_experience": 0.23255745818517284,
+      "combat_and_survival": 0.34357443418901795,
+      "objectives": 0.1131370976605852,
+      "structures": 0.07299345173868504,
+      "health_mana_other": 0.0805528717636378,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.006100911313327956,
+      "economy_and_experience": 0.2742459018542238,
+      "combat_and_survival": 0.40516387345099275,
+      "objectives": 0.13341814802770663,
+      "structures": 0.0860783186991538,
+      "health_mana_other": 0.09499284665459491,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.005173504573989542,
+      "economy_and_experience": 0.013751512733665152,
+      "combat_and_survival": -0.00942893542203061,
+      "objectives": -0.010700641133172092,
+      "structures": 0.002101655371389658,
+      "health_mana_other": -0.0014528043684157988,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.11438597270293684,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.2728781755196305,
+      "combat_and_survival": 0.5486143187066974,
+      "objectives": 0.10907188221709006,
+      "structures": 0.035645207852193994,
+      "health_mana_other": 0.03379041570438799,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.9428983833718245,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.2830975750577367,
+      "combat_and_survival": 0.5361215357967667,
+      "objectives": 0.10650981524249423,
+      "structures": 0.038452655889145496,
+      "health_mana_other": 0.035818418013856816,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.37697026558891455
+    },
+    "N:absdelta_0-0.5pp": {
+     "n": 11133,
+     "mean_abs_delta_logit": 0.2824263236556478,
+     "median_abs_delta_logit": 0.07877412110929072,
+     "mean_abs_delta_V": 0.0022578093915051854,
+     "positive_rate": 0.5101949160154495,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.005542415920812593,
+      "economy_and_experience": 0.23774687060776253,
+      "combat_and_survival": 0.288416593972274,
+      "objectives": 0.11358564117284459,
+      "structures": 0.12079338595403297,
+      "health_mana_other": 0.07675986964896821,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.006575844177050755,
+      "economy_and_experience": 0.2820766967032097,
+      "combat_and_survival": 0.34219419962970316,
+      "objectives": 0.13476460225553005,
+      "structures": 0.14331628932236726,
+      "health_mana_other": 0.09107236791213927,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.005542415920812593,
+      "economy_and_experience": 0.023861722702191914,
+      "combat_and_survival": -0.008092685087863778,
+      "objectives": -0.00782464139134393,
+      "structures": 0.000193342086939606,
+      "health_mana_other": -0.0021802057349772585,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.1465189601641328,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0005389382915656157,
+      "economy_and_experience": 0.2897691547651127,
+      "combat_and_survival": 0.44848648163118654,
+      "objectives": 0.10464385161232372,
+      "structures": 0.09745800772478218,
+      "health_mana_other": 0.05910356597502919,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.756849007455313,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0008982304859426928,
+      "economy_and_experience": 0.3205784604329471,
+      "combat_and_survival": 0.3986346896613671,
+      "objectives": 0.10275756759184407,
+      "structures": 0.10841641965328304,
+      "health_mana_other": 0.068714632174616,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.7586454684271984
+    },
+    "N:absdelta_0.5-1pp": {
+     "n": 7891,
+     "mean_abs_delta_logit": 0.2952568985626497,
+     "median_abs_delta_logit": 0.10020276315638066,
+     "mean_abs_delta_V": 0.007413839515046363,
+     "positive_rate": 0.5193258142187303,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.0053249989285762455,
+      "economy_and_experience": 0.21268861559942298,
+      "combat_and_survival": 0.26280667845504546,
+      "objectives": 0.10952210651803619,
+      "structures": 0.08969049038050364,
+      "health_mana_other": 0.07233309298670096,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.007077671040197039,
+      "economy_and_experience": 0.2826930249937387,
+      "combat_and_survival": 0.3493069655450574,
+      "objectives": 0.14557025305756002,
+      "structures": 0.11921125146909453,
+      "health_mana_other": 0.09614083389435232,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.0053249989285762455,
+      "economy_and_experience": 0.023291649455232603,
+      "combat_and_survival": -0.008254250582667296,
+      "objectives": -0.007857685460612643,
+      "structures": 0.007385982279893543,
+      "health_mana_other": -0.0007058619645981139,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.13515846165879722,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.2841211506779876,
+      "combat_and_survival": 0.471169686985173,
+      "objectives": 0.10949182613103536,
+      "structures": 0.07223419085033582,
+      "health_mana_other": 0.06298314535546826,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.8227094157901407,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.30946648080091244,
+      "combat_and_survival": 0.4342922316563173,
+      "objectives": 0.10290204029907489,
+      "structures": 0.08186541629704727,
+      "health_mana_other": 0.07147383094664808,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.7127106830566469
+    },
+    "N:absdelta_1-2pp": {
+     "n": 12898,
+     "mean_abs_delta_logit": 0.3017995191879391,
+     "median_abs_delta_logit": 0.1290555159516813,
+     "mean_abs_delta_V": 0.014839426484990058,
+     "positive_rate": 0.5110869902310435,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.005163361187201913,
+      "economy_and_experience": 0.19307627717471648,
+      "combat_and_survival": 0.25485171107522053,
+      "objectives": 0.10089616756959417,
+      "structures": 0.07971673562862609,
+      "health_mana_other": 0.07116579568277687,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.007325266833967502,
+      "economy_and_experience": 0.2739175506682523,
+      "combat_and_survival": 0.3615584343288704,
+      "objectives": 0.14314151638353584,
+      "structures": 0.11309423037457075,
+      "health_mana_other": 0.10096300141080317,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.005163361187201913,
+      "economy_and_experience": 0.017965922511749267,
+      "combat_and_survival": -0.00644469752335593,
+      "objectives": -0.00732408244870241,
+      "structures": 0.005088949189485641,
+      "health_mana_other": -0.0019742113401884846,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.12859950312617902,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.28019848038455575,
+      "combat_and_survival": 0.4826329663513723,
+      "objectives": 0.10831136610327183,
+      "structures": 0.06512637618235385,
+      "health_mana_other": 0.06373081097844627,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.8750969142502714,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.3040781516514188,
+      "combat_and_survival": 0.4544115366723523,
+      "objectives": 0.10164366568460226,
+      "structures": 0.07101876259885254,
+      "health_mana_other": 0.06884788339277408,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.6783997518995193
+    },
+    "N:absdelta_>2pp": {
+     "n": 129933,
+     "mean_abs_delta_logit": 0.6093194533548772,
+     "median_abs_delta_logit": 0.5180765638236953,
+     "mean_abs_delta_V": 0.10981666551379893,
+     "positive_rate": 0.5017662949366212,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.004611795938877187,
+      "economy_and_experience": 0.19554464075305572,
+      "combat_and_survival": 0.387710817055724,
+      "objectives": 0.10215067697878331,
+      "structures": 0.06306769464365133,
+      "health_mana_other": 0.06787123147195231,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.005617586235429323,
+      "economy_and_experience": 0.23819112919679222,
+      "combat_and_survival": 0.47226698190587313,
+      "objectives": 0.12442880052396907,
+      "structures": 0.07682217904391761,
+      "health_mana_other": 0.08267332309401865,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.004611795938877187,
+      "economy_and_experience": 0.009422072692274928,
+      "combat_and_survival": -0.003731011439625404,
+      "objectives": -0.009870216227345163,
+      "structures": 0.001281123542677303,
+      "health_mana_other": -0.0011278606186557454,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.1124556666494407,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.22109856618411028,
+      "combat_and_survival": 0.6351119423087284,
+      "objectives": 0.09682682613346878,
+      "structures": 0.0261365472974533,
+      "health_mana_other": 0.020826118076239294,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.9820984661325453,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.22544696112611884,
+      "combat_and_survival": 0.6311560573526356,
+      "objectives": 0.09525678618980551,
+      "structures": 0.026998530011621374,
+      "health_mana_other": 0.021141665319818675,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.309959748485758
+    },
+    "N:time_0_10": {
+     "n": 82188,
+     "mean_abs_delta_logit": 0.46917607067009676,
+     "median_abs_delta_logit": 0.4168224653529059,
+     "mean_abs_delta_V": 0.09964752631583977,
+     "positive_rate": 0.5050007300335816,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.0032927308059336087,
+      "economy_and_experience": 0.13603161677369385,
+      "combat_and_survival": 0.3685652001936505,
+      "objectives": 0.04575284642998344,
+      "structures": 0.04482373684541982,
+      "health_mana_other": 0.058373145099916285,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.005012993171237663,
+      "economy_and_experience": 0.20710030857369022,
+      "combat_and_survival": 0.5611193081430009,
+      "objectives": 0.06965607583373672,
+      "structures": 0.06824155995701953,
+      "health_mana_other": 0.08886975432131508,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.0032927308059336087,
+      "economy_and_experience": 0.004400088395602446,
+      "combat_and_survival": -0.0028270265031546914,
+      "objectives": -0.002592461876252607,
+      "structures": -0.0009138737645249064,
+      "health_mana_other": -0.000833667353698101,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.059491482131928446,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 7.30033581544751e-05,
+      "economy_and_experience": 0.17107120260865333,
+      "combat_and_survival": 0.7127926217939359,
+      "objectives": 0.056796612644181635,
+      "structures": 0.028264466832140945,
+      "health_mana_other": 0.031002092762933763,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.9573052027059912,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.00012167226359079185,
+      "economy_and_experience": 0.17741032754173358,
+      "combat_and_survival": 0.7052976103567431,
+      "objectives": 0.05405898671338882,
+      "structures": 0.031002092762933763,
+      "health_mana_other": 0.032109310361609966,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.39471699031488783
+    },
+    "N:time_10_20": {
+     "n": 52911,
+     "mean_abs_delta_logit": 0.5455369933379126,
+     "median_abs_delta_logit": 0.4743230521777619,
+     "mean_abs_delta_V": 0.07900765599911597,
+     "positive_rate": 0.5012568275027877,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.005351097160647482,
+      "economy_and_experience": 0.2249978046374522,
+      "combat_and_survival": 0.35749016585345356,
+      "objectives": 0.09665464535541027,
+      "structures": 0.09307708149303806,
+      "health_mana_other": 0.07398684339265214,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.006283893094881775,
+      "economy_and_experience": 0.26421911403936593,
+      "combat_and_survival": 0.41980736235087146,
+      "objectives": 0.11350335086489403,
+      "structures": 0.1093021509658178,
+      "health_mana_other": 0.08688412868416878,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.005351097160647482,
+      "economy_and_experience": 0.019013665126716553,
+      "combat_and_survival": -0.006264595473178748,
+      "objectives": -0.015106199376652033,
+      "structures": 0.002431628938145678,
+      "health_mana_other": -0.002665465258751902,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.1326304726746267,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.28791744627771165,
+      "combat_and_survival": 0.5439322636124814,
+      "objectives": 0.09338322844021092,
+      "structures": 0.04721135491674699,
+      "health_mana_other": 0.027555706752849123,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.9423182325036382,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.3000510290865793,
+      "combat_and_survival": 0.5286424373003723,
+      "objectives": 0.09168225888756591,
+      "structures": 0.049479314320273665,
+      "health_mana_other": 0.030144960405208747,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.39825367125928446
+    },
+    "N:time_20_30": {
+     "n": 22857,
+     "mean_abs_delta_logit": 0.7737199446509391,
+     "median_abs_delta_logit": 0.6469155296754174,
+     "mean_abs_delta_V": 0.07581448982186462,
+     "positive_rate": 0.5064969156057225,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.007786905596955468,
+      "economy_and_experience": 0.34240383117550793,
+      "combat_and_survival": 0.36447698748448876,
+      "objectives": 0.28457814196690395,
+      "structures": 0.09637520800769157,
+      "health_mana_other": 0.09026834159542221,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.006566299937440067,
+      "economy_and_experience": 0.2887316697541613,
+      "combat_and_survival": 0.3073448355471862,
+      "objectives": 0.23997021827575368,
+      "structures": 0.0812682925755646,
+      "health_mana_other": 0.07611868390989422,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.007786905596955468,
+      "economy_and_experience": 0.01901492475883937,
+      "combat_and_survival": -0.007880881512417021,
+      "objectives": -0.017696875400460024,
+      "structures": 0.008397952883460078,
+      "health_mana_other": 9.092982122558474e-05,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.20004710941512985,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.32134575841099006,
+      "combat_and_survival": 0.38027737673360457,
+      "objectives": 0.23660147875924226,
+      "structures": 0.03679397996237477,
+      "health_mana_other": 0.024981406133788336,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.9442184013650086,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.3312770704816905,
+      "combat_and_survival": 0.3676772979831124,
+      "objectives": 0.2354639716498228,
+      "structures": 0.03832523953274708,
+      "health_mana_other": 0.027256420352627205,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.36671479196744977
+    },
+    "N:time_30_inf": {
+     "n": 3899,
+     "mean_abs_delta_logit": 0.8789360485865019,
+     "median_abs_delta_logit": 0.7605165497645183,
+     "mean_abs_delta_V": 0.11304174129337606,
+     "positive_rate": 0.5032059502436522,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.009695982235383425,
+      "economy_and_experience": 0.3364482370839652,
+      "combat_and_survival": 0.3617868839217437,
+      "objectives": 0.33953811058806416,
+      "structures": 0.11892248718365311,
+      "health_mana_other": 0.09910331188883091,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.007661809913538583,
+      "economy_and_experience": 0.2658629497974287,
+      "combat_and_survival": 0.28588566547742156,
+      "objectives": 0.2683045821014661,
+      "structures": 0.09397309825107644,
+      "health_mana_other": 0.0783118944590686,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.009695982235383425,
+      "economy_and_experience": 0.02644754259717324,
+      "combat_and_survival": 0.005337676732456277,
+      "objectives": -0.028006846919397158,
+      "structures": 0.012062140214545903,
+      "health_mana_other": 0.001441298540167904,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.26704154040953865,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.3003334188253398,
+      "combat_and_survival": 0.359835855347525,
+      "objectives": 0.2539112592972557,
+      "structures": 0.058733008463708644,
+      "health_mana_other": 0.027186458066170812,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.9469094639651192,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.30700179533213645,
+      "combat_and_survival": 0.35701461913311106,
+      "objectives": 0.2482687868684278,
+      "structures": 0.06027186458066171,
+      "health_mana_other": 0.02744293408566299,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.3075147473711208
+    },
+    "E:all": {
+     "n": 203170,
+     "mean_abs_delta_logit": 0.6336832539604144,
+     "median_abs_delta_logit": 0.5039537828496734,
+     "mean_abs_delta_V": 0.09471100373423276,
+     "positive_rate": 0.5039523551705468,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.0055017570929800415,
+      "economy_and_experience": 0.23160533941242697,
+      "combat_and_survival": 0.3832168782856437,
+      "objectives": 0.13209968254888566,
+      "structures": 0.0806409883057369,
+      "health_mana_other": 0.07320734366952153,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.00607075707717429,
+      "economy_and_experience": 0.2555583115698353,
+      "combat_and_survival": 0.4228497435689405,
+      "objectives": 0.14576163017981386,
+      "structures": 0.08898100046838207,
+      "health_mana_other": 0.08077855713585401,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.0055017570929800415,
+      "economy_and_experience": 0.013667741905964823,
+      "combat_and_survival": -0.0038424943230283837,
+      "objectives": -0.01244484920724109,
+      "structures": 0.0033641854338987177,
+      "health_mana_other": -0.0009131124587741161,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.13982539428767232,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 3.4453905596298665e-05,
+      "economy_and_experience": 0.25370871683811586,
+      "combat_and_survival": 0.5695772013584682,
+      "objectives": 0.11266427129989663,
+      "structures": 0.0369887286508835,
+      "health_mana_other": 0.027026627947039424,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.9516759364079342,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 5.4141851651326476e-05,
+      "economy_and_experience": 0.2620711719249889,
+      "combat_and_survival": 0.5603927745237978,
+      "objectives": 0.1094551360929271,
+      "structures": 0.03917901264950534,
+      "health_mana_other": 0.028847762957129496,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.36714574002067235
+    }
+   }
+  },
+  "MAIN_TEST": {
+   "rows": 163576,
+   "matches": 56254,
+   "valid_rows_expected": 163576,
+   "same_frame_share": {
+    "T": 0.06743276431885024,
+    "N": 0.14538075730311267
+   },
+   "strata": {
+    "T:all": {
+     "n": 32981,
+     "mean_abs_delta_logit": 0.9606451500915695,
+     "median_abs_delta_logit": 0.8337235171485231,
+     "mean_abs_delta_V": 0.11289467856190279,
+     "positive_rate": 0.5025317607107123,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.00842438363056445,
+      "economy_and_experience": 0.35850320294852,
+      "combat_and_survival": 0.45103370265692516,
+      "objectives": 0.23989675138119,
+      "structures": 0.12251924608559833,
+      "health_mana_other": 0.09134749650800676,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.006624376391639449,
+      "economy_and_experience": 0.2819031347674016,
+      "combat_and_survival": 0.3546629810250073,
+      "objectives": 0.1886388899141427,
+      "structures": 0.09634100687749922,
+      "health_mana_other": 0.07182961102430978,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.00842438363056445,
+      "economy_and_experience": 0.018305831669881173,
+      "combat_and_survival": -0.008606966360081706,
+      "objectives": -0.025287497635146698,
+      "structures": 0.006130623796482504,
+      "health_mana_other": 0.0002244516711416364,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.19871360069373567,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.33543555380370516,
+      "combat_and_survival": 0.44149661926563777,
+      "objectives": 0.16273005669931173,
+      "structures": 0.04059913283405597,
+      "health_mana_other": 0.019738637397289347,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.9588550983899821,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.34301567569206515,
+      "combat_and_survival": 0.43804008368454567,
+      "objectives": 0.15542281919893272,
+      "structures": 0.04272156696279676,
+      "health_mana_other": 0.020799854461659745,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.27700797428822654
+    },
+    "T:same_frame": {
+     "n": 2224,
+     "mean_abs_delta_logit": 0.8518623227008908,
+     "median_abs_delta_logit": 0.7588117221070234,
+     "mean_abs_delta_V": 0.07425400143668033,
+     "positive_rate": 0.5049460431654677,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.004589821133021075,
+      "economy_and_experience": 0.0,
+      "combat_and_survival": 0.7359766614823594,
+      "objectives": 0.13838449264853697,
+      "structures": 0.14006168374427552,
+      "health_mana_other": 4.1314864508433114e-05,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.00450400199665423,
+      "economy_and_experience": 0.0,
+      "combat_and_survival": 0.7222155846028783,
+      "objectives": 0.13579701978162712,
+      "structures": 0.13744285124761388,
+      "health_mana_other": 4.0542371226348895e-05,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.004589821133021075,
+      "economy_and_experience": 0.0,
+      "combat_and_survival": -0.00109541124218405,
+      "objectives": -0.003902077329224322,
+      "structures": -0.010602278742053283,
+      "health_mana_other": -4.1314864508433114e-05,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.24973831326982637,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.0,
+      "combat_and_survival": 0.8610611510791367,
+      "objectives": 0.07733812949640288,
+      "structures": 0.06160071942446043,
+      "health_mana_other": 0.0,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.987410071942446,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.0,
+      "combat_and_survival": 0.8637589928057554,
+      "objectives": 0.07553956834532374,
+      "structures": 0.06070143884892086,
+      "health_mana_other": 0.0,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.43390287769784175
+    },
+    "T:new_frame": {
+     "n": 30757,
+     "mean_abs_delta_logit": 0.9685110995702855,
+     "median_abs_delta_logit": 0.8399310977752441,
+     "mean_abs_delta_V": 0.1156887373428793,
+     "positive_rate": 0.5023571869818253,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.008701656023663141,
+      "economy_and_experience": 0.3844261188166967,
+      "combat_and_survival": 0.4304298355558501,
+      "objectives": 0.2472369751813467,
+      "structures": 0.12125077447416359,
+      "health_mana_other": 0.09794973170568991,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.006745495451311012,
+      "economy_and_experience": 0.2980058771332053,
+      "combat_and_survival": 0.33366780874294566,
+      "objectives": 0.19165729913322865,
+      "structures": 0.09399320605862073,
+      "health_mana_other": 0.07593031348068868,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.008701656023663141,
+      "economy_and_experience": 0.019629503342470038,
+      "combat_and_survival": -0.00915011746656818,
+      "objectives": -0.026833850490118615,
+      "structures": 0.007340558941187891,
+      "health_mana_other": 0.00024366891519293343,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.1966948900132771,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.35969047696459344,
+      "combat_and_survival": 0.41115843547810255,
+      "objectives": 0.1689046395942387,
+      "structures": 0.039080534512468706,
+      "health_mana_other": 0.021165913450596614,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.9567903241538511,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.3678187079364047,
+      "combat_and_survival": 0.4072568846116331,
+      "objectives": 0.1611990766329616,
+      "structures": 0.041421465032350356,
+      "health_mana_other": 0.022303865786650192,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.2656631010826804
+    },
+    "T:absdelta_0-0.5pp": {
+     "n": 3251,
+     "mean_abs_delta_logit": 0.5817688702181898,
+     "median_abs_delta_logit": 0.3118845894316866,
+     "mean_abs_delta_V": 0.0022087738713289806,
+     "positive_rate": 0.4992310058443556,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.007319687025544053,
+      "economy_and_experience": 0.28019813104924296,
+      "combat_and_survival": 0.39744870242302005,
+      "objectives": 0.1711159186015673,
+      "structures": 0.2261795246580072,
+      "health_mana_other": 0.08940391825024112,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.006247247733288894,
+      "economy_and_experience": 0.23914507996864248,
+      "combat_and_survival": 0.33921675840044163,
+      "objectives": 0.1460449785465837,
+      "structures": 0.19304097535933518,
+      "health_mana_other": 0.07630495999170817,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.007319687025544053,
+      "economy_and_experience": 0.02262270362000455,
+      "combat_and_survival": -0.020342156889298347,
+      "objectives": -0.008459611475622963,
+      "structures": -0.0073243645845301715,
+      "health_mana_other": -0.0022690089867696606,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.19426869063144026,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.2669947708397416,
+      "combat_and_survival": 0.42233159027991385,
+      "objectives": 0.13472777606890188,
+      "structures": 0.13565056905567519,
+      "health_mana_other": 0.04029529375576746,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.8314364810827438,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.2792986773300523,
+      "combat_and_survival": 0.4131036604121809,
+      "objectives": 0.11350353737311597,
+      "structures": 0.1494924638572747,
+      "health_mana_other": 0.04460166102737619,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.5961242694555522
+    },
+    "T:absdelta_0.5-1pp": {
+     "n": 1975,
+     "mean_abs_delta_logit": 0.6599848367909491,
+     "median_abs_delta_logit": 0.4172821682162251,
+     "mean_abs_delta_V": 0.007398813912080748,
+     "positive_rate": 0.5149367088607595,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.007818955055503283,
+      "economy_and_experience": 0.2834896550467871,
+      "combat_and_survival": 0.4063399447402821,
+      "objectives": 0.1832249756723114,
+      "structures": 0.16713809153114456,
+      "health_mana_other": 0.09037631873912338,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.0068684450839408134,
+      "economy_and_experience": 0.2490272822560496,
+      "combat_and_survival": 0.3569432969045924,
+      "objectives": 0.16095126196254345,
+      "structures": 0.14681997721784418,
+      "health_mana_other": 0.0793897365750294,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.007818955055503283,
+      "economy_and_experience": 0.02335131770644698,
+      "combat_and_survival": 0.01694904969854929,
+      "objectives": -0.025289627554549724,
+      "structures": 0.0071054814499173415,
+      "health_mana_other": -0.0017656444670689562,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.19682634616146893,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.28455696202531644,
+      "combat_and_survival": 0.4546835443037975,
+      "objectives": 0.13822784810126582,
+      "structures": 0.08050632911392405,
+      "health_mana_other": 0.0420253164556962,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.8977215189873418,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.3037974683544304,
+      "combat_and_survival": 0.43696202531645567,
+      "objectives": 0.130126582278481,
+      "structures": 0.08556962025316456,
+      "health_mana_other": 0.043544303797468355,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.5022784810126583
+    },
+    "T:absdelta_1-2pp": {
+     "n": 2893,
+     "mean_abs_delta_logit": 0.7061451267973887,
+     "median_abs_delta_logit": 0.4703052236529337,
+     "mean_abs_delta_V": 0.014796058175195094,
+     "positive_rate": 0.5084687175941929,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.008033626416408509,
+      "economy_and_experience": 0.2937337264045742,
+      "combat_and_survival": 0.4142474107804415,
+      "objectives": 0.18474916597591118,
+      "structures": 0.14361797999351614,
+      "health_mana_other": 0.08850956947893976,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.007091258575928813,
+      "economy_and_experience": 0.2592779024615335,
+      "combat_and_survival": 0.3656549797054614,
+      "objectives": 0.1630775492555288,
+      "structures": 0.12677117151059802,
+      "health_mana_other": 0.0781271384909496,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.008033626416408509,
+      "economy_and_experience": 0.021947262554845637,
+      "combat_and_survival": 0.00867645889238562,
+      "objectives": -0.023566658126336838,
+      "structures": 0.007846436550643586,
+      "health_mana_other": -0.00315152728772329,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.1965652609625526,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.29830625648116144,
+      "combat_and_survival": 0.4600760456273764,
+      "objectives": 0.14967162115451088,
+      "structures": 0.05599723470445904,
+      "health_mana_other": 0.035948842032492226,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.9222260629104736,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.3155893536121673,
+      "combat_and_survival": 0.4517801590044936,
+      "objectives": 0.13653646733494643,
+      "structures": 0.057034220532319393,
+      "health_mana_other": 0.03905979951607328,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.45869339785689595
+    },
+    "T:absdelta_>2pp": {
+     "n": 24862,
+     "mean_abs_delta_logit": 1.063685913989371,
+     "median_abs_delta_logit": 0.9431858145002072,
+     "mean_abs_delta_V": 0.14716358362228404,
+     "positive_rate": 0.5012871048185986,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.008662399506971025,
+      "economy_and_experience": 0.3822382058240775,
+      "combat_and_survival": 0.46587151739606364,
+      "objectives": 0.25980967910096553,
+      "structures": 0.10296488913163399,
+      "health_mana_other": 0.09200901898828316,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.006604675227493389,
+      "economy_and_experience": 0.2914387874833268,
+      "combat_and_survival": 0.3552052832086989,
+      "objectives": 0.19809275132603202,
+      "structures": 0.07850592113675194,
+      "health_mana_other": 0.07015258161769694,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.008662399506971025,
+      "economy_and_experience": 0.016916818509947508,
+      "combat_and_survival": -0.011113722717603263,
+      "objectives": -0.0276880140864691,
+      "structures": 0.007612925182668265,
+      "health_mana_other": 0.0011014280849390686,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.19966066462221188,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.35274716434719655,
+      "combat_and_survival": 0.4407931783444614,
+      "objectives": 0.16985761402944252,
+      "structures": 0.02320810876035717,
+      "health_mana_other": 0.013393934518542355,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.9846351862279784,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.3576542514681039,
+      "combat_and_survival": 0.43978762770493124,
+      "objectives": 0.16511141501085994,
+      "structures": 0.02369077306733167,
+      "health_mana_other": 0.013755932748773228,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.19624326281071514
+    },
+    "T:time_0_10": {
+     "n": 2265,
+     "mean_abs_delta_logit": 0.672265194204759,
+     "median_abs_delta_logit": 0.5899977575135786,
+     "mean_abs_delta_V": 0.13368947972403786,
+     "positive_rate": 0.5112582781456954,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.004537248923781827,
+      "economy_and_experience": 0.19961624288509205,
+      "combat_and_survival": 0.4756866048425293,
+      "objectives": 0.08838497025184253,
+      "structures": 0.06675857354059446,
+      "health_mana_other": 0.06794810983218275,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.005025018693156827,
+      "economy_and_experience": 0.2210756713606207,
+      "combat_and_survival": 0.5268245409435582,
+      "objectives": 0.09788665668786548,
+      "structures": 0.07393534840278529,
+      "health_mana_other": 0.07525276391201358,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.004537248923781827,
+      "economy_and_experience": 0.014673818242849062,
+      "combat_and_survival": 0.005289028919964495,
+      "objectives": -0.007285373085010352,
+      "structures": -0.0028839211338129197,
+      "health_mana_other": 0.003027861391312961,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.07703991094748074,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.19072847682119207,
+      "combat_and_survival": 0.6878587196467991,
+      "objectives": 0.07328918322295806,
+      "structures": 0.02913907284768212,
+      "health_mana_other": 0.018984547461368653,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.9580573951434879,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.20044150110375275,
+      "combat_and_survival": 0.6803532008830022,
+      "objectives": 0.07108167770419425,
+      "structures": 0.030022075055187638,
+      "health_mana_other": 0.018101545253863136,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.32141280353200885
+    },
+    "T:time_10_20": {
+     "n": 11858,
+     "mean_abs_delta_logit": 0.7871070545761167,
+     "median_abs_delta_logit": 0.7013443045720595,
+     "mean_abs_delta_V": 0.10851788219242123,
+     "positive_rate": 0.505397200202395,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.007419957085652756,
+      "economy_and_experience": 0.3229077091477133,
+      "combat_and_survival": 0.417345465968363,
+      "objectives": 0.1456652549835883,
+      "structures": 0.08895103528358425,
+      "health_mana_other": 0.0831513187971507,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.006964213773950203,
+      "economy_and_experience": 0.30307430215593717,
+      "combat_and_survival": 0.39171157043650845,
+      "objectives": 0.13671830759024264,
+      "structures": 0.08348754824025656,
+      "health_mana_other": 0.07804405780310487,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.007419957085652756,
+      "economy_and_experience": 0.020995947388547452,
+      "combat_and_survival": -0.012248810219187799,
+      "objectives": -0.01898381765179649,
+      "structures": 0.007272170417379671,
+      "health_mana_other": -0.0005966023171400446,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.15759806026557624,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.36962388261089557,
+      "combat_and_survival": 0.4797604992410187,
+      "objectives": 0.10296846011131726,
+      "structures": 0.023528419632315736,
+      "health_mana_other": 0.02411873840445269,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.9570753921403272,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.37518974531961546,
+      "combat_and_survival": 0.4741946365322989,
+      "objectives": 0.09875189745319615,
+      "structures": 0.02580536346770113,
+      "health_mana_other": 0.026058357227188397,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.2990386237139484
+    },
+    "T:time_20_30": {
+     "n": 15446,
+     "mean_abs_delta_logit": 1.084853073798109,
+     "median_abs_delta_logit": 0.9708162829561582,
+     "mean_abs_delta_V": 0.10721520441244485,
+     "positive_rate": 0.5028486339505374,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.009291296596406491,
+      "economy_and_experience": 0.40895882957897267,
+      "combat_and_survival": 0.45777471107405143,
+      "objectives": 0.3131165461249203,
+      "structures": 0.13962201734001514,
+      "health_mana_other": 0.09686394648224275,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.006517338920775574,
+      "economy_and_experience": 0.28686236300331924,
+      "combat_and_survival": 0.32110404726328495,
+      "objectives": 0.21963421699270913,
+      "structures": 0.09793724679494367,
+      "health_mana_other": 0.06794478702496734,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.009291296596406491,
+      "economy_and_experience": 0.018275067175269204,
+      "combat_and_survival": -0.005044672968255588,
+      "objectives": -0.0317150149249482,
+      "structures": 0.005475199415114775,
+      "health_mana_other": 0.0003929687147386017,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.2196353325559822,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.3481160170918037,
+      "combat_and_survival": 0.3777029651689758,
+      "objectives": 0.20918037032241357,
+      "structures": 0.047779360352194745,
+      "health_mana_other": 0.017221287064612196,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.9594069662048427,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.35633821053994563,
+      "combat_and_survival": 0.37537226466399065,
+      "objectives": 0.1999870516638612,
+      "structures": 0.04998057749579179,
+      "health_mana_other": 0.01832189563641072,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.2642755405930338
+    },
+    "T:time_30_inf": {
+     "n": 3412,
+     "mean_abs_delta_logit": 1.192907678560108,
+     "median_abs_delta_logit": 1.1043295434567924,
+     "mean_abs_delta_V": 0.1400122003759718,
+     "positive_rate": 0.48534583821805394,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.010571075427173294,
+      "economy_and_experience": 0.3592748093669439,
+      "combat_and_survival": 0.5212314374727647,
+      "objectives": 0.3365023548187852,
+      "structures": 0.19877374849151708,
+      "health_mana_other": 0.11039286573837709,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.006878868351212172,
+      "economy_and_experience": 0.23378928024571954,
+      "combat_and_survival": 0.33917858817577135,
+      "objectives": 0.21897066335570325,
+      "structures": 0.12934714703059605,
+      "health_mana_other": 0.0718354528409977,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.010571075427173294,
+      "economy_and_experience": 0.011506976630039276,
+      "combat_and_survival": -0.021301171681937174,
+      "objectives": -0.03004846401567176,
+      "structures": 0.011114553875945126,
+      "health_mana_other": 0.0004540592096695945,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.2745899567924833,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.2552754982415006,
+      "combat_and_survival": 0.43376318874560377,
+      "objectives": 0.21951934349355218,
+      "structures": 0.07502930832356389,
+      "health_mana_other": 0.016412661195779603,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.963071512309496,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.26553341148886284,
+      "combat_and_survival": 0.43522860492379833,
+      "objectives": 0.20662368112543963,
+      "structures": 0.07708089097303635,
+      "health_mana_other": 0.015533411488862838,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.22860492379835873
+    },
+    "N:all": {
+     "n": 130595,
+     "mean_abs_delta_logit": 0.5414365197856185,
+     "median_abs_delta_logit": 0.45277254595340244,
+     "mean_abs_delta_V": 0.08924931773336212,
+     "positive_rate": 0.5002718327654198,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.004702707307823681,
+      "economy_and_experience": 0.1985608509768535,
+      "combat_and_survival": 0.36353954383794973,
+      "objectives": 0.0987616608893136,
+      "structures": 0.06902301685496723,
+      "health_mana_other": 0.06893188758701596,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.005852634973733666,
+      "economy_and_experience": 0.24711386543408972,
+      "combat_and_survival": 0.4524339086681983,
+      "objectives": 0.12291131740714592,
+      "structures": 0.08590084306670091,
+      "health_mana_other": 0.08578743045013107,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.004702707307823681,
+      "economy_and_experience": 0.011600373993525951,
+      "combat_and_survival": -0.009564336334022386,
+      "objectives": -0.009580563449763713,
+      "structures": 0.0021195848450074727,
+      "health_mana_other": -0.0007459013019798295,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.11668788745431623,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 9.188713197289329e-05,
+      "economy_and_experience": 0.23597381216738772,
+      "combat_and_survival": 0.6059956353612312,
+      "objectives": 0.09243845476473066,
+      "structures": 0.03634901795627704,
+      "health_mana_other": 0.0291511926184004,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.9495769363298748,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.00011485891496611662,
+      "economy_and_experience": 0.24405987978100233,
+      "combat_and_survival": 0.5946092882575903,
+      "objectives": 0.09053179677629312,
+      "structures": 0.03902140204448869,
+      "health_mana_other": 0.03166277422565948,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.3938588766798116
+    },
+    "N:same_frame": {
+     "n": 18986,
+     "mean_abs_delta_logit": 0.5123923675580533,
+     "median_abs_delta_logit": 0.44627735196930624,
+     "mean_abs_delta_V": 0.08907992422915231,
+     "positive_rate": 0.5094279995786369,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.0022682583759881646,
+      "economy_and_experience": 0.0,
+      "combat_and_survival": 0.4820592561363305,
+      "objectives": 0.041864750646098216,
+      "structures": 0.04982828109516651,
+      "health_mana_other": 4.839579620075595e-06,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.003937775021333819,
+      "economy_and_experience": 0.0,
+      "combat_and_survival": 0.8368715476645985,
+      "objectives": 0.07267865562130062,
+      "structures": 0.08650362001509948,
+      "health_mana_other": 8.401677667513364e-06,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.0022682583759881646,
+      "economy_and_experience": 0.0,
+      "combat_and_survival": 0.012651214228491817,
+      "objectives": -0.002314998042218858,
+      "structures": 0.0016021752168516397,
+      "health_mana_other": -4.839579620075595e-06,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.17436962068136513,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0006320446644896239,
+      "economy_and_experience": 0.0,
+      "combat_and_survival": 0.9228378805435584,
+      "objectives": 0.03686927209522806,
+      "structures": 0.0396608026967239,
+      "health_mana_other": 0.0,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.9946276203518382,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0007900558306120299,
+      "economy_and_experience": 0.0,
+      "combat_and_survival": 0.921889813546824,
+      "objectives": 0.03686927209522806,
+      "structures": 0.04045085852733593,
+      "health_mana_other": 0.0,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.4637101021805541
+    },
+    "N:new_frame": {
+     "n": 111609,
+     "mean_abs_delta_logit": 0.5463772707482878,
+     "median_abs_delta_logit": 0.4552805517802393,
+     "mean_abs_delta_V": 0.08927813355530236,
+     "positive_rate": 0.4987142613946904,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.005116835625610143,
+      "economy_and_experience": 0.2323383807159117,
+      "combat_and_survival": 0.34337795061789533,
+      "objectives": 0.10844049268493658,
+      "structures": 0.07228826654930709,
+      "health_mana_other": 0.08065718692191205,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.006075420927793632,
+      "economy_and_experience": 0.27586453109148246,
+      "combat_and_survival": 0.4077061957756539,
+      "objectives": 0.12875567770456894,
+      "structures": 0.08583071248750845,
+      "health_mana_other": 0.09576746201299273,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.005116835625610143,
+      "economy_and_experience": 0.013573733674564974,
+      "combat_and_survival": -0.013343462058470186,
+      "objectives": -0.010816521345880035,
+      "structures": 0.0022076022916306544,
+      "health_mana_other": -0.0008719645931187366,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.11349105276308767,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.2761157254343288,
+      "combat_and_survival": 0.5520970531050363,
+      "objectives": 0.10189142452669588,
+      "structures": 0.03578564452687507,
+      "health_mana_other": 0.03411015240706395,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.9419132865629116,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.2855773279932622,
+      "combat_and_survival": 0.5389350321210655,
+      "objectives": 0.09966042165058374,
+      "structures": 0.03877823473017409,
+      "health_mana_other": 0.03704898350491448,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.3819763639133045
+    },
+    "N:absdelta_0-0.5pp": {
+     "n": 9024,
+     "mean_abs_delta_logit": 0.26972457332888167,
+     "median_abs_delta_logit": 0.07198308108787788,
+     "mean_abs_delta_V": 0.0022730086201013075,
+     "positive_rate": 0.5019946808510638,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.005481714278579205,
+      "economy_and_experience": 0.23271663196873438,
+      "combat_and_survival": 0.28302210854264354,
+      "objectives": 0.10796853543998973,
+      "structures": 0.11489816223755459,
+      "health_mana_other": 0.07469426719754531,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.006694966625917948,
+      "economy_and_experience": 0.2842231472032375,
+      "combat_and_survival": 0.3456625929035179,
+      "objectives": 0.1318649066122657,
+      "structures": 0.1403282481477877,
+      "health_mana_other": 0.09122613850727315,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.005481714278579205,
+      "economy_and_experience": 0.01856462037732973,
+      "combat_and_survival": -0.013974168945472902,
+      "objectives": -0.006395430982299427,
+      "structures": 0.004164992423273421,
+      "health_mana_other": -0.00027203286381574773,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.14457524790842652,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0013297872340425532,
+      "economy_and_experience": 0.30363475177304966,
+      "combat_and_survival": 0.4515735815602837,
+      "objectives": 0.09762854609929078,
+      "structures": 0.09042553191489362,
+      "health_mana_other": 0.05540780141843971,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.7599734042553191,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0016622340425531915,
+      "economy_and_experience": 0.3228058510638298,
+      "combat_and_survival": 0.4068040780141844,
+      "objectives": 0.09618794326241134,
+      "structures": 0.1040558510638298,
+      "health_mana_other": 0.06848404255319149,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.7661790780141844
+    },
+    "N:absdelta_0.5-1pp": {
+     "n": 6517,
+     "mean_abs_delta_logit": 0.2846857180422141,
+     "median_abs_delta_logit": 0.09727597360063944,
+     "mean_abs_delta_V": 0.007415478667045745,
+     "positive_rate": 0.5040662881694031,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.0052943162998788495,
+      "economy_and_experience": 0.2123575236202253,
+      "combat_and_survival": 0.26506565398156196,
+      "objectives": 0.10250636253056201,
+      "structures": 0.08872401309631951,
+      "health_mana_other": 0.07205635710026272,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.007096898530727957,
+      "economy_and_experience": 0.2846599470084345,
+      "combat_and_survival": 0.3553138769459691,
+      "objectives": 0.13740721415720097,
+      "structures": 0.11893231958921054,
+      "health_mana_other": 0.096589743768457,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.0052943162998788495,
+      "economy_and_experience": 0.01913788816383509,
+      "combat_and_survival": -0.009903369678332751,
+      "objectives": -0.013381190091887755,
+      "structures": 0.006171091032934751,
+      "health_mana_other": -0.0008115618032816058,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.13576549297302204,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.29461408623599816,
+      "combat_and_survival": 0.4715359828141783,
+      "objectives": 0.10158048181678686,
+      "structures": 0.06981740064446831,
+      "health_mana_other": 0.06245204848856836,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.8220039895657512,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.3151756943378855,
+      "combat_and_survival": 0.43470922203467854,
+      "objectives": 0.09713058155593064,
+      "structures": 0.07779653214669327,
+      "health_mana_other": 0.07518796992481203,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.723338959644008
+    },
+    "N:absdelta_1-2pp": {
+     "n": 10536,
+     "mean_abs_delta_logit": 0.303965009179936,
+     "median_abs_delta_logit": 0.12881825016338877,
+     "mean_abs_delta_V": 0.014828920969997274,
+     "positive_rate": 0.5039863325740319,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.00517768664507794,
+      "economy_and_experience": 0.19911893169693962,
+      "combat_and_survival": 0.2575598757465101,
+      "objectives": 0.09879940478230737,
+      "structures": 0.07909122594495656,
+      "health_mana_other": 0.07277197882866543,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.007266733788041108,
+      "economy_and_experience": 0.2794576744377353,
+      "combat_and_survival": 0.3614778529152687,
+      "objectives": 0.1386621134464455,
+      "structures": 0.11100225318930203,
+      "health_mana_other": 0.1021333722232074,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.00517768664507794,
+      "economy_and_experience": 0.020736289068799478,
+      "combat_and_survival": -0.0066360003730019,
+      "objectives": -0.00902901149598714,
+      "structures": 0.002273666760827101,
+      "health_mana_other": -0.001730878890193573,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.12902048158177756,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.2951784358390281,
+      "combat_and_survival": 0.4819665907365224,
+      "objectives": 0.10146165527714503,
+      "structures": 0.06007972665148064,
+      "health_mana_other": 0.06131359149582384,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.8712034927866363,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.3192862566438876,
+      "combat_and_survival": 0.44931662870159456,
+      "objectives": 0.09690584662110859,
+      "structures": 0.06729309035687168,
+      "health_mana_other": 0.06719817767653759,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.6848899012908124
+    },
+    "N:absdelta_>2pp": {
+     "n": 104518,
+     "mean_abs_delta_logit": 0.6048435254260712,
+     "median_abs_delta_logit": 0.5145299436356532,
+     "mean_abs_delta_V": 0.10936335209043038,
+     "positive_rate": 0.49951204577202013,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.004550679360459283,
+      "economy_and_experience": 0.19469534817585837,
+      "combat_and_survival": 0.3873148309589274,
+      "objectives": 0.09772944896220147,
+      "structures": 0.06281884766488045,
+      "health_mana_other": 0.0678524459334705,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.005583918744838771,
+      "economy_and_experience": 0.23890125365861048,
+      "combat_and_survival": 0.47525531320390324,
+      "objectives": 0.11991908432936131,
+      "structures": 0.07708197243096793,
+      "health_mana_other": 0.08325845763231844,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.004550679360459283,
+      "economy_and_experience": 0.00960814930066509,
+      "combat_and_survival": -0.009457647896573444,
+      "objectives": -0.009674184672372884,
+      "structures": 0.001674830535911723,
+      "health_mana_other": -0.000683429339538805,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.11144700028935431,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.22050747239709906,
+      "combat_and_survival": 0.6402150825695095,
+      "objectives": 0.0905107254252856,
+      "structures": 0.027201056277387628,
+      "health_mana_other": 0.021565663330718153,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.981802177615339,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.22524349872749191,
+      "combat_and_survival": 0.6354407853192752,
+      "objectives": 0.08898945636158365,
+      "structures": 0.028138693813505807,
+      "health_mana_other": 0.022187565778143476,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.31183145486901775
+    },
+    "N:time_0_10": {
+     "n": 67034,
+     "mean_abs_delta_logit": 0.46840746790819443,
+     "median_abs_delta_logit": 0.41528464706563073,
+     "mean_abs_delta_V": 0.09934078169153836,
+     "positive_rate": 0.5019243965748724,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.0032578336382467084,
+      "economy_and_experience": 0.13646187330052376,
+      "combat_and_survival": 0.3695408964360516,
+      "objectives": 0.04209034366812993,
+      "structures": 0.04475930871603669,
+      "health_mana_other": 0.058965141406624455,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.004973219345960382,
+      "economy_and_experience": 0.20831475871475003,
+      "combat_and_survival": 0.5641196388003349,
+      "objectives": 0.06425267053265449,
+      "structures": 0.06832695733911198,
+      "health_mana_other": 0.0900127552671882,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.0032578336382467084,
+      "economy_and_experience": 0.004508047500052314,
+      "combat_and_survival": -0.004950379713496473,
+      "objectives": -0.003959828338414555,
+      "structures": -0.0009927479330370493,
+      "health_mana_other": -7.954106243285477e-05,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.05896540399641958,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.00017901363487185607,
+      "economy_and_experience": 0.1711370349374944,
+      "combat_and_survival": 0.7198734970313572,
+      "objectives": 0.04991496852343587,
+      "structures": 0.027732195602231703,
+      "health_mana_other": 0.031163290270608945,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.9561118238505832,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.00022376704358982008,
+      "economy_and_experience": 0.17608974550228243,
+      "combat_and_survival": 0.7118328012650297,
+      "objectives": 0.047751887102067604,
+      "structures": 0.030417400125309545,
+      "health_mana_other": 0.033684398961720916,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.3969925709341528
+    },
+    "N:time_10_20": {
+     "n": 42307,
+     "mean_abs_delta_logit": 0.5385542159732876,
+     "median_abs_delta_logit": 0.46615618070503584,
+     "mean_abs_delta_V": 0.07808494563381463,
+     "positive_rate": 0.4981681518424847,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.005305663882401112,
+      "economy_and_experience": 0.22540256404241815,
+      "combat_and_survival": 0.35428484596186544,
+      "objectives": 0.09404516357855609,
+      "structures": 0.09246407739699988,
+      "health_mana_other": 0.07355413318484853,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.006278472751332067,
+      "economy_and_experience": 0.26673077823773733,
+      "combat_and_survival": 0.4192440005405693,
+      "objectives": 0.11128861722301844,
+      "structures": 0.10941763430204308,
+      "health_mana_other": 0.08704049694529975,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.005305663882401112,
+      "economy_and_experience": 0.020118101217119613,
+      "combat_and_survival": -0.01432653355246499,
+      "objectives": -0.0136520554842266,
+      "structures": 0.0037387731432336085,
+      "health_mana_other": -0.0018912853859578962,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.1323545760268568,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.29248114969154043,
+      "combat_and_survival": 0.5413997683598459,
+      "objectives": 0.09069421135982225,
+      "structures": 0.04781714609875434,
+      "health_mana_other": 0.02760772449003711,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.9415699529628667,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.3056231829248115,
+      "combat_and_survival": 0.5242394875552508,
+      "objectives": 0.08889781832793628,
+      "structures": 0.05112629115749167,
+      "health_mana_other": 0.030113220034509655,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.4033611459096603
+    },
+    "N:time_20_30": {
+     "n": 18158,
+     "mean_abs_delta_logit": 0.7623555015851933,
+     "median_abs_delta_logit": 0.6312791878615587,
+     "mean_abs_delta_V": 0.07489081368081471,
+     "positive_rate": 0.5018724529133164,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.0077925231660472055,
+      "economy_and_experience": 0.3424338956415007,
+      "combat_and_survival": 0.36308728550110975,
+      "objectives": 0.278589373152461,
+      "structures": 0.09581270139221772,
+      "health_mana_other": 0.08965137223802777,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.006618600798250488,
+      "economy_and_experience": 0.290847162946648,
+      "combat_and_survival": 0.3083891759376375,
+      "objectives": 0.23662064369149566,
+      "structures": 0.08137877917130934,
+      "health_mana_other": 0.07614563745465903,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.0077925231660472055,
+      "economy_and_experience": 0.020143614582902987,
+      "combat_and_survival": -0.014517645217277466,
+      "objectives": -0.018070993987096926,
+      "structures": 0.007097898120460046,
+      "health_mana_other": -0.0008288935882050238,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.20118542214726992,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.33489371076109703,
+      "combat_and_survival": 0.3772992620332636,
+      "objectives": 0.22414362815288028,
+      "structures": 0.038109924000440575,
+      "health_mana_other": 0.025553475052318537,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.9443771340455998,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.34293424385945587,
+      "combat_and_survival": 0.366615265998458,
+      "objectives": 0.2235929067077872,
+      "structures": 0.038936006168080184,
+      "health_mana_other": 0.027921577266218748,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.3729485626170283
+    },
+    "N:time_30_inf": {
+     "n": 3096,
+     "mean_abs_delta_logit": 0.8663474433718119,
+     "median_abs_delta_logit": 0.7361260551598747,
+     "mean_abs_delta_V": 0.10752503221311871,
+     "positive_rate": 0.4838501291989664,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.009625672880224442,
+      "economy_and_experience": 0.332509097058761,
+      "combat_and_survival": 0.36271781898739575,
+      "objectives": 0.3355621554167074,
+      "structures": 0.11693172848477944,
+      "health_mana_other": 0.10004723534405378,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.007655257710982864,
+      "economy_and_experience": 0.2644431055267357,
+      "combat_and_survival": 0.28846797676022873,
+      "objectives": 0.26687119017365596,
+      "structures": 0.09299531859021479,
+      "health_mana_other": 0.079567151238182,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.009625672880224442,
+      "economy_and_experience": -0.0013391073071759537,
+      "combat_and_survival": -0.015338079123924559,
+      "objectives": -0.02584623084487406,
+      "structures": 0.018183184216685636,
+      "health_mana_other": 0.0009646755960645001,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.2661663374567943,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.2874677002583979,
+      "combat_and_survival": 0.3643410852713178,
+      "objectives": 0.26453488372093026,
+      "structures": 0.05587855297157623,
+      "health_mana_other": 0.027777777777777776,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.9479974160206718,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 0.0,
+      "economy_and_experience": 0.29457364341085274,
+      "combat_and_survival": 0.355297157622739,
+      "objectives": 0.25872093023255816,
+      "structures": 0.06040051679586563,
+      "health_mana_other": 0.031007751937984496,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.3187984496124031
+    },
+    "E:all": {
+     "n": 163576,
+     "mean_abs_delta_logit": 0.625959431680521,
+     "median_abs_delta_logit": 0.498173184637881,
+     "mean_abs_delta_V": 0.09401681202033639,
+     "positive_rate": 0.500727490585416,
+     "mean_abs_group": {
+      "time_and_observation_age": 0.005453090046124615,
+      "economy_and_experience": 0.23080921693749282,
+      "combat_and_survival": 0.3811805477261036,
+      "objectives": 0.12721801401882266,
+      "structures": 0.07980919047613076,
+      "health_mana_other": 0.07345143322832763,
+      "champion_identity": 0.0
+     },
+     "share_of_sum_abs": {
+      "time_and_observation_age": 0.00607301428028965,
+      "economy_and_experience": 0.2570483264768435,
+      "combat_and_survival": 0.42451433776605507,
+      "objectives": 0.141680553468114,
+      "structures": 0.08888214743571882,
+      "health_mana_other": 0.0818016205729792,
+      "champion_identity": 0.0
+     },
+     "mean_signed_group": {
+      "time_and_observation_age": 0.005453090046124615,
+      "economy_and_experience": 0.01295236144659897,
+      "combat_and_survival": -0.009371306677406882,
+      "objectives": -0.012747472998646902,
+      "structures": 0.002928310303868173,
+      "health_mana_other": -0.0005502539490275683,
+      "champion_identity": 0.0
+     },
+     "time_related_share_of_sum_abs_columns": 0.13929959919547807,
+     "dominant_group_frequency": {
+      "time_and_observation_age": 7.33603951679953e-05,
+      "economy_and_experience": 0.2560277791363036,
+      "combat_and_survival": 0.5728285323030273,
+      "objectives": 0.10661099427788917,
+      "structures": 0.03720594708270162,
+      "health_mana_other": 0.027253386804910257,
+      "champion_identity": 0.0
+     },
+     "dominant_group_sign_agrees_with_delta": 0.9514476451313151,
+     "sign_deciding_group_frequency": {
+      "time_and_observation_age": 9.170049395999413e-05,
+      "economy_and_experience": 0.2640118354770871,
+      "combat_and_survival": 0.5630410329143639,
+      "objectives": 0.10361544480852937,
+      "structures": 0.03976744754731745,
+      "health_mana_other": 0.029472538758742114,
+      "champion_identity": 0.0
+     },
+     "single_group_exceeds_total_share": 0.3702988213429843
+    }
+   }
+  }
+ },
+ "top_columns_by_mean_abs_contribution": [
+  {
+   "column": "numeric__blue_kills_x_time",
+   "group": "combat_and_survival",
+   "time_related": true,
+   "mean_abs": 0.10947850121922534,
+   "mean_signed": -0.10947850121922534,
+   "beta": -1.0564087171775618
+  },
+  {
+   "column": "numeric__participant_slot3_totalGold_norm",
+   "group": "economy_and_experience",
+   "time_related": false,
+   "mean_abs": 0.10675645943669888,
+   "mean_signed": 0.10675645943669888,
+   "beta": 0.8101268828796554
+  },
+  {
+   "column": "numeric__red_kills_x_time",
+   "group": "combat_and_survival",
+   "time_related": true,
+   "mean_abs": 0.10196620969215281,
+   "mean_signed": 0.10196620969215281,
+   "beta": 0.9901262029823942
+  },
+  {
+   "column": "numeric__participant_slot1_totalGold_norm",
+   "group": "economy_and_experience",
+   "time_related": false,
+   "mean_abs": 0.08937855629577994,
+   "mean_signed": 0.08937855629577994,
+   "beta": 0.7212228494866649
+  },
+  {
+   "column": "numeric__participant_slot8_totalGold_norm",
+   "group": "economy_and_experience",
+   "time_related": false,
+   "mean_abs": 0.08416567328417958,
+   "mean_signed": -0.08416567328417958,
+   "beta": -0.6445807828397736
+  },
+  {
+   "column": "numeric__participant_slot5_totalGold_norm",
+   "group": "economy_and_experience",
+   "time_related": false,
+   "mean_abs": 0.07231663232292146,
+   "mean_signed": -0.07231663232292146,
+   "beta": -0.6089078995443094
+  },
+  {
+   "column": "numeric__participant_slot6_totalGold_norm",
+   "group": "economy_and_experience",
+   "time_related": false,
+   "mean_abs": 0.06795620909044818,
+   "mean_signed": -0.06795620909044818,
+   "beta": -0.5494654032881459
+  },
+  {
+   "column": "numeric__participant_slot7_totalGold_norm",
+   "group": "economy_and_experience",
+   "time_related": false,
+   "mean_abs": 0.06305622029469596,
+   "mean_signed": -0.06305622029469596,
+   "beta": -0.5162757663016404
+  },
+  {
+   "column": "numeric__participant_slot6_level_norm",
+   "group": "economy_and_experience",
+   "time_related": false,
+   "mean_abs": 0.05808256045382008,
+   "mean_signed": -0.05808256045382008,
+   "beta": -0.45691989078899997
+  },
+  {
+   "column": "numeric__participant_slot8_laneCS_norm",
+   "group": "economy_and_experience",
+   "time_related": false,
+   "mean_abs": 0.056643545098415106,
+   "mean_signed": -0.056643545098415106,
+   "beta": -0.47692379972663235
+  },
+  {
+   "column": "numeric__participant_slot0_totalGold_norm",
+   "group": "economy_and_experience",
+   "time_related": false,
+   "mean_abs": 0.056349847790283764,
+   "mean_signed": 0.056349847790283764,
+   "beta": 0.4725131599610835
+  },
+  {
+   "column": "numeric__participant_slot2_totalGold_norm",
+   "group": "economy_and_experience",
+   "time_related": false,
+   "mean_abs": 0.055881899305144055,
+   "mean_signed": 0.055881899305144055,
+   "beta": 0.45530573634826893
+  },
+  {
+   "column": "numeric__participant_slot1_level_norm",
+   "group": "economy_and_experience",
+   "time_related": false,
+   "mean_abs": 0.053779056517834156,
+   "mean_signed": 0.053779056517834156,
+   "beta": 0.4226725724645648
+  },
+  {
+   "column": "numeric__participant_slot7_laneCS_norm",
+   "group": "economy_and_experience",
+   "time_related": false,
+   "mean_abs": 0.05196706619915688,
+   "mean_signed": -0.05196706619915688,
+   "beta": -0.42787707216126314
+  },
+  {
+   "column": "numeric__participant_slot2_laneCS_norm",
+   "group": "economy_and_experience",
+   "time_related": false,
+   "mean_abs": 0.05150385218000401,
+   "mean_signed": 0.05150385218000401,
+   "beta": 0.4225944436624905
+  },
+  {
+   "column": "numeric__participant_slot4_totalGold_norm",
+   "group": "economy_and_experience",
+   "time_related": false,
+   "mean_abs": 0.05016864056509947,
+   "mean_signed": 0.05016864056509947,
+   "beta": 0.3774385449005698
+  },
+  {
+   "column": "numeric__participant_slot2_level_norm",
+   "group": "economy_and_experience",
+   "time_related": false,
+   "mean_abs": 0.04763368903085152,
+   "mean_signed": 0.04763368903085152,
+   "beta": 0.32557516456478347
+  },
+  {
+   "column": "numeric__participant_slot7_level_norm",
+   "group": "economy_and_experience",
+   "time_related": false,
+   "mean_abs": 0.044314693485021275,
+   "mean_signed": -0.044314693485021275,
+   "beta": -0.3037484949036918
+  },
+  {
+   "column": "numeric__participant_slot3_laneCS_norm",
+   "group": "economy_and_experience",
+   "time_related": false,
+   "mean_abs": 0.044146673787333106,
+   "mean_signed": 0.044146673787333106,
+   "beta": 0.3695323474843331
+  },
+  {
+   "column": "numeric__participant_slot9_totalGold_norm",
+   "group": "economy_and_experience",
+   "time_related": false,
+   "mean_abs": 0.043526961873417876,
+   "mean_signed": -0.043526961873417876,
+   "beta": -0.3296989655477363
+  },
+  {
+   "column": "numeric__participant_slot4_death_age_minutes",
+   "group": "combat_and_survival",
+   "time_related": false,
+   "mean_abs": 0.04337049240028551,
+   "mean_signed": -0.025742409675333165,
+   "beta": 0.07599231569713234
+  },
+  {
+   "column": "numeric__participant_slot8_death_age_minutes",
+   "group": "combat_and_survival",
+   "time_related": false,
+   "mean_abs": 0.04212457421867576,
+   "mean_signed": 0.02372198112216362,
+   "beta": -0.07671190451128859
+  },
+  {
+   "column": "numeric__participant_slot6_death_age_minutes",
+   "group": "combat_and_survival",
+   "time_related": false,
+   "mean_abs": 0.040635926454828476,
+   "mean_signed": 0.013300599130284597,
+   "beta": -0.1078499979870835
+  },
+  {
+   "column": "numeric__participant_slot4_xp_norm",
+   "group": "economy_and_experience",
+   "time_related": false,
+   "mean_abs": 0.04018918777280276,
+   "mean_signed": 0.04018918777280276,
+   "beta": 0.3044199273308268
+  },
+  {
+   "column": "numeric__participant_slot3_hp_pct",
+   "group": "health_mana_other",
+   "time_related": false,
+   "mean_abs": 0.03974712257989102,
+   "mean_signed": -0.012599789153239335,
+   "beta": 0.04437423479806239
+  }
+ ],
+ "evaluated_at": "2026-09-16 03:26:41"
+}

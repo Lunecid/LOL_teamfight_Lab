@@ -1,0 +1,473 @@
+{
+ "version": "definition_dev_20260916",
+ "role": "EXPLORATORY_FOLLOWUP_AFTER_PRIOR_TEST_EXPOSURE_MODEL_DEFINED_LABELS_NOT_CONFIRMATORY",
+ "written_at": "2026-09-16 07:48:21",
+ "design": "docs/CLAUDE_DEFINITION_DEV_20260916.md (Claude, continuing the Codex design line)",
+ "spec_sha256": "ef8d5d8f6e5de552dd56e358e07eb6b217f3f61206f6263e0cd7fc8db2b77f1b",
+ "provenance_docs_sha256": {
+  "TOG_END_TO_END_READINESS_AUDIT_20260915.md": "473acf3141943fa828a0253fa35a87cb473b5c5fb3d3ac47cbaea5b9a09169e5",
+  "COLLABORATOR_CRITIQUE_RESPONSE_20260915.md": "c847d82d00654f88cbe5f8f70370cf8498c3c722c89657b2d27064860f113396"
+ },
+ "prior_test_exposure": "Exploratory follow-up; MAIN TEST and the external sets were evaluated before under the frozen definition. No choice here uses TEST performance.",
+ "question": "Does re-detecting engagements with G/D estimated on the TRAIN patch alone (development-only definition) change the evaluation population and the h90 q results?",
+ "definitions": {
+  "frozen": {
+   "constants": {
+    "TF2_KILL_CLUSTER_GAP_MS": 13700,
+    "CLUSTER_MAX_DIAMETER": 4264.0
+   },
+   "source": "preset v3.3 = pooled 15.14-15.16 spec rounded",
+   "spec": {
+    "gap_s": 13.724609610075618,
+    "diameter_u": 4263.868841984671,
+    "n_matches": 208141,
+    "sha256": "fe0d8eff10804e448d83b34d2bf3ced6ea0371a5ebdd83256db8e862c29f51c5"
+   }
+  },
+  "dev": {
+   "constants": {
+    "TF2_KILL_CLUSTER_GAP_MS": 14000,
+    "CLUSTER_MAX_DIAMETER": 4285.0
+   },
+   "source": "config/fight_boundary/spec_15.14.json (TRAIN patch only) rounded",
+   "spec": {
+    "gap_s": 13.963683610559377,
+    "diameter_u": 4285.264316413361,
+    "n_matches": 73972,
+    "gap_ci_s": [
+     12.443360262254842,
+     15.577580348316028
+    ],
+    "diameter_ci_u": [
+     4270.676843453695,
+     4299.231825930586
+    ],
+    "sha256": "757f0fb013c8e65970f99ed91a02e0ef0f400abf63b6d2b0fbfb43af42954e92"
+   }
+  },
+  "rounding": "G rounded to 0.1 s (13.9637 -> 14.0 s), D to 1 u (4285.26 -> 4285), as the frozen preset rounds the pooled estimates (13.7246 -> 13.7 s, 4263.87 -> 4264)",
+  "unchanged": "R 1600 u, B 15 s (TF2_ENGAGE_PRE_KILL_MS 15000), M 2, every other detector switch, B-rule endpoints, V, cohort rule (min cluster participation >= 4)"
+ },
+ "procedure": {
+  "redetect": "parent detector code path (fc20260915_external_prepare.detect_exposures) on every MAIN match and every external cache; frozen reproduction on the first 2000 TRAIN matches must be exact",
+  "census": "per set: matches / rows changed; parent valid T/N rows affected (unsealed sets before the freeze, sealed sets in the evaluation)",
+  "rebuild": "changed matches only, parent extraction function with dev exposures; labels with the frozen V (OOF fold adapter for TRAIN); cohort from the raw detector counts; fixture of 100 TRAIN matches with parent exposures must reproduce the parent rows bitwise",
+  "population": "dev population = parent rows of unchanged matches (copied) + rebuilt rows; TEST / external populations are assembled only after the freeze",
+  "fit": "base arm (352 ridge) logit + LightGBM with the iq h90 configurations, calibration selected on dev Q_SELECT, T and N",
+  "evaluate": "dev MAIN TEST + externals: refit winners and frozen parent winners on the same rows"
+ },
+ "parents": {
+  "read_only": [
+   "outputs/full_corpus_training_20260915",
+   "outputs/cohort_role_training_20260915",
+   "outputs/incremental_q_training_20260915",
+   "outputs/postkill_objective_delay_full/exposures.csv",
+   "caches",
+   "original repository detector sources",
+   "worktree extraction sources"
+  ],
+  "integrity_snapshot_before_sha256": "8a32e40daff807c107109c924eef3b63b2ab4b85214689d0b0dacaa3d3dac12e",
+  "iq_frozen_manifest_sha256": "60527473bbca5b10f808c05d11e4fc6fa45c94e89e134d51c59faa9f4a5784d5",
+  "cohort_role_frozen_manifest_sha256": "3c738a3ff537a3a52fcf9d8bdcd4c8b0c80b94993e53a176226abb4813280454",
+  "q_pre_only_schema_sha256": "bc07a3c9b1ea1f4bdbd278a0c837bd59a96d89ff831b2a8ed393a3cc38249284",
+  "v_models_manifest_sha256": "92d57e3bee472ade1d498e50de5a41a599bf09d5dc1433302b13350234c9ead7",
+  "parent_exposures_sha256": "6e07eef42a68ab5deabe6bca544885c64d26533a88bd5b5c9e8116036e6a7977",
+  "expected_parent_file_sha256": {
+   "outputs/full_corpus_training_20260915/labels/EXT_KR_16.13_features_pre_only.npz": "cef03c6d16927fedcaa5df8c3986d828337c37bf8e2c740a56b44e64098086ce",
+   "outputs/full_corpus_training_20260915/labels/EXT_KR_16.13_labels.npz": "fa5f6150e7a4aa4e2fbd267dcbe76c702f0e025c83f3a2d057b25ca272782213",
+   "outputs/full_corpus_training_20260915/labels/EXT_KR_16.14_pilot_features_pre_only.npz": "0b6d08880b6b729f5b36b3522ecc41062b341d8d65a76d64be84f1930f3e4eef",
+   "outputs/full_corpus_training_20260915/labels/EXT_KR_16.14_pilot_labels.npz": "e5dd804570349f519a9dd97bcaf2dd6f96fd27e933088ed5fdbdc050e2f723c9",
+   "outputs/full_corpus_training_20260915/labels/EXT_KR_16.15_features_pre_only.npz": "462ab4312b91c34a3307344bb54a66498161131b5c2d4d530b0d6c7bfc2b7b1c",
+   "outputs/full_corpus_training_20260915/labels/EXT_KR_16.15_labels.npz": "dd3e51a8455f0de6ef09d3b691f0c59e9e48d56207e46d499ef516fdf9a51a9f",
+   "outputs/full_corpus_training_20260915/labels/EXT_NA1_16.13_features_pre_only.npz": "c7aa4396de605a98085f7400d0c7fbfba5785dcf74395f5f7b0831b2ea2c41f7",
+   "outputs/full_corpus_training_20260915/labels/EXT_NA1_16.13_labels.npz": "91cefb42eaae94a6bde3f7007cf34d4d8a9c7f5f42c6098651a96de76fe32065",
+   "outputs/full_corpus_training_20260915/labels/labels_test_external_manifest.json": "023a6b854027657818cf1b28fe2df368902f589bce9b6d3e154a46445f73faa6",
+   "outputs/full_corpus_training_20260915/labels/labels_trainval_manifest.json": "9a4449ebbf147e629698f97a08f6a0c5db2ba26eccf313911137d5852d2622f7",
+   "outputs/full_corpus_training_20260915/labels/MAIN_TEST_features_pre_only.npz": "fb0945a68087b4198622d1a4713497fae6690327317d82d387503a29c8a1a933",
+   "outputs/full_corpus_training_20260915/labels/MAIN_TEST_labels.npz": "eec6e0388792985d0fb2d2d15039ed058bc4041ae082ee99cc2e778f08e2d96e",
+   "outputs/full_corpus_training_20260915/labels/MAIN_TRAIN_features_pre_only.npz": "1f8eee36c21de0146fd6879cfa57abb9421d494b6425663d0db1e3aafea44ca2",
+   "outputs/full_corpus_training_20260915/labels/MAIN_TRAIN_labels.npz": "f0a1bdcfcce497c6e443126d16d09fab5b69b5a93d2acf525324509fc6c07b0c",
+   "outputs/full_corpus_training_20260915/labels/MAIN_VALIDATION_features_pre_only.npz": "8c93127611047cc2449f231370bf45e4a130f7f5559ebdd1aa5df3d76eb7785b",
+   "outputs/full_corpus_training_20260915/labels/MAIN_VALIDATION_labels.npz": "b06a190b8357499d209eddacd0201ad10b6b55655dedae1a7832c8656117431e",
+   "outputs/full_corpus_training_20260915/models/q/h120/constant.joblib": "9efdabc91c1afd7c48738da4662969bd2bea4e30e75e79c028b45fdd40f3c2cc",
+   "outputs/full_corpus_training_20260915/models/q/h120/economic_isotonic.joblib": "c528d0dc6594f38290b985732b37b9e24aac13a62c7e375b9c0de21f663e4516",
+   "outputs/full_corpus_training_20260915/models/q/h120/economic_raw.joblib": "d9ebd359f83f1f39862232c8b69d767718e52ca44907772a75eacd88eba404f6",
+   "outputs/full_corpus_training_20260915/models/q/h120/economic_sigmoid.joblib": "c68b5be8d541e46c51a8c802e184dbfe0109b78952b65776736b71a28745b900",
+   "outputs/full_corpus_training_20260915/models/q/h120/p_pre_logistic.joblib": "8758839c7847389e27398437becc4dd77452278ca798a8c189c82e411309fec9",
+   "outputs/full_corpus_training_20260915/models/q/h120/p_pre_spline.joblib": "fef72d577b97fc449913ba5f82870435f924857471f37a3a93396a69425e79df",
+   "outputs/full_corpus_training_20260915/models/q/h120/ridge_isotonic.joblib": "0a954dab1aea38fb34ef2adfd5b4c5e1c18d2c1e92c4a722eeeb91800566a143",
+   "outputs/full_corpus_training_20260915/models/q/h120/ridge_raw.joblib": "5486392a2452dcb496be57b2ca683ade679ea89eafdf2a5760dd0de1cb5f0845",
+   "outputs/full_corpus_training_20260915/models/q/h120/ridge_sigmoid.joblib": "cbff191377bcdc8cb23b31a730e401cacf56ef76384cd9d7e7048c794d4f299b",
+   "outputs/full_corpus_training_20260915/models/q/h60/constant.joblib": "37efc6130d0efdabd1b28ae8ec3f6fa7e3709edd0d3f737c141918f3a2846e58",
+   "outputs/full_corpus_training_20260915/models/q/h60/economic_isotonic.joblib": "8be50d09f74b0bd5b7209b7786e482623ee2f2b97329d1d9a3c941d00f7ce4c7",
+   "outputs/full_corpus_training_20260915/models/q/h60/economic_raw.joblib": "e41e16a649b16ebbff914c6516a77e6fede066d996596c47d281580f83091629",
+   "outputs/full_corpus_training_20260915/models/q/h60/economic_sigmoid.joblib": "6c4c37dd7e2b12b96d6b3f19528676e740144f47b87e826fd179c5ae6dd673cd",
+   "outputs/full_corpus_training_20260915/models/q/h60/p_pre_logistic.joblib": "1dbfce9a201ecd276b38185f4741eb24349f3cd0006ad6de61690efe1466f18c",
+   "outputs/full_corpus_training_20260915/models/q/h60/p_pre_spline.joblib": "405baa1501806df538fdc03a6eb465997778fc306015efa96c411d5e5c724804",
+   "outputs/full_corpus_training_20260915/models/q/h60/ridge_isotonic.joblib": "0bf57e7e71004c288463bdc4fb07867a7c3f80316f1a48150df0a779aed6acf2",
+   "outputs/full_corpus_training_20260915/models/q/h60/ridge_raw.joblib": "3a5b7bd2b9e8cd8d5b28d3a59d43cd822e83d0b4287798e4054e863af529fe2b",
+   "outputs/full_corpus_training_20260915/models/q/h60/ridge_sigmoid.joblib": "8b9ce2afa1d456bdb34cda7400bd202057a38b5b1d1e4b88e38a81e315a75636",
+   "outputs/full_corpus_training_20260915/models/q/h90/constant.joblib": "d5f7d58521332f72dd23bd0a6ac634583d4ab7be640e88339375a60a7764be9b",
+   "outputs/full_corpus_training_20260915/models/q/h90/economic_isotonic.joblib": "e038582fd49af9393672662ee0555128cca0e5013194db53f96ee68453b98e5f",
+   "outputs/full_corpus_training_20260915/models/q/h90/economic_raw.joblib": "31830ec463033bbf8160f304484d8931d382ca196f2eb9edd6e9ca96e23667b6",
+   "outputs/full_corpus_training_20260915/models/q/h90/economic_sigmoid.joblib": "6550255e3e9e6a89412b245d1177f11bc84c0ade38b0ac72b882429e46d408d6",
+   "outputs/full_corpus_training_20260915/models/q/h90/p_pre_logistic.joblib": "2858fcf1e12499a07a955d7bfc2a5c300d938b5b1381d16aa721ae6d24baa6f8",
+   "outputs/full_corpus_training_20260915/models/q/h90/p_pre_spline.joblib": "1ba68762d1803b53cc596da0fa5ae77d61194333bb8dc7c77edda38eb2be584d",
+   "outputs/full_corpus_training_20260915/models/q/h90/ridge_isotonic.joblib": "5688fe91156c2724d8e718ad4f837f8d60f058bf2f7e9cd370b13fe172f6c093",
+   "outputs/full_corpus_training_20260915/models/q/h90/ridge_raw.joblib": "e968796c148561abf299e7427dbcb639fed7d1db1108dda24e024d05d672830f",
+   "outputs/full_corpus_training_20260915/models/q/h90/ridge_sigmoid.joblib": "685e548d37475a7efbf916e84bc669e2bf7968336035e06d583ae1b98074123f",
+   "outputs/full_corpus_training_20260915/q_pre_only_schema.json": "bc07a3c9b1ea1f4bdbd278a0c837bd59a96d89ff831b2a8ed393a3cc38249284",
+   "outputs/full_corpus_training_20260915/v_models_manifest.json": "92d57e3bee472ade1d498e50de5a41a599bf09d5dc1433302b13350234c9ead7",
+   "outputs/full_corpus_training_20260915/frozen_manifest.json": "8287804220b280f68a8ce2359532dbd1665b2d9d0c4a474c8666e8aed77b4f77",
+   "outputs/full_corpus_training_20260915/protocol.json": "60e95dfadcedeed7f08c47e50f5379e14e7c6b4b31cb9724e8b88f8b1518b8ba",
+   "outputs/full_corpus_training_20260915/selection_v.json": "bffdb56bd3647d8d02f22c17330a8adec96ac7e640eb31c458bc06e90a736ed6",
+   "outputs/full_corpus_training_20260915/validation.json": "716bc9a0d4bf7a990055cb388ef2ac1fb4c708aaed65575db20b3a22546a4771",
+   "outputs/full_corpus_training_20260915/outcome_access_log.jsonl": "470288d476c1f883ea2feb129f1d2ba66fef57ec8d8cc0415924d0279535e721",
+   "outputs/full_corpus_training_20260915/eval/results_q.json": "2ad4a2e58fb4bd45df0ca453c4f13d2b89eef72ae8d4bee0985b96ef9ad49d5e",
+   "outputs/incremental_q_training_20260915/frozen_manifest.json": "60527473bbca5b10f808c05d11e4fc6fa45c94e89e134d51c59faa9f4a5784d5",
+   "outputs/incremental_q_training_20260915/protocol.json": "2e47dc86a9e3535d21c91d84c668f952dd52079c5230c30dc1d3a1bedb33dae8",
+   "outputs/incremental_q_training_20260915/audit_followup/pytest_basetemp_run1/test_partial_family_artifacts_0/models/T/lgbm/lgbm_L15_M50.joblib": "482e2e17d6367e6f25984399d6cdfe2b3756d6627bfba11106ed79641130059d",
+   "outputs/incremental_q_training_20260915/audit_followup/pytest_basetemp_run2/test_partial_family_artifacts_0/models/T/lgbm/lgbm_L15_M50.joblib": "482e2e17d6367e6f25984399d6cdfe2b3756d6627bfba11106ed79641130059d",
+   "outputs/incremental_q_training_20260915/contract_tests/pytest_basetemp_run1/test_sealed_sets_refuse_before0/run/frozen_manifest.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+   "outputs/incremental_q_training_20260915/contract_tests/pytest_basetemp_run2/test_sealed_sets_refuse_before0/run/frozen_manifest.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+   "outputs/incremental_q_training_20260915/eval/hashes_after.json": "b81e91dd62be81ed959b596293cdb0662958f2c0c45bf828c76054623a91ac3f",
+   "outputs/incremental_q_training_20260915/eval/hashes_before.json": "062ef555ce501c0f2031b0db1a249ebb1931704d6ef94ecbfdfd088be6e62967",
+   "outputs/incremental_q_training_20260915/eval/results.json": "fdd5da60cdd62c174b08dd2c28a19019fb3237411a50faa33b44e97d24d3dbd3",
+   "outputs/incremental_q_training_20260915/eval/results_partial.json": "150903307c0f9fd1733ba54272e7f22fe096fe1e57f425acfbf67bd00b4db6ae",
+   "outputs/incremental_q_training_20260915/eval/predictions/EXT_KR_16.13_h90_N.npz": "e47865bbfe7b6932df2ba03e3d94e060faaff8501db91323bbce8501807d58b3",
+   "outputs/incremental_q_training_20260915/eval/predictions/EXT_KR_16.13_h90_T.npz": "27788c6f6f5faf7a0b75c36e8863ee3a35a73d8c72bc1dc0aa82c2e7cac81a5e",
+   "outputs/incremental_q_training_20260915/eval/predictions/EXT_KR_16.14_pilot_h90_N.npz": "c6535434c092060e73f550a5acf15ada3b8ec120661566469ebbdc65501335c3",
+   "outputs/incremental_q_training_20260915/eval/predictions/EXT_KR_16.14_pilot_h90_T.npz": "1d73086680bd5ec6cc54fcf47fc4ade604558a0ef3f83ee94f2dddded5dfcafb",
+   "outputs/incremental_q_training_20260915/eval/predictions/EXT_KR_16.15_h90_N.npz": "9e84be2bad66cd67b99573344ff95f91272ce01178664bb6b55921c110453dab",
+   "outputs/incremental_q_training_20260915/eval/predictions/EXT_KR_16.15_h90_T.npz": "70949d12fe4b08f2c9fea9b2e400dfa9af830bdc4e5c662c3e9f63a41f9d4c46",
+   "outputs/incremental_q_training_20260915/eval/predictions/EXT_NA1_16.13_h90_N.npz": "cfa3f954043dd2db9c6e2581ef8f87b60819f9c27bf115bd6801ff75dd7d87b6",
+   "outputs/incremental_q_training_20260915/eval/predictions/EXT_NA1_16.13_h90_T.npz": "ededa8cc177f956799a81b464ae1ce985ab3302923f60a5934eb46287a64bdab",
+   "outputs/incremental_q_training_20260915/eval/predictions/MAIN_TEST_h90_N.npz": "1dce0a6a42e18ccb4ea251b091d151ddf436fe0ffafd7e5aeac4f4d461b15bfa",
+   "outputs/incremental_q_training_20260915/eval/predictions/MAIN_TEST_h90_T.npz": "4b0dfc0d57f96f0bfad2644f5b54c1581829d22c7a189cb49d8e7180a4319e5d",
+   "outputs/incremental_q_training_20260915/models/N/lgbm/lgbm_L15_M100.joblib": "65135557720a70348428bbd0278d19ee7404dbf8e8035fb2863f95b207f9fadf",
+   "outputs/incremental_q_training_20260915/models/N/lgbm/lgbm_L15_M50.joblib": "ad59891c9753354a3aab3e18e76c08c5733fc0932fa9f1b26122500fa7b3eaf1",
+   "outputs/incremental_q_training_20260915/models/N/lgbm/lgbm_L31_M100.joblib": "4030180f13440c2d248616ae4d14423868bf5492af4b3a157679820d5c5c0ac1",
+   "outputs/incremental_q_training_20260915/models/N/lgbm/lgbm_L31_M50.joblib": "6458b202da93c5461317f1ba294cf8ae21b8c71533e4e4dc283e6b41843b5f41",
+   "outputs/incremental_q_training_20260915/models/N/lgbm/lgbm_L63_M100.joblib": "8eec02ef79d0d1b4e6c170a4ff95b4e8fc12e95c496bbc19e3d12b0a959cb172",
+   "outputs/incremental_q_training_20260915/models/N/lgbm/lgbm_L63_M50.joblib": "05364c3b8efb83465ae7e6f8453ce2d2c435c51d93b61a117aabba53c6b00c67",
+   "outputs/incremental_q_training_20260915/models/N/logit/logit_C0.0001.joblib": "4a510f6af8b53e56b271d0e5effef3aff834e44547cf374c67a943381c544f53",
+   "outputs/incremental_q_training_20260915/models/N/logit/logit_C0.001.joblib": "bddb093dedb82017257cca24eb1ec98e8ee54e2a524b7326f0678e3ea4ebffc6",
+   "outputs/incremental_q_training_20260915/models/N/logit/logit_C0.01.joblib": "169d3601d98bb33738eeb925d4167eb23174bbe8a8b67ac41d0d14a58f32afc0",
+   "outputs/incremental_q_training_20260915/models/N/logit/logit_C0.1.joblib": "ee2baa940e04c79571340f9ff140aa1a24547928bec47a9019d9fb808efdc7af",
+   "outputs/incremental_q_training_20260915/models/N/logit/logit_C1.joblib": "47230c15b2c0af0eb2da95f7b8720943895de2e9a4a000656aa21d06019552cd",
+   "outputs/incremental_q_training_20260915/models/N/logit/logit_C10.joblib": "1b6e111af0e6ab21c65f81631c4bfd1234de6a6e2757ae950dae49491dfb1244",
+   "outputs/incremental_q_training_20260915/models/N/pt/pt_C0.0001.joblib": "853f0ce621116f25727284844b34d46f57a6bea2a5067fa3b9440c2a8a655dfd",
+   "outputs/incremental_q_training_20260915/models/N/pt/pt_C0.001.joblib": "2a9c34fa4e14b8ba59145ab921dd3efd8c0476c049f948f7c642bf1003bfdd75",
+   "outputs/incremental_q_training_20260915/models/N/pt/pt_C0.01.joblib": "814aa606e332a1f71dc49ae671f8ba213f161d7c269e1a6b046c2a1d39be0a20",
+   "outputs/incremental_q_training_20260915/models/N/pt/pt_C0.1.joblib": "2969e10183d45a46b3ebf7f97e10568f862b76d954fb8612a1ebf060df8f5161",
+   "outputs/incremental_q_training_20260915/models/N/pt/pt_C1.joblib": "38f4945ced151bf6292865b42fb06fd97249ea2a5273dc84ff5bdde25b211869",
+   "outputs/incremental_q_training_20260915/models/N/pt/pt_C10.joblib": "0c1f12f8a4c8436ba397a52e7e145281d2eec967160665b9d6f42379f4378bd5",
+   "outputs/incremental_q_training_20260915/models/T/lgbm/lgbm_L15_M100.joblib": "34b2c300e83c24243c3670fc14d2f65c9a042e8153f13112ed839482db709c65",
+   "outputs/incremental_q_training_20260915/models/T/lgbm/lgbm_L15_M50.joblib": "87ad44c03c4bdf8f8fb862bd8ac81c627d2898011e84412529ae213f26a4263b",
+   "outputs/incremental_q_training_20260915/models/T/lgbm/lgbm_L31_M100.joblib": "fef9650741f6a7feef48d6ed8d4e2ac9f5ecb348f4fb2270deba6610c85e1d2a",
+   "outputs/incremental_q_training_20260915/models/T/lgbm/lgbm_L31_M50.joblib": "39a8e3d0473d736288d49e830cccf8ab874f063121d6606464085b3029559a6b",
+   "outputs/incremental_q_training_20260915/models/T/lgbm/lgbm_L63_M100.joblib": "8ba442637b165b62aedd911e053ce9d1fb5597be7b915ad9f68dba227c2aa1d5",
+   "outputs/incremental_q_training_20260915/models/T/lgbm/lgbm_L63_M50.joblib": "f4ab9a2bc63eb2c818e727dbc139bbcdceff2d3f86f937ddd94ddc500ed0bd23",
+   "outputs/incremental_q_training_20260915/models/T/logit/logit_C0.0001.joblib": "dd94e7f0e5b403e5f152357b52e122422eae41674c9a0ac62b0a1773e7a61f9f",
+   "outputs/incremental_q_training_20260915/models/T/logit/logit_C0.001.joblib": "437ee0ba7c81b54ce80bb68de43692410f295418f8094310110ec8c6c08c4082",
+   "outputs/incremental_q_training_20260915/models/T/logit/logit_C0.01.joblib": "70a6fb1a9f7ca8d06f5fbf71fa769084d5fdb82648af61e9f5f6fe84051e085b",
+   "outputs/incremental_q_training_20260915/models/T/logit/logit_C0.1.joblib": "ce0fcba88ad46922d52c06ae696c439aeab7be33d8fc6e1014c332f87cf118ba",
+   "outputs/incremental_q_training_20260915/models/T/logit/logit_C1.joblib": "44b71816278f61a1056b09b00c7f2eccc9c17fb994931747d2b02740520b944b",
+   "outputs/incremental_q_training_20260915/models/T/logit/logit_C10.joblib": "5f2ee2cb17f67e644ae3a34cb7d1aae6625e12c9e37d926fc9122fcedc3f7606",
+   "outputs/incremental_q_training_20260915/models/T/pt/pt_C0.0001.joblib": "ec9016be8cc531d7022889c8682a8feb03d292149b63d18f4fc144cf22283685",
+   "outputs/incremental_q_training_20260915/models/T/pt/pt_C0.001.joblib": "647f304b72dcbb66a6d14b5a7c116e5669a4060562dabce79e50f0f0091d253b",
+   "outputs/incremental_q_training_20260915/models/T/pt/pt_C0.01.joblib": "84579d7bd488476e24d88e49829aa199e4791b580758778f37143fa00f62b706",
+   "outputs/incremental_q_training_20260915/models/T/pt/pt_C0.1.joblib": "f73a462c0bb836216aec7df2545cc8f26fc1ee80057a7a352ac91c9b1c539be0",
+   "outputs/incremental_q_training_20260915/models/T/pt/pt_C1.joblib": "e7c9d52c9cdc9154c5d72fdd75efb60136e5d98db437cc876ab1532fac11bf98",
+   "outputs/incremental_q_training_20260915/models/T/pt/pt_C10.joblib": "73e9ddbb8a5241b246826e0a269268357de84b7228f773991f1e64daff943d0c",
+   "outputs/incremental_q_training_20260915/selection/lgbm_N.json": "1251461b260b71dddb78a4ec1d6b53ea3de9c89a0b32014529b9aa9d8166e5be",
+   "outputs/incremental_q_training_20260915/selection/lgbm_T.json": "87d99cae8b4da5ed6126f3f29f42b6db7a779162b72fc87becd9c865fbb234e6",
+   "outputs/incremental_q_training_20260915/selection/logit_N.json": "085e4cf5e66e6ba8d93c6016cd01f4cba1b9a32a1a99091e09e79265ae03874e",
+   "outputs/incremental_q_training_20260915/selection/logit_T.json": "e7769e39c008ccef688dd003d2218fa5e8f504800ece0b554df2a751bfb9adeb",
+   "outputs/incremental_q_training_20260915/selection/pt_N.json": "e4226021e4ef5f5af30604cb8d30423fbf03462674d6613d659984fe753c73ff",
+   "outputs/incremental_q_training_20260915/selection/pt_T.json": "511636fac30dfdcc4c92009bcb6ce389764430953734b13ec29a07851d92f3cf",
+   "outputs/incremental_q_training_20260915/smoke_train_only/frozen_manifest.json": "a0263d05dd069bf144538df555f06459112140850195f3ce8132fc2dd898d0c5",
+   "outputs/incremental_q_training_20260915/smoke_train_only/eval/hashes_after.json": "5ea794534c125518c559bd09f62b0ba76a13dd60f88c54d3958288a1c12312a4",
+   "outputs/incremental_q_training_20260915/smoke_train_only/eval/hashes_before.json": "88af48f7f889237162b1a22c8ce29e12a267b6d0d6754d6c4baeed0c9777428d",
+   "outputs/incremental_q_training_20260915/smoke_train_only/eval/results.json": "77de50409b66762e9e5a4611fdc457ae982360941bda43a343d2240a1d64c1bc",
+   "outputs/incremental_q_training_20260915/smoke_train_only/eval/results_partial.json": "e83a69ceb11cace4490c900f80290e2411f99349bbdcbcaecba49b2f0657183a",
+   "outputs/incremental_q_training_20260915/smoke_train_only/eval/predictions/SMOKE_PSEUDO_Q_SELECT_h90_N.npz": "48e309d30bb0775fd4d965a225f51476be6281c270fc29bcd4bc3452243c4dc8",
+   "outputs/incremental_q_training_20260915/smoke_train_only/eval/predictions/SMOKE_PSEUDO_Q_SELECT_h90_T.npz": "655fc268cf3c97c0a2372213dc8b4a6c144e08385f9e973ab52bfc6387da7f62",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/N/lgbm/lgbm_L15_M100.joblib": "e0c196f07340498a0e136b8b3fe32a1d1daaa1d22df64bd919c18a0c49c51cb6",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/N/lgbm/lgbm_L15_M50.joblib": "f230950e41b71b35cd8b6ae412f08ecbf211e21844f63d7664bb4c65ea50bbc6",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/N/lgbm/lgbm_L31_M100.joblib": "9a6e5a5ceb4db7f7814cece6f5338be0afefdc17ebbceb854302a6fd65e589c3",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/N/lgbm/lgbm_L31_M50.joblib": "4989dc5b61336dfd82ceb65d37494932cf8139435d2d3ded31ee323d90db31c0",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/N/lgbm/lgbm_L63_M100.joblib": "80009c0530fa9e012a84fe0b9d95f254f8cce320eb57fd952347fc1ac2d9bc93",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/N/lgbm/lgbm_L63_M50.joblib": "7d01d3735718cbf5c82da500bdf89d5140b8a878dbc87cfc1bf7eb664168aa5c",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/N/logit/logit_C0.0001.joblib": "c16850d9c9b543a49c7f385063f3d39d3cbaf09a31d460b9729d0e5285050b1d",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/N/logit/logit_C0.001.joblib": "03d96daca131c1f9f0797fe78f3d241e358f943de234147afe16bebaeb46ba57",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/N/logit/logit_C0.01.joblib": "d9c3cfa2964eff5f9620ab3d696c69eea56fee9cb31378170fa6684e2b88589e",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/N/logit/logit_C0.1.joblib": "278557ba276d9059f6cbf935aa4ed80422a08ce9e98515ce645c253a00f5ee9f",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/N/logit/logit_C1.joblib": "eb79eec2e5ec6ed530813cc1a030a4df45b0331fbca65387a7f3ea6fcf99314a",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/N/logit/logit_C10.joblib": "40d6f997bd11c0a881244f6c6466bce6bef8f3b1df22df0f1b7280a0d39452da",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/N/pt/pt_C0.0001.joblib": "4534a68b94322646ce459512b47e072b659bcbc4bab8f63e828934d6d3ad6d68",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/N/pt/pt_C0.001.joblib": "4582a15e23e7982a8bf458d9cc0ff4d363899f86c71e9db4dc23bb669ab46b36",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/N/pt/pt_C0.01.joblib": "16ef2acee4cc873913b66cc21f38ed704cc92339decbeb2f85848b9a0fa6dabf",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/N/pt/pt_C0.1.joblib": "0f321869037546c50e9e944e709a9c4d8c82c82e4f5e0b1bd81295aabee4c22c",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/N/pt/pt_C1.joblib": "4df7e0a66e22064f1d7b515d3213ea13076d3355d0a27a3394d23b579ace5504",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/N/pt/pt_C10.joblib": "53eb381b25bd8dba46edfd22bd1aeef0c22d00bc21de46f5e84a140483653803",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/T/lgbm/lgbm_L15_M100.joblib": "ee3665d5bcf2963ae52959c1cd18751c7a5f2477028a195f704f84f98fa43112",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/T/lgbm/lgbm_L15_M50.joblib": "14d7539cd833824a342e5186ad4c8751eb82e46d0acf6437606e76cb10efc68f",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/T/lgbm/lgbm_L31_M100.joblib": "fcd577251fac285839f5ca66f130516d60e1150e0cd0a13099bb4973491d8d24",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/T/lgbm/lgbm_L31_M50.joblib": "3bc47d57782b108a2923d1442d32b5dbc77639057fd5ee98e669bb1b79995d77",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/T/lgbm/lgbm_L63_M100.joblib": "718473896837dfa2e0bc53904dcb9fce4be31bc4f3eef99cce35becc48b007b4",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/T/lgbm/lgbm_L63_M50.joblib": "8925b3c5d1a09dcb5883f1e30ed558e3217eb24ed6740d4389d1b96fb9716a85",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/T/logit/logit_C0.0001.joblib": "02b95bff2b555729b4cd944795950705940967212ac9f8b4a736d6acef4ff88c",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/T/logit/logit_C0.001.joblib": "b282f34cbc7ba1cf731ed09a69c585bf8302eafe64a22b6e42af1d9039f8ad89",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/T/logit/logit_C0.01.joblib": "409e147f6f919d827b5bd80c808f8e7b139f28be22f3630989af16ca5d188abd",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/T/logit/logit_C0.1.joblib": "4b85f25e5f8ecc1316d55d43ebb830c91fc6a52b8d432a2245d55ec3997de763",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/T/logit/logit_C1.joblib": "5d3bbb1bf57a8f3406fba7856441db43b5fc3e4660e286b3de35a9c9553df4a8",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/T/logit/logit_C10.joblib": "fa436f3406fc64f97c4d9a4c509c5e6d9b5a90a64d9eb5114609d05473233011",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/T/pt/pt_C0.0001.joblib": "c3aa3e279fd53778d2b5a99dc41462947ebae87db78458da08cdf364e666d5ea",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/T/pt/pt_C0.001.joblib": "9a4c537324bb002f31c4620918f13ae44b7f422d37d4a165df412b8f1d3e4b06",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/T/pt/pt_C0.01.joblib": "7ea03eaf1504f6f3c40e0b81035a84804bfe0bbdd4422fdb6ec898c83e87b4ce",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/T/pt/pt_C0.1.joblib": "7e9e3e6bc62363e49562583c798494a0d4267a6650a47d17c03454a4bf712e96",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/T/pt/pt_C1.joblib": "4abd8dbaf332da84ad271481be55c13db5a2e71a17a70fc09200c10145b30f7e",
+   "outputs/incremental_q_training_20260915/smoke_train_only/models/T/pt/pt_C10.joblib": "deb2f1cf1c7faa8ec1dac6739f0b0c2d47404c4206b48f3bd8b1e0986946d400",
+   "outputs/incremental_q_training_20260915/smoke_train_only/selection/lgbm_N.json": "7b3a77567ee790e78d4661321ab2adf98ae0336860284b5d193a8b900e658f89",
+   "outputs/incremental_q_training_20260915/smoke_train_only/selection/lgbm_T.json": "201547c85067ab69cb97ce334037a30779cdaa4e03fbde42366ab53f3d0cdb55",
+   "outputs/incremental_q_training_20260915/smoke_train_only/selection/logit_N.json": "3d4e6c30b289fd84ec1edd8ec44e3f903deaad2a107d8692ebd29673e25d4791",
+   "outputs/incremental_q_training_20260915/smoke_train_only/selection/logit_T.json": "b4c8219c61ee9b6e356e4c97b69800140fe9eae49027ccce8d534265a145c4dc",
+   "outputs/incremental_q_training_20260915/smoke_train_only/selection/pt_N.json": "d03bc1242e8d8a5e98ec4b49bfc1acf871c5a7d0f6a4b30dd58501b0c9750192",
+   "outputs/incremental_q_training_20260915/smoke_train_only/selection/pt_T.json": "4afe105e844ec0fe33f30ed40852368f8d7858661b59630c59e12405fd724d9b",
+   "outputs/cohort_role_training_20260915/frozen_manifest.json": "3c738a3ff537a3a52fcf9d8bdcd4c8b0c80b94993e53a176226abb4813280454",
+   "outputs/cohort_role_training_20260915/cohorts/EXT_KR_16.13_cohort.npz": "8cc6d95039ca30d73e82429895dd2502408195452452793cb80b8bdd8f6dc98f",
+   "outputs/cohort_role_training_20260915/cohorts/EXT_KR_16.14_pilot_cohort.npz": "87c5cf979d274ab7d2b1b4234a32cc6b3262d845be39b3356d2aba056231c32e",
+   "outputs/cohort_role_training_20260915/cohorts/EXT_KR_16.15_cohort.npz": "4d120ca58e59865817cf6f11a02cc45512eeea17f82b5341d86b4e855f57cf97",
+   "outputs/cohort_role_training_20260915/cohorts/EXT_NA1_16.13_cohort.npz": "bd77c1b6f4824fe25ff00408cffd1d4fa10b8501e58fc265dcae04db4caea0ad",
+   "outputs/cohort_role_training_20260915/cohorts/MAIN_TEST_cohort.npz": "3239e4c7ac81678adf75e07ec1cc9035136c1572e82e06601695ad78bc162844",
+   "outputs/cohort_role_training_20260915/cohorts/MAIN_TRAIN_cohort.npz": "71fbe5239e9cb76bf97466f1018092755f4f34f6ac941f337593b4cd2d0b1746",
+   "outputs/cohort_role_training_20260915/cohorts/MAIN_VALIDATION_cohort.npz": "a4efc653ebdf698a06dfbb6b2b33dca2ef2759d094fa22d210e14f4936622bf6",
+   "outputs/cohort_role_training_20260915/cohorts/cohort_manifest.json": "e39a33df3afad820bb6fdcbcc0796a9bd3bf5ca27c522cd07b0e48184c2b3071",
+   "outputs/cohort_role_training_20260915/cohorts/detector_train_fixture.json": "ff4f1151a140a0817eff47febcb6f499ae0fde1c198d2c963a797eab13030a1a",
+   "outputs/cohort_role_training_20260915/cohorts/negative_count_provenance.json": "e4b7052a1c7faaf5f73922490f4a0e0a1ed293ce29c28fab8ed6b482ce6264a2",
+   "outputs/postkill_objective_delay_full/exposures.csv": "6e07eef42a68ab5deabe6bca544885c64d26533a88bd5b5c9e8116036e6a7977",
+   "outputs/full_corpus_training_20260915/external/KR_16.13/exposures.csv": "c5b24db5629d8d1f330775ccd12dbef81f75b4ee7fb427b5cc13c367dc932e2b",
+   "outputs/full_corpus_training_20260915/external/KR_16.13/prepared_manifest.json": "2aa0793dc4c688bccb825236e68b6a54cf8cc1179a03d258e65f403016edf270",
+   "outputs/full_corpus_training_20260915/external/KR_16.14_pilot/exposures.csv": "b802e355d8a0e1da9b47ad60f7299175b32d0b16ac48c8b4f63381bfa0b82341",
+   "outputs/full_corpus_training_20260915/external/KR_16.14_pilot/prepared_manifest.json": "5777b2a664ee6dc7d6e5d80966f77d3c779b160f2d5aba5f0c84850d1a2eee96",
+   "outputs/full_corpus_training_20260915/external/KR_16.15/exposures.csv": "b960e111601994653a6f77f3e20ba237fab48588cd9fecc6e0214e486c3b37ed",
+   "outputs/full_corpus_training_20260915/external/KR_16.15/prepared_manifest.json": "136ba7ffed4004114c4f60c92c70f14fc8d8b3d5860a8f8244501b2308373d29",
+   "outputs/full_corpus_training_20260915/external/NA1_16.13/exposures.csv": "5f9b94bcbe96a7f986417610465787d1d03ad05d1f971cf586bed89c3e987039",
+   "outputs/full_corpus_training_20260915/external/NA1_16.13/prepared_manifest.json": "bc5e749bc6da5a26d9da60b073ff172dbc93084b82b11e726a27c7dd3b3cb0a0"
+  },
+  "iq_winners": {
+   "pt_T": {
+    "chosen": "pt_C1__raw",
+    "bundle": "models/T/pt/pt_C1.joblib",
+    "bundle_sha256": "e7c9d52c9cdc9154c5d72fdd75efb60136e5d98db437cc876ab1532fac11bf98",
+    "calibration": "raw"
+   },
+   "logit_T": {
+    "chosen": "logit_C0.001__raw",
+    "bundle": "models/T/logit/logit_C0.001.joblib",
+    "bundle_sha256": "437ee0ba7c81b54ce80bb68de43692410f295418f8094310110ec8c6c08c4082",
+    "calibration": "raw"
+   },
+   "lgbm_T": {
+    "chosen": "lgbm_L15_M100__raw",
+    "bundle": "models/T/lgbm/lgbm_L15_M100.joblib",
+    "bundle_sha256": "34b2c300e83c24243c3670fc14d2f65c9a042e8153f13112ed839482db709c65",
+    "calibration": "raw"
+   },
+   "pt_N": {
+    "chosen": "pt_C1__raw",
+    "bundle": "models/N/pt/pt_C1.joblib",
+    "bundle_sha256": "38f4945ced151bf6292865b42fb06fd97249ea2a5273dc84ff5bdde25b211869",
+    "calibration": "raw"
+   },
+   "logit_N": {
+    "chosen": "logit_C0.01__isotonic",
+    "bundle": "models/N/logit/logit_C0.01.joblib",
+    "bundle_sha256": "169d3601d98bb33738eeb925d4167eb23174bbe8a8b67ac41d0d14a58f32afc0",
+    "calibration": "isotonic"
+   },
+   "lgbm_N": {
+    "chosen": "lgbm_L15_M100__sigmoid",
+    "bundle": "models/N/lgbm/lgbm_L15_M100.joblib",
+    "bundle_sha256": "65135557720a70348428bbd0278d19ee7404dbf8e8035fb2863f95b207f9fadf",
+    "calibration": "sigmoid"
+   }
+  }
+ },
+ "data_contract": {
+  "corpus": "MAIN 210000 matches: TRAIN 15.14, VALIDATION 15.15 (Q_CAL / Q_SELECT), TEST 15.16; externals KR_16.13, KR_16.14_pilot, KR_16.15, NA1_16.13",
+  "old_population_counts": {
+   "TRAIN": {
+    "T": 39605,
+    "N": 159753
+   },
+   "Q_CAL": {
+    "T": 10390,
+    "N": 40565
+   },
+   "Q_SELECT": {
+    "T": 10195,
+    "N": 40180
+   },
+   "MAIN_TEST": {
+    "T": 32981,
+    "N": 130595
+   },
+   "EXT_KR_16.13": {
+    "T": 5202,
+    "N": 20228
+   },
+   "EXT_KR_16.14_pilot": {
+    "T": 101,
+    "N": 374
+   },
+   "EXT_KR_16.15": {
+    "T": 507,
+    "N": 1712
+   },
+   "EXT_NA1_16.13": {
+    "T": 5312,
+    "N": 21226
+   }
+  },
+  "labels": "Y_h90 = 1[delta_h90 > 0]; TRAIN OOF V; unchanged V",
+  "cohorts": "T: known min >= 4; N: known min < 4"
+ },
+ "inputs": {
+  "ridge_names_sha256": "1ca61dee2fc08ff03b5255bb5dd722600b17bdd062afa40586ae4e9ab69a77c3",
+  "input_names_all_sha256": "cca21a11724d40cde51c92faf1a5e1ad4557aeb84114d9e5de04d812896cbb19"
+ },
+ "fixed_configurations": {
+  "registry": {
+   "T": {
+    "logit": "logit_C0.001",
+    "lgbm": "lgbm_L15_M100"
+   },
+   "N": {
+    "logit": "logit_C0.01",
+    "lgbm": "lgbm_L15_M100"
+   }
+  },
+  "source": "iq h90 family winners (logit, lgbm)",
+  "rule": "configuration fixed; calibration selected per family and cohort on dev Q_SELECT",
+  "lgbm_fixed": {
+   "objective": "binary",
+   "learning_rate": 0.04,
+   "n_estimators": 1000,
+   "reg_lambda": 1.0,
+   "colsample_bytree": 0.9,
+   "subsample": 1.0,
+   "n_jobs": 4,
+   "verbosity": -1,
+   "metric": "None",
+   "deterministic": true,
+   "force_col_wise": true
+  },
+  "seeds": {
+   "lgbm": [
+    7,
+    42,
+    123
+   ]
+  }
+ },
+ "evaluation": {
+  "sets": [
+   "MAIN_TEST",
+   "EXT_KR_16.13",
+   "EXT_KR_16.14_pilot",
+   "EXT_KR_16.15",
+   "EXT_NA1_16.13"
+  ],
+  "cells": "all, B40, B45, time bins, B40 x time",
+  "named": [
+   "refit_logit",
+   "refit_lgbm",
+   "frozen_logit",
+   "frozen_lgbm",
+   "frozen_pt"
+  ],
+  "contrasts": [
+   {
+    "a": "refit_lgbm",
+    "b": "frozen_lgbm",
+    "label": "PRIMARY: refit LightGBM - frozen parent LightGBM (dev population)"
+   },
+   {
+    "a": "refit_logit",
+    "b": "frozen_logit",
+    "label": "planned: refit logistic - frozen parent logistic (dev population)"
+   },
+   {
+    "a": "frozen_lgbm",
+    "b": "frozen_pt",
+    "label": "planned: frozen LightGBM - frozen PT (dev population)"
+   },
+   {
+    "a": "refit_lgbm",
+    "b": "frozen_pt",
+    "label": "planned: refit LightGBM - frozen PT (dev population)"
+   }
+  ],
+  "primary": {
+   "quantity": "cohort T MAIN TEST: frozen parent LightGBM Brier on the dev population vs the parent-reported Brier on the old population, with the fraction of changed T rows",
+   "contrast": "refit LightGBM - frozen LightGBM, dev population, all cell, Brier",
+   "set": "MAIN_TEST",
+   "cohort": "T"
+  },
+  "identity": "frozen winner predictions on common rows must equal the parent eval predictions",
+  "bootstrap": {
+   "replicates": 1000,
+   "seed": 20260915,
+   "where": "all / B40 / B45 with >= 30 matches and both classes"
+  },
+  "population_comparison": "old vs dev population metrics are descriptive (different rows); no interval across definitions"
+ },
+ "not_done": [
+  "G/D re-estimation on 15.14 + 15.15 pooled",
+  "V changes",
+  "human review",
+  "causal reading"
+ ],
+ "environment": {
+  "python": "3.13.5 | packaged by Anaconda, Inc. | (main, Jun 12 2025, 16:37:03) [MSC v.1929 64 bit (AMD64)]",
+  "executable": "C:\\Users\\todtj\\anaconda3\\python.exe",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "numpy": "2.1.3",
+  "scipy": "1.15.3",
+  "sklearn": "1.6.1",
+  "lightgbm": "4.6.0",
+  "joblib": "1.4.2",
+  "threads": {
+   "OMP_NUM_THREADS": null,
+   "OPENBLAS_NUM_THREADS": null,
+   "MKL_NUM_THREADS": null
+  },
+  "dont_write_bytecode": true,
+  "cuda_visible_devices": ""
+ },
+ "source_sha256": {
+  "scripts/dd20260916_census.py": "2c478b27bbe6bc36ade717610279a4f64aeb3ca77f9e0e062d1bcb1d99aba745",
+  "scripts/dd20260916_common.py": "1849fbcb4e7fef78bdc3ef891ee17d717f57a681f1a8ee69a81b453f19fc6717",
+  "scripts/dd20260916_driver.py": "915960ba45b339fc71f5ab7e7a343164dacc5a0d7aa5a74d4e12ddad58b83acb",
+  "scripts/dd20260916_evaluate.py": "4d0d902c28c1e5c0fda26b9195617cc78778b3b0639ec6b70bac963d3af638dd",
+  "scripts/dd20260916_fit_freeze.py": "d9cb67b13493df2b486c92d6e529c6b5551722584a764251e54df5f6eee3665d",
+  "scripts/dd20260916_postrun_checks.py": "70f7ac80404025629a52dc7fc3be8113103f99dacddcc919cbba6fa5f17bdfa7",
+  "scripts/dd20260916_protocol.py": "055baeacebefd486735741ee5937e9ab298f5e7d34baa6adb92bf99b8ec2025e",
+  "scripts/dd20260916_rebuild.py": "754b637fe71357612a01f700d93e07f12a4f04ab569a9986663ce64db1410bf8",
+  "scripts/dd20260916_redetect.py": "46d259c31a5bebae55efc915fc2c52964cddd9dd3bcda27bcbff062320a57825",
+  "scripts/dd20260916_report.py": "35bda8225cc645355d3ab5d115a68a2ee90d0fbfffabdc90d7e969a32c344e69",
+  "scripts/dd20260916_run_contract_tests.py": "570d71d376624a80f0b7de73613bae361b47115e17210b31c5614a0ac7d101bf",
+  "scripts/dd20260916_snapshot.py": "b7b1d1684879e6c7ab0356009823b756bddc37e0a429a8be8bd119cb6feaf97b",
+  "tests/test_dd20260916_contracts.py": "5b0d579f141f859f03442272b8f0b3a321622bbfe7781e98116f2b79ebad2ca7",
+  "scripts/fc20260915_common.py": "aeb9f3b07b5a5e68cc95de09a4a12870ac7e7f0728a66a30535c7dbbbad73405",
+  "scripts/cr20260915_common.py": "04d4a2eb9808888d6b5e4896bdc50405ffac4bde79ee65173046627aa146e081",
+  "scripts/iq20260915_common.py": "a51925020c626275b3b1db456490d2e2882e86cda59bc8531dfeeba81e6c7956",
+  "scripts/fc20260915_extract.py": "dd0c869e17c58fee508a40984e2e5320111f69d9469edf91a12264b13b582b29",
+  "scripts/measure_postkill_objective_delay.py": "5011c6fe8d8061e5df2e0ca8c668db79c538d723423739f407395bfb9f35020b",
+  "docs/CLAUDE_DEFINITION_DEV_20260916.md": "ef8d5d8f6e5de552dd56e358e07eb6b217f3f61206f6263e0cd7fc8db2b77f1b",
+  "docs/TOG_END_TO_END_READINESS_AUDIT_20260915.md": "473acf3141943fa828a0253fa35a87cb473b5c5fb3d3ac47cbaea5b9a09169e5",
+  "docs/COLLABORATOR_CRITIQUE_RESPONSE_20260915.md": "c847d82d00654f88cbe5f8f70370cf8498c3c722c89657b2d27064860f113396"
+ }
+}

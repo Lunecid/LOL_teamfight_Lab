@@ -1,0 +1,29 @@
+{
+ "group": "driver_full",
+ "state": "complete",
+ "stage": "full",
+ "pid": 43656,
+ "updated": "2026-09-16 03:15:50",
+ "elapsed_s": 392.7,
+ "processed": 2,
+ "total": 2,
+ "error": null,
+ "next_step": "next plan",
+ "history": [
+  {
+   "stage": "freeze",
+   "state": "running",
+   "at": "2026-09-16 03:09:17"
+  },
+  {
+   "stage": "shap",
+   "state": "running",
+   "at": "2026-09-16 03:09:24"
+  },
+  {
+   "stage": "full",
+   "state": "complete",
+   "at": "2026-09-16 03:15:50"
+  }
+ ]
+}

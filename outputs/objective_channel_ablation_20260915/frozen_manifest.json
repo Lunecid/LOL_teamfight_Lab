@@ -1,0 +1,153 @@
+{
+ "role": "EXPLORATORY_NAMED_OBJECTIVE_CHANNEL_ABLATION_AFTER_PRIOR_TEST_EXPOSURE_NOT_CAUSAL_NOT_GROUND_TRUTH",
+ "version": "objective_channel_ablation_20260915",
+ "frozen_at": "2026-09-15 16:34:25",
+ "protocol_sha256": "84c20e3e9122b8f60173804d1873e2fdda61c5935a4d6dca8580b0f221ffa6fa",
+ "feature_evidence_sha256": "b6f4406022aea6af0d93267d7c89030b51e46090df1f33a7df54cd5ea05961b6",
+ "manifest_sha256": "511009358897e68392517b4382e431ebffe3b1eb9c37ad15db30316fa1203efc",
+ "selection_sha256": "9b0f3bd5776867b300d7fb91adee3709ae0ca2b6b9a794bdf49a2aa8fe848c93",
+ "primary": {
+  "family": "raw",
+  "final_path": "models\\B_noobj\\v_final_raw.joblib",
+  "final_sha256": "6d7db19782c89a984da96f87a6512883acadf087fda5ffbeb553e34d19932317",
+  "oof_paths": {
+   "fold0": "models\\B_noobj\\v_oof_fold0_raw.joblib",
+   "fold1": "models\\B_noobj\\v_oof_fold1_raw.joblib",
+   "fold2": "models\\B_noobj\\v_oof_fold2_raw.joblib",
+   "fold3": "models\\B_noobj\\v_oof_fold3_raw.joblib",
+   "fold4": "models\\B_noobj\\v_oof_fold4_raw.joblib"
+  },
+  "oof_sha256": {
+   "fold0": "e6766b54dee4c12271330a317c0766e87d6647d045ae36bc038a6be2cddd581c",
+   "fold1": "e9a88b18edd5ebcf8c60c5ce6500811be2c70b590316fd9245521109664c5557",
+   "fold2": "0dbb40ae96acb8cabbd9fd42bf14f6e772ced7697ff9ea8a686afd7372f1dc5d",
+   "fold3": "5d2aa75cfea25053f19f2cb7373001331c94b18e5ad70128066338dc4f46c04f",
+   "fold4": "fe132d6eefc967d63122f7a37369d3c2ea89b926429edf4c8300bcffe10a9703"
+  }
+ },
+ "secondary": {
+  "chosen": "raw",
+  "final_path": "models\\B_noobj\\v_final_raw.joblib",
+  "final_sha256": "6d7db19782c89a984da96f87a6512883acadf087fda5ffbeb553e34d19932317",
+  "oof_paths": {
+   "fold0": "models\\B_noobj\\v_oof_fold0_raw.joblib",
+   "fold1": "models\\B_noobj\\v_oof_fold1_raw.joblib",
+   "fold2": "models\\B_noobj\\v_oof_fold2_raw.joblib",
+   "fold3": "models\\B_noobj\\v_oof_fold3_raw.joblib",
+   "fold4": "models\\B_noobj\\v_oof_fold4_raw.joblib"
+  },
+  "oof_sha256": {
+   "fold0": "e6766b54dee4c12271330a317c0766e87d6647d045ae36bc038a6be2cddd581c",
+   "fold1": "e9a88b18edd5ebcf8c60c5ce6500811be2c70b590316fd9245521109664c5557",
+   "fold2": "0dbb40ae96acb8cabbd9fd42bf14f6e772ced7697ff9ea8a686afd7372f1dc5d",
+   "fold3": "5d2aa75cfea25053f19f2cb7373001331c94b18e5ad70128066338dc4f46c04f",
+   "fold4": "fe132d6eefc967d63122f7a37369d3c2ea89b926429edf4c8300bcffe10a9703"
+  }
+ },
+ "families": {
+  "raw": {
+   "final_sha256": "6d7db19782c89a984da96f87a6512883acadf087fda5ffbeb553e34d19932317",
+   "oof_sha256": {
+    "fold0": "e6766b54dee4c12271330a317c0766e87d6647d045ae36bc038a6be2cddd581c",
+    "fold1": "e9a88b18edd5ebcf8c60c5ce6500811be2c70b590316fd9245521109664c5557",
+    "fold2": "0dbb40ae96acb8cabbd9fd42bf14f6e772ced7697ff9ea8a686afd7372f1dc5d",
+    "fold3": "5d2aa75cfea25053f19f2cb7373001331c94b18e5ad70128066338dc4f46c04f",
+    "fold4": "fe132d6eefc967d63122f7a37369d3c2ea89b926429edf4c8300bcffe10a9703"
+   },
+   "oof_paths": {
+    "fold0": "models\\B_noobj\\v_oof_fold0_raw.joblib",
+    "fold1": "models\\B_noobj\\v_oof_fold1_raw.joblib",
+    "fold2": "models\\B_noobj\\v_oof_fold2_raw.joblib",
+    "fold3": "models\\B_noobj\\v_oof_fold3_raw.joblib",
+    "fold4": "models\\B_noobj\\v_oof_fold4_raw.joblib"
+   },
+   "final_path": "models\\B_noobj\\v_final_raw.joblib"
+  },
+  "sigmoid_pos": {
+   "final_sha256": "7e0be534b2ebab700eb6a7f4906cf160359bd97f025c1993d14d446f7861ada8",
+   "oof_sha256": {
+    "fold0": "1ac6e024ab33a26721e9f4455b9f04c59b8a02b26224734999496afe2d562481",
+    "fold1": "59738180544426b12a5f3dd4bea85330ef235c7c4ecaadb618addcf50e8ad03b",
+    "fold2": "6aebb640c8a5d2838d136da5a7441c690049295a7e154d5b2a0801b0d7a0bd40",
+    "fold3": "4c1c9698f390cc211cc87d505f62ef41e754f568e5e76037f39c8cba899b5adc",
+    "fold4": "00ce957ab5d98581f74bf553a197c5a896e9eff1b9978fbf08acee7c5e5f558a"
+   },
+   "oof_paths": {
+    "fold0": "models\\B_noobj\\v_oof_fold0_sigmoid_pos.joblib",
+    "fold1": "models\\B_noobj\\v_oof_fold1_sigmoid_pos.joblib",
+    "fold2": "models\\B_noobj\\v_oof_fold2_sigmoid_pos.joblib",
+    "fold3": "models\\B_noobj\\v_oof_fold3_sigmoid_pos.joblib",
+    "fold4": "models\\B_noobj\\v_oof_fold4_sigmoid_pos.joblib"
+   },
+   "final_path": "models\\B_noobj\\v_final_sigmoid_pos.joblib"
+  }
+ },
+ "adapter_file_sha256": {
+  "models\\B_noobj\\v_final_raw.joblib": "6d7db19782c89a984da96f87a6512883acadf087fda5ffbeb553e34d19932317",
+  "models\\B_noobj\\v_oof_fold0_raw.joblib": "e6766b54dee4c12271330a317c0766e87d6647d045ae36bc038a6be2cddd581c",
+  "models\\B_noobj\\v_oof_fold1_raw.joblib": "e9a88b18edd5ebcf8c60c5ce6500811be2c70b590316fd9245521109664c5557",
+  "models\\B_noobj\\v_oof_fold2_raw.joblib": "0dbb40ae96acb8cabbd9fd42bf14f6e772ced7697ff9ea8a686afd7372f1dc5d",
+  "models\\B_noobj\\v_oof_fold3_raw.joblib": "5d2aa75cfea25053f19f2cb7373001331c94b18e5ad70128066338dc4f46c04f",
+  "models\\B_noobj\\v_oof_fold4_raw.joblib": "fe132d6eefc967d63122f7a37369d3c2ea89b926429edf4c8300bcffe10a9703",
+  "models\\B_noobj\\v_final_sigmoid_pos.joblib": "7e0be534b2ebab700eb6a7f4906cf160359bd97f025c1993d14d446f7861ada8",
+  "models\\B_noobj\\v_oof_fold0_sigmoid_pos.joblib": "1ac6e024ab33a26721e9f4455b9f04c59b8a02b26224734999496afe2d562481",
+  "models\\B_noobj\\v_oof_fold1_sigmoid_pos.joblib": "59738180544426b12a5f3dd4bea85330ef235c7c4ecaadb618addcf50e8ad03b",
+  "models\\B_noobj\\v_oof_fold2_sigmoid_pos.joblib": "6aebb640c8a5d2838d136da5a7441c690049295a7e154d5b2a0801b0d7a0bd40",
+  "models\\B_noobj\\v_oof_fold3_sigmoid_pos.joblib": "4c1c9698f390cc211cc87d505f62ef41e754f568e5e76037f39c8cba899b5adc",
+  "models\\B_noobj\\v_oof_fold4_sigmoid_pos.joblib": "00ce957ab5d98581f74bf553a197c5a896e9eff1b9978fbf08acee7c5e5f558a"
+ },
+ "contracts": {
+  "pytest_log": "pytest_run1.txt",
+  "pytest_log_sha256": "326915452a2f1e2865d0aae17295fad72331a96d9e2feace298c6c29eab8eaa5",
+  "v_model_checks_smoke_sha256": "ee557b4de4dbaa75b34d13133a262e998fbc671be5c2d187c084a61d7c17976f",
+  "v_model_checks_full_sha256": "0ce9d735ef912f4931c79b08a909a3a43a227fde7e1c81fcb3ea14ce5911cdaa"
+ },
+ "primary_A": {
+  "v_final_sha256": "392db878132ee4ce00ab908f84a9a5ef780db0b602c7c8eca6582d845f73d105",
+  "v_final_path": "models\\v\\v_final_raw.joblib",
+  "v_oof_sha256": {
+   "fold0": "c557a083f7cb3ca77e0735cda86ace790e1ed94da28e3ec9bc722df8730e94d8",
+   "fold1": "40cf216b5ce86a4a8099e40df6b3b7e1af418267ee03a45df799d98f48a4c89d",
+   "fold2": "f8b26f77a6a5324b5b4b05864362dd74d539e3373778b28ee362f437cb9be8e2",
+   "fold3": "69cb248f46384957bebf6ecec899ea718d93e897d7e4ef80966b1add33e9fa3b",
+   "fold4": "e8464c9535bf30067edf663a7bfdc39e2dc6979a2fb0fb49c8b132d8351ec819"
+  },
+  "v_oof_paths": {
+   "fold0": "models\\v\\v_oof_fold0.joblib",
+   "fold1": "models\\v\\v_oof_fold1.joblib",
+   "fold2": "models\\v\\v_oof_fold2.joblib",
+   "fold3": "models\\v\\v_oof_fold3.joblib",
+   "fold4": "models\\v\\v_oof_fold4.joblib"
+  }
+ },
+ "pre_freeze_outcome_access": [
+  {
+   "time": "2026-09-15 16:31:15",
+   "sub_roles": [
+    "fold0",
+    "fold1",
+    "fold2",
+    "fold3",
+    "fold4"
+   ],
+   "purpose": "B_noobj TRAIN-only smoke fit (pseudo roles)",
+   "rows": 74673
+  },
+  {
+   "time": "2026-09-15 16:31:43",
+   "sub_roles": [
+    "V_CAL",
+    "V_SELECT",
+    "fold0",
+    "fold1",
+    "fold2",
+    "fold3",
+    "fold4"
+   ],
+   "purpose": "B_noobj fit (TRAIN), sigmoid fit (V_CAL), secondary selection (V_SELECT)",
+   "rows": 112142
+  }
+ ],
+ "pre_freeze_label_access": [],
+ "statement": "B_noobj final + 5 OOF (raw primary, both calibration families) and the secondary choice are frozen before any TEST/external/Q_CAL/Q_SELECT outcome or TEST/external label access by this study."
+}

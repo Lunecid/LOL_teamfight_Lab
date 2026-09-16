@@ -1,0 +1,95 @@
+{
+ "group": "cohorts",
+ "state": "complete",
+ "stage": "cohorts",
+ "pid": 19752,
+ "updated": "2026-09-15 14:26:26",
+ "elapsed_s": 182.6,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "contract tests, then specialist q fits",
+ "cohort_manifest_sha256": "e39a33df3afad820bb6fdcbcc0796a9bd3bf5ca27c522cd07b0e48184c2b3071",
+ "history": [
+  {
+   "stage": "input_hashes",
+   "state": "running",
+   "at": "2026-09-15 14:23:24"
+  },
+  {
+   "stage": "load_shards",
+   "state": "running",
+   "at": "2026-09-15 14:23:25"
+  },
+  {
+   "stage": "joined",
+   "state": "running",
+   "at": "2026-09-15 14:23:29"
+  },
+  {
+   "stage": "detector_negative_count_matches",
+   "state": "running",
+   "at": "2026-09-15 14:23:33"
+  },
+  {
+   "stage": "negative_counts",
+   "state": "running",
+   "at": "2026-09-15 14:23:34"
+  },
+  {
+   "stage": "detector_train_fixture",
+   "state": "running",
+   "at": "2026-09-15 14:23:38"
+  },
+  {
+   "stage": "train_fixture",
+   "state": "running",
+   "at": "2026-09-15 14:23:40"
+  },
+  {
+   "stage": "detector_EXT_KR_16.13",
+   "state": "running",
+   "at": "2026-09-15 14:23:59"
+  },
+  {
+   "stage": "external_EXT_KR_16.13",
+   "state": "running",
+   "at": "2026-09-15 14:24:58"
+  },
+  {
+   "stage": "detector_EXT_KR_16.14_pilot",
+   "state": "running",
+   "at": "2026-09-15 14:25:02"
+  },
+  {
+   "stage": "external_EXT_KR_16.14_pilot",
+   "state": "running",
+   "at": "2026-09-15 14:25:02"
+  },
+  {
+   "stage": "detector_EXT_KR_16.15",
+   "state": "running",
+   "at": "2026-09-15 14:25:11"
+  },
+  {
+   "stage": "external_EXT_KR_16.15",
+   "state": "running",
+   "at": "2026-09-15 14:25:12"
+  },
+  {
+   "stage": "detector_EXT_NA1_16.13",
+   "state": "running",
+   "at": "2026-09-15 14:25:27"
+  },
+  {
+   "stage": "external_EXT_NA1_16.13",
+   "state": "running",
+   "at": "2026-09-15 14:26:26"
+  },
+  {
+   "stage": "cohorts",
+   "state": "complete",
+   "at": "2026-09-15 14:26:26"
+  }
+ ]
+}

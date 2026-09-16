@@ -1,0 +1,101 @@
+{
+ "group": "fit_logit_N",
+ "state": "complete",
+ "stage": "selected",
+ "pid": 23340,
+ "updated": "2026-09-15 20:55:28",
+ "elapsed_s": 607.0,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "next family/cohort, then freeze",
+ "chosen": "logit_C0.01__isotonic",
+ "selection_sha256": "085e4cf5e66e6ba8d93c6016cd01f4cba1b9a32a1a99091e09e79265ae03874e",
+ "seconds": 599.0,
+ "top3": [
+  [
+   "logit_C0.01__isotonic",
+   0.242553
+  ],
+  [
+   "logit_C0.01__raw",
+   0.242622
+  ],
+  [
+   "logit_C0.01__sigmoid",
+   0.242627
+  ]
+ ],
+ "history": [
+  {
+   "stage": "load",
+   "state": "running",
+   "at": "2026-09-15 20:45:21"
+  },
+  {
+   "stage": "fit_logit_C0.0001",
+   "state": "running",
+   "at": "2026-09-15 20:45:26"
+  },
+  {
+   "stage": "fitted_logit_C0.0001",
+   "state": "running",
+   "at": "2026-09-15 20:45:34"
+  },
+  {
+   "stage": "fit_logit_C0.001",
+   "state": "running",
+   "at": "2026-09-15 20:45:34"
+  },
+  {
+   "stage": "fitted_logit_C0.001",
+   "state": "running",
+   "at": "2026-09-15 20:45:44"
+  },
+  {
+   "stage": "fit_logit_C0.01",
+   "state": "running",
+   "at": "2026-09-15 20:45:44"
+  },
+  {
+   "stage": "fitted_logit_C0.01",
+   "state": "running",
+   "at": "2026-09-15 20:46:04"
+  },
+  {
+   "stage": "fit_logit_C0.1",
+   "state": "running",
+   "at": "2026-09-15 20:46:04"
+  },
+  {
+   "stage": "fitted_logit_C0.1",
+   "state": "running",
+   "at": "2026-09-15 20:46:52"
+  },
+  {
+   "stage": "fit_logit_C1",
+   "state": "running",
+   "at": "2026-09-15 20:46:52"
+  },
+  {
+   "stage": "fitted_logit_C1",
+   "state": "running",
+   "at": "2026-09-15 20:48:43"
+  },
+  {
+   "stage": "fit_logit_C10",
+   "state": "running",
+   "at": "2026-09-15 20:48:43"
+  },
+  {
+   "stage": "fitted_logit_C10",
+   "state": "running",
+   "at": "2026-09-15 20:55:18"
+  },
+  {
+   "stage": "selected",
+   "state": "complete",
+   "at": "2026-09-15 20:55:28"
+  }
+ ]
+}

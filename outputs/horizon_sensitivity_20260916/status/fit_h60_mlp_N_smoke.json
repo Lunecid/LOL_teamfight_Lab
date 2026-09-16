@@ -1,0 +1,37 @@
+{
+ "group": "fit_h60_mlp_N_smoke",
+ "state": "complete",
+ "stage": "selected",
+ "pid": 41268,
+ "updated": "2026-09-16 02:31:24",
+ "elapsed_s": 18.8,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "next family / cohort / horizon, then freeze",
+ "chosen": "mlp_W128_D0.3__sigmoid",
+ "selection_sha256": "d75d67d7e5412d4c4e5a6952c8b57337b6b8e955dbe2377e14c3aa06111eb75c",
+ "seconds": 15.5,
+ "select_brier": {
+  "mlp_W128_D0.3__isotonic": 0.243495,
+  "mlp_W128_D0.3__raw": 0.243098,
+  "mlp_W128_D0.3__sigmoid": 0.243071
+ },
+ "history": [
+  {
+   "stage": "load",
+   "state": "running",
+   "at": "2026-09-16 02:31:05"
+  },
+  {
+   "stage": "fit_mlp_W128_D0.3",
+   "state": "running",
+   "at": "2026-09-16 02:31:08"
+  },
+  {
+   "stage": "selected",
+   "state": "complete",
+   "at": "2026-09-16 02:31:24"
+  }
+ ]
+}

@@ -1,0 +1,34 @@
+{
+ "group": "freeze_smoke",
+ "state": "complete",
+ "stage": "frozen",
+ "pid": 39316,
+ "updated": "2026-09-16 04:17:31",
+ "elapsed_s": 11.3,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "sealed evaluation",
+ "frozen_manifest_sha256": "104417597d3cc43ac2eb8fceb9ead5e97bf9d1602ef7a45c8276a8767b3fd6bb",
+ "overall": {
+  "T": "lgbm_class_pairs:lgbm_L15_M100__raw",
+  "N": "lgbm_class_pairs_identity:lgbm_L15_M100__raw"
+ },
+ "history": [
+  {
+   "stage": "verify_T",
+   "state": "running",
+   "at": "2026-09-16 04:17:20"
+  },
+  {
+   "stage": "verify_N",
+   "state": "running",
+   "at": "2026-09-16 04:17:24"
+  },
+  {
+   "stage": "frozen",
+   "state": "complete",
+   "at": "2026-09-16 04:17:31"
+  }
+ ]
+}

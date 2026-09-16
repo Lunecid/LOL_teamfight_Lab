@@ -1,0 +1,87 @@
+{
+ "group": "fit_cohort_q",
+ "state": "complete",
+ "stage": "fit_cohort_q",
+ "pid": 36020,
+ "updated": "2026-09-15 14:44:58",
+ "elapsed_s": 140.9,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "role models / arms, then freeze",
+ "results": {
+  "T_h90": "ridge_raw",
+  "N_h90": "ridge_isotonic",
+  "T_h60": "ridge_raw",
+  "N_h60": "economic_sigmoid",
+  "T_h120": "ridge_raw",
+  "N_h120": "ridge_isotonic"
+ },
+ "history": [
+  {
+   "stage": "fit_T_h90",
+   "state": "running",
+   "at": "2026-09-15 14:42:41"
+  },
+  {
+   "stage": "selected_T_h90",
+   "state": "running",
+   "at": "2026-09-15 14:42:51"
+  },
+  {
+   "stage": "fit_N_h90",
+   "state": "running",
+   "at": "2026-09-15 14:42:51"
+  },
+  {
+   "stage": "selected_N_h90",
+   "state": "running",
+   "at": "2026-09-15 14:43:27"
+  },
+  {
+   "stage": "fit_T_h60",
+   "state": "running",
+   "at": "2026-09-15 14:43:27"
+  },
+  {
+   "stage": "selected_T_h60",
+   "state": "running",
+   "at": "2026-09-15 14:43:36"
+  },
+  {
+   "stage": "fit_N_h60",
+   "state": "running",
+   "at": "2026-09-15 14:43:37"
+  },
+  {
+   "stage": "selected_N_h60",
+   "state": "running",
+   "at": "2026-09-15 14:44:13"
+  },
+  {
+   "stage": "fit_T_h120",
+   "state": "running",
+   "at": "2026-09-15 14:44:13"
+  },
+  {
+   "stage": "selected_T_h120",
+   "state": "running",
+   "at": "2026-09-15 14:44:22"
+  },
+  {
+   "stage": "fit_N_h120",
+   "state": "running",
+   "at": "2026-09-15 14:44:22"
+  },
+  {
+   "stage": "selected_N_h120",
+   "state": "running",
+   "at": "2026-09-15 14:44:58"
+  },
+  {
+   "stage": "fit_cohort_q",
+   "state": "complete",
+   "at": "2026-09-15 14:44:58"
+  }
+ ]
+}

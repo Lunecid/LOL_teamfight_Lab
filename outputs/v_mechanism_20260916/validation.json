@@ -1,0 +1,123 @@
+{
+ "role": "EXPLORATORY_FOLLOWUP_AFTER_PRIOR_TEST_EXPOSURE_MODEL_DEFINED_LABELS_NOT_CONFIRMATORY",
+ "version": "v_mechanism_20260916",
+ "checked_at": "2026-09-16 03:26:51",
+ "n_checks": 24,
+ "failed": [],
+ "passed": 24,
+ "checks": {
+  "parent_unchanged_sha256_full_corpus_read_targets": true,
+  "parent_unchanged_sha256_extract_states": true,
+  "parent_unchanged_sha256_cohort_role_cohorts": true,
+  "parent_unchanged_inventory_full_corpus": true,
+  "parent_unchanged_sha256_parent_scripts": true,
+  "parent_unchanged_sha256_parent_tests": true,
+  "parent_unchanged_inventory_docs": true,
+  "parent_unchanged_pycache_scripts": true,
+  "parent_unchanged_pycache_tests": true,
+  "parent_expected_hashes_protocol_equal_now": true,
+  "spec_unchanged_since_protocol": true,
+  "adapter_unchanged": true,
+  "order_snapshot_tests_protocol_smoke_tests_freeze_analysis": true,
+  "contract_tests_passed_no_skips": true,
+  "smoke_checks_pass": true,
+  "final_source_hashes_equal_frozen_for_analyze_common": true,
+  "sealed_accesses_only_after_freeze": true,
+  "smoke_read_validation_only_unsealed": true,
+  "analysis_checks_pass": true,
+  "all_valid_rows_collected_once": true,
+  "MAIN_VALIDATION_saved_rows_identities_and_T_summary_recomputed": true,
+  "MAIN_TEST_saved_rows_identities_and_T_summary_recomputed": true,
+  "required_stage_groups_complete": true,
+  "no_bytecode_written_in_parent_scripts_tests": true
+ },
+ "info": {
+  "parent_unchanged_sha256_full_corpus_read_targets": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 51
+  },
+  "parent_unchanged_sha256_extract_states": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 1050
+  },
+  "parent_unchanged_sha256_cohort_role_cohorts": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 10
+  },
+  "parent_unchanged_inventory_full_corpus": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 66854
+  },
+  "parent_unchanged_sha256_parent_scripts": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 148
+  },
+  "parent_unchanged_sha256_parent_tests": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 21
+  },
+  "parent_unchanged_inventory_docs": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 76
+  },
+  "parent_unchanged_pycache_scripts": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 22
+  },
+  "parent_unchanged_pycache_tests": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 15
+  },
+  "contract_tests_passed_no_skips": {
+   "passed": 7,
+   "run": 2
+  },
+  "sealed_accesses_only_after_freeze": {
+   "n_sealed": 2
+  },
+  "analysis_checks_pass": {
+   "checks": {
+    "chunks": 677,
+    "rows": 366746,
+    "names_equal": true,
+    "version_equal": true,
+    "p_pre_exact": 366746,
+    "p_post_exact": 366746,
+    "p_pre_rows": 366746,
+    "adapter_final_rows": 366746,
+    "max_abs_sum_minus_decision": 3.042011087472929e-14,
+    "max_abs_champion": 0.0,
+    "max_abs_logit_diff_minus_decision": 6.231459792616079e-12,
+    "sign_equals_Y": 366746,
+    "sign_rows": 366746,
+    "seconds_stream": 43.5,
+    "pass": true
+   }
+  },
+  "all_valid_rows_collected_once": {
+   "rows": {
+    "MAIN_VALIDATION": 203170,
+    "MAIN_TEST": 163576
+   }
+  }
+ },
+ "results_sha256": "0501a8ee871e907be1ff3d7b7239be016149a941a3bc850029aeff90451dfc29"
+}

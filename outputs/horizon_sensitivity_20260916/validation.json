@@ -1,0 +1,311 @@
+{
+ "role": "EXPLORATORY_FOLLOWUP_AFTER_PRIOR_TEST_EXPOSURE_MODEL_DEFINED_LABELS_NOT_CONFIRMATORY",
+ "version": "horizon_sensitivity_20260916",
+ "checked_at": "2026-09-16 02:58:56",
+ "n_checks": 91,
+ "failed": [],
+ "passed": 91,
+ "checks": {
+  "parent_unchanged_sha256_track_a": true,
+  "parent_unchanged_sha256_incremental_q": true,
+  "parent_unchanged_sha256_cohort_role": true,
+  "parent_unchanged_sha256_full_corpus_read_targets": true,
+  "parent_unchanged_inventory_full_corpus": true,
+  "parent_unchanged_sha256_parent_scripts": true,
+  "parent_unchanged_sha256_parent_tests": true,
+  "parent_unchanged_inventory_docs": true,
+  "parent_unchanged_inventory_deliverables": true,
+  "parent_unchanged_pycache_scripts": true,
+  "parent_unchanged_pycache_tests": true,
+  "parent_unchanged_original_repo_py_sha256": true,
+  "parent_unchanged_shards_inventory": true,
+  "parent_unchanged_main_cache_dir_stat": true,
+  "parent_expected_hashes_protocol_equal_now": true,
+  "spec_unchanged_since_protocol": true,
+  "parent_frozen_manifests_unchanged": true,
+  "legacy_prediction_files_unchanged": true,
+  "registry_equals_parent_h90_winners": true,
+  "order_snapshot_tests_protocol_smoke_latest_tests_before_full_fits": true,
+  "all_selections_before_freeze": true,
+  "contract_tests_passed_no_skips": true,
+  "final_source_hashes_equal_frozen_for_fit_freeze_evaluate_common": true,
+  "sealed_accesses_only_after_freeze": true,
+  "no_sealed_access_before_freeze_recorded_in_manifest": true,
+  "smoke_read_train_only": true,
+  "evaluation_after_freeze": true,
+  "frozen_artifacts_unchanged_now": true,
+  "frozen_artifacts_unchanged_through_evaluation": true,
+  "freeze_prechecks_all_pass": true,
+  "h60_T_counts_equal_specification": true,
+  "h60_T_train_rows_use_own_heldout_fold_oof_V": true,
+  "h60_pt_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "h60_logit_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "h60_lgbm_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "h60_mlp_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "h60_resmlp_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "h60_N_counts_equal_specification": true,
+  "h60_N_train_rows_use_own_heldout_fold_oof_V": true,
+  "h60_pt_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "h60_logit_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "h60_lgbm_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "h60_mlp_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "h60_resmlp_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "h120_T_counts_equal_specification": true,
+  "h120_T_train_rows_use_own_heldout_fold_oof_V": true,
+  "h120_pt_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "h120_logit_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "h120_lgbm_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "h120_mlp_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "h120_resmlp_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "h120_N_counts_equal_specification": true,
+  "h120_N_train_rows_use_own_heldout_fold_oof_V": true,
+  "h120_pt_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "h120_logit_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "h120_lgbm_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "h120_mlp_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "h120_resmlp_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": true,
+  "eval_h60_MAIN_TEST_T_named_winners_equal_frozen_candidates": true,
+  "eval_h60_MAIN_TEST_N_named_winners_equal_frozen_candidates": true,
+  "eval_h60_EXT_KR_16.13_T_named_winners_equal_frozen_candidates": true,
+  "eval_h60_EXT_KR_16.13_N_named_winners_equal_frozen_candidates": true,
+  "eval_h60_EXT_KR_16.14_pilot_T_named_winners_equal_frozen_candidates": true,
+  "eval_h60_EXT_KR_16.14_pilot_N_named_winners_equal_frozen_candidates": true,
+  "eval_h60_EXT_KR_16.15_T_named_winners_equal_frozen_candidates": true,
+  "eval_h60_EXT_KR_16.15_N_named_winners_equal_frozen_candidates": true,
+  "eval_h60_EXT_NA1_16.13_T_named_winners_equal_frozen_candidates": true,
+  "eval_h60_EXT_NA1_16.13_N_named_winners_equal_frozen_candidates": true,
+  "eval_h120_MAIN_TEST_T_named_winners_equal_frozen_candidates": true,
+  "eval_h120_MAIN_TEST_N_named_winners_equal_frozen_candidates": true,
+  "eval_h120_EXT_KR_16.13_T_named_winners_equal_frozen_candidates": true,
+  "eval_h120_EXT_KR_16.13_N_named_winners_equal_frozen_candidates": true,
+  "eval_h120_EXT_KR_16.14_pilot_T_named_winners_equal_frozen_candidates": true,
+  "eval_h120_EXT_KR_16.14_pilot_N_named_winners_equal_frozen_candidates": true,
+  "eval_h120_EXT_KR_16.15_T_named_winners_equal_frozen_candidates": true,
+  "eval_h120_EXT_KR_16.15_N_named_winners_equal_frozen_candidates": true,
+  "eval_h120_EXT_NA1_16.13_T_named_winners_equal_frozen_candidates": true,
+  "eval_h120_EXT_NA1_16.13_N_named_winners_equal_frozen_candidates": true,
+  "legacy_columns_reproduce_parent_reported_metrics_lt_1e-12": true,
+  "evaluation_counts_equal_specification": true,
+  "legacy_joins_complete_and_consistent": true,
+  "cell_membership_recomputed_equal": true,
+  "independent_metric_reconstruction_lt_1e-10": true,
+  "bootstrap_point_estimates_equal_cell_metrics_lt_1e-10": true,
+  "bootstrap_acceptance_all_B40_B45_cells": true,
+  "MAIN_TEST_h60_T_frozen_winners_reload_identical_in_fresh_process": true,
+  "MAIN_TEST_h60_N_frozen_winners_reload_identical_in_fresh_process": true,
+  "MAIN_TEST_h120_T_frozen_winners_reload_identical_in_fresh_process": true,
+  "MAIN_TEST_h120_N_frozen_winners_reload_identical_in_fresh_process": true,
+  "required_stage_groups_complete": true,
+  "no_bytecode_written_in_parent_scripts_tests": true
+ },
+ "info": {
+  "parent_unchanged_sha256_track_a": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 189
+  },
+  "parent_unchanged_sha256_incremental_q": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 267
+  },
+  "parent_unchanged_sha256_cohort_role": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 402
+  },
+  "parent_unchanged_sha256_full_corpus_read_targets": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 51
+  },
+  "parent_unchanged_inventory_full_corpus": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 66854
+  },
+  "parent_unchanged_sha256_parent_scripts": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 129
+  },
+  "parent_unchanged_sha256_parent_tests": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 19
+  },
+  "parent_unchanged_inventory_docs": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 72
+  },
+  "parent_unchanged_inventory_deliverables": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 9
+  },
+  "parent_unchanged_pycache_scripts": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 22
+  },
+  "parent_unchanged_pycache_tests": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 15
+  },
+  "parent_unchanged_original_repo_py_sha256": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 107
+  },
+  "parent_unchanged_shards_inventory": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 35
+  },
+  "parent_unchanged_main_cache_dir_stat": {
+   "changed": null,
+   "removed": null,
+   "added": null,
+   "checked": null
+  },
+  "parent_expected_hashes_protocol_equal_now": {
+   "files": 153
+  },
+  "legacy_prediction_files_unchanged": {
+   "files": 20
+  },
+  "registry_equals_parent_h90_winners": {
+   "registry": {
+    "T": {
+     "pt": "pt_C1",
+     "logit": "logit_C0.001",
+     "lgbm": "lgbm_L15_M100",
+     "mlp": "mlp_W128_D0.3",
+     "resmlp": "resmlp_W128_D0.1"
+    },
+    "N": {
+     "pt": "pt_C1",
+     "logit": "logit_C0.01",
+     "lgbm": "lgbm_L15_M100",
+     "mlp": "mlp_W128_D0.3",
+     "resmlp": "resmlp_W128_D0.1"
+    }
+   }
+  },
+  "order_snapshot_tests_protocol_smoke_latest_tests_before_full_fits": {
+   "first_full_fit": "2026-09-16 02:32:43",
+   "latest_passing_tests": "2026-09-16 02:32:43"
+  },
+  "all_selections_before_freeze": {
+   "frozen_at": "2026-09-16 02:54:55"
+  },
+  "contract_tests_passed_no_skips": {
+   "passed": 10,
+   "run": 2
+  },
+  "sealed_accesses_only_after_freeze": {
+   "n_sealed": 30
+  },
+  "frozen_artifacts_unchanged_now": {
+   "files": 73
+  },
+  "h60_pt_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "pt_C1__raw"
+  },
+  "h60_logit_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "logit_C0.001__raw"
+  },
+  "h60_lgbm_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "lgbm_L15_M100__sigmoid"
+  },
+  "h60_mlp_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "mlp_W128_D0.3__raw"
+  },
+  "h60_resmlp_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "resmlp_W128_D0.1__raw"
+  },
+  "h60_pt_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "pt_C1__raw"
+  },
+  "h60_logit_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "logit_C0.01__raw"
+  },
+  "h60_lgbm_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "lgbm_L15_M100__sigmoid"
+  },
+  "h60_mlp_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "mlp_W128_D0.3__sigmoid"
+  },
+  "h60_resmlp_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "resmlp_W128_D0.1__raw"
+  },
+  "h120_pt_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "pt_C1__raw"
+  },
+  "h120_logit_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "logit_C0.001__raw"
+  },
+  "h120_lgbm_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "lgbm_L15_M100__raw"
+  },
+  "h120_mlp_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "mlp_W128_D0.3__raw"
+  },
+  "h120_resmlp_T_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "resmlp_W128_D0.1__raw"
+  },
+  "h120_pt_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "pt_C1__raw"
+  },
+  "h120_logit_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "logit_C0.01__isotonic"
+  },
+  "h120_lgbm_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "lgbm_L15_M100__sigmoid"
+  },
+  "h120_mlp_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "mlp_W128_D0.3__sigmoid"
+  },
+  "h120_resmlp_N_fit_selection_calibration_preprocessing_stop_and_reload_verified": {
+   "chosen": "resmlp_W128_D0.1__sigmoid"
+  },
+  "legacy_columns_reproduce_parent_reported_metrics_lt_1e-12": {
+   "max_abs": 0.0
+  },
+  "independent_metric_reconstruction_lt_1e-10": {
+   "max_abs": {
+    "auc": 1.1191048088221578e-13,
+    "brier": 0.0,
+    "logloss": 0.0
+   },
+   "cells": 2420
+  },
+  "bootstrap_point_estimates_equal_cell_metrics_lt_1e-10": {
+   "max_abs": 1.1191048088221578e-13
+  },
+  "bootstrap_acceptance_all_B40_B45_cells": {
+   "counts": {
+    "eligible": 56,
+    "ineligible_explicit_skip": 4
+   },
+   "problems": []
+  }
+ },
+ "frozen_manifest_sha256": "d99561e1ad6a501f1a8a4df6d65487b0b5a3069b362e3504a8943daf3723f6b4",
+ "results_sha256": "3daa885346c420fcf4bf9bee8d768e251fdc81247b484ae41ff293bcd39e0e07"
+}

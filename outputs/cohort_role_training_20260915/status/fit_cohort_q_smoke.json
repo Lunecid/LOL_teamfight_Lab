@@ -1,0 +1,43 @@
+{
+ "group": "fit_cohort_q_smoke",
+ "state": "complete",
+ "stage": "fit_cohort_q",
+ "pid": 20296,
+ "updated": "2026-09-15 14:35:51",
+ "elapsed_s": 7.9,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "role models / arms, then freeze",
+ "results": {
+  "T_h90": "p_pre_logistic",
+  "N_h90": "economic_sigmoid"
+ },
+ "history": [
+  {
+   "stage": "fit_T_h90",
+   "state": "running",
+   "at": "2026-09-15 14:35:45"
+  },
+  {
+   "stage": "selected_T_h90",
+   "state": "running",
+   "at": "2026-09-15 14:35:47"
+  },
+  {
+   "stage": "fit_N_h90",
+   "state": "running",
+   "at": "2026-09-15 14:35:47"
+  },
+  {
+   "stage": "selected_N_h90",
+   "state": "running",
+   "at": "2026-09-15 14:35:51"
+  },
+  {
+   "stage": "fit_cohort_q",
+   "state": "complete",
+   "at": "2026-09-15 14:35:51"
+  }
+ ]
+}

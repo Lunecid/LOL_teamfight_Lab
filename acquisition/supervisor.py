@@ -239,17 +239,6 @@ class CollectorSupervisor:
                     self._clear_auth_required()
                     self._status("RUNNING")
                     summary = await self.agent.run_cycle()
-                    if summary.quota_reached:
-                        self.state.record_event(
-                            "quota_complete",
-                            {
-                                "platform": self.config.platform,
-                                "complete": self.agent.complete_count(),
-                                "target": self.config.max_complete_matches,
-                            },
-                        )
-                        self._status("COMPLETE", cycle=summary)
-                        return
                     self._status("SLEEPING", cycle=summary)
                     await self._sleep_until_next_cycle(cycle_started)
                 except AuthenticationRejected as exc:

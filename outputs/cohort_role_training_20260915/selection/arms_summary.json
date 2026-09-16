@@ -1,0 +1,34 @@
+{
+ "role": "EXPLORATORY_FOLLOWUP_MODEL_DEFINED_LABELS_PRIOR_TEST_EXPOSURE",
+ "horizon_s": 90,
+ "attach_checks": {
+  "champion_state_equals_draft_rows": 402772,
+  "pre_ok_rows": 402772,
+  "role_generator_matches_row_split": true,
+  "train_rows_use_oof_fold_of_own_match": true,
+  "role_arrays_finite": true
+ },
+ "role_models_manifest_sha256": "922408031a733526bbc0dee19af284f81a22b39ed608ee9d83e9cbf4258ff7c4",
+ "cohorts": {
+  "T": {
+   "selection_sha256": "69e3b3b26a1fb810b84deb33c3bda13a370ae5f3a37cca2f13ca52752fe804ae",
+   "arm_winners": {
+    "participant": "participant_lgbm_raw",
+    "draft": "draft_lgbm_raw",
+    "role": "role_lgbm_raw"
+   },
+   "overall": "role_lgbm_raw"
+  },
+  "N": {
+   "selection_sha256": "cd446bed376c4ebad7aaec31b6693563473826e13bc51e7f803cc98e6edab897",
+   "arm_winners": {
+    "participant": "participant_lgbm_sigmoid",
+    "draft": "draft_lgbm_sigmoid",
+    "role": "role_lgbm_sigmoid"
+   },
+   "overall": "role_lgbm_sigmoid"
+  }
+ },
+ "ablations_sha256": "d0bee9b4793db3de05621aeef90d7c2b7ca969b77fc7a13fa91f17eb8ccd8547",
+ "written_at": "2026-09-15 14:47:42"
+}

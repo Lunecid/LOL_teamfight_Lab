@@ -52,17 +52,6 @@ def build_parser() -> argparse.ArgumentParser:
         choices=["CHALLENGER", "GRANDMASTER", "MASTER"],
     )
     parser.add_argument("--min-api-patch", default="16.13")
-    parser.add_argument(
-        "--exact-api-patch",
-        default=None,
-        help="retain only this exact API patch, for example 16.13",
-    )
-    parser.add_argument(
-        "--max-complete-matches",
-        type=int,
-        default=0,
-        help="stop cleanly after this many complete matches for the platform/patch",
-    )
     parser.add_argument("--rank-refresh-seconds", type=int, default=3600)
     parser.add_argument("--cycle-seconds", type=int, default=3600)
     parser.add_argument(
@@ -123,10 +112,6 @@ def config_from_args(args: argparse.Namespace, parser: argparse.ArgumentParser) 
         platform=args.platform,
         tiers=tuple(args.tiers),
         min_api_patch=parse_patch(args.min_api_patch),
-        exact_api_patch=parse_patch(args.exact_api_patch),
-        max_complete_matches=(
-            int(args.max_complete_matches) if args.max_complete_matches > 0 else None
-        ),
         rank_refresh_seconds=args.rank_refresh_seconds,
         cycle_interval_seconds=args.cycle_seconds,
         cycle_work_budget_seconds=args.work_budget_seconds,

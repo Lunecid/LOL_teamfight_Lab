@@ -1,0 +1,61 @@
+{
+  "meaning": "Existing v3 model event-transition response, oriented to acquiring team; diagnostic sample, NOT causal effects or production weights. Deduplicated by match/timestamp/team/category/detail.",
+  "source": "C:\\Users\\todtj\\문서\\LOL_Teamfight\\worktrees\\engagement-state-value\\outputs\\temporal_winprob_v3_buckets\\validation_c\\results_c.json",
+  "sampling": "all immediate Elder windows, then a fixed sha256 rank per window-and-category bucket, capped at 20; the rank does not look at delta size",
+  "summary": {
+    "baron": {
+      "n": 59,
+      "mean_pp": 11.339027118644067,
+      "median_pp": 11.1061,
+      "positive": 59
+    },
+    "elder": {
+      "n": 49,
+      "mean_pp": 23.90169795918368,
+      "median_pp": 22.1289,
+      "positive": 49
+    },
+    "soul": {
+      "n": 60,
+      "mean_pp": 1.1464016666666665,
+      "median_pp": 0.58735,
+      "positive": 60
+    },
+    "dragon": {
+      "n": 60,
+      "mean_pp": 4.057473333333333,
+      "median_pp": 4.4504,
+      "positive": 60
+    },
+    "dragon_AIR": {
+      "n": 7,
+      "mean_pp": 4.774342857142857,
+      "median_pp": 5.17
+    },
+    "dragon_CHEMTECH": {
+      "n": 4,
+      "mean_pp": 5.212025000000001,
+      "median_pp": 5.2404
+    },
+    "dragon_EARTH": {
+      "n": 9,
+      "mean_pp": 4.548933333333333,
+      "median_pp": 5.2417
+    },
+    "dragon_FIRE": {
+      "n": 11,
+      "mean_pp": 3.120090909090909,
+      "median_pp": 2.8442
+    },
+    "dragon_HEXTECH": {
+      "n": 13,
+      "mean_pp": 2.869392307692308,
+      "median_pp": 2.8193
+    },
+    "dragon_WATER": {
+      "n": 16,
+      "mean_pp": 4.788525,
+      "median_pp": 5.008749999999999
+    }
+  }
+}

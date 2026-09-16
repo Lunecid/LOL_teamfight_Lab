@@ -1,0 +1,60 @@
+{
+ "role": "EXPLORATORY_FOLLOWUP_MODEL_DEFINED_LABELS_PRIOR_TEST_EXPOSURE",
+ "results": {
+  "T_h90": {
+   "chosen": "p_pre_logistic",
+   "selection_sha256": "c13a5df776ccbf231ed16932c93b68552e739b2b41b1feda0a62130f52c5716c",
+   "bundle_sha256": {
+    "constant": "1d311a145c25311ec2afd42a3119178c4ca3e9c41af9308579718d606e0c80e3",
+    "p_pre_logistic": "eda513f9f19e3fd3499d941595845db1a0933644d89038814d38da3b0982f184",
+    "p_pre_spline": "78c1b66b36622ee63586a8006907ec4b4a7ebf29d0aa2483d14eac4cb4842a4b",
+    "ridge_raw": "f31dcee9ab6fba7225d76fda766ea4104170852be42c5bdc432a55abfdd1a61b",
+    "ridge_sigmoid": "5f6da77aa3821a01f17afdf56b783f9939db9e522be5fde1bbe113bf763bb25a",
+    "ridge_isotonic": "82290f3dc167a8b989d4e45acafa3c095bfcb8bbc49762298e33ca6cac4a7f77",
+    "economic_raw": "cb844b491173b00857aeb8528a565504e0bb98f5469950013b6ce6015323641f",
+    "economic_sigmoid": "f08528443e13543bf31d6c8cb64ac13561c6998ae91ab4cc5cdf6a97459f2594",
+    "economic_isotonic": "7a05da561be36f67332f1d4a73dda750deb19a2876c524b1bffbf6ff000d0ad4"
+   },
+   "select_brier": {
+    "constant": 0.25037,
+    "p_pre_logistic": 0.23853,
+    "p_pre_spline": 0.239884,
+    "ridge_raw": 0.249308,
+    "ridge_sigmoid": 0.244761,
+    "ridge_isotonic": 0.2481,
+    "economic_raw": 0.249378,
+    "economic_sigmoid": 0.243829,
+    "economic_isotonic": 0.245657
+   },
+   "pooled_select_brier_DIAG": 0.233933
+  },
+  "N_h90": {
+   "chosen": "economic_sigmoid",
+   "selection_sha256": "3aeb56f66051c15a5bb61fd095f71f81bdf444db08cff3913d5cc58ecc408830",
+   "bundle_sha256": {
+    "constant": "470b84c0ea0e381219397469bc283a9e427ec38ff8618448a5e5c6cf9dc31349",
+    "p_pre_logistic": "890961eff7014788b414572044fb68afbd83455398ca7c43c6cc1e4f30223929",
+    "p_pre_spline": "f199d0d83bb532801fbed46c1a57d2478ca13d4760a20b41fdc3d0c1fe1619ee",
+    "ridge_raw": "73d6cbf3ca6e984cb6945c8c3bf886ba1a519107dac957e0bcd9f8ea191f1381",
+    "ridge_sigmoid": "6730f00ca8a334ace21be3dba66a6063eb1bc32fb0a4631fb8ba356b7f400091",
+    "ridge_isotonic": "ade05145290f1365b3c05a8083379089d637366be1b27e7e88ff3790dc00f24c",
+    "economic_raw": "5364f05592affc6641944af0e534e14275c624a311b41125cd77f7531f1d66fe",
+    "economic_sigmoid": "e53b445322ce39823c03b119160b381d3da929f61f7af5ca0d0ae1bfe7016710",
+    "economic_isotonic": "0b88e9af3539228e53d8e1744978942fdd1ee250f63b5b8cc85cb4ec841d283c"
+   },
+   "select_brier": {
+    "constant": 0.250241,
+    "p_pre_logistic": 0.247414,
+    "p_pre_spline": 0.246601,
+    "ridge_raw": 0.247439,
+    "ridge_sigmoid": 0.246599,
+    "ridge_isotonic": 0.246314,
+    "economic_raw": 0.246321,
+    "economic_sigmoid": 0.245766,
+    "economic_isotonic": 0.245948
+   },
+   "pooled_select_brier_DIAG": 0.240837
+  }
+ },
+ "written_at": "2026-09-15 14:35:51"
+}

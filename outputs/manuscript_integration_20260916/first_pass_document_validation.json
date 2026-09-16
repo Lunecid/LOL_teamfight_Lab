@@ -1,0 +1,5021 @@
+{
+  "summary": {
+    "scope": "Document presence, encoding, links and reference-key integrity; semantic/numeric review recorded separately",
+    "checks": 654,
+    "passed": 652,
+    "failed": [
+      {
+        "name": "local_link/README.md/7",
+        "passed": false,
+        "detail": "../../outputs/manuscript_integration_20260916/writer_receipt.json"
+      },
+      {
+        "name": "table_columns/claim_evidence_ledger.md/124",
+        "passed": false,
+        "detail": {
+          "actual": 6,
+          "expected": 5
+        }
+      }
+    ]
+  },
+  "files": {
+    "README.md": "57b95578a75ed54b74139071d3255f0a746387797552ed8ebf5a631ac7ae55f4",
+    "manuscript.md": "b28f08aa8b704909541f1e633b384e4938dd1b17624764e2217b23d4155ca027",
+    "reviewer_response_matrix.md": "d016bc1ab513de9c94083e70109659f7c1c8b22f11f42e367e814b3a9b5e2db7",
+    "collaborator_specification.md": "8dba7a52d2acecb7febf50534d10422f7dbba4792cb5ec6f06cc9be378997077",
+    "claim_evidence_ledger.md": "95bfd72165ab1dcff73f75ab4276b7c0def0a24caf2538615e3e7ddbabe8d7df",
+    "references.bib": "9931267e7d4d3341a8845170b97e88107b330f190d58e6e1889a346c6994118f"
+  },
+  "checks": [
+    {
+      "name": "exists/README.md",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "populated/README.md",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "conflict_markers/README.md",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "unicode_integrity/README.md",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "table_columns/README.md/14",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/README.md/15",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/README.md/16",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/README.md/17",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/README.md/18",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/README.md/19",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/README.md/20",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/README.md/21",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/README.md/22",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/README.md/62",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/README.md/63",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/README.md/64",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/README.md/65",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/README.md/66",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/README.md/70",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/README.md/71",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/README.md/72",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/README.md/73",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/README.md/74",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/README.md/75",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/README.md/76",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/README.md/77",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "local_link/README.md/0",
+      "passed": true,
+      "detail": "../CLAUDE_MANUSCRIPT_INTEGRATION_20260916.md"
+    },
+    {
+      "name": "local_link/README.md/1",
+      "passed": true,
+      "detail": "manuscript.md"
+    },
+    {
+      "name": "local_link/README.md/2",
+      "passed": true,
+      "detail": "reviewer_response_matrix.md"
+    },
+    {
+      "name": "local_link/README.md/3",
+      "passed": true,
+      "detail": "collaborator_specification.md"
+    },
+    {
+      "name": "local_link/README.md/4",
+      "passed": true,
+      "detail": "claim_evidence_ledger.md"
+    },
+    {
+      "name": "local_link/README.md/5",
+      "passed": true,
+      "detail": "references.bib"
+    },
+    {
+      "name": "local_link/README.md/6",
+      "passed": true,
+      "detail": "README.md"
+    },
+    {
+      "name": "local_link/README.md/7",
+      "passed": false,
+      "detail": "../../outputs/manuscript_integration_20260916/writer_receipt.json"
+    },
+    {
+      "name": "local_link/README.md/8",
+      "passed": true,
+      "detail": "claim_evidence_ledger.md"
+    },
+    {
+      "name": "exists/manuscript.md",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "populated/manuscript.md",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "conflict_markers/manuscript.md",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "unicode_integrity/manuscript.md",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "table_columns/manuscript.md/185",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/186",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/187",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/188",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/189",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/190",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/220",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/221",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/222",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/223",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/224",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/225",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/226",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/244",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/245",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/246",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/247",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/248",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/249",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/250",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/251",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/252",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/290",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/291",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/292",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/293",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/294",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/295",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/336",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/337",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/338",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/339",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/340",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/341",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/342",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/343",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/367",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/368",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/369",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/370",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/371",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/463",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/464",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/465",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/466",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/467",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/468",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/469",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/471",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/472",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/473",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/474",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/475",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/476",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/480",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/481",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/482",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/483",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/484",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/485",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/505",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/506",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/507",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/508",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/509",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/510",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/511",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/512",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/513",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/514",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/515",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/516",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/517",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/541",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/542",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/543",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/544",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/545",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/546",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/547",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/548",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/549",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/550",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/551",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/552",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/573",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/574",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/575",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/576",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/577",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/578",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/582",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/583",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/584",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/585",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/586",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/587",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/588",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/589",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/615",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/616",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/617",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/618",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/619",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/620",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/621",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/622",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/623",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/624",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/674",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/675",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/676",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/677",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/678",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/679",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/680",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/681",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/682",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/711",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/712",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/713",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/714",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/715",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/716",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/717",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/718",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/719",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/859",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/860",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/861",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/862",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/863",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/864",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/865",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/866",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/867",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/868",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/manuscript.md/869",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "local_link/manuscript.md/0",
+      "passed": true,
+      "detail": "claim_evidence_ledger.md"
+    },
+    {
+      "name": "local_link/manuscript.md/1",
+      "passed": true,
+      "detail": "reviewer_response_matrix.md"
+    },
+    {
+      "name": "local_link/manuscript.md/2",
+      "passed": true,
+      "detail": "collaborator_specification.md"
+    },
+    {
+      "name": "local_link/manuscript.md/3",
+      "passed": true,
+      "detail": "references.bib"
+    },
+    {
+      "name": "local_link/manuscript.md/4",
+      "passed": true,
+      "detail": "README.md"
+    },
+    {
+      "name": "local_link/manuscript.md/5",
+      "passed": true,
+      "detail": "collaborator_specification.md"
+    },
+    {
+      "name": "local_link/manuscript.md/6",
+      "passed": true,
+      "detail": "reviewer_response_matrix.md"
+    },
+    {
+      "name": "local_link/manuscript.md/7",
+      "passed": true,
+      "detail": "../../outputs/manuscript_integration_20260916/citation_audit.md"
+    },
+    {
+      "name": "local_link/manuscript.md/8",
+      "passed": true,
+      "detail": "claim_evidence_ledger.md"
+    },
+    {
+      "name": "local_link/manuscript.md/9",
+      "passed": true,
+      "detail": "../../outputs/manuscript_integration_20260916/position_audit.md"
+    },
+    {
+      "name": "local_link/manuscript.md/10",
+      "passed": true,
+      "detail": "references.bib"
+    },
+    {
+      "name": "local_link/manuscript.md/11",
+      "passed": true,
+      "detail": "claim_evidence_ledger.md"
+    },
+    {
+      "name": "local_link/manuscript.md/12",
+      "passed": true,
+      "detail": "../../outputs/manuscript_integration_20260916/citation_audit.md"
+    },
+    {
+      "name": "exists/reviewer_response_matrix.md",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "populated/reviewer_response_matrix.md",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "conflict_markers/reviewer_response_matrix.md",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "unicode_integrity/reviewer_response_matrix.md",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/9",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/10",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/11",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/12",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/13",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/40",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/41",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/42",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/43",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/44",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/45",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/46",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/47",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/48",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/49",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/55",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/56",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/57",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/58",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/59",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/60",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/66",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/67",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/68",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/69",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/70",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/71",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/77",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/78",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/79",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/80",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/81",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/93",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/94",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/95",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/96",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/97",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/98",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/110",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/111",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/112",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/113",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/114",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/115",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/116",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/117",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/118",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/119",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/135",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/136",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/137",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/138",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/146",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/147",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/148",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/149",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/150",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/reviewer_response_matrix.md/151",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "local_link/reviewer_response_matrix.md/0",
+      "passed": true,
+      "detail": "claim_evidence_ledger.md"
+    },
+    {
+      "name": "local_link/reviewer_response_matrix.md/1",
+      "passed": true,
+      "detail": "manuscript.md"
+    },
+    {
+      "name": "local_link/reviewer_response_matrix.md/2",
+      "passed": true,
+      "detail": "collaborator_specification.md"
+    },
+    {
+      "name": "local_link/reviewer_response_matrix.md/3",
+      "passed": true,
+      "detail": "claim_evidence_ledger.md"
+    },
+    {
+      "name": "local_link/reviewer_response_matrix.md/4",
+      "passed": true,
+      "detail": "collaborator_specification.md"
+    },
+    {
+      "name": "local_link/reviewer_response_matrix.md/5",
+      "passed": true,
+      "detail": "collaborator_specification.md"
+    },
+    {
+      "name": "local_link/reviewer_response_matrix.md/6",
+      "passed": true,
+      "detail": "manuscript.md"
+    },
+    {
+      "name": "exists/collaborator_specification.md",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "populated/collaborator_specification.md",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "conflict_markers/collaborator_specification.md",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "unicode_integrity/collaborator_specification.md",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/59",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/60",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/61",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/62",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/63",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/64",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/65",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/66",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/67",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/68",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/81",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/82",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/83",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/84",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/85",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/86",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/87",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/88",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/89",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/90",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/91",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/98",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/99",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/100",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/101",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/102",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/103",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/104",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/105",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/106",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/107",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/121",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/122",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/123",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/124",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/125",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/126",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/127",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/128",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/129",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/130",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/131",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/147",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/148",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/149",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/150",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/151",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/152",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/178",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/179",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/180",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/181",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/182",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/183",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/184",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/198",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/199",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/200",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/201",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/202",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/203",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/204",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/205",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/206",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/207",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/236",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/237",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/238",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/239",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/240",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/241",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/359",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/360",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/361",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/362",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/363",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/364",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/365",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/366",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/367",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/368",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/375",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/376",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/377",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/378",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/379",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/380",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/416",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/417",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/418",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/419",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/420",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/421",
+      "passed": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/441",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/442",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/443",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/444",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/445",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/446",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/447",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/449",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/450",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/451",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/452",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/453",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/454",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/471",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/472",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/473",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/474",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/475",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/476",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/477",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/478",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/479",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/480",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/494",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/495",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/496",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/497",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/498",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/499",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/500",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/501",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/511",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/512",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/513",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/514",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/515",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/516",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/517",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/541",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/542",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/543",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/544",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/545",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/546",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/547",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/548",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/549",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/565",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/566",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/567",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/568",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/569",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/570",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/571",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/572",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/573",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/593",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/594",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/595",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/596",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/597",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/626",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/627",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/628",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/629",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/630",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/666",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/667",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/668",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/669",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/670",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/671",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/672",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/673",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/674",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/675",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/676",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/677",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/706",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/707",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/708",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/709",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/710",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/711",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/770",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/771",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/772",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/773",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/774",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/775",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/776",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/777",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/778",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/779",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/780",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/788",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/789",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/790",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/791",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/792",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/793",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/794",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/795",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/796",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/797",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/798",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/799",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/800",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/801",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/802",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/803",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/804",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/805",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/806",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/collaborator_specification.md/807",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "local_link/collaborator_specification.md/0",
+      "passed": true,
+      "detail": "../COLLABORATOR_RESEARCH_SPECIFICATION_20260915.md"
+    },
+    {
+      "name": "local_link/collaborator_specification.md/1",
+      "passed": true,
+      "detail": "claim_evidence_ledger.md"
+    },
+    {
+      "name": "local_link/collaborator_specification.md/2",
+      "passed": true,
+      "detail": "reviewer_response_matrix.md"
+    },
+    {
+      "name": "local_link/collaborator_specification.md/3",
+      "passed": true,
+      "detail": "../../outputs/manuscript_integration_20260916/position_audit.md"
+    },
+    {
+      "name": "local_link/collaborator_specification.md/4",
+      "passed": true,
+      "detail": "claim_evidence_ledger.md"
+    },
+    {
+      "name": "local_link/collaborator_specification.md/5",
+      "passed": true,
+      "detail": "references.bib"
+    },
+    {
+      "name": "exists/claim_evidence_ledger.md",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "populated/claim_evidence_ledger.md",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "conflict_markers/claim_evidence_ledger.md",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "unicode_integrity/claim_evidence_ledger.md",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/23",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/24",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/25",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/26",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/27",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/28",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/39",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/40",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/41",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/42",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/43",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/44",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/45",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/46",
+      "passed": true,
+      "detail": {
+        "actual": 7,
+        "expected": 7
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/50",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/51",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/52",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/53",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/54",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/55",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/56",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/57",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/61",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/62",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/63",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/64",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/65",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/66",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/67",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/68",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/69",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/70",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/79",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/80",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/81",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/82",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/83",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/84",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/85",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/86",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/87",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/88",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/89",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/90",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/91",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/92",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/93",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/94",
+      "passed": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/102",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/103",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/104",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/105",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/106",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/107",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/108",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/109",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/110",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/111",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/112",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/113",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/114",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/122",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/123",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/124",
+      "passed": false,
+      "detail": {
+        "actual": 6,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/125",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/126",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/127",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/128",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/129",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/137",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/138",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/139",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/140",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/141",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/142",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/143",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/144",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/145",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/146",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/147",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/148",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/157",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/158",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/159",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/160",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/161",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/162",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/163",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/164",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/165",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/166",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/167",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/168",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/169",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/176",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/177",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/178",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/179",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/180",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/181",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/182",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/183",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/184",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/191",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/192",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/193",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/194",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/195",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/196",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/197",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/198",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/199",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/203",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/204",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/205",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/206",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/207",
+      "passed": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/218",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/219",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/220",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/221",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/222",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/223",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/224",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/225",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/226",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/227",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/228",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/229",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/230",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/231",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/232",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/233",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/234",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/235",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/236",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/237",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/238",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/239",
+      "passed": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/248",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/249",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/250",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/251",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/252",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/253",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/254",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "table_columns/claim_evidence_ledger.md/255",
+      "passed": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "local_link/claim_evidence_ledger.md/0",
+      "passed": true,
+      "detail": "manuscript.md"
+    },
+    {
+      "name": "local_link/claim_evidence_ledger.md/1",
+      "passed": true,
+      "detail": "reviewer_response_matrix.md"
+    },
+    {
+      "name": "local_link/claim_evidence_ledger.md/2",
+      "passed": true,
+      "detail": "collaborator_specification.md"
+    },
+    {
+      "name": "local_link/claim_evidence_ledger.md/3",
+      "passed": true,
+      "detail": "../../outputs/manuscript_integration_20260916/numeric_evidence.json"
+    },
+    {
+      "name": "local_link/claim_evidence_ledger.md/4",
+      "passed": true,
+      "detail": "../../outputs/manuscript_integration_20260916/source_snapshot.json"
+    },
+    {
+      "name": "local_link/claim_evidence_ledger.md/5",
+      "passed": true,
+      "detail": "../../outputs/manuscript_integration_20260916/citation_audit.md"
+    },
+    {
+      "name": "local_link/claim_evidence_ledger.md/6",
+      "passed": true,
+      "detail": "references.bib"
+    },
+    {
+      "name": "exists/references.bib",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "populated/references.bib",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "conflict_markers/references.bib",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "unicode_integrity/references.bib",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "citation/manuscript.md/Halfaker2015",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "citation/manuscript.md/Maymin2021",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "citation/manuscript.md/Hodge2021",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "citation/manuscript.md/Schubert2016",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "citation/manuscript.md/Lundberg2017",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "citation/manuscript.md/Kim2020",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "citation/reviewer_response_matrix.md/Schubert2016",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "citation/claim_evidence_ledger.md/Halfaker2015",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "citation/claim_evidence_ledger.md/Maymin2021",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "citation/claim_evidence_ledger.md/Hodge2021",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "citation/claim_evidence_ledger.md/Schubert2016",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "citation/claim_evidence_ledger.md/Lundberg2017",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "citation/claim_evidence_ledger.md/Kim2020",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "six_audited_references",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "bibliography_used",
+      "passed": true,
+      "detail": null
+    }
+  ]
+}

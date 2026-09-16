@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "items": [
+    {
+      "id": "corpus-checks",
+      "title": "전체 코퍼스의 중복·분할 검사",
+      "queries": [
+        {
+          "rows": [
+            {
+              "check": "중복 키",
+              "count": 0
+            },
+            {
+              "check": "패치 간 동일 경기",
+              "count": 0
+            },
+            {
+              "check": "라벨 보유 교전",
+              "count": 532547
+            }
+          ],
+          "id": "metadata",
+          "source": {
+            "label": "v3.3 corpus shards",
+            "metricDefinitions": [
+              "표본: 566,452교전 중 라벨이 있는 532,547교전.",
+              "중복: 경기 ID와 cutoff의 조합이 같은 행."
+            ],
+            "filters": [
+              "32개 shard의 메타데이터 전체"
+            ],
+            "caveats": [
+              "X의 NaN/Inf 검사는 첫 shard 17,546행에 한정한다."
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "value-boundary",
+      "title": "가치평가 종료 시점에 따른 방향 변화",
+      "queries": [
+        {
+          "rows": [
+            {
+              "comparable": 25350,
+              "signFlips": 5159,
+              "rate": 0.20351084812623274
+            }
+          ],
+          "id": "delta",
+          "source": {
+            "label": "v3 engagement_changes",
+            "metricDefinitions": [
+              "반전: pre 대비 end와 end+60초의 승률 변화 부호가 다름."
+            ],
+            "filters": [
+              "마지막 킬과 +60초의 ΔV가 모두 유효한 25,350교전"
+            ],
+            "caveats": [
+              "변화가 오브젝트 때문에 발생했는지는 이번 계산으로 식별하지 못한다."
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "label-value",
+      "title": "금전적 결과와 가치 방향의 차이",
+      "queries": [
+        {
+          "rows": [
+            {
+              "disagreements": 1941,
+              "labelled": 25177,
+              "auc": 0.6648860688902738
+            }
+          ],
+          "id": "two-axis",
+          "source": {
+            "label": "two_axis_test",
+            "filters": [
+              "market_event 라벨이 있는 25,177교전"
+            ],
+            "caveats": [
+              "실현된 두 정의의 차이이며 예측 오분류율이 아니다."
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

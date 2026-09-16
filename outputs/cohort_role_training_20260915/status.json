@@ -1,0 +1,167 @@
+{
+ "version": "cohort_role_training_20260915",
+ "role": "EXPLORATORY_FOLLOWUP_MODEL_DEFINED_LABELS_PRIOR_TEST_EXPOSURE",
+ "updated": "2026-09-15 15:02:14",
+ "running_groups": [],
+ "stage_states": {
+  "cohorts": "complete",
+  "draft": "complete",
+  "driver_fits": "complete",
+  "evaluate": "complete",
+  "fit_arms": "complete",
+  "fit_arms_smoke": "complete",
+  "fit_cohort_q": "complete",
+  "fit_cohort_q_smoke": "complete",
+  "freeze": "complete",
+  "report": "complete",
+  "role_models": "complete",
+  "role_models_smoke": "complete",
+  "shap": "complete"
+ },
+ "groups": {
+  "cohorts": {
+   "state": "complete",
+   "stage": "cohorts",
+   "processed": null,
+   "total": null,
+   "pid": 19752,
+   "elapsed_s": 182.6,
+   "error": null,
+   "next_step": "contract tests, then specialist q fits",
+   "updated": "2026-09-15 14:26:26"
+  },
+  "draft": {
+   "state": "complete",
+   "stage": "draft",
+   "processed": null,
+   "total": null,
+   "pid": 36484,
+   "elapsed_s": 22.0,
+   "error": null,
+   "next_step": "contract tests; role models",
+   "updated": "2026-09-15 14:31:00"
+  },
+  "driver_fits": {
+   "state": "complete",
+   "stage": "driver_fits",
+   "processed": null,
+   "total": null,
+   "pid": 35636,
+   "elapsed_s": 306.2,
+   "error": null,
+   "next_step": "evaluation",
+   "updated": "2026-09-15 14:47:42"
+  },
+  "evaluate": {
+   "state": "complete",
+   "stage": "evaluate",
+   "processed": null,
+   "total": null,
+   "pid": 38656,
+   "elapsed_s": 153.7,
+   "error": null,
+   "next_step": "SHAP",
+   "updated": "2026-09-15 14:51:05"
+  },
+  "fit_arms": {
+   "state": "complete",
+   "stage": "fit_arms",
+   "processed": null,
+   "total": null,
+   "pid": 35076,
+   "elapsed_s": 129.7,
+   "error": null,
+   "next_step": "freeze",
+   "updated": "2026-09-15 14:47:42"
+  },
+  "fit_arms_smoke": {
+   "state": "complete",
+   "stage": "fit_arms",
+   "processed": null,
+   "total": null,
+   "pid": 33632,
+   "elapsed_s": 19.8,
+   "error": null,
+   "next_step": "freeze",
+   "updated": "2026-09-15 14:40:39"
+  },
+  "fit_cohort_q": {
+   "state": "complete",
+   "stage": "fit_cohort_q",
+   "processed": null,
+   "total": null,
+   "pid": 36020,
+   "elapsed_s": 140.9,
+   "error": null,
+   "next_step": "role models / arms, then freeze",
+   "updated": "2026-09-15 14:44:58"
+  },
+  "fit_cohort_q_smoke": {
+   "state": "complete",
+   "stage": "fit_cohort_q",
+   "processed": null,
+   "total": null,
+   "pid": 20296,
+   "elapsed_s": 7.9,
+   "error": null,
+   "next_step": "role models / arms, then freeze",
+   "updated": "2026-09-15 14:35:51"
+  },
+  "freeze": {
+   "state": "complete",
+   "stage": "freeze",
+   "processed": null,
+   "total": null,
+   "pid": 38136,
+   "elapsed_s": 0.2,
+   "error": null,
+   "next_step": "evaluation",
+   "updated": "2026-09-15 14:47:42"
+  },
+  "report": {
+   "state": "complete",
+   "stage": "report",
+   "processed": null,
+   "total": null,
+   "pid": 35300,
+   "elapsed_s": 0.0,
+   "error": null,
+   "next_step": "none (task complete)",
+   "updated": "2026-09-15 15:02:14"
+  },
+  "role_models": {
+   "state": "complete",
+   "stage": "role_models",
+   "processed": null,
+   "total": null,
+   "pid": 31760,
+   "elapsed_s": 33.1,
+   "error": null,
+   "next_step": "fit arms",
+   "updated": "2026-09-15 14:45:32"
+  },
+  "role_models_smoke": {
+   "state": "complete",
+   "stage": "role_models",
+   "processed": null,
+   "total": null,
+   "pid": 25244,
+   "elapsed_s": 4.8,
+   "error": null,
+   "next_step": "fit arms",
+   "updated": "2026-09-15 14:36:31"
+  },
+  "shap": {
+   "state": "complete",
+   "stage": "shap",
+   "processed": null,
+   "total": null,
+   "pid": 35212,
+   "elapsed_s": 59.0,
+   "error": null,
+   "next_step": "post-run checks, report",
+   "updated": "2026-09-15 14:52:13"
+  }
+ },
+ "state_vocabulary": "implemented = code written; running; executed = stage finished; verified = post-run checks passed (see validation.json); failed"
+}

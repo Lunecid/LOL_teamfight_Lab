@@ -1,0 +1,28 @@
+{
+ "group": "redetect_MAIN_dev",
+ "state": "complete",
+ "stage": "written",
+ "pid": 7484,
+ "updated": "2026-09-16 08:08:05",
+ "elapsed_s": 1117.9,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "census",
+ "rows": 562417,
+ "errors": 0,
+ "mismatching": null,
+ "seconds": 1117.1,
+ "history": [
+  {
+   "stage": "detect",
+   "state": "running",
+   "at": "2026-09-16 07:49:28"
+  },
+  {
+   "stage": "written",
+   "state": "complete",
+   "at": "2026-09-16 08:08:05"
+  }
+ ]
+}

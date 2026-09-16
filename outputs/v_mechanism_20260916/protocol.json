@@ -1,0 +1,201 @@
+{
+ "version": "v_mechanism_20260916",
+ "role": "EXPLORATORY_FOLLOWUP_AFTER_PRIOR_TEST_EXPOSURE_MODEL_DEFINED_LABELS_NOT_CONFIRMATORY",
+ "written_at": "2026-09-16 03:25:41",
+ "design": "docs/CLAUDE_V_MECHANISM_20260916.md (Claude, continuing the Codex line); no fitting",
+ "spec_sha256": "59b1227fb68e588223284a6f22e78af6e792356aab1d90fcd468cbae78e04e01",
+ "provenance_docs_sha256": {
+  "COLLABORATOR_CRITIQUE_RESPONSE_20260915.md": "c847d82d00654f88cbe5f8f70370cf8498c3c722c89657b2d27064860f113396",
+  "TOG_END_TO_END_READINESS_AUDIT_20260915.md": "473acf3141943fa828a0253fa35a87cb473b5c5fb3d3ac47cbaea5b9a09169e5"
+ },
+ "prior_test_exposure": "Exploratory follow-up; MAIN TEST labels and the V endpoint predictions were evaluated before (full corpus run).",
+ "parents": {
+  "read_only": [
+   "outputs/full_corpus_training_20260915",
+   "outputs/cohort_role_training_20260915",
+   "source implementations",
+   "raw data"
+  ],
+  "integrity_snapshot_before_sha256": "61cf7568eca04b80b7c91e4737613210de8db03828823c203a115c66e1f50f5c",
+  "full_corpus_frozen_manifest_sha256": "8287804220b280f68a8ce2359532dbd1665b2d9d0c4a474c8666e8aed77b4f77",
+  "adapter": "outputs/full_corpus_training_20260915/models/v/v_final_raw.joblib",
+  "adapter_sha256": "392db878132ee4ce00ab908f84a9a5ef780db0b602c7c8eca6582d845f73d105",
+  "selection_v": "raw",
+  "labels_test_external_manifest_sha256": "023a6b854027657818cf1b28fe2df368902f589bce9b6d3e154a46445f73faa6",
+  "labels_trainval_manifest_sha256": "9a4449ebbf147e629698f97a08f6a0c5db2ba26eccf313911137d5852d2622f7",
+  "extraction_manifest_sha256": "abf3f0c0988e2893ac2263ac894dd3fdea494551adb99b0e6d702f6407171e5c",
+  "n_chunks": 1050,
+  "expected_parent_file_sha256": {
+   "outputs/full_corpus_training_20260915/labels/EXT_KR_16.13_features_pre_only.npz": "cef03c6d16927fedcaa5df8c3986d828337c37bf8e2c740a56b44e64098086ce",
+   "outputs/full_corpus_training_20260915/labels/EXT_KR_16.13_labels.npz": "fa5f6150e7a4aa4e2fbd267dcbe76c702f0e025c83f3a2d057b25ca272782213",
+   "outputs/full_corpus_training_20260915/labels/EXT_KR_16.14_pilot_features_pre_only.npz": "0b6d08880b6b729f5b36b3522ecc41062b341d8d65a76d64be84f1930f3e4eef",
+   "outputs/full_corpus_training_20260915/labels/EXT_KR_16.14_pilot_labels.npz": "e5dd804570349f519a9dd97bcaf2dd6f96fd27e933088ed5fdbdc050e2f723c9",
+   "outputs/full_corpus_training_20260915/labels/EXT_KR_16.15_features_pre_only.npz": "462ab4312b91c34a3307344bb54a66498161131b5c2d4d530b0d6c7bfc2b7b1c",
+   "outputs/full_corpus_training_20260915/labels/EXT_KR_16.15_labels.npz": "dd3e51a8455f0de6ef09d3b691f0c59e9e48d56207e46d499ef516fdf9a51a9f",
+   "outputs/full_corpus_training_20260915/labels/EXT_NA1_16.13_features_pre_only.npz": "c7aa4396de605a98085f7400d0c7fbfba5785dcf74395f5f7b0831b2ea2c41f7",
+   "outputs/full_corpus_training_20260915/labels/EXT_NA1_16.13_labels.npz": "91cefb42eaae94a6bde3f7007cf34d4d8a9c7f5f42c6098651a96de76fe32065",
+   "outputs/full_corpus_training_20260915/labels/labels_test_external_manifest.json": "023a6b854027657818cf1b28fe2df368902f589bce9b6d3e154a46445f73faa6",
+   "outputs/full_corpus_training_20260915/labels/labels_trainval_manifest.json": "9a4449ebbf147e629698f97a08f6a0c5db2ba26eccf313911137d5852d2622f7",
+   "outputs/full_corpus_training_20260915/labels/MAIN_TEST_features_pre_only.npz": "fb0945a68087b4198622d1a4713497fae6690327317d82d387503a29c8a1a933",
+   "outputs/full_corpus_training_20260915/labels/MAIN_TEST_labels.npz": "eec6e0388792985d0fb2d2d15039ed058bc4041ae082ee99cc2e778f08e2d96e",
+   "outputs/full_corpus_training_20260915/labels/MAIN_TRAIN_features_pre_only.npz": "1f8eee36c21de0146fd6879cfa57abb9421d494b6425663d0db1e3aafea44ca2",
+   "outputs/full_corpus_training_20260915/labels/MAIN_TRAIN_labels.npz": "f0a1bdcfcce497c6e443126d16d09fab5b69b5a93d2acf525324509fc6c07b0c",
+   "outputs/full_corpus_training_20260915/labels/MAIN_VALIDATION_features_pre_only.npz": "8c93127611047cc2449f231370bf45e4a130f7f5559ebdd1aa5df3d76eb7785b",
+   "outputs/full_corpus_training_20260915/labels/MAIN_VALIDATION_labels.npz": "b06a190b8357499d209eddacd0201ad10b6b55655dedae1a7832c8656117431e",
+   "outputs/full_corpus_training_20260915/models/q/h120/constant.joblib": "9efdabc91c1afd7c48738da4662969bd2bea4e30e75e79c028b45fdd40f3c2cc",
+   "outputs/full_corpus_training_20260915/models/q/h120/economic_isotonic.joblib": "c528d0dc6594f38290b985732b37b9e24aac13a62c7e375b9c0de21f663e4516",
+   "outputs/full_corpus_training_20260915/models/q/h120/economic_raw.joblib": "d9ebd359f83f1f39862232c8b69d767718e52ca44907772a75eacd88eba404f6",
+   "outputs/full_corpus_training_20260915/models/q/h120/economic_sigmoid.joblib": "c68b5be8d541e46c51a8c802e184dbfe0109b78952b65776736b71a28745b900",
+   "outputs/full_corpus_training_20260915/models/q/h120/p_pre_logistic.joblib": "8758839c7847389e27398437becc4dd77452278ca798a8c189c82e411309fec9",
+   "outputs/full_corpus_training_20260915/models/q/h120/p_pre_spline.joblib": "fef72d577b97fc449913ba5f82870435f924857471f37a3a93396a69425e79df",
+   "outputs/full_corpus_training_20260915/models/q/h120/ridge_isotonic.joblib": "0a954dab1aea38fb34ef2adfd5b4c5e1c18d2c1e92c4a722eeeb91800566a143",
+   "outputs/full_corpus_training_20260915/models/q/h120/ridge_raw.joblib": "5486392a2452dcb496be57b2ca683ade679ea89eafdf2a5760dd0de1cb5f0845",
+   "outputs/full_corpus_training_20260915/models/q/h120/ridge_sigmoid.joblib": "cbff191377bcdc8cb23b31a730e401cacf56ef76384cd9d7e7048c794d4f299b",
+   "outputs/full_corpus_training_20260915/models/q/h60/constant.joblib": "37efc6130d0efdabd1b28ae8ec3f6fa7e3709edd0d3f737c141918f3a2846e58",
+   "outputs/full_corpus_training_20260915/models/q/h60/economic_isotonic.joblib": "8be50d09f74b0bd5b7209b7786e482623ee2f2b97329d1d9a3c941d00f7ce4c7",
+   "outputs/full_corpus_training_20260915/models/q/h60/economic_raw.joblib": "e41e16a649b16ebbff914c6516a77e6fede066d996596c47d281580f83091629",
+   "outputs/full_corpus_training_20260915/models/q/h60/economic_sigmoid.joblib": "6c4c37dd7e2b12b96d6b3f19528676e740144f47b87e826fd179c5ae6dd673cd",
+   "outputs/full_corpus_training_20260915/models/q/h60/p_pre_logistic.joblib": "1dbfce9a201ecd276b38185f4741eb24349f3cd0006ad6de61690efe1466f18c",
+   "outputs/full_corpus_training_20260915/models/q/h60/p_pre_spline.joblib": "405baa1501806df538fdc03a6eb465997778fc306015efa96c411d5e5c724804",
+   "outputs/full_corpus_training_20260915/models/q/h60/ridge_isotonic.joblib": "0bf57e7e71004c288463bdc4fb07867a7c3f80316f1a48150df0a779aed6acf2",
+   "outputs/full_corpus_training_20260915/models/q/h60/ridge_raw.joblib": "3a5b7bd2b9e8cd8d5b28d3a59d43cd822e83d0b4287798e4054e863af529fe2b",
+   "outputs/full_corpus_training_20260915/models/q/h60/ridge_sigmoid.joblib": "8b9ce2afa1d456bdb34cda7400bd202057a38b5b1d1e4b88e38a81e315a75636",
+   "outputs/full_corpus_training_20260915/models/q/h90/constant.joblib": "d5f7d58521332f72dd23bd0a6ac634583d4ab7be640e88339375a60a7764be9b",
+   "outputs/full_corpus_training_20260915/models/q/h90/economic_isotonic.joblib": "e038582fd49af9393672662ee0555128cca0e5013194db53f96ee68453b98e5f",
+   "outputs/full_corpus_training_20260915/models/q/h90/economic_raw.joblib": "31830ec463033bbf8160f304484d8931d382ca196f2eb9edd6e9ca96e23667b6",
+   "outputs/full_corpus_training_20260915/models/q/h90/economic_sigmoid.joblib": "6550255e3e9e6a89412b245d1177f11bc84c0ade38b0ac72b882429e46d408d6",
+   "outputs/full_corpus_training_20260915/models/q/h90/p_pre_logistic.joblib": "2858fcf1e12499a07a955d7bfc2a5c300d938b5b1381d16aa721ae6d24baa6f8",
+   "outputs/full_corpus_training_20260915/models/q/h90/p_pre_spline.joblib": "1ba68762d1803b53cc596da0fa5ae77d61194333bb8dc7c77edda38eb2be584d",
+   "outputs/full_corpus_training_20260915/models/q/h90/ridge_isotonic.joblib": "5688fe91156c2724d8e718ad4f837f8d60f058bf2f7e9cd370b13fe172f6c093",
+   "outputs/full_corpus_training_20260915/models/q/h90/ridge_raw.joblib": "e968796c148561abf299e7427dbcb639fed7d1db1108dda24e024d05d672830f",
+   "outputs/full_corpus_training_20260915/models/q/h90/ridge_sigmoid.joblib": "685e548d37475a7efbf916e84bc669e2bf7968336035e06d583ae1b98074123f",
+   "outputs/full_corpus_training_20260915/q_pre_only_schema.json": "bc07a3c9b1ea1f4bdbd278a0c837bd59a96d89ff831b2a8ed393a3cc38249284",
+   "outputs/full_corpus_training_20260915/v_models_manifest.json": "92d57e3bee472ade1d498e50de5a41a599bf09d5dc1433302b13350234c9ead7",
+   "outputs/full_corpus_training_20260915/frozen_manifest.json": "8287804220b280f68a8ce2359532dbd1665b2d9d0c4a474c8666e8aed77b4f77",
+   "outputs/full_corpus_training_20260915/protocol.json": "60e95dfadcedeed7f08c47e50f5379e14e7c6b4b31cb9724e8b88f8b1518b8ba",
+   "outputs/full_corpus_training_20260915/selection_v.json": "bffdb56bd3647d8d02f22c17330a8adec96ac7e640eb31c458bc06e90a736ed6",
+   "outputs/full_corpus_training_20260915/validation.json": "716bc9a0d4bf7a990055cb388ef2ac1fb4c708aaed65575db20b3a22546a4771",
+   "outputs/full_corpus_training_20260915/outcome_access_log.jsonl": "470288d476c1f883ea2feb129f1d2ba66fef57ec8d8cc0415924d0279535e721",
+   "outputs/full_corpus_training_20260915/eval/results_q.json": "2ad4a2e58fb4bd45df0ca453c4f13d2b89eef72ae8d4bee0985b96ef9ad49d5e"
+  }
+ },
+ "model": {
+  "pipeline": [
+   [
+    "preprocess",
+    "ColumnTransformer"
+   ],
+   [
+    "model",
+    "LogisticRegression"
+   ]
+  ],
+  "calibration": "raw",
+  "C": 0.01,
+  "intercept": 0.06358640502007089,
+  "state_columns": 362,
+  "feature_columns": 361,
+  "transformed_columns": 1733,
+  "transformed_names_sha256": "c7ea1e111cb45031e662ac346415266f8762788718b4a6b59a816614e8c06065",
+  "group_sizes": {
+   "time_and_observation_age": 2,
+   "economy_and_experience": 60,
+   "combat_and_survival": 68,
+   "objectives": 176,
+   "structures": 24,
+   "health_mana_other": 21,
+   "champion_identity": 1382
+  },
+  "time_related_columns": 96,
+  "identity": "Delta-logit_i = beta^T (t(S_e) - t(S_pre)) = sum_j c_ij; Y_h90 = 1[Delta-logit_i > 0] (raw calibrator, strictly monotone sigmoid)"
+ },
+ "rows": {
+  "sets": [
+   "MAIN_VALIDATION",
+   "MAIN_TEST"
+  ],
+  "horizon": 90,
+  "rows": "all h90-valid rows (no sampling)",
+  "strata": {
+   "cohort": "T / N",
+   "same_frame": "post snapshot timestamp == pre snapshot",
+   "abs_delta_V": [
+    "0-0.5pp",
+    "0.5-1pp",
+    "1-2pp",
+    ">2pp"
+   ],
+   "pre_time_bands": [
+    [
+     0,
+     10
+    ],
+    [
+     10,
+     20
+    ],
+    [
+     20,
+     30
+    ],
+    [
+     30,
+     1000
+    ]
+   ]
+  },
+  "top_columns": 25
+ },
+ "checks": [
+  "p_pre / p_post recomputed from stored states equal the parent labels exactly",
+  "sum_k g_ik = Delta-logit_i (< 1e-9)",
+  "champion block = 0 exactly",
+  "logit(p_post) - logit(p_pre) = Delta-logit (< 1e-8)",
+  "sign(Delta-logit) = Y_h90 on every row",
+  "all valid rows collected once (counts)",
+  "sealed access only after this run's freeze",
+  "parent files unchanged"
+ ],
+ "not_done": [
+  "V(S(L)) and the pre -> L -> e split (state at L not stored)",
+  "causal reading of any term",
+  "changes to V, labels or q"
+ ],
+ "smoke": {
+  "rows": "MAIN_VALIDATION rows of chunks 370-429 (the chunks are ordered TRAIN, VALIDATION, TEST; unsealed)"
+ },
+ "environment": {
+  "python": "3.13.5 | packaged by Anaconda, Inc. | (main, Jun 12 2025, 16:37:03) [MSC v.1929 64 bit (AMD64)]",
+  "executable": "C:\\Users\\todtj\\anaconda3\\python.exe",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "numpy": "2.1.3",
+  "scipy": "1.15.3",
+  "sklearn": "1.6.1",
+  "lightgbm": "4.6.0",
+  "joblib": "1.4.2",
+  "threads": {
+   "OMP_NUM_THREADS": null,
+   "OPENBLAS_NUM_THREADS": null,
+   "MKL_NUM_THREADS": null
+  },
+  "dont_write_bytecode": true,
+  "cuda_visible_devices": ""
+ },
+ "source_sha256": {
+  "scripts/vd20260916_analyze.py": "a15ab1fc511ff1b51688b40a1715157360f02b6e9b40a5ad9f72adb20b878018",
+  "scripts/vd20260916_common.py": "6301eb129d4ed9a873a94025e0bc3a4b1242e3c6278fbf6e0f6aaa64cb9b64f7",
+  "scripts/vd20260916_postrun_checks.py": "f7a0d41fef4751126ffb3e177a499c4f648692c79676a67f370883998c1094d0",
+  "scripts/vd20260916_protocol_freeze.py": "7cdb87eec5cb7143b3286d1f9fbadd023ed3b3a8571f64a19a739269692b8ae6",
+  "scripts/vd20260916_report.py": "0bd38916bea67f72b4ff07da3f7f5076abf5cb01419534c3c2b8b9a61821327e",
+  "scripts/vd20260916_run_contract_tests.py": "ee95fa561f45d09e03d5522a266102a2152825314456b6325c554b5e87133a77",
+  "scripts/vd20260916_snapshot.py": "56bc1b9ea3736f19d2f3ac3c7728c99acb48d95395f0a3f06e12c3d4df200435",
+  "tests/test_vd20260916_contracts.py": "0db048a46326a0d81c79755eb56b39e709d813feaace7ecd4d16a3f0c1fe1134",
+  "scripts/fc20260915_common.py": "aeb9f3b07b5a5e68cc95de09a4a12870ac7e7f0728a66a30535c7dbbbad73405",
+  "scripts/cr20260915_common.py": "04d4a2eb9808888d6b5e4896bdc50405ffac4bde79ee65173046627aa146e081",
+  "scripts/iq20260915_common.py": "a51925020c626275b3b1db456490d2e2882e86cda59bc8531dfeeba81e6c7956",
+  "scripts/ta20260916_common.py": "78b0938085cc10511b3bdaefd7cfc599a599070a3b8387b3da72c47937969f47",
+  "docs/CLAUDE_V_MECHANISM_20260916.md": "59b1227fb68e588223284a6f22e78af6e792356aab1d90fcd468cbae78e04e01",
+  "docs/COLLABORATOR_CRITIQUE_RESPONSE_20260915.md": "c847d82d00654f88cbe5f8f70370cf8498c3c722c89657b2d27064860f113396",
+  "docs/TOG_END_TO_END_READINESS_AUDIT_20260915.md": "473acf3141943fa828a0253fa35a87cb473b5c5fb3d3ac47cbaea5b9a09169e5"
+ }
+}

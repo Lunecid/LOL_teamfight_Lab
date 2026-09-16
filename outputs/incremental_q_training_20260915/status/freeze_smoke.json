@@ -1,0 +1,42 @@
+{
+ "group": "freeze_smoke",
+ "state": "complete",
+ "stage": "frozen",
+ "pid": 35816,
+ "updated": "2026-09-15 20:40:04",
+ "elapsed_s": 6.0,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "sealed evaluation (smoke pseudo rows)",
+ "frozen_manifest_sha256": "a0263d05dd069bf144538df555f06459112140850195f3ce8132fc2dd898d0c5",
+ "winners": {
+  "pt_T": "pt_C0.001__raw",
+  "logit_T": "logit_C0.001__raw",
+  "lgbm_T": "lgbm_L15_M100__isotonic",
+  "pt_N": "pt_C0.001__raw",
+  "logit_N": "logit_C0.001__isotonic",
+  "lgbm_N": "lgbm_L31_M50__sigmoid"
+ },
+ "overall": {
+  "T": "pt_C0.001__raw",
+  "N": "logit_C0.001__isotonic"
+ },
+ "history": [
+  {
+   "stage": "verify_T",
+   "state": "running",
+   "at": "2026-09-15 20:39:58"
+  },
+  {
+   "stage": "verify_N",
+   "state": "running",
+   "at": "2026-09-15 20:40:01"
+  },
+  {
+   "stage": "frozen",
+   "state": "complete",
+   "at": "2026-09-15 20:40:04"
+  }
+ ]
+}

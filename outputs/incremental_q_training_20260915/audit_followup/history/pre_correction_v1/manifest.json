@@ -1,0 +1,19 @@
+{
+ "created_at": "2026-09-15 21:10:15",
+ "purpose": "copies taken before the 2026-09-15 audit correction; originals regenerated afterwards",
+ "files": {
+  "run/REPORT.md": "de3a3d2da22a017d889bdb2795e988ccaa851219970bce2e2a6e929f39d183f5",
+  "run/DEFINITION_AND_EVIDENCE.md": "5ad529e9a5cc3ea6a0044b9964103511aa1a0c2c3fae4dddece941a204ce1569",
+  "run/validation.json": "573811824f8f464a2889fb73edf38420cec38ec2d90cf73bd41e5ae8c48b38cb",
+  "run/report_manifest.json": "e5c579648be14fd1e84cc644e9bfcd9b9ae0692cb15974e2b706f86fc11896ef",
+  "run/status.json": "ea091f30b87eebdc009f0e75e5fca48c1c99d495530dc0b811180739df6c5394",
+  "run/status/postrun_checks.json": "85c46b47f37e9842c312a8d57035393674c88a86bdfe9a17365774c58dbed80a",
+  "run/status/report.json": "55c212122be8c2fc3d434be351fa15bafef68a39c24919890906863e6f67cb35",
+  "run/logs/postrun_checks.log": "a0b5c56a3e4587311d2d6219fc43d9059ac81f933661b565e6a377b582956b81",
+  "run/logs/report.out": "0693d3cea85b5e5363b2bdd8a474c7fcf75706ffff918968acf07df1be970d00",
+  "scripts/iq20260915_report.py": "94ab2714ef91d36e398dc346e48409c272673235855e63d53a46846438b5cb21",
+  "scripts/iq20260915_postrun_checks.py": "926633f0cc72b3f21cff6a0d041e6ddb405f964649adfc6f64f257344b9f1bf4",
+  "scripts/iq20260915_fit.py": "321fa4dfb0ab8741f4efa2db5c9ccfebdfa212a9efe905514f63f944c0da24ed",
+  "scripts/iq20260915_snapshot.py": "907539017f155765bb8fb5d5bac9349ffdf9efad0e76b602e6660edb0fc84d3d"
+ }
+}

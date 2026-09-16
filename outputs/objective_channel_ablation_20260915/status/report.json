@@ -1,0 +1,20 @@
+{
+ "group": "report",
+ "state": "complete",
+ "stage": "report",
+ "pid": 28988,
+ "updated": "2026-09-15 16:48:32",
+ "elapsed_s": 0.0,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "done",
+ "report_sha256": "07ce0c5b8cf25e5e0f80c8dcf8a4efb143660e83db34861b227231cc9a16e932",
+ "history": [
+  {
+   "stage": "report",
+   "state": "complete",
+   "at": "2026-09-15 16:48:32"
+  }
+ ]
+}

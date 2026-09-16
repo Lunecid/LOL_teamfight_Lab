@@ -1,0 +1,22 @@
+{
+ "group": "postrun_checks",
+ "state": "complete",
+ "stage": "postrun_checks",
+ "pid": 31960,
+ "updated": "2026-09-15 21:04:59",
+ "elapsed_s": 30.1,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "report",
+ "n": 116,
+ "failed": [],
+ "validation_sha256": "573811824f8f464a2889fb73edf38420cec38ec2d90cf73bd41e5ae8c48b38cb",
+ "history": [
+  {
+   "stage": "postrun_checks",
+   "state": "complete",
+   "at": "2026-09-15 21:04:59"
+  }
+ ]
+}

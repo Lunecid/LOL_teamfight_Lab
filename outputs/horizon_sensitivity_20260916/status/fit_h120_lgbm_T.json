@@ -1,0 +1,37 @@
+{
+ "group": "fit_h120_lgbm_T",
+ "state": "complete",
+ "stage": "selected",
+ "pid": 42148,
+ "updated": "2026-09-16 02:43:13",
+ "elapsed_s": 17.7,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "next family / cohort / horizon, then freeze",
+ "chosen": "lgbm_L15_M100__raw",
+ "selection_sha256": "b3097808ae252e1d7de1d537d406023989ae316e122dad533cacc920a22c36d5",
+ "seconds": 12.3,
+ "select_brier": {
+  "lgbm_L15_M100__isotonic": 0.229412,
+  "lgbm_L15_M100__raw": 0.228721,
+  "lgbm_L15_M100__sigmoid": 0.228786
+ },
+ "history": [
+  {
+   "stage": "load",
+   "state": "running",
+   "at": "2026-09-16 02:42:55"
+  },
+  {
+   "stage": "fit_lgbm_L15_M100",
+   "state": "running",
+   "at": "2026-09-16 02:42:59"
+  },
+  {
+   "stage": "selected",
+   "state": "complete",
+   "at": "2026-09-16 02:43:13"
+  }
+ ]
+}

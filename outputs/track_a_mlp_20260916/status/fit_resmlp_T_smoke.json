@@ -1,0 +1,101 @@
+{
+ "group": "fit_resmlp_T_smoke",
+ "state": "complete",
+ "stage": "selected",
+ "pid": 19072,
+ "updated": "2026-09-16 00:44:13",
+ "elapsed_s": 51.1,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "next family/cohort, then freeze",
+ "chosen": "resmlp_W512_D0.1__raw",
+ "selection_sha256": "771e5889d160a8d290ae2d4dd98374ba0b6d343b7908b6f59ef53279c3145db5",
+ "seconds": 48.3,
+ "top3": [
+  [
+   "resmlp_W512_D0.1__raw",
+   0.232939
+  ],
+  [
+   "resmlp_W256_D0.1__raw",
+   0.234867
+  ],
+  [
+   "resmlp_W256_D0.1__sigmoid",
+   0.235062
+  ]
+ ],
+ "history": [
+  {
+   "stage": "load",
+   "state": "running",
+   "at": "2026-09-16 00:43:22"
+  },
+  {
+   "stage": "fit_resmlp_W128_D0.1",
+   "state": "running",
+   "at": "2026-09-16 00:43:24"
+  },
+  {
+   "stage": "fitted_resmlp_W128_D0.1",
+   "state": "running",
+   "at": "2026-09-16 00:43:36"
+  },
+  {
+   "stage": "fit_resmlp_W128_D0.3",
+   "state": "running",
+   "at": "2026-09-16 00:43:36"
+  },
+  {
+   "stage": "fitted_resmlp_W128_D0.3",
+   "state": "running",
+   "at": "2026-09-16 00:43:43"
+  },
+  {
+   "stage": "fit_resmlp_W256_D0.1",
+   "state": "running",
+   "at": "2026-09-16 00:43:43"
+  },
+  {
+   "stage": "fitted_resmlp_W256_D0.1",
+   "state": "running",
+   "at": "2026-09-16 00:43:51"
+  },
+  {
+   "stage": "fit_resmlp_W256_D0.3",
+   "state": "running",
+   "at": "2026-09-16 00:43:51"
+  },
+  {
+   "stage": "fitted_resmlp_W256_D0.3",
+   "state": "running",
+   "at": "2026-09-16 00:43:58"
+  },
+  {
+   "stage": "fit_resmlp_W512_D0.1",
+   "state": "running",
+   "at": "2026-09-16 00:43:58"
+  },
+  {
+   "stage": "fitted_resmlp_W512_D0.1",
+   "state": "running",
+   "at": "2026-09-16 00:44:05"
+  },
+  {
+   "stage": "fit_resmlp_W512_D0.3",
+   "state": "running",
+   "at": "2026-09-16 00:44:05"
+  },
+  {
+   "stage": "fitted_resmlp_W512_D0.3",
+   "state": "running",
+   "at": "2026-09-16 00:44:12"
+  },
+  {
+   "stage": "selected",
+   "state": "complete",
+   "at": "2026-09-16 00:44:13"
+  }
+ ]
+}

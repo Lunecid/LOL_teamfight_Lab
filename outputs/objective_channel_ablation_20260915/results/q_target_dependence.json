@@ -1,0 +1,77 @@
+{
+ "scope": "frozen main h90 specialist q (trained on A labels) scored against A and B_noobj labels; target dependence, no refit/ranking",
+ "cohorts": {
+  "T": {
+   "specialist": "spec_ridge_raw",
+   "keys": {
+    "rows": 32981,
+    "unique": true,
+    "valid": true,
+    "cohort_ok": true,
+    "covers_all": true,
+    "y_equals_A": true
+   },
+   "scores": {
+    "Y_A": {
+     "auc": 0.6701883963087207,
+     "brier": 0.2281709686351847,
+     "logloss": 0.648109319200296,
+     "positive_rate_match_weighted": 0.5036041394076364,
+     "auc_row": 0.6525308030256565,
+     "brier_row": 0.23248790798256438
+    },
+    "Y_B": {
+     "auc": 0.6790854103191382,
+     "brier": 0.22587461702016065,
+     "logloss": 0.6431428275554085,
+     "positive_rate_match_weighted": 0.5019165576305459,
+     "auc_row": 0.6625059287921268,
+     "brier_row": 0.229927509113417
+    }
+   },
+   "B_minus_A": {
+    "auc": 0.008897014010417426,
+    "brier": -0.0022963516150240615,
+    "logloss": -0.004966491644887494
+   },
+   "A_reproduction_max_abs_diff": 0.0,
+   "label_disagreement_on_q_rows": 0.05357630150692823
+  },
+  "N": {
+   "specialist": "spec_ridge_isotonic",
+   "keys": {
+    "rows": 130595,
+    "unique": true,
+    "valid": true,
+    "cohort_ok": true,
+    "covers_all": true,
+    "y_equals_A": true
+   },
+   "scores": {
+    "Y_A": {
+     "auc": 0.5984035119677699,
+     "brier": 0.24267507409966518,
+     "logloss": 0.679583475654149,
+     "positive_rate_match_weighted": 0.5016009853594292,
+     "auc_row": 0.5927693666247636,
+     "brier_row": 0.24360367176527406
+    },
+    "Y_B": {
+     "auc": 0.5992814346886663,
+     "brier": 0.24252650520740482,
+     "logloss": 0.6793010238927756,
+     "positive_rate_match_weighted": 0.5011515667919086,
+     "auc_row": 0.5934487504877151,
+     "brier_row": 0.24349200296872073
+    }
+   },
+   "B_minus_A": {
+    "auc": 0.0008779227208964846,
+    "brier": -0.00014856889226036452,
+    "logloss": -0.00028245176137342565
+   },
+   "A_reproduction_max_abs_diff": 0.0,
+   "label_disagreement_on_q_rows": 0.05021631762318619
+  }
+ }
+}

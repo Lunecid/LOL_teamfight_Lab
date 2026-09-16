@@ -1,0 +1,98 @@
+{
+ "version": "objective_channel_ablation_20260915",
+ "role": "EXPLORATORY_NAMED_OBJECTIVE_CHANNEL_ABLATION_AFTER_PRIOR_TEST_EXPOSURE_NOT_CAUSAL_NOT_GROUND_TRUTH",
+ "updated": "2026-09-15 16:48:32",
+ "running_groups": [],
+ "failed_groups": [],
+ "groups": {
+  "analyze": {
+   "state": "complete",
+   "stage": "analyze",
+   "processed": null,
+   "total": null,
+   "pid": 11124,
+   "elapsed_s": 84.7,
+   "error": null,
+   "next_step": "post-run checks",
+   "updated": "2026-09-15 16:38:05"
+  },
+  "eval_v": {
+   "state": "complete",
+   "stage": "eval_v",
+   "processed": null,
+   "total": null,
+   "pid": 36668,
+   "elapsed_s": 66.2,
+   "error": null,
+   "next_step": "labels",
+   "updated": "2026-09-15 16:35:41"
+  },
+  "fit_B_noobj": {
+   "state": "complete",
+   "stage": "fit_B_noobj",
+   "processed": null,
+   "total": null,
+   "pid": 32748,
+   "elapsed_s": 148.8,
+   "error": null,
+   "next_step": "independent model checks, freeze",
+   "updated": "2026-09-15 16:34:06"
+  },
+  "freeze": {
+   "state": "complete",
+   "stage": "freeze",
+   "processed": null,
+   "total": null,
+   "pid": 32920,
+   "elapsed_s": 0.0,
+   "error": null,
+   "next_step": "W evaluation, labels",
+   "updated": "2026-09-15 16:34:25"
+  },
+  "labels": {
+   "state": "complete",
+   "stage": "labels",
+   "processed": 7,
+   "total": 7,
+   "pid": 240,
+   "elapsed_s": 99.2,
+   "error": null,
+   "next_step": "analysis",
+   "updated": "2026-09-15 16:36:14"
+  },
+  "postrun_checks": {
+   "state": "complete",
+   "stage": "postrun_checks",
+   "processed": null,
+   "total": 18,
+   "pid": 36556,
+   "elapsed_s": 40.4,
+   "error": null,
+   "next_step": "report",
+   "updated": "2026-09-15 16:40:40"
+  },
+  "protocol": {
+   "state": "complete",
+   "stage": "protocol",
+   "processed": null,
+   "total": null,
+   "pid": 11576,
+   "elapsed_s": 7.3,
+   "error": null,
+   "next_step": "contracts",
+   "updated": "2026-09-15 16:28:15"
+  },
+  "report": {
+   "state": "complete",
+   "stage": "report",
+   "processed": null,
+   "total": null,
+   "pid": 28988,
+   "elapsed_s": 0.0,
+   "error": null,
+   "next_step": "done",
+   "updated": "2026-09-15 16:48:32"
+  }
+ },
+ "failed_run_history": "logs/*.log and commands.txt keep every attempt, including failures"
+}

@@ -1,0 +1,33 @@
+{
+ "group": "rebuild_MAIN_TRAIN",
+ "state": "complete",
+ "stage": "assembled",
+ "pid": 31232,
+ "updated": "2026-09-16 08:11:39",
+ "elapsed_s": 34.1,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "next set / fit",
+ "changed_matches": 2467,
+ "parent_rows_copied": 190131,
+ "rebuilt_rows": 7962,
+ "dev_rows": 198093,
+ "history": [
+  {
+   "stage": "items",
+   "state": "running",
+   "at": "2026-09-16 08:11:04"
+  },
+  {
+   "stage": "extract",
+   "state": "running",
+   "at": "2026-09-16 08:11:13"
+  },
+  {
+   "stage": "assembled",
+   "state": "complete",
+   "at": "2026-09-16 08:11:39"
+  }
+ ]
+}

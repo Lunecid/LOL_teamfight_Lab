@@ -1,0 +1,24 @@
+{
+ "checked_at": "2026-09-15 16:47:28",
+ "hashed": 2419,
+ "changed": [],
+ "inventory_files": 67427,
+ "inventory_diff": [],
+ "groups": {
+  "analyze": "complete",
+  "eval_v": "complete",
+  "fit_B_noobj": "complete",
+  "freeze": "complete",
+  "labels": "complete",
+  "postrun_checks": "complete",
+  "protocol": "complete",
+  "report": "complete"
+ },
+ "report_sha256": "c2ac339133ccd84d1ec74730c5784d07bd4d33044f7a8a300da85dfe3a871e93",
+ "errata_sha256": "de06ed3df42fbeeb7e2c82004b875b9d91b037875e9f18e612f21d007e998dc5",
+ "external_files_in_root_not_written_by_claude": [
+  "CODEX_SOURCE_SEMANTICS_NOTE.md",
+  "codex_independent_audit.json",
+  "codex_objective_subgroup_audit.json"
+ ]
+}

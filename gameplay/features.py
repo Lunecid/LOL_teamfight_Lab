@@ -540,7 +540,11 @@ def build_sequence_features(
             time_norm_seq = np.clip(glob_seq[:, int(t_idx)], 0.0, 1.0).astype(np.float32)
         else:
             time_norm_seq = np.linspace(0.0, 1.0, glob_seq.shape[0], dtype=np.float32)
-        game_duration_min = float(sample.get("game_duration_min", 35.0))
+        if bool(getattr(cfg, "TIME_NORM_ABSOLUTE", True)):
+            # time_norm = t / TIME_NORM_DENOM_MIN, so minutes = time_norm * denominator
+            game_duration_min = float(getattr(cfg, "TIME_NORM_DENOM_MIN", 45.0))
+        else:
+            game_duration_min = float(sample.get("game_duration_min", 35.0))
         game_duration_min = max(1.0, game_duration_min)
         phase_seq = compute_game_phase_seq(
             time_norm_seq=time_norm_seq,
@@ -553,7 +557,9 @@ def build_sequence_features(
     # item_seq(팀수준)은 macro에서 제거 — 아이템은 노드 수준으로만 전달 (node_item_seq)
     macro_base = np.concatenate([global_base, ev_seq], axis=1).astype(np.float32)
 
-    spatial_seq = compute_spatial_seq_from_node(node_role, sample)  # (L, F_SPATIAL)
+    xy_abs = sample.get("xy_abs_seq", None)
+    xy_abs_role = reorder_node_seq_by_role(np.asarray(xy_abs, dtype=np.float32), role_slots) if xy_abs is not None else None
+    spatial_seq = compute_spatial_seq_from_node(node_role, sample, xy_abs=xy_abs_role)  # (L, F_SPATIAL)
 
     # [P0-1] When ZERO_XY_IN_EXTRA_SEQ is True, zero out direct position features
     # (pos_fight_x/y, pos_blue_x/y, pos_red_x/y) from the spatial_seq copy used

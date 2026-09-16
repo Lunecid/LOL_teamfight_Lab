@@ -74,8 +74,6 @@ class CollectorConfig:
     game_mode: str = "CLASSIC"
     tiers: Tuple[str, ...] = ("CHALLENGER", "GRANDMASTER", "MASTER")
     min_api_patch: Optional[Tuple[int, int]] = (16, 13)
-    exact_api_patch: Optional[Tuple[int, int]] = None
-    max_complete_matches: Optional[int] = None
     rank_refresh_seconds: int = 3600
     cycle_interval_seconds: int = 3600
     cycle_work_budget_seconds: int = 3000
@@ -124,14 +122,6 @@ class CollectorConfig:
             raise ValueError("max_storage_bytes must be non-negative")
         if self.min_free_bytes < 0:
             raise ValueError("min_free_bytes must be non-negative")
-        if self.max_complete_matches is not None and self.max_complete_matches < 1:
-            raise ValueError("max_complete_matches must be positive")
-        if (
-            self.exact_api_patch is not None
-            and self.min_api_patch is not None
-            and self.exact_api_patch < self.min_api_patch
-        ):
-            raise ValueError("exact_api_patch cannot be before min_api_patch")
 
     @property
     def database_path(self) -> Path:

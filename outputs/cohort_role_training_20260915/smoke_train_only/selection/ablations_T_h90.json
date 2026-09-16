@@ -1,0 +1,241 @@
+{
+ "role": "EXPLORATORY_FOLLOWUP_MODEL_DEFINED_LABELS_PRIOR_TEST_EXPOSURE",
+ "cohort": "T",
+ "horizon_s": 90,
+ "preselected_full_role_ridge": "role_ridge_sigmoid",
+ "primary_calibration": "sigmoid",
+ "rule": "each leave-one-role-block-out ridge is refit on cohort TRAIN with its own calibrators on Q_CAL; the primary ablation variant uses the calibration preselected for the full role ridge; each ablation's own Q_SELECT choice among raw/sigmoid/isotonic is also recorded",
+ "blocks": {
+  "role_TOP": {
+   "primary_candidate": "drop_role_TOP_ridge_sigmoid",
+   "own_q_select_choice": "drop_role_TOP_ridge_sigmoid",
+   "bundle_sha256": {
+    "drop_role_TOP_ridge_raw": "44bb14d44d049b199f18835bd6e5bcd96fd95331dfdad9e72ff87152dfa66861",
+    "drop_role_TOP_ridge_sigmoid": "a435f5f9beb4190ec3b85c47ac1d0ea2d3593902006055d09736bff3b841df06",
+    "drop_role_TOP_ridge_isotonic": "5652f3e946747f889a509a7a7517173c2d37868af5be714aac0794c6b14cbedb"
+   },
+   "fit_log": {
+    "features": 410,
+    "transform_seconds": 0.0,
+    "rows": 5106,
+    "ridge_seconds": 0.0,
+    "ridge_n_iter": 34,
+    "ridge_converged": true,
+    "warnings": [],
+    "ridge_isotonic_thresholds": 24,
+    "ridge_sigmoid": {
+     "slope": 0.6255485643786027,
+     "intercept": 0.1075318314575523
+    }
+   },
+   "dropped_features": 51,
+   "select_metrics": {
+    "drop_role_TOP_ridge_raw": {
+     "brier": 0.2444093439063686,
+     "logloss": 0.6901482570061431,
+     "auc": 0.6237901408103588
+    },
+    "drop_role_TOP_ridge_sigmoid": {
+     "brier": 0.2411717035806698,
+     "logloss": 0.6770332410321329,
+     "auc": 0.6237901408103588
+    },
+    "drop_role_TOP_ridge_isotonic": {
+     "brier": 0.24280148488947387,
+     "logloss": 0.6825858554764769,
+     "auc": 0.6183986468546441
+    }
+   },
+   "full_role_ridge_select_metrics": {
+    "brier": 0.24229481684107246,
+    "logloss": 0.6799696581613699,
+    "auc": 0.6194885664926585
+   }
+  },
+  "role_JUNGLE": {
+   "primary_candidate": "drop_role_JUNGLE_ridge_sigmoid",
+   "own_q_select_choice": "drop_role_JUNGLE_ridge_sigmoid",
+   "bundle_sha256": {
+    "drop_role_JUNGLE_ridge_raw": "eef89405a153eb30d47be68096324594eb617d3faf335e147ee54f29d9a1c499",
+    "drop_role_JUNGLE_ridge_sigmoid": "cfa8ac53e3906f31c1b789839a3ce62a57080ff739dd578278d268e68e9ebf7a",
+    "drop_role_JUNGLE_ridge_isotonic": "90a51cd93f7b02d5975ecdf160dc0d8ecc7a10c4404de182880aed9c35501428"
+   },
+   "fit_log": {
+    "features": 410,
+    "transform_seconds": 0.0,
+    "rows": 5106,
+    "ridge_seconds": 0.0,
+    "ridge_n_iter": 36,
+    "ridge_converged": true,
+    "warnings": [],
+    "ridge_isotonic_thresholds": 34,
+    "ridge_sigmoid": {
+     "slope": 0.6128423159850604,
+     "intercept": 0.12081243607928044
+    }
+   },
+   "dropped_features": 51,
+   "select_metrics": {
+    "drop_role_JUNGLE_ridge_raw": {
+     "brier": 0.24615543054103053,
+     "logloss": 0.6964006293456431,
+     "auc": 0.6197321878406172
+    },
+    "drop_role_JUNGLE_ridge_sigmoid": {
+     "brier": 0.24201379456293584,
+     "logloss": 0.6797097677335395,
+     "auc": 0.6197321878406172
+    },
+    "drop_role_JUNGLE_ridge_isotonic": {
+     "brier": 0.24450759255839488,
+     "logloss": 0.7111899816733706,
+     "auc": 0.6165255417617623
+    }
+   },
+   "full_role_ridge_select_metrics": {
+    "brier": 0.24229481684107246,
+    "logloss": 0.6799696581613699,
+    "auc": 0.6194885664926585
+   }
+  },
+  "role_MIDDLE": {
+   "primary_candidate": "drop_role_MIDDLE_ridge_sigmoid",
+   "own_q_select_choice": "drop_role_MIDDLE_ridge_sigmoid",
+   "bundle_sha256": {
+    "drop_role_MIDDLE_ridge_raw": "47917b986c319ba3138c02630c40751f0fb820ac817e388b56973585ca97b807",
+    "drop_role_MIDDLE_ridge_sigmoid": "1a3eb515c6cc64e50d73e8f810c5f5add80a8032d73b26f447508a1bbaeea9c8",
+    "drop_role_MIDDLE_ridge_isotonic": "8e06f21ee4c3da4e3958050ba48ccc64368d626438e7ad27a06050d1460ac2a3"
+   },
+   "fit_log": {
+    "features": 410,
+    "transform_seconds": 0.0,
+    "rows": 5106,
+    "ridge_seconds": 0.0,
+    "ridge_n_iter": 34,
+    "ridge_converged": true,
+    "warnings": [],
+    "ridge_isotonic_thresholds": 36,
+    "ridge_sigmoid": {
+     "slope": 0.6196194730537502,
+     "intercept": 0.11686828151487509
+    }
+   },
+   "dropped_features": 51,
+   "select_metrics": {
+    "drop_role_MIDDLE_ridge_raw": {
+     "brier": 0.2465082646195696,
+     "logloss": 0.6976430772833376,
+     "auc": 0.6186857920914697
+    },
+    "drop_role_MIDDLE_ridge_sigmoid": {
+     "brier": 0.24214502260996287,
+     "logloss": 0.6804991907260473,
+     "auc": 0.6186857920914697
+    },
+    "drop_role_MIDDLE_ridge_isotonic": {
+     "brier": 0.24658018283997404,
+     "logloss": 0.7121765293343258,
+     "auc": 0.6121563188621731
+    }
+   },
+   "full_role_ridge_select_metrics": {
+    "brier": 0.24229481684107246,
+    "logloss": 0.6799696581613699,
+    "auc": 0.6194885664926585
+   }
+  },
+  "role_BOTTOM": {
+   "primary_candidate": "drop_role_BOTTOM_ridge_sigmoid",
+   "own_q_select_choice": "drop_role_BOTTOM_ridge_sigmoid",
+   "bundle_sha256": {
+    "drop_role_BOTTOM_ridge_raw": "f7ead8297da3e79ad31639c82322cc51161d8e79aba779e98e0c96ac3d6f0976",
+    "drop_role_BOTTOM_ridge_sigmoid": "5671b230dd79303e1902dfe0dbccca1af6f52b6c2252bf9322e3c50a9535fb31",
+    "drop_role_BOTTOM_ridge_isotonic": "289620c23878b2ba8e14fb3cd48d25929c4870c4f7d4fe91f6fd9ccb24f46a0e"
+   },
+   "fit_log": {
+    "features": 410,
+    "transform_seconds": 0.0,
+    "rows": 5106,
+    "ridge_seconds": 0.0,
+    "ridge_n_iter": 34,
+    "ridge_converged": true,
+    "warnings": [],
+    "ridge_isotonic_thresholds": 28,
+    "ridge_sigmoid": {
+     "slope": 0.5923512209646966,
+     "intercept": 0.12516685273617503
+    }
+   },
+   "dropped_features": 51,
+   "select_metrics": {
+    "drop_role_BOTTOM_ridge_raw": {
+     "brier": 0.2465089974708251,
+     "logloss": 0.6961891046269906,
+     "auc": 0.621225808214456
+    },
+    "drop_role_BOTTOM_ridge_sigmoid": {
+     "brier": 0.24218413408497033,
+     "logloss": 0.6790781295166439,
+     "auc": 0.621225808214456
+    },
+    "drop_role_BOTTOM_ridge_isotonic": {
+     "brier": 0.24560804543040998,
+     "logloss": 0.7583649933398201,
+     "auc": 0.6171451024374952
+    }
+   },
+   "full_role_ridge_select_metrics": {
+    "brier": 0.24229481684107246,
+    "logloss": 0.6799696581613699,
+    "auc": 0.6194885664926585
+   }
+  },
+  "role_UTILITY": {
+   "primary_candidate": "drop_role_UTILITY_ridge_sigmoid",
+   "own_q_select_choice": "drop_role_UTILITY_ridge_sigmoid",
+   "bundle_sha256": {
+    "drop_role_UTILITY_ridge_raw": "1cd231c56dfeb34fa4e9aad553b4da91ff207ab5e3e50abb6515a2ae3b2c9757",
+    "drop_role_UTILITY_ridge_sigmoid": "c78f54517c97076f12ca7e8b639f0b61fe1b8ca9013f8d9e19d25b8d82fb63a7",
+    "drop_role_UTILITY_ridge_isotonic": "4c96fd8e6a4a27d2db98d48203643414cffe7fe17638072ab47674fdfa6d6d5c"
+   },
+   "fit_log": {
+    "features": 410,
+    "transform_seconds": 0.0,
+    "rows": 5106,
+    "ridge_seconds": 0.0,
+    "ridge_n_iter": 35,
+    "ridge_converged": true,
+    "warnings": [],
+    "ridge_isotonic_thresholds": 30,
+    "ridge_sigmoid": {
+     "slope": 0.6485549962094203,
+     "intercept": 0.11631359308978903
+    }
+   },
+   "dropped_features": 51,
+   "select_metrics": {
+    "drop_role_UTILITY_ridge_raw": {
+     "brier": 0.2493346458092538,
+     "logloss": 0.7011032582325595,
+     "auc": 0.604715018486851
+    },
+    "drop_role_UTILITY_ridge_sigmoid": {
+     "brier": 0.24459822634874914,
+     "logloss": 0.6848554264667128,
+     "auc": 0.604715018486851
+    },
+    "drop_role_UTILITY_ridge_isotonic": {
+     "brier": 0.25106536318044526,
+     "logloss": 0.7677036930759426,
+     "auc": 0.5969018183380317
+    }
+   },
+   "full_role_ridge_select_metrics": {
+    "brier": 0.24229481684107246,
+    "logloss": 0.6799696581613699,
+    "auc": 0.6194885664926585
+   }
+  }
+ },
+ "written_at": "2026-09-15 14:40:29"
+}

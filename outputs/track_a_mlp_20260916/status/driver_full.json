@@ -1,0 +1,39 @@
+{
+ "group": "driver_full",
+ "state": "complete",
+ "stage": "full",
+ "pid": 39604,
+ "updated": "2026-09-16 01:46:05",
+ "elapsed_s": 3481.5,
+ "processed": 4,
+ "total": 4,
+ "error": null,
+ "next_step": "next plan",
+ "history": [
+  {
+   "stage": "fit_T_mlp",
+   "state": "running",
+   "at": "2026-09-16 00:48:03"
+  },
+  {
+   "stage": "fit_T_resmlp",
+   "state": "running",
+   "at": "2026-09-16 00:50:35"
+  },
+  {
+   "stage": "fit_N_mlp",
+   "state": "running",
+   "at": "2026-09-16 00:55:30"
+  },
+  {
+   "stage": "fit_N_resmlp",
+   "state": "running",
+   "at": "2026-09-16 01:05:55"
+  },
+  {
+   "stage": "full",
+   "state": "complete",
+   "at": "2026-09-16 01:46:05"
+  }
+ ]
+}

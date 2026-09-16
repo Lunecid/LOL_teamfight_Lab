@@ -107,62 +107,6 @@ def test_cycle_excludes_pre_2026_patch_without_writing_raw(tmp_path):
     asyncio.run(exercise())
 
 
-def test_exact_patch_excludes_later_patch(tmp_path):
-    async def exercise():
-        base = make_config(tmp_path)
-        config = CollectorConfig(
-            **{
-                **base.__dict__,
-                "exact_api_patch": (16, 13),
-            }
-        )
-        state = CollectionState(config.database_path)
-        store = RawStore(config.output_root, config.platform)
-        agent = CollectionAgent(config, FakeClient("16.14.1"), state, store)
-        try:
-            summary = await agent.run_cycle()
-            assert summary.matches_excluded == 1
-            assert state.counts()["excluded"] == 1
-        finally:
-            state.close()
-
-    asyncio.run(exercise())
-
-
-def test_complete_quota_stops_without_overshoot(tmp_path):
-    async def exercise():
-        base = make_config(tmp_path)
-        config = CollectorConfig(
-            **{
-                **base.__dict__,
-                "exact_api_patch": (16, 13),
-                "max_complete_matches": 1,
-            }
-        )
-        state = CollectionState(config.database_path)
-        store = RawStore(config.output_root, config.platform)
-        state.enqueue_matches(
-            ["KR_123", "KR_124"],
-            platform="kr",
-            source_puuid="test-player",
-            discovered_at=1000,
-        )
-        agent = CollectionAgent(config, FakeClient("16.13.1"), state, store)
-        from acquisition.collector import CycleSummary
-
-        summary = CycleSummary(started_at=1000)
-        try:
-            await agent.download_pending(summary)
-            assert summary.matches_completed == 1
-            assert summary.quota_reached is True
-            assert state.complete_count(platform="kr", api_patch="16.13") == 1
-            assert len(state.pending_matches("kr", 10)) == 1
-        finally:
-            state.close()
-
-    asyncio.run(exercise())
-
-
 def test_existing_old_patch_pair_is_quarantined_not_recovered(tmp_path):
     async def exercise():
         config = make_config(tmp_path)

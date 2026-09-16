@@ -1,0 +1,44 @@
+{
+ "group": "freeze",
+ "state": "complete",
+ "stage": "frozen",
+ "pid": 42448,
+ "updated": "2026-09-16 01:46:22",
+ "elapsed_s": 16.9,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "sealed evaluation",
+ "frozen_manifest_sha256": "6a2fafe6fde0fb97433717ec6cb05741f38efd00bfada781dc9781479164833d",
+ "winners": {
+  "mlp_T": "mlp_W128_D0.3__raw",
+  "resmlp_T": "resmlp_W128_D0.1__raw",
+  "mlp_N": "mlp_W128_D0.3__sigmoid",
+  "resmlp_N": "resmlp_W128_D0.1__sigmoid"
+ },
+ "overall": {
+  "T": "mlp_W128_D0.3__raw",
+  "N": "mlp_W128_D0.3__sigmoid"
+ },
+ "five_family": {
+  "T": "iq_lgbm:lgbm_L15_M100__raw",
+  "N": "iq_lgbm:lgbm_L15_M100__sigmoid"
+ },
+ "history": [
+  {
+   "stage": "verify_T",
+   "state": "running",
+   "at": "2026-09-16 01:46:05"
+  },
+  {
+   "stage": "verify_N",
+   "state": "running",
+   "at": "2026-09-16 01:46:13"
+  },
+  {
+   "stage": "frozen",
+   "state": "complete",
+   "at": "2026-09-16 01:46:22"
+  }
+ ]
+}

@@ -1,0 +1,21 @@
+{
+ "group": "freeze",
+ "state": "complete",
+ "stage": "freeze",
+ "pid": 32920,
+ "updated": "2026-09-15 16:34:25",
+ "elapsed_s": 0.0,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "W evaluation, labels",
+ "frozen_manifest_sha256": "e8d20bf098581dc78730aabdfb4a6d4ff30ee860e76b4dcecab203c1d27a0f67",
+ "secondary_chosen": "raw",
+ "history": [
+  {
+   "stage": "freeze",
+   "state": "complete",
+   "at": "2026-09-15 16:34:25"
+  }
+ ]
+}

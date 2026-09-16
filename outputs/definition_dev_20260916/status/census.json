@@ -1,0 +1,55 @@
+{
+ "group": "census",
+ "state": "complete",
+ "stage": "census",
+ "pid": 7856,
+ "updated": "2026-09-16 08:10:52",
+ "elapsed_s": 12.0,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "rebuild MAIN_TRAIN / MAIN_VALIDATION",
+ "census_sha256": "344ecfc8e05c4845e0c6598c0150f8289cc1c579ead5a0ef1e4668ee4899019e",
+ "history": [
+  {
+   "stage": "census_MAIN_TRAIN",
+   "state": "running",
+   "at": "2026-09-16 08:10:42"
+  },
+  {
+   "stage": "census_MAIN_VALIDATION",
+   "state": "running",
+   "at": "2026-09-16 08:10:46"
+  },
+  {
+   "stage": "census_MAIN_TEST",
+   "state": "running",
+   "at": "2026-09-16 08:10:50"
+  },
+  {
+   "stage": "census_EXT_KR_16.13",
+   "state": "running",
+   "at": "2026-09-16 08:10:52"
+  },
+  {
+   "stage": "census_EXT_KR_16.14_pilot",
+   "state": "running",
+   "at": "2026-09-16 08:10:52"
+  },
+  {
+   "stage": "census_EXT_KR_16.15",
+   "state": "running",
+   "at": "2026-09-16 08:10:52"
+  },
+  {
+   "stage": "census_EXT_NA1_16.13",
+   "state": "running",
+   "at": "2026-09-16 08:10:52"
+  },
+  {
+   "stage": "census",
+   "state": "complete",
+   "at": "2026-09-16 08:10:52"
+  }
+ ]
+}

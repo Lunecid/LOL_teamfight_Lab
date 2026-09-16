@@ -45,13 +45,8 @@ def test_digest_fights_keeps_only_stable_detector_fields() -> None:
                 "first_kill_ts": 20_000,
                 "last_kill_ts": 25_000,
                 "fight_type": "teamfight",
-                "fight_scale": "teamfight",
-                "fight_context": "objective_baron",
-                "fight_label": "teamfight · objective_baron",
                 "centroid_x": 123.4567894,
                 "centroid_y": 456.1234567,
-                "det_cluster_blue": 3,
-                "det_cluster_red": 4,
                 "det_kill_count_window": 2,
                 "volatile": object(),
             }
@@ -63,13 +58,8 @@ def test_digest_fights_keeps_only_stable_detector_fields() -> None:
             "first_kill_ts": 20_000,
             "last_kill_ts": 25_000,
             "fight_type": "teamfight",
-            "fight_scale": "teamfight",
-            "fight_context": "objective_baron",
-            "fight_label": "teamfight · objective_baron",
             "centroid_x": 123.456789,
             "centroid_y": 456.123457,
-            "blue_participants": 3,
-            "red_participants": 4,
             "n_kills": 2,
         }
     ]

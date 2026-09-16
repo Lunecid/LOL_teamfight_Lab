@@ -1,0 +1,62 @@
+{
+ "group": "role_models_smoke",
+ "state": "complete",
+ "stage": "role_models",
+ "pid": 25244,
+ "updated": "2026-09-15 14:36:31",
+ "elapsed_s": 4.8,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "fit arms",
+ "converged": {
+  "final": true,
+  "oof_fold0": true,
+  "oof_fold1": true,
+  "oof_fold2": true,
+  "oof_fold3": true,
+  "oof_fold4": true
+ },
+ "history": [
+  {
+   "stage": "fit_final",
+   "state": "running",
+   "at": "2026-09-15 14:36:27"
+  },
+  {
+   "stage": "fit_oof_fold0",
+   "state": "running",
+   "at": "2026-09-15 14:36:28"
+  },
+  {
+   "stage": "fit_oof_fold1",
+   "state": "running",
+   "at": "2026-09-15 14:36:29"
+  },
+  {
+   "stage": "fit_oof_fold2",
+   "state": "running",
+   "at": "2026-09-15 14:36:29"
+  },
+  {
+   "stage": "fit_oof_fold3",
+   "state": "running",
+   "at": "2026-09-15 14:36:30"
+  },
+  {
+   "stage": "fit_oof_fold4",
+   "state": "running",
+   "at": "2026-09-15 14:36:30"
+  },
+  {
+   "stage": "outputs_MAIN_TRAIN",
+   "state": "running",
+   "at": "2026-09-15 14:36:31"
+  },
+  {
+   "stage": "role_models",
+   "state": "complete",
+   "at": "2026-09-15 14:36:31"
+  }
+ ]
+}

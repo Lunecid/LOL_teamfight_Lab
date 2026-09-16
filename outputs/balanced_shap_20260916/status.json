@@ -1,0 +1,97 @@
+{
+ "version": "balanced_shap_20260916",
+ "role": "EXPLORATORY_FOLLOWUP_AFTER_PRIOR_TEST_EXPOSURE_MODEL_DEFINED_LABELS_NOT_CONFIRMATORY",
+ "updated": "2026-09-16 03:16:18",
+ "running_groups": [],
+ "failed_groups": [],
+ "groups": {
+  "driver_full": {
+   "state": "complete",
+   "stage": "full",
+   "processed": 2,
+   "total": 2,
+   "pid": 43656,
+   "elapsed_s": 392.7,
+   "error": null,
+   "next_step": "next plan",
+   "updated": "2026-09-16 03:15:50"
+  },
+  "driver_post": {
+   "state": "complete",
+   "stage": "post",
+   "processed": 3,
+   "total": 3,
+   "pid": 42708,
+   "elapsed_s": 27.9,
+   "error": null,
+   "next_step": "next plan",
+   "updated": "2026-09-16 03:16:18"
+  },
+  "driver_smoke": {
+   "state": "complete",
+   "stage": "smoke",
+   "processed": 2,
+   "total": 2,
+   "pid": 42652,
+   "elapsed_s": 14.3,
+   "error": null,
+   "next_step": "next plan",
+   "updated": "2026-09-16 03:09:08"
+  },
+  "freeze": {
+   "state": "complete",
+   "stage": "frozen",
+   "processed": null,
+   "total": null,
+   "pid": 20364,
+   "elapsed_s": 6.1,
+   "error": null,
+   "next_step": "sealed explanation",
+   "updated": "2026-09-16 03:09:23"
+  },
+  "freeze_smoke": {
+   "state": "complete",
+   "stage": "frozen",
+   "processed": null,
+   "total": null,
+   "pid": 39528,
+   "elapsed_s": 5.0,
+   "error": null,
+   "next_step": "sealed explanation",
+   "updated": "2026-09-16 03:08:59"
+  },
+  "postrun_checks": {
+   "state": "complete",
+   "stage": "validated",
+   "processed": null,
+   "total": null,
+   "pid": 2580,
+   "elapsed_s": 12.5,
+   "error": null,
+   "next_step": "report",
+   "updated": "2026-09-16 03:16:17"
+  },
+  "shap": {
+   "state": "complete",
+   "stage": "shap",
+   "processed": null,
+   "total": null,
+   "pid": 40432,
+   "elapsed_s": 383.1,
+   "error": null,
+   "next_step": "snapshot after, post-run checks, report",
+   "updated": "2026-09-16 03:15:49"
+  },
+  "shap_smoke": {
+   "state": "complete",
+   "stage": "shap",
+   "processed": null,
+   "total": null,
+   "pid": 20048,
+   "elapsed_s": 7.2,
+   "error": null,
+   "next_step": "snapshot after, post-run checks, report",
+   "updated": "2026-09-16 03:09:08"
+  }
+ }
+}

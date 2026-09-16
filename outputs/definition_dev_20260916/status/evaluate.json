@@ -1,0 +1,46 @@
+{
+ "group": "evaluate",
+ "state": "complete",
+ "stage": "evaluate",
+ "pid": 13228,
+ "updated": "2026-09-16 08:15:58",
+ "elapsed_s": 41.5,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "snapshot after, post-run checks, report",
+ "results_sha256": "ad80fcd3f0c08f25f78b7358e0581d20092ad51e780318031392034d7416104c",
+ "hashes_unchanged": true,
+ "history": [
+  {
+   "stage": "evaluate_MAIN_TEST",
+   "state": "running",
+   "at": "2026-09-16 08:15:18"
+  },
+  {
+   "stage": "evaluate_EXT_KR_16.13",
+   "state": "running",
+   "at": "2026-09-16 08:15:47"
+  },
+  {
+   "stage": "evaluate_EXT_KR_16.14_pilot",
+   "state": "running",
+   "at": "2026-09-16 08:15:52"
+  },
+  {
+   "stage": "evaluate_EXT_KR_16.15",
+   "state": "running",
+   "at": "2026-09-16 08:15:52"
+  },
+  {
+   "stage": "evaluate_EXT_NA1_16.13",
+   "state": "running",
+   "at": "2026-09-16 08:15:53"
+  },
+  {
+   "stage": "evaluate",
+   "state": "complete",
+   "at": "2026-09-16 08:15:58"
+  }
+ ]
+}

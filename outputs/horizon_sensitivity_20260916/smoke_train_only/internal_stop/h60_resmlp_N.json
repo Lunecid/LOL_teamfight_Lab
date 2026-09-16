@@ -1,0 +1,139 @@
+{
+ "role": "EXPLORATORY_FOLLOWUP_AFTER_PRIOR_TEST_EXPOSURE_MODEL_DEFINED_LABELS_NOT_CONFIRMATORY",
+ "horizon_s": 60,
+ "cohort": "N",
+ "family": "resmlp",
+ "config": "resmlp_W128_D0.1",
+ "stop_record": {
+  "allocation": "sha256('iq20260915_stop:'+match_id)[:8] mod 10 == 0 -> stop10 (iq allocation)",
+  "fit90": {
+   "rows": 10693,
+   "matches": 4473,
+   "weight_sum": 10693.000000000004,
+   "weight_mean": 1.0000000000000004,
+   "per_match_total_min": 2.3905656159177284,
+   "per_match_total_max": 2.3905656159177293,
+   "membership_sha256": "17fca309b60e0cd9a8854fa154634fd14a7694955af386e11c7fd95e14c71408"
+  },
+  "stop10": {
+   "rows": 1308,
+   "matches": 540,
+   "weight_sum": 1307.9999999999998,
+   "weight_mean": 0.9999999999999998,
+   "per_match_total_min": 2.4222222222222216,
+   "per_match_total_max": 2.4222222222222225,
+   "membership_sha256": "496f2021d41d28fdc3ac6de7f77fca0de3dfdb396e32f013ef471f081da3bd5c"
+  },
+  "full": {
+   "rows": 12001,
+   "matches": 5013,
+   "weight_sum": 12001.0,
+   "weight_mean": 1.0,
+   "per_match_total_min": 2.3939756632754836,
+   "per_match_total_max": 2.393975663275484,
+   "membership_sha256": "e0e98c2df0131fa49aacde0b614533e556eeb3e9d1d287c309d4424b16c8c15f"
+  },
+  "fit90_stop10_match_overlap": 0,
+  "preprocessing_stop_phase": "median imputer + StandardScaler fit on fit90 rows only",
+  "preprocessing_full": "median imputer + StandardScaler refit on all cohort TRAIN rows",
+  "evaluator": "match-weighted Brier on stop10 (weights recomputed inside stop10), GPU float32 inference, eval mode",
+  "patience": 10,
+  "max_epochs": 100,
+  "device": "cuda",
+  "optimizer": {
+   "optimizer": "AdamW",
+   "lr": 0.001,
+   "weight_decay": 0.0001,
+   "weight_decay_scope": "all parameters (AdamW default)",
+   "batch_size": 512,
+   "max_epochs": 100,
+   "patience": 10,
+   "dtype_train": "float32",
+   "amp": false,
+   "grad_clip": null,
+   "init": "PyTorch default (kaiming_uniform for Linear)",
+   "shuffle": "uniform permutation per epoch from a CPU torch.Generator seeded with the seed",
+   "last_batch": "kept (partial)"
+  },
+  "seeds": {
+   "7": {
+    "best_epoch": 4,
+    "first_argmin_epoch": 4,
+    "epochs_evaluated": 14,
+    "cap_reached": false,
+    "early_stopped": true,
+    "best_stop_weighted_brier": 0.2427738457918167,
+    "stop_curve": [
+     0.24813447892665863,
+     0.24294602870941162,
+     0.2458086460828781,
+     0.2427738457918167,
+     0.2470971643924713,
+     0.25048187375068665,
+     0.25763964653015137,
+     0.26507827639579773,
+     0.2706994414329529,
+     0.27982062101364136,
+     0.279171884059906,
+     0.28695380687713623,
+     0.2937098741531372,
+     0.3050335943698883
+    ],
+    "refit_epochs": 4,
+    "stop_seconds": 8.28,
+    "refit_seconds": 1.91
+   },
+   "42": {
+    "best_epoch": 3,
+    "first_argmin_epoch": 3,
+    "epochs_evaluated": 13,
+    "cap_reached": false,
+    "early_stopped": true,
+    "best_stop_weighted_brier": 0.24153359234333038,
+    "stop_curve": [
+     0.2448839396238327,
+     0.2429482638835907,
+     0.24153359234333038,
+     0.24271850287914276,
+     0.25900858640670776,
+     0.26218661665916443,
+     0.2531203329563141,
+     0.2558843493461609,
+     0.26438406109809875,
+     0.27600032091140747,
+     0.2840721011161804,
+     0.27852705121040344,
+     0.29197925329208374
+    ],
+    "refit_epochs": 3,
+    "stop_seconds": 5.26,
+    "refit_seconds": 1.41
+   },
+   "123": {
+    "best_epoch": 2,
+    "first_argmin_epoch": 2,
+    "epochs_evaluated": 12,
+    "cap_reached": false,
+    "early_stopped": true,
+    "best_stop_weighted_brier": 0.24360999464988708,
+    "stop_curve": [
+     0.24527786672115326,
+     0.24360999464988708,
+     0.2443055957555771,
+     0.24743470549583435,
+     0.2500964403152466,
+     0.2511579692363739,
+     0.26108911633491516,
+     0.2690276801586151,
+     0.2677174508571625,
+     0.28593796491622925,
+     0.28643420338630676,
+     0.29213666915893555
+    ],
+    "refit_epochs": 2,
+    "stop_seconds": 4.9,
+    "refit_seconds": 0.96
+   }
+  }
+ }
+}

@@ -1,0 +1,26 @@
+{
+ "group": "freeze",
+ "state": "complete",
+ "stage": "freeze",
+ "pid": 38136,
+ "updated": "2026-09-15 14:47:42",
+ "elapsed_s": 0.2,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "evaluation",
+ "frozen_manifest_sha256": "3c738a3ff537a3a52fcf9d8bdcd4c8b0c80b94993e53a176226abb4813280454",
+ "files": 123,
+ "stage_status": {
+  "A": "selections complete",
+  "B": "role models fitted (weak supervision)",
+  "C": "arms selected for N,T"
+ },
+ "history": [
+  {
+   "stage": "freeze",
+   "state": "complete",
+   "at": "2026-09-15 14:47:42"
+  }
+ ]
+}

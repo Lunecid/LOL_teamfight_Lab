@@ -1,0 +1,8 @@
+{
+  "written_at": "2026-09-16 04:13:14",
+  "stage": "fit_logit_base_T_smoke (first smoke fit, 04:11:12)",
+  "failure": "reload identity failed: {'raw': False, 'sigmoid': False, 'isotonic': False}",
+  "cause": "cc20260916_common.bundle_raw was the iq helper Q.bundle_raw, which column-fancy-indexes X[:, input_columns]; that returns an F-ordered array and the logistic predict_proba then differs from the C-ordered in-memory prediction in the last bits (max |diff| 3.33e-16 measured on the saved smoke bundle; identical after np.ascontiguousarray).",
+  "fix": "own bundle_raw() in cc20260916_common that always passes a C-contiguous float64 array to the base (no-op when input_columns is the identity); contract test extended with an F-ordered input; failed partial bundle moved to smoke_train_only/attempts/attempt1_layout_reload_identity/.",
+  "consequence": "no selection was written, no data seen beyond the smoke TRAIN rows; protocol.json and snapshot_before.json are unchanged; the chain resumes with contract tests (run 2) -> smoke -> tests -> full fits."
+}

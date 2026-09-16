@@ -1,0 +1,37 @@
+{
+ "group": "fit_h120_resmlp_N",
+ "state": "complete",
+ "stage": "selected",
+ "pid": 10896,
+ "updated": "2026-09-16 02:54:21",
+ "elapsed_s": 247.6,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "next family / cohort / horizon, then freeze",
+ "chosen": "resmlp_W128_D0.1__sigmoid",
+ "selection_sha256": "40bdacc8865d43cd534c7623f3018da98ea721d0863b90c85cc79d7730a9cd4d",
+ "seconds": 240.4,
+ "select_brier": {
+  "resmlp_W128_D0.1__isotonic": 0.239953,
+  "resmlp_W128_D0.1__raw": 0.239972,
+  "resmlp_W128_D0.1__sigmoid": 0.239683
+ },
+ "history": [
+  {
+   "stage": "load",
+   "state": "running",
+   "at": "2026-09-16 02:50:13"
+  },
+  {
+   "stage": "fit_resmlp_W128_D0.1",
+   "state": "running",
+   "at": "2026-09-16 02:50:18"
+  },
+  {
+   "stage": "selected",
+   "state": "complete",
+   "at": "2026-09-16 02:54:21"
+  }
+ ]
+}

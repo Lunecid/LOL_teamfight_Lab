@@ -1,0 +1,709 @@
+{
+  "protocol": "disjoint valuation + match-grouped engagement OOF + held-out match stacking",
+  "status": "complete",
+  "value_model_id": "ffde1ed0b9a6905ba65d2ee27b370cc55e02eb46cb3fd6c9d7e992fd5c91c416",
+  "input": "full",
+  "label_semantics": "frozen model value increase, not causal engagement effect",
+  "value_validation": {
+    "n": 150430,
+    "matches": 4986,
+    "positive_rate": 0.5136381869233856,
+    "auc": 0.8472182421296364,
+    "brier": 0.15924062519733723,
+    "log_loss": 0.47569463456214317,
+    "calibration": [
+      {
+        "n": 17719,
+        "predicted": 0.041448280376443665,
+        "observed": 0.03801804029088641
+      },
+      {
+        "n": 11673,
+        "predicted": 0.14903298614914762,
+        "observed": 0.1466300064031547
+      },
+      {
+        "n": 12094,
+        "predicted": 0.25097791841284306,
+        "observed": 0.2448214977556398
+      },
+      {
+        "n": 13608,
+        "predicted": 0.35186911094817136,
+        "observed": 0.35135536772387477
+      },
+      {
+        "n": 16361,
+        "predicted": 0.45151231281257803,
+        "observed": 0.45679382132330526
+      },
+      {
+        "n": 17947,
+        "predicted": 0.5492694240070204,
+        "observed": 0.5441986978621294
+      },
+      {
+        "n": 15394,
+        "predicted": 0.6485314968962546,
+        "observed": 0.6413478816777256
+      },
+      {
+        "n": 13390,
+        "predicted": 0.7492279756492438,
+        "observed": 0.746623504762054
+      },
+      {
+        "n": 12862,
+        "predicted": 0.8508116560853933,
+        "observed": 0.8543440315570074
+      },
+      {
+        "n": 19382,
+        "predicted": 0.9589952070569087,
+        "observed": 0.9631276336068688
+      }
+    ]
+  },
+  "value_regularization": {
+    "C": 0.001,
+    "selection": "3-fold grouped CV on value_train only"
+  },
+  "value_validation_training_prior_baseline": {
+    "n": 150430,
+    "matches": 4986,
+    "positive_rate": 0.5136381869233856,
+    "auc": 0.5,
+    "brier": 0.2498218415718728,
+    "log_loss": 0.6927908326855022,
+    "calibration": [
+      {
+        "n": 150430,
+        "predicted": 0.5164384930548619,
+        "observed": 0.5136381869233856
+      }
+    ]
+  },
+  "objective_representation": "event counts, explicit soul events, acquisition ages, deaths since acquisition; not exact active buffs",
+  "objective_state_coverage": {
+    "blue_dragons": {
+      "train_nonzero": 121992,
+      "validation_nonzero": 60914,
+      "train_matches": 7380,
+      "validation_matches": 3663
+    },
+    "blue_baron": {
+      "train_nonzero": 13157,
+      "validation_nonzero": 6401,
+      "train_matches": 2473,
+      "validation_matches": 1196
+    },
+    "blue_elder": {
+      "train_nonzero": 306,
+      "validation_nonzero": 178,
+      "train_matches": 66,
+      "validation_matches": 36
+    },
+    "blue_soul_event_recorded": {
+      "train_nonzero": 2200,
+      "validation_nonzero": 1239,
+      "train_matches": 515,
+      "validation_matches": 282
+    },
+    "red_dragons": {
+      "train_nonzero": 152126,
+      "validation_nonzero": 75923,
+      "train_matches": 8083,
+      "validation_matches": 4008
+    },
+    "red_baron": {
+      "train_nonzero": 13363,
+      "validation_nonzero": 7334,
+      "train_matches": 2505,
+      "validation_matches": 1310
+    },
+    "red_elder": {
+      "train_nonzero": 264,
+      "validation_nonzero": 218,
+      "train_matches": 74,
+      "validation_matches": 61
+    },
+    "red_soul_event_recorded": {
+      "train_nonzero": 4556,
+      "validation_nonzero": 2494,
+      "train_matches": 1002,
+      "validation_matches": 529
+    }
+  },
+  "value_validation_without_objectives": {
+    "n": 150430,
+    "matches": 4986,
+    "positive_rate": 0.5136381869233856,
+    "auc": 0.8420910419691081,
+    "brier": 0.16191089774433468,
+    "log_loss": 0.4830839817288054,
+    "calibration": [
+      {
+        "n": 16448,
+        "predicted": 0.04323735416469083,
+        "observed": 0.03929388394541354
+      },
+      {
+        "n": 11735,
+        "predicted": 0.1495083903721155,
+        "observed": 0.14894713089212205
+      },
+      {
+        "n": 12443,
+        "predicted": 0.25062136491235987,
+        "observed": 0.24517886734820188
+      },
+      {
+        "n": 13994,
+        "predicted": 0.35108582531509525,
+        "observed": 0.35163097805212296
+      },
+      {
+        "n": 16680,
+        "predicted": 0.45188807873221987,
+        "observed": 0.45330094473653865
+      },
+      {
+        "n": 18424,
+        "predicted": 0.5488695478096072,
+        "observed": 0.5385499606310771
+      },
+      {
+        "n": 15659,
+        "predicted": 0.6485851419326504,
+        "observed": 0.6387701623843912
+      },
+      {
+        "n": 13968,
+        "predicted": 0.74870868836724,
+        "observed": 0.7493084041150855
+      },
+      {
+        "n": 13180,
+        "predicted": 0.8504015948398924,
+        "observed": 0.8595736405814294
+      },
+      {
+        "n": 17899,
+        "predicted": 0.9570242065575328,
+        "observed": 0.9621438238067661
+      }
+    ]
+  },
+  "predict_train_labels": {
+    "total": 67468,
+    "labelled": 67468,
+    "ties_or_invalid": 0,
+    "small_change_fraction": {
+      "0.001": 0.016348491136538804,
+      "0.01": 0.11307582854093792,
+      "0.05": 0.3679225707001838
+    }
+  },
+  "predict_test_labels": {
+    "total": 26712,
+    "labelled": 26712,
+    "ties_or_invalid": 0,
+    "small_change_fraction": {
+      "0.001": 0.0159853249475891,
+      "0.01": 0.11485474693021863,
+      "0.05": 0.3722297094938604
+    }
+  },
+  "engagement_oof": {
+    "n": 67468,
+    "matches": 23173,
+    "positive_rate": 0.509975411437242,
+    "auc": 0.6211254041997796,
+    "brier": 0.2381539076812285,
+    "log_loss": 0.6688184593961856,
+    "calibration": [
+      {
+        "n": 23,
+        "predicted": 0.18999420829449898,
+        "observed": 0.13819095477386936
+      },
+      {
+        "n": 1907,
+        "predicted": 0.2692671578447596,
+        "observed": 0.24171691849801438
+      },
+      {
+        "n": 7541,
+        "predicted": 0.35716785790756855,
+        "observed": 0.3487286720608646
+      },
+      {
+        "n": 21118,
+        "predicted": 0.45771863597780993,
+        "observed": 0.45594541904974495
+      },
+      {
+        "n": 24771,
+        "predicted": 0.5448168841852018,
+        "observed": 0.5444860654332441
+      },
+      {
+        "n": 9760,
+        "predicted": 0.6421892525778375,
+        "observed": 0.6536837820177422
+      },
+      {
+        "n": 2337,
+        "predicted": 0.7263401444205305,
+        "observed": 0.7464521808308602
+      },
+      {
+        "n": 11,
+        "predicted": 0.806322019413871,
+        "observed": 0.8157894736842105
+      }
+    ]
+  },
+  "engagement_test": {
+    "n": 26712,
+    "matches": 9198,
+    "positive_rate": 0.5117822016957698,
+    "auc": 0.6227556182878324,
+    "brier": 0.23805899177532966,
+    "log_loss": 0.6686780018290358,
+    "calibration": [
+      {
+        "n": 10,
+        "predicted": 0.19046137433608384,
+        "observed": 0.2813822284908321
+      },
+      {
+        "n": 761,
+        "predicted": 0.2689994096095148,
+        "observed": 0.2425548865084737
+      },
+      {
+        "n": 2853,
+        "predicted": 0.35865097586787464,
+        "observed": 0.3536594495270874
+      },
+      {
+        "n": 8285,
+        "predicted": 0.4574904618640626,
+        "observed": 0.44744101444523754
+      },
+      {
+        "n": 9967,
+        "predicted": 0.5448107845834943,
+        "observed": 0.5495296493269727
+      },
+      {
+        "n": 3815,
+        "predicted": 0.6411233209204414,
+        "observed": 0.662021311819318
+      },
+      {
+        "n": 1019,
+        "predicted": 0.7285939876172084,
+        "observed": 0.7139465214105042
+      },
+      {
+        "n": 2,
+        "predicted": 0.8053316912215248,
+        "observed": 1.0
+      }
+    ]
+  },
+  "engagement_value_pre_only_baseline": {
+    "n": 26712,
+    "matches": 9198,
+    "positive_rate": 0.5117822016957698,
+    "auc": 0.5888780964923535,
+    "brier": 0.24250423679721564,
+    "log_loss": 0.6778560038875238,
+    "calibration": [
+      {
+        "n": 513,
+        "predicted": 0.2651402885584492,
+        "observed": 0.29822593524587876
+      },
+      {
+        "n": 2451,
+        "predicted": 0.34729781798563253,
+        "observed": 0.345174925031632
+      },
+      {
+        "n": 8219,
+        "predicted": 0.4699143974377421,
+        "observed": 0.4826693631556757
+      },
+      {
+        "n": 11746,
+        "predicted": 0.5350244294326846,
+        "observed": 0.5244090451629824
+      },
+      {
+        "n": 3023,
+        "predicted": 0.6469971718092548,
+        "observed": 0.6623158182201864
+      },
+      {
+        "n": 760,
+        "predicted": 0.7226206394794513,
+        "observed": 0.6956395471316531
+      }
+    ]
+  },
+  "engagement_by_scale": {
+    "pick": {
+      "n": 4851,
+      "matches": 3885,
+      "positive_rate": 0.514993564993565,
+      "auc": 0.602364206003057,
+      "brier": 0.24169371550928156,
+      "log_loss": 0.6762551284853026,
+      "calibration": [
+        {
+          "n": 2,
+          "predicted": 0.17927648542857486,
+          "observed": 0.0
+        },
+        {
+          "n": 67,
+          "predicted": 0.27281698272152305,
+          "observed": 0.3333333333333333
+        },
+        {
+          "n": 381,
+          "predicted": 0.3635932602858552,
+          "observed": 0.3658014450093658
+        },
+        {
+          "n": 1598,
+          "predicted": 0.4582220144841119,
+          "observed": 0.4514374514374515
+        },
+        {
+          "n": 2073,
+          "predicted": 0.5443340217067038,
+          "observed": 0.5497096515818983
+        },
+        {
+          "n": 611,
+          "predicted": 0.6377696777083873,
+          "observed": 0.6408658008658008
+        },
+        {
+          "n": 119,
+          "predicted": 0.7259520032526544,
+          "observed": 0.7294332723948812
+        }
+      ]
+    },
+    "skirmish": {
+      "n": 16572,
+      "matches": 8143,
+      "positive_rate": 0.5108030268474824,
+      "auc": 0.6063345683531398,
+      "brier": 0.24096837987807782,
+      "log_loss": 0.6747465934368037,
+      "calibration": [
+        {
+          "n": 8,
+          "predicted": 0.19276294634299918,
+          "observed": 0.2995391705069125
+        },
+        {
+          "n": 356,
+          "predicted": 0.2702345413891214,
+          "observed": 0.2564154994376853
+        },
+        {
+          "n": 1539,
+          "predicted": 0.3605573527047435,
+          "observed": 0.37089283593791933
+        },
+        {
+          "n": 5369,
+          "predicted": 0.45844983806074624,
+          "observed": 0.44957767850296815
+        },
+        {
+          "n": 6602,
+          "predicted": 0.5445088497384002,
+          "observed": 0.5454381520445636
+        },
+        {
+          "n": 2214,
+          "predicted": 0.6390032534191913,
+          "observed": 0.6484087065863069
+        },
+        {
+          "n": 483,
+          "predicted": 0.727119983894135,
+          "observed": 0.6974889278416811
+        },
+        {
+          "n": 1,
+          "predicted": 0.8033406366158783,
+          "observed": 1.0
+        }
+      ]
+    },
+    "teamfight": {
+      "n": 5289,
+      "matches": 3935,
+      "positive_rate": 0.5135451080050826,
+      "auc": 0.6685772649316949,
+      "brier": 0.2284690245618216,
+      "log_loss": 0.6486303191559063,
+      "calibration": [
+        {
+          "n": 338,
+          "predicted": 0.2686767617727214,
+          "observed": 0.24769768180374727
+        },
+        {
+          "n": 933,
+          "predicted": 0.35241793895134055,
+          "observed": 0.33048707155742635
+        },
+        {
+          "n": 1318,
+          "predicted": 0.4523513547205543,
+          "observed": 0.47088647567586533
+        },
+        {
+          "n": 1292,
+          "predicted": 0.5467348845260951,
+          "observed": 0.553845079764024
+        },
+        {
+          "n": 990,
+          "predicted": 0.6504963864680856,
+          "observed": 0.6783418310795833
+        },
+        {
+          "n": 417,
+          "predicted": 0.7296765726965125,
+          "observed": 0.7442402278022263
+        },
+        {
+          "n": 1,
+          "predicted": 0.8063272185243482,
+          "observed": 1.0
+        }
+      ]
+    }
+  },
+  "label_agreement_test": {
+    "y_market_event": {
+      "n": 25177,
+      "agreement": 0.8956984549390317
+    },
+    "y_attention_value_win": {
+      "n": 26513,
+      "agreement": 0.8685550484667899
+    }
+  },
+  "A_pre_information": {
+    "n": 26712,
+    "matches": 9198,
+    "positive_rate": 0.5123939986953685,
+    "auc": 0.8123867035295881,
+    "brier": 0.1760977663404939,
+    "log_loss": 0.5209451499973777,
+    "calibration": [
+      {
+        "n": 2041,
+        "predicted": 0.05531991518218707,
+        "observed": 0.03636326866505191
+      },
+      {
+        "n": 2176,
+        "predicted": 0.1496917920557531,
+        "observed": 0.14671869506380533
+      },
+      {
+        "n": 2193,
+        "predicted": 0.2518755592027125,
+        "observed": 0.23946243861647062
+      },
+      {
+        "n": 2544,
+        "predicted": 0.3518551247999248,
+        "observed": 0.3346398481373514
+      },
+      {
+        "n": 3561,
+        "predicted": 0.45344219010623216,
+        "observed": 0.457019210226693
+      },
+      {
+        "n": 4208,
+        "predicted": 0.548481976988848,
+        "observed": 0.5397261331525898
+      },
+      {
+        "n": 2926,
+        "predicted": 0.6472702153724313,
+        "observed": 0.6536981879676528
+      },
+      {
+        "n": 2306,
+        "predicted": 0.750085818227338,
+        "observed": 0.7359682699886364
+      },
+      {
+        "n": 2360,
+        "predicted": 0.8514846869317553,
+        "observed": 0.8718594414208258
+      },
+      {
+        "n": 2397,
+        "predicted": 0.9443681433907548,
+        "observed": 0.9597745941096615
+      }
+    ]
+  },
+  "B_plus_predicted_engagement": {
+    "n": 26712,
+    "matches": 9198,
+    "positive_rate": 0.5123939986953685,
+    "auc": 0.81241351428583,
+    "brier": 0.1760606138370893,
+    "log_loss": 0.5208601203259877,
+    "calibration": [
+      {
+        "n": 2076,
+        "predicted": 0.05560747943468222,
+        "observed": 0.037611302787338846
+      },
+      {
+        "n": 2107,
+        "predicted": 0.14942928970639835,
+        "observed": 0.14720645927352088
+      },
+      {
+        "n": 2202,
+        "predicted": 0.2522403142401635,
+        "observed": 0.23608107988844565
+      },
+      {
+        "n": 2610,
+        "predicted": 0.35117983216341686,
+        "observed": 0.33704859929167247
+      },
+      {
+        "n": 3530,
+        "predicted": 0.45456672461393577,
+        "observed": 0.4567123237873952
+      },
+      {
+        "n": 4197,
+        "predicted": 0.5482511021140113,
+        "observed": 0.5411781098549575
+      },
+      {
+        "n": 2910,
+        "predicted": 0.6467045445875058,
+        "observed": 0.6545828955772156
+      },
+      {
+        "n": 2336,
+        "predicted": 0.749615188769673,
+        "observed": 0.7316242807310862
+      },
+      {
+        "n": 2288,
+        "predicted": 0.8516326006587775,
+        "observed": 0.871704442328171
+      },
+      {
+        "n": 2456,
+        "predicted": 0.9448423011488648,
+        "observed": 0.9583132548813942
+      }
+    ]
+  },
+  "C_plus_realized_label_RETROSPECTIVE": {
+    "n": 26712,
+    "matches": 9198,
+    "positive_rate": 0.5123939986953685,
+    "auc": 0.8331523787718755,
+    "brier": 0.16649313035265947,
+    "log_loss": 0.4961542296389978,
+    "calibration": [
+      {
+        "n": 2468,
+        "predicted": 0.050855592780894424,
+        "observed": 0.02906331961998274
+      },
+      {
+        "n": 2164,
+        "predicted": 0.15009015051448632,
+        "observed": 0.13226931815167833
+      },
+      {
+        "n": 2278,
+        "predicted": 0.2502909614431867,
+        "observed": 0.24443203470904631
+      },
+      {
+        "n": 2719,
+        "predicted": 0.3529345585431162,
+        "observed": 0.3423252206556721
+      },
+      {
+        "n": 3128,
+        "predicted": 0.4494837306571273,
+        "observed": 0.447050593342268
+      },
+      {
+        "n": 3138,
+        "predicted": 0.5512790524469612,
+        "observed": 0.5543246459979638
+      },
+      {
+        "n": 3191,
+        "predicted": 0.6472570447969072,
+        "observed": 0.6436350599280588
+      },
+      {
+        "n": 2394,
+        "predicted": 0.7492482653897772,
+        "observed": 0.751445163772199
+      },
+      {
+        "n": 2329,
+        "predicted": 0.8514980745904265,
+        "observed": 0.8521608001893041
+      },
+      {
+        "n": 2903,
+        "predicted": 0.9468910494453919,
+        "observed": 0.965653064294357
+      }
+    ]
+  },
+  "B_minus_A": {
+    "n_boot": 300,
+    "positive_means_B_better": true,
+    "brier_improvement_ci95": [
+      -0.0002875748826890497,
+      0.00037485083615106834
+    ],
+    "auc_improvement_ci95": [
+      -0.0008377450134778447,
+      0.0008550388838971993
+    ]
+  },
+  "elapsed_seconds": 2293.84,
+  "learner_settings": {
+    "folds": 5,
+    "trees": 250,
+    "num_leaves": 15,
+    "learning_rate": 0.04,
+    "seed": 7
+  }
+}

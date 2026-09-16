@@ -1,0 +1,33 @@
+{
+ "group": "rebuild_MAIN_TEST",
+ "state": "complete",
+ "stage": "assembled",
+ "pid": 38660,
+ "updated": "2026-09-16 08:14:48",
+ "elapsed_s": 23.9,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "next set / fit",
+ "changed_matches": 2143,
+ "parent_rows_copied": 155565,
+ "rebuilt_rows": 6940,
+ "dev_rows": 162505,
+ "history": [
+  {
+   "stage": "items",
+   "state": "running",
+   "at": "2026-09-16 08:14:24"
+  },
+  {
+   "stage": "extract",
+   "state": "running",
+   "at": "2026-09-16 08:14:31"
+  },
+  {
+   "stage": "assembled",
+   "state": "complete",
+   "at": "2026-09-16 08:14:48"
+  }
+ ]
+}

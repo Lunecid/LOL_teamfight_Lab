@@ -1,0 +1,159 @@
+{
+ "version": "definition_dev_20260916",
+ "definition": {
+  "TF2_KILL_CLUSTER_GAP_MS": 14000,
+  "CLUSTER_MAX_DIAMETER": 4285.0
+ },
+ "sets": {
+  "MAIN_TRAIN": {
+   "matches": 74673,
+   "matches_changed": 2467,
+   "matches_changed_frac": 0.03303737629397507,
+   "matches_missing_in_dev": 5637,
+   "rows_parent": 199480,
+   "rows_dev": 198093,
+   "rows_common": 195790,
+   "rows_removed": 3690,
+   "rows_added": 2303,
+   "rows_changed_frac_of_parent": 0.018498095047122517,
+   "dev_rows_cohort": {
+    "T": 39693,
+    "N": 158400,
+    "unknown": 0
+   },
+   "parent_exposures_sha256": "6e07eef42a68ab5deabe6bca544885c64d26533a88bd5b5c9e8116036e6a7977",
+   "parent_valid_T_rows": 39605,
+   "parent_valid_T_rows_in_changed_matches": 1991,
+   "parent_valid_T_frac_in_changed_matches": 0.05027143037495266,
+   "parent_valid_N_rows": 159753,
+   "parent_valid_N_rows_in_changed_matches": 7351,
+   "parent_valid_N_frac_in_changed_matches": 0.04601478532484523,
+   "frozen_check_cluster_n_min_equals_parent": {
+    "rows": 5247,
+    "equal": 5247
+   }
+  },
+  "MAIN_VALIDATION": {
+   "matches": 74748,
+   "matches_changed": 2593,
+   "matches_changed_frac": 0.03468989136833092,
+   "matches_missing_in_dev": 5528,
+   "rows_parent": 203292,
+   "rows_dev": 201819,
+   "rows_common": 199400,
+   "rows_removed": 3892,
+   "rows_added": 2419,
+   "rows_changed_frac_of_parent": 0.01914487535171084,
+   "dev_rows_cohort": {
+    "T": 41393,
+    "N": 160426,
+    "unknown": 0
+   },
+   "parent_exposures_sha256": "6e07eef42a68ab5deabe6bca544885c64d26533a88bd5b5c9e8116036e6a7977",
+   "parent_valid_T_rows": 41315,
+   "parent_valid_T_rows_in_changed_matches": 2098,
+   "parent_valid_T_frac_in_changed_matches": 0.050780588164105044,
+   "parent_valid_N_rows": 161855,
+   "parent_valid_N_rows_in_changed_matches": 7701,
+   "parent_valid_N_frac_in_changed_matches": 0.047579623737295726
+  },
+  "MAIN_TEST": {
+   "matches": 60579,
+   "matches_changed": 2143,
+   "matches_changed_frac": 0.03537529506924842,
+   "matches_missing_in_dev": 4383,
+   "rows_parent": 163680,
+   "rows_dev": 162505,
+   "rows_common": 160492,
+   "rows_removed": 3188,
+   "rows_added": 2013,
+   "rows_changed_frac_of_parent": 0.01947702834799609,
+   "dev_rows_cohort": {
+    "T": 33046,
+    "N": 129459,
+    "unknown": 0
+   },
+   "parent_exposures_sha256": "6e07eef42a68ab5deabe6bca544885c64d26533a88bd5b5c9e8116036e6a7977"
+  },
+  "EXT_KR_16.13": {
+   "matches": 10064,
+   "matches_changed": 408,
+   "matches_changed_frac": 0.04054054054054054,
+   "matches_missing_in_dev": 1023,
+   "rows_parent": 25443,
+   "rows_dev": 25218,
+   "rows_common": 24837,
+   "rows_removed": 606,
+   "rows_added": 381,
+   "rows_changed_frac_of_parent": 0.023817945996934323,
+   "dev_rows_cohort": {
+    "T": 5200,
+    "N": 20018,
+    "unknown": 0
+   },
+   "parent_exposures_sha256": "c5b24db5629d8d1f330775ccd12dbef81f75b4ee7fb427b5cc13c367dc932e2b"
+  },
+  "EXT_KR_16.14_pilot": {
+   "matches": 200,
+   "matches_changed": 3,
+   "matches_changed_frac": 0.015,
+   "matches_missing_in_dev": 23,
+   "rows_parent": 475,
+   "rows_dev": 472,
+   "rows_common": 469,
+   "rows_removed": 6,
+   "rows_added": 3,
+   "rows_changed_frac_of_parent": 0.01263157894736842,
+   "dev_rows_cohort": {
+    "T": 101,
+    "N": 371,
+    "unknown": 0
+   },
+   "parent_exposures_sha256": "b802e355d8a0e1da9b47ad60f7299175b32d0b16ac48c8b4f63381bfa0b82341"
+  },
+  "EXT_KR_16.15": {
+   "matches": 926,
+   "matches_changed": 41,
+   "matches_changed_frac": 0.04427645788336933,
+   "matches_missing_in_dev": 116,
+   "rows_parent": 2219,
+   "rows_dev": 2193,
+   "rows_common": 2161,
+   "rows_removed": 58,
+   "rows_added": 32,
+   "rows_changed_frac_of_parent": 0.026137899954934655,
+   "dev_rows_cohort": {
+    "T": 507,
+    "N": 1686,
+    "unknown": 0
+   },
+   "parent_exposures_sha256": "b960e111601994653a6f77f3e20ba237fab48588cd9fecc6e0214e486c3b37ed"
+  },
+  "EXT_NA1_16.13": {
+   "matches": 10000,
+   "matches_changed": 401,
+   "matches_changed_frac": 0.0401,
+   "matches_missing_in_dev": 925,
+   "rows_parent": 26549,
+   "rows_dev": 26319,
+   "rows_common": 25937,
+   "rows_removed": 612,
+   "rows_added": 382,
+   "rows_changed_frac_of_parent": 0.023051715695506424,
+   "dev_rows_cohort": {
+    "T": 5320,
+    "N": 20999,
+    "unknown": 0
+   },
+   "parent_exposures_sha256": "5f9b94bcbe96a7f986417610465787d1d03ad05d1f971cf586bed89c3e987039"
+  }
+ },
+ "written_at": "2026-09-16 08:10:52",
+ "redetect_files_sha256": {
+  "EXT_KR_16.13_dev.csv": "a36adb29d01b35d3d3361d8a04e259e540a291975a0af180672f7f992defb70c",
+  "EXT_KR_16.14_pilot_dev.csv": "ee1ad7bb500d8c620ee7b7de5bae3b4b18ba8ca59a29b7f781d591fb62946f75",
+  "EXT_KR_16.15_dev.csv": "96f725a638a3f57ad7422f4c7771c1dc4ad4974c2429c3c15961236682fdb202",
+  "EXT_NA1_16.13_dev.csv": "ad21d245a288026c3170e14e63df57567d4d9eedea7f8327457ab94f48200dd7",
+  "MAIN_dev.csv": "169a200d047dd41c8eb1d150519187f00cb9c96ef999ca0e29e580064b23a0dc"
+ }
+}

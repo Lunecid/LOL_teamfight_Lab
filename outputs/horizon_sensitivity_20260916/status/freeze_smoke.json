@@ -1,0 +1,46 @@
+{
+ "group": "freeze_smoke",
+ "state": "complete",
+ "stage": "frozen",
+ "pid": 26896,
+ "updated": "2026-09-16 02:32:03",
+ "elapsed_s": 8.3,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "sealed evaluation",
+ "frozen_manifest_sha256": "51dc25bc325f99338c7ee0c03d7b0ef81c0168c15eca7c3482452a8a55d568d3",
+ "winners": {
+  "h60_pt_T": "pt_C1__raw",
+  "h60_logit_T": "logit_C0.001__raw",
+  "h60_lgbm_T": "lgbm_L15_M100__raw",
+  "h60_mlp_T": "mlp_W128_D0.3__sigmoid",
+  "h60_resmlp_T": "resmlp_W128_D0.1__sigmoid",
+  "h60_pt_N": "pt_C1__sigmoid",
+  "h60_logit_N": "logit_C0.01__sigmoid",
+  "h60_lgbm_N": "lgbm_L15_M100__raw",
+  "h60_mlp_N": "mlp_W128_D0.3__sigmoid",
+  "h60_resmlp_N": "resmlp_W128_D0.1__sigmoid"
+ },
+ "overall": {
+  "h60_T": "lgbm:lgbm_L15_M100__raw",
+  "h60_N": "mlp:mlp_W128_D0.3__sigmoid"
+ },
+ "history": [
+  {
+   "stage": "verify_h60_T",
+   "state": "running",
+   "at": "2026-09-16 02:31:54"
+  },
+  {
+   "stage": "verify_h60_N",
+   "state": "running",
+   "at": "2026-09-16 02:31:59"
+  },
+  {
+   "stage": "frozen",
+   "state": "complete",
+   "at": "2026-09-16 02:32:03"
+  }
+ ]
+}

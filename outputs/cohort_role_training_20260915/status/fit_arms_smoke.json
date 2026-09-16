@@ -1,0 +1,224 @@
+{
+ "group": "fit_arms_smoke",
+ "state": "complete",
+ "stage": "fit_arms",
+ "pid": 33632,
+ "updated": "2026-09-15 14:40:39",
+ "elapsed_s": 19.8,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "freeze",
+ "cohorts": {
+  "T": {
+   "selection_sha256": "34ad837933f5dfb9215d85772d4d5af7132268397d5e5b07e5380715e5a4ac87",
+   "arm_winners": {
+    "participant": "participant_ridge_sigmoid",
+    "draft": "draft_ridge_sigmoid",
+    "role": "role_ridge_sigmoid"
+   },
+   "overall": "A_specialist:p_pre_logistic"
+  },
+  "N": {
+   "selection_sha256": "7c93669d6fc5ce4a9035868573f6f8f7f7cd4d445520babb12ab686de86de206",
+   "arm_winners": {
+    "participant": "participant_lgbm_sigmoid",
+    "draft": "draft_lgbm_sigmoid",
+    "role": "role_lgbm_sigmoid"
+   },
+   "overall": "role_lgbm_sigmoid"
+  }
+ },
+ "history": [
+  {
+   "stage": "attached",
+   "state": "running",
+   "at": "2026-09-15 14:40:21"
+  },
+  {
+   "stage": "T_participant",
+   "state": "running",
+   "at": "2026-09-15 14:40:21"
+  },
+  {
+   "stage": "T_participant_ridge_done",
+   "state": "running",
+   "at": "2026-09-15 14:40:22"
+  },
+  {
+   "stage": "T_participant_lgbm_done",
+   "state": "running",
+   "at": "2026-09-15 14:40:24"
+  },
+  {
+   "stage": "T_participant_selected",
+   "state": "running",
+   "at": "2026-09-15 14:40:24"
+  },
+  {
+   "stage": "T_draft",
+   "state": "running",
+   "at": "2026-09-15 14:40:24"
+  },
+  {
+   "stage": "T_draft_ridge_done",
+   "state": "running",
+   "at": "2026-09-15 14:40:25"
+  },
+  {
+   "stage": "T_draft_lgbm_done",
+   "state": "running",
+   "at": "2026-09-15 14:40:26"
+  },
+  {
+   "stage": "T_draft_selected",
+   "state": "running",
+   "at": "2026-09-15 14:40:26"
+  },
+  {
+   "stage": "T_role",
+   "state": "running",
+   "at": "2026-09-15 14:40:26"
+  },
+  {
+   "stage": "T_role_ridge_done",
+   "state": "running",
+   "at": "2026-09-15 14:40:26"
+  },
+  {
+   "stage": "T_role_lgbm_done",
+   "state": "running",
+   "at": "2026-09-15 14:40:28"
+  },
+  {
+   "stage": "T_role_selected",
+   "state": "running",
+   "at": "2026-09-15 14:40:28"
+  },
+  {
+   "stage": "T_overall_selected",
+   "state": "running",
+   "at": "2026-09-15 14:40:28"
+  },
+  {
+   "stage": "ablation_drop_role_TOP",
+   "state": "running",
+   "at": "2026-09-15 14:40:28"
+  },
+  {
+   "stage": "T_ablation_role_ridge_done",
+   "state": "running",
+   "at": "2026-09-15 14:40:28"
+  },
+  {
+   "stage": "ablation_drop_role_JUNGLE",
+   "state": "running",
+   "at": "2026-09-15 14:40:28"
+  },
+  {
+   "stage": "T_ablation_role_ridge_done",
+   "state": "running",
+   "at": "2026-09-15 14:40:29"
+  },
+  {
+   "stage": "ablation_drop_role_MIDDLE",
+   "state": "running",
+   "at": "2026-09-15 14:40:29"
+  },
+  {
+   "stage": "T_ablation_role_ridge_done",
+   "state": "running",
+   "at": "2026-09-15 14:40:29"
+  },
+  {
+   "stage": "ablation_drop_role_BOTTOM",
+   "state": "running",
+   "at": "2026-09-15 14:40:29"
+  },
+  {
+   "stage": "T_ablation_role_ridge_done",
+   "state": "running",
+   "at": "2026-09-15 14:40:29"
+  },
+  {
+   "stage": "ablation_drop_role_UTILITY",
+   "state": "running",
+   "at": "2026-09-15 14:40:29"
+  },
+  {
+   "stage": "T_ablation_role_ridge_done",
+   "state": "running",
+   "at": "2026-09-15 14:40:29"
+  },
+  {
+   "stage": "N_participant",
+   "state": "running",
+   "at": "2026-09-15 14:40:29"
+  },
+  {
+   "stage": "N_participant_ridge_done",
+   "state": "running",
+   "at": "2026-09-15 14:40:29"
+  },
+  {
+   "stage": "N_participant_lgbm_done",
+   "state": "running",
+   "at": "2026-09-15 14:40:31"
+  },
+  {
+   "stage": "N_participant_selected",
+   "state": "running",
+   "at": "2026-09-15 14:40:31"
+  },
+  {
+   "stage": "N_draft",
+   "state": "running",
+   "at": "2026-09-15 14:40:31"
+  },
+  {
+   "stage": "N_draft_ridge_done",
+   "state": "running",
+   "at": "2026-09-15 14:40:32"
+  },
+  {
+   "stage": "N_draft_lgbm_done",
+   "state": "running",
+   "at": "2026-09-15 14:40:34"
+  },
+  {
+   "stage": "N_draft_selected",
+   "state": "running",
+   "at": "2026-09-15 14:40:35"
+  },
+  {
+   "stage": "N_role",
+   "state": "running",
+   "at": "2026-09-15 14:40:35"
+  },
+  {
+   "stage": "N_role_ridge_done",
+   "state": "running",
+   "at": "2026-09-15 14:40:35"
+  },
+  {
+   "stage": "N_role_lgbm_done",
+   "state": "running",
+   "at": "2026-09-15 14:40:38"
+  },
+  {
+   "stage": "N_role_selected",
+   "state": "running",
+   "at": "2026-09-15 14:40:39"
+  },
+  {
+   "stage": "N_overall_selected",
+   "state": "running",
+   "at": "2026-09-15 14:40:39"
+  },
+  {
+   "stage": "fit_arms",
+   "state": "complete",
+   "at": "2026-09-15 14:40:39"
+  }
+ ]
+}

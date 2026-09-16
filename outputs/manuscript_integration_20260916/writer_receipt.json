@@ -1,0 +1,261 @@
+{
+  "receipt_version": "writer_receipt_20260916_v1",
+  "produced_by": "Claude (documentation implementation role)",
+  "produced_for": "Codex scientific design/audit/acceptance; Root independent verification",
+  "date": "2026-09-16",
+  "contract": "docs/CLAUDE_MANUSCRIPT_INTEGRATION_20260916.md",
+  "task_type": "DOCUMENTATION_ONLY_INTEGRATION",
+  "status": "INTEGRATED_WORKING_DRAFT_NOT_SUBMISSION_READY",
+
+  "delivered_files": [
+    {
+      "path": "docs/tog_delta_v_20260916/README.md",
+      "language": "ko",
+      "purpose": "Navigation, status banner, scope, correction summary, completed vs open work, version relationship, missing-input report"
+    },
+    {
+      "path": "docs/tog_delta_v_20260916/manuscript.md",
+      "language": "en",
+      "purpose": "Coherent journal working draft: abstract, introduction and contributions, narrow related work, data, definition, value model and label, inputs, protocol, results (7 subsections), interpretation, limitations, conclusion, references",
+      "sections_populated": [
+        "Abstract", "1 Introduction", "2 Background and related work", "3 Data cohorts and eligibility",
+        "4 Engagement definition", "5 Value model and label", "6 Inputs and predictors", "7 Protocol",
+        "8 Results (8.1-8.7)", "9 Interpretation", "10 Limitations (10.1-10.7)", "11 Conclusion and remaining work",
+        "References"
+      ],
+      "author_block": "deliberately omitted; no affiliation, acknowledgment, funding or ethics statement invented"
+    },
+    {
+      "path": "docs/tog_delta_v_20260916/reviewer_response_matrix.md",
+      "language": "en",
+      "purpose": "Issue-level response to CoG 2026 submission 118 reviewer feedback as input to a journal revision",
+      "rows": 25,
+      "columns": ["ID", "original concern", "implemented change", "evidence", "draft section", "remaining condition", "status"],
+      "status_values_used": ["completed", "completed as executed with constrained interpretation", "partial", "open"],
+      "version_separation": "118 (rejected) vs 308 (accepted/published, lineage only) vs ToG journal review (has not happened)",
+      "collaborator_email_items_separated": true
+    },
+    {
+      "path": "docs/tog_delta_v_20260916/collaborator_specification.md",
+      "language": "en",
+      "purpose": "Updated collaboration specification retaining CoG lineage, definitions, worked hypothetical label example, input/output distinction, tables, completed vs planned status",
+      "structural_source": "docs/COLLABORATOR_RESEARCH_SPECIFICATION_20260915.md (used as structure/source, not as up-to-date truth)"
+    },
+    {
+      "path": "docs/tog_delta_v_20260916/claim_evidence_ledger.md",
+      "language": "en",
+      "purpose": "Source path, JSON key, scope, value and allowable claim for every numeric claim; correction ledger for narrowed overclaims; citation support limits; forbidden-statement list",
+      "numbered_claim_rows": 89,
+      "correction_rows": 20,
+      "evidence_classes": ["P published precedent", "E empirical estimate", "O operational choice", "D game rule or implementation fact"]
+    },
+    {
+      "path": "docs/tog_delta_v_20260916/references.bib",
+      "language": "en",
+      "purpose": "Bibliography restricted to verified, actually cited sources with explicit per-source support limits in annote fields",
+      "entries": ["Kim2020", "Maymin2021", "Hodge2021", "Halfaker2015", "Lundberg2017", "Schubert2016"],
+      "entry_count": 6,
+      "excluded_by_policy": "Sources used in earlier project registers but not re-verified in the 2026-09-16 citation audit (Gorishniy 2021, Ke 2017, Austin 2016, Jacobs and Wallach, Lee and Ramler 2017, Silva 2018, Jalovaara 2024, OpenDota source, Riot/wiki rule pages) are named with their scope in collaborator_specification.md section 19 but are not cited in the draft and have no bib entry"
+    },
+    {
+      "path": "outputs/manuscript_integration_20260916/writer_receipt.json",
+      "language": "json",
+      "purpose": "This receipt"
+    }
+  ],
+
+  "preservation": {
+    "files_modified_outside_deliverables": 0,
+    "existing_sources_edited": false,
+    "original_manuscript_touched": false,
+    "original_manuscript_access": "read-only (main.tex title line, reviewer_response_matrix.md, stale_claims_inventory.md)",
+    "parent_findings_edited": false,
+    "scripts_data_models_predictions_frozen_manifests_edited": false,
+    "new_files_only_in": ["docs/tog_delta_v_20260916/", "outputs/manuscript_integration_20260916/writer_receipt.json"],
+    "note": "Interpretive statements in the 2026-09-16 findings documents were narrowed in the new ledger only. No findings file was edited, and contradictory historical text is preserved in place as history."
+  },
+
+  "not_done": {
+    "experiments_launched": 0,
+    "models_trained_or_refit": 0,
+    "evaluations_rerun": 0,
+    "new_tests_written_or_executed": 0,
+    "latex_or_pdf_build_attempted": false,
+    "package_installation": false,
+    "gpu_use": false,
+    "network_or_external_communication": false,
+    "commits_or_publication": false,
+    "raw_corpus_records_read": false,
+    "credentials_or_account_identifiers_handled": false,
+    "human_review_claimed": false
+  },
+
+  "source_hashes_consumed": {
+    "note": "sha256 values copied verbatim from the inputs named below; not recomputed in this session",
+    "from_outputs/manuscript_integration_20260916/numeric_evidence.json:source_hashes": {
+      "outputs/incremental_q_training_20260915/eval/results.json": "fdd5da60cdd62c174b08dd2c28a19019fb3237411a50faa33b44e97d24d3dbd3",
+      "outputs/track_a_mlp_20260916/eval/results.json": "d4d4e4f3d7324f4b28fff594dc95e20527cca62afaf1072c658a0e3f9fdc2d45",
+      "outputs/horizon_sensitivity_20260916/eval/results.json": "3daa885346c420fcf4bf9bee8d768e251fdc81247b484ae41ff293bcd39e0e07",
+      "outputs/champion_class_20260916/eval/results.json": "9b4568ef2dc526f6a815e05d029cd736a74b4ee581e5311cd5c50895373d839d",
+      "outputs/definition_dev_20260916/eval/results.json": "ad80fcd3f0c08f25f78b7358e0581d20092ad51e780318031392034d7416104c"
+    },
+    "additional_from_outputs/manuscript_integration_20260916/source_snapshot.json": {
+      "outputs/balanced_shap_20260916/frozen_manifest.json": "5a192ac0eb4fdc209f1d03bad358a72410912b5ac4431efc73f3189862311aae",
+      "outputs/v_mechanism_20260916/results.json": "0501a8ee871e907be1ff3d7b7239be016149a941a3bc850029aeff90451dfc29",
+      "outputs/definition_dev_20260916/census.json": "344ecfc8e05c4845e0c6598c0150f8289cc1c579ead5a0ef1e4668ee4899019e",
+      "docs/TOG_END_TO_END_READINESS_AUDIT_20260915.md": "473acf3141943fa828a0253fa35a87cb473b5c5fb3d3ac47cbaea5b9a09169e5",
+      "docs/COLLABORATOR_RESEARCH_SPECIFICATION_20260915.md": "2e8df7c531bc8b976e1e82a79a5ababb566ce1c13cef8126c535a874b70ef539",
+      "docs/COLLABORATOR_CRITIQUE_RESPONSE_20260915.md": "c847d82d00654f88cbe5f8f70370cf8498c3c722c89657b2d27064860f113396",
+      "docs/TRACK_A_MLP_FINDINGS_20260916.md": "0c599b644b67c7a1d02e24a89da38fb3e306f8165a9e7ec531dc2fd67d1a4c20",
+      "docs/HORIZON_SENSITIVITY_FINDINGS_20260916.md": "8a605154c6d307bdb7973f6b49a6d9fc458c980efe99e80aabf833ae47b12a1a",
+      "docs/CHAMPION_CLASS_FINDINGS_20260916.md": "de42185c12a7944324b58cd2e950f973341fc56199d484b44cdbed1f0aded0a7",
+      "docs/DEFINITION_DEV_FINDINGS_20260916.md": "1749abb661caa41669b2cf5d0f3d25d6dcb328c6b66d56b00fb1943610dfff6f",
+      "docs/BALANCED_SHAP_FINDINGS_20260916.md": "1add68cd447d0a9bd4f28096265466aefd152e023c60f582c83de9dcc3093651",
+      "docs/V_MECHANISM_FINDINGS_20260916.md": "482b0598c2383614f5e787bb1e3a7629741fe2b867fcd99a22c383aa3479a65c",
+      "PycharmProjects/LOL_teamfight/docs/tog_manuscript/main.tex": "4d87b8b720c1aa0d07dd565559cdd52dba3759759685720be1ca557ddacbd9f0",
+      "PycharmProjects/LOL_teamfight/docs/tog_manuscript/reviewer_response_matrix.md": "2474663948c32fb43bfb65534e673c1d24e513b152f21889e0a90b4c81e16c39",
+      "PycharmProjects/LOL_teamfight/config/fight_boundary/spec_pooled.json": "fe0d8eff10804e448d83b34d2bf3ced6ea0371a5ebdd83256db8e862c29f51c5"
+    },
+    "delivered_file_hashes": null,
+    "delivered_file_hashes_reason": "No hashing or shell tool was available in this session (file read/write only). Root should compute sha256 for the seven delivered files."
+  },
+
+  "inputs_read": {
+    "contract": ["docs/CLAUDE_MANUSCRIPT_INTEGRATION_20260916.md"],
+    "codex_audit_handoffs_present": [
+      "outputs/manuscript_integration_20260916/position_audit.md",
+      "outputs/manuscript_integration_20260916/citation_audit.md",
+      "outputs/manuscript_integration_20260916/numeric_evidence.md",
+      "outputs/manuscript_integration_20260916/numeric_evidence.json",
+      "outputs/manuscript_integration_20260916/source_snapshot.json"
+    ],
+    "codex_audit_handoffs_missing": ["manuscript_map.md"],
+    "authoritative_evidence": [
+      "docs/TOG_END_TO_END_READINESS_AUDIT_20260915.md",
+      "docs/COLLABORATOR_RESEARCH_SPECIFICATION_20260915.md",
+      "docs/COLLABORATOR_CRITIQUE_RESPONSE_20260915.md",
+      "docs/COG_COLLABORATION_EMAIL_DRAFT_20260915.md",
+      "docs/TRACK_A_MLP_FINDINGS_20260916.md",
+      "docs/HORIZON_SENSITIVITY_FINDINGS_20260916.md",
+      "docs/BALANCED_SHAP_FINDINGS_20260916.md",
+      "docs/V_MECHANISM_FINDINGS_20260916.md",
+      "docs/CHAMPION_CLASS_FINDINGS_20260916.md",
+      "docs/DEFINITION_DEV_FINDINGS_20260916.md",
+      "outputs/incremental_q_training_20260915/REPORT.md",
+      "outputs/claude_dispatch_incremental_q/final_acceptance.json",
+      "outputs/balanced_shap_20260916/shap/shap_summary.json (head)",
+      "outputs/definition_dev_20260916/census.json (partial)",
+      "C:/Users/todtj/.codex/attachments/68cfc3ee-c632-4cff-a469-80304ef81c41/pasted-text.txt (read-only)",
+      "C:/Users/todtj/PycharmProjects/LOL_teamfight/docs/tog_manuscript/main.tex (title line only, read-only)",
+      "C:/Users/todtj/PycharmProjects/LOL_teamfight/docs/tog_manuscript/reviewer_response_matrix.md (read-only, historical structure)",
+      "C:/Users/todtj/PycharmProjects/LOL_teamfight/docs/tog_manuscript/stale_claims_inventory.md (read-only, historical)"
+    ],
+    "reading_policy": "Targeted ranges were read for large reports and JSON files; full evaluation arrays were not loaded. No raw corpus record was opened."
+  },
+
+  "checks_performed": [
+    {
+      "check": "numeric_provenance",
+      "description": "Every Brier, AUC, delta and interval quoted in the deliverables was taken from numeric_evidence.md / numeric_evidence.json keys, from the incremental_q REPORT.md summary lines, or from the named findings document, and each is registered with its source and key in claim_evidence_ledger.md section 2",
+      "result": "pass (by construction and manual cross-read)"
+    },
+    {
+      "check": "cross_document_consistency",
+      "description": "Definitions (W, V, Delta V, Y, q), split counts (74673/74748/60579 = 210000; 566104 valid; T 113901 / N 452203), primary horizon h90, matched 352-column input contract, exploratory status and open-work list were compared across manuscript.md, reviewer_response_matrix.md and collaborator_specification.md",
+      "result": "pass"
+    },
+    {
+      "check": "local_link_targets_exist",
+      "description": "Every relative markdown link in the six new documents was resolved against the filesystem (sibling deliverables, ../docs files, ../../outputs files) via directory listing or direct read",
+      "result": "pass",
+      "targets_verified": [
+        "docs/tog_delta_v_20260916/*.md and references.bib (siblings)",
+        "docs/CLAUDE_MANUSCRIPT_INTEGRATION_20260916.md",
+        "docs/COLLABORATOR_RESEARCH_SPECIFICATION_20260915.md",
+        "outputs/manuscript_integration_20260916/position_audit.md",
+        "outputs/manuscript_integration_20260916/citation_audit.md",
+        "outputs/manuscript_integration_20260916/numeric_evidence.json",
+        "outputs/manuscript_integration_20260916/source_snapshot.json",
+        "outputs/manuscript_integration_20260916/writer_receipt.json"
+      ],
+      "non_link_paths_verified": [
+        "docs/DEFINITION_EVIDENCE_REGISTER_20260914.md",
+        "docs/TEMPORAL_WINPROB_LITERATURE_ALIGNMENT_20260915.md",
+        "outputs/full_corpus_training_20260915/REPORT.md",
+        "outputs/full_corpus_training_20260915/protocol.json",
+        "outputs/full_corpus_training_20260915/eval/counts_and_exclusions.json",
+        "outputs/cohort_role_training_20260915/role_supervision_provenance.json",
+        "outputs/tog_readiness_audit_20260915/calculations.json",
+        "outputs/definition_dev_20260916/census.json",
+        "outputs/balanced_shap_20260916/shap/shap_summary.json",
+        "outputs/v_mechanism_20260916/results.json",
+        "docs/CLAUDE_TRACK_A_MLP_20260916.md and the five sibling 20260916 specifications"
+      ]
+    },
+    {
+      "check": "overclaim_corrections_applied",
+      "description": "All corrections required by contract sections 43-63 were written into the draft and registered in claim_evidence_ledger.md section 3 as X-01 to X-20",
+      "result": "pass",
+      "items": [
+        "slot-index pairs under a positional proxy assumption; participant-order slot frequencies; 1.69 percent order-disagreement rate reported with its limits",
+        "champion class: no detected benefit in the tested setup, not equivalence, not absence of learnable information; Track B graphs, finer classes and other learners not tested and not ruled out",
+        "draft-only AUC near chance is not proof of zero information; fixed logistic C confound and limited LightGBM budgets stated; overfitting named as a possible not proven explanation",
+        "numerical reproduction caveat preserved (LightGBM exact, logistic 6e-7 to 3.4e-5, N isotonic up to 0.0118); same-run comparisons not treated as immune",
+        "PT described as p_pre plus time splines and tensor interactions, never as p_pre alone",
+        "B40 row counts reported; LightGBM B40 result not generalised to all full-input models; secondary and multiple-comparison caveats stated",
+        "old specialist described as a different budget and history, not the winner of matched Track A selection",
+        "Track A scoped to five tabular families; FT/TabNet/SAINT and sequence/graph adapters marked unexecuted; early best epoch not treated as proof of overfitting",
+        "horizon: no TEST horizon optimisation, no cross-h Brier superiority; ranking movement at h60 reported",
+        "definition: changed matches 3.3-4.4 percent with removed and added exposure denominators separate; D 4285 outside the pooled CI; G 14.0 inside the plateau; refit-frozen inconclusive not equivalence; N and one external cell worsen",
+        "V mechanism: static champion terms cancel from Delta logit but can affect p_pre and magnitude; group means are not shares of total absolute delta nor causal prices; pre-to-L decomposition not computed",
+        "SHAP: interventional grouped explanation of calibrated q, 128 background and 256 rows per cell, exact conditional on sampled rows, masked p_pre not recomputed, off-manifold risk, balanced share shift mostly from diminished p_pre, learner-dependent attribution, descriptive row bootstrap",
+        "all follow-ups labelled exploratory after prior TEST exposure; freezing within a follow-up does not restore confirmatory status"
+      ]
+    },
+    {
+      "check": "no_stale_target_mixing",
+      "description": "CoG 308 market_event methods, metrics and model rankings appear only in explicit lineage sections (manuscript 1.4 and 2.3 of the specification) and in the reviewer matrix section 6.2; no old-label metric is presented as a Delta V result",
+      "result": "pass"
+    },
+    {
+      "check": "citation_discipline",
+      "description": "Only the six sources verified in citation_audit.md are cited; each carries a narrow support statement and an explicit non-support statement in references.bib annote and in the ledger section 4; unverified sources are listed with scope but not cited",
+      "result": "pass"
+    },
+    {
+      "check": "no_fabricated_statistics",
+      "description": "No p-value, significance test, completed human review, compiled PDF, repository release, author affiliation, acknowledgment or ethics approval appears in any deliverable. Intervals containing zero are always reported as inconclusive, never as equivalence",
+      "result": "pass"
+    },
+    {
+      "check": "deliverable_status_statement",
+      "description": "Each narrative deliverable states on its first screen that it is an integrated working draft awaiting remaining scientific and submission tasks, not submission-ready",
+      "result": "pass"
+    }
+  ],
+
+  "unresolved_limitations": [
+    "Codex handoff manuscript_map.md is absent from the repository; the section layout and evidence mapping were derived from the contract deliverable list, the readiness audit structure and the 20260915 specification instead, and may differ from the intended map.",
+    "sha256 of the delivered files was not computed (no hashing tool available in this session); Root must compute and record them.",
+    "Label semantic validity is unestablished; the 120-case anonymised review packet collected zero judgements and human review is outside the agreed scope, so it is recorded as an open validity gap rather than a blocking prerequisite.",
+    "No untouched confirmatory data exist; every 2026-09-16 result is an exploratory follow-up after prior TEST and external exposure.",
+    "Representation track (Bi-GRU, Transformer, GraphSAGE, ST-GNN, Cross-Attn, Layered Fusion) and modern tabular transformers (FT-Transformer, TabNet, SAINT) are unexecuted on the Delta V target.",
+    "V(S(L)) was not stored, so the pre-to-last-kill-to-endpoint decomposition of Delta V could not be reported.",
+    "Alternative-label variants requested by reviewer 2 of submission 118 (raw kill advantage, learned weights) have not been run on the Delta V target; only old-target label-family comparisons exist.",
+    "The kill-free encounter share of our own corpus was not re-measured for the current pipeline; the prior project measurement has a proximity-encounter denominator and was not re-verified here.",
+    "Four inhibitor columns sit in the combat group by a name-matching order in the grouping code; a corrected grouping would require regenerating, not relabelling, the SHAP explanations.",
+    "No background/terminology section, no figures and no journal formatting; reviewer request R1-4 remains partial.",
+    "Anonymised repository, licence, reproduction instructions and data policy are not prepared (reviewer request R2-4 open).",
+    "Author block, affiliations, acknowledgments, funding and ethics statements are intentionally absent and must be supplied by the authors before any submission.",
+    "No LaTeX or PDF build was attempted; the optional LaTeX deliverable was not produced because a faithful complete build could not be demonstrated without installing dependencies, and the contract forbids sacrificing the Markdown draft for a broken skeleton."
+  ],
+
+  "verification_requested_from_root": [
+    "Recompute sha256 for the seven delivered files and record them.",
+    "Re-resolve every markdown link in docs/tog_delta_v_20260916/.",
+    "Spot-check numbers in claim_evidence_ledger.md section 2 against the named JSON keys.",
+    "Confirm the hash inventory in source_snapshot.json is unchanged (no source file was modified).",
+    "Confirm no experiment output directory gained or lost files during this session.",
+    "Confirm or reissue manuscript_map.md and compare the section layout against it."
+  ]
+}

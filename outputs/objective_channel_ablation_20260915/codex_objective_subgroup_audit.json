@@ -1,0 +1,122 @@
+{
+  "passed": true,
+  "scope": "Main TEST T, seven owned objective types, both fixed intervals, single-acquiring-team rows; arithmetic validation, not causal values",
+  "checks": {
+    "full_(q_pre,e]": {
+      "baron": {
+        "rows": 2195,
+        "matches": 2166,
+        "disagreement_row": 0.06287015945330296,
+        "disagreement_match": 0.06278855032317636,
+        "oriented_difference_row": 0.04871371162450102,
+        "oriented_difference_match": 0.048511037140814915
+      },
+      "dragon": {
+        "rows": 7662,
+        "matches": 7189,
+        "disagreement_row": 0.08078830592534586,
+        "disagreement_match": 0.08099179301710947,
+        "oriented_difference_row": 0.03216307749275159,
+        "oriented_difference_match": 0.031730992752571845
+      },
+      "elder": {
+        "rows": 106,
+        "matches": 105,
+        "disagreement_row": 0.05660377358490566,
+        "disagreement_match": 0.05714285714285714,
+        "oriented_difference_row": 0.10116584834985995,
+        "oriented_difference_match": 0.10262487635652282
+      },
+      "herald": {
+        "rows": 1523,
+        "matches": 1523,
+        "disagreement_row": 0.048588312541037425,
+        "disagreement_match": 0.048588312541037425,
+        "oriented_difference_row": 0.010595216632902662,
+        "oriented_difference_match": 0.010595216632902662
+      },
+      "horde": {
+        "rows": 461,
+        "matches": 460,
+        "disagreement_row": 0.0911062906724512,
+        "disagreement_match": 0.09130434782608696,
+        "oriented_difference_row": 0.019694010840950505,
+        "oriented_difference_match": 0.019619892609600745
+      },
+      "atakhan": {
+        "rows": 2722,
+        "matches": 2722,
+        "disagreement_row": 0.08302718589272594,
+        "disagreement_match": 0.08302718589272594,
+        "oriented_difference_row": 0.052353232873743376,
+        "oriented_difference_match": 0.052353232873743376
+      },
+      "soul_owned": {
+        "rows": 677,
+        "matches": 677,
+        "disagreement_row": 0.1432791728212703,
+        "disagreement_match": 0.1432791728212703,
+        "oriented_difference_row": 0.041052863431404636,
+        "oriented_difference_match": 0.041052863431404636
+      }
+    },
+    "after_(L,e]": {
+      "baron": {
+        "rows": 1478,
+        "matches": 1467,
+        "disagreement_row": 0.05142083897158322,
+        "disagreement_match": 0.0514655760054533,
+        "oriented_difference_row": 0.056555503572039874,
+        "oriented_difference_match": 0.056154022697327666
+      },
+      "dragon": {
+        "rows": 5174,
+        "matches": 4965,
+        "disagreement_row": 0.07460378817162737,
+        "disagreement_match": 0.07460557233971131,
+        "oriented_difference_row": 0.02865176303351195,
+        "oriented_difference_match": 0.028334166623136873
+      },
+      "elder": {
+        "rows": 64,
+        "matches": 64,
+        "disagreement_row": 0.0625,
+        "disagreement_match": 0.0625,
+        "oriented_difference_row": 0.13410801925079474,
+        "oriented_difference_match": 0.13410801925079474
+      },
+      "herald": {
+        "rows": 922,
+        "matches": 922,
+        "disagreement_row": 0.04013015184381779,
+        "disagreement_match": 0.04013015184381779,
+        "oriented_difference_row": 0.004964551617371814,
+        "oriented_difference_match": 0.004964551617371814
+      },
+      "horde": {
+        "rows": 372,
+        "matches": 372,
+        "disagreement_row": 0.09408602150537634,
+        "disagreement_match": 0.09408602150537634,
+        "oriented_difference_row": 0.02032946927898809,
+        "oriented_difference_match": 0.02032946927898809
+      },
+      "atakhan": {
+        "rows": 1771,
+        "matches": 1771,
+        "disagreement_row": 0.05251270468661773,
+        "disagreement_match": 0.05251270468661773,
+        "oriented_difference_row": 0.049467379268571345,
+        "oriented_difference_match": 0.049467379268571345
+      },
+      "soul_owned": {
+        "rows": 473,
+        "matches": 473,
+        "disagreement_row": 0.14799154334038056,
+        "disagreement_match": 0.14799154334038056,
+        "oriented_difference_row": 0.04155658973918893,
+        "oriented_difference_match": 0.04155658973918893
+      }
+    }
+  }
+}

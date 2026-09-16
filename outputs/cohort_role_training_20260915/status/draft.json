@@ -1,0 +1,49 @@
+{
+ "group": "draft",
+ "state": "complete",
+ "stage": "draft",
+ "pid": 36484,
+ "updated": "2026-09-15 14:31:00",
+ "elapsed_s": 22.0,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "contract tests; role models",
+ "teams_used": 149162,
+ "team_reasons": {
+  "weak_annotation_in_order_(ID_fill_not_detectable)": 149162,
+  "detectable_participant_id_fill": 184
+ },
+ "history": [
+  {
+   "stage": "draft_MAIN",
+   "state": "running",
+   "at": "2026-09-15 14:30:40"
+  },
+  {
+   "stage": "draft_KR_16.13",
+   "state": "running",
+   "at": "2026-09-15 14:30:58"
+  },
+  {
+   "stage": "draft_KR_16.14_pilot",
+   "state": "running",
+   "at": "2026-09-15 14:30:58"
+  },
+  {
+   "stage": "draft_KR_16.15",
+   "state": "running",
+   "at": "2026-09-15 14:30:59"
+  },
+  {
+   "stage": "draft_NA1_16.13",
+   "state": "running",
+   "at": "2026-09-15 14:30:59"
+  },
+  {
+   "stage": "draft",
+   "state": "complete",
+   "at": "2026-09-15 14:31:00"
+  }
+ ]
+}

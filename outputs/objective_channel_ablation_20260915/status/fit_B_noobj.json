@@ -1,0 +1,42 @@
+{
+ "group": "fit_B_noobj",
+ "state": "complete",
+ "stage": "fit_B_noobj",
+ "pid": 32748,
+ "updated": "2026-09-15 16:34:06",
+ "elapsed_s": 148.8,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "independent model checks, freeze",
+ "secondary_chosen": "raw",
+ "converged_all": true,
+ "oof_auc_raw": 0.8533081629204707,
+ "history": [
+  {
+   "stage": "load_rows",
+   "state": "running",
+   "at": "2026-09-15 16:31:37"
+  },
+  {
+   "stage": "fit_final",
+   "state": "running",
+   "at": "2026-09-15 16:31:45"
+  },
+  {
+   "stage": "secondary_selected",
+   "state": "running",
+   "at": "2026-09-15 16:32:19"
+  },
+  {
+   "stage": "oof_folds",
+   "state": "running",
+   "at": "2026-09-15 16:32:39"
+  },
+  {
+   "stage": "fit_B_noobj",
+   "state": "complete",
+   "at": "2026-09-15 16:34:06"
+  }
+ ]
+}

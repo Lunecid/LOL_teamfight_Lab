@@ -1,0 +1,42 @@
+{
+ "group": "freeze",
+ "state": "complete",
+ "stage": "frozen",
+ "pid": 23964,
+ "updated": "2026-09-15 21:01:36",
+ "elapsed_s": 13.1,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "sealed evaluation",
+ "frozen_manifest_sha256": "60527473bbca5b10f808c05d11e4fc6fa45c94e89e134d51c59faa9f4a5784d5",
+ "winners": {
+  "pt_T": "pt_C1__raw",
+  "logit_T": "logit_C0.001__raw",
+  "lgbm_T": "lgbm_L15_M100__raw",
+  "pt_N": "pt_C1__raw",
+  "logit_N": "logit_C0.01__isotonic",
+  "lgbm_N": "lgbm_L15_M100__sigmoid"
+ },
+ "overall": {
+  "T": "lgbm_L15_M100__raw",
+  "N": "lgbm_L15_M100__sigmoid"
+ },
+ "history": [
+  {
+   "stage": "verify_T",
+   "state": "running",
+   "at": "2026-09-15 21:01:23"
+  },
+  {
+   "stage": "verify_N",
+   "state": "running",
+   "at": "2026-09-15 21:01:29"
+  },
+  {
+   "stage": "frozen",
+   "state": "complete",
+   "at": "2026-09-15 21:01:36"
+  }
+ ]
+}

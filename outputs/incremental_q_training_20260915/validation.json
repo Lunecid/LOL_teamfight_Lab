@@ -1,0 +1,1094 @@
+{
+ "version": "incremental_q_training_20260915",
+ "role": "EXPLORATORY_FOLLOWUP_AFTER_PRIOR_TEST_EXPOSURE_MODEL_DEFINED_LABELS_NOT_CONFIRMATORY",
+ "checked_at": "2026-09-15 21:14:44",
+ "n_checks": 117,
+ "checks": {
+  "parent_unchanged_sha256_cohort_role": true,
+  "parent_unchanged_sha256_label_validity": true,
+  "parent_unchanged_sha256_objective_ablation": true,
+  "parent_unchanged_sha256_critique_audit": true,
+  "parent_unchanged_sha256_full_corpus_read_targets": true,
+  "parent_unchanged_inventory_full_corpus": true,
+  "parent_unchanged_sha256_parent_scripts": true,
+  "parent_unchanged_sha256_parent_tests": true,
+  "parent_unchanged_inventory_docs": true,
+  "parent_unchanged_inventory_deliverables": true,
+  "parent_unchanged_inventory_reports": true,
+  "parent_unchanged_pycache_scripts": true,
+  "parent_unchanged_pycache_tests": true,
+  "parent_unchanged_original_repo_py_sha256": true,
+  "parent_unchanged_worktree_py_sha256": true,
+  "parent_unchanged_shards_inventory": true,
+  "parent_unchanged_main_cache_dir_stat": true,
+  "parent_expected_hashes_protocol_equal_now": true,
+  "spec_unchanged_since_protocol": true,
+  "order_snapshot_tests_protocol_smoke_latest_tests_before_full_fits": true,
+  "smoke_evaluation_completed_before_full_fits": true,
+  "all_selections_before_freeze": true,
+  "contract_tests_passed_no_skips": true,
+  "sealed_accesses_only_after_freeze": true,
+  "no_sealed_access_before_freeze_recorded_in_manifest": true,
+  "smoke_read_train_only": true,
+  "evaluation_after_freeze": true,
+  "frozen_artifacts_unchanged_now": true,
+  "frozen_artifacts_unchanged_through_evaluation": true,
+  "protocol_hash_in_freeze": true,
+  "T_counts_equal_specification": true,
+  "T_train_rows_use_own_heldout_fold_oof_V": true,
+  "pt_T_selection_counts_equal_specification": true,
+  "pt_T_input_schema": true,
+  "pt_T_weights_equal_per_match": true,
+  "pt_T_weight_membership_matches_roles": true,
+  "pt_T_selection_reproduced_independently": true,
+  "pt_T_calibrators_equal_q_cal_refit": true,
+  "pt_T_pt_knots_equal_train_refit": true,
+  "pt_T_pt_scaler_equals_train_refit": true,
+  "pt_T_pt_dimension_48_full_rank": true,
+  "pt_T_selected_candidate_converged": true,
+  "pt_T_reload_identity_at_fit": true,
+  "logit_T_selection_counts_equal_specification": true,
+  "logit_T_input_schema": true,
+  "logit_T_weights_equal_per_match": true,
+  "logit_T_weight_membership_matches_roles": true,
+  "logit_T_selection_reproduced_independently": true,
+  "logit_T_calibrators_equal_q_cal_refit": true,
+  "logit_T_imputer_median_equals_train": true,
+  "logit_T_scaler_equals_train_refit": true,
+  "logit_T_selected_candidate_converged": true,
+  "logit_T_reload_identity_at_fit": true,
+  "lgbm_T_selection_counts_equal_specification": true,
+  "lgbm_T_input_schema": true,
+  "lgbm_T_weights_equal_per_match": true,
+  "lgbm_T_weight_membership_matches_roles": true,
+  "lgbm_T_selection_reproduced_independently": true,
+  "lgbm_T_calibrators_equal_q_cal_refit": true,
+  "lgbm_T_imputer_median_equals_train": true,
+  "lgbm_T_stop_records_consistent": true,
+  "lgbm_T_reload_identity_at_fit": true,
+  "N_counts_equal_specification": true,
+  "N_train_rows_use_own_heldout_fold_oof_V": true,
+  "pt_N_selection_counts_equal_specification": true,
+  "pt_N_input_schema": true,
+  "pt_N_weights_equal_per_match": true,
+  "pt_N_weight_membership_matches_roles": true,
+  "pt_N_selection_reproduced_independently": true,
+  "pt_N_calibrators_equal_q_cal_refit": true,
+  "pt_N_pt_knots_equal_train_refit": true,
+  "pt_N_pt_scaler_equals_train_refit": true,
+  "pt_N_pt_dimension_48_full_rank": true,
+  "pt_N_selected_candidate_converged": true,
+  "pt_N_reload_identity_at_fit": true,
+  "logit_N_selection_counts_equal_specification": true,
+  "logit_N_input_schema": true,
+  "logit_N_weights_equal_per_match": true,
+  "logit_N_weight_membership_matches_roles": true,
+  "logit_N_selection_reproduced_independently": true,
+  "logit_N_calibrators_equal_q_cal_refit": true,
+  "logit_N_imputer_median_equals_train": true,
+  "logit_N_scaler_equals_train_refit": true,
+  "logit_N_selected_candidate_converged": true,
+  "logit_N_reload_identity_at_fit": true,
+  "lgbm_N_selection_counts_equal_specification": true,
+  "lgbm_N_input_schema": true,
+  "lgbm_N_weights_equal_per_match": true,
+  "lgbm_N_weight_membership_matches_roles": true,
+  "lgbm_N_selection_reproduced_independently": true,
+  "lgbm_N_calibrators_equal_q_cal_refit": true,
+  "lgbm_N_imputer_median_equals_train": true,
+  "lgbm_N_stop_records_consistent": true,
+  "lgbm_N_reload_identity_at_fit": true,
+  "stop_allocation_same_for_T_and_N": true,
+  "freeze_prechecks_all_pass": true,
+  "overall_winner_rule_consistent": true,
+  "eval_MAIN_TEST_T_named_winners_equal_frozen_candidates": true,
+  "eval_MAIN_TEST_N_named_winners_equal_frozen_candidates": true,
+  "eval_EXT_KR_16.13_T_named_winners_equal_frozen_candidates": true,
+  "eval_EXT_KR_16.13_N_named_winners_equal_frozen_candidates": true,
+  "eval_EXT_KR_16.14_pilot_T_named_winners_equal_frozen_candidates": true,
+  "eval_EXT_KR_16.14_pilot_N_named_winners_equal_frozen_candidates": true,
+  "eval_EXT_KR_16.15_T_named_winners_equal_frozen_candidates": true,
+  "eval_EXT_KR_16.15_N_named_winners_equal_frozen_candidates": true,
+  "eval_EXT_NA1_16.13_T_named_winners_equal_frozen_candidates": true,
+  "eval_EXT_NA1_16.13_N_named_winners_equal_frozen_candidates": true,
+  "legacy_columns_reproduce_parent_reported_metrics_lt_1e-12": true,
+  "evaluation_counts_equal_specification": true,
+  "legacy_joins_complete_and_consistent": true,
+  "cell_membership_recomputed_equal": true,
+  "independent_metric_reconstruction_lt_1e-10": true,
+  "bootstrap_point_estimates_equal_cell_metrics_lt_1e-10": true,
+  "bootstrap_acceptance_all_B40_B45_cells": true,
+  "MAIN_TEST_T_frozen_winners_reload_identical_in_fresh_process": true,
+  "MAIN_TEST_N_frozen_winners_reload_identical_in_fresh_process": true,
+  "required_stage_groups_complete": true
+ },
+ "failed": [],
+ "details": {
+  "parent_unchanged_sha256_cohort_role": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 402
+  },
+  "parent_unchanged_sha256_label_validity": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 171
+  },
+  "parent_unchanged_sha256_objective_ablation": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 127
+  },
+  "parent_unchanged_sha256_critique_audit": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 6
+  },
+  "parent_unchanged_sha256_full_corpus_read_targets": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 51
+  },
+  "parent_unchanged_inventory_full_corpus": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 66854
+  },
+  "parent_unchanged_sha256_parent_scripts": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 109
+  },
+  "parent_unchanged_sha256_parent_tests": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 17
+  },
+  "parent_unchanged_inventory_docs": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 69
+  },
+  "parent_unchanged_inventory_deliverables": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 9
+  },
+  "parent_unchanged_inventory_reports": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 4
+  },
+  "parent_unchanged_pycache_scripts": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 22
+  },
+  "parent_unchanged_pycache_tests": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 15
+  },
+  "parent_unchanged_original_repo_py_sha256": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 107
+  },
+  "parent_unchanged_worktree_py_sha256": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 125
+  },
+  "parent_unchanged_shards_inventory": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 35
+  },
+  "parent_unchanged_main_cache_dir_stat": {
+   "changed": null,
+   "removed": null,
+   "added": null,
+   "checked": null
+  },
+  "parent_expected_hashes_protocol_equal_now": {
+   "files": 73
+  },
+  "order_snapshot_tests_protocol_smoke_latest_tests_before_full_fits": {
+   "snapshot": "2026-09-15 20:28:52",
+   "first_passing_tests": "2026-09-15 20:38:13",
+   "protocol": "2026-09-15 20:38:24",
+   "smoke_frozen": "2026-09-15 20:40:04",
+   "latest_passing_tests_before_full_fits": "2026-09-15 20:41:25",
+   "prerequisite_run": 2,
+   "first_full_fit_start": "2026-09-15 20:41:34",
+   "test_runs": [
+    {
+     "run": 1,
+     "at": "2026-09-15 20:38:13",
+     "passed": true
+    },
+    {
+     "run": 2,
+     "at": "2026-09-15 20:41:25",
+     "passed": true
+    }
+   ],
+   "note": "contract tests run 1 preceded the protocol (no fits); run 2 re-ran them on the final code after the smoke fix"
+  },
+  "all_selections_before_freeze": {
+   "frozen_at": "2026-09-15 21:01:36"
+  },
+  "contract_tests_passed_no_skips": {
+   "passed": 23,
+   "run": 2
+  },
+  "sealed_accesses_only_after_freeze": {
+   "sealed_accesses": 17,
+   "first": "2026-09-15 21:01:38"
+  },
+  "smoke_read_train_only": {
+   "accesses": 10
+  },
+  "frozen_artifacts_unchanged_now": {
+   "files": 51
+  },
+  "T_counts_equal_specification": {
+   "counts": {
+    "TRAIN": 39605,
+    "Q_CAL": 10390,
+    "Q_SELECT": 10195
+   }
+  },
+  "T_train_rows_use_own_heldout_fold_oof_V": {
+   "rows": 39605,
+   "adapter_id_equals_own_heldout_fold": 39605,
+   "adapter_sha_equals_manifest_oof_hash": 39605,
+   "sub_role_equals_hash_fold": 39605
+  },
+  "pt_T_weights_equal_per_match": {
+   "membership": {
+    "TRAIN": "9f39381a95bbc3a35403fce106416e87f6be4443a5bd72f26b93092f2881a90d",
+    "Q_CAL": "50f1c9b5fe6418724102c3838387199a63f452b70132666dc8e76300c61ff5d4",
+    "Q_SELECT": "55c13764364d60f56a036e90ed9b31ab30c2f0b8d9d0c1304eacd654356b1f65"
+   }
+  },
+  "pt_T_selection_reproduced_independently": {
+   "chosen": "pt_C1__raw",
+   "eligible": 18
+  },
+  "pt_T_calibrators_equal_q_cal_refit": {
+   "per_config": {
+    "pt_C0.0001": true,
+    "pt_C0.001": true,
+    "pt_C0.01": true,
+    "pt_C0.1": true,
+    "pt_C1": true,
+    "pt_C10": true
+   }
+  },
+  "pt_T_pt_knots_equal_train_refit": {
+   "per_config": {
+    "pt_C0.0001": true,
+    "pt_C0.001": true,
+    "pt_C0.01": true,
+    "pt_C0.1": true,
+    "pt_C1": true,
+    "pt_C10": true
+   }
+  },
+  "pt_T_pt_scaler_equals_train_refit": {
+   "per_config": {
+    "pt_C0.0001": true,
+    "pt_C0.001": true,
+    "pt_C0.01": true,
+    "pt_C0.1": true,
+    "pt_C1": true,
+    "pt_C10": true
+   }
+  },
+  "pt_T_pt_dimension_48_full_rank": {
+   "per_config": {
+    "pt_C0.0001": true,
+    "pt_C0.001": true,
+    "pt_C0.01": true,
+    "pt_C0.1": true,
+    "pt_C1": true,
+    "pt_C10": true
+   }
+  },
+  "pt_T_selected_candidate_converged": {
+   "convergence": {
+    "pt_C0.0001": {
+     "eligible": true,
+     "attempts": [
+      [
+       5000,
+       20,
+       true
+      ]
+     ]
+    },
+    "pt_C0.001": {
+     "eligible": true,
+     "attempts": [
+      [
+       5000,
+       48,
+       true
+      ]
+     ]
+    },
+    "pt_C0.01": {
+     "eligible": true,
+     "attempts": [
+      [
+       5000,
+       137,
+       true
+      ]
+     ]
+    },
+    "pt_C0.1": {
+     "eligible": true,
+     "attempts": [
+      [
+       5000,
+       336,
+       true
+      ]
+     ]
+    },
+    "pt_C1": {
+     "eligible": true,
+     "attempts": [
+      [
+       5000,
+       974,
+       true
+      ]
+     ]
+    },
+    "pt_C10": {
+     "eligible": true,
+     "attempts": [
+      [
+       5000,
+       2507,
+       true
+      ]
+     ]
+    }
+   }
+  },
+  "logit_T_weights_equal_per_match": {
+   "membership": {
+    "TRAIN": "9f39381a95bbc3a35403fce106416e87f6be4443a5bd72f26b93092f2881a90d",
+    "Q_CAL": "50f1c9b5fe6418724102c3838387199a63f452b70132666dc8e76300c61ff5d4",
+    "Q_SELECT": "55c13764364d60f56a036e90ed9b31ab30c2f0b8d9d0c1304eacd654356b1f65"
+   }
+  },
+  "logit_T_selection_reproduced_independently": {
+   "chosen": "logit_C0.001__raw",
+   "eligible": 18
+  },
+  "logit_T_calibrators_equal_q_cal_refit": {
+   "per_config": {
+    "logit_C0.0001": true,
+    "logit_C0.001": true,
+    "logit_C0.01": true,
+    "logit_C0.1": true,
+    "logit_C1": true,
+    "logit_C10": true
+   }
+  },
+  "logit_T_imputer_median_equals_train": {
+   "per_config": {
+    "logit_C0.0001": true,
+    "logit_C0.001": true,
+    "logit_C0.01": true,
+    "logit_C0.1": true,
+    "logit_C1": true,
+    "logit_C10": true
+   }
+  },
+  "logit_T_scaler_equals_train_refit": {
+   "per_config": {
+    "logit_C0.0001": true,
+    "logit_C0.001": true,
+    "logit_C0.01": true,
+    "logit_C0.1": true,
+    "logit_C1": true,
+    "logit_C10": true
+   }
+  },
+  "logit_T_selected_candidate_converged": {
+   "convergence": {
+    "logit_C0.0001": {
+     "eligible": true,
+     "attempts": [
+      [
+       5000,
+       34,
+       true
+      ]
+     ]
+    },
+    "logit_C0.001": {
+     "eligible": true,
+     "attempts": [
+      [
+       5000,
+       95,
+       true
+      ]
+     ]
+    },
+    "logit_C0.01": {
+     "eligible": true,
+     "attempts": [
+      [
+       5000,
+       260,
+       true
+      ]
+     ]
+    },
+    "logit_C0.1": {
+     "eligible": true,
+     "attempts": [
+      [
+       5000,
+       785,
+       true
+      ]
+     ]
+    },
+    "logit_C1": {
+     "eligible": true,
+     "attempts": [
+      [
+       5000,
+       2171,
+       true
+      ]
+     ]
+    },
+    "logit_C10": {
+     "eligible": true,
+     "attempts": [
+      [
+       5000,
+       5000,
+       false
+      ],
+      [
+       20000,
+       6345,
+       true
+      ]
+     ]
+    }
+   }
+  },
+  "lgbm_T_weights_equal_per_match": {
+   "membership": {
+    "TRAIN": "9f39381a95bbc3a35403fce106416e87f6be4443a5bd72f26b93092f2881a90d",
+    "Q_CAL": "50f1c9b5fe6418724102c3838387199a63f452b70132666dc8e76300c61ff5d4",
+    "Q_SELECT": "55c13764364d60f56a036e90ed9b31ab30c2f0b8d9d0c1304eacd654356b1f65"
+   }
+  },
+  "lgbm_T_selection_reproduced_independently": {
+   "chosen": "lgbm_L15_M100__raw",
+   "eligible": 18
+  },
+  "lgbm_T_calibrators_equal_q_cal_refit": {
+   "per_config": {
+    "lgbm_L15_M50": true,
+    "lgbm_L15_M100": true,
+    "lgbm_L31_M50": true,
+    "lgbm_L31_M100": true,
+    "lgbm_L63_M50": true,
+    "lgbm_L63_M100": true
+   }
+  },
+  "lgbm_T_imputer_median_equals_train": {
+   "per_config": {
+    "lgbm_L15_M50": true,
+    "lgbm_L15_M100": true,
+    "lgbm_L31_M50": true,
+    "lgbm_L31_M100": true,
+    "lgbm_L63_M50": true,
+    "lgbm_L63_M100": true
+   }
+  },
+  "lgbm_T_stop_records_consistent": {
+   "per_config": {
+    "lgbm_L15_M50": true,
+    "lgbm_L15_M100": true,
+    "lgbm_L31_M50": true,
+    "lgbm_L31_M100": true,
+    "lgbm_L63_M50": true,
+    "lgbm_L63_M100": true
+   },
+   "iterations": {
+    "lgbm_L15_M50": {
+     "7": {
+      "best": 234,
+      "rounds": 284,
+      "cap_reached": false
+     },
+     "42": {
+      "best": 114,
+      "rounds": 164,
+      "cap_reached": false
+     },
+     "123": {
+      "best": 157,
+      "rounds": 207,
+      "cap_reached": false
+     }
+    },
+    "lgbm_L15_M100": {
+     "7": {
+      "best": 191,
+      "rounds": 241,
+      "cap_reached": false
+     },
+     "42": {
+      "best": 165,
+      "rounds": 215,
+      "cap_reached": false
+     },
+     "123": {
+      "best": 158,
+      "rounds": 208,
+      "cap_reached": false
+     }
+    },
+    "lgbm_L31_M50": {
+     "7": {
+      "best": 107,
+      "rounds": 157,
+      "cap_reached": false
+     },
+     "42": {
+      "best": 54,
+      "rounds": 104,
+      "cap_reached": false
+     },
+     "123": {
+      "best": 113,
+      "rounds": 163,
+      "cap_reached": false
+     }
+    },
+    "lgbm_L31_M100": {
+     "7": {
+      "best": 91,
+      "rounds": 141,
+      "cap_reached": false
+     },
+     "42": {
+      "best": 213,
+      "rounds": 263,
+      "cap_reached": false
+     },
+     "123": {
+      "best": 65,
+      "rounds": 115,
+      "cap_reached": false
+     }
+    },
+    "lgbm_L63_M50": {
+     "7": {
+      "best": 85,
+      "rounds": 135,
+      "cap_reached": false
+     },
+     "42": {
+      "best": 70,
+      "rounds": 120,
+      "cap_reached": false
+     },
+     "123": {
+      "best": 83,
+      "rounds": 133,
+      "cap_reached": false
+     }
+    },
+    "lgbm_L63_M100": {
+     "7": {
+      "best": 70,
+      "rounds": 120,
+      "cap_reached": false
+     },
+     "42": {
+      "best": 199,
+      "rounds": 249,
+      "cap_reached": false
+     },
+     "123": {
+      "best": 60,
+      "rounds": 110,
+      "cap_reached": false
+     }
+    }
+   }
+  },
+  "N_counts_equal_specification": {
+   "counts": {
+    "TRAIN": 159753,
+    "Q_CAL": 40565,
+    "Q_SELECT": 40180
+   }
+  },
+  "N_train_rows_use_own_heldout_fold_oof_V": {
+   "rows": 159753,
+   "adapter_id_equals_own_heldout_fold": 159753,
+   "adapter_sha_equals_manifest_oof_hash": 159753,
+   "sub_role_equals_hash_fold": 159753
+  },
+  "pt_N_weights_equal_per_match": {
+   "membership": {
+    "TRAIN": "b3e30edcfed6d9bbbd30caff406ea7caf6519e6e8731ace2f2295104bfdddaf8",
+    "Q_CAL": "1d18c926e4824f8927dff01f767ed682e0bf3b673ed33ee205ea29b3ac1c4db4",
+    "Q_SELECT": "39eb5b32b8f83ddb06e5123d228f070ce40e61658358edfdae6bbfbdf7d8d146"
+   }
+  },
+  "pt_N_selection_reproduced_independently": {
+   "chosen": "pt_C1__raw",
+   "eligible": 18
+  },
+  "pt_N_calibrators_equal_q_cal_refit": {
+   "per_config": {
+    "pt_C0.0001": true,
+    "pt_C0.001": true,
+    "pt_C0.01": true,
+    "pt_C0.1": true,
+    "pt_C1": true,
+    "pt_C10": true
+   }
+  },
+  "pt_N_pt_knots_equal_train_refit": {
+   "per_config": {
+    "pt_C0.0001": true,
+    "pt_C0.001": true,
+    "pt_C0.01": true,
+    "pt_C0.1": true,
+    "pt_C1": true,
+    "pt_C10": true
+   }
+  },
+  "pt_N_pt_scaler_equals_train_refit": {
+   "per_config": {
+    "pt_C0.0001": true,
+    "pt_C0.001": true,
+    "pt_C0.01": true,
+    "pt_C0.1": true,
+    "pt_C1": true,
+    "pt_C10": true
+   }
+  },
+  "pt_N_pt_dimension_48_full_rank": {
+   "per_config": {
+    "pt_C0.0001": true,
+    "pt_C0.001": true,
+    "pt_C0.01": true,
+    "pt_C0.1": true,
+    "pt_C1": true,
+    "pt_C10": true
+   }
+  },
+  "pt_N_selected_candidate_converged": {
+   "convergence": {
+    "pt_C0.0001": {
+     "eligible": true,
+     "attempts": [
+      [
+       5000,
+       33,
+       true
+      ]
+     ]
+    },
+    "pt_C0.001": {
+     "eligible": true,
+     "attempts": [
+      [
+       5000,
+       80,
+       true
+      ]
+     ]
+    },
+    "pt_C0.01": {
+     "eligible": true,
+     "attempts": [
+      [
+       5000,
+       205,
+       true
+      ]
+     ]
+    },
+    "pt_C0.1": {
+     "eligible": true,
+     "attempts": [
+      [
+       5000,
+       599,
+       true
+      ]
+     ]
+    },
+    "pt_C1": {
+     "eligible": true,
+     "attempts": [
+      [
+       5000,
+       1391,
+       true
+      ]
+     ]
+    },
+    "pt_C10": {
+     "eligible": true,
+     "attempts": [
+      [
+       5000,
+       3358,
+       true
+      ]
+     ]
+    }
+   }
+  },
+  "logit_N_weights_equal_per_match": {
+   "membership": {
+    "TRAIN": "b3e30edcfed6d9bbbd30caff406ea7caf6519e6e8731ace2f2295104bfdddaf8",
+    "Q_CAL": "1d18c926e4824f8927dff01f767ed682e0bf3b673ed33ee205ea29b3ac1c4db4",
+    "Q_SELECT": "39eb5b32b8f83ddb06e5123d228f070ce40e61658358edfdae6bbfbdf7d8d146"
+   }
+  },
+  "logit_N_selection_reproduced_independently": {
+   "chosen": "logit_C0.01__isotonic",
+   "eligible": 18
+  },
+  "logit_N_calibrators_equal_q_cal_refit": {
+   "per_config": {
+    "logit_C0.0001": true,
+    "logit_C0.001": true,
+    "logit_C0.01": true,
+    "logit_C0.1": true,
+    "logit_C1": true,
+    "logit_C10": true
+   }
+  },
+  "logit_N_imputer_median_equals_train": {
+   "per_config": {
+    "logit_C0.0001": true,
+    "logit_C0.001": true,
+    "logit_C0.01": true,
+    "logit_C0.1": true,
+    "logit_C1": true,
+    "logit_C10": true
+   }
+  },
+  "logit_N_scaler_equals_train_refit": {
+   "per_config": {
+    "logit_C0.0001": true,
+    "logit_C0.001": true,
+    "logit_C0.01": true,
+    "logit_C0.1": true,
+    "logit_C1": true,
+    "logit_C10": true
+   }
+  },
+  "logit_N_selected_candidate_converged": {
+   "convergence": {
+    "logit_C0.0001": {
+     "eligible": true,
+     "attempts": [
+      [
+       5000,
+       56,
+       true
+      ]
+     ]
+    },
+    "logit_C0.001": {
+     "eligible": true,
+     "attempts": [
+      [
+       5000,
+       160,
+       true
+      ]
+     ]
+    },
+    "logit_C0.01": {
+     "eligible": true,
+     "attempts": [
+      [
+       5000,
+       508,
+       true
+      ]
+     ]
+    },
+    "logit_C0.1": {
+     "eligible": true,
+     "attempts": [
+      [
+       5000,
+       1384,
+       true
+      ]
+     ]
+    },
+    "logit_C1": {
+     "eligible": true,
+     "attempts": [
+      [
+       5000,
+       3461,
+       true
+      ]
+     ]
+    },
+    "logit_C10": {
+     "eligible": true,
+     "attempts": [
+      [
+       5000,
+       5000,
+       false
+      ],
+      [
+       20000,
+       7945,
+       true
+      ]
+     ]
+    }
+   }
+  },
+  "lgbm_N_weights_equal_per_match": {
+   "membership": {
+    "TRAIN": "b3e30edcfed6d9bbbd30caff406ea7caf6519e6e8731ace2f2295104bfdddaf8",
+    "Q_CAL": "1d18c926e4824f8927dff01f767ed682e0bf3b673ed33ee205ea29b3ac1c4db4",
+    "Q_SELECT": "39eb5b32b8f83ddb06e5123d228f070ce40e61658358edfdae6bbfbdf7d8d146"
+   }
+  },
+  "lgbm_N_selection_reproduced_independently": {
+   "chosen": "lgbm_L15_M100__sigmoid",
+   "eligible": 18
+  },
+  "lgbm_N_calibrators_equal_q_cal_refit": {
+   "per_config": {
+    "lgbm_L15_M50": true,
+    "lgbm_L15_M100": true,
+    "lgbm_L31_M50": true,
+    "lgbm_L31_M100": true,
+    "lgbm_L63_M50": true,
+    "lgbm_L63_M100": true
+   }
+  },
+  "lgbm_N_imputer_median_equals_train": {
+   "per_config": {
+    "lgbm_L15_M50": true,
+    "lgbm_L15_M100": true,
+    "lgbm_L31_M50": true,
+    "lgbm_L31_M100": true,
+    "lgbm_L63_M50": true,
+    "lgbm_L63_M100": true
+   }
+  },
+  "lgbm_N_stop_records_consistent": {
+   "per_config": {
+    "lgbm_L15_M50": true,
+    "lgbm_L15_M100": true,
+    "lgbm_L31_M50": true,
+    "lgbm_L31_M100": true,
+    "lgbm_L63_M50": true,
+    "lgbm_L63_M100": true
+   },
+   "iterations": {
+    "lgbm_L15_M50": {
+     "7": {
+      "best": 358,
+      "rounds": 408,
+      "cap_reached": false
+     },
+     "42": {
+      "best": 738,
+      "rounds": 788,
+      "cap_reached": false
+     },
+     "123": {
+      "best": 470,
+      "rounds": 520,
+      "cap_reached": false
+     }
+    },
+    "lgbm_L15_M100": {
+     "7": {
+      "best": 911,
+      "rounds": 961,
+      "cap_reached": false
+     },
+     "42": {
+      "best": 967,
+      "rounds": 1000,
+      "cap_reached": true
+     },
+     "123": {
+      "best": 711,
+      "rounds": 761,
+      "cap_reached": false
+     }
+    },
+    "lgbm_L31_M50": {
+     "7": {
+      "best": 365,
+      "rounds": 415,
+      "cap_reached": false
+     },
+     "42": {
+      "best": 320,
+      "rounds": 370,
+      "cap_reached": false
+     },
+     "123": {
+      "best": 266,
+      "rounds": 316,
+      "cap_reached": false
+     }
+    },
+    "lgbm_L31_M100": {
+     "7": {
+      "best": 307,
+      "rounds": 357,
+      "cap_reached": false
+     },
+     "42": {
+      "best": 265,
+      "rounds": 315,
+      "cap_reached": false
+     },
+     "123": {
+      "best": 240,
+      "rounds": 290,
+      "cap_reached": false
+     }
+    },
+    "lgbm_L63_M50": {
+     "7": {
+      "best": 177,
+      "rounds": 227,
+      "cap_reached": false
+     },
+     "42": {
+      "best": 173,
+      "rounds": 223,
+      "cap_reached": false
+     },
+     "123": {
+      "best": 161,
+      "rounds": 211,
+      "cap_reached": false
+     }
+    },
+    "lgbm_L63_M100": {
+     "7": {
+      "best": 183,
+      "rounds": 233,
+      "cap_reached": false
+     },
+     "42": {
+      "best": 215,
+      "rounds": 265,
+      "cap_reached": false
+     },
+     "123": {
+      "best": 225,
+      "rounds": 275,
+      "cap_reached": false
+     }
+    }
+   }
+  },
+  "stop_allocation_same_for_T_and_N": {
+   "shared_matches": 26410
+  },
+  "overall_winner_rule_consistent": {
+   "overall": {
+    "T": "lgbm_L15_M100__raw",
+    "N": "lgbm_L15_M100__sigmoid"
+   }
+  },
+  "legacy_columns_reproduce_parent_reported_metrics_lt_1e-12": {
+   "max_abs": 0.0
+  },
+  "independent_metric_reconstruction_lt_1e-10": {
+   "max_abs": {
+    "auc": 1.1246559239452836e-13,
+    "brier": 0.0,
+    "logloss": 0.0
+   },
+   "cells": 990
+  },
+  "bootstrap_point_estimates_equal_cell_metrics_lt_1e-10": {
+   "max_abs": 1.1246559239452836e-13
+  },
+  "bootstrap_acceptance_all_B40_B45_cells": {
+   "counts": {
+    "eligible": 28,
+    "ineligible_explicit_skip": 2
+   },
+   "problems": [],
+   "rule": "eligible (>=30 matches, 2 classes): 1000 reps, seed 20260915, 5 planned contrasts, finite ordered CI, finite replicates (AUC = reps - degenerate), 0 <= degenerate < reps; ineligible: explicit computed=False with reason; eligibility from saved cell masks"
+  },
+  "required_stage_groups_complete": {
+   "states": {
+    "driver_full": "complete",
+    "freeze": "complete",
+    "evaluate": "complete",
+    "fit_pt_T": "complete",
+    "fit_pt_N": "complete",
+    "fit_logit_T": "complete",
+    "fit_logit_N": "complete",
+    "fit_lgbm_T": "complete",
+    "fit_lgbm_N": "complete"
+   }
+  },
+  "retained_failures": [
+   {
+    "time": "2026-09-15 20:40:04",
+    "stage": "evaluate_smoke",
+    "error": "FileNotFoundError(2, 'No such file or directory')"
+   },
+   {
+    "time": "2026-09-15 20:40:04",
+    "stage": "driver_smoke",
+    "error": "evaluate_smoke returned 3"
+   }
+  ]
+ }
+}

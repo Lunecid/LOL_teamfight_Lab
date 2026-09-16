@@ -1,0 +1,47 @@
+{
+ "group": "analyze_smoke",
+ "state": "complete",
+ "stage": "analyze",
+ "pid": 40196,
+ "updated": "2026-09-16 03:25:48",
+ "elapsed_s": 5.5,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "snapshot after, post-run checks, report",
+ "results_sha256": "319f447c2e979216493e605cb3ea03a4be8374e305379089d3c69535050ba825",
+ "checks": {
+  "chunks": 57,
+  "rows": 30782,
+  "names_equal": true,
+  "version_equal": true,
+  "p_pre_exact": 30782,
+  "p_post_exact": 30782,
+  "p_pre_rows": 30782,
+  "adapter_final_rows": 30782,
+  "max_abs_sum_minus_decision": 2.3314683517128287e-14,
+  "max_abs_champion": 0.0,
+  "max_abs_logit_diff_minus_decision": 1.922906278650771e-12,
+  "sign_equals_Y": 30782,
+  "sign_rows": 30782,
+  "seconds_stream": 3.6,
+  "pass": true
+ },
+ "history": [
+  {
+   "stage": "stream",
+   "state": "running",
+   "at": "2026-09-16 03:25:47"
+  },
+  {
+   "stage": "aggregated_MAIN_VALIDATION",
+   "state": "running",
+   "at": "2026-09-16 03:25:48"
+  },
+  {
+   "stage": "analyze",
+   "state": "complete",
+   "at": "2026-09-16 03:25:48"
+  }
+ ]
+}

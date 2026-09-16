@@ -1,0 +1,147 @@
+{
+ "version": "cohort_role_training_20260915",
+ "role": "EXPLORATORY_FOLLOWUP_MODEL_DEFINED_LABELS_PRIOR_TEST_EXPOSURE",
+ "checked_at": "2026-09-15 14:59:10",
+ "checks": {
+  "readonly_prior_full_run_sha256_unchanged": true,
+  "readonly_prior_full_run_external_cache_stat_unchanged": true,
+  "readonly_original_repo_py_sha256_unchanged": true,
+  "readonly_worktree_py_sha256_unchanged": true,
+  "readonly_workspace_prior_scripts_sha256_unchanged": true,
+  "readonly_main_cache_dir_stat_unchanged": true,
+  "readonly_shard_sha256_unchanged": true,
+  "cohort_manifest_before_protocol_and_fits": true,
+  "contract_tests_passed_before_full_fits": true,
+  "role_provenance_before_role_models": true,
+  "all_selections_before_freeze": true,
+  "test_external_labels_opened_only_after_freeze": true,
+  "frozen_artifacts_unchanged_now": true,
+  "frozen_artifacts_unchanged_through_evaluation": true,
+  "cohort_join_one_to_one_566452": true,
+  "cohort_partition_all_sets": true,
+  "detector_train_fixture_pass": true,
+  "external_redetection_bitwise": true,
+  "specialist_serialization_and_fit_origins": true,
+  "specialist_predictor_sets_equal_frozen_full_run": true,
+  "role_models_converged": true,
+  "role_oof_generator_is_own_heldout_fold_model": true,
+  "role_oof_self_match_exclusion_zero": true,
+  "arms_T_reload_identity_select": true,
+  "arms_T_ridge_converged": true,
+  "arms_N_reload_identity_select": true,
+  "arms_N_ridge_converged": true,
+  "pooled_E_baseline_reproduces_full_run_metrics": true,
+  "C_MAIN_TEST_T_reload_identity_within_1e-12": true,
+  "C_MAIN_TEST_N_reload_identity_within_1e-12": true,
+  "C_EXT_KR_16.13_T_reload_identity_within_1e-12": true,
+  "C_EXT_KR_16.13_N_reload_identity_within_1e-12": true,
+  "C_EXT_KR_16.14_pilot_T_reload_identity_within_1e-12": true,
+  "C_EXT_KR_16.14_pilot_N_reload_identity_within_1e-12": true,
+  "C_EXT_KR_16.15_T_reload_identity_within_1e-12": true,
+  "C_EXT_KR_16.15_N_reload_identity_within_1e-12": true,
+  "C_EXT_NA1_16.13_T_reload_identity_within_1e-12": true,
+  "C_EXT_NA1_16.13_N_reload_identity_within_1e-12": true,
+  "independent_metric_reconstruction_lt_1e-10": true,
+  "bootstrap_point_estimates_equal_evaluate_lt_1e-10": true,
+  "shap_checks": true,
+  "smoke_outputs_have_no_eval_or_test_predictions": true
+ },
+ "failed": [],
+ "details": {
+  "readonly_prior_full_run_sha256_unchanged": {
+   "changed": [],
+   "removed": [],
+   "added": []
+  },
+  "readonly_prior_full_run_external_cache_stat_unchanged": {
+   "changed": [],
+   "removed": [],
+   "added": []
+  },
+  "readonly_original_repo_py_sha256_unchanged": {
+   "changed": [],
+   "removed": [],
+   "added": []
+  },
+  "readonly_worktree_py_sha256_unchanged": {
+   "changed": [],
+   "removed": [],
+   "added": []
+  },
+  "readonly_workspace_prior_scripts_sha256_unchanged": {
+   "changed": [],
+   "removed": [],
+   "added": []
+  },
+  "readonly_shard_sha256_unchanged": {
+   "changed": [],
+   "removed": [],
+   "added": []
+  },
+  "contract_tests_passed_before_full_fits": {
+   "run": 3,
+   "at": "2026-09-15 14:42:27"
+  },
+  "all_selections_before_freeze": {
+   "last_selection": "2026-09-15 14:47:42",
+   "frozen_at": "2026-09-15 14:47:42"
+  },
+  "test_external_labels_opened_only_after_freeze": {
+   "accesses": 6,
+   "first": "2026-09-15 14:48:33"
+  },
+  "frozen_artifacts_unchanged_now": {
+   "files": 123
+  },
+  "role_models_converged": {
+   "n_iter": {
+    "final": 94,
+    "oof_fold0": 79,
+    "oof_fold1": 85,
+    "oof_fold2": 76,
+    "oof_fold3": 96,
+    "oof_fold4": 93
+   }
+  },
+  "role_oof_generator_is_own_heldout_fold_model": {
+   "matches": 74673
+  },
+  "independent_metric_reconstruction_lt_1e-10": {
+   "max_abs": {
+    "auc": 1.1390888232654106e-13,
+    "brier": 0.0,
+    "logloss": 0.0
+   },
+   "cells": 260
+  },
+  "bootstrap_point_estimates_equal_evaluate_lt_1e-10": {
+   "max_abs": 8.892886427247504e-14
+  },
+  "shap_checks": {
+   "per_cohort": {
+    "T": {
+     "additivity_max_abs": 2.220446049250313e-16,
+     "full_coalition_max_abs": 2.220446049250313e-16,
+     "empty_coalition_unique": true,
+     "runtime_s": 24.5,
+     "model_evaluations": 4194304,
+     "phi_plus_base_equals_selected_calibrated_prediction_max_abs": 2.220446049250313e-16,
+     "reload_first3_bitwise_equal": true,
+     "selection_deterministic": true,
+     "pass": true
+    },
+    "N": {
+     "additivity_max_abs": 3.3306690738754696e-16,
+     "full_coalition_max_abs": 2.220446049250313e-16,
+     "empty_coalition_unique": true,
+     "runtime_s": 28.6,
+     "model_evaluations": 4194304,
+     "phi_plus_base_equals_selected_calibrated_prediction_max_abs": 3.3306690738754696e-16,
+     "reload_first3_bitwise_equal": true,
+     "selection_deterministic": true,
+     "pass": true
+    }
+   }
+  }
+ }
+}

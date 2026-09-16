@@ -1,0 +1,129 @@
+{
+ "role": "EXPLORATORY_FOLLOWUP_AFTER_PRIOR_TEST_EXPOSURE_MODEL_DEFINED_LABELS_NOT_CONFIRMATORY",
+ "version": "balanced_shap_20260916",
+ "checked_at": "2026-09-16 03:16:17",
+ "n_checks": 36,
+ "failed": [],
+ "passed": 36,
+ "checks": {
+  "parent_unchanged_sha256_track_a": true,
+  "parent_unchanged_sha256_incremental_q": true,
+  "parent_unchanged_sha256_horizon_sensitivity": true,
+  "parent_unchanged_sha256_cohort_role": true,
+  "parent_unchanged_sha256_full_corpus_read_targets": true,
+  "parent_unchanged_inventory_full_corpus": true,
+  "parent_unchanged_sha256_parent_scripts": true,
+  "parent_unchanged_sha256_parent_tests": true,
+  "parent_unchanged_inventory_docs": true,
+  "parent_unchanged_pycache_scripts": true,
+  "parent_unchanged_pycache_tests": true,
+  "parent_unchanged_main_cache_dir_stat": true,
+  "parent_expected_hashes_protocol_equal_now": true,
+  "spec_unchanged_since_protocol": true,
+  "parent_frozen_manifests_unchanged": true,
+  "parent_eval_prediction_files_unchanged": true,
+  "bundles_unchanged": true,
+  "order_snapshot_tests_protocol_smoke_latest_tests_freeze_explanation": true,
+  "contract_tests_passed_no_skips": true,
+  "final_source_hashes_equal_frozen_for_freeze_shap_common": true,
+  "sealed_accesses_only_after_freeze": true,
+  "no_sealed_access_before_freeze_recorded_in_manifest": true,
+  "smoke_read_train_only": true,
+  "smoke_checks_pass": true,
+  "freeze_prechecks_all_pass": true,
+  "group_map_equals_protocol_and_schema": true,
+  "final_q_T_all_selection_additivity_recomputation_and_parent_prediction_identity": true,
+  "final_q_T_B40_selection_additivity_recomputation_and_parent_prediction_identity": true,
+  "final_q_N_all_selection_additivity_recomputation_and_parent_prediction_identity": true,
+  "final_q_N_B40_selection_additivity_recomputation_and_parent_prediction_identity": true,
+  "plain_mlp_T_all_selection_additivity_recomputation_and_parent_prediction_identity": true,
+  "plain_mlp_T_B40_selection_additivity_recomputation_and_parent_prediction_identity": true,
+  "plain_mlp_N_all_selection_additivity_recomputation_and_parent_prediction_identity": true,
+  "plain_mlp_N_B40_selection_additivity_recomputation_and_parent_prediction_identity": true,
+  "required_stage_groups_complete": true,
+  "no_bytecode_written_in_parent_scripts_tests": true
+ },
+ "info": {
+  "parent_unchanged_sha256_track_a": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 189
+  },
+  "parent_unchanged_sha256_incremental_q": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 267
+  },
+  "parent_unchanged_sha256_horizon_sensitivity": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 327
+  },
+  "parent_unchanged_sha256_cohort_role": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 402
+  },
+  "parent_unchanged_sha256_full_corpus_read_targets": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 51
+  },
+  "parent_unchanged_inventory_full_corpus": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 66854
+  },
+  "parent_unchanged_sha256_parent_scripts": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 139
+  },
+  "parent_unchanged_sha256_parent_tests": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 20
+  },
+  "parent_unchanged_inventory_docs": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 74
+  },
+  "parent_unchanged_pycache_scripts": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 22
+  },
+  "parent_unchanged_pycache_tests": {
+   "changed": [],
+   "removed": [],
+   "added": [],
+   "checked": 15
+  },
+  "parent_unchanged_main_cache_dir_stat": {
+   "changed": null,
+   "removed": null,
+   "added": null,
+   "checked": null
+  },
+  "contract_tests_passed_no_skips": {
+   "passed": 10,
+   "run": 2
+  },
+  "sealed_accesses_only_after_freeze": {
+   "n_sealed": 9
+  }
+ },
+ "frozen_manifest_sha256": "5a192ac0eb4fdc209f1d03bad358a72410912b5ac4431efc73f3189862311aae",
+ "shap_summary_sha256": "1df1e591a9fa3abc0a06a8f7485495b464be41e6965c64e5b13d198e119f4f96"
+}

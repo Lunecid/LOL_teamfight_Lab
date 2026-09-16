@@ -1,0 +1,33 @@
+{
+  "status": "passed",
+  "selected_matches": 50000,
+  "completed_matches": 49677,
+  "exclusions": {
+    "no_nonterminal_state": 323
+  },
+  "split_matches": {
+    "value_train": 10007,
+    "value_validation": 4986,
+    "predict_train": 24840,
+    "predict_test": 9844
+  },
+  "pilot_overlap": 0,
+  "value_model_sha256": "ffde1ed0b9a6905ba65d2ee27b370cc55e02eb46cb3fd6c9d7e992fd5c91c416",
+  "source_hashes_match": true,
+  "group_cv_and_oof": "disjoint; each held-out match exactly once",
+  "labels_timestamps_and_saved_metrics": "verified",
+  "objective_distinct_matches_either_team": {
+    "value_train": {
+      "baron": 4643,
+      "dragons": 9908,
+      "soul_event_recorded": 1517,
+      "elder": 136
+    },
+    "value_validation": {
+      "baron": 2334,
+      "dragons": 4931,
+      "soul_event_recorded": 811,
+      "elder": 92
+    }
+  }
+}

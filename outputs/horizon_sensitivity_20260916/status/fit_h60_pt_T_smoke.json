@@ -1,0 +1,37 @@
+{
+ "group": "fit_h60_pt_T_smoke",
+ "state": "complete",
+ "stage": "selected",
+ "pid": 41096,
+ "updated": "2026-09-16 02:30:00",
+ "elapsed_s": 6.6,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "next family / cohort / horizon, then freeze",
+ "chosen": "pt_C1__raw",
+ "selection_sha256": "bbf5ed52a9f00661d9461c97953bd87a7226d14173a80c919a8ae69eac0478ed",
+ "seconds": 1.2,
+ "select_brier": {
+  "pt_C1__isotonic": 0.239546,
+  "pt_C1__raw": 0.234343,
+  "pt_C1__sigmoid": 0.236159
+ },
+ "history": [
+  {
+   "stage": "load",
+   "state": "running",
+   "at": "2026-09-16 02:29:54"
+  },
+  {
+   "stage": "fit_pt_C1",
+   "state": "running",
+   "at": "2026-09-16 02:29:56"
+  },
+  {
+   "stage": "selected",
+   "state": "complete",
+   "at": "2026-09-16 02:30:00"
+  }
+ ]
+}

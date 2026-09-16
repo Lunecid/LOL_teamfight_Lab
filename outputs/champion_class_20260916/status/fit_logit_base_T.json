@@ -1,0 +1,42 @@
+{
+ "group": "fit_logit_base_T",
+ "state": "complete",
+ "stage": "selected",
+ "pid": 39100,
+ "updated": "2026-09-16 04:18:03",
+ "elapsed_s": 8.3,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "next arm / family / cohort, then freeze",
+ "chosen": "logit_C0.001__raw",
+ "selection_sha256": "6ba177433ed461850bfe2c462243d0b827e89cbcf4e588b013f6f85442748cd6",
+ "seconds": 3.0,
+ "select_brier": {
+  "logit_C0.001__isotonic": 0.229348,
+  "logit_C0.001__raw": 0.229055,
+  "logit_C0.001__sigmoid": 0.229088
+ },
+ "history": [
+  {
+   "stage": "load",
+   "state": "running",
+   "at": "2026-09-16 04:17:54"
+  },
+  {
+   "stage": "features",
+   "state": "running",
+   "at": "2026-09-16 04:17:58"
+  },
+  {
+   "stage": "fit_logit_C0.001",
+   "state": "running",
+   "at": "2026-09-16 04:17:58"
+  },
+  {
+   "stage": "selected",
+   "state": "complete",
+   "at": "2026-09-16 04:18:03"
+  }
+ ]
+}

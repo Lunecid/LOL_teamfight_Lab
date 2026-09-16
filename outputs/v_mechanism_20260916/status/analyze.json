@@ -1,0 +1,52 @@
+{
+ "group": "analyze",
+ "state": "complete",
+ "stage": "analyze",
+ "pid": 36940,
+ "updated": "2026-09-16 03:26:41",
+ "elapsed_s": 48.9,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "snapshot after, post-run checks, report",
+ "results_sha256": "0501a8ee871e907be1ff3d7b7239be016149a941a3bc850029aeff90451dfc29",
+ "checks": {
+  "chunks": 677,
+  "rows": 366746,
+  "names_equal": true,
+  "version_equal": true,
+  "p_pre_exact": 366746,
+  "p_post_exact": 366746,
+  "p_pre_rows": 366746,
+  "adapter_final_rows": 366746,
+  "max_abs_sum_minus_decision": 3.042011087472929e-14,
+  "max_abs_champion": 0.0,
+  "max_abs_logit_diff_minus_decision": 6.231459792616079e-12,
+  "sign_equals_Y": 366746,
+  "sign_rows": 366746,
+  "seconds_stream": 43.5,
+  "pass": true
+ },
+ "history": [
+  {
+   "stage": "stream",
+   "state": "running",
+   "at": "2026-09-16 03:25:57"
+  },
+  {
+   "stage": "aggregated_MAIN_VALIDATION",
+   "state": "running",
+   "at": "2026-09-16 03:26:40"
+  },
+  {
+   "stage": "aggregated_MAIN_TEST",
+   "state": "running",
+   "at": "2026-09-16 03:26:41"
+  },
+  {
+   "stage": "analyze",
+   "state": "complete",
+   "at": "2026-09-16 03:26:41"
+  }
+ ]
+}

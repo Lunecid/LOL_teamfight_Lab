@@ -1,0 +1,45 @@
+{
+ "prior_full_run_sha256": {
+  "changed": [],
+  "removed": [],
+  "added": []
+ },
+ "prior_full_run_external_cache_stat": {
+  "changed": [],
+  "removed": [],
+  "added": []
+ },
+ "original_repo_py_sha256": {
+  "changed": [],
+  "removed": [],
+  "added": []
+ },
+ "worktree_py_sha256": {
+  "changed": [],
+  "removed": [],
+  "added": []
+ },
+ "workspace_prior_scripts_sha256": {
+  "changed": [],
+  "removed": [],
+  "added": []
+ },
+ "main_cache_dir_stat": {
+  "equal": true,
+  "before": {
+   "files": 630000,
+   "bytes": 64170597264,
+   "max_mtime_ns": 1772610773505905100
+  },
+  "after": {
+   "files": 630000,
+   "bytes": 64170597264,
+   "max_mtime_ns": 1772610773505905100
+  }
+ },
+ "shard_sha256": {
+  "changed": [],
+  "removed": [],
+  "added": []
+ }
+}

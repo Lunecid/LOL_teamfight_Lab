@@ -1,0 +1,42 @@
+{
+ "group": "fit_logit_draft_identity_N_smoke",
+ "state": "complete",
+ "stage": "selected",
+ "pid": 30480,
+ "updated": "2026-09-16 04:16:08",
+ "elapsed_s": 7.6,
+ "processed": null,
+ "total": null,
+ "error": null,
+ "next_step": "next arm / family / cohort, then freeze",
+ "chosen": "logit_C0.01__sigmoid",
+ "selection_sha256": "22666dfd46df088c4da01a1ae3e1cb85669f97c8682cdc479239f839cb8f1d1b",
+ "seconds": 4.0,
+ "select_brier": {
+  "logit_C0.01__isotonic": 0.250919,
+  "logit_C0.01__raw": 0.275129,
+  "logit_C0.01__sigmoid": 0.250138
+ },
+ "history": [
+  {
+   "stage": "load",
+   "state": "running",
+   "at": "2026-09-16 04:16:00"
+  },
+  {
+   "stage": "features",
+   "state": "running",
+   "at": "2026-09-16 04:16:02"
+  },
+  {
+   "stage": "fit_logit_C0.01",
+   "state": "running",
+   "at": "2026-09-16 04:16:03"
+  },
+  {
+   "stage": "selected",
+   "state": "complete",
+   "at": "2026-09-16 04:16:08"
+  }
+ ]
+}
