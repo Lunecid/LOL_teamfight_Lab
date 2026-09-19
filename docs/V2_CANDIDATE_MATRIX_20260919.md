@@ -123,7 +123,8 @@ GCN, GraphSAGE, GATv2, MPNN, ST-*, EventXAttn, Layered Fusion, stacking.
 | A2 wave-1 (LGBM 400) | done | `v_redesign_20260919/models/shared_lgbm.joblib` |
 | B0 per-band LGBM | done | `…/per_band_lgbm.joblib` |
 | Legacy logistic | compare only | sealed `v_final_raw.joblib` |
-| A0 shared logistic re-fit | **done** | `v_redesign_wave2_20260919/models/A0_*.joblib` — **mech. winner** |
+| A0 shared logistic re-fit | **done** (v0 baseline) | `v_redesign_wave2_20260919/models/A0_*.joblib` |
+| Wave-4 corrected Phase A/B | **done** | `v_redesign_wave4_corrected_20260919/` — **MLP expanded leads** |
 | A1 RF | **done** (weak) | `…/A1_shared_rf.joblib` |
 | A2b CoG-hyper LGBM | **done** | `…/A2b_shared_lgbm_cog.joblib` |
 | A3 / A3b MLP ± calib | **done** (Platt-style \(g\)) | `…/A3_shared_mlp.joblib` |
@@ -132,9 +133,9 @@ GCN, GraphSAGE, GATv2, MPNN, ST-*, EventXAttn, Layered Fusion, stacking.
 | S5 Mamba | **skipped** (no `mamba_ssm`) | — |
 | Tier 4 GNN/fusion | **BLOCKED** (inputs) | — |
 
-**Ledgers:** [BAND_LEDGER_WAVE2_TIER01_20260919.md](BAND_LEDGER_WAVE2_TIER01_20260919.md) · [BAND_LEDGER_WAVE3_TIER23_20260919.md](BAND_LEDGER_WAVE3_TIER23_20260919.md) · [CONTINUITY_LEDGER_WAVE2_20260919.md](CONTINUITY_LEDGER_WAVE2_20260919.md) · [V_REDESIGN_ID_GLOSSARY_20260919.md](V_REDESIGN_ID_GLOSSARY_20260919.md) · [V_REDESIGN_MODEL_DESIGN_SETTINGS_20260919.md](V_REDESIGN_MODEL_DESIGN_SETTINGS_20260919.md) · [V_NEXT_RUN_EXECUTION_CONTRACT_20260919.md](V_NEXT_RUN_EXECUTION_CONTRACT_20260919.md) · [V_MODEL_INPUT_DESIGN_20260919/](V_MODEL_INPUT_DESIGN_20260919/)
+**Ledgers:** [BAND_LEDGER_WAVE2_TIER01_20260919.md](BAND_LEDGER_WAVE2_TIER01_20260919.md) · [BAND_LEDGER_WAVE3_TIER23_20260919.md](BAND_LEDGER_WAVE3_TIER23_20260919.md) · [BAND_LEDGER_WAVE4_CORRECTED_20260919.md](BAND_LEDGER_WAVE4_CORRECTED_20260919.md) · [CONTINUITY_LEDGER_WAVE2_20260919.md](CONTINUITY_LEDGER_WAVE2_20260919.md) · [V_REDESIGN_ID_GLOSSARY_20260919.md](V_REDESIGN_ID_GLOSSARY_20260919.md) · [V_REDESIGN_MODEL_DESIGN_SETTINGS_20260919.md](V_REDESIGN_MODEL_DESIGN_SETTINGS_20260919.md) · [V_NEXT_RUN_EXECUTION_CONTRACT_20260919.md](V_NEXT_RUN_EXECUTION_CONTRACT_20260919.md) · [V_MODEL_INPUT_DESIGN_20260919/](V_MODEL_INPUT_DESIGN_20260919/)
 
-**Freeze rule:** Tier 0–3 complete for WP scores on StateV2 stacks. History/sequence **do not** beat A0 on \(L_{\mathrm{time}}\). **Partial V-4 continuity** on A0/A3/A2b (+H5) supports A0 (excess≈legacy; sign agree vs legacy 0.98). Still require full V-4 (\(D_{\mathrm{switch}}\), quiet) before calling V final. Tier 4 remains input-blocked.
+**Freeze rule:** INPUT_IMPL_v0 history/RNN scores superseded by wave-4 corrected re-comparison. **Corrected-input mechanical leader = embedding MLP (Expanded361)**; GRU history nearly ties; flat H5 LGBM does not beat same-learner current. Continuity on MLP (+ A0 / GRU) before final freeze. Tier 4 still input-blocked.
 
 ---
 

@@ -48,13 +48,12 @@ Reference column reconstruction: `STATEV2_REFERENCE_FEATURE_SET.json` — **must
 
 | Step | Work | Done when |
 |---:|---|---|
-| **1** | Runtime feature manifest (names, dtypes, order, source hash) | Matches / diffs vs reference logged |
-| **2** | Fix pack/mask/categorical/current-token builders + synthetic tests | PACK-1 / TCN-1 / CAT-1 unit checks green |
-| **3** | Phase A: current-frame Logistic / LGBM / MLP on Expanded361 (+ Core267) | V_SELECT \(L_{\mathrm{time}}\) table under fixed \(T\) |
-| **4** | Phase B: same LGBM ± H3/H5; one fixed GRU + optional Transformer | History value isolated |
-| **5** | Optional team-set encoder | Only if A–B leave room |
-| **6** | Freeze \(V=g\circ f\circ T\) after DEV continuity (\(D_{\mathrm{switch}}\), quiet) | freeze_manifest |
-| **After** | Relabel SVI / B40 / PT / q | **New V lineage only** |
+| **1** | Runtime feature manifest (names, dtypes, order, source hash) | Matches / diffs vs reference logged | **DONE** — order match True |
+| **2** | Fix pack/mask/categorical/current-token builders + synthetic tests | PACK-1 / TCN-1 / CAT-1 unit checks green | **DONE** — wave4 adapters + left-align |
+| **3** | Phase A: current-frame Logistic / LGBM / MLP on Expanded361 (+ Core267) | V_SELECT \(L_{\mathrm{time}}\) table under fixed \(T\) | **DONE** — see [BAND_LEDGER_WAVE4_CORRECTED_20260919.md](BAND_LEDGER_WAVE4_CORRECTED_20260919.md) |
+| **4** | Phase B: same LGBM ± H3/H5; one fixed GRU + optional Transformer | History value isolated | **DONE** — H5 hurts LGBM; GRU competitive |
+| **5** | Optional team-set encoder | Only if A–B leave room | pending |
+| **6** | Freeze \(V=g\circ f\circ T\) after DEV continuity (\(D_{\mathrm{switch}}\), quiet) | freeze_manifest | next: continuity on MLP / A0 / GRU |
 
 ---
 
@@ -73,11 +72,11 @@ Match-equal weights; **mean-one normalize** and keep that scale across Logistic 
 
 ---
 
-## 5. Immediate code changes in this adoption commit
+## 5. Adoption progress
 
-1. Import collaborator pack under `docs/V_MODEL_INPUT_DESIGN_20260919/`.
-2. Left-align history stacks in `rr20260919_v_redesign_fit_wave3_tier23.py` (PACK-1 / TCN-1).
-3. Emit runtime feature manifest script + JSON.
-4. Narrow claims in settings / wave-3 / continuity ledgers.
+1. Collaborator pack imported under `docs/V_MODEL_INPUT_DESIGN_20260919/`.
+2. PACK-1 left-align + synthetic check.
+3. Runtime 361-feature manifest (order match).
+4. Wave-4 corrected Phase A/B re-fit complete — [BAND_LEDGER_WAVE4_CORRECTED_20260919.md](BAND_LEDGER_WAVE4_CORRECTED_20260919.md).
 
-**Not in this commit:** full Phase A retrain (follows after manifest sign-off).
+**Remaining before freeze:** continuity on `A_MLP_expanded` (+ A0, GRU); optional full-TRAIN refit at stopped iteration; \(D_{\mathrm{switch}}\) / quiet.
