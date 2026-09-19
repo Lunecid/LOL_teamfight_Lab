@@ -1,8 +1,8 @@
 # LOL Teamfight Lab
 
-> **Current research (2026-09):** \(\widehat{V}\) freeze = `shared_lgbm`; design+lit pack: [`docs/WINPROB_V_DESIGN_PACK_20260919.md`](docs/WINPROB_V_DESIGN_PACK_20260919.md). Lean new-V primary is local under `outputs/` (gitignored).  
-> Authority: [`docs/V_REDESIGN_CONTRACT_20260919.md`](docs/V_REDESIGN_CONTRACT_20260919.md), [`docs/COG_SUCCESSION_LOCK_20260919.md`](docs/COG_SUCCESSION_LOCK_20260919.md), [`docs/COMMON_RESEARCH_SPINE_20260919.md`](docs/COMMON_RESEARCH_SPINE_20260919.md), [`docs/V_DYNAMIC_FRAME_CONTRACT_20260919.md`](docs/V_DYNAMIC_FRAME_CONTRACT_20260919.md).  
-> Legacy sealed \(q\)/SVI under the **previous** \(\widehat{V}\) only: [`docs/SVI_EVIDENCE_CITE_SHEET_20260919.md`](docs/SVI_EVIDENCE_CITE_SHEET_20260919.md). Scripts: `scripts/rr20260919_*.py`. Large tensors: local data root (see [Where results live](#where-results-live)).
+> **Current research (2026-09):** Choice A `shared_lgbm` provisional (\(V=g\\circ f\)); pack [`docs/WINPROB_V_DESIGN_PACK_20260919.md`](docs/WINPROB_V_DESIGN_PACK_20260919.md) + band ledger [`docs/BAND_LEDGER_SHARED_LGBM_20260919.md`](docs/BAND_LEDGER_SHARED_LGBM_20260919.md). V-4 = partial warning only.  
+> Authority: [`docs/V_REDESIGN_CONTRACT_20260919.md`](docs/V_REDESIGN_CONTRACT_20260919.md), [`docs/COG_SUCCESSION_LOCK_20260919.md`](docs/COG_SUCCESSION_LOCK_20260919.md), [`docs/COMMON_RESEARCH_SPINE_20260919.md`](docs/COMMON_RESEARCH_SPINE_20260919.md).  
+> Legacy sealed \(q\)/SVI (**old V** only): [`docs/SVI_EVIDENCE_CITE_SHEET_20260919.md`](docs/SVI_EVIDENCE_CITE_SHEET_20260919.md). Scripts: `scripts/rr20260919_*.py`.
 
 ---
 

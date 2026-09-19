@@ -1,9 +1,13 @@
-# Time-band model performance — CoG / ToG / SVI comparison
+# Time-band model performance — CoG / local ToG pipeline / SVI comparison
 
 **Date:** 2026-09-19  
-**Question:** Do past papers already show that model skill changes with game clock, and how does the current SVI report line up?
+**Question:** Do past lines already show clock-dependent skill, and how do sealed curves line up?
 
-**Epistemic:** figures cited from locked manuscripts / frozen metrics; SVI numbers are exploratory re-scores after TEST exposure.
+**Naming:** Rows labeled **“ToG (local pipeline)”** are from this repo’s `temporal_winprob_v3` / ToG manuscript work — **not** numerical claims copied from **Hodge et al. (2021) IEEE ToG** (that paper is a *design* precedent only; see [RELATED_FORECAST_VALUE_LIT_20260919.md](RELATED_FORECAST_VALUE_LIT_20260919.md)).
+
+**New redesign V:** Do **not** treat tables below as `shared_lgbm` performance. Use [BAND_LEDGER_SHARED_LGBM_20260919.md](BAND_LEDGER_SHARED_LGBM_20260919.md).
+
+**Epistemic:** figures from locked manuscripts / frozen metrics; SVI strata are exploratory re-scores after TEST exposure.
 
 ---
 

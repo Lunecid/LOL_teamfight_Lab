@@ -71,17 +71,29 @@ def band_mask(tmin: np.ndarray, lo: float, hi: float) -> np.ndarray:
 
 
 def time_balanced_brier(y, p, g, tmin) -> Dict[str, Any]:
+    """L_time = sum_b alpha_b Brier_b. Missing required band → ineligible (L_time=inf)."""
     parts = {}
     acc = 0.0
+    missing = []
     for lo, hi, name in BANDS:
         m = band_mask(tmin, lo, hi)
         if int(m.sum()) < 50:
             parts[name] = dict(skipped=True, n=int(m.sum()))
+            missing.append(name)
             continue
         sc = metrics(y[m], p[m], g[m])
         parts[name] = sc
         acc += ALPHA[name] * sc["brier"]
-    return dict(L_time=float(acc), alpha=ALPHA, bands=parts)
+    if missing:
+        return dict(
+            L_time=float("inf"),
+            alpha=ALPHA,
+            bands=parts,
+            ineligible=True,
+            missing_bands=missing,
+            note="required band too small — do not drop alpha_b silently",
+        )
+    return dict(L_time=float(acc), alpha=ALPHA, bands=parts, ineligible=False)
 
 
 def expanded_X(X: np.ndarray, names: Sequence[str]) -> Tuple[np.ndarray, List[str], List[int]]:
@@ -338,6 +350,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             L_time=tb["L_time"],
             select_overall=overall,
             select_bands=tb["bands"],
+            ineligible=bool(tb.get("ineligible")),
+            missing_bands=tb.get("missing_bands"),
             calib_ok=sig.ok,
             calib=dict(coef=sig.coef_, intercept=sig.intercept_) if sig.ok else None,
         )
@@ -346,7 +360,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     eligible = {
         k: v for k, v in selection.items()
-        if "L_time" in v and not str(k).startswith("legacy_")
+        if "L_time" in v and not str(k).startswith("legacy_") and not v.get("ineligible")
+        and np.isfinite(v.get("L_time", float("inf")))
     }
     if not eligible:
         raise SystemExit("no non-legacy candidates to select")
@@ -375,7 +390,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         cohort="full_corpus_training_20260915 / same 210k",
         query="bucket samples; grid from 120s (pre-2 excluded by design)",
         alpha=ALPHA,
-        selection_rule="min L_time on V_SELECT then logloss",
+        selection_rule=(
+            "min L_time on V_SELECT; tie-break = overall match-weighted logloss on V_SELECT "
+            "(not time-balanced logloss — documented wave-1; see V1 §5)"
+        ),
+        query_sampling="bucket_only=True (corpus is_bucket_sample); not every minute frame",
         winner=winner,
         census=dict(
             train_rows=int(len(yTR)), train_matches=int(len(np.unique(TR["match"]))),

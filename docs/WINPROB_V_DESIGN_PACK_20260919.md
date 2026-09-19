@@ -1,12 +1,31 @@
 # 전체 승률 모형 \(\widehat{V}\) — 설계서·참고문헌 묶음
 
 **작성일:** 2026-09-19  
-**상태:** 현행 권위 묶음 (provisional freeze = `shared_lgbm`)  
-**범위:** 경기 최종 승패 \(W\)에 대한 공개상태 승률 \(\widehat{V}(X_{\le t})=\widehat{P}(W=1\mid X_{\le t})\).  
-SVI / \(q\)는 **이 모형이 동결된 뒤**의 다운스트림이며, 구 V 산출(`outputs/svi_*_20260919`)과 섞어 인용하지 않는다.
+**상태:** 잠정 기준 = Choice A `shared_lgbm` (**a priori**). V-2 wave-1 · V-4 **일부** 진단 완료. 최종 측정모형 승인 전: 동일 \(g\circ f\) 검증·DEV 모델전환 분리·시간대/적용시점 표 확정.  
+**범위:** \(\widehat{V}(X_{\le t})=\widehat{P}(W=1\mid X_{\le t})\).  
+구 V 산출(`outputs/svi_*_20260919`)과 새 V를 섞어 인용하지 않는다.
 
-로컬 동결 매니페스트(대용량 `outputs/`는 gitignore):  
-`outputs/v_redesign_20260919/freeze_manifest.json`
+로컬: `outputs/v_redesign_20260919/freeze_manifest.json`  
+GitHub 수치 발췌: [BAND_LEDGER_SHARED_LGBM_20260919.md](BAND_LEDGER_SHARED_LGBM_20260919.md)
+
+---
+
+## 0. 최종 평가 함수 (LOCK)
+
+\[
+\boxed{
+\widehat{V}_{\mathrm{final}}(X)
+=
+g_{\mathrm{frozen}}
+\!\bigl(
+f_{\mathrm{frozen}}
+\!\bigl(T_{\mathrm{frozen}}(X)\bigr)
+\bigr)
+}
+\]
+
+\(T\)=전처리, \(f\)=학습기, \(g\)=V_CAL PosSlopeSigmoid.  
+**선정·TEST ledger·연속성 primary·SVI 재라벨**은 모두 이 함수를 쓴다. 원확률 \(f(X)\)는 보정 영향 진단용.
 
 ---
 
@@ -14,127 +33,81 @@ SVI / \(q\)는 **이 모형이 동결된 뒤**의 다운스트림이며, 구 V �
 
 | # | 문서 | 역할 |
 |---|---|---|
-| 1 | [COG_SUCCESSION_LOCK_20260919.md](COG_SUCCESSION_LOCK_20260919.md) | CoG 목적 계승 · I1–I4 · strawman 금지 |
-| 2 | [V_REDESIGN_CONTRACT_20260919.md](V_REDESIGN_CONTRACT_20260919.md) | **핵심 계약:** Choice A 공유 시간조건부 기본, 선정·ΔV·작업 패키지 V-1…V-4 |
-| 3 | [V1_TASK_CONTRACT_20260919.md](V1_TASK_CONTRACT_20260919.md) | 입력·분할·가중·α_b·캘리브 필드 잠금 |
-| 4 | [V_DYNAMIC_FRAME_CONTRACT_20260919.md](V_DYNAMIC_FRAME_CONTRACT_20260919.md) | 프레임 시계 · 시간대 **보고** 규칙 (개발 순서는 redesign이 상위) |
-| 5 | [PAPER_COHORT_CONTRACT_20260919.md](PAPER_COHORT_CONTRACT_20260919.md) | 210k / 15.14·15.15·15.16 역할 · 15.16 T 봉인 |
-| 6 | [COMMON_RESEARCH_SPINE_20260919.md](COMMON_RESEARCH_SPINE_20260919.md) | 저널·석사 공통 척추에서의 \(\widehat{V}\) 위치 |
-| 7 | [TIMEBAND_COG_TOG_SVI_COMPARE_20260919.md](TIMEBAND_COG_TOG_SVI_COMPARE_20260919.md) | CoG/ToG/우리 시간대 성능 대조 (라벨 혼동 금지) |
-| 8 | [RELATED_FORECAST_VALUE_LIT_20260919.md](RELATED_FORECAST_VALUE_LIT_20260919.md) | 참고문헌 **사용 범위** (아래 §3 요약) |
-| 9 | [EXPERIMENT_DESIGN_MAP_20260919.md](EXPERIMENT_DESIGN_MAP_20260919.md) | 목적→개선→예측→검증 설계도 |
-| 10 | [SHARED_EXPERIMENT_MATRIX_20260919.md](SHARED_EXPERIMENT_MATRIX_20260919.md) / [EXPERIMENT_INVENTORY_COHORT_20260919.md](EXPERIMENT_INVENTORY_COHORT_20260919.md) | 실험 ID · 산출 목록 |
-
-**구 V evidence (인용 시 old_V만):** [SVI_EVIDENCE_CITE_SHEET_20260919.md](SVI_EVIDENCE_CITE_SHEET_20260919.md)
+| 1 | [COG_SUCCESSION_LOCK_20260919.md](COG_SUCCESSION_LOCK_20260919.md) | CoG 목적 · I1–I4 |
+| 2 | [V_REDESIGN_CONTRACT_20260919.md](V_REDESIGN_CONTRACT_20260919.md) | 핵심 계약 |
+| 3 | [V1_TASK_CONTRACT_20260919.md](V1_TASK_CONTRACT_20260919.md) | 필드 잠금 |
+| 4 | [BAND_LEDGER_SHARED_LGBM_20260919.md](BAND_LEDGER_SHARED_LGBM_20260919.md) | **새 V 시간대 성능표** |
+| 5 | [V_DYNAMIC_FRAME_CONTRACT_20260919.md](V_DYNAMIC_FRAME_CONTRACT_20260919.md) | 프레임·밴드 **보고** |
+| 6 | [PAPER_COHORT_CONTRACT_20260919.md](PAPER_COHORT_CONTRACT_20260919.md) | 210k / 15.16 T |
+| 7 | [RELATED_FORECAST_VALUE_LIT_20260919.md](RELATED_FORECAST_VALUE_LIT_20260919.md) | 문헌 사용 범위 |
+| 8 | [TIMEBAND_COG_TOG_SVI_COMPARE_20260919.md](TIMEBAND_COG_TOG_SVI_COMPARE_20260919.md) | CoG / **로컬 ToG 파이프라인** / 구V 대조 (**≠ Hodge 논문 수치**) |
 
 ---
 
-## 2. 잠긴 설계 요약 (한 페이지)
+## 2. 설계 요약
 
-### 2.1 Estimand
+### 2.1 Estimand · architecture
 
-\[
-\widehat{V}_\theta(X_{\le t})=\widehat{P}(W=1\mid X_{\le t}),\quad
-W=\mathbf{1}\{\text{Blue wins the match}\}.
-\]
+\(W=\mathbf{1}\{\text{Blue wins}\}\). 동결 후 \(\Delta\widehat{V}=V_{\mathrm{end}}-V_{\mathrm{pre}}\), \(\mathrm{SVI}=1[\Delta\widehat{V}>0]\).
 
-동결 후 \(\Delta\widehat{V}=\widehat{V}(X_{\le t_{\mathrm{end}}})-\widehat{V}(X_{\le t_{\mathrm{pre}}})\), \(\mathrm{SVI}=1[\Delta\widehat{V}>0]\).
+| Choice | 지위 |
+|---|---|
+| **A shared** | **a priori default / provisional freeze** |
+| B per-band | ablation; V_SELECT에서 \(L_{\mathrm{time}}\) 미세 우위만으로는 승격하지 않음. TEST 경계 excess는 **경고**이지 “모델전환 잡음 입증·기각”이 아님 |
 
-### 2.2 Architecture
-
-| Choice | 정의 | 지위 |
-|---|---|---|
-| **A (default / freeze)** | 단일 공유 \(\theta\), 시간에 조건화된 입력 | **provisional freeze:** LightGBM `shared_lgbm` |
-| B (ablation) | 밴드별 LightGBM | V-4 경계 \|Δp\| excess로 **기각** |
-
-### 2.3 Split · weights · selection
+### 2.2 Split · sample · selection
 
 | Slice | Role |
 |---|---|
-| 15.14 `fold0..4` | Fit (+ OOF adapters for TRAIN engagement labels) |
-| 15.15 `V_CAL` | Calibration (PosSlopeSigmoid on logit) |
-| 15.15 `V_SELECT` | Select by \(L_{\mathrm{time}}=\sum_b \alpha_b\mathrm{Brier}_b\), \(\alpha_b=1/4\) |
-| 15.16 `TEST` | Sealed band ledger / application only — **not** selection |
+| 15.14 fold0..4 | Fit (+ OOF TRAIN labels) |
+| 15.15 V_CAL | \(g\) |
+| 15.15 V_SELECT | \(L_{\mathrm{time}}\) 선정 (**only**) |
+| 15.16 TEST | sealed ledger + exploratory continuity **진단** — **선정 아님** |
 
-- Query grid: Match-V5 minute frames; **pre-2 min excluded** (from 120 s).  
-- Within-band: match-equal weights.  
-- Features: StateV2 expanded − `snapshot_age_s` (361 cols; champion_id categorical).
+- 학습/평가 표본: **`bucket_only=True`** (분 grid의 bucket sample).  
+- \(\alpha_b=1/4\); 필수 밴드 결손 시 후보 **ineligible** (α 항을 조용히 제거하지 않음).  
+- Tie-break (wave-1): V_SELECT **overall** match-weighted logloss (시간균형 logloss 아님 — V1에 명시).
 
-### 2.4 Continuity (V-4) before SVI
+### 2.3 Continuity (V-4) — 범위
 
-- Interior vs band-boundary consecutive \|Δp\|.  
-- Multi-spec \(\mathrm{sign}(\Delta\widehat{V})\) agree.  
-- Per-band rejected: boundary excess 0.0299 > shared 0.0161.
-
-### 2.5 Work packages
-
-| ID | Content | Status (2026-09-19) |
-|---|---|---|
-| V-1 | Task contract | done |
-| V-2 | Candidate compare (shared / per-band) | done |
-| V-3 | Freeze + band ledger | **shared_lgbm** provisional |
-| V-4 | ΔV continuity | done (rejects per-band) |
-| Then | New SVI / B40 / \(q\) on this lineage only | lean primary started (`svi_newv_*`, local outputs) |
-
-### 2.6 Reproducibility scripts (repo)
-
-| Script | Role |
+| 항목 | 상태 |
 |---|---|
-| `scripts/rr20260919_v_redesign_fit.py` | Fit + V_SELECT + TEST ledger |
-| `scripts/rr20260919_v_redesign_continuity.py` | V-4 jumps / sign agree |
-| `scripts/rr20260919_v_redesign_oof.py` | 5-fold OOF adapters + TRAIN labels |
-| `scripts/rr20260919_v_redesign_relabel.py` | VAL/TEST labels with frozen V |
-| `scripts/rr20260919_svi_v_time_strata.py` | \(\widehat{V}\to W\) time strata (old/new reporting) |
-| `scripts/rr20260919_svi_newv_primary.py` | Lean \(q\) slate on **new** V labels |
+| 연속 bucket 질의 interior vs boundary \|Δp\| (calibrated) | 실행됨 — **경고 신호** |
+| multi-spec sign(ΔV) agree | 실행됨 |
+| 동일 상태 \(D_{\mathrm{switch}}(x)=\|V_{b+1}(x)-V_b(x)\|\) | **미실행** |
+| Quiet / frame-refresh / 사건매칭 | **미실행** |
+
+표현: *“공유 모델을 잠정 채택했으며, 밴드별에서 더 큰 경계 구간 변화가 관측되어 추가 모델전환 진단이 필요하다.”*
+
+### 2.4 Work packages
+
+| ID | Status |
+|---|---|
+| V-1 | complete |
+| V-2 wave 1 | shared/per-band LGBM + legacy compare (**MLP·history K 미실행**) |
+| V-3 | provisional freeze `shared_lgbm` + band ledger |
+| V-4 | **partial** (위 표) |
+| Then | new SVI/\(q\) exploratory (`svi_newv_*`); V 수정 시 전량 재발급 |
+
+### 2.5 Scripts
+
+`rr20260919_v_redesign_{fit,continuity,oof,relabel}.py`, `rr20260919_svi_newv_primary.py`, …
 
 ---
 
-## 3. 참고 논문 · 사용 범위
+## 3. 참고 논문 (요약)
 
-상세 표·금지 주장: [RELATED_FORECAST_VALUE_LIT_20260919.md](RELATED_FORECAST_VALUE_LIT_20260919.md).  
-시간대 수치 대조: [TIMEBAND_COG_TOG_SVI_COMPARE_20260919.md](TIMEBAND_COG_TOG_SVI_COMPARE_20260919.md).
-
-### 3.1 \(\widehat{V}\) 재설계 — 먼저 읽을 것
-
-| 문헌 | 우리에게 쓰는 것 | 쓰지 않는 것 |
-|---|---|---|
-| **Hodge et al. (2021)** IEEE ToG — live esports WP | 시간대 평가 · history · per-minute = Choice B 선례 | ΔV용으로 분 단위 모형 자동 채택 |
-| **Kim, Lee & Chung (2020)** IEEE CoG — calibrated LoL WP | 확률 품질 · 캘리브 비교 | day-one DU loss 의무 |
-| **Maymin (2021)** JQAS — smart kills / WP change | 매치 WP → 사건 가치 \(\Delta\widehat{V}\) · **공유** 모형 | sparse logistic = 천장 |
-| **Ke et al. (2022)** IEEE CoG | (옵션) 과거 교전 → 매치 WP | “다음 교전 승자”와 동일시 |
-| **Hitar-García et al. (2023)** IEEE ToG | (옵션) 프리게임/시너지 | in-game time-band WP 논문으로 취급 |
-
-**읽기 순서:** Hodge → Kim → Maymin.
-
-### 3.2 점수·예측 가치 프레임 (\(q\) / SVI 이후)
+상세: [RELATED_FORECAST_VALUE_LIT_20260919.md](RELATED_FORECAST_VALUE_LIT_20260919.md).
 
 | 문헌 | 사용 |
 |---|---|
-| **Gneiting & Raftery (2007)** | Proper scores (Brier / log) for selection |
-| **Chong & Hendry (1986)**; **Fair & Shiller (1989/90)** | Incremental information 배경 |
-| **Clements & Harvey (2010)** | Probability encompassing (Brier/log에 가깝) |
-| **Giacomini & White (2006)** | State-dependent predictive ability **동기** (우리 검정이 곧 GW는 아님) |
-| **Diebold & Mariano (1995)** | Loss-differential 계보 (match bootstrap ≠ DM 통계 자동) |
-| **Brill–Yurko–Wyner (2024)** | WP 불확실성 / 의존 프레이밍 |
-| WPA / LI (Mills; Tango; MLB glossary) | \(\Delta\widehat{V}\) 계보; B40 ≠ leverage 정의 |
-
-### 3.3 한 문장 스탠스
-
-문헌은 **시간 인식 매치 WP를 어떻게 만들고 점수화할지**, 그리고 baseline 대비 정보가 더해지는지를 **어떻게 물을지** 알려 준다.  
-균형 prior가 본질적으로 예측 불가능하다거나, 큰 \(|\Delta\widehat{V}|\)가 깨끗한 라벨임을 **증명하지는 않는다**.
+| Hodge et al. 2021 IEEE ToG | 시간대 평가·Choice B **선례** (우리 로컬 `temporal_winprob_v3` 표 ≠ 이 논문 수치) |
+| Kim et al. 2020 IEEE CoG | 캘리브·확률 품질 |
+| Maymin 2021 JQAS | \(\Delta\widehat{V}\) · **공유** 모형 |
+| Gneiting–Raftery 2007 | proper scores |
 
 ---
 
-## 4. 관련이나 이 묶음의 중심이 아닌 문서
+## 4. One-sentence lock (softened)
 
-| 문서 | 이유 |
-|---|---|
-| [STRATEGIC_VALUE_LABEL_REDESIGN_20260919.md](STRATEGIC_VALUE_LABEL_REDESIGN_20260919.md) | SVI/라벨 redesign — V 동결 **이후** |
-| [SVI_MODEL_RESELECTION_TRANSFER_20260919.md](SVI_MODEL_RESELECTION_TRANSFER_20260919.md) | \(q\) 재선정 — **구 V** 라인 |
-| [JOURNAL_RESEARCH_PLAN_20260919.md](JOURNAL_RESEARCH_PLAN_20260919.md) / [MASTER_THESIS_RESEARCH_PLAN_20260919.md](MASTER_THESIS_RESEARCH_PLAN_20260919.md) | 원고 분기 RQ — V 계약의 상위/병렬 |
-
----
-
-## 5. One-sentence lock
-
-> Build a **shared time-conditional** \(\widehat{V}(X_{\le t})=\widehat{P}(W=1\mid X_{\le t})\), select on **time-aware proper scores**, record band performance as a ledger, prove \(\Delta\widehat{V}\) is not an artifact of model switching — **then** rebuild SVI and \(q\).
+> 시간 인식 확률평가로 공유 시간조건부 \(\widehat{V}\)를 선택·기록하고, 모델 전환·관측 갱신·사양 변경에 따른 \(\Delta\widehat{V}\) 민감성을 점검한 뒤 SVI와 \(q\)를 재구성한다.
