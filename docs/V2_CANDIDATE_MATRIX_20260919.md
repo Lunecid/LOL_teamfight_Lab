@@ -1,6 +1,6 @@
 # V-2 candidate matrix — WP literature + CoG / local ToG learners
 
-**Status:** 2026-09-19 — **wave-1 was too thin**; final V freeze waits on this matrix (at least Tier 0–1).  
+**Status:** 2026-09-19 — Tier 0–3 complete on StateV2; **A0 logistic still leads**; Tier 4 GNN blocked on inputs.  
 **Parent:** [V_REDESIGN_CONTRACT_20260919.md](V_REDESIGN_CONTRACT_20260919.md) · [WINPROB_V_DESIGN_PACK_20260919.md](WINPROB_V_DESIGN_PACK_20260919.md)  
 **CoG architecture catalog:** [MODELS.md](MODELS.md) · [CoG2026_Paper.md](CoG2026_Paper.md) §4.2
 
@@ -127,12 +127,14 @@ GCN, GraphSAGE, GATv2, MPNN, ST-*, EventXAttn, Layered Fusion, stacking.
 | A1 RF | **done** (weak) | `…/A1_shared_rf.joblib` |
 | A2b CoG-hyper LGBM | **done** | `…/A2b_shared_lgbm_cog.joblib` |
 | A3 / A3b MLP ± calib | **done** (Platt-style \(g\)) | `…/A3_shared_mlp.joblib` |
-| H3/H5, S1–S5 | **TODO** | — |
+| H3/H5 | **done** (behind A0) | `v_redesign_wave3_tier23_20260919/models/H{3,5}_lgbm.joblib` |
+| S1–S4 (BiGRU/BiLSTM/Transformer/TCN) | **done** (Transformer≈H3; RNNs weak) | `…/S_*_K5.joblib` |
+| S5 Mamba | **skipped** (no `mamba_ssm`) | — |
 | Tier 4 GNN/fusion | **BLOCKED** (inputs) | — |
 
-**Ledger:** [BAND_LEDGER_WAVE2_TIER01_20260919.md](BAND_LEDGER_WAVE2_TIER01_20260919.md)
+**Ledgers:** [BAND_LEDGER_WAVE2_TIER01_20260919.md](BAND_LEDGER_WAVE2_TIER01_20260919.md) · [BAND_LEDGER_WAVE3_TIER23_20260919.md](BAND_LEDGER_WAVE3_TIER23_20260919.md) · [CONTINUITY_LEDGER_WAVE2_20260919.md](CONTINUITY_LEDGER_WAVE2_20260919.md) · [V_REDESIGN_ID_GLOSSARY_20260919.md](V_REDESIGN_ID_GLOSSARY_20260919.md) · [V_REDESIGN_MODEL_DESIGN_SETTINGS_20260919.md](V_REDESIGN_MODEL_DESIGN_SETTINGS_20260919.md)
 
-**Freeze rule:** Tier 0 complete on WP scores. Still require ΔV continuity on top contenders before calling V final. Tier 2–3 still expected before paper claims about sequence/history.
+**Freeze rule:** Tier 0–3 complete for WP scores on StateV2 stacks. History/sequence **do not** beat A0 on \(L_{\mathrm{time}}\). **Partial V-4 continuity** on A0/A3/A2b (+H5) supports A0 (excess≈legacy; sign agree vs legacy 0.98). Still require full V-4 (\(D_{\mathrm{switch}}\), quiet) before calling V final. Tier 4 remains input-blocked.
 
 ---
 
