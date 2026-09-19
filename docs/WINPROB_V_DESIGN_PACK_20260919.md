@@ -1,12 +1,12 @@
 # 전체 승률 모형 \(\widehat{V}\) — 설계서·참고문헌 묶음
 
-**작성일:** 2026-09-19  
-**상태:** 잠정 기준 = Choice A `shared_lgbm` (**a priori**). V-2 wave-1 · V-4 **일부** 진단 완료. 최종 측정모형 승인 전: 동일 \(g\circ f\) 검증·DEV 모델전환 분리·시간대/적용시점 표 확정.  
-**범위:** \(\widehat{V}(X_{\le t})=\widehat{P}(W=1\mid X_{\le t})\).  
-구 V 산출(`outputs/svi_*_20260919`)과 새 V를 섞어 인용하지 않는다.
+**Status:** 2026-09-19 — **wave-1 slate too rough**; full learner matrix locked in [V2_CANDIDATE_MATRIX_20260919.md](V2_CANDIDATE_MATRIX_20260919.md).  
+`shared_lgbm` remains exploratory provisional only until Tier 0 finishes.  
+**범위:** \(\widehat{V}(X_{\le t})=\widehat{P}(W=1\mid X_{\le t})\).
 
-로컬: `outputs/v_redesign_20260919/freeze_manifest.json`  
-GitHub 수치 발췌: [BAND_LEDGER_SHARED_LGBM_20260919.md](BAND_LEDGER_SHARED_LGBM_20260919.md)
+로컬: `freeze_manifest.json`  
+수치 발췌: [BAND_LEDGER_SHARED_LGBM_20260919.md](BAND_LEDGER_SHARED_LGBM_20260919.md)  
+**후보 전표:** [V2_CANDIDATE_MATRIX_20260919.md](V2_CANDIDATE_MATRIX_20260919.md) · CoG zoo [MODELS.md](MODELS.md)
 
 ---
 
@@ -35,12 +35,10 @@ f_{\mathrm{frozen}}
 |---|---|---|
 | 1 | [COG_SUCCESSION_LOCK_20260919.md](COG_SUCCESSION_LOCK_20260919.md) | CoG 목적 · I1–I4 |
 | 2 | [V_REDESIGN_CONTRACT_20260919.md](V_REDESIGN_CONTRACT_20260919.md) | 핵심 계약 |
-| 3 | [V1_TASK_CONTRACT_20260919.md](V1_TASK_CONTRACT_20260919.md) | 필드 잠금 |
-| 4 | [BAND_LEDGER_SHARED_LGBM_20260919.md](BAND_LEDGER_SHARED_LGBM_20260919.md) | **새 V 시간대 성능표** |
-| 5 | [V_DYNAMIC_FRAME_CONTRACT_20260919.md](V_DYNAMIC_FRAME_CONTRACT_20260919.md) | 프레임·밴드 **보고** |
-| 6 | [PAPER_COHORT_CONTRACT_20260919.md](PAPER_COHORT_CONTRACT_20260919.md) | 210k / 15.16 T |
-| 7 | [RELATED_FORECAST_VALUE_LIT_20260919.md](RELATED_FORECAST_VALUE_LIT_20260919.md) | 문헌 사용 범위 |
-| 8 | [TIMEBAND_COG_TOG_SVI_COMPARE_20260919.md](TIMEBAND_COG_TOG_SVI_COMPARE_20260919.md) | CoG / **로컬 ToG 파이프라인** / 구V 대조 (**≠ Hodge 논문 수치**) |
+| 3 | [V2_CANDIDATE_MATRIX_20260919.md](V2_CANDIDATE_MATRIX_20260919.md) | **WP lit + CoG/ToG 학습기 전표 (wave-1 보완)** |
+| 4 | [V1_TASK_CONTRACT_20260919.md](V1_TASK_CONTRACT_20260919.md) | 필드 잠금 |
+| 5 | [BAND_LEDGER_SHARED_LGBM_20260919.md](BAND_LEDGER_SHARED_LGBM_20260919.md) | wave-1 시간대 표 (미최종) |
+| 6 | [MODELS.md](MODELS.md) | CoG 25+ architecture catalog |
 
 ---
 

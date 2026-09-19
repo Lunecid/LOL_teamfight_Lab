@@ -8,7 +8,8 @@
 | 문서 | 역할 |
 |---|---|
 | [WINPROB_V_DESIGN_PACK_20260919.md](WINPROB_V_DESIGN_PACK_20260919.md) | **승률 \(\widehat{V}\) 설계서·참고문헌 인덱스** |
-| [BAND_LEDGER_SHARED_LGBM_20260919.md](BAND_LEDGER_SHARED_LGBM_20260919.md) | 새 `shared_lgbm` 시간대 성능표 (git 발췌) |
+| [V2_CANDIDATE_MATRIX_20260919.md](V2_CANDIDATE_MATRIX_20260919.md) | WP lit + CoG/ToG **학습기 전표** (wave-1 보완; Tier 0 필수) |
+| [BAND_LEDGER_SHARED_LGBM_20260919.md](BAND_LEDGER_SHARED_LGBM_20260919.md) | wave-1 `shared_lgbm` 시간대 표 (미최종) |
 | [COG_SUCCESSION_LOCK_20260919.md](COG_SUCCESSION_LOCK_20260919.md) | CoG 목적 계승 · I1–I4 · 금지 strawman |
 | [EXPERIMENT_DESIGN_MAP_20260919.md](EXPERIMENT_DESIGN_MAP_20260919.md) | 목적→개선→예측→검증 설계도 |
 | [EXPERIMENT_INVENTORY_COHORT_20260919.md](EXPERIMENT_INVENTORY_COHORT_20260919.md) | 코호트 계약 하 완료 산출물 목록 |

@@ -10,7 +10,7 @@
 
 | Work | Use as | Do not claim |
 |---|---|---|
-| **Hodge et al. (2021)** *IEEE ToG* — live esports WP | Time-wise eval; history features; per-minute models as **Choice B** precedent | We must ship one model per minute for \(\Delta V\) |
+| **Hodge et al. (2021)** *IEEE ToG* — live esports WP | Time-wise eval; history; **learners = Logistic + Random Forest + LightGBM**; per-minute as Choice B spirit | Must ship one model per minute for \(\Delta V\); ignore LR/RF |
 | **Kim, Lee & Chung (2020)** *IEEE CoG* — calibrated LoL WP | Prob. quality + calibration compare (ECE ≠ all scores) | DU loss is mandatory day one |
 | **Maymin (2021)** *JQAS* — smart kills / WP change | Match WP → event value via \(\Delta\widehat{V}\); **shared** model over time | Sparse logistic features are our ceiling |
 | **Ke et al. (2022)** *IEEE CoG* | Optional: past fights into match WP | Same as “predict next fight winner” |

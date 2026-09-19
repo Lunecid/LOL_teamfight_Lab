@@ -1,8 +1,8 @@
 # LOL Teamfight Lab
 
-> **Current research (2026-09):** Choice A `shared_lgbm` provisional (\(V=g\\circ f\)); pack [`docs/WINPROB_V_DESIGN_PACK_20260919.md`](docs/WINPROB_V_DESIGN_PACK_20260919.md) + band ledger [`docs/BAND_LEDGER_SHARED_LGBM_20260919.md`](docs/BAND_LEDGER_SHARED_LGBM_20260919.md). V-4 = partial warning only.  
+> **Current research (2026-09):** V horse-race expanded — [V2_CANDIDATE_MATRIX](docs/V2_CANDIDATE_MATRIX_20260919.md) (WP lit + CoG learners). Wave-1 `shared_lgbm` is **not** final. Pack: [`docs/WINPROB_V_DESIGN_PACK_20260919.md`](docs/WINPROB_V_DESIGN_PACK_20260919.md).  
 > Authority: [`docs/V_REDESIGN_CONTRACT_20260919.md`](docs/V_REDESIGN_CONTRACT_20260919.md), [`docs/COG_SUCCESSION_LOCK_20260919.md`](docs/COG_SUCCESSION_LOCK_20260919.md), [`docs/COMMON_RESEARCH_SPINE_20260919.md`](docs/COMMON_RESEARCH_SPINE_20260919.md).  
-> Legacy sealed \(q\)/SVI (**old V** only): [`docs/SVI_EVIDENCE_CITE_SHEET_20260919.md`](docs/SVI_EVIDENCE_CITE_SHEET_20260919.md). Scripts: `scripts/rr20260919_*.py`.
+> Legacy sealed \(q\)/SVI (**old V** only): [`docs/SVI_EVIDENCE_CITE_SHEET_20260919.md`](docs/SVI_EVIDENCE_CITE_SHEET_20260919.md).
 
 ---
 

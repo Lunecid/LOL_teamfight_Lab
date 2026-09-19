@@ -1,11 +1,12 @@
 # \(\widehat{V}\) redesign contract — match-win WP before SVI / \(q\)
 
-**Status:** locked 2026-09-19 (collaborator agreement); **V-3 provisional freeze = Choice A `shared_lgbm` (a priori)** (`freeze_manifest.json`). V-4 = **partial** diagnostics; TEST boundary excess is a **warning**, not a completed model-switch rejection.  
-**Priority:** **ahead of** further \(q\) model search. Existing sealed \(q\)/SVI reports stay under the **previous** \(\widehat{V}\) lineage — do not cite them as evidence for a new \(\widehat{V}\).
+**Status:** locked 2026-09-19; **V-3 provisional = Choice A `shared_lgbm` is exploratory only**.  
+**V-2 wave-1 is insufficient** — full candidate matrix: [V2_CANDIDATE_MATRIX_20260919.md](V2_CANDIDATE_MATRIX_20260919.md) (WP lit + CoG/ToG learners). Final freeze waits at least on **Tier 0**.  
+**Priority:** finish the V horse-race before further \(q\) search. Old `svi_*` = previous \(\widehat{V}\) only.
 
-**Final evaluator:** \(\widehat{V}_{\mathrm{final}}=g\circ f\circ T\) — select, ledger, continuity (primary), and SVI labels must share this map.
+**Final evaluator:** \(\widehat{V}_{\mathrm{final}}=g\circ f\circ T\).
 
-Companions: [WINPROB_V_DESIGN_PACK_20260919.md](WINPROB_V_DESIGN_PACK_20260919.md), [BAND_LEDGER_SHARED_LGBM_20260919.md](BAND_LEDGER_SHARED_LGBM_20260919.md), [V_DYNAMIC_FRAME_CONTRACT_20260919.md](V_DYNAMIC_FRAME_CONTRACT_20260919.md), [COG_SUCCESSION_LOCK_20260919.md](COG_SUCCESSION_LOCK_20260919.md), [TIMEBAND_COG_TOG_SVI_COMPARE_20260919.md](TIMEBAND_COG_TOG_SVI_COMPARE_20260919.md), [RELATED_FORECAST_VALUE_LIT_20260919.md](RELATED_FORECAST_VALUE_LIT_20260919.md).
+Companions: [WINPROB_V_DESIGN_PACK_20260919.md](WINPROB_V_DESIGN_PACK_20260919.md), [V2_CANDIDATE_MATRIX_20260919.md](V2_CANDIDATE_MATRIX_20260919.md), [BAND_LEDGER_SHARED_LGBM_20260919.md](BAND_LEDGER_SHARED_LGBM_20260919.md), [MODELS.md](MODELS.md) (CoG zoo), [RELATED_FORECAST_VALUE_LIT_20260919.md](RELATED_FORECAST_VALUE_LIT_20260919.md).
 
 ---
 
@@ -196,18 +197,15 @@ Detail compare of *our* sealed curves vs CoG/ToG: [TIMEBAND_COG_TOG_SVI_COMPARE_
 
 | ID | Freeze |
 |---|---|
-| **V-1** | Task contract: \(W\), \(X_{\le t}\), query sample, split roles, weights, \(\alpha_b\), OOF |
-| **V-2 wave 1** | Shared LGBM / per-band LGBM / legacy compare (MLP + history K = later wave) |
-| **V-3** | Provisional Choice A freeze on **dev policy**; write band ledger; version \(T,f,g\) |
-| **V-4 partial** | Calibrated consecutive-query jumps + multi-spec sign agree; **not** full quiet / \(D_{\mathrm{switch}}\) |
-| **Then** | New SVI / B40 / PT / \(q\) on the new lineage only (re-issue if \(V\) changes) |
-
-Legacy artifacts (`svi_*_20260919`, …) = **old \(\widehat{V}\)**.  
-
-**Next freeze procedure (locked intent):** WP quality on **dev** → ΔV suitability on **dev** (incl. model-switch isolation) → freeze full evaluator → **TEST** performance + change-character **report only**.
+| **V-1** | Task contract |
+| **V-2 wave 1** | shared/per-band LGBM + legacy — **too thin; not final** |
+| **V-2 matrix** | [V2_CANDIDATE_MATRIX_20260919.md](V2_CANDIDATE_MATRIX_20260919.md) Tier 0–3 (+ Tier 4 when inputs exist) |
+| **V-3** | Freeze only after Tier 0 (+ expected Tier 1) under \(L_{\mathrm{time}}\) |
+| **V-4 partial→full** | Calibrated continuity + \(D_{\mathrm{switch}}\) / quiet |
+| **Then** | New SVI / \(q\) |
 
 ---
 
 ## 10. One-sentence lock
 
-> Select a **shared time-conditional** \(\widehat{V}=g\circ f\circ T\) with time-aware proper scores, record band performance as a ledger, and check \(\Delta\widehat{V}\) sensitivity to model switching / observation refresh / spec changes — **then** rebuild SVI and \(q\).
+> Race the **WP-literature and CoG-adapted learners** for shared time-conditional \(\widehat{V}=g\circ f\circ T\), select on time-aware proper scores, check \(\Delta\widehat{V}\) sensitivity — **then** rebuild SVI and \(q\).
