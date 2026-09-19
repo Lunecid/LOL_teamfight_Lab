@@ -120,17 +120,19 @@ GCN, GraphSAGE, GATv2, MPNN, ST-*, EventXAttn, Layered Fusion, stacking.
 
 | ID | Status | Artifact |
 |---|---|---|
-| A2 wave-1 (LGBM 400) | done | `models/shared_lgbm.joblib` |
-| B0 per-band LGBM | done (ablation) | `models/per_band_lgbm.joblib` |
+| A2 wave-1 (LGBM 400) | done | `v_redesign_20260919/models/shared_lgbm.joblib` |
+| B0 per-band LGBM | done | `…/per_band_lgbm.joblib` |
 | Legacy logistic | compare only | sealed `v_final_raw.joblib` |
-| A0 shared logistic re-fit | **TODO** | — |
-| A1 RF | **TODO** | — |
-| A2b CoG-hyper LGBM | **TODO** | — |
-| A3 / A3b MLP ± calib | **TODO** | — |
+| A0 shared logistic re-fit | **done** | `v_redesign_wave2_20260919/models/A0_*.joblib` — **mech. winner** |
+| A1 RF | **done** (weak) | `…/A1_shared_rf.joblib` |
+| A2b CoG-hyper LGBM | **done** | `…/A2b_shared_lgbm_cog.joblib` |
+| A3 / A3b MLP ± calib | **done** (Platt-style \(g\)) | `…/A3_shared_mlp.joblib` |
 | H3/H5, S1–S5 | **TODO** | — |
 | Tier 4 GNN/fusion | **BLOCKED** (inputs) | — |
 
-**Freeze rule:** do not call V “final” until Tier 0 is complete and reported under the same \(L_{\mathrm{time}}\) / band ledger protocol. Tier 1 strongly expected before paper claims about learner family.
+**Ledger:** [BAND_LEDGER_WAVE2_TIER01_20260919.md](BAND_LEDGER_WAVE2_TIER01_20260919.md)
+
+**Freeze rule:** Tier 0 complete on WP scores. Still require ΔV continuity on top contenders before calling V final. Tier 2–3 still expected before paper claims about sequence/history.
 
 ---
 
