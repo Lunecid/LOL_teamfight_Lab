@@ -40,7 +40,7 @@ A0 matches legacy excess; A2b is the noisiest of the contenders on this (unmatch
 | Shared MLP (A3) vs shared LGBM-CoG (A2b) | 0.8850 |
 | Shared logistic (A0) vs history-5 LGBM (H5) | 0.7230 |
 
-Top **current-frame** arms are highly SVI-sign-stable with each other and with legacy. **History-5** diverges more (~72%) — consistent with weaker WP fit, not a reason to prefer it.
+Top **current-frame** arms are highly SVI-sign-stable with each other and with legacy. **History-5** diverges more (~72%) — but H5 used a **different current-token construction** (last buckets, not `X_pre`/`X_post`; ENG-1), so do **not** read this as pure model disagreement. See [V_NEXT_RUN_EXECUTION_CONTRACT_20260919.md](V_NEXT_RUN_EXECUTION_CONTRACT_20260919.md).
 
 ## Coverage
 
@@ -48,8 +48,6 @@ Top **current-frame** arms are highly SVI-sign-stable with each other and with l
 
 ## Freeze reading
 
-- Continuity does **not** overturn **shared logistic (A0)**: lowest excess among redesign arms, near-perfect sign agree with sealed legacy.
-- **Shared MLP (A3)** / **shared LGBM-CoG (A2b)** remain secondary contenders (WP close; sign agree ~0.89–0.91 with A0).
-- Do **not** freeze on **history-5 (H5)** from continuity or WP.
-
-**Next (full V-4):** DEV \(D_{\mathrm{switch}}\) + quiet strata, then freeze_manifest update if A0 still holds.
+- Continuity does **not** overturn **shared logistic (A0)** among *current-frame* arms.
+- **Do not** freeze or reject history/RNN from INPUT_IMPL_v0 scores (PACK-1 / HIST-1 / CAT-1 open).
+- Next: Step 1 manifest ✓ → typed Phase A → fixed history Phase B.

@@ -1,0 +1,26 @@
+{
+  "source_commit": "154caf9711b436d6d4b860533971c60c9f071993",
+  "scope": "synthetic API/geometry reproduction; no private game data or full models were run",
+  "right_aligned_input": [
+    0,
+    0,
+    0,
+    10,
+    20
+  ],
+  "length": 2,
+  "packed_actual": [
+    0,
+    0
+  ],
+  "packed_after_left_alignment": [
+    10,
+    20
+  ],
+  "TCN_temporal_lengths": [
+    5,
+    7,
+    11,
+    19
+  ]
+}

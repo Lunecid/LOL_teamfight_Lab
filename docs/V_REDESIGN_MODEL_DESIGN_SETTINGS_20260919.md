@@ -225,4 +225,6 @@ Headline: A0 CAL excess **0.0112** (= legacy); A0↔legacy sign agree **0.9815**
 
 ## 6. One-sentence lock
 
-> Redesign horse-race freezes a **shared input vocabulary** (StateV2 expanded, \(d=361\), no `snapshot_age_s`); **A\*/B0** score the current frame, **H\*/S\*** score the same vocabulary over last \(K\) frames; selection is \(L_{\mathrm{time}}\) on V_SELECT with Choice-A ΔV default; current best eligible arm is **A0 shared logistic**.
+> Redesign horse-race freezes a **shared input vocabulary** (StateV2 expanded, \(d=361\), no `snapshot_age_s`); **A\*/B0** score the current frame, **H\*/S\*** score the same vocabulary over last \(K\) frames; selection is \(L_{\mathrm{time}}\) on V_SELECT with Choice-A ΔV default; **A0 shared logistic** is the provisional baseline — but **INPUT_IMPL_v0 history/RNN scores are not learner evidence** until PACK-1 / categorical / history-source fixes land ([V_NEXT_RUN_EXECUTION_CONTRACT_20260919.md](V_NEXT_RUN_EXECUTION_CONTRACT_20260919.md)).
+
+**Collaborator input redesign pack:** [V_MODEL_INPUT_DESIGN_20260919/](V_MODEL_INPUT_DESIGN_20260919/)

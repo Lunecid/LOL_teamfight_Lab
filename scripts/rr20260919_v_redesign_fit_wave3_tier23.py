@@ -4,7 +4,11 @@
 Tier 2: H3 / H5 flattened last-K StateV2 frames -> LightGBM (mask early pads).
 Tier 3: BiGRU, BiLSTM, Transformer, TCN on (K=5) sequences; optional Mamba if importable.
 
+History stacks default to LEFT-aligned valid prefix (PACK-1). Pre-fix wave-3
+artifacts used right-align and must not be cited as learner evidence for RNN/TCN.
+
 Contract: docs/V2_CANDIDATE_MATRIX_20260919.md
+          docs/V_NEXT_RUN_EXECUTION_CONTRACT_20260919.md
 Writes: outputs/v_redesign_wave3_tier23_20260919/{results.json,REPORT.md,models/}
 """
 from __future__ import annotations
@@ -119,9 +123,19 @@ class PosSlopeSigmoid:
 
 
 def build_history_stacks(
-    match: np.ndarray, tmin: np.ndarray, X: np.ndarray, K: int
+    match: np.ndarray, tmin: np.ndarray, X: np.ndarray, K: int, *, align: str = "left"
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Return seq (N,K,D), mask (N,K) 1=real, flat (N, K*D+K) with mask bits; order preserved."""
+    """Return seq (N,K,D), mask (N,K) 1=real, flat (N, K*D+K) with mask bits.
+
+    align='left'  — valid observations first, padding at the end (required for
+                    pack_padded_sequence / pack_sequence prefix lengths).
+    align='right' — legacy v0 layout (DO NOT use with pack_padded_sequence).
+
+    See docs/V_MODEL_INPUT_DESIGN_20260919 and PACK-1 in
+    docs/V_NEXT_RUN_EXECUTION_CONTRACT_20260919.md.
+    """
+    if align not in ("left", "right"):
+        raise ValueError(align)
     n, d = X.shape
     _, codes = np.unique(match.astype(str), return_inverse=True)
     order = np.lexsort((tmin, codes))
@@ -136,19 +150,35 @@ def build_history_stacks(
         j = i + 1
         while j < n and codes_o[j] == codes_o[i]:
             j += 1
-        # positions i..j-1 in ordered space
         for t in range(i, j):
             start = max(i, t - K + 1)
             length = t - start + 1
-            # place into right-aligned window
-            seq[t, K - length : K] = X_o[start : t + 1]
-            mask[t, K - length : K] = 1.0
+            if align == "left":
+                seq[t, :length] = X_o[start : t + 1]
+                mask[t, :length] = 1.0
+            else:
+                seq[t, K - length : K] = X_o[start : t + 1]
+                mask[t, K - length : K] = 1.0
         i = j
-    # unpermute to original row order
     seq = seq[inv]
     mask = mask[inv]
     flat = np.concatenate([seq.reshape(n, K * d), mask], axis=1)
     return seq, mask, flat
+
+
+def left_align_from_right(seq: np.ndarray, mask: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    """Convert a right-aligned (seq, mask) batch to left-aligned (PACK-1 fix)."""
+    n, K, d = seq.shape
+    out_s = np.zeros_like(seq)
+    out_m = np.zeros_like(mask)
+    for i in range(n):
+        length = int(mask[i].sum())
+        if length <= 0:
+            continue
+        # valid block sits at the end under right-align
+        out_s[i, :length] = seq[i, K - length : K]
+        out_m[i, :length] = 1.0
+    return out_s, out_m
 
 
 def fit_lgbm_flat(Xflat, y, g, seed=7):
@@ -187,7 +217,7 @@ def _make_seq_model(kind: str, d_in: int, hidden: int = 128):
                 self.enc = nn.TransformerEncoder(layer, num_layers=2)
                 out_d = 64
             elif kind == "tcn":
-                # simple causal dilated conv stack
+                # causal dilated stack; expect LEFT-aligned valid prefix (PACK-1/TCN-1)
                 self.enc = nn.Sequential(
                     nn.Conv1d(d_in, 64, kernel_size=3, padding=2, dilation=1),
                     nn.GELU(),
@@ -202,13 +232,12 @@ def _make_seq_model(kind: str, d_in: int, hidden: int = 128):
             self.head = nn.Sequential(nn.Linear(out_d, 64), nn.GELU(), nn.Dropout(0.1), nn.Linear(64, 1))
 
         def forward(self, x, mask):
-            # x: B,K,D  mask: B,K
+            # x: B,K,D  mask: B,K — LEFT-aligned valid prefix for RNN/TCN
             if self.kind in ("bigru", "bilstm"):
                 lengths = mask.sum(dim=1).clamp(min=1).long().cpu()
                 packed = nn.utils.rnn.pack_padded_sequence(x, lengths, batch_first=True, enforce_sorted=False)
-                out, h = self.enc(packed)
+                _out, h = self.enc(packed)
                 if self.kind == "bigru":
-                    # h: 4,B,H -> cat last layer fwd/bwd
                     h_cat = torch.cat([h[-2], h[-1]], dim=-1)
                 else:
                     h_n = h[0]
@@ -216,17 +245,19 @@ def _make_seq_model(kind: str, d_in: int, hidden: int = 128):
                 return self.head(h_cat).squeeze(-1)
             if self.kind == "transformer":
                 z = self.proj(x)
-                # True where pad (ignore)
                 key_pad = mask < 0.5
                 z = self.enc(z, src_key_padding_mask=key_pad)
-                # masked mean
                 m = mask.unsqueeze(-1)
                 pooled = (z * m).sum(dim=1) / m.sum(dim=1).clamp(min=1e-6)
                 return self.head(pooled).squeeze(-1)
-            # tcn: B,D,K
+            # tcn: B,D,K — gather last VALID timestep (left-align ⇒ length-1)
             z = x.transpose(1, 2)
             z = self.enc(z)
-            # take last real timestep per row
+            # Conv1d with padding grows T; map valid index through the same growth
+            # by taking the last valid input index and reading that channel time
+            # after cropping back to K when possible.
+            if z.size(-1) != x.size(1):
+                z = z[..., : x.size(1)]
             idx = (mask.sum(dim=1).long() - 1).clamp(min=0)
             z_last = z[torch.arange(z.size(0), device=z.device), :, idx]
             return self.head(z_last).squeeze(-1)

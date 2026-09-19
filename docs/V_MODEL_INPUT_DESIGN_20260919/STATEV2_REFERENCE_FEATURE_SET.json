@@ -1,0 +1,2214 @@
+{
+  "status": "PROPOSAL_AND_RECONSTRUCTED_REFERENCE_NOT_A_FITTED_RUNTIME_MANIFEST",
+  "reviewed_branch": "feature/fight-boundary-pipeline",
+  "reviewed_commit": "154caf9711b436d6d4b860533971c60c9f071993",
+  "reference_builder_commit": "e0ec3d01496c0fa8f808d305fce18c3951ca9a29",
+  "reference_builder_paths": [
+    "gameplay/state_value.py",
+    "gameplay/state_value_v2.py"
+  ],
+  "warning": "The current branch imports local loader/state modules. Their runtime hashes and complete column order were not available. These names reconstruct the older StateV2 source referenced by the new scripts; verify against the actual run before fitting. List order below is NOT certified to be the fitted runtime order.",
+  "dimensions": {
+    "source": 361,
+    "numeric_expanded": 351,
+    "numeric_core": 257,
+    "champion_categories": 10,
+    "derived_time_interactions": 94
+  },
+  "groups": {
+    "champion": 10,
+    "clock": 2,
+    "player_event": 70,
+    "player_snapshot": 90,
+    "quality": 1,
+    "team_event": 94,
+    "team_time_interaction": 94
+  },
+  "features": [
+    {
+      "name": "time_minutes",
+      "group": "clock",
+      "dtype": "numeric",
+      "source": "query_ms; absolute clock, never final match duration"
+    },
+    {
+      "name": "time_minutes_sq",
+      "group": "clock",
+      "dtype": "numeric",
+      "source": "query_ms; absolute clock, never final match duration"
+    },
+    {
+      "name": "unknown_objective_team_count",
+      "group": "quality",
+      "dtype": "numeric",
+      "source": "observed event metadata; diagnostic inclusion to be audited"
+    },
+    {
+      "name": "participant_slot0_totalGold_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot0_curGold_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot0_level_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot0_xp_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot0_hp_pct",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot0_mp_pct",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot0_alive",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot0_laneCS_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot0_jgCS_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot0_champion_id",
+      "group": "champion",
+      "dtype": "categorical",
+      "source": "pre-known roster; arbitrary identifier, not an ordinal value"
+    },
+    {
+      "name": "participant_slot0_kills",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot0_deaths",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot0_death_since_snapshot",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot0_death_last_30s",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot0_death_age_minutes",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot0_baron_death_since_acquisition",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot0_elder_death_since_acquisition",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot1_totalGold_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot1_curGold_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot1_level_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot1_xp_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot1_hp_pct",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot1_mp_pct",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot1_alive",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot1_laneCS_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot1_jgCS_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot1_champion_id",
+      "group": "champion",
+      "dtype": "categorical",
+      "source": "pre-known roster; arbitrary identifier, not an ordinal value"
+    },
+    {
+      "name": "participant_slot1_kills",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot1_deaths",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot1_death_since_snapshot",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot1_death_last_30s",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot1_death_age_minutes",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot1_baron_death_since_acquisition",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot1_elder_death_since_acquisition",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot2_totalGold_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot2_curGold_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot2_level_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot2_xp_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot2_hp_pct",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot2_mp_pct",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot2_alive",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot2_laneCS_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot2_jgCS_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot2_champion_id",
+      "group": "champion",
+      "dtype": "categorical",
+      "source": "pre-known roster; arbitrary identifier, not an ordinal value"
+    },
+    {
+      "name": "participant_slot2_kills",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot2_deaths",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot2_death_since_snapshot",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot2_death_last_30s",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot2_death_age_minutes",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot2_baron_death_since_acquisition",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot2_elder_death_since_acquisition",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot3_totalGold_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot3_curGold_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot3_level_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot3_xp_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot3_hp_pct",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot3_mp_pct",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot3_alive",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot3_laneCS_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot3_jgCS_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot3_champion_id",
+      "group": "champion",
+      "dtype": "categorical",
+      "source": "pre-known roster; arbitrary identifier, not an ordinal value"
+    },
+    {
+      "name": "participant_slot3_kills",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot3_deaths",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot3_death_since_snapshot",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot3_death_last_30s",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot3_death_age_minutes",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot3_baron_death_since_acquisition",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot3_elder_death_since_acquisition",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot4_totalGold_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot4_curGold_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot4_level_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot4_xp_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot4_hp_pct",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot4_mp_pct",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot4_alive",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot4_laneCS_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot4_jgCS_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot4_champion_id",
+      "group": "champion",
+      "dtype": "categorical",
+      "source": "pre-known roster; arbitrary identifier, not an ordinal value"
+    },
+    {
+      "name": "participant_slot4_kills",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot4_deaths",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot4_death_since_snapshot",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot4_death_last_30s",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot4_death_age_minutes",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot4_baron_death_since_acquisition",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot4_elder_death_since_acquisition",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot5_totalGold_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot5_curGold_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot5_level_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot5_xp_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot5_hp_pct",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot5_mp_pct",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot5_alive",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot5_laneCS_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot5_jgCS_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot5_champion_id",
+      "group": "champion",
+      "dtype": "categorical",
+      "source": "pre-known roster; arbitrary identifier, not an ordinal value"
+    },
+    {
+      "name": "participant_slot5_kills",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot5_deaths",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot5_death_since_snapshot",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot5_death_last_30s",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot5_death_age_minutes",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot5_baron_death_since_acquisition",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot5_elder_death_since_acquisition",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot6_totalGold_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot6_curGold_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot6_level_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot6_xp_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot6_hp_pct",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot6_mp_pct",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot6_alive",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot6_laneCS_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot6_jgCS_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot6_champion_id",
+      "group": "champion",
+      "dtype": "categorical",
+      "source": "pre-known roster; arbitrary identifier, not an ordinal value"
+    },
+    {
+      "name": "participant_slot6_kills",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot6_deaths",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot6_death_since_snapshot",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot6_death_last_30s",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot6_death_age_minutes",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot6_baron_death_since_acquisition",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot6_elder_death_since_acquisition",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot7_totalGold_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot7_curGold_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot7_level_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot7_xp_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot7_hp_pct",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot7_mp_pct",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot7_alive",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot7_laneCS_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot7_jgCS_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot7_champion_id",
+      "group": "champion",
+      "dtype": "categorical",
+      "source": "pre-known roster; arbitrary identifier, not an ordinal value"
+    },
+    {
+      "name": "participant_slot7_kills",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot7_deaths",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot7_death_since_snapshot",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot7_death_last_30s",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot7_death_age_minutes",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot7_baron_death_since_acquisition",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot7_elder_death_since_acquisition",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot8_totalGold_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot8_curGold_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot8_level_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot8_xp_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot8_hp_pct",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot8_mp_pct",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot8_alive",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot8_laneCS_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot8_jgCS_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot8_champion_id",
+      "group": "champion",
+      "dtype": "categorical",
+      "source": "pre-known roster; arbitrary identifier, not an ordinal value"
+    },
+    {
+      "name": "participant_slot8_kills",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot8_deaths",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot8_death_since_snapshot",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot8_death_last_30s",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot8_death_age_minutes",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot8_baron_death_since_acquisition",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot8_elder_death_since_acquisition",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot9_totalGold_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot9_curGold_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot9_level_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot9_xp_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot9_hp_pct",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot9_mp_pct",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot9_alive",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot9_laneCS_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot9_jgCS_norm",
+      "group": "player_snapshot",
+      "dtype": "numeric",
+      "source": "last observed participant frame; norm formula must be recovered from source"
+    },
+    {
+      "name": "participant_slot9_champion_id",
+      "group": "champion",
+      "dtype": "categorical",
+      "source": "pre-known roster; arbitrary identifier, not an ordinal value"
+    },
+    {
+      "name": "participant_slot9_kills",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot9_deaths",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot9_death_since_snapshot",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot9_death_last_30s",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot9_death_age_minutes",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot9_baron_death_since_acquisition",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "participant_slot9_elder_death_since_acquisition",
+      "group": "player_event",
+      "dtype": "numeric",
+      "source": "events no later than query; buff-history proxies, not exact active buffs"
+    },
+    {
+      "name": "blue_kills",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_dragons",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_plates",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_inhibitor_kills",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_baron",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_elder",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_herald",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_horde",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_atakhan",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_dragon_AIR",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_dragon_EARTH",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_dragon_FIRE",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_dragon_WATER",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_dragon_HEXTECH",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_dragon_CHEMTECH",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_dragon_OTHER",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_tower_OUTER_TURRET",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_tower_INNER_TURRET",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_tower_BASE_TURRET",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_tower_NEXUS_TURRET",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_tower_OTHER",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_soul_AIR",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_soul_EARTH",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_soul_FIRE",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_soul_WATER",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_soul_HEXTECH",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_soul_CHEMTECH",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_soul_OTHER",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_soul_event_recorded",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_baron_ever",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_baron_age_minutes",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_baron_acquired_last_60s",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_baron_acquired_last_120s",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_baron_acquired_last_180s",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_baron_acquired_last_300s",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_elder_ever",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_elder_age_minutes",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_elder_acquired_last_60s",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_elder_acquired_last_120s",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_elder_acquired_last_180s",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_elder_acquired_last_300s",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_herald_ever",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_herald_age_minutes",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_horde_ever",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_horde_age_minutes",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_atakhan_ever",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_atakhan_age_minutes",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_kills",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_dragons",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_plates",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_inhibitor_kills",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_baron",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_elder",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_herald",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_horde",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_atakhan",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_dragon_AIR",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_dragon_EARTH",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_dragon_FIRE",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_dragon_WATER",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_dragon_HEXTECH",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_dragon_CHEMTECH",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_dragon_OTHER",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_tower_OUTER_TURRET",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_tower_INNER_TURRET",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_tower_BASE_TURRET",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_tower_NEXUS_TURRET",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_tower_OTHER",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_soul_AIR",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_soul_EARTH",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_soul_FIRE",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_soul_WATER",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_soul_HEXTECH",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_soul_CHEMTECH",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_soul_OTHER",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_soul_event_recorded",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_baron_ever",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_baron_age_minutes",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_baron_acquired_last_60s",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_baron_acquired_last_120s",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_baron_acquired_last_180s",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_baron_acquired_last_300s",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_elder_ever",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_elder_age_minutes",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_elder_acquired_last_60s",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_elder_acquired_last_120s",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_elder_acquired_last_180s",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_elder_acquired_last_300s",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_herald_ever",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_herald_age_minutes",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_horde_ever",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_horde_age_minutes",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_atakhan_ever",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "red_atakhan_age_minutes",
+      "group": "team_event",
+      "dtype": "numeric",
+      "source": "observed cumulative/acquisition history; no exact active-buff claim"
+    },
+    {
+      "name": "blue_kills_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_kills * query_ms / 1800000"
+    },
+    {
+      "name": "blue_dragons_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_dragons * query_ms / 1800000"
+    },
+    {
+      "name": "blue_plates_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_plates * query_ms / 1800000"
+    },
+    {
+      "name": "blue_inhibitor_kills_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_inhibitor_kills * query_ms / 1800000"
+    },
+    {
+      "name": "blue_baron_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_baron * query_ms / 1800000"
+    },
+    {
+      "name": "blue_elder_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_elder * query_ms / 1800000"
+    },
+    {
+      "name": "blue_herald_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_herald * query_ms / 1800000"
+    },
+    {
+      "name": "blue_horde_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_horde * query_ms / 1800000"
+    },
+    {
+      "name": "blue_atakhan_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_atakhan * query_ms / 1800000"
+    },
+    {
+      "name": "blue_dragon_AIR_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_dragon_AIR * query_ms / 1800000"
+    },
+    {
+      "name": "blue_dragon_EARTH_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_dragon_EARTH * query_ms / 1800000"
+    },
+    {
+      "name": "blue_dragon_FIRE_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_dragon_FIRE * query_ms / 1800000"
+    },
+    {
+      "name": "blue_dragon_WATER_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_dragon_WATER * query_ms / 1800000"
+    },
+    {
+      "name": "blue_dragon_HEXTECH_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_dragon_HEXTECH * query_ms / 1800000"
+    },
+    {
+      "name": "blue_dragon_CHEMTECH_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_dragon_CHEMTECH * query_ms / 1800000"
+    },
+    {
+      "name": "blue_dragon_OTHER_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_dragon_OTHER * query_ms / 1800000"
+    },
+    {
+      "name": "blue_tower_OUTER_TURRET_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_tower_OUTER_TURRET * query_ms / 1800000"
+    },
+    {
+      "name": "blue_tower_INNER_TURRET_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_tower_INNER_TURRET * query_ms / 1800000"
+    },
+    {
+      "name": "blue_tower_BASE_TURRET_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_tower_BASE_TURRET * query_ms / 1800000"
+    },
+    {
+      "name": "blue_tower_NEXUS_TURRET_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_tower_NEXUS_TURRET * query_ms / 1800000"
+    },
+    {
+      "name": "blue_tower_OTHER_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_tower_OTHER * query_ms / 1800000"
+    },
+    {
+      "name": "blue_soul_AIR_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_soul_AIR * query_ms / 1800000"
+    },
+    {
+      "name": "blue_soul_EARTH_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_soul_EARTH * query_ms / 1800000"
+    },
+    {
+      "name": "blue_soul_FIRE_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_soul_FIRE * query_ms / 1800000"
+    },
+    {
+      "name": "blue_soul_WATER_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_soul_WATER * query_ms / 1800000"
+    },
+    {
+      "name": "blue_soul_HEXTECH_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_soul_HEXTECH * query_ms / 1800000"
+    },
+    {
+      "name": "blue_soul_CHEMTECH_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_soul_CHEMTECH * query_ms / 1800000"
+    },
+    {
+      "name": "blue_soul_OTHER_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_soul_OTHER * query_ms / 1800000"
+    },
+    {
+      "name": "blue_soul_event_recorded_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_soul_event_recorded * query_ms / 1800000"
+    },
+    {
+      "name": "blue_baron_ever_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_baron_ever * query_ms / 1800000"
+    },
+    {
+      "name": "blue_baron_age_minutes_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_baron_age_minutes * query_ms / 1800000"
+    },
+    {
+      "name": "blue_baron_acquired_last_60s_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_baron_acquired_last_60s * query_ms / 1800000"
+    },
+    {
+      "name": "blue_baron_acquired_last_120s_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_baron_acquired_last_120s * query_ms / 1800000"
+    },
+    {
+      "name": "blue_baron_acquired_last_180s_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_baron_acquired_last_180s * query_ms / 1800000"
+    },
+    {
+      "name": "blue_baron_acquired_last_300s_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_baron_acquired_last_300s * query_ms / 1800000"
+    },
+    {
+      "name": "blue_elder_ever_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_elder_ever * query_ms / 1800000"
+    },
+    {
+      "name": "blue_elder_age_minutes_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_elder_age_minutes * query_ms / 1800000"
+    },
+    {
+      "name": "blue_elder_acquired_last_60s_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_elder_acquired_last_60s * query_ms / 1800000"
+    },
+    {
+      "name": "blue_elder_acquired_last_120s_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_elder_acquired_last_120s * query_ms / 1800000"
+    },
+    {
+      "name": "blue_elder_acquired_last_180s_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_elder_acquired_last_180s * query_ms / 1800000"
+    },
+    {
+      "name": "blue_elder_acquired_last_300s_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_elder_acquired_last_300s * query_ms / 1800000"
+    },
+    {
+      "name": "blue_herald_ever_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_herald_ever * query_ms / 1800000"
+    },
+    {
+      "name": "blue_herald_age_minutes_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_herald_age_minutes * query_ms / 1800000"
+    },
+    {
+      "name": "blue_horde_ever_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_horde_ever * query_ms / 1800000"
+    },
+    {
+      "name": "blue_horde_age_minutes_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_horde_age_minutes * query_ms / 1800000"
+    },
+    {
+      "name": "blue_atakhan_ever_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_atakhan_ever * query_ms / 1800000"
+    },
+    {
+      "name": "blue_atakhan_age_minutes_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "blue_atakhan_age_minutes * query_ms / 1800000"
+    },
+    {
+      "name": "red_kills_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_kills * query_ms / 1800000"
+    },
+    {
+      "name": "red_dragons_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_dragons * query_ms / 1800000"
+    },
+    {
+      "name": "red_plates_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_plates * query_ms / 1800000"
+    },
+    {
+      "name": "red_inhibitor_kills_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_inhibitor_kills * query_ms / 1800000"
+    },
+    {
+      "name": "red_baron_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_baron * query_ms / 1800000"
+    },
+    {
+      "name": "red_elder_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_elder * query_ms / 1800000"
+    },
+    {
+      "name": "red_herald_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_herald * query_ms / 1800000"
+    },
+    {
+      "name": "red_horde_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_horde * query_ms / 1800000"
+    },
+    {
+      "name": "red_atakhan_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_atakhan * query_ms / 1800000"
+    },
+    {
+      "name": "red_dragon_AIR_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_dragon_AIR * query_ms / 1800000"
+    },
+    {
+      "name": "red_dragon_EARTH_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_dragon_EARTH * query_ms / 1800000"
+    },
+    {
+      "name": "red_dragon_FIRE_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_dragon_FIRE * query_ms / 1800000"
+    },
+    {
+      "name": "red_dragon_WATER_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_dragon_WATER * query_ms / 1800000"
+    },
+    {
+      "name": "red_dragon_HEXTECH_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_dragon_HEXTECH * query_ms / 1800000"
+    },
+    {
+      "name": "red_dragon_CHEMTECH_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_dragon_CHEMTECH * query_ms / 1800000"
+    },
+    {
+      "name": "red_dragon_OTHER_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_dragon_OTHER * query_ms / 1800000"
+    },
+    {
+      "name": "red_tower_OUTER_TURRET_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_tower_OUTER_TURRET * query_ms / 1800000"
+    },
+    {
+      "name": "red_tower_INNER_TURRET_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_tower_INNER_TURRET * query_ms / 1800000"
+    },
+    {
+      "name": "red_tower_BASE_TURRET_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_tower_BASE_TURRET * query_ms / 1800000"
+    },
+    {
+      "name": "red_tower_NEXUS_TURRET_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_tower_NEXUS_TURRET * query_ms / 1800000"
+    },
+    {
+      "name": "red_tower_OTHER_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_tower_OTHER * query_ms / 1800000"
+    },
+    {
+      "name": "red_soul_AIR_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_soul_AIR * query_ms / 1800000"
+    },
+    {
+      "name": "red_soul_EARTH_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_soul_EARTH * query_ms / 1800000"
+    },
+    {
+      "name": "red_soul_FIRE_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_soul_FIRE * query_ms / 1800000"
+    },
+    {
+      "name": "red_soul_WATER_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_soul_WATER * query_ms / 1800000"
+    },
+    {
+      "name": "red_soul_HEXTECH_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_soul_HEXTECH * query_ms / 1800000"
+    },
+    {
+      "name": "red_soul_CHEMTECH_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_soul_CHEMTECH * query_ms / 1800000"
+    },
+    {
+      "name": "red_soul_OTHER_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_soul_OTHER * query_ms / 1800000"
+    },
+    {
+      "name": "red_soul_event_recorded_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_soul_event_recorded * query_ms / 1800000"
+    },
+    {
+      "name": "red_baron_ever_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_baron_ever * query_ms / 1800000"
+    },
+    {
+      "name": "red_baron_age_minutes_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_baron_age_minutes * query_ms / 1800000"
+    },
+    {
+      "name": "red_baron_acquired_last_60s_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_baron_acquired_last_60s * query_ms / 1800000"
+    },
+    {
+      "name": "red_baron_acquired_last_120s_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_baron_acquired_last_120s * query_ms / 1800000"
+    },
+    {
+      "name": "red_baron_acquired_last_180s_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_baron_acquired_last_180s * query_ms / 1800000"
+    },
+    {
+      "name": "red_baron_acquired_last_300s_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_baron_acquired_last_300s * query_ms / 1800000"
+    },
+    {
+      "name": "red_elder_ever_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_elder_ever * query_ms / 1800000"
+    },
+    {
+      "name": "red_elder_age_minutes_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_elder_age_minutes * query_ms / 1800000"
+    },
+    {
+      "name": "red_elder_acquired_last_60s_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_elder_acquired_last_60s * query_ms / 1800000"
+    },
+    {
+      "name": "red_elder_acquired_last_120s_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_elder_acquired_last_120s * query_ms / 1800000"
+    },
+    {
+      "name": "red_elder_acquired_last_180s_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_elder_acquired_last_180s * query_ms / 1800000"
+    },
+    {
+      "name": "red_elder_acquired_last_300s_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_elder_acquired_last_300s * query_ms / 1800000"
+    },
+    {
+      "name": "red_herald_ever_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_herald_ever * query_ms / 1800000"
+    },
+    {
+      "name": "red_herald_age_minutes_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_herald_age_minutes * query_ms / 1800000"
+    },
+    {
+      "name": "red_horde_ever_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_horde_ever * query_ms / 1800000"
+    },
+    {
+      "name": "red_horde_age_minutes_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_horde_age_minutes * query_ms / 1800000"
+    },
+    {
+      "name": "red_atakhan_ever_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_atakhan_ever * query_ms / 1800000"
+    },
+    {
+      "name": "red_atakhan_age_minutes_x_time",
+      "group": "team_time_interaction",
+      "dtype": "numeric",
+      "source": "red_atakhan_age_minutes * query_ms / 1800000"
+    }
+  ],
+  "not_in_value_input": [
+    "match_id",
+    "final_winner",
+    "final_duration",
+    "SVI",
+    "p_pre_from_this_same_V",
+    "engagement_endpoint",
+    "future_participation",
+    "future_interpolated_positions"
+  ],
+  "required_audit_metadata": [
+    "query_ms",
+    "snapshot_ms",
+    "snapshot_age_s",
+    "source_event_max_timestamp",
+    "source_commit",
+    "state_version",
+    "feature_order_hash"
+  ]
+}

@@ -49,10 +49,12 @@ Sequence RNNs / TCN show near-chance AUC in `t_0_10` (~0.50) while mid/late band
 
 ## Reading
 
-- **History/sequence does not beat current-frame shared logistic (A0)** on \(L_{\mathrm{time}}\): best history arm **H5** is still ~+0.00085 behind A0.
-- Flat **H3/H5** ≈ **Transformer**; **BiGRU / BiLSTM / TCN** are clearly weak under this K=5 stack + short training budget.
-- Mamba skipped (package unavailable). Tier 4 GNN still **input-blocked**.
-- Partial continuity **done** — see [CONTINUITY_LEDGER_WAVE2_20260919.md](CONTINUITY_LEDGER_WAVE2_20260919.md).
+- **Do not conclude “history is useless” or “RNN is unfit” from INPUT_IMPL_v0.**
+  Wave-3 used right-aligned stacks with `pack_padded_sequence` (PACK-1 bug) and
+  mixed categorical handling. See [V_NEXT_RUN_EXECUTION_CONTRACT_20260919.md](V_NEXT_RUN_EXECUTION_CONTRACT_20260919.md).
+- Under v0 scores only: best history arm **H5** still trailed **A0 shared logistic**
+  on \(L_{\mathrm{time}}\); treat as **pre-fix ledger**, not learner verdict.
+- Next: typed Expanded361/Core267 Phase A, then same-LGBM ± history Phase B after left-align fix.
 
 ## Artifact
 
