@@ -6,7 +6,8 @@
 **Transfer:** 2026 API `16.x` cohorts — score-only; not used for selection.
 
 Companions: [STRATEGIC_VALUE_LABEL_REDESIGN_20260919.md](STRATEGIC_VALUE_LABEL_REDESIGN_20260919.md),  
-[SVI_MODEL_RESELECTION_TRANSFER_20260919.md](SVI_MODEL_RESELECTION_TRANSFER_20260919.md).
+[SVI_MODEL_RESELECTION_TRANSFER_20260919.md](SVI_MODEL_RESELECTION_TRANSFER_20260919.md),  
+[V_DYNAMIC_FRAME_CONTRACT_20260919.md](V_DYNAMIC_FRAME_CONTRACT_20260919.md).
 
 ---
 
@@ -39,11 +40,14 @@ TRAIN in-sample \(q\) never appears as a main lift number.
 1. Every column of the primary table is computed on **identical 15.16 T rows** and the **same match weights**.  
 2. B40 / B45 / \(B40^{c}\): same subset definition and weights for every model.  
 3. **Primary contrast:** \(q\) vs **PT**. Secondary: \(q\) vs \(b(p)\).  
-4. **Two Intro RQs only** (see redesign §3):  
-   - **Axis A (predictability):** overall \(\Delta\mathrm{Brier}(q-\mathrm{PT})\) + CI.  
-   - **Axis B (contested):** B40 / \(B40^{c}\) ΔBrier and  
+4. **Intro RQs** are **not** defined here — see [COMMON_RESEARCH_SPINE_20260919.md](COMMON_RESEARCH_SPINE_20260919.md):  
+   journal **J-RQ1–3**, master **M-RQ1–4**.  
+   **Eval procedures under I3/I4** (not Intro RQ counts):  
+   - overall \(\Delta\mathrm{Brier}(q-\mathrm{PT})\) + CI on identical 15.16 T rows;  
+   - B40 / \(B40^{c}\) ΔBrier and  
      \(H=E[d_i\mid B40]-E[d_i\mid B40^{c}]\) with \(d_i=(Y_i-q_i)^2-(Y_i-\mathrm{PT}_i)^2\)  
      via the **same** match-clustered bootstrap (do not infer heterogeneity from sig vs non-sig).  
+   Within each reported cell, **match-equal total weight** (recompute \(1/n_{\mathrm{match}}\) inside that cell) for both point estimates and bootstrap.  
 5. Practical threshold for “meaningful” ΔBrier: \(\tau=0.001\) (declared a priori for interpretation).  
 6. Raw \(p_{\mathrm{pre}}\) vs SVI: **diagnostic** only.  
 7. ΔBrier ≠ encompassing; optional \(p_\lambda\) combination is auxiliary.  
@@ -68,7 +72,7 @@ Literature framing (not warrants): [RELATED_FORECAST_VALUE_LIT_20260919.md](RELA
 
 | Object | Metric |
 |---|---|
-| \(\widehat{V} \to W\) | AUC / calibration by time (on external matches) |
+| \(\widehat{V} \to W\) | AUC / Brier **by time band** (MAIN_TEST + EXT); engagement pre/post on 15.16 T — see `svi_v_time_strata_20260919` |
 | \(q \to \mathrm{SVI}(\widehat{V})\) | vs frozen PT and \(b(p)\); all + B40 |
 
 EUW1: 0 complete pairs — omit.
@@ -111,7 +115,7 @@ Pooled \(p_{\mathrm{pre}}\) AUC vs SVI remains a **diagnostic** only — never p
 **Lift localization** (`outputs/svi_lift_localization_20260919/`): overall −0.00113 is not uniform —
 late game (\(t{\ge}30\)) ΔBrier ≈ −0.00316 [−0.00486, −0.00150]; B40 CI still includes 0.
 
-**State-dependent / Axis B** (`outputs/svi_state_dependent_20260919/`): \(H\) (B40 vs outside) + flexible PT + B40 info-set ablation + continuous \(\widehat{\Delta V}\) appendix — locked readings in redesign §3.
+**State-dependent / I4 contested check** (`outputs/svi_state_dependent_20260919/`): \(H\) (B40 vs outside) + flexible PT + B40 info-set ablation + continuous \(\widehat{\Delta V}\) appendix — treat as provisional until weight-unified recompute is cited.
 
 ---
 

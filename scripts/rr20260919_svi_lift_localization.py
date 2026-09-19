@@ -84,18 +84,22 @@ def bootstrap_delta(
     np.add.at(sum_a, inv, ea)
     np.add.at(sum_b, inv, eb)
     np.add.at(sum_w, inv, w)
+    den0 = float(sum_w.sum())
+    obs = float(sum_a.sum() / den0 - sum_b.sum() / den0)
     rng = np.random.default_rng(seed)
     draws = rng.integers(0, n_m, size=(reps, n_m))
     den = sum_w[draws].sum(axis=1)
     deltas = sum_a[draws].sum(axis=1) / den - sum_b[draws].sum(axis=1) / den
     return dict(
-        estimate=float(np.mean(deltas)),
+        estimate=obs,
+        boot_mean=float(np.mean(deltas)),
         ci95=[float(np.quantile(deltas, 0.025)), float(np.quantile(deltas, 0.975))],
         fraction_q_better=float(np.mean(deltas < 0)),
         n=int(len(y)),
         n_matches=int(n_m),
         reps=reps,
         seed=seed,
+        weighting="cell_internal_match_equal",
         scope="fixed-model eval-sample uncertainty",
     )
 

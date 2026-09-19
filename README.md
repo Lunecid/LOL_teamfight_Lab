@@ -1,5 +1,17 @@
 # LOL Teamfight Lab
 
+> **Current research (2026-09):** \(\widehat{V}\) freeze = `shared_lgbm`; design+lit pack: [`docs/WINPROB_V_DESIGN_PACK_20260919.md`](docs/WINPROB_V_DESIGN_PACK_20260919.md). Lean new-V primary is local under `outputs/` (gitignored).  
+> Authority: [`docs/V_REDESIGN_CONTRACT_20260919.md`](docs/V_REDESIGN_CONTRACT_20260919.md), [`docs/COG_SUCCESSION_LOCK_20260919.md`](docs/COG_SUCCESSION_LOCK_20260919.md), [`docs/COMMON_RESEARCH_SPINE_20260919.md`](docs/COMMON_RESEARCH_SPINE_20260919.md), [`docs/V_DYNAMIC_FRAME_CONTRACT_20260919.md`](docs/V_DYNAMIC_FRAME_CONTRACT_20260919.md).  
+> Legacy sealed \(q\)/SVI under the **previous** \(\widehat{V}\) only: [`docs/SVI_EVIDENCE_CITE_SHEET_20260919.md`](docs/SVI_EVIDENCE_CITE_SHEET_20260919.md). Scripts: `scripts/rr20260919_*.py`. Large tensors: local data root (see [Where results live](#where-results-live)).
+
+---
+
+## Legacy lineage below (v3.3 `market_event`)
+
+The following sections describe the **prior** engagement-definition / `market_event` experiment line (≈7k features, 35 s window). Treat them as historical pipeline documentation, **not** as the current SVI / journal–master contract.
+
+---
+
 Research code for predicting which team wins a League of Legends *engagement*, a cluster of
 champion kills, from the state of the game 15 s before its first kill. The input is Riot Games
 Match-V5 match and timeline data. The repository holds the engagement detector, the pipeline that

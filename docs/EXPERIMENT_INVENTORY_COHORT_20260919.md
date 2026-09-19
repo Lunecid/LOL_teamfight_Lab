@@ -4,6 +4,10 @@
 **Authority:** [PAPER_COHORT_CONTRACT_20260919.md](PAPER_COHORT_CONTRACT_20260919.md).  
 **Epistemic (all sealed prediction claims):** exploratory follow-up after prior TEST/external exposure — not confirmatory.
 
+**Weighting fix (same day, post-review):** B40 / \(H\) / stratum ΔBrier now use **cell-internal match-equal** weights for both point estimates and bootstrap; bootstrap `estimate` = observed Δ (not mean of replicates). Recompute cites: `outputs/svi_primary_table_20260919/`, `svi_state_dependent_20260919/`, `svi_lift_localization_20260919/`. Treat pre-fix REPORT numbers as superseded.
+
+**Lineage note (same day, V redesign):** All `svi_*_20260919` prediction tables below are under the **previous** frozen \(\widehat{V}\). New match-WP work follows [V_REDESIGN_CONTRACT_20260919.md](V_REDESIGN_CONTRACT_20260919.md); do not mix lineages in one claim.
+
 ---
 
 ## Cohort contract (reminder)
@@ -38,6 +42,10 @@ Scripts live in repo `scripts/rr20260919_*.py`; large tensors under data-root `�
 | 8 | `svi_primary_table_20260919` | **headline prediction table** | identical 15.16 T | All models same rows; bootstrap \(q-\mathrm{PT}\) |
 | 9 | `svi_lift_localization_20260919` | strata of LGBM−PT | 15.16 T + EXT cells | \(p_{\mathrm{pre}}\) / time / B40×time |
 | 10 | `svi_state_dependent_20260919` | \(H\), flex PT, ablation, ΔV | 15.16 T | State contrast + B40 info sets + continuous ΔV |
+| 11 | `svi_v_time_strata_20260919` | \(\widehat{V}\to W\) by time band | MAIN_TEST queries + 15.16 T anchors | Frame-aligned WP quality (C03); pre/post h90 |
+| 12 | `svi_horizon_sensitivity_20260919` | h60/h90/h120 flip | 15.16 T intersection | C04 label sensitivity; primary stays h90 |
+| 13 | `svi_time_banded_models_20260919` | **q + V̂ by `s_ms` bands** | 15.16 T + EXT | Primary model report cut on recorded clock (**old V**) |
+| 14 | `v_redesign_20260919` | V redesign wave-1 fit | 210k bucket queries | Shared LGBM vs per-band vs legacy; TEST band ledger |
 
 Each dir typically has `REPORT.md` + `results.json` (overnight also has `stage_*/results.json`).
 
@@ -219,18 +227,39 @@ Within-label lifts vs \(p_{\mathrm{pre}}\) on 15.16 T: SVI −0.040; kill −0.0
 
 Engagement **N** (non-T): LGBM−PT ≈ −0.0047 to −0.0056 (appendix).
 
-### D2. \(\widehat{V} \to W\) (match win; from overnight REPORT)
+### D2. \(\widehat{V} \to W\) (match win)
+
+**Authority (time bands + engagement anchors):** `outputs/svi_v_time_strata_20260919/`  
+Contract: [V_DYNAMIC_FRAME_CONTRACT_20260919.md](V_DYNAMIC_FRAME_CONTRACT_20260919.md).
+
+**MAIN_TEST timeline queries** (match-weighted; \(n=1{,}488{,}325\)):
+
+| Band | Brier | AUC |
+|---|---:|---:|
+| all | 0.1555 | 0.8545 |
+| \(t<10\) | 0.2220 | 0.6894 |
+| 10–20 | 0.1519 | 0.8617 |
+| 20–30 | 0.0904 | 0.9482 |
+| \(t\ge30\) | 0.0934 | 0.9448 |
+
+**15.16 T engagement anchors** (\(n=32{,}981\); same \(W\)):
+
+| Point | Brier | AUC |
+|---|---:|---:|
+| Pre \(p_{\mathrm{pre}}\) | 0.1418 | 0.8792 |
+| Post \(p_{\mathrm{post,h90}}\) | 0.1164 | 0.9173 |
+
+Post improves on pre in every time band (see REPORT) — supports reading \(\Delta\widehat{V}\) on fight frames.
+
+**External overall** (same script; overnight cross-check):
 
 | Cohort | AUC | Brier |
 |---|---:|---:|
 | KR 16.13 | 0.848 | 0.159 |
 | NA1 16.13 | 0.840 | 0.164 |
 | KR 16.15 | 0.853 | 0.157 |
-| KR 16.14 pilot | 0.834 | 0.166 |
 
-EUW1: 0 complete pairs — omitted.
-
-Lift localization also reports transfer stratum cells (all / B40 / \(t_{20-30}\)) — see that REPORT.
+EUW1: 0 complete pairs — omitted. Lift localization also reports transfer stratum cells (all / B40 / \(t_{20-30}\)).
 
 ---
 
@@ -265,12 +294,16 @@ outputs/
   svi_primary_table_20260919/{REPORT.md,results.json}
   svi_lift_localization_20260919/{REPORT.md,results.json}
   svi_state_dependent_20260919/{REPORT.md,results.json}
+  svi_v_time_strata_20260919/{REPORT.md,results.json}
+  svi_horizon_sensitivity_20260919/{REPORT.md,results.json}
+  svi_time_banded_models_20260919/{REPORT.md,results.json}
 ```
 
 Contracts / redesign (docs, not numbers):  
 `PAPER_COHORT_CONTRACT_20260919.md`, `STRATEGIC_VALUE_LABEL_REDESIGN_20260919.md`,  
 `SVI_MODEL_RESELECTION_TRANSFER_20260919.md`, `RELATED_FORECAST_VALUE_LIT_20260919.md`,  
-`COLLABORATOR_REPLY_EVAL_CONTRACT_20260919.md`.
+`COLLABORATOR_REPLY_EVAL_CONTRACT_20260919.md`, `V_DYNAMIC_FRAME_CONTRACT_20260919.md`,  
+`COG_SUCCESSION_LOCK_20260919.md`, `SHARED_EXPERIMENT_MATRIX_20260919.md`.
 
 ---
 
@@ -281,6 +314,8 @@ Contracts / redesign (docs, not numbers):
 3. **Lift is uneven:** late game and high-skew bands carry more point improvement than B40 / early.  
 4. **Label is not kill:** kill agree ~0.94 but 6% disagree; kill→SVI substitute worse; quiet \(\|\Delta V\|\) smaller.  
 5. **Transfer directionally holds** on headline 16.13/16.15; pilot 16.14 does not.  
-6. **B40 has larger mean \(\|\Delta V\|\)** than overall — magnitude and sign predictability diverge.
+6. **B40 has larger mean \(\|\Delta V\|\)** than overall — magnitude and sign predictability diverge.  
+7. **\(\widehat{V}\) is usable on fight frames:** post-h90 beats pre on 15.16 T (AUC 0.917 vs 0.879); timeline AUC rises with clock — report by band, not pooled only.  
+8. **Horizon is stable:** on intersection, SVI agree h60↔h90 ≈ 0.986, h90↔h120 ≈ 0.993; ΔV Pearson ≥ 0.99 — h90 primary is not fragile to ±30 s.
 
 Next step (when ready): map these facts → Intro RQs (not forced to two axes only).

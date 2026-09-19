@@ -1,9 +1,12 @@
 """2024–25 tabular DL meta models for SVI (352-input contract).
 
 EmbedMLP: per-feature numerical embeddings + MLP (Gorishniy et al. style).
-TabM: parameter-efficient multi-head MLP ensemble (Gorishniy 2025 sketch).
+TabM class: **lightweight TabM-style** shared-stem + k parallel MLP heads
+(average logits). This is an in-repo sketch inspired by TabM, **not** a verified
+faithful reimplementation of the TabM paper reference code.
 
-Pure modules — training loops live in rr20260919_svi_reselection.py.
+Pure modules — training loops live in rr20260919_svi_reselection.py /
+rr20260919_svi_lean_tabm_fit.py.
 """
 from __future__ import annotations
 
@@ -40,7 +43,10 @@ class EmbedMLP(nn.Module):
 
 
 class TabM(nn.Module):
-    """Lightweight TabM-style ensemble: k parallel MLP heads sharing a stem."""
+    """TabM-style ensemble sketch: k parallel MLP heads sharing a stem.
+
+    Do not cite as official TabM unless implementation parity is verified.
+    """
 
     def __init__(self, n_in: int, k: int = 16, width: int = 128, dropout: float = 0.1):
         super().__init__()

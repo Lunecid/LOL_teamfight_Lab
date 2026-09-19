@@ -3,7 +3,7 @@
 **Status:** locked 2026-09-19 (collaborator framing; before Intro RQ finalization)  
 **Order rule:** fix **CoG purpose → improvement agenda** first; place completed experiments under that agenda; **do not** invent Intro RQs from every sealed ΔBrier / B40 / SHAP cell.
 
-Companions: [CoG2026_Paper.md](CoG2026_Paper.md), [EXPERIMENT_DESIGN_MAP_20260919.md](EXPERIMENT_DESIGN_MAP_20260919.md), [COMMON_RESEARCH_SPINE_20260919.md](COMMON_RESEARCH_SPINE_20260919.md) (저널·석사 병렬), [STRATEGIC_VALUE_LABEL_REDESIGN_20260919.md](STRATEGIC_VALUE_LABEL_REDESIGN_20260919.md), [EXPERIMENT_INVENTORY_COHORT_20260919.md](EXPERIMENT_INVENTORY_COHORT_20260919.md), [PAPER_COHORT_CONTRACT_20260919.md](PAPER_COHORT_CONTRACT_20260919.md).
+Companions: [CoG2026_Paper.md](CoG2026_Paper.md), [V_REDESIGN_CONTRACT_20260919.md](V_REDESIGN_CONTRACT_20260919.md) (**current priority: redesign \(\widehat{V}\) before \(q\)**), [V_DYNAMIC_FRAME_CONTRACT_20260919.md](V_DYNAMIC_FRAME_CONTRACT_20260919.md), [EXPERIMENT_DESIGN_MAP_20260919.md](EXPERIMENT_DESIGN_MAP_20260919.md), [COMMON_RESEARCH_SPINE_20260919.md](COMMON_RESEARCH_SPINE_20260919.md) (저널·석사 병렬), [STRATEGIC_VALUE_LABEL_REDESIGN_20260919.md](STRATEGIC_VALUE_LABEL_REDESIGN_20260919.md), [EXPERIMENT_INVENTORY_COHORT_20260919.md](EXPERIMENT_INVENTORY_COHORT_20260919.md), [PAPER_COHORT_CONTRACT_20260919.md](PAPER_COHORT_CONTRACT_20260919.md).
 
 ---
 
@@ -55,6 +55,8 @@ B40, PT, SVI, SHAP, external transfer are **methods / checks** for asking that q
   \(\widehat{V}(S_t)=\widehat{P}(\text{Blue wins}\mid S_t)\),  
   \(\Delta\widehat{V}=\widehat{V}(S_{\mathrm{end}})-\widehat{V}(S_{\mathrm{before}})\),  
   primary occurrence label \(\mathrm{SVI}=\mathrm{sign}(\Delta\widehat{V})\).  
+- **Dynamic WP (frame-aligned):** parameters frozen; \(S_t\) updates on the public timeline grid so \(\widehat{V}\) changes when the state changes (including at engagement end). Report \(\widehat{V}\to W\) **by the same time bands** as later \(q\) tables — see [V_DYNAMIC_FRAME_CONTRACT_20260919.md](V_DYNAMIC_FRAME_CONTRACT_20260919.md).  
+- **Redesign priority (2026-09-19):** rebuild \(\widehat{V}\) as a trustworthy match-WP evaluator **before** further \(q\) search — shared time-conditional default; per-band models as comparator; proper scores for selection — [V_REDESIGN_CONTRACT_20260919.md](V_REDESIGN_CONTRACT_20260919.md).  
 - Also fix **evaluation horizon** (how far past the fight to include conversion of advantage) as a definition of the estimand, not a search for best AUC.  
 - Core: *clearer warrant and scope for what “advantage” means* — not “rename the label SVI.”  
 - Still not: independent fight truth; causal effect of “taking the fight.”

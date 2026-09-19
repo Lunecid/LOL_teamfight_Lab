@@ -16,13 +16,16 @@ flowchart TB
 
   purpose --> I1 & I2
   I1["I1 Engagement unit<br/>what is one case?"]
-  I2["I2 Outcome value<br/>match-linked V / SVI + horizon"]
+  I2["I2 Outcome value<br/>frame-aligned V S_t + SVI + horizon"]
 
   I1 --> cases["Cases: kill-conditioned engagements<br/>scope choice: teamfight T headline"]
   I2 --> label["Label: SVI = sign ΔV̂<br/>not fight-win truth"]
+  I2 --> Vdyn["V̂ performance by time band<br/>same clock grid as frames"]
 
   cases --> X
+  cases --> Y
   label --> Y
+  Vdyn --> I4
   X["X: pre-onset public features<br/>352 ridge / subsets"]
   Y["Y: SVI on sealed rows"]
 
@@ -30,14 +33,17 @@ flowchart TB
   Y --> I3
   I3["I3 Info vs representation vs learner<br/>same-row q slate + ablations"]
 
-  I3 --> q["q: predict SVI<br/>winner LightGBM frozen on Q_SELECT"]
+  I3 --> q["q: predict P SVI=1 | X_pre<br/>selection on Q_SELECT; freeze before TEST"]
 
   q --> I4
-  I4["I4 Meaning + scope<br/>vs PT / strata / transfer"]
+  I1 -.-> I4
+  I2 -.-> I4
+  I4["I4 Meaning + scope<br/>vs PT / strata / transfer<br/>also checks unit + label sensitivity"]
 
   I4 --> read["Read results under redesigned estimand<br/>not vs CoG AUC 0.675"]
 ```
 
+*Execution note (not a design node):* current frozen primary \(q\) = LightGBM from Q_SELECT / sealed incremental_q winner.
 ---
 
 ## 2. Data and evaluation layers (contract)
@@ -120,7 +126,7 @@ flowchart TB
 | Stage | Role | Artifacts (inventory) | Status |
 |---|---|---|---|
 | **I1 Unit** | Justify cases / scope T | Detector docs; T vs N; definition sensitivity (if/when run) | Partly prior docs; sensitivity not full paper lock |
-| **I2 Outcome** | Warrant for SVI | V̂ pipeline; concordance; quiet; cross-target; continuous ΔV appendix | Done (overnight / aligned / phase2 / state-dep RQ5) |
+| **I2 Outcome** | Warrant for SVI | **V redesign first** (shared time-conditional); then concordance / quiet / ΔV | **In progress** — [V_REDESIGN_CONTRACT](V_REDESIGN_CONTRACT_20260919.md); old band ledger kept |
 | **I3 Info–learner** | Separate info vs model | Primary table; reselection; lean TabM; Tier B; B40 ablation | Done |
 | **I4 Meaning–scope** | Prior-lead dependence + transfer | PT/\(b(p)\); lift localization; \(H\); flex PT; EXT transfer | Done |
 | **Contract** | Same corpus ≠ same eval sample | Cohort contract; phase1 sealed audit | Done |

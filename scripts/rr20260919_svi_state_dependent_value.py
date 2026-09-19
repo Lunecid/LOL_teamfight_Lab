@@ -51,30 +51,34 @@ def bootstrap_group_means(
     d: np.ndarray, g: np.ndarray, mask_a: np.ndarray, mask_b: np.ndarray,
     reps: int = 1000, seed: int = 7,
 ) -> Dict[str, Any]:
-    """Match-clustered bootstrap of mean(d|A) - mean(d|B) with match weights inside groups."""
+    """Match-clustered H = mean(d|A) - mean(d|B).
+
+    Weighting rule (cell-internal match-equal): within A (resp. B), each match that
+    appears in the cell has total weight 1 (row weight 1/n_rows_of_match_in_cell).
+    Point estimate and bootstrap use the **same** per-match aggregates.
+    """
     g = np.asarray(g).astype(str)
     matches = np.unique(g)
-    # per-match aggregates for rows in A and in B
     from collections import defaultdict
-    a_sum = defaultdict(float)
-    a_w = defaultdict(float)
-    b_sum = defaultdict(float)
-    b_w = defaultdict(float)
-    _, inv, counts = np.unique(g, return_inverse=True, return_counts=True)
-    w_row = 1.0 / counts[inv]
-    for i in range(len(d)):
-        m = g[i]
-        if mask_a[i]:
-            a_sum[m] += w_row[i] * d[i]
-            a_w[m] += w_row[i]
-        if mask_b[i]:
-            b_sum[m] += w_row[i] * d[i]
-            b_w[m] += w_row[i]
-    # point estimate (row-weighted, equivalent to pooling)
-    wa = match_weights(g[mask_a])
-    wb = match_weights(g[mask_b])
-    mean_a = float(np.average(d[mask_a], weights=wa))
-    mean_b = float(np.average(d[mask_b], weights=wb))
+
+    def cell_match_totals(mask: np.ndarray) -> tuple[dict, dict, float]:
+        idx = np.flatnonzero(mask)
+        if idx.size == 0:
+            return {}, {}, float("nan")
+        g_c = g[idx]
+        d_c = d[idx]
+        w_c = match_weights(g_c)
+        s_sum: dict[str, float] = defaultdict(float)
+        s_w: dict[str, float] = defaultdict(float)
+        for i in range(len(d_c)):
+            m = g_c[i]
+            s_sum[m] += float(w_c[i] * d_c[i])
+            s_w[m] += float(w_c[i])
+        mean = float(np.average(d_c, weights=w_c))
+        return dict(s_sum), dict(s_w), mean
+
+    a_sum, a_w, mean_a = cell_match_totals(mask_a)
+    b_sum, b_w, mean_b = cell_match_totals(mask_b)
     H_point = mean_a - mean_b
 
     match_list = list(matches)
@@ -86,10 +90,10 @@ def bootstrap_group_means(
         sa = swa = sb = swb = 0.0
         for j in draw:
             m = match_list[j]
-            if a_w[m] > 0:
+            if a_w.get(m, 0.0) > 0:
                 sa += a_sum[m]
                 swa += a_w[m]
-            if b_w[m] > 0:
+            if b_w.get(m, 0.0) > 0:
                 sb += b_sum[m]
                 swb += b_w[m]
         if swa <= 0 or swb <= 0:
@@ -100,14 +104,15 @@ def bootstrap_group_means(
         mean_A=mean_a,
         mean_B=mean_b,
         H=H_point,
-        H_boot_mean=float(np.mean(arr)),
-        ci95=[float(np.quantile(arr, 0.025)), float(np.quantile(arr, 0.975))],
-        fraction_H_neg=float(np.mean(arr < 0)),
+        H_boot_mean=float(np.mean(arr)) if arr.size else float("nan"),
+        ci95=[float(np.quantile(arr, 0.025)), float(np.quantile(arr, 0.975))] if arr.size else [float("nan"), float("nan")],
+        fraction_H_neg=float(np.mean(arr < 0)) if arr.size else float("nan"),
         n_A=int(mask_a.sum()),
         n_B=int(mask_b.sum()),
         n_matches=n_m,
         reps=int(len(arr)),
         seed=seed,
+        weighting="cell_internal_match_equal",
         note="A=B40, B=B40^c; d=brier_q_row - brier_pt_row; negative mean_A means q better than PT in A",
     )
 
@@ -179,7 +184,7 @@ def rq2_H(data: Dict[str, np.ndarray], reps: int, seed: int) -> Dict[str, Any]:
         B40_delta_q_minus_pt=dict(
             estimate=b40_delta,
             ci95=b40_ci,
-            excludes_improvement_of_size_tau=excludes_meaningful_gain and b40_ci[0] > 0,
+            excludes_improvement_of_size_tau=excludes_meaningful_gain,
             ci_excludes_neg_tau=excludes_neg_tau,
             reading=(
                 "CI includes 0: did not clearly confirm incremental gain on B40. "

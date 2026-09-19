@@ -64,11 +64,15 @@ def bootstrap_delta_brier(
     y: np.ndarray, p_a: np.ndarray, p_b: np.ndarray, g: np.ndarray,
     reps: int = 1000, seed: int = 7,
 ) -> Dict[str, Any]:
-    """Match-clustered bootstrap of Brier(a)−Brier(b). Fixed models (eval-sample uncertainty only)."""
+    """Match-clustered bootstrap of Brier(a)−Brier(b).
+
+    Weights are recomputed on the passed row set (callers must pass the evaluation
+    cell's rows so point metrics and CI share cell-internal match-equal weights).
+    ``estimate`` = observed ΔBrier on those rows; ``boot_mean`` = mean of replicates.
+    """
     g = np.asarray(g).astype(str)
     matches, inv = np.unique(g, return_inverse=True)
     n_m = len(matches)
-    # per-match: sum of w*(err)^2 and sum of w, with w=1/n_in_match
     _, counts = np.unique(inv, return_counts=True)
     w = (1.0 / counts[inv]).astype(np.float64)
     ea = w * (p_a - y) ** 2
@@ -79,6 +83,8 @@ def bootstrap_delta_brier(
     np.add.at(sum_a, inv, ea)
     np.add.at(sum_b, inv, eb)
     np.add.at(sum_w, inv, w)
+    den0 = float(sum_w.sum())
+    obs = float(sum_a.sum() / den0 - sum_b.sum() / den0)
     rng = np.random.default_rng(seed)
     draws = rng.integers(0, n_m, size=(reps, n_m))
     num_a = sum_a[draws].sum(axis=1)
@@ -86,11 +92,13 @@ def bootstrap_delta_brier(
     den = sum_w[draws].sum(axis=1)
     deltas = num_a / den - num_b / den
     return dict(
-        estimate=float(np.mean(deltas)),
+        estimate=obs,
+        boot_mean=float(np.mean(deltas)),
         ci95=[float(np.quantile(deltas, 0.025)), float(np.quantile(deltas, 0.975))],
         finite_replicates=int(np.isfinite(deltas).sum()),
         fraction_a_better=float(np.mean(deltas < 0)),
         scope="fixed-model evaluation-sample uncertainty; no re-fit / selection",
+        weighting="cell_internal_match_equal",
         reps=reps,
         seed=seed,
         n_matches=int(n_m),
@@ -141,8 +149,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     tb = json.loads(overnight_tb.read_text(encoding="utf-8")) if overnight_tb.is_file() else {}
 
     def cell_table(mask: np.ndarray) -> Dict[str, Any]:
-        ym, wm = y[mask], w[mask]
-        # renormalize weights within cell? Use same match weights restricted — average with existing w
+        # Cell-internal match-equal weights (same rule as bootstrap on this cell)
+        ym = y[mask]
+        wm = match_weights(g[mask])
         rows = {}
         for name, p in preds.items():
             rows[name] = metrics(ym, p[mask], wm)
@@ -151,19 +160,24 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         for name, row in rows.items():
             row["delta_brier_vs_PT"] = row["brier"] - pt_br
             row["delta_brier_vs_b(p)"] = row["brier"] - bp_br
-        return dict(n=int(mask.sum()), n_matches=int(len(np.unique(g[mask]))), models=rows)
+        return dict(
+            n=int(mask.sum()),
+            n_matches=int(len(np.unique(g[mask]))),
+            models=rows,
+            weighting="cell_internal_match_equal",
+        )
 
     all_cell = cell_table(np.ones(len(y), dtype=bool))
     b40_cell = cell_table(b40)
 
     # Bootstrap primary contrasts (fixed predictions)
-    print("bootstrap LightGBM − PT …", flush=True)
+    print("bootstrap LightGBM - PT ...", flush=True)
     boot_lgbm_pt = bootstrap_delta_brier(y, preds["LightGBM"], preds["PT"], g, args.boot_reps)
-    print("bootstrap LightGBM − b(p) …", flush=True)
+    print("bootstrap LightGBM - b(p) ...", flush=True)
     boot_lgbm_bp = bootstrap_delta_brier(y, preds["LightGBM"], preds["b(p)≈old_p_pre_logistic"], g, args.boot_reps)
-    print("bootstrap TabM − PT …", flush=True)
+    print("bootstrap TabM-style - PT ...", flush=True)
     boot_tabm_pt = bootstrap_delta_brier(y, preds["TabM"], preds["PT"], g, args.boot_reps)
-    print("bootstrap B40 LightGBM − PT …", flush=True)
+    print("bootstrap B40 LightGBM - PT ...", flush=True)
     boot_b40 = bootstrap_delta_brier(
         y[b40], preds["LightGBM"][b40], preds["PT"][b40], g[b40], args.boot_reps)
 
@@ -201,7 +215,14 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         ),
         diagnostic_p_pre=diag,
         tier_b_point_estimates_same_rows=tier_b_points,
-        winner=dict(family="LightGBM", reason="lowest sealed Brier among Tier A+B; primary q"),
+        winner=dict(
+            family="LightGBM",
+            reason="Q_SELECT / sealed incremental_q lgbm_winner (selection not on TEST); primary q for this slate",
+            selection_source="incremental_q_training_20260915 + svi_reselection_20260919 winner_manifest",
+        ),
+        naming_notes=dict(
+            TabM="TabM-style shared-stem multi-head MLP (train/svi_tabular_meta.py); not claimed as faithful TabM paper reimplementation",
+        ),
     )
     (out_dir / "results.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
@@ -235,7 +256,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         "LightGBM": "q (winner)",
         "MLP": "q",
         "residual_MLP": "q",
-        "TabM": "q",
+        "TabM": "q (TabM-style sketch)",
     }
     for name in order:
         r = all_cell["models"][name]
@@ -279,19 +300,22 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         f"(P(Δ<0)={boot_lgbm_pt['fraction_a_better']:.3f})",
         f"- **LightGBM − b(p):** {fmt(boot_lgbm_bp['estimate'])} "
         f"[{fmt(boot_lgbm_bp['ci95'][0])}, {fmt(boot_lgbm_bp['ci95'][1])}]",
-        f"- **TabM − PT:** {fmt(boot_tabm_pt['estimate'])} "
+        f"- **TabM-style − PT:** {fmt(boot_tabm_pt['estimate'])} "
         f"[{fmt(boot_tabm_pt['ci95'][0])}, {fmt(boot_tabm_pt['ci95'][1])}]",
         f"- **B40 LightGBM − PT:** {fmt(boot_b40['estimate'])} "
         f"[{fmt(boot_b40['ci95'][0])}, {fmt(boot_b40['ci95'][1])}] "
-        f"(P(Δ<0)={boot_b40['fraction_a_better']:.3f}) — CI includes 0",
+        f"(P(Δ<0)={boot_b40['fraction_a_better']:.3f})"
+        + (" — CI includes 0" if boot_b40["ci95"][0] <= 0 <= boot_b40["ci95"][1] else ""),
         "",
         f"iq sealed cross-check LGBM−PT: {iq_boot}",
         "",
         "## Reading",
         "",
-        "- Winner for primary \(q\): **LightGBM**.",
-        "- Small overall lift vs PT is a result, not failure; B40 lift is uncertain.",
+        "- Primary \(q\): **LightGBM** (Q_SELECT / sealed incremental_q winner — not selected on TEST).",
+        "- **TabM** column = in-repo TabM-style shared-stem multi-head sketch; not claimed as paper-faithful TabM.",
+        "- Small overall lift vs PT is a result, not failure; B40 lift remains uncertain (CI includes 0).",
         "- Do not juxtapose pooled-T \(p_{pre}\) AUC with these ΔBrier numbers as one lift story.",
+        "- Cell metrics and bootstrap use **cell-internal match-equal** weights.",
         "",
     ]
     (out_dir / "REPORT.md").write_text("\n".join(lines), encoding="utf-8")

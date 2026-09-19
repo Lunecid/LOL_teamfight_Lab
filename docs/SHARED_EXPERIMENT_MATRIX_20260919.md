@@ -16,9 +16,9 @@
 | C00 | 출발점 | CoG 목적·기존 설계·한계와 후속 변경 구분 | 서론·관련연구 | 1–2장 상세 | succession lock · design map |
 | C01 | I1 | 원자료·시간가용성·T 정의·사례 키·포함/제외 | 방법 핵심 | 3–4장 전체 경로 | 기존 계약/정의 문서; evidence_id 연결 필요 |
 | C02 | I1/I4 | 경계·규모·정의 민감도와 공통/변경 사례 | 핵심 민감도·보조표 | 4장 설계 비교 | 재사용 우선; 범위별 실행 확인 필요 |
-| C03 | I2 | V̂ 적합·W 평가·시간대 보정 | 결과 정의의 근거 | 5장 상세 | V̂ 파이프라인 기존; manifest 확인 |
-| C04 | I2/I4 | ΔV̂/SVI/endpoint · V̂·구간 민감도 | 측정·안정성 핵심 | 5장 전체 비교 | redesign + state-dep ΔV; 출처 재검증 후 인용 |
-| C05 | I3 | 공통 입력 학습기 비교와 주 q 동결 | 예측 주 표 | 6장 후보·선정 | `svi_primary_table` · `svi_reselection` · lean TabM · Tier B — **LGBM 동결** |
+| C03 | I2 | **V 재설계** (공유 시간조건부 기본; 시간대 평가·선정·동결) | 결과 정의의 근거 | 5장 상세 | **진행 중** [V_REDESIGN_CONTRACT](V_REDESIGN_CONTRACT_20260919.md); 구 ledger `svi_v_time_strata` = old V |
+| C04 | I2/I4 | ΔV̂ 연속성·무킬·V 사양 안정성 → 그다음 SVI | 측정·안정성 핵심 | 5장 | V-4 after V-3; 구 horizon flip은 old V |
+| C05 | I3 | 공통 입력 학습기 비교와 주 q 동결 | 예측 주 표 | 6장 | **보류** until new SVI; 기존 primary/reselection = old V |
 | C06 | I4 | 같은 행 q−PT, 전체/B40/B45·시간대 | 검증 주 표 | 7장 상세 | `svi_lift_localization` · `svi_state_dependent` (H) |
 | C07 | I2/I4 | 물질적 결과↔SVI 대응·불일치 | 측정 검증 | 5·7장 | overnight concordance · validation_suite · cohort_aligned |
 | C08 | I4 | 무킬 참고 구간 (Quiet) | 보조 검증 | 7장 | overnight quiet matched · validation type-A |

@@ -1,11 +1,27 @@
-# Related literature — incremental / state-dependent forecast value (use bounds)
+# Related literature — forecast value + win-probability redesign (use bounds)
 
-**Status:** 2026-09-19 — companion to [STRATEGIC_VALUE_LABEL_REDESIGN_20260919.md](STRATEGIC_VALUE_LABEL_REDESIGN_20260919.md)  
-**Role:** measurement and interpretation **frame**, not justification that B40 “must be hard.”
+**Status:** 2026-09-19 — companion to [STRATEGIC_VALUE_LABEL_REDESIGN_20260919.md](STRATEGIC_VALUE_LABEL_REDESIGN_20260919.md) and [V_REDESIGN_CONTRACT_20260919.md](V_REDESIGN_CONTRACT_20260919.md)  
+**Index entry:** [WINPROB_V_DESIGN_PACK_20260919.md](WINPROB_V_DESIGN_PACK_20260919.md) §3  
+**Role:** measurement / WP-design **frame**, not proof that B40 “must be hard.”
 
 ---
 
-## Cite for framing (OK)
+## A. Win-probability redesign (read first for \(\widehat{V}\))
+
+| Work | Use as | Do not claim |
+|---|---|---|
+| **Hodge et al. (2021)** *IEEE ToG* — live esports WP | Time-wise eval; history features; per-minute models as **Choice B** precedent | We must ship one model per minute for \(\Delta V\) |
+| **Kim, Lee & Chung (2020)** *IEEE CoG* — calibrated LoL WP | Prob. quality + calibration compare (ECE ≠ all scores) | DU loss is mandatory day one |
+| **Maymin (2021)** *JQAS* — smart kills / WP change | Match WP → event value via \(\Delta\widehat{V}\); **shared** model over time | Sparse logistic features are our ceiling |
+| **Ke et al. (2022)** *IEEE CoG* | Optional: past fights into match WP | Same as “predict next fight winner” |
+| **Hitar-García et al. (2023)** *IEEE ToG* | Optional pre-game / synergy features | In-game time-band WP paper |
+
+**Read order for V work:** Hodge → Kim → Maymin.  
+Our sealed band curves vs CoG/ToG: [TIMEBAND_COG_TOG_SVI_COMPARE_20260919.md](TIMEBAND_COG_TOG_SVI_COMPARE_20260919.md).
+
+---
+
+## B. Cite for \(q\) / incremental framing (OK)
 
 | Work | Use as | Do not claim |
 |---|---|---|
@@ -24,15 +40,15 @@
 
 ---
 
-## Mapping to our RQs (two axes)
+## Mapping
 
-- **Axis A (predictability)** ↔ incremental accuracy (DM-style loss differentials; Brier as proper score).  
-- **Axis B (contested difficulty)** ↔ state-dependent value (Giacomini–White **motivation**; estimate \(H\) with our match bootstrap).  
-- Combination \(p_\lambda\) ↔ optional Clements–Harvey-style probability combination (auxiliary).  
+- **\(\widehat{V}\) redesign** ↔ Hodge / Kim / Maymin (+ Gneiting–Raftery for selection).  
+- **Axis A (predictability of SVI)** ↔ incremental accuracy (after new V freezes).  
+- **Axis B (contested difficulty)** ↔ state-dependent value (Giacomini–White **motivation**).  
 - WPA ↔ continuous \(\widehat{\Delta V}\) genealogy; SVI = direction only; not causal fight WPA.
 
 ---
 
 ## One-sentence paper stance
 
-Literature tells us **how to ask** whether features add information beyond a baseline and whether that increment varies by state; it does **not** prove that balanced prior-win summaries are intrinsically unpredictable or that large \(|\widehat{\Delta V}|\) implies a clean label.
+Literature tells us **how to build and score time-aware match WP** and **how to ask** whether features add information beyond a baseline; it does **not** prove that balanced prior-win summaries are intrinsically unpredictable or that large \(|\widehat{\Delta V}|\) implies a clean label.

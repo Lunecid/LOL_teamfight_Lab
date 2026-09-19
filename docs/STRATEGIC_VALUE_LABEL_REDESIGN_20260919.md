@@ -7,7 +7,8 @@
 Authority for sample rules: [PAPER_COHORT_CONTRACT_20260919.md](PAPER_COHORT_CONTRACT_20260919.md).  
 Model slate / transfer: [SVI_MODEL_RESELECTION_TRANSFER_20260919.md](SVI_MODEL_RESELECTION_TRANSFER_20260919.md).  
 Forecast-value literature use: [RELATED_FORECAST_VALUE_LIT_20260919.md](RELATED_FORECAST_VALUE_LIT_20260919.md).  
-Experiment inventory (facts only): [EXPERIMENT_INVENTORY_COHORT_20260919.md](EXPERIMENT_INVENTORY_COHORT_20260919.md).
+Experiment inventory (facts only): [EXPERIMENT_INVENTORY_COHORT_20260919.md](EXPERIMENT_INVENTORY_COHORT_20260919.md).  
+\(\widehat{V}\) frame dynamics / time-band tables: [V_DYNAMIC_FRAME_CONTRACT_20260919.md](V_DYNAMIC_FRAME_CONTRACT_20260919.md).
 
 ---
 
@@ -30,7 +31,8 @@ Forbidden CoG strawmen and the locked succession sentence: see succession lock �
 | “한타 승리” has no unique definition | Do **not** claim fight win. Predict **whether estimated strategic value improves**. |
 | Hand-weighted exchange scores | Keep learned \(\widehat{V}\) → \(\widehat{\Delta V}\). |
 | \(q\) may only reconstruct prior value | Primary contrast = **\(q\) vs PT**; contested increment (B40) as **Axis B** |
-| \(\Delta V\) only as good as \(V\) | Validation = material **concordance** + quiet **matched-state** drift — not “external truth” |
+| \(\Delta V\) only as good as \(V\) | Validation = material **concordance** + quiet **matched-state** drift — not “external truth”; plus **frame-aligned** \(\widehat{V}\to W\) by time band (C03) |
+| “Dynamic WP” ambiguous | Frozen params; \(S_t\) updates on public frame grid; \(\Delta\widehat{V}\) at engagement end — not live re-fit |
 
 ---
 
