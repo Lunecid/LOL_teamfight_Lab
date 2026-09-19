@@ -232,6 +232,7 @@ def fit_mlp_emb(num_tr, id_tr, y, w, num_va, id_va, y_va, w_va, n_vocab, emb_dim
     w_va_t = torch.from_numpy(w_va.astype(np.float32)).to(device)
 
     best_state, best_br, bad, patience = None, 1e9, 0, 10
+    best_epoch = 0
     n = len(y)
     for ep in range(max_epochs):
         net.train()
@@ -253,7 +254,7 @@ def fit_mlp_emb(num_tr, id_tr, y, w, num_va, id_va, y_va, w_va, n_vocab, emb_dim
             pv = torch.sigmoid(net(num_va_t, id_va_t))
             br = float((((pv - y_va_t) ** 2) * w_va_t).sum() / w_va_t.sum())
         if br < best_br - 1e-5:
-            best_br, bad = br, 0
+            best_br, bad, best_epoch = br, 0, ep + 1
             best_state = {k: v.detach().cpu().clone() for k, v in net.state_dict().items()}
         else:
             bad += 1
@@ -262,7 +263,18 @@ def fit_mlp_emb(num_tr, id_tr, y, w, num_va, id_va, y_va, w_va, n_vocab, emb_dim
     if best_state:
         net.load_state_dict(best_state)
     net.cpu()
-    return dict(state_dict=net.state_dict(), n_vocab=n_vocab, emb_dim=emb_dim, hidden=list(hidden), dropout=dropout, d_num=d_num, n_slots=n_slots, best_val_brier=best_br)
+    return dict(
+        state_dict=net.state_dict(),
+        n_vocab=n_vocab,
+        emb_dim=emb_dim,
+        hidden=list(hidden),
+        dropout=dropout,
+        d_num=d_num,
+        n_slots=n_slots,
+        best_val_brier=best_br,
+        best_epoch=best_epoch,
+        max_epochs_ran=ep + 1,
+    )
 
 
 def predict_mlp_emb(pack, num, ids, batch=65536):

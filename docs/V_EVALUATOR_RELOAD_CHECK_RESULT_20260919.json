@@ -1,0 +1,12 @@
+{
+  "generated": "2026-09-20T00:10:58+09:00",
+  "evaluator": "C:\\Users\\todtj\\PycharmProjects\\LOL_teamfight\\outputs\\v_redesign_wave4_corrected_20260919\\evaluators\\A_MLP_expanded_evaluator.joblib",
+  "n_check": 2048,
+  "atol": 1e-06,
+  "reload_ok": true,
+  "single_vs_batch_ok": true,
+  "finite_ok": true,
+  "max_abs_reload_diff": 0.0,
+  "fit_scope": "train_fit85_match_holdout_frac0.15_seed7_NO_full_train_refit",
+  "pass_all": true
+}

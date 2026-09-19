@@ -81,10 +81,12 @@ Wave-2 **A0 shared logistic** had \(L_{\mathrm{time}}=0.1376\) under INPUT_IMPL_
 
 ## Freeze reading
 
-- Provisional corrected-input leader: **embedding MLP (Expanded361)**.
-- Keep **A0 (wave-2)** and **B_GRU_K5** as continuity / ablation peers.
-- Flat H3/H5 LGBM: no freeze case.
-- Next: partial/full V-4 continuity on **A_MLP_expanded** (+ A0, GRU) with shared as-of current token; then freeze_manifest.
+- **Provisional corrected-input leader (by predeclared \(L_{\mathrm{time}}\)):** embedding MLP Expanded361.
+  Point estimate only; GRU is within ~0.0002 and wins overall Brier/AUC — do not overclaim MLP superiority.
+- **Flat H5:** no gain vs same-learner current LGBM **under current store density / flat layout / these settings** — not a universal “history never helps” claim.
+- **GRU:** v0 “RNN unfit” **withdrawn**; packing-only ablation was **not** isolated.
+- Fit scope for next continuity: **TRAIN fit85** (no full-TRAIN refit yet) — see [V_FREEZE_PREP_POST_WAVE4_REVIEW_20260919.md](V_FREEZE_PREP_POST_WAVE4_REVIEW_20260919.md).
+- Next: evaluator_bundle reload ✓ → MLP-centered continuity + TEST band tables → freeze_manifest.
 
 ## Artifacts
 
