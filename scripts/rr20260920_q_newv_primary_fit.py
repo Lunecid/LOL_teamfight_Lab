@@ -279,7 +279,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         label_eval="frozen_fit85 for Q_CAL/Q_SELECT/TEST",
         engagement_def="T_h90",
         direction_threshold="Y=1[delta_V>0]; exact0 -> Y=0",
-        primary_contrast="DeltaBrier = Brier(q)-Brier(PT) on identical TEST rows",
+        primary_contrast="DeltaBrier = Brier(q)-Brier(PT_linear) on identical TEST rows",
+        pt_definition="PT_linear: StandardScaler+Logistic on [p_pre, time_minutes]; no spline/interaction",
+        q_cal_role="LGBM early_stopping only; no post-hoc probability calibrator for logit/PT/b_p",
         tau=0.001,
         generated=datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds"),
     )
@@ -332,8 +334,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         note=(
             "Selected on Q_SELECT only; TEST scored after freeze. "
             "OOF TRAIN labels; eval labels from frozen fit85. "
-            "DeltaBrier = Brier(q)-Brier(PT)."
+            "DeltaBrier = Brier(q)-Brier(PT_linear). "
+            "Q_CAL used for LGBM early_stopping only (no q calibrator in this run)."
         ),
+        pt_alias="PT_linear",
     )
     (OUT / "primary_table.json").write_text(json.dumps(scrub(payload), indent=2) + "\n", encoding="utf-8")
 
@@ -366,11 +370,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     d = boot[f"{winner}_minus_PT"]
     lines += [
         "",
-        f"### Primary contrast: ΔBrier(`{winner}` − PT)",
+        f"### Primary contrast: ΔBrier(`{winner}` − PT_linear)",
         "",
         f"- estimate={fmt(d['estimate'], 5)}  (negative ⇒ q better)",
         f"- 95% CI=[{fmt(d['ci95'][0], 5)}, {fmt(d['ci95'][1], 5)}]",
         f"- τ=0.001 interpretation threshold (a priori)",
+        f"- PT_linear := StandardScaler+Logistic on [p_pre, time_minutes]",
+        f"- Q_CAL: LGBM early_stopping only (no post-hoc q calibrator)",
         "",
         "## B40 (new p_pre)",
         "",
@@ -379,12 +385,23 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         lines += ["| Model | Brier | AUC |", "|---|---:|---:|"]
         for n, sc in sorted(b40_scores.items(), key=lambda kv: kv[1]["brier"]):
             lines.append(f"| {n} | {fmt(sc['brier'])} | {fmt(sc['auc'])} |")
+        bkey = f"B40_{winner}_minus_PT"
+        if bkey in boot:
+            db = boot[bkey]
+            lines += [
+                "",
+                f"### B40 contrast: ΔBrier(`{winner}` − PT_linear)",
+                "",
+                f"- estimate={fmt(db['estimate'], 5)}",
+                f"- 95% CI=[{fmt(db['ci95'][0], 5)}, {fmt(db['ci95'][1], 5)}]",
+                f"- P(Δ>0)={fmt(db.get('p_gt0', float('nan')), 4)}",
+            ]
     md = REPO / "docs" / "Q_NEWV_FIT85_PRIMARY_20260920.md"
     md.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("wrote", OUT / "primary_table.json", md, flush=True)
     print(
         f"TEST {winner} Brier={fmt(test_scores[winner]['brier'])} "
-        f"PT={fmt(test_scores['PT']['brier'])} "
+        f"PT_linear={fmt(test_scores['PT']['brier'])} "
         f"ΔBrier={fmt(d['estimate'], 5)}",
         flush=True,
     )

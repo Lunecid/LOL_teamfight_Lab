@@ -130,23 +130,27 @@ wave-4 **Expanded embedding MLP와 동일 아키텍처·사전 설정**으로 �
 |---|---|
 | constant | TRAIN SVI 발생률 |
 | \(b(p)\) | \(p_{\mathrm{pre}}\)만 |
-| PT | \(p_{\mathrm{pre}}\)+time — **주 기준선** |
+| **PT_linear** (코드 키 `PT`) | \(p_{\mathrm{pre}}\)+time, 선형 로지스틱 — **이번 주 기준선** |
+| PT_flex (후속) | 스플라인·상호작용 등 유연 \(p,t\) — 새 라벨로만 재적합, 보조 대비 |
 | logit / LGBM / (선택 MLP) | 더 넓은 사전 특징 — MLP는 V 승자와 무관한 **후보** |
 
 모두 **새 OOF(또는 역할별) 라벨·새 \(p_{\mathrm{pre}}\)**로 적합. 구 V PT 재사용 금지.
 
-절차:
+절차 (계약 목표):
 
 > **TRAIN에서 학습·조기종료 → Q_CAL에서 q 보정 → Q_SELECT에서 후보 선택 → 규칙 동결 → TEST 평가**
+
+**실행 현실 (2026-09-20 primary):** Q_CAL은 LGBM **early stopping**에만 사용. logit / PT / \(b(p)\)에 **별도 확률 보정기 없음**. 이 표를 “Q_CAL 보정 완료 비교”라고 쓰지 말 것. 보정 버전은 별도 실행·문서.
 
 선정: Q_SELECT **경기 가중 Brier** (전체 T). \(L_{\mathrm{time}}\)을 q에 복사하지 않음.  
 주 대비 (TEST, 동일 행·동일 가중):
 
 \[
-\Delta\mathrm{Brier}=\mathrm{Brier}(q)-\mathrm{Brier}(\mathrm{PT})
+\Delta\mathrm{Brier}=\mathrm{Brier}(q)-\mathrm{Brier}(\mathrm{PT}_{\mathrm{linear}})
 \]
 
-(음수 ⇒ q 손실 더 작음). 점추정·match bootstrap = 같은 가중 정의. \(\tau=0.001\).
+(음수 ⇒ q 손실 더 작음). 점추정·match bootstrap = 같은 가중 정의. \(\tau=0.001\).  
+해석 범위: [Q_RESULT_SCOPE_LOCK_20260920.md](Q_RESULT_SCOPE_LOCK_20260920.md).
 
 ---
 
