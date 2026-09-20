@@ -28,13 +28,13 @@ Let \(W\in\{0,1\}\) be the match winner (blue = 1). The evaluator
 \widehat V(x_t)=\widehat{\Pr}(W=1\mid x_t)
 \]
 
-is a multilayer perceptron on an expanded tabular state representation, fit under the locked **fit85** match-holdout protocol (`A_MLP_expanded`, bundle sha16 `ac459cc4397630a9`). Weights are **frozen** for all ΔV / SVI / \(q\) analyses in this paper. Changing \(\widehat V\) would redefine \(p_{\mathrm{pre}}\), \(\Delta\widehat V\), \(Y_{\mathrm{SVI}}\), and balance slices (including B40); we therefore do not retune \(V\) to improve direction AUC.
+is a multilayer perceptron on an expanded tabular state representation, fit under the locked **fit85** match-holdout protocol (`A_MLP_expanded`, bundle sha16 `ac459cc4397630a9`). The weights of this bundle are **frozen** for every evaluation-role computation in this paper (Q_CAL, Q_SELECT, 15.16 TEST, and the external cohorts). The 15.14 TRAIN rows used to fit \(q\) are labeled differently: five match-fold evaluators \(\widehat V^{(-k)}\) with the same architecture, preprocessing, early-stopping rule and V_CAL calibration step are refit without fold \(k\)'s matches, and \(p_{\mathrm{pre}}\), \(\Delta\widehat V\), \(Y_{\mathrm{SVI}}\) and B40 for a TRAIN engagement all come from the same \(\widehat V^{(-k)}\) (§5). The frozen bundle never labels its own training matches. Changing \(\widehat V\) would redefine \(p_{\mathrm{pre}}\), \(\Delta\widehat V\), \(Y_{\mathrm{SVI}}\), and balance slices (including B40); we therefore do not retune \(V\) to improve direction AUC.
 
 **Role of \(V\):** a **measurement** model of match win probability at a snapshot. Its quality is assessed by proper scores and discrimination of \(W\) (\(V\to W\)), separately from whether pre-state predicts the **sign** of engagement-interval change (\(q\to\mathrm{SVI}\)).
 
 ---
 
-## 3. Interval change and signed value indicator (SVI)
+## 3. Interval change and strategic value improvement (SVI)
 
 For each engagement with pre-cutoff state \(x_{\mathrm{pre}}\) and defined post-endpoint state \(x_{\mathrm{post}}\),
 
@@ -50,11 +50,13 @@ Y_{\mathrm{SVI}}
 \mathbf{1}[\Delta\widehat V>0].
 \]
 
-Interpretation (locked): \(Y_{\mathrm{SVI}}=1\) means the **estimated** blue win probability rose over the engagement interval under the frozen evaluator — not that blue necessarily became the match favorite, and not a causal attribution that “the fight alone” produced exactly \(\Delta\widehat V\) percentage points (other concurrent state updates may enter the same window).
+\(Y_{\mathrm{SVI}}=0\) therefore covers both a decrease and an exactly unchanged estimate (\(\Delta\widehat V=0\)). Engagements whose pre- or post-state score is not finite are excluded before labeling rather than coded 0; the 15.14 out-of-fold training labels contain one exact zero.
+
+Interpretation (locked): \(Y_{\mathrm{SVI}}=1\) means the **estimated** blue win probability rose over the engagement interval under the frozen evaluator — not that blue necessarily became the match favorite, and not a causal attribution that “the fight alone” produced exactly the observed change (\(100\,\Delta\widehat V\) percentage points; e.g. \(0.70\to0.60\) is \(\Delta\widehat V=-0.10\), i.e. \(-10\) percentage points) (other concurrent state updates may enter the same window).
 
 Primary prediction target: **direction** \(Y_{\mathrm{SVI}}\). Magnitude regression on \(\Delta\widehat V\) is out of scope for this journal version.
 
-**B40:** engagements with \(p_{\mathrm{pre}}=\widehat V(x_{\mathrm{pre}})\) in a balanced neighborhood used in the locked tables (40-point-style balance slice as implemented in RR12; n=5423 on 15.16 TEST). Reported as a **key conditional** evaluation alongside all-T, not as a retuned primary.
+**B40:** engagements with \(p_{\mathrm{pre}}=\widehat V(x_{\mathrm{pre}})\in[0.40,0.60]\) — a 20-percentage-point balanced band centred on 0.5, not a ±0.40 band — recomputed from the frozen fit85 \(p_{\mathrm{pre}}\); on 15.16 TEST, n=5 423 engagements from 4 945 matches. Reported as a **key conditional** evaluation alongside all-T, not as a retuned primary.
 
 ---
 
@@ -89,6 +91,13 @@ We do not expand Transformer / GNN / TabM candidates for this version.
 | Primary held-out evaluation | **15.16** TEST engagements | n=32 981 rows, 24 020 matches (all-T tables) |
 | External score-only | **KR 16.13**, **NA1 16.13** (main); smaller 16.14/16.15 cohorts scoped | Dual-stage \(V\to W\) and \(q\to\mathrm{SVI}\) on **common-valid** rows |
 
+**Two evaluator paths.**
+
+| Rows | Evaluator defining \(p_{\mathrm{pre}}\), \(\Delta\widehat V\), \(Y_{\mathrm{SVI}}\), B40 | Rule |
+|---|---|---|
+| 15.14 TRAIN (fitting \(q\) and the PT baselines) | \(\widehat V^{(-k)}\), \(k=1,\dots,5\), match-level folds | No information from fold \(k\)'s matches enters that evaluator's preprocessing, weights, early-stop holdout, or calibrator |
+| 15.15 Q_CAL / Q_SELECT, 15.16 TEST, 16.x external | Frozen fit85 bundle | Same bundle, preprocessing and calibration for every row |
+
 External application is **score-only**: no refit of \(V\) or \(q\) weights; fail-closed if keys or feature order mismatch. Small external cohorts are not averaged into a transfer-success claim.
 
 ---
@@ -108,7 +117,7 @@ External application is **score-only**: no refit of \(V\) or \(q\) weights; fail
 \mathrm{BS}=\mathrm{MCB}-\mathrm{DSC}+\mathrm{UNC}.
 \]
 
-CORP is a **score decomposition** on that sample. It is not a fitted production calibrator and not a causal mechanism of gameplay. Absolute MCB can look small relative to UNC≈0.25 while still mattering at the \(O(10^{-3})\) scale of our ΔBrier.
+CORP is a **score decomposition** on that sample. No bootstrap intervals were computed for CORP components, for the \(V\to W\) tables, for the horizon and next-objective tables, or for the external cohorts; intervals are reported only for the paired ΔBrier contrasts (RR12, RR4) and the matched quiet contrast (RR3). It is not a fitted production calibrator and not a causal mechanism of gameplay. Absolute MCB can look small relative to UNC≈0.25 while still mattering at the \(O(10^{-3})\) scale of our ΔBrier.
 
 ---
 
@@ -118,7 +127,7 @@ CORP is a **score decomposition** on that sample. It is not a fitted production 
 |---|---|---|
 | Quiet vs fight \(\lvert\Delta V\rvert\) (matched) | Is fight-interval change larger than quiet matched windows? | Coverage≈28%; not ATT |
 | Triad (direction / mean / scale) | Do the three objects disagree across \(p_{\mathrm{pre}}\)? | Not proof of predictability |
-| λ·\(s_Q\) small-change filters | Does all-T lift vanish if tiny ΔV rows are down-weighted? | Post-hoc; \(s_Q\) often p-only (64.9%) |
+| λ·\(s_Q\) small-change filters | Does all-T lift vanish if rows with \(\lvert\Delta\widehat V\rvert<\lambda\,s_Q\) are excluded (subsample evaluation; excluded counts reported)? | Post-hoc; \(s_Q\) often p-only (64.9%) |
 | Material / next-objective tables | Does SVI sign correspond to observable nets / upcoming elite objectives? | Correspondence ≠ \(q\) accuracy |
 | Horizon h60/90/120 | How often does SVI flip; how often endpoints coincide? | Shared endpoints inflate agree |
 

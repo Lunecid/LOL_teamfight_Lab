@@ -1,0 +1,29 @@
+# T001 verification log 2026-09-20T12:15:18Z
+$ grep -nE 'signed value indicator|40-point|down-weighted|Blue win rates' docs/journal_manuscript_v1/*.md
+
+$ grep -c 'percentage points' docs/journal_manuscript_v1/02_METHODS_CORE.md
+1
+
+$ grep -c 'frozen — not redesigned' docs/journal_manuscript_v1/01_OUTLINE_AND_CLAIM_EVIDENCE.md
+0
+
+$ grep -c 'Two evaluator paths' docs/journal_manuscript_v1/02_METHODS_CORE.md
+1
+
+$ grep -c 'V\^{(-k)}' docs/journal_manuscript_v1/02_METHODS_CORE.md
+2
+
+$ grep -o 'V\^{(-k)}' docs/journal_manuscript_v1/02_METHODS_CORE.md | wc -l
+3
+
+$ grep -cE '6.{1,3}004 of 9.{1,3}934' docs/journal_manuscript_v1/03_RESULTS.md
+1
+
+$ grep -c 'no interval' docs/journal_manuscript_v1/01_OUTLINE_AND_CLAIM_EVIDENCE.md
+3
+
+$ git diff --name-only HEAD
+docs/journal_manuscript_v1/01_OUTLINE_AND_CLAIM_EVIDENCE.md
+docs/journal_manuscript_v1/02_METHODS_CORE.md
+docs/journal_manuscript_v1/03_RESULTS.md
+

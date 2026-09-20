@@ -6,7 +6,7 @@
 
 ## 1. Match win-probability quality of the frozen evaluator (\(V\to W\))
 
-On the 15.16 timeline evaluation (overall n=347 234), frozen fit85 \(\widehat V\) attains Brier **0.1552** and AUC **0.8542**. CORP decomposition attributes most of the gap below UNC≈0.25 to discrimination (DSC **0.0948**) with a small miscalibration component (MCB **0.0002**) [RR6a].
+On the 15.16 timeline evaluation (n=347 234 bucket-spaced time-state queries from 60 190 matches; match-weighted scores; no bootstrap interval for this table), frozen fit85 \(\widehat V\) attains Brier **0.1552** and AUC **0.8542**. CORP decomposition attributes most of the gap below UNC≈0.25 to discrimination (DSC **0.0948**) with a small miscalibration component (MCB **0.0002**) [RR6a].
 
 Performance is **time-conditional**: the early band \(t\in[2,10)\) is weaker (Brier **0.2283**, AUC **0.6642**) than later bands (e.g. \(t\in[20,30)\): Brier **0.0891**, AUC **0.9496**). We report this as measurement context, not as a reason to retune \(V\) on the test patch.
 
@@ -29,7 +29,7 @@ On the matchable quiet subset (same match, close \(p\) and \(t\), equal length; 
 
 When kill differentials are decided, match-weighted sign agreement with SVI is **0.904** (all-T) and **0.928** (B40) [RR5a]. Other axes (epic / structure / objective / alive) show lower agreement and higher tie shares. Material features overlap inputs to \(\widehat V\); these tables are **correspondence**, not independent fight-winner accuracy and not \(q\) accuracy.
 
-In a 180 s window after the engagement endpoint, among decided first elite objectives, Blue win rates are **0.604** after SVI+ and **0.396** after SVI− [RR5b]. Incomplete follow-up is dominated by `game_ended_in_window_no_objective` (8112 of 32 981), not observation censoring (0 in this table).
+In a 180 s window after the engagement endpoint, among cases in which a first elite objective (Baron, dragon, Herald, Horde, Atakhan) is credited to one team, the share credited to Blue is **0.604** after SVI+ (6 004 of 9 934 decided cases) and **0.396** after SVI− (4 072 of 10 277) [RR5b]. These are unweighted case counts; they are neither match win rates nor \(q\) accuracy. Incomplete follow-up is dominated by `game_ended_in_window_no_objective` (8112 of 32 981), not observation censoring (0 in this table).
 
 ### 2.4 Horizon endpoints
 
@@ -63,12 +63,12 @@ Thus, under the frozen evaluator and engagement definition, pre-state \(q\) impr
 | \(q\) | 5423 | 4945 | 0.2474 | 0.5669 |
 | PT_flex | 5423 | 4945 | 0.2495 | 0.5248 |
 
-ΔBrier(\(q\) − PT_flex) = **−0.00214**, CI **[−0.00422, −0.00003]** [RR12].  
+ΔBrier(\(q\) − PT_flex) = **−0.00214**, CI **[−0.00422, −0.00003]** [RR12, field `bootstrap.B40_q_minus_PT_flex`; the RR4 re-draw of the same contrast with a different bootstrap seed prints the upper bound as −0.0001 with an identical point estimate].  
 This is a **small exploratory** improvement: the interval’s upper end sits near zero, and we do **not** claim a clear gain of size ≥0.001. Heterogeneity \(H=D_{\mathrm{B40}}-D_{\mathrm{outside}}\) has CI covering zero (**[−0.00060, 0.00422]**); we do **not** conclude that balanced states are significantly harder than unbalanced ones.
 
 ### 3.3 Score decomposition on the same 15.16 rows
 
-On all-T, CORP gives [RR6a]:
+On all-T, the CORP decomposition gives the following point values (no bootstrap intervals) [RR6a]:
 
 | Model | Brier | MCB | DSC |
 |---|---:|---:|---:|
@@ -98,7 +98,7 @@ On common-valid rows with sealed feature order [RRX]:
 | KR 16.15 | 507 | 0.1533 | +0.0006 | — | — | — | — |
 | KR 16.14 pilot | 101 | 0.1560 | −0.0085 | — | — | — | — |
 
-**Main reading (KR/NA1 16.13):** the 15.16 Brier lift of \(q\) over PT_flex **does not hold**. Discrimination for \(q\) remains higher than for PT_flex on these cohorts, but a **larger miscalibration component** dominates the net Brier gap. \(V_{\mathrm{pre}}\) Brier ≈0.15 does not by itself validate external ΔV labels. CORP here is **diagnostic**; no external adapter was fitted or validated in this version. Smaller cohorts are reported for completeness and are not pooled into a success claim.
+**Main reading (KR/NA1 16.13):** the 15.16 Brier lift of \(q\) over PT_flex **does not hold**. Discrimination for \(q\) remains higher than for PT_flex on these cohorts, but a **larger miscalibration component** dominates the net Brier gap. \(V_{\mathrm{pre}}\) Brier ≈0.15 does not by itself validate external ΔV labels. CORP here is **diagnostic**; no external adapter was fitted or validated in this version. Smaller cohorts are reported for completeness and are not pooled into a success claim. No bootstrap intervals were computed for the external cohorts, so "does not hold" is an observed ordering of point estimates, not a tested difference. The companion transfer table against PT_linear (+0.00274 / +0.00342 for KR / NA1 16.13) uses a different baseline and is not the quantity shown here.
 
 ---
 
@@ -109,6 +109,6 @@ On common-valid rows with sealed feature order [RRX]:
 | Can pre-state predict SVI direction? | Yes, limited (15.16 AUC 0.6403; beats PT_flex on Brier). |
 | Beyond \(p,t\)? | All-T ΔBrier −0.00373 (CI excludes 0). |
 | In balanced states? | Small exploratory lift; do not oversell. |
-| Does lift transfer? | Not on main KR/NA1 16.13 under score-only freeze. |
+| Does lift transfer? | Not on main KR/NA1 16.13 under score-only freeze (point-estimate ordering; no interval). |
 
 Artifacts: `outputs/review_response_rr12_20260920/`, `..._rr6a_corp_.../`, `..._rrx_external_.../`, and companion RR3–RR5 docs linked from `RESPONSE_EVIDENCE_MATRIX_20260920.md`.
