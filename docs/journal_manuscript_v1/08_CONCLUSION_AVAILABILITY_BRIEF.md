@@ -6,9 +6,9 @@
 
 This article asked how much of a fight's consequence is visible in public state before the fight starts, and answered it with a target linked to the match: the direction of change in estimated win probability across the engagement interval under a frozen evaluator. Within teamfights and within skirmishes, a regularized logistic model on pre-fight state lowers the match-weighted Brier score relative to a spline baseline in win probability and time, by about 0.0037 and 0.0034 on the held-out patch, with match-cluster bootstrap intervals that exclude zero. The gain is small next to the irreducible uncertainty of a near-even outcome, and that is the finding: pre-fight public state carries a measurable but modest amount of information about where a fight will move the match, once the two things everyone already knows, the current win probability and the clock, are taken out.
 
-The verification stack bounds the claim. The evaluator's own quality is reported separately; fight intervals move the estimate more than matched quiet intervals; the label agrees with material and objective outcomes where those are decided; and the lift survives filters on small changes. The lift does not survive score-only transfer to a later patch and another region for teamfights, where the discrimination component still favours the model but miscalibration dominates.
+The verification stack bounds the claim. The evaluator's own quality is reported separately; fight intervals move the estimate more than matched quiet intervals; the label agrees with material and objective outcomes where those are decided; and the lift survives filters on small changes. In the external samples we evaluated, later patches and another region scored without refitting, the teamfight advantage was not observed; the discrimination component still favours the model while miscalibration dominates, and no intervals were computed there.
 
-Cohort-specific models are the right unit: pooling teamfights and skirmishes helps neither. Extending the design with a validated external adapter, and testing whether the label's direction can be read from finer participation counts, are the next steps; both are outside this version and are listed as preregistration-ready plans in the working notes.
+Cohort-specific models are the unit we keep: in the pooled training setting we examined, neither cohort gained. Extending the design with a validated external adapter, and testing whether the label's direction can be read from finer participation counts, are the next steps; both are outside this version and are listed as preregistration-ready plans in the working notes.
 
 ## Limitations — consolidated (from Discussion §6, Methods §0, contract §6)
 
@@ -43,5 +43,5 @@ Open items carried from `docs/DATA_AVAILABILITY.md` §8 and `docs/tog_manuscript
 | Fight intervals move the estimate more than matched quiet intervals | Results §2.2 (0.0633 [0.0612, 0.0654]) | supported (scale contrast, not causal) |
 | Label agrees with material/objective outcomes where decided | Results §2.3 (0.904; 0.604 vs 0.396) | correspondence only |
 | Lift survives small-change filters | Results §4 | post-hoc |
-| External T lift does not hold; discrimination still favours model | Results §5 (no intervals) | ordering only |
-| Pooling helps neither | Results §3.4 | secondary |
+| External T advantage not observed in the samples evaluated; discrimination still favours model | Results §5 (no intervals) | ordering only |
+| Pooled training did not improve either cohort (setting examined) | Results §3.4; sigmoid-variant interval touches 0 | secondary; calibrator-dependent |
