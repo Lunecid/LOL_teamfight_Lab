@@ -1,0 +1,97 @@
+{
+  "outputs\\q_newv_fit85_20260920\\labels\\Q_CAL_h90.npz": {
+    "sha16": "1890d2ba7970a093",
+    "mtime": 1789837165.9256134,
+    "size": 262127
+  },
+  "outputs\\q_newv_fit85_20260920\\labels\\Q_CAL_h90_meta.json": {
+    "sha16": "b3a99052fa72c910",
+    "mtime": 1789837165.9266136,
+    "size": 251
+  },
+  "outputs\\q_newv_fit85_20260920\\labels\\Q_SELECT_h90.npz": {
+    "sha16": "4f52aff6d252fe15",
+    "mtime": 1789837176.7371302,
+    "size": 257508
+  },
+  "outputs\\q_newv_fit85_20260920\\labels\\Q_SELECT_h90_meta.json": {
+    "sha16": "46ea50983377f3c0",
+    "mtime": 1789837176.7386348,
+    "size": 253
+  },
+  "outputs\\q_newv_fit85_20260920\\labels\\TEST_h90.npz": {
+    "sha16": "0a2e977b231acf85",
+    "mtime": 1789837203.7315128,
+    "size": 806362
+  },
+  "outputs\\q_newv_fit85_20260920\\labels\\TEST_h90_meta.json": {
+    "sha16": "8e3c6416e9d9c403",
+    "mtime": 1789837203.7325132,
+    "size": 249
+  },
+  "outputs\\q_newv_fit85_20260920\\labels\\TRAIN_oof_h90.npz": {
+    "sha16": "0727296ef7eda5f8",
+    "mtime": 1789864308.010005,
+    "size": 974745
+  },
+  "outputs\\q_newv_fit85_20260920\\labels\\TRAIN_oof_h90_meta.json": {
+    "sha16": "14870768b7fde836",
+    "mtime": 1789864308.0110044,
+    "size": 3098
+  },
+  "outputs\\q_newv_fit85_20260920\\labels\\TRAIN_oof_STATUS.json": {
+    "sha16": "f924a5e2be9cf217",
+    "mtime": 1789864308.0110044,
+    "size": 409
+  },
+  "outputs\\q_newv_fit85_20260920\\oof_evaluators\\bundle_oof_fold0.joblib": {
+    "sha16": "ba8d93bb1e62e14d",
+    "mtime": 1789864217.7706318,
+    "size": 31589
+  },
+  "outputs\\q_newv_fit85_20260920\\oof_evaluators\\bundle_oof_fold1.joblib": {
+    "sha16": "1663c9a16a203066",
+    "mtime": 1789864245.1667132,
+    "size": 31605
+  },
+  "outputs\\q_newv_fit85_20260920\\oof_evaluators\\bundle_oof_fold2.joblib": {
+    "sha16": "baafd1a145bc6e0f",
+    "mtime": 1789864266.9170654,
+    "size": 31605
+  },
+  "outputs\\q_newv_fit85_20260920\\oof_evaluators\\bundle_oof_fold3.joblib": {
+    "sha16": "a1596cfa3bf37eeb",
+    "mtime": 1789864287.6467292,
+    "size": 31621
+  },
+  "outputs\\q_newv_fit85_20260920\\oof_evaluators\\bundle_oof_fold4.joblib": {
+    "sha16": "021cf864a387097f",
+    "mtime": 1789864307.766935,
+    "size": 31605
+  },
+  "outputs\\q_newv_fit85_20260920\\oof_evaluators\\V_oof_fold0_mlp_expanded.joblib": {
+    "sha16": "cd52698d7a1ce4e4",
+    "mtime": 1789864217.765478,
+    "size": 587100
+  },
+  "outputs\\q_newv_fit85_20260920\\oof_evaluators\\V_oof_fold1_mlp_expanded.joblib": {
+    "sha16": "dd31cc0dc3365eca",
+    "mtime": 1789864245.1626973,
+    "size": 587100
+  },
+  "outputs\\q_newv_fit85_20260920\\oof_evaluators\\V_oof_fold2_mlp_expanded.joblib": {
+    "sha16": "d5eda9faf9b21cde",
+    "mtime": 1789864266.9115374,
+    "size": 587100
+  },
+  "outputs\\q_newv_fit85_20260920\\oof_evaluators\\V_oof_fold3_mlp_expanded.joblib": {
+    "sha16": "a994e851b53118f8",
+    "mtime": 1789864287.641665,
+    "size": 587100
+  },
+  "outputs\\q_newv_fit85_20260920\\oof_evaluators\\V_oof_fold4_mlp_expanded.joblib": {
+    "sha16": "5d8445d5ae2adb7f",
+    "mtime": 1789864307.7614293,
+    "size": 587100
+  }
+}

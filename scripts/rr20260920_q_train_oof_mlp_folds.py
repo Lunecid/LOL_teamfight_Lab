@@ -191,11 +191,15 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             print(f"  fold{k}: V-bucket matches={len(fold_matches[k])}", flush=True)
     else:
         TR = yTR = gTR = CA = yCA = gCA = schema = None  # unused when reusing
-        # Match sets from engagement fold roles (same leave-match guarantee)
+        # Held-match sets must match V^(-k) fit scope (n_held_matches), not eng-role
+        # match counts (eng ⊂ V-held; ~1k V-only matches per fold have no eng in that role).
+        print("reuse mode: load V-bucket fold match sets (no fit)…", flush=True)
+        TR_reuse = D.load_v_rows(L, "MAIN", all_roles, bucket_only=True)
+        gTR_reuse = TR_reuse["match"].astype(str)
+        sub_reuse = TR_reuse["sub_role"].astype(str)
         for k in range(C.N_FOLDS):
-            E0 = D.load_engagements(L, "MAIN", [f"fold{k}"], states=False, counts=False)
-            fold_matches[k] = set(E0["match"].astype(str).tolist())
-            print(f"  fold{k}: eng-role matches={len(fold_matches[k])} (reuse mode)", flush=True)
+            fold_matches[k] = set(gTR_reuse[sub_reuse == f"fold{k}"].tolist())
+            print(f"  fold{k}: V-bucket matches={len(fold_matches[k])} (reuse mode)", flush=True)
 
     expected_eng = 0
     for k in range(C.N_FOLDS):
@@ -239,6 +243,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                     "reuse-evaluators missing files:\n  " + "\n  ".join(missing)
                 )
             fold_obj = joblib.load(fold_path)
+            assert len(fold_matches[k]) == int(fold_obj["n_held_matches"]), (
+                k,
+                len(fold_matches[k]),
+                fold_obj["n_held_matches"],
+            )
             bun_obj = joblib.load(bun_path)
             bun = bun_obj["bundle"]
             pack = fold_obj["mlp"]

@@ -1,0 +1,496 @@
+{
+  "generated": "2026-09-20T23:51:35+09:00",
+  "epistemic": "EXPLORATORY_SCALE_SPLIT_PRIOR_TEST_EXPOSURE",
+  "role_tag": "EXPLORATORY_SCALE_SPLIT_PRIOR_TEST_EXPOSURE",
+  "source_commit": "1229b1d5a86f976d0f9f0922ea48b1e7b1a92c9e",
+  "contract": "docs/SCALE_SPLIT_EXPERIMENT_CONTRACT_20260920.md",
+  "task": "T008",
+  "cohort": "S",
+  "cohort_mask_rule": "cohort==0 & fine==1 & valid_h90==1",
+  "evaluator_policy": "frozen fit85 for TEST/Q_CAL/Q_SELECT; T fold V^(-k) reused for TRAIN OOF (no refit)",
+  "script_note": "reuse mode builds fold_matches from V-bucket rows (not eng-role) so M2 n_held_matches matches; eng-role is strict subset (~1k V-only matches/fold)",
+  "T_freeze_untouched": true,
+  "T_freeze_changed_files": [],
+  "row_counts": {
+    "TEST": 101205,
+    "Q_CAL": 31302,
+    "Q_SELECT": 31059,
+    "TRAIN_oof": 123049,
+    "TRAIN_folds": [
+      {
+        "fold": 0,
+        "n": 24030,
+        "expected": 24030,
+        "delta": 0
+      },
+      {
+        "fold": 1,
+        "n": 25005,
+        "expected": 25005,
+        "delta": 0
+      },
+      {
+        "fold": 2,
+        "n": 24520,
+        "expected": 24520,
+        "delta": 0
+      },
+      {
+        "fold": 3,
+        "n": 24690,
+        "expected": 24690,
+        "delta": 0
+      },
+      {
+        "fold": 4,
+        "n": 24804,
+        "expected": 24804,
+        "delta": 0
+      }
+    ]
+  },
+  "census": {
+    "detail": [
+      {
+        "role": "TEST",
+        "n": 101205,
+        "expected": 101205,
+        "delta": 0
+      },
+      {
+        "role": "Q_CAL",
+        "n": 31302,
+        "expected": 31302,
+        "delta": 0
+      },
+      {
+        "role": "Q_SELECT",
+        "n": 31059,
+        "expected": 31059,
+        "delta": 0
+      },
+      {
+        "fold": 0,
+        "n": 24030,
+        "expected": 24030,
+        "delta": 0
+      },
+      {
+        "fold": 1,
+        "n": 25005,
+        "expected": 25005,
+        "delta": 0
+      },
+      {
+        "fold": 2,
+        "n": 24520,
+        "expected": 24520,
+        "delta": 0
+      },
+      {
+        "fold": 3,
+        "n": 24690,
+        "expected": 24690,
+        "delta": 0
+      },
+      {
+        "fold": 4,
+        "n": 24804,
+        "expected": 24804,
+        "delta": 0
+      }
+    ],
+    "PASS": true
+  },
+  "integrity": {
+    "key_separation_S_vs_T": {
+      "n_S_keys": 286615,
+      "n_T_keys": 93171,
+      "n_intersection": 0,
+      "PASS": true,
+      "example_intersection": []
+    },
+    "fold_separation": {
+      "folds": [
+        {
+          "fold": 0,
+          "n_V_held": 14628,
+          "n_held_joblib": 14628,
+          "n_S_matches": 11962,
+          "n_T_matches": 5732,
+          "S_subset_V": true,
+          "T_subset_V": true,
+          "V_sha16": "0e4eead13b0c7022",
+          "S_match_sha16": "f94081d361581723",
+          "T_match_sha16": "20d0e8432b62ad8f",
+          "note": "S/T match sets are subsets of shared V-held fold partition (not equal to each other)",
+          "PASS": true
+        },
+        {
+          "fold": 1,
+          "n_V_held": 15017,
+          "n_held_joblib": 15017,
+          "n_S_matches": 12352,
+          "n_T_matches": 5858,
+          "S_subset_V": true,
+          "T_subset_V": true,
+          "V_sha16": "9aa8afc3dbb77289",
+          "S_match_sha16": "cb1a4842e9ce528a",
+          "T_match_sha16": "2237ec3f2723ff0d",
+          "note": "S/T match sets are subsets of shared V-held fold partition (not equal to each other)",
+          "PASS": true
+        },
+        {
+          "fold": 2,
+          "n_V_held": 14796,
+          "n_held_joblib": 14796,
+          "n_S_matches": 12138,
+          "n_T_matches": 5725,
+          "S_subset_V": true,
+          "T_subset_V": true,
+          "V_sha16": "3f9250a344454b3f",
+          "S_match_sha16": "d6cfa32286b2bdc2",
+          "T_match_sha16": "4c2ddae6365ef3c9",
+          "note": "S/T match sets are subsets of shared V-held fold partition (not equal to each other)",
+          "PASS": true
+        },
+        {
+          "fold": 3,
+          "n_V_held": 14769,
+          "n_held_joblib": 14769,
+          "n_S_matches": 12138,
+          "n_T_matches": 5845,
+          "S_subset_V": true,
+          "T_subset_V": true,
+          "V_sha16": "455a989c0c6629c7",
+          "S_match_sha16": "4e249d654c2a514c",
+          "T_match_sha16": "8b974e60a1bd2dec",
+          "note": "S/T match sets are subsets of shared V-held fold partition (not equal to each other)",
+          "PASS": true
+        },
+        {
+          "fold": 4,
+          "n_V_held": 14958,
+          "n_held_joblib": 14958,
+          "n_S_matches": 12230,
+          "n_T_matches": 5829,
+          "S_subset_V": true,
+          "T_subset_V": true,
+          "V_sha16": "0d480ae11a1a6b75",
+          "S_match_sha16": "7f816a44d43a94fb",
+          "T_match_sha16": "fa1b5f65138265c3",
+          "note": "S/T match sets are subsets of shared V-held fold partition (not equal to each other)",
+          "PASS": true
+        }
+      ],
+      "PASS": true
+    },
+    "M2_n_held_matches": {
+      "folds": [
+        {
+          "fold": 0,
+          "len_fold_matches": 14628,
+          "n_held_matches": 14628,
+          "equal": true
+        },
+        {
+          "fold": 1,
+          "len_fold_matches": 15017,
+          "n_held_matches": 15017,
+          "equal": true
+        },
+        {
+          "fold": 2,
+          "len_fold_matches": 14796,
+          "n_held_matches": 14796,
+          "equal": true
+        },
+        {
+          "fold": 3,
+          "len_fold_matches": 14769,
+          "n_held_matches": 14769,
+          "equal": true
+        },
+        {
+          "fold": 4,
+          "len_fold_matches": 14958,
+          "n_held_matches": 14958,
+          "equal": true
+        }
+      ],
+      "PASS": true
+    },
+    "value_checks": {
+      "TEST": {
+        "n_rows": 101205,
+        "n_matches": 49730,
+        "n_unique_keys": 101205,
+        "no_duplicate_keys": true,
+        "y_matches_delta_sign": true,
+        "delta_matches_p_post_minus_p_pre": true,
+        "B40_from_same_p_pre": true,
+        "n_missing": 0,
+        "n_exact_zero": 0,
+        "valid_h90_all_1": true,
+        "pre_ok_note": "filtered at label build (column absent)",
+        "P_SVI_match_wtd": 0.5107415519998467,
+        "B40_n": 31675,
+        "delta_max_abs_residual": 2.9802322387695312e-08,
+        "PASS": true,
+        "expected_n": 101205,
+        "row_count_matches_expected": true
+      },
+      "Q_CAL": {
+        "n_rows": 31302,
+        "n_matches": 15254,
+        "n_unique_keys": 31302,
+        "no_duplicate_keys": true,
+        "y_matches_delta_sign": true,
+        "delta_matches_p_post_minus_p_pre": true,
+        "B40_from_same_p_pre": true,
+        "n_missing": 0,
+        "n_exact_zero": 0,
+        "valid_h90_all_1": true,
+        "pre_ok_note": "filtered at label build (column absent)",
+        "P_SVI_match_wtd": 0.5062480098896777,
+        "B40_n": 9698,
+        "delta_max_abs_residual": 2.9802322387695312e-08,
+        "PASS": true,
+        "expected_n": 31302,
+        "row_count_matches_expected": true
+      },
+      "Q_SELECT": {
+        "n_rows": 31059,
+        "n_matches": 15282,
+        "n_unique_keys": 31059,
+        "no_duplicate_keys": true,
+        "y_matches_delta_sign": true,
+        "delta_matches_p_post_minus_p_pre": true,
+        "B40_from_same_p_pre": true,
+        "n_missing": 0,
+        "n_exact_zero": 1,
+        "valid_h90_all_1": true,
+        "pre_ok_note": "filtered at label build (column absent)",
+        "P_SVI_match_wtd": 0.513904105462802,
+        "B40_n": 9580,
+        "delta_max_abs_residual": 2.9802322387695312e-08,
+        "PASS": true,
+        "expected_n": 31059,
+        "row_count_matches_expected": true
+      },
+      "TRAIN": {
+        "n_rows": 123049,
+        "n_matches": 60820,
+        "n_unique_keys": 123049,
+        "no_duplicate_keys": true,
+        "y_matches_delta_sign": true,
+        "delta_matches_p_post_minus_p_pre": true,
+        "B40_from_same_p_pre": true,
+        "n_missing": 0,
+        "n_exact_zero": 1,
+        "valid_h90_all_1": true,
+        "pre_ok_note": "filtered at label build (column absent)",
+        "P_SVI_match_wtd": 0.4981963691976847,
+        "B40_n": 39772,
+        "delta_max_abs_residual": 2.9802322387695312e-08,
+        "PASS": true,
+        "expected_n": 123049,
+        "row_count_matches_expected": true
+      }
+    },
+    "value_checks_PASS": true,
+    "PASS": true
+  },
+  "digests": {
+    "cohort_MAIN_TRAIN": {
+      "path": "C:\\Users\\todtj\\\ubb38\uc11c\\LOL_Teamfight\\outputs\\cohort_role_training_20260915\\cohorts\\MAIN_TRAIN_cohort.npz",
+      "exists": true,
+      "sha256": "71fbe5239e9cb76bf97466f1018092755f4f34f6ac941f337593b4cd2d0b1746",
+      "sha16": "71fbe5239e9cb76b",
+      "bytes": 3683569
+    },
+    "cohort_MAIN_VALIDATION": {
+      "path": "C:\\Users\\todtj\\\ubb38\uc11c\\LOL_Teamfight\\outputs\\cohort_role_training_20260915\\cohorts\\MAIN_VALIDATION_cohort.npz",
+      "exists": true,
+      "sha256": "a4efc653ebdf698a06dfbb6b2b33dca2ef2759d094fa22d210e14f4936622bf6",
+      "sha16": "a4efc653ebdf698a",
+      "bytes": 3760638
+    },
+    "cohort_MAIN_TEST": {
+      "path": "C:\\Users\\todtj\\\ubb38\uc11c\\LOL_Teamfight\\outputs\\cohort_role_training_20260915\\cohorts\\MAIN_TEST_cohort.npz",
+      "exists": true,
+      "sha256": "3239e4c7ac81678adf75e07ec1cc9035136c1572e82e06601695ad78bc162844",
+      "sha16": "3239e4c7ac81678a",
+      "bytes": 2966885
+    },
+    "fit85_bundle": {
+      "path": "outputs\\v_redesign_wave4_corrected_20260919\\evaluators\\A_MLP_expanded_evaluator.joblib",
+      "exists": true,
+      "sha256": "ac459cc4397630a953d672730caa687b50fc1edcd5a029928fad236fc5b204e3",
+      "sha16": "ac459cc4397630a9",
+      "bytes": 614147
+    },
+    "V_oof_fold0": {
+      "path": "outputs\\q_newv_fit85_20260920\\oof_evaluators\\V_oof_fold0_mlp_expanded.joblib",
+      "exists": true,
+      "sha256": "cd52698d7a1ce4e4ef03c60abf30a4493428abb53c79cc00704d6409aa383be3",
+      "sha16": "cd52698d7a1ce4e4",
+      "bytes": 587100
+    },
+    "bundle_oof_fold0": {
+      "path": "outputs\\q_newv_fit85_20260920\\oof_evaluators\\bundle_oof_fold0.joblib",
+      "exists": true,
+      "sha256": "ba8d93bb1e62e14d11bb8250793f738b020b0fba329d918de5181ea3b6d3ce42",
+      "sha16": "ba8d93bb1e62e14d",
+      "bytes": 31589
+    },
+    "V_oof_fold1": {
+      "path": "outputs\\q_newv_fit85_20260920\\oof_evaluators\\V_oof_fold1_mlp_expanded.joblib",
+      "exists": true,
+      "sha256": "dd31cc0dc3365eca89e1816db967ce4d1009347de4223290f38d23bab9256125",
+      "sha16": "dd31cc0dc3365eca",
+      "bytes": 587100
+    },
+    "bundle_oof_fold1": {
+      "path": "outputs\\q_newv_fit85_20260920\\oof_evaluators\\bundle_oof_fold1.joblib",
+      "exists": true,
+      "sha256": "1663c9a16a20306673ae4ab4f1557071ff205e704d822b4596349af954b691f3",
+      "sha16": "1663c9a16a203066",
+      "bytes": 31605
+    },
+    "V_oof_fold2": {
+      "path": "outputs\\q_newv_fit85_20260920\\oof_evaluators\\V_oof_fold2_mlp_expanded.joblib",
+      "exists": true,
+      "sha256": "d5eda9faf9b21cde827b515b077382fd9c16c074a1e0bf30f06faaa1e0eded33",
+      "sha16": "d5eda9faf9b21cde",
+      "bytes": 587100
+    },
+    "bundle_oof_fold2": {
+      "path": "outputs\\q_newv_fit85_20260920\\oof_evaluators\\bundle_oof_fold2.joblib",
+      "exists": true,
+      "sha256": "baafd1a145bc6e0f6e13d30e5c933fb2339b96a3315193c38bde5c2bcbf228af",
+      "sha16": "baafd1a145bc6e0f",
+      "bytes": 31605
+    },
+    "V_oof_fold3": {
+      "path": "outputs\\q_newv_fit85_20260920\\oof_evaluators\\V_oof_fold3_mlp_expanded.joblib",
+      "exists": true,
+      "sha256": "a994e851b53118f8d999613d5d77410b0b2c71960fc6e02fb4c56fb4368b24ba",
+      "sha16": "a994e851b53118f8",
+      "bytes": 587100
+    },
+    "bundle_oof_fold3": {
+      "path": "outputs\\q_newv_fit85_20260920\\oof_evaluators\\bundle_oof_fold3.joblib",
+      "exists": true,
+      "sha256": "a1596cfa3bf37eeb179e23ab234c0da3dc80f539fa2e82054e54f449bda6adad",
+      "sha16": "a1596cfa3bf37eeb",
+      "bytes": 31621
+    },
+    "V_oof_fold4": {
+      "path": "outputs\\q_newv_fit85_20260920\\oof_evaluators\\V_oof_fold4_mlp_expanded.joblib",
+      "exists": true,
+      "sha256": "5d8445d5ae2adb7f5e05c6105e22907f439cac0379665df45d89917ee6e3034e",
+      "sha16": "5d8445d5ae2adb7f",
+      "bytes": 587100
+    },
+    "bundle_oof_fold4": {
+      "path": "outputs\\q_newv_fit85_20260920\\oof_evaluators\\bundle_oof_fold4.joblib",
+      "exists": true,
+      "sha256": "021cf864a387097fe00ab1e0e807a8c0f6f948b1f72cee7168d2b742372d621c",
+      "sha16": "021cf864a387097f",
+      "bytes": 31605
+    },
+    "T_TEST_h90": {
+      "path": "outputs\\q_newv_fit85_20260920\\labels\\TEST_h90.npz",
+      "exists": true,
+      "sha256": "0a2e977b231acf855525accd4ad1e370b57700c39ed35848d0ecb206ea7bf663",
+      "sha16": "0a2e977b231acf85",
+      "bytes": 806362
+    },
+    "T_Q_CAL_h90": {
+      "path": "outputs\\q_newv_fit85_20260920\\labels\\Q_CAL_h90.npz",
+      "exists": true,
+      "sha256": "1890d2ba7970a093d022b093acc2794a84604145162edb5e49234507d4d00f38",
+      "sha16": "1890d2ba7970a093",
+      "bytes": 262127
+    },
+    "T_Q_SELECT_h90": {
+      "path": "outputs\\q_newv_fit85_20260920\\labels\\Q_SELECT_h90.npz",
+      "exists": true,
+      "sha256": "4f52aff6d252fe151ca5dfa7c1b9f519149abaacc1a26b7d9bc0e0577b65fec2",
+      "sha16": "4f52aff6d252fe15",
+      "bytes": 257508
+    },
+    "T_TRAIN_oof_h90": {
+      "path": "outputs\\q_newv_fit85_20260920\\labels\\TRAIN_oof_h90.npz",
+      "exists": true,
+      "sha256": "0727296ef7eda5f82b9d5766eb69343ffe7e950a69da5957e2a823701f768b88",
+      "sha16": "0727296ef7eda5f8",
+      "bytes": 974745
+    },
+    "S_TEST_h90": {
+      "path": "outputs\\q_newv_fit85_20260920_S\\labels\\TEST_h90.npz",
+      "exists": true,
+      "sha256": "dbf19eb4ea44112830a48a3b0781c9bce0e1f98a9cac41dd1a8c7c958ba9297b",
+      "sha16": "dbf19eb4ea441128",
+      "bytes": 2300256
+    },
+    "S_TEST_h90_meta": {
+      "path": "outputs\\q_newv_fit85_20260920_S\\labels\\TEST_h90_meta.json",
+      "exists": true,
+      "sha256": "5dfae34719b4e51d1a0b84777cea7c1aa5329fa98ca2fdadfbadc858334f10a3",
+      "sha16": "5dfae34719b4e51d",
+      "bytes": 336
+    },
+    "S_Q_CAL_h90": {
+      "path": "outputs\\q_newv_fit85_20260920_S\\labels\\Q_CAL_h90.npz",
+      "exists": true,
+      "sha256": "20c30c19e8829e0b0e958f74bc6f717ecb54c356d042024901c6ea2c634ca513",
+      "sha16": "20c30c19e8829e0b",
+      "bytes": 724973
+    },
+    "S_Q_CAL_h90_meta": {
+      "path": "outputs\\q_newv_fit85_20260920_S\\labels\\Q_CAL_h90_meta.json",
+      "exists": true,
+      "sha256": "e279f1fdb0e35991cfa2755e1cb5fba51f737b6c6a957282f1e2036368849733",
+      "sha16": "e279f1fdb0e35991",
+      "bytes": 335
+    },
+    "S_Q_SELECT_h90": {
+      "path": "outputs\\q_newv_fit85_20260920_S\\labels\\Q_SELECT_h90.npz",
+      "exists": true,
+      "sha256": "ae624fa71eb3c863667c1856d0c0925a92256d11f4ffcd1ce99887963b503b63",
+      "sha16": "ae624fa71eb3c863",
+      "bytes": 720178
+    },
+    "S_Q_SELECT_h90_meta": {
+      "path": "outputs\\q_newv_fit85_20260920_S\\labels\\Q_SELECT_h90_meta.json",
+      "exists": true,
+      "sha256": "77f388172071b7bc926e8a71d01d280492e8b5786f065278d9d9b11dc7eea3bb",
+      "sha16": "77f388172071b7bc",
+      "bytes": 338
+    },
+    "S_TRAIN_oof_h90": {
+      "path": "outputs\\q_newv_fit85_20260920_S\\labels\\TRAIN_oof_h90.npz",
+      "exists": true,
+      "sha256": "9b17363b36364d8d8b550b75700505b4f7e5d9dbd077158197ca6b93a8d7e60f",
+      "sha16": "9b17363b36364d8d",
+      "bytes": 2804549
+    },
+    "S_TRAIN_oof_h90_meta": {
+      "path": "outputs\\q_newv_fit85_20260920_S\\labels\\TRAIN_oof_h90_meta.json",
+      "exists": true,
+      "sha256": "cf16b04dc6249ba9cef31f30b4271c3edd2f6d3a3860da1f7c76ed4dddeda352",
+      "sha16": "cf16b04dc6249ba9",
+      "bytes": 4065
+    },
+    "S_TRAIN_oof_STATUS": {
+      "path": "outputs\\q_newv_fit85_20260920_S\\labels\\TRAIN_oof_STATUS.json",
+      "exists": true,
+      "sha256": "00c0c91262909d8508776e53532ba2429674d5e27f5395a9c1d4120b35fb91ba",
+      "sha16": "00c0c91262909d85",
+      "bytes": 412
+    }
+  },
+  "PASS": true
+}

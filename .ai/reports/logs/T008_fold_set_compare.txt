@@ -1,0 +1,5 @@
+fold0: v=14628 eng=13625 n_held=14628 eng_subset_v=True only_eng=0 only_v=1003 v_eq_held=True
+fold1: v=15017 eng=13963 n_held=15017 eng_subset_v=True only_eng=0 only_v=1054 v_eq_held=True
+fold2: v=14796 eng=13815 n_held=14796 eng_subset_v=True only_eng=0 only_v=981 v_eq_held=True
+fold3: v=14769 eng=13782 n_held=14769 eng_subset_v=True only_eng=0 only_v=987 v_eq_held=True
+fold4: v=14958 eng=13939 n_held=14958 eng_subset_v=True only_eng=0 only_v=1019 v_eq_held=True
