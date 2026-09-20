@@ -1,0 +1,221 @@
+{
+  "generated": "2026-09-21T00:28:10+09:00",
+  "epistemic": "EXPLORATORY_SCALE_SPLIT_PRIOR_TEST_EXPOSURE",
+  "role_tag": "EXPLORATORY_SCALE_SPLIT_PRIOR_TEST_EXPOSURE",
+  "contract": "docs/SCALE_SPLIT_EXPERIMENT_CONTRACT_20260920.md",
+  "source_commit": "06e856a0835bfaf0a332871da78c91547fdd4a66",
+  "note_T_numbers": "T numerical headlines cited from frozen RR12/RRX packs; not recomputed here except q_TS-on-T secondary.",
+  "table1_S_TEST": {
+    "q_S": {
+      "n": 101205,
+      "n_matches": 49730,
+      "brier": 0.24544390917866138,
+      "logloss": 0.6839957721347381,
+      "auc": 0.5767357825644206,
+      "p_pos": 0.5107415519998467
+    },
+    "q_T_to_S": {
+      "n": 101205,
+      "n_matches": 49730,
+      "brier": 0.24682696483766736,
+      "logloss": 0.6867843328870958,
+      "auc": 0.5624587161010087,
+      "p_pos": 0.5107415519998467
+    },
+    "q_TS": {
+      "n": 101205,
+      "n_matches": 49730,
+      "brier": 0.24556227448139137,
+      "logloss": 0.6842284544241516,
+      "auc": 0.5756876430414384,
+      "p_pos": 0.5107415519998467
+    },
+    "PT_flex_S": {
+      "n": 101205,
+      "n_matches": 49730,
+      "brier": 0.24889915259820108,
+      "logloss": 0.6909516999349248,
+      "auc": 0.5359721644725058,
+      "p_pos": 0.5107415519998467
+    },
+    "PT_linear_S": {
+      "n": 101205,
+      "n_matches": 49730,
+      "brier": 0.2491936648849474,
+      "logloss": 0.6915330422977464,
+      "auc": 0.5300612366230959,
+      "p_pos": 0.5107415519998467
+    },
+    "b_spline_S": {
+      "n": 101205,
+      "n_matches": 49730,
+      "brier": 0.24910569579404815,
+      "logloss": 0.6913567129626633,
+      "auc": 0.5301382511887297,
+      "p_pos": 0.5107415519998467
+    },
+    "b_linear_S": {
+      "n": 101205,
+      "n_matches": 49730,
+      "brier": 0.24918675035990503,
+      "logloss": 0.6915191765416745,
+      "auc": 0.5301382176960273,
+      "p_pos": 0.5107415519998467
+    },
+    "lgbm_state_S": {
+      "n": 31059,
+      "n_matches": 15282,
+      "brier": 0.24738251723961002,
+      "logloss": 0.687871305069397,
+      "auc": 0.5562886785914037
+    }
+  },
+  "table2_contrasts": {
+    "q_S_minus_PT_flex_S": {
+      "primary": true,
+      "n": 101205,
+      "n_matches": 49730,
+      "seed": 7,
+      "boot_reps": 2000,
+      "estimate": -0.0034552434195396693,
+      "ci95": [
+        -0.003822843373058933,
+        -0.003066133700555729
+      ],
+      "p_gt0": 0.0,
+      "note": "S TEST; primary"
+    },
+    "q_S_minus_q_T_to_S": {
+      "primary": false,
+      "n": 101205,
+      "n_matches": 49730,
+      "seed": 7,
+      "boot_reps": 2000,
+      "estimate": -0.0013830556590060114,
+      "ci95": [
+        -0.0016791319190243806,
+        -0.001082975519594704
+      ],
+      "p_gt0": 0.0,
+      "note": "S TEST; secondary transfer"
+    },
+    "q_S_minus_q_TS": {
+      "primary": false,
+      "n": 101205,
+      "n_matches": 49730,
+      "seed": 7,
+      "boot_reps": 2000,
+      "estimate": -0.00011836530273006742,
+      "ci95": [
+        -0.00024191512578068623,
+        5.1970946342127836e-06
+      ],
+      "p_gt0": 0.0345,
+      "note": "S TEST; secondary pooled"
+    },
+    "q_S_minus_PT_flex_S_B40": {
+      "primary": false,
+      "n": 31675,
+      "n_matches": 25039,
+      "seed": 7,
+      "boot_reps": 2000,
+      "estimate": -0.0021016509265807774,
+      "ci95": [
+        -0.0025614173371545624,
+        -0.0016018633268090547
+      ],
+      "p_gt0": 0.0,
+      "note": "S TEST \u2229 B40; secondary (within-S only)"
+    },
+    "q_TS_minus_q_T": {
+      "primary": false,
+      "n": 32981,
+      "n_matches": 24020,
+      "seed": 7,
+      "boot_reps": 2000,
+      "estimate": 0.0007052086331439494,
+      "ci95": [
+        0.00017717790286611243,
+        0.0012608909147895592
+      ],
+      "p_gt0": 0.994,
+      "note": "T TEST; secondary pooling cost"
+    }
+  },
+  "table3_CORP": {
+    "q_S": {
+      "label": "q_S",
+      "n": 101205,
+      "n_matches": 49730,
+      "brier": 0.24544390917866138,
+      "CORP": {
+        "MCB": 0.0003960445054514705,
+        "DSC": 0.004836754387424674,
+        "UNC": 0.24988461906063458,
+        "ECE": null,
+        "gap": 0.0
+      }
+    },
+    "PT_flex_S": {
+      "label": "PT_flex_S",
+      "n": 101205,
+      "n_matches": 49730,
+      "brier": 0.24889915259820108,
+      "CORP": {
+        "MCB": 0.0004182402086597703,
+        "DSC": 0.0014037066710932689,
+        "UNC": 0.24988461906063458,
+        "ECE": null,
+        "gap": 0.0
+      }
+    }
+  },
+  "table4_EXT_S": {
+    "KR_16.13": {
+      "label": "KR 16.13",
+      "ok": true,
+      "n": 15641,
+      "V_pre_brier": 0.18717376338711716,
+      "delta_brier_q_minus_PT": -0.0018021004143123909,
+      "delta_MCB": 0.001074787630745061,
+      "delta_DSC": 0.002876888045057452,
+      "pilot": false
+    },
+    "NA1_16.13": {
+      "label": "NA1 16.13",
+      "ok": true,
+      "n": 16100,
+      "V_pre_brier": 0.18709498765424734,
+      "delta_brier_q_minus_PT": -0.002035992679281451,
+      "delta_MCB": 0.0012724614999562456,
+      "delta_DSC": 0.0033084541792376965,
+      "pilot": false
+    },
+    "KR_16.15": {
+      "label": "KR 16.15",
+      "ok": true,
+      "n": 1307,
+      "V_pre_brier": 0.18291338047598119,
+      "delta_brier_q_minus_PT": -0.003252415077243276,
+      "delta_MCB": 0.0013965880392408092,
+      "delta_DSC": 0.004649003116484085,
+      "pilot": false
+    },
+    "KR_16.14_pilot": {
+      "label": "KR 16.14 pilot",
+      "ok": true,
+      "n": 285,
+      "V_pre_brier": 0.1787322160723194,
+      "delta_brier_q_minus_PT": 0.0035019911255725344,
+      "delta_MCB": 0.009130552180789814,
+      "delta_DSC": 0.005628561055217279,
+      "pilot": true
+    }
+  },
+  "sources": {
+    "paired_contrasts": "outputs/scale_split_TvsS_20260920/paired_contrasts.json",
+    "rrx_S": "outputs/review_response_rrx_external_20260920_S/rrx_external_results.json",
+    "primary_S": "outputs/q_newv_fit85_20260920_S/primary_table.json",
+    "rr12_S_qS": "outputs/review_response_rr12_20260920_S_qS/paired_ci.json"
+  }
+}

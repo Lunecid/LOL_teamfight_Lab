@@ -356,11 +356,24 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         default=None,
         help="path to q joblib (default: <QDIR>/models/logit_state.joblib)",
     )
+    ap.add_argument(
+        "--out-suffix",
+        type=str,
+        default="",
+        help="appended to OUT dirname and docs filenames; required when --q-model is non-default",
+    )
     args = ap.parse_args(argv)
 
-    LAB, QDIR, OUT = _paths_for_tag(args.cohort_tag)
+    LAB, QDIR, OUT_BASE = _paths_for_tag(args.cohort_tag)
     epistemic = ROLE_S if args.cohort_tag == "S" else ROLE
-    q_model_path = Path(args.q_model) if args.q_model else (QDIR / "models" / "logit_state.joblib")
+    default_q = (QDIR / "models" / "logit_state.joblib").resolve()
+    q_model_path = Path(args.q_model).resolve() if args.q_model else default_q
+    if args.q_model is not None and q_model_path != default_q and not args.out_suffix:
+        raise SystemExit(
+            "non-default --q-model requires --out-suffix (would overwrite frozen outputs)"
+        )
+    suffix = args.out_suffix or ""
+    OUT = Path(str(OUT_BASE) + suffix) if suffix else OUT_BASE
 
     for need in (
         LAB / "TRAIN_oof_h90.npz",
@@ -850,12 +863,15 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         f"Artifacts: `{OUT.as_posix()}/`",
         "",
     ]
-    if args.cohort_tag == "T":
+    if args.cohort_tag == "T" and not suffix:
         md = REPO / "docs" / "REVIEW_RESPONSE_RR12_RESULTS_20260920.md"
         md_json = REPO / "docs" / "REVIEW_RESPONSE_RR12_RESULTS_20260920.json"
+    elif args.cohort_tag == "T":
+        md = REPO / "docs" / f"REVIEW_RESPONSE_RR12_RESULTS_20260920{suffix}.md"
+        md_json = REPO / "docs" / f"REVIEW_RESPONSE_RR12_RESULTS_20260920{suffix}.json"
     else:
-        md = REPO / "docs" / f"REVIEW_RESPONSE_RR12_RESULTS_20260920_{args.cohort_tag}.md"
-        md_json = REPO / "docs" / f"REVIEW_RESPONSE_RR12_RESULTS_20260920_{args.cohort_tag}.json"
+        md = REPO / "docs" / f"REVIEW_RESPONSE_RR12_RESULTS_20260920_{args.cohort_tag}{suffix}.md"
+        md_json = REPO / "docs" / f"REVIEW_RESPONSE_RR12_RESULTS_20260920_{args.cohort_tag}{suffix}.json"
     md.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     # public JSON copy (small)

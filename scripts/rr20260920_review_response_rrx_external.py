@@ -100,7 +100,14 @@ def expanded_pre(X, names):
     return X[:, keep].astype(np.float64, copy=False), cols
 
 
-def load_ext_t_failclosed(data_root: Path, D, L, set_id: str, coh_name: str) -> Dict[str, Any]:
+def load_ext_failclosed(
+    data_root: Path,
+    D,
+    L,
+    set_id: str,
+    coh_name: str,
+    cohort_tag: str = "T",
+) -> Dict[str, Any]:
     coh_path = (
         data_root
         / "outputs"
@@ -114,7 +121,14 @@ def load_ext_t_failclosed(data_root: Path, D, L, set_id: str, coh_name: str) -> 
     coh = np.load(coh_path, allow_pickle=False)
     if "match" not in coh.files or "s" not in coh.files:
         return dict(ok=False, reason="cohort_missing_match_s_keys", set_id=set_id)
-    m = coh["cohort"] == 1
+    if cohort_tag == "T":
+        m = coh["cohort"] == 1
+    elif cohort_tag == "S":
+        if "fine" not in coh.files:
+            return dict(ok=False, reason="cohort_missing_fine", set_id=set_id)
+        m = (coh["cohort"] == 0) & (coh["fine"] == 1)
+    else:
+        return dict(ok=False, reason=f"bad_cohort_tag:{cohort_tag}", set_id=set_id)
     lab_keys = set(zip(coh["match"][m].astype(str).tolist(), coh["s"][m].astype(np.int64).tolist()))
     em, es = E["match"].astype(str), E["s"].astype(np.int64)
     keep = (E["pre_ok"] == 1) & (E["valid_h90"] == 1)
@@ -136,7 +150,13 @@ def load_ext_t_failclosed(data_root: Path, D, L, set_id: str, coh_name: str) -> 
         n_raw=int(len(em)),
         n_kept=int(keep.sum()),
         cohort_path=str(coh_path),
+        cohort_tag=cohort_tag,
     )
+
+
+def load_ext_t_failclosed(data_root: Path, D, L, set_id: str, coh_name: str) -> Dict[str, Any]:
+    """Backward-compatible alias (T mask). """
+    return load_ext_failclosed(data_root, D, L, set_id, coh_name, cohort_tag="T")
 
 
 def cell_corp(y, p, g, label: str) -> Dict[str, Any]:
@@ -200,13 +220,53 @@ def check_feature_order(ref_cols: List[str], ext_cols: List[str], num_ix: Sequen
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
+    import argparse
     import joblib
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--cohort-tag", choices=["T", "S"], default="T")
+    ap.add_argument(
+        "--out-suffix",
+        type=str,
+        default="",
+        help="appended to OUT dirname and docs filename; required when --cohort-tag is not T",
+    )
+    ap.add_argument("--q-model", type=str, default=None)
+    ap.add_argument(
+        "--rr12-dir",
+        type=str,
+        default=None,
+        help="dir containing models/PT_flex.joblib (default: frozen T RR12, or S_qS for S)",
+    )
+    args = ap.parse_args(argv)
+
+    global QOUT, RR12, LAB, OUT
+    if args.cohort_tag == "T":
+        QOUT = REPO / "outputs" / "q_newv_fit85_20260920"
+        RR12 = REPO / "outputs" / "review_response_rr12_20260920"
+        out_base = REPO / "outputs" / "review_response_rrx_external_20260920"
+        epistemic = ROLE
+    else:
+        QOUT = REPO / "outputs" / "q_newv_fit85_20260920_S"
+        RR12 = REPO / "outputs" / "review_response_rr12_20260920_S_qS"
+        out_base = REPO / "outputs" / "review_response_rrx_external_20260920"
+        epistemic = "EXPLORATORY_SCALE_SPLIT_PRIOR_TEST_EXPOSURE"
+        if not args.out_suffix:
+            raise SystemExit(
+                "non-default --cohort-tag requires --out-suffix (would overwrite frozen outputs)"
+            )
+    if args.rr12_dir:
+        RR12 = Path(args.rr12_dir)
+    LAB = QOUT / "labels"
+    suffix = args.out_suffix or ""
+    OUT = Path(str(out_base) + suffix) if suffix else out_base
+    q_path = Path(args.q_model) if args.q_model else (QOUT / "models" / "logit_state.joblib")
 
     data_root = _data_root()
     _setup(data_root)
     import fc20260915_data as D
 
-    for need in (BUNDLE, QOUT / "models" / "logit_state.joblib", RR12 / "models" / "PT_flex.joblib"):
+    for need in (BUNDLE, q_path, RR12 / "models" / "PT_flex.joblib"):
         if not Path(need).is_file():
             raise SystemExit(f"missing {need}")
 
@@ -216,11 +276,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     OUT.mkdir(parents=True, exist_ok=True)
     L = D.Layout(False)
-    print("resolve MAIN reference feature order…", flush=True)
+    print(f"resolve MAIN reference feature order… cohort-tag={args.cohort_tag}", flush=True)
     ref_cols = reference_main_cols(D, L)
 
     ev = load_evaluator(BUNDLE)
-    logit = joblib.load(QOUT / "models" / "logit_state.joblib")
+    logit = joblib.load(q_path)
     pt_flex = joblib.load(RR12 / "models" / "PT_flex.joblib")
     train_meta = json.loads((LAB / "TRAIN_oof_h90_meta.json").read_text(encoding="utf-8"))
     train_prior = float(train_meta.get("P_SVI", train_meta.get("p_pos", 0.5)))
@@ -245,7 +305,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     rows: List[Dict[str, Any]] = []
     for set_id, coh_name, label, pilot in COHORTS:
         print(f"RRX {label}…", flush=True)
-        pack = load_ext_t_failclosed(data_root, D, L, set_id, coh_name)
+        pack = load_ext_failclosed(data_root, D, L, set_id, coh_name, cohort_tag=args.cohort_tag)
         if not pack.get("ok"):
             results[set_id] = dict(label=label, pilot=pilot, ok=False, reason=pack.get("reason"))
             print(f"  FAIL-CLOSED: {pack.get('reason')}", flush=True)
@@ -392,7 +452,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     payload = dict(
         generated=datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds"),
-        epistemic=ROLE,
+        epistemic=epistemic,
+        cohort_tag=args.cohort_tag,
+        out_suffix=suffix,
+        q_model=str(q_path.as_posix()),
+        rr12_dir=str(RR12.as_posix()),
         design="docs/REVIEW_RESPONSE_EXPERIMENT_DESIGN_20260920.md §11",
         train_constant_prior=train_prior,
         MAIN_feature_cols_sha16=hashlib.sha256("|".join(ref_cols).encode()).hexdigest()[:16],
@@ -401,6 +465,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         reading=(
             "Preserve KR/NA1 16.13 loss of q lift. Pilots not pooled. "
             "15.16 CORP does not explain EXT; report per-cohort components on common-valid rows."
+            if args.cohort_tag == "T"
+            else "S EXT score-only; no CI; small cohorts reported not pooled. Interpretation in scale-split results only."
         ),
     )
     (OUT / "rrx_external_results.json").write_text(json.dumps(scrub(payload), indent=2) + "\n", encoding="utf-8")
@@ -412,14 +478,16 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             w.writerows(rows)
 
     md = [
-        "# RRX — external dual-stage (V→W and q→SVI)",
+        f"# RRX — external dual-stage (V→W and q→SVI) — cohort {args.cohort_tag}",
         "",
         f"Generated: {payload['generated']}",
+        f"**cohort-tag:** {args.cohort_tag}",
         f"**TRAIN constant prior:** {fmt(train_prior, 4)}",
         f"**MAIN feature-order sha16:** `{payload['MAIN_feature_cols_sha16']}`",
         "",
         "Score-only. Fail-closed without cohort keys / feature-order mismatch. "
-        "V→W and q→SVI use **identical common-valid rows** (sealed W + finite V/q/PT).",
+        "V→W and q→SVI use **identical common-valid rows** (sealed W + finite V/q/PT). "
+        "**No CI.**",
         "",
         "## Summary",
         "",
@@ -443,18 +511,30 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             f"n_common==n_loaded={a['n_common_equals_n_loaded']}, "
             f"feature_ok={a['feature_check']['ok']}"
         )
-    md += [
-        "",
-        "## Reading",
-        "",
-        "- KR/NA1 16.13: q DSC still > PT_flex, but larger ΔMCB → net ΔBrier > 0 "
-        "(signal not fully gone; calibration component dominates the loss gap).",
-        "- V_pre Brier ~0.15 does not by itself validate EXT ΔV labels.",
-        "- EXT CORP is diagnostic — not a fitted EXT recalibrator.",
-        f"- Detail: `{OUT.relative_to(REPO).as_posix()}/rrx_external_results.json`",
-        "",
-    ]
-    doc = REPO / "docs" / "REVIEW_RESPONSE_RRX_EXTERNAL_20260920.md"
+    if args.cohort_tag == "T":
+        md += [
+            "",
+            "## Reading",
+            "",
+            "- KR/NA1 16.13: q DSC still > PT_flex, but larger ΔMCB → net ΔBrier > 0 "
+            "(signal not fully gone; calibration component dominates the loss gap).",
+            "- V_pre Brier ~0.15 does not by itself validate EXT ΔV labels.",
+            "- EXT CORP is diagnostic — not a fitted EXT recalibrator.",
+            f"- Detail: `{OUT.relative_to(REPO).as_posix()}/rrx_external_results.json`",
+            "",
+        ]
+        doc = REPO / "docs" / "REVIEW_RESPONSE_RRX_EXTERNAL_20260920.md"
+    else:
+        md += [
+            "",
+            "## Note",
+            "",
+            "Hardcoded T Reading section omitted for S. Interpret in "
+            "`docs/SCALE_SPLIT_TvsS_RESULTS_20260920.md` from JSON fields only.",
+            f"- Detail: `{OUT.relative_to(REPO).as_posix()}/rrx_external_results.json`",
+            "",
+        ]
+        doc = REPO / "docs" / f"REVIEW_RESPONSE_RRX_EXTERNAL_20260920{suffix}.md"
     doc.write_text("\n".join(md), encoding="utf-8")
     (OUT / doc.name).write_text("\n".join(md), encoding="utf-8")
     print("wrote", OUT / "rrx_external_results.json", doc, flush=True)

@@ -1,10 +1,17 @@
 {
-  "generated": "2026-09-20T23:51:35+09:00",
+  "generated": "2026-09-21T00:28:49+09:00",
   "epistemic": "EXPLORATORY_SCALE_SPLIT_PRIOR_TEST_EXPOSURE",
   "role_tag": "EXPLORATORY_SCALE_SPLIT_PRIOR_TEST_EXPOSURE",
-  "source_commit": "b205cbef858a44c5751e790a92683fa8c4fe4008",
+  "source_commit": "06e856a0835bfaf0a332871da78c91547fdd4a66",
   "contract": "docs/SCALE_SPLIT_EXPERIMENT_CONTRACT_20260920.md",
-  "task": "T008",
+  "task": "T009",
+  "generator": {
+    "script": "scripts/ss20260920_scale_split_manifest.py",
+    "argv": [
+      "--check-integrity",
+      "--with-t009"
+    ]
+  },
   "cohort": "S",
   "cohort_mask_rule": "cohort==0 & fine==1 & valid_h90==1",
   "evaluator_policy": "frozen fit85 for TEST/Q_CAL/Q_SELECT; T fold V^(-k) reused for TRAIN OOF (no refit)",
@@ -303,194 +310,310 @@
   },
   "digests": {
     "cohort_MAIN_TRAIN": {
-      "path": "C:\\Users\\todtj\\\ubb38\uc11c\\LOL_Teamfight\\outputs\\cohort_role_training_20260915\\cohorts\\MAIN_TRAIN_cohort.npz",
+      "path": "C:/Users/todtj/\ubb38\uc11c/LOL_Teamfight/outputs/cohort_role_training_20260915/cohorts/MAIN_TRAIN_cohort.npz",
       "exists": true,
       "sha256": "71fbe5239e9cb76bf97466f1018092755f4f34f6ac941f337593b4cd2d0b1746",
       "sha16": "71fbe5239e9cb76b",
       "bytes": 3683569
     },
     "cohort_MAIN_VALIDATION": {
-      "path": "C:\\Users\\todtj\\\ubb38\uc11c\\LOL_Teamfight\\outputs\\cohort_role_training_20260915\\cohorts\\MAIN_VALIDATION_cohort.npz",
+      "path": "C:/Users/todtj/\ubb38\uc11c/LOL_Teamfight/outputs/cohort_role_training_20260915/cohorts/MAIN_VALIDATION_cohort.npz",
       "exists": true,
       "sha256": "a4efc653ebdf698a06dfbb6b2b33dca2ef2759d094fa22d210e14f4936622bf6",
       "sha16": "a4efc653ebdf698a",
       "bytes": 3760638
     },
     "cohort_MAIN_TEST": {
-      "path": "C:\\Users\\todtj\\\ubb38\uc11c\\LOL_Teamfight\\outputs\\cohort_role_training_20260915\\cohorts\\MAIN_TEST_cohort.npz",
+      "path": "C:/Users/todtj/\ubb38\uc11c/LOL_Teamfight/outputs/cohort_role_training_20260915/cohorts/MAIN_TEST_cohort.npz",
       "exists": true,
       "sha256": "3239e4c7ac81678adf75e07ec1cc9035136c1572e82e06601695ad78bc162844",
       "sha16": "3239e4c7ac81678a",
       "bytes": 2966885
     },
     "fit85_bundle": {
-      "path": "outputs\\v_redesign_wave4_corrected_20260919\\evaluators\\A_MLP_expanded_evaluator.joblib",
+      "path": "outputs/v_redesign_wave4_corrected_20260919/evaluators/A_MLP_expanded_evaluator.joblib",
       "exists": true,
       "sha256": "ac459cc4397630a953d672730caa687b50fc1edcd5a029928fad236fc5b204e3",
       "sha16": "ac459cc4397630a9",
       "bytes": 614147
     },
     "V_oof_fold0": {
-      "path": "outputs\\q_newv_fit85_20260920\\oof_evaluators\\V_oof_fold0_mlp_expanded.joblib",
+      "path": "outputs/q_newv_fit85_20260920/oof_evaluators/V_oof_fold0_mlp_expanded.joblib",
       "exists": true,
       "sha256": "cd52698d7a1ce4e4ef03c60abf30a4493428abb53c79cc00704d6409aa383be3",
       "sha16": "cd52698d7a1ce4e4",
       "bytes": 587100
     },
     "bundle_oof_fold0": {
-      "path": "outputs\\q_newv_fit85_20260920\\oof_evaluators\\bundle_oof_fold0.joblib",
+      "path": "outputs/q_newv_fit85_20260920/oof_evaluators/bundle_oof_fold0.joblib",
       "exists": true,
       "sha256": "ba8d93bb1e62e14d11bb8250793f738b020b0fba329d918de5181ea3b6d3ce42",
       "sha16": "ba8d93bb1e62e14d",
       "bytes": 31589
     },
     "V_oof_fold1": {
-      "path": "outputs\\q_newv_fit85_20260920\\oof_evaluators\\V_oof_fold1_mlp_expanded.joblib",
+      "path": "outputs/q_newv_fit85_20260920/oof_evaluators/V_oof_fold1_mlp_expanded.joblib",
       "exists": true,
       "sha256": "dd31cc0dc3365eca89e1816db967ce4d1009347de4223290f38d23bab9256125",
       "sha16": "dd31cc0dc3365eca",
       "bytes": 587100
     },
     "bundle_oof_fold1": {
-      "path": "outputs\\q_newv_fit85_20260920\\oof_evaluators\\bundle_oof_fold1.joblib",
+      "path": "outputs/q_newv_fit85_20260920/oof_evaluators/bundle_oof_fold1.joblib",
       "exists": true,
       "sha256": "1663c9a16a20306673ae4ab4f1557071ff205e704d822b4596349af954b691f3",
       "sha16": "1663c9a16a203066",
       "bytes": 31605
     },
     "V_oof_fold2": {
-      "path": "outputs\\q_newv_fit85_20260920\\oof_evaluators\\V_oof_fold2_mlp_expanded.joblib",
+      "path": "outputs/q_newv_fit85_20260920/oof_evaluators/V_oof_fold2_mlp_expanded.joblib",
       "exists": true,
       "sha256": "d5eda9faf9b21cde827b515b077382fd9c16c074a1e0bf30f06faaa1e0eded33",
       "sha16": "d5eda9faf9b21cde",
       "bytes": 587100
     },
     "bundle_oof_fold2": {
-      "path": "outputs\\q_newv_fit85_20260920\\oof_evaluators\\bundle_oof_fold2.joblib",
+      "path": "outputs/q_newv_fit85_20260920/oof_evaluators/bundle_oof_fold2.joblib",
       "exists": true,
       "sha256": "baafd1a145bc6e0f6e13d30e5c933fb2339b96a3315193c38bde5c2bcbf228af",
       "sha16": "baafd1a145bc6e0f",
       "bytes": 31605
     },
     "V_oof_fold3": {
-      "path": "outputs\\q_newv_fit85_20260920\\oof_evaluators\\V_oof_fold3_mlp_expanded.joblib",
+      "path": "outputs/q_newv_fit85_20260920/oof_evaluators/V_oof_fold3_mlp_expanded.joblib",
       "exists": true,
       "sha256": "a994e851b53118f8d999613d5d77410b0b2c71960fc6e02fb4c56fb4368b24ba",
       "sha16": "a994e851b53118f8",
       "bytes": 587100
     },
     "bundle_oof_fold3": {
-      "path": "outputs\\q_newv_fit85_20260920\\oof_evaluators\\bundle_oof_fold3.joblib",
+      "path": "outputs/q_newv_fit85_20260920/oof_evaluators/bundle_oof_fold3.joblib",
       "exists": true,
       "sha256": "a1596cfa3bf37eeb179e23ab234c0da3dc80f539fa2e82054e54f449bda6adad",
       "sha16": "a1596cfa3bf37eeb",
       "bytes": 31621
     },
     "V_oof_fold4": {
-      "path": "outputs\\q_newv_fit85_20260920\\oof_evaluators\\V_oof_fold4_mlp_expanded.joblib",
+      "path": "outputs/q_newv_fit85_20260920/oof_evaluators/V_oof_fold4_mlp_expanded.joblib",
       "exists": true,
       "sha256": "5d8445d5ae2adb7f5e05c6105e22907f439cac0379665df45d89917ee6e3034e",
       "sha16": "5d8445d5ae2adb7f",
       "bytes": 587100
     },
     "bundle_oof_fold4": {
-      "path": "outputs\\q_newv_fit85_20260920\\oof_evaluators\\bundle_oof_fold4.joblib",
+      "path": "outputs/q_newv_fit85_20260920/oof_evaluators/bundle_oof_fold4.joblib",
       "exists": true,
       "sha256": "021cf864a387097fe00ab1e0e807a8c0f6f948b1f72cee7168d2b742372d621c",
       "sha16": "021cf864a387097f",
       "bytes": 31605
     },
     "T_TEST_h90": {
-      "path": "outputs\\q_newv_fit85_20260920\\labels\\TEST_h90.npz",
+      "path": "outputs/q_newv_fit85_20260920/labels/TEST_h90.npz",
       "exists": true,
       "sha256": "0a2e977b231acf855525accd4ad1e370b57700c39ed35848d0ecb206ea7bf663",
       "sha16": "0a2e977b231acf85",
       "bytes": 806362
     },
     "T_Q_CAL_h90": {
-      "path": "outputs\\q_newv_fit85_20260920\\labels\\Q_CAL_h90.npz",
+      "path": "outputs/q_newv_fit85_20260920/labels/Q_CAL_h90.npz",
       "exists": true,
       "sha256": "1890d2ba7970a093d022b093acc2794a84604145162edb5e49234507d4d00f38",
       "sha16": "1890d2ba7970a093",
       "bytes": 262127
     },
     "T_Q_SELECT_h90": {
-      "path": "outputs\\q_newv_fit85_20260920\\labels\\Q_SELECT_h90.npz",
+      "path": "outputs/q_newv_fit85_20260920/labels/Q_SELECT_h90.npz",
       "exists": true,
       "sha256": "4f52aff6d252fe151ca5dfa7c1b9f519149abaacc1a26b7d9bc0e0577b65fec2",
       "sha16": "4f52aff6d252fe15",
       "bytes": 257508
     },
     "T_TRAIN_oof_h90": {
-      "path": "outputs\\q_newv_fit85_20260920\\labels\\TRAIN_oof_h90.npz",
+      "path": "outputs/q_newv_fit85_20260920/labels/TRAIN_oof_h90.npz",
       "exists": true,
       "sha256": "0727296ef7eda5f82b9d5766eb69343ffe7e950a69da5957e2a823701f768b88",
       "sha16": "0727296ef7eda5f8",
       "bytes": 974745
     },
     "S_TEST_h90": {
-      "path": "outputs\\q_newv_fit85_20260920_S\\labels\\TEST_h90.npz",
+      "path": "outputs/q_newv_fit85_20260920_S/labels/TEST_h90.npz",
       "exists": true,
       "sha256": "dbf19eb4ea44112830a48a3b0781c9bce0e1f98a9cac41dd1a8c7c958ba9297b",
       "sha16": "dbf19eb4ea441128",
       "bytes": 2300256
     },
     "S_TEST_h90_meta": {
-      "path": "outputs\\q_newv_fit85_20260920_S\\labels\\TEST_h90_meta.json",
+      "path": "outputs/q_newv_fit85_20260920_S/labels/TEST_h90_meta.json",
       "exists": true,
       "sha256": "5dfae34719b4e51d1a0b84777cea7c1aa5329fa98ca2fdadfbadc858334f10a3",
       "sha16": "5dfae34719b4e51d",
       "bytes": 336
     },
     "S_Q_CAL_h90": {
-      "path": "outputs\\q_newv_fit85_20260920_S\\labels\\Q_CAL_h90.npz",
+      "path": "outputs/q_newv_fit85_20260920_S/labels/Q_CAL_h90.npz",
       "exists": true,
       "sha256": "20c30c19e8829e0b0e958f74bc6f717ecb54c356d042024901c6ea2c634ca513",
       "sha16": "20c30c19e8829e0b",
       "bytes": 724973
     },
     "S_Q_CAL_h90_meta": {
-      "path": "outputs\\q_newv_fit85_20260920_S\\labels\\Q_CAL_h90_meta.json",
+      "path": "outputs/q_newv_fit85_20260920_S/labels/Q_CAL_h90_meta.json",
       "exists": true,
       "sha256": "e279f1fdb0e35991cfa2755e1cb5fba51f737b6c6a957282f1e2036368849733",
       "sha16": "e279f1fdb0e35991",
       "bytes": 335
     },
     "S_Q_SELECT_h90": {
-      "path": "outputs\\q_newv_fit85_20260920_S\\labels\\Q_SELECT_h90.npz",
+      "path": "outputs/q_newv_fit85_20260920_S/labels/Q_SELECT_h90.npz",
       "exists": true,
       "sha256": "ae624fa71eb3c863667c1856d0c0925a92256d11f4ffcd1ce99887963b503b63",
       "sha16": "ae624fa71eb3c863",
       "bytes": 720178
     },
     "S_Q_SELECT_h90_meta": {
-      "path": "outputs\\q_newv_fit85_20260920_S\\labels\\Q_SELECT_h90_meta.json",
+      "path": "outputs/q_newv_fit85_20260920_S/labels/Q_SELECT_h90_meta.json",
       "exists": true,
       "sha256": "77f388172071b7bc926e8a71d01d280492e8b5786f065278d9d9b11dc7eea3bb",
       "sha16": "77f388172071b7bc",
       "bytes": 338
     },
     "S_TRAIN_oof_h90": {
-      "path": "outputs\\q_newv_fit85_20260920_S\\labels\\TRAIN_oof_h90.npz",
+      "path": "outputs/q_newv_fit85_20260920_S/labels/TRAIN_oof_h90.npz",
       "exists": true,
       "sha256": "9b17363b36364d8d8b550b75700505b4f7e5d9dbd077158197ca6b93a8d7e60f",
       "sha16": "9b17363b36364d8d",
       "bytes": 2804549
     },
     "S_TRAIN_oof_h90_meta": {
-      "path": "outputs\\q_newv_fit85_20260920_S\\labels\\TRAIN_oof_h90_meta.json",
+      "path": "outputs/q_newv_fit85_20260920_S/labels/TRAIN_oof_h90_meta.json",
       "exists": true,
       "sha256": "cf16b04dc6249ba9cef31f30b4271c3edd2f6d3a3860da1f7c76ed4dddeda352",
       "sha16": "cf16b04dc6249ba9",
       "bytes": 4065
     },
     "S_TRAIN_oof_STATUS": {
-      "path": "outputs\\q_newv_fit85_20260920_S\\labels\\TRAIN_oof_STATUS.json",
+      "path": "outputs/q_newv_fit85_20260920_S/labels/TRAIN_oof_STATUS.json",
       "exists": true,
       "sha256": "00c0c91262909d8508776e53532ba2429674d5e27f5395a9c1d4120b35fb91ba",
       "sha16": "00c0c91262909d85",
       "bytes": 412
     }
   },
-  "PASS": true
+  "PASS": true,
+  "digests_T009": {
+    "S_logit_state": {
+      "path": "outputs/q_newv_fit85_20260920_S/models/logit_state.joblib",
+      "exists": true,
+      "sha256": "4aaabc06d830ee325ea2bb7d7dd877d5481c9b598f144243be921b44926a0c1c",
+      "sha16": "4aaabc06d830ee32",
+      "bytes": 13494
+    },
+    "S_primary_table": {
+      "path": "outputs/q_newv_fit85_20260920_S/primary_table.json",
+      "exists": true,
+      "sha256": "855d59b1420c1bc4e42326568c4a5bb6fb8b24e93ed033cdf54da6ad2120e107",
+      "sha16": "855d59b1420c1bc4",
+      "bytes": 3946
+    },
+    "TS_logit_state": {
+      "path": "outputs/q_newv_fit85_20260920_TS/models/logit_state.joblib",
+      "exists": true,
+      "sha256": "6fd89cef21add4f0f4561c76be56897f5eb782e71aa81ba098210daebe97ea8c",
+      "sha16": "6fd89cef21add4f0",
+      "bytes": 13494
+    },
+    "TS_TRAIN_oof": {
+      "path": "outputs/q_newv_fit85_20260920_TS/labels/TRAIN_oof_h90.npz",
+      "exists": true,
+      "sha256": "793bb2d56599af9e2063fb3986cdc5d496a61185291bbbbb54a91d0515b593e7",
+      "sha16": "793bb2d56599af9e",
+      "bytes": 3774901
+    },
+    "rr12_S_qS": {
+      "path": "outputs/review_response_rr12_20260920_S_qS/paired_ci.json",
+      "exists": true,
+      "sha256": "17a1bace0b0efb386f10bb406a41c770478c360b4d80b486e3c4dfd1041478a6",
+      "sha16": "17a1bace0b0efb38",
+      "bytes": 37262
+    },
+    "rr12_S_qT": {
+      "path": "outputs/review_response_rr12_20260920_S_qT/paired_ci.json",
+      "exists": true,
+      "sha256": "8455ae4e09554e822a7b3f8cc29a6d37d33eb05b90133ec2a12c3a2dcdbedb72",
+      "sha16": "8455ae4e09554e82",
+      "bytes": 37306
+    },
+    "rr12_S_qTS": {
+      "path": "outputs/review_response_rr12_20260920_S_qTS/paired_ci.json",
+      "exists": true,
+      "sha256": "56c041d107305389b06ffc8641c2c82a7af22bdb6e8048ca8cd0dfacd3d33b2c",
+      "sha16": "56c041d107305389",
+      "bytes": 37253
+    },
+    "rr12_qTS_on_T": {
+      "path": "outputs/review_response_rr12_20260920_qTS_on_T/paired_ci.json",
+      "exists": true,
+      "sha256": "c5e28de5c4aa5916dafbcddaa8083db33f66621cd148c0b1dffb2a30515bd27a",
+      "sha16": "c5e28de5c4aa5916",
+      "bytes": 37319
+    },
+    "paired_contrasts": {
+      "path": "outputs/scale_split_TvsS_20260920/paired_contrasts.json",
+      "exists": true,
+      "sha256": "8af7755177be67610a28c589809c10d8f227c81551e3b1d5d3afa1c8aa30bffb",
+      "sha16": "8af7755177be6761",
+      "bytes": 7652
+    },
+    "rrx_S": {
+      "path": "outputs/review_response_rrx_external_20260920_S/rrx_external_results.json",
+      "exists": true,
+      "sha256": "b0d5b2635d408747f8c814eb38bf11f09ef4135bea9365c63a90fe1a6dbb423b",
+      "sha16": "b0d5b2635d408747",
+      "bytes": 46993
+    },
+    "results_json": {
+      "path": "docs/SCALE_SPLIT_TvsS_RESULTS_20260920.json",
+      "exists": true,
+      "sha256": "7e957dd93cb901b841ed86b04296897e4eceba0102e9a3e743a0963591b89935",
+      "sha16": "7e957dd93cb901b8",
+      "bytes": 6208
+    },
+    "results_md": {
+      "path": "docs/SCALE_SPLIT_TvsS_RESULTS_20260920.md",
+      "exists": true,
+      "sha256": "a335f510f1ec5f29ccd332c75dda4d041f8ddeb5a40e8523fec0da2a25266eac",
+      "sha16": "a335f510f1ec5f29",
+      "bytes": 4216
+    }
+  },
+  "EXT_S_census": {
+    "exists": true,
+    "rows": [
+      {
+        "label": "KR 16.13",
+        "n": 15641,
+        "expected_census": 15641,
+        "delta": 0
+      },
+      {
+        "label": "NA1 16.13",
+        "n": 16100,
+        "expected_census": 16100,
+        "delta": 0
+      },
+      {
+        "label": "KR 16.15",
+        "n": 1307,
+        "expected_census": 1307,
+        "delta": 0
+      },
+      {
+        "label": "KR 16.14 pilot",
+        "n": 285,
+        "expected_census": 285,
+        "delta": 0
+      }
+    ],
+    "note": "deltas vs contract \u00a72 may be finite-score exclusions"
+  }
 }
