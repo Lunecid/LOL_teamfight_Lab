@@ -13,6 +13,7 @@
 | [02_METHODS_CORE.md](02_METHODS_CORE.md) | V / SVI / q / splits / evaluation |
 | [03_RESULTS.md](03_RESULTS.md) | Reader order: \(V\) → ΔV/SVI → \(q\) → conditional/EXT |
 | [04_DISCUSSION.md](04_DISCUSSION.md) | Meaning, dependence, transfer limits |
+| [WORKING_NOTES.md](WORKING_NOTES.md) | Internal writing memo (journal-fit, deferred work, next-pass instructions, RQ decision brief) — not manuscript text |
 
 **Not in this package yet (next writing pass):** Introduction, Abstract, Conclusion, Related Work rewrite, LaTeX port. Those wait until Methods/Results/Discussion claims are stable.
 
@@ -24,3 +25,9 @@
 - CORP = score decomposition on an evaluation sample, not a causal mechanism.
 - TRIPOD+AI = selective reporting checklist for prediction-time availability, splits, discrimination, calibration, external evaluation, uncertainty — not a clinical primary standard for this game study.
 - Simulated Accept/Major labels are **not** submission forecasts.
+
+## Change log
+
+- T001 — technical corrections (SVI naming, B40 definition, percentage-point units, OOF evaluator path, RR4 exclusion wording, RR5b denominators, uncertainty column) — see `.ai/reports/T001.md`
+- T003 — journal-fit memo, deferred work and next-pass instructions moved from 04_DISCUSSION.md to WORKING_NOTES.md — see `.ai/reports/T003.md`
+- T004 — lineage banners on PAPER_COHORT_CONTRACT §5–§6, 15.15 remainder note, uncertainty-coverage line on RESPONSE_EVIDENCE_MATRIX — see `.ai/reports/T004.md`

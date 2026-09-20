@@ -39,6 +39,8 @@ Framing (lit): **direction-of-change + conditional predictive ability on estimat
 
 15.16: frozen \(q\) beats `PT_flex` (DSC outweighs higher MCB). Quiet \(\lvert\Delta V\rvert\) ≪ fight on matchable subset (not ATT). Material kill-axis agree ≈0.90 (correspondence). Horizon flips low; much of agree is shared endpoints. **KR/NA1 16.13:** q lift lost vs PT_flex while \(V\to W\) Brier stays ~0.15 — do not blame EXT failure on 15.16 CORP alone; per-cohort CORP shows elevated q MCB / weak DSC.
 
+Uncertainty coverage: match-bootstrap intervals exist for RR12 (ΔBrier), RR3 (quiet contrast) and RR4 (λ slices) only; RR5, RR6a, RR6b and RRX report point values without intervals.
+
 ## Forbidden
 
 - Reopen V architecture or q model zoo for this journal version ([JOURNAL_FINISH_LOCK_20260920.md](JOURNAL_FINISH_LOCK_20260920.md))

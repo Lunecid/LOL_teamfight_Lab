@@ -30,6 +30,8 @@ Same corpus ≠ same evaluation sample. Never report \(p_{\mathrm{pre}}\) AUC on
 | Pooled T (all three) | 113,901 | Measurement: label mix, material concordance, patch strata |
 | EXT KR/NA1 16.x | see §4 | Transfer section only |
 
+> **Note (journal freeze, 2026-09-20):** the four q roles sum to 93,171 (39,605 + 10,390 + 10,195 + 32,981). The remaining 20,730 rows of pooled T are the part of 15.15 (VAL total 41,315; see EXPERIMENT_INVENTORY_COHORT_20260919.md §E) that was not assigned to Q_CAL or Q_SELECT. They are not used in any prediction table.
+
 TRAIN in-sample \(q\) never appears as a main lift number.  
 15.14/15.15 “same pattern” ≠ independent holdout proof.
 
@@ -81,6 +83,8 @@ EUW1: 0 complete pairs — omit.
 
 ## 5. Measurement cite notes (pooled T)
 
+> **Lineage banner (2026-09-20):** figures in §5–§6 were computed under the previous logistic V̂ lineage (svi_*_20260919 tables). For the journal manuscript they are superseded by the fit85 MLP results (Q_NEWV_FIT85_PRIMARY_20260920.md, REVIEW_RESPONSE_RR12_RESULTS_20260920.md, RESPONSE_EVIDENCE_MATRIX_20260920.md). Do not quote §5–§6 numbers as freeze headlines. Corpus and role definitions in §1–§4 remain valid.
+
 Sources: `outputs/svi_overnight_20260919/stage_concordance/`, `stage_quiet/`.
 
 | Claim | Value | Caveat |
@@ -96,6 +100,8 @@ Pooled \(p_{\mathrm{pre}}\) AUC vs SVI remains a **diagnostic** only — never p
 ---
 
 ## 6. Prediction cite (15.16 T — primary)
+
+> See the lineage banner above §5 — superseded for the journal manuscript (LightGBM −0.00113 etc. are old-V figures).
 
 **Authority:** `outputs/svi_primary_table_20260919/` (identical rows for every model).
 
