@@ -99,7 +99,12 @@ def bootstrap_delta_brier(y, p_a, p_b, g, reps=2000, seed=7):
     p_a = np.asarray(p_a).astype(float)
     p_b = np.asarray(p_b).astype(float)
     if len(y) == 0:
-        return dict(estimate=float("nan"), ci95=[float("nan"), float("nan")], p_gt0=float("nan"))
+        return dict(
+            estimate=float("nan"),
+            ci95=[float("nan"), float("nan")],
+            p_gt0=float("nan"),
+            bootstrap_fraction_positive=float("nan"),
+        )
     matches, inv = np.unique(g, return_inverse=True)
     n_m = len(matches)
     _, counts = np.unique(inv, return_counts=True)
@@ -119,7 +124,8 @@ def bootstrap_delta_brier(y, p_a, p_b, g, reps=2000, seed=7):
     return dict(
         estimate=obs,
         ci95=[float(np.quantile(draws, 0.025)), float(np.quantile(draws, 0.975))],
-        p_gt0=float(np.mean(draws > 0)),
+        p_gt0=float(np.mean(draws > 0)),  # alias: bootstrap_fraction_positive (not a classical p-value)
+        bootstrap_fraction_positive=float(np.mean(draws > 0)),
     )
 
 
@@ -592,6 +598,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         D_outside=D_out_obs,
         ci95=[float(np.quantile(H_draws, 0.025)), float(np.quantile(H_draws, 0.975))],
         p_gt0=float(np.mean(H_draws > 0)),
+        bootstrap_fraction_positive=float(np.mean(H_draws > 0)),
     )
 
     # RR2 narrow bins
@@ -613,7 +620,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 y_m, test_pred[q_key][mask], test_pred[pt_flex_key][mask], TE["g"][mask], args.boot_reps, args.seed
             )
             if int(mask.sum()) > 50
-            else dict(estimate=float("nan"), ci95=[float("nan"), float("nan")], p_gt0=float("nan"))
+            else dict(
+                estimate=float("nan"),
+                ci95=[float("nan"), float("nan")],
+                p_gt0=float("nan"),
+                bootstrap_fraction_positive=float("nan"),
+            )
         )
         row = dict(
             bin=bin_label(i),
@@ -765,14 +777,19 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         "",
         "### Primary RR contrast: ΔBrier(q_RR − PT_flex)",
         "",
-        f"- **All T:** estimate={fmt(d_all['estimate'], 5)}  CI95=[{fmt(d_all['ci95'][0], 5)}, {fmt(d_all['ci95'][1], 5)}]  P(Δ>0)={fmt(d_all['p_gt0'], 4)}",
-        f"- **B40:** estimate={fmt(d_b40['estimate'], 5)}  CI95=[{fmt(d_b40['ci95'][0], 5)}, {fmt(d_b40['ci95'][1], 5)}]  P(Δ>0)={fmt(d_b40['p_gt0'], 4)}",
+        f"- **All T:** estimate={fmt(d_all['estimate'], 5)}  CI95=[{fmt(d_all['ci95'][0], 5)}, {fmt(d_all['ci95'][1], 5)}]  bootstrap_fraction_positive={fmt(d_all['p_gt0'], 4)}",
+        f"- **B40:** estimate={fmt(d_b40['estimate'], 5)}  CI95=[{fmt(d_b40['ci95'][0], 5)}, {fmt(d_b40['ci95'][1], 5)}]  bootstrap_fraction_positive={fmt(d_b40['p_gt0'], 4)}",
         f"- All T vs PT_linear (continuity): estimate={fmt(d_lin['estimate'], 5)}  CI95=[{fmt(d_lin['ci95'][0], 5)}, {fmt(d_lin['ci95'][1], 5)}]",
         "",
         "### Heterogeneity H = D_B40 − D_outside (D = Brier(q)−Brier(PT_flex))",
         "",
         f"- D_B40={fmt(H['D_B40'], 5)}  D_outside={fmt(H['D_outside'], 5)}  H={fmt(H['estimate'], 5)}",
-        f"- 95% CI=[{fmt(H['ci95'][0], 5)}, {fmt(H['ci95'][1], 5)}]  P(H>0)={fmt(H['p_gt0'], 4)}",
+        f"- 95% CI=[{fmt(H['ci95'][0], 5)}, {fmt(H['ci95'][1], 5)}]  bootstrap_fraction_positive(H>0)={fmt(H['p_gt0'], 4)}",
+        "",
+        "Note: bootstrap_fraction_positive (JSON p_gt0) is match-bootstrap draw share with Delta>0 — not a classical p-value.",
+        "B40: small exploratory support (CI near 0); do not claim clear tau=0.001 gain.",
+        "Execution honesty: docs/REVIEW_RESPONSE_RR1_EXECUTION_ADDENDUM_20260920.md",
+        "RR0: docs/REVIEW_RESPONSE_RR0_MANIFEST_20260920.json",
         "",
         "## Balance neighborhood (0.05-width)",
         "",

@@ -89,7 +89,9 @@ Horizon comparisons use intersection of valid cases; separate from sample-compos
 
 ## 4. Quiet (no-kill) reference
 
-Deferred. Quiet no-kill is a background-drift reference, not a causal control. Follow-up with --with-quiet / phase2 pattern on this bundle.
+**Done (RR3):** [REVIEW_RESPONSE_RR3_QUIET_20260920.md](REVIEW_RESPONSE_RR3_QUIET_20260920.md) — same-match 1:1 match under frozen fit85; actual \(L_i\); proposal tolerances \(|\Delta p|\le0.025\), \(|\Delta t|\le120\)s.
+
+TEST matched coverage ≈27.7% (9,140 / 32,981). Matched fights E[|ΔV|]≈0.080 vs quiet ≈0.017; paired excess ≈0.063 (95% CI excludes 0). Background-drift reference only — not a causal control. Old_V quiet ratios not reused.
 
 ## 5. RQ1 completion bar
 

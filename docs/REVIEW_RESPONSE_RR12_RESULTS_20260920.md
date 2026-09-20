@@ -38,14 +38,23 @@ Generated: 2026-09-20T10:51:39+09:00
 
 ### Primary RR contrast: ΔBrier(q_RR − PT_flex)
 
-- **All T:** estimate=-0.00373  CI95=[-0.00461, -0.00279]  P(Δ>0)=0.0000
-- **B40:** estimate=-0.00214  CI95=[-0.00422, -0.00003]  P(Δ>0)=0.0240
+- **All T:** estimate=-0.00373  CI95=[-0.00461, -0.00279]  bootstrap_fraction_positive=0.0000
+- **B40:** estimate=-0.00214  CI95=[-0.00422, -0.00003]  bootstrap_fraction_positive=0.0240
 - All T vs PT_linear (continuity): estimate=-0.00422  CI95=[-0.00515, -0.00323]
+
+**Wording:** all-T lift vs tested `PT_flex` is the firm panel. B40 is a **small exploratory** improvement (CI upper bound ≈ 0; interval crosses \(\tau=0.001\)). Do not call B40 a “clear ≥0.001 gain.”  
+`bootstrap_fraction_positive` = share of match-bootstrap draws with ΔBrier>0 (JSON field `p_gt0`); **not** a classical \(p\)-value.
 
 ### Heterogeneity H = D_B40 − D_outside (D = Brier(q)−Brier(PT_flex))
 
 - D_B40=-0.00214  D_outside=-0.00395  H=0.00181
-- 95% CI=[-0.00060, 0.00422]  P(H>0)=0.9395
+- 95% CI=[-0.00060, 0.00422]  bootstrap_fraction_positive(H>0)=0.9395
+
+Do **not** conclude that balanced states are significantly harder; \(H\) CI covers 0.
+
+### Execution honesty (design ≠ code gaps closed in docs)
+
+See [REVIEW_RESPONSE_RR1_EXECUTION_ADDENDUM_20260920.md](REVIEW_RESPONSE_RR1_EXECUTION_ADDENDUM_20260920.md): uniform knots (not weighted quantiles); fit weights not mean-1; two-stage hyperparam then calibrator selection. RR0 key/hash lock: [REVIEW_RESPONSE_RR0_MANIFEST_20260920.json](REVIEW_RESPONSE_RR0_MANIFEST_20260920.json).
 
 ## Balance neighborhood (0.05-width)
 

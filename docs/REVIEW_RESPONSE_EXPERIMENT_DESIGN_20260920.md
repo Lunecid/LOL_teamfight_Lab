@@ -125,12 +125,14 @@ PT_flex = sigmoid(a + f_p(p) + f_t(t) + f_pt(p,t)).
 
 **제안 예산:** degree=3, p knots {4,6}, time knots 4, include_bias=False, C {.01,.1,1}. TRAIN OOF p/time의 경기 가중 분위수로 knots를 적합. 시간 범위 밖 extrapolation은 constant로 명시하고 발생률을 보고. 특성생성과 가중치 평균-1 정규화 규칙을 저장한다. 이 설정은 앞으로의 제한된 실험안이지 검증된 최적값이 아니다. [M1]
 
+**Shipped RR1 (see addendum):** 실제 실행은 `SplineTransformer` **uniform** knots, fit weight \(1/n_m\) (**mean-1 미적용**), 선정은 **2단계**(raw로 knots/\(C\) 선택 → 그 승자에 identity vs sigmoid). 공동 `설정×보정` 전수 비교는 하지 않았다. 원고는 shipped 절차로만 기술한다 → [REVIEW_RESPONSE_RR1_EXECUTION_ADDENDUM_20260920.md](REVIEW_RESPONSE_RR1_EXECUTION_ADDENDUM_20260920.md).
+
 ### 적합·보정·선정
 
 1. 새 b_spline/PT_flex는 기존 OOF TRAIN 라벨과 p_pre로 적합.
 2. TRAIN 외부 자료로 knots/scaler/정규화 파라미터를 추정하지 않음.
 3. 원모델은 고정. Q_CAL에서 각 예측의 증가 sigmoid 후보를 적합한다. identity(raw)도 보존한다.
-4. Q_SELECT 전체 T의 경기 가중 Brier로 baseline 설정 및 각 모델의 identity/sigmoid를 선택; tie는 logloss. B40 점수로 별도 선택하지 않음.
+4. **제안:** Q_SELECT 전체 T에서 baseline 설정 **및** identity/sigmoid를 함께 선택. **Shipped:** raw Brier로 설정 선택 후, 그 설정에 대해 identity/sigmoid만 비교 (addendum). B40 점수로 별도 선택하지 않음.
 5. logit_state 자체의 특징·가중치는 다시 적합하지 않는다. q_RR은 이 원모델에 덧붙인 보정만 다를 수 있는 별도 평가기이다.
 6. 모든 규칙/보정/설정을 저장한 뒤 15.16 재집계. q_base 원결과와 q_RR 새결과를 모두 보존한다.
 

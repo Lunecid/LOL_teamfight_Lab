@@ -132,7 +132,8 @@
         -0.004614601696428296,
         -0.00279151214120173
       ],
-      "p_gt0": 0.0
+      "p_gt0": 0.0,
+      "bootstrap_fraction_positive": 0.0
     },
     "all_q_minus_PT_linear": {
       "estimate": -0.00421919448407816,
@@ -140,7 +141,8 @@
         -0.005150121046329822,
         -0.0032341442612191995
       ],
-      "p_gt0": 0.0
+      "p_gt0": 0.0,
+      "bootstrap_fraction_positive": 0.0
     },
     "all_q_minus_b_spline": {
       "estimate": -0.004216680317544119,
@@ -148,7 +150,8 @@
         -0.005147901180023774,
         -0.0032430144961466735
       ],
-      "p_gt0": 0.0
+      "p_gt0": 0.0,
+      "bootstrap_fraction_positive": 0.0
     },
     "B40_q_minus_PT_flex": {
       "estimate": -0.0021362583617110754,
@@ -156,7 +159,8 @@
         -0.004218193437702988,
         -3.115064623857281e-05
       ],
-      "p_gt0": 0.024
+      "p_gt0": 0.024,
+      "bootstrap_fraction_positive": 0.024
     },
     "B40_q_minus_PT_linear": {
       "estimate": -0.002254672599058145,
@@ -164,7 +168,8 @@
         -0.004330690205082949,
         -0.00015332682141824868
       ],
-      "p_gt0": 0.016
+      "p_gt0": 0.016,
+      "bootstrap_fraction_positive": 0.016
     },
     "outside_q_minus_PT_flex": {
       "estimate": -0.003946412043826812,
@@ -172,7 +177,8 @@
         -0.004939736564360687,
         -0.002919844214844915
       ],
-      "p_gt0": 0.0
+      "p_gt0": 0.0,
+      "bootstrap_fraction_positive": 0.0
     },
     "H_B40_minus_outside": {
       "estimate": 0.0018101536821157342,
@@ -182,7 +188,8 @@
         -0.0005992695801233942,
         0.004216719737078383
       ],
-      "p_gt0": 0.9395
+      "p_gt0": 0.9395,
+      "bootstrap_fraction_positive": 0.9395
     }
   },
   "balance_bins": [
@@ -357,5 +364,8 @@
   "b_spline": {
     "n_knots": 6,
     "C": 0.01
-  }
+  },
+  "reporting_note": "JSON field p_gt0 means bootstrap_fraction_positive (fraction of match-bootstrap draws with DeltaBrier>0); not a classical p-value. B40 CI upper bound is near 0; treat as small exploratory support, not clear tau=0.001 gain. Execution honesty: docs/REVIEW_RESPONSE_RR1_EXECUTION_ADDENDUM_20260920.md",
+  "execution_addendum": "docs/REVIEW_RESPONSE_RR1_EXECUTION_ADDENDUM_20260920.md",
+  "rr0_manifest": "docs/REVIEW_RESPONSE_RR0_MANIFEST_20260920.json"
 }

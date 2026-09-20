@@ -18,7 +18,7 @@ Depends on: [Q_NEWV_FIT85_PRIMARY_20260920.md](Q_NEWV_FIT85_PRIMARY_20260920.md)
 
 | Question | Current position |
 |---|---|
-| What does new ΔV / SVI measure? | Distribution, material concordance, horizon sensitivity documented under fit85 MLP. Quiet still **Deferred**. |
+| What does new ΔV / SVI measure? | Distribution, material concordance, horizon sensitivity + **RR3 matched quiet** under fit85 (fight \|ΔV\| ≫ quiet). |
 | Can direction be predicted from pre-info? | Yes vs **`PT_linear`** on 15.16 T (ΔBrier −0.00422, CI excludes 0) and B40 (ΔBrier −0.00225, CI excludes 0). |
 | Does the lift travel? | **No** on main 16.13 KR/NA1 (ΔBrier positive). Cause split open. |
 
@@ -42,11 +42,12 @@ Tracker: [RESPONSE_EVIDENCE_MATRIX_20260920.md](RESPONSE_EVIDENCE_MATRIX_2026092
 | Priority | Deliverable |
 |---|---|
 | 1 | Done: **B40 CI** + public JSON digests |
-| 2 | **RR1+RR2:** `PT_flex` / `b_spline` + optional \(g_q\); all-T ∥ B40 ∥ narrow bins (do first) |
-| 3 | **RR3:** new-V quiet matched intervals (not old_V ratios) |
-| 4 | **RR6** calib/stability polish ∥ **RR5** material + next-objective |
-| 5 | **RRX:** frozen \(V\to W\) and \(q\to\mathrm{SVI}\) on 16.x |
-| 6 | Results section from this scope — no architecture reopen |
+| 2 | **RR1+RR2 closed** — flex baseline results + [execution addendum](REVIEW_RESPONSE_RR1_EXECUTION_ADDENDUM_20260920.md) + [RR0](REVIEW_RESPONSE_RR0_MANIFEST_20260920.json) |
+| 3 | **RR3 done** — [quiet contrast](REVIEW_RESPONSE_RR3_QUIET_20260920.md) (fit85; coverage≈28%) |
+| 4 | **RR4:** small-ΔV sensitivity using RR3 \(s_Q\) |
+| 5 | **RR6** calib/stability polish ∥ **RR5** material + next-objective |
+| 6 | **RRX:** frozen \(V\to W\) and \(q\to\mathrm{SVI}\) on 16.x |
+| 7 | Results section from this scope — no architecture reopen |
 
 ---
 
