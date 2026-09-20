@@ -1,12 +1,12 @@
 # Review-response evidence matrix (RR1–RR6)
 
 **Date:** 2026-09-20  
-**Status:** PLAN LOCKED · **RR0–RR4 + RR6a closed** · RR5 / RR6b / RRX next  
+**Status:** PLAN LOCKED · **RR0–RR4 + RR6a CLOSED** at `948b36a` · next: RR5 / RR6b / RRX  
 **Design:** [REVIEW_RESPONSE_EXPERIMENT_DESIGN_20260920.md](REVIEW_RESPONSE_EXPERIMENT_DESIGN_20260920.md)  
 **Lit application:** [ECONOMETRICS_LIT_APPLICATION_LOCK_20260920.md](ECONOMETRICS_LIT_APPLICATION_LOCK_20260920.md)  
-**Lit × results bridge:** [LIT_RESULT_BRIDGE_RR46_20260920.md](LIT_RESULT_BRIDGE_RR46_20260920.md)  
+**Lit × results bridge (CLOSED):** [LIT_RESULT_BRIDGE_RR46_20260920.md](LIT_RESULT_BRIDGE_RR46_20260920.md)  
 **RR1 execution honesty:** [REVIEW_RESPONSE_RR1_EXECUTION_ADDENDUM_20260920.md](REVIEW_RESPONSE_RR1_EXECUTION_ADDENDUM_20260920.md)  
-**Base commit:** `f8b2753` (+ local RR0/RR3/RR4/RR6a docs) · V / SVI / q **unchanged**
+**Interpretation lock commit:** `948b36a` · V / SVI / q **unchanged**
 
 Purpose chain stays: **predict post-fight WP direction from pre-info** → improve measurement via \(V\) → predict with \(q\) → verify (A) beyond initial edge, (B) what ΔV measures.
 
@@ -18,12 +18,12 @@ Framing (lit): **direction-of-change + conditional predictive ability on estimat
 | **RR1** | Flex \(p,t\) baselines + optional \(g_q\) | OOF labels, frozen `logit_state`, `PT_linear` | `b_spline`, `PT_flex`, calibrators | **done** + [execution addendum](REVIEW_RESPONSE_RR1_EXECUTION_ADDENDUM_20260920.md) |
 | **RR2** | All-T ∥ B40 ∥ narrow bins; \(H\) | RR1 frozen preds | Bin tables + paired CI | **done** — [RR12 results](REVIEW_RESPONSE_RR12_RESULTS_20260920.md) |
 | **RR3** | Quiet vs fight ΔV (new V) | — | Matched quiet under fit85 | **done** + [close-out](REVIEW_RESPONSE_RR3_CLOSEOUT_20260920.md) |
-| **RR4** | Small-ΔV sensitivity | RR12 preds; RR3 \(s_Q\) | λ·\(s_Q\) + abs cutoffs; triad | **done** — [RR4 margin](REVIEW_RESPONSE_RR4_MARGIN_20260920.md) |
-| RR5a | Material correspondence | NEWV verify table | Denominators / crosstabs | reuse+polish |
-| RR5b | Next objective after endpoint | — | 180s window events | scheduled |
-| **RR6a** | \(V\to W\) / \(q\to\mathrm{SVI}\) CORP | fit85 bundle; RR12 preds | CORP MCB−DSC+UNC by time | **done** — [RR6a CORP](REVIEW_RESPONSE_RR6A_CORP_20260920.md) |
-| RR6b | Horizon / V-spec stability | h60/90/120, peer flips | Common-support flips | reuse+polish |
-| RRX | External dual stage | Transfer 16.x tables | \(V\to W\) + \(q\to\mathrm{SVI}\) split | scheduled |
+| **RR4** | Small-ΔV sensitivity | RR12 preds; RR3 \(s_Q\) | λ·\(s_Q\) + abs cutoffs; triad; B40-within-λ | **CLOSED** — [RR4 margin](REVIEW_RESPONSE_RR4_MARGIN_20260920.md) |
+| RR5a | Material correspondence | NEWV verify table | Denominators / crosstabs | **next** |
+| RR5b | Next objective after endpoint | — | 180s window events | **next** |
+| **RR6a** | \(V\to W\) / \(q\to\mathrm{SVI}\) CORP | fit85 bundle; RR12 preds | CORP MCB=BS−BS_iso (score-gap) | **CLOSED** — [RR6a CORP](REVIEW_RESPONSE_RR6A_CORP_20260920.md) · lock `948b36a` |
+| RR6b | Horizon / V-spec stability | h60/90/120, peer flips | Common-support flips | **next** |
+| RRX | External dual stage | Transfer 16.x tables | \(V\to W\) + \(q\to\mathrm{SVI}\) split (do not infer from 15.16 CORP) | **next** |
 
 ### Lit → RR map (this pass)
 

@@ -1,9 +1,10 @@
 # Econometrics literature → current review-response code map
 
 **Date:** 2026-09-20  
-**Status:** APPLICATION LOCK (does not reopen V/q architecture)  
+**Status:** APPLICATION LOCK · lit→RR map frozen with CORP score-gap MCB at `948b36a` (does not reopen V/q architecture)  
 **Pack:** [literature/LOL_ECONOMETRICS_LITERATURE_20260920/](literature/LOL_ECONOMETRICS_LITERATURE_20260920/)  
-**Companion:** [RELATED_FORECAST_VALUE_LIT_20260919.md](RELATED_FORECAST_VALUE_LIT_20260919.md)
+**Companion:** [RELATED_FORECAST_VALUE_LIT_20260919.md](RELATED_FORECAST_VALUE_LIT_20260919.md)  
+**Result bridge (CLOSED):** [LIT_RESULT_BRIDGE_RR46_20260920.md](LIT_RESULT_BRIDGE_RR46_20260920.md)
 
 Framing kept: this is **direction-of-change forecasting + conditional predictive ability on estimated WP levels**, not “stock prediction applied to LoL.” \(\widehat{V}\) is a learned probability, not a market price.
 

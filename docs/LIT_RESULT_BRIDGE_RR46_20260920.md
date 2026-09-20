@@ -1,11 +1,13 @@
 # Review-response results × econometrics literature
 
 **Date:** 2026-09-20  
-**Status:** DIAGNOSTICS CORRECTED (CORP score-gap MCB; interpretation tightened) · V/q weights **unchanged**  
+**Status:** **CLOSED** as interpretation lock at commit `948b36a` (CORP score-gap MCB; V/q weights unchanged)  
 **Prior note:** An earlier draft used \(\langle(p-p^*)^2\rangle\) as “MCB”; that is **not** CORP. Tables below are from the corrected `forecast_diagnostics.py` (exact BS = MCB − DSC + UNC).  
 **Lit pack:** [literature/LOL_ECONOMETRICS_LITERATURE_20260920/](literature/LOL_ECONOMETRICS_LITERATURE_20260920/)  
 **Application map:** [ECONOMETRICS_LIT_APPLICATION_LOCK_20260920.md](ECONOMETRICS_LIT_APPLICATION_LOCK_20260920.md)  
 **Evidence matrix:** [RESPONSE_EVIDENCE_MATRIX_20260920.md](RESPONSE_EVIDENCE_MATRIX_20260920.md)
+
+**Close-out (collaborator-confirmed):** CORP formula, lit→result scope, and RR4 (all-T + B40 λ, \(s_Q\) fallback disclosure) are frozen for manuscript wording. Do not reopen for redesign. Next scheduled packs: **RR5 · RR6b · RRX** (external CORP not inferred from 15.16).
 
 Framing: **direction-of-change forecasting and conditional predictive ability on estimated WP**, not stock prediction on LoL. \(\widehat V\) is learned probability, not a market price.
 
