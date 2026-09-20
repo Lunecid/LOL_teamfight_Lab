@@ -1,12 +1,13 @@
 # Review-response evidence matrix (RR1–RR6)
 
 **Date:** 2026-09-20  
-**Status:** PLAN LOCKED · **RR0–RRX CLOSED** (manuscript/review-answer phase next)  
+**Status:** **JOURNAL FREEZE** · RR0–RRX analysis CLOSED · write Results/Discussion next  
+**Journal finish lock:** [JOURNAL_FINISH_LOCK_20260920.md](JOURNAL_FINISH_LOCK_20260920.md)  
 **Design:** [REVIEW_RESPONSE_EXPERIMENT_DESIGN_20260920.md](REVIEW_RESPONSE_EXPERIMENT_DESIGN_20260920.md)  
 **Lit application:** [ECONOMETRICS_LIT_APPLICATION_LOCK_20260920.md](ECONOMETRICS_LIT_APPLICATION_LOCK_20260920.md)  
 **Lit × results bridge (CLOSED):** [LIT_RESULT_BRIDGE_RR46_20260920.md](LIT_RESULT_BRIDGE_RR46_20260920.md)  
 **RR1 execution honesty:** [REVIEW_RESPONSE_RR1_EXECUTION_ADDENDUM_20260920.md](REVIEW_RESPONSE_RR1_EXECUTION_ADDENDUM_20260920.md)  
-**Interpretation lock commit:** `948b36a` · V / SVI / q **unchanged**
+**Interpretation lock:** `948b36a` (CORP) · alignment close-out `3654d4e` · V / SVI / q **unchanged**
 
 Purpose chain stays: **predict post-fight WP direction from pre-info** → improve measurement via \(V\) → predict with \(q\) → verify (A) beyond initial edge, (B) what ΔV measures.
 
