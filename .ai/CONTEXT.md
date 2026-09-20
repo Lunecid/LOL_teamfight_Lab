@@ -54,7 +54,7 @@
 | EXT KR / NA1 16.13 | n 5,202 / 5,312; V_pre Brier 0.1511 / 0.1514; ΔBrier(q−PT_flex) +0.0026 / +0.0040; ΔMCB 0.0045 / 0.0063; ΔDSC 0.0019 / 0.0023; q MCB 0.0065 / 0.0100; q DSC 0.0082 / 0.0064 (CI 없음) | `RRX_EXTERNAL` 요약표 |
 | EXT vs PT_linear (다른 기준선) | +0.00274 / +0.00342 | `Q_NEWV_FIT85_TRANSFER_16X` |
 | V 시간상태 census | train 424,160 (fit 360,479 + stop 63,681), V_CAL 106,580, V_SELECT 108,558, TEST 347,234 | `A_MLP_expanded_evaluator_meta_20260919.json` `meta.census` |
-| q 교전 역할 | 15.14 TRAIN 39,605 / 15.15 Q_CAL 10,390 · Q_SELECT 10,195 · 미배정 20,730 (VAL 41,315) / 15.16 TEST 32,981 / pooled T 113,901 (83,108경기) | `PAPER_COHORT_CONTRACT` §2; `EXPERIMENT_INVENTORY_COHORT` §E |
+| q 교전 역할 | 15.14 TRAIN 39,605 / 15.15 Q_CAL 10,390 · Q_SELECT 10,195 · 미배정 20,730 (VAL 41,315) / 15.16 TEST 32,981 / pooled T 113,901 (pooled 경기 수는 문서에 없음) | `PAPER_COHORT_CONTRACT` §2; `EXPERIMENT_INVENTORY_COHORT` §E |
 | PT_flex 선택 설정 | n_knots_p 4, n_knots_t 4, C 0.01, degree 3; 보정기 identity | `RR12 json` `PT_flex`, `calibrator_choice` |
 | V 보정 | PosSlopeSigmoid coef 0.9076, intercept 0.0640 | `A_MLP_expanded_evaluator_meta` `calibration` |
 
