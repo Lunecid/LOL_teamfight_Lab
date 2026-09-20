@@ -19,9 +19,6 @@ Relative to the CoG study, the contribution is not “a higher winner AUC” and
 1. a **match-linked** definition of post-engagement value change (ΔV / SVI) under a frozen WP evaluator;  
 2. a **verification stack** that separates measurement quality (\(V\to W\)) from direction predictability (\(q\to\mathrm{SVI}\));  
 3. an explicit test of **whether lift survives** flexed \(p,t\) baselines, small-change filters, and later environments.
-
-IEEE Transactions on Games seeks mature, original work on the science and engineering of games. Naming the paper a “verification study” does not by itself establish fit: the manuscript must make the CoG→ToG increment and the answered questions visible in the prose. The empirical increment here is the upgraded object (WP direction) and the joint reporting of limited in-patch lift with external failure — not the count of diagnostic tools used.
-
 ---
 
 ## 3. Dependence on the evaluator
@@ -56,14 +53,4 @@ On 15.16, the Brier gap between \(q\) and PT_flex co-moves with a larger discrim
 - **External ΔV** is not validated merely by \(V_{\mathrm{pre}}\) Brier ≈0.15.  
 - **Prior CoG-extension learner comparisons** remain incomplete and are out of scope for this freeze.
 
----
-
-## 7. Deferred work (not completion criteria)
-
-Targeted follow-up: freeze \(V\)/SVI/\(q\) weights and ask whether a **low-dimensional probability adapter** on small new-environment data can reduce Brier while preserving discrimination, versus the same adapter on PT, with adapt/eval separation. Other deferred items (path filters, multi-horizon rationality, ΔV uncertainty, \(q_\lambda\) combinations) stay outside this journal version.
-
----
-
-## 8. Closing stance for Intro/Abstract/Conclusion (next pass)
-
-When those sections are written, every headline sentence should be checkable against Results §§3–5 and must not exceed Discussion §5. The paper’s last word should be that **limited, environment-sensitive pre-information about WP-direction exists under the frozen procedures** — not that the ceiling of public telemetry has been found.
+Deferred follow-up work is listed in the working notes, not in this paper.
