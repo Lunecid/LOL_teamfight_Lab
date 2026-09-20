@@ -76,3 +76,5 @@ The learner for q_S and q_TS is fixed a priori to the frozen T specification (`l
 ## 8. Promotion rule (after results)
 
 If the author later decides to include S in the journal, the following sentences must be explicitly amended with a dated note, not silently: COMMON_RESEARCH_SPINE §3 "주 교전 T; N은 보조·부록"; PAPER_COHORT_CONTRACT §1/§3 "all models in the main prediction table use these rows only"; JOURNAL_FINISH_LOCK "Block manuscript on new performance — No". Until then S is thesis/v2 material.
+
+**Decision 2026-09-21 (author):** promoted to the journal **main text** (option C, two cohort blocks). Main reporting = contract-literal **identity** calibrator (T010); the RR12 two-stage selection values (T009) are kept as sensitivity. The three sentences named above were amended with dated notes (additions only) on 2026-09-21: [COMMON_RESEARCH_SPINE_20260919.md](COMMON_RESEARCH_SPINE_20260919.md) §3, [PAPER_COHORT_CONTRACT_20260919.md](PAPER_COHORT_CONTRACT_20260919.md) §1, [JOURNAL_FINISH_LOCK_20260920.md](JOURNAL_FINISH_LOCK_20260920.md). §6 forbidden readings carry over into the manuscript unchanged.

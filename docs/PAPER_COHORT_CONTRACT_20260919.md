@@ -5,6 +5,8 @@
 **Primary prediction sample:** **15.16 teamfight T**, \(n=32{,}981\) rows / \(24{,}020\) matches — **all models in the main prediction table use these rows only**.  
 **Transfer:** 2026 API `16.x` cohorts — score-only; not used for selection.
 
+> **Amendment 2026-09-21 (SCALE_SPLIT contract §8, author decision: option C, main text).** The main prediction table now carries **two cohort blocks**: 15.16 teamfight **T** (\(n=32{,}981\) / 24 020 matches; frozen results above unchanged) and 15.16 skirmish **S** (`cohort == 0 & fine == 1`, \(2\le n_{\min}\le 3\); \(n=101{,}205\) / 49 730 matches; identity calibrator, contract-literal). Picks (\(n_{\min}\le 1\)) remain excluded a priori. Each cohort keeps its own primary contrast; no pooled row and no cross-cohort difference statistic enter the main table. The sentence "all models in the main prediction table use these rows only" above is superseded for S by this note; T rows are unchanged. Sources: [SCALE_SPLIT_EXPERIMENT_CONTRACT_20260920.md](SCALE_SPLIT_EXPERIMENT_CONTRACT_20260920.md), [SCALE_SPLIT_TvsS_RESULTS_20260920.md](SCALE_SPLIT_TvsS_RESULTS_20260920.md), [SCALE_SPLIT_RR0_MANIFEST_20260920.json](SCALE_SPLIT_RR0_MANIFEST_20260920.json).
+
 Companions: [STRATEGIC_VALUE_LABEL_REDESIGN_20260919.md](STRATEGIC_VALUE_LABEL_REDESIGN_20260919.md),  
 [SVI_MODEL_RESELECTION_TRANSFER_20260919.md](SVI_MODEL_RESELECTION_TRANSFER_20260919.md),  
 [V_DYNAMIC_FRAME_CONTRACT_20260919.md](V_DYNAMIC_FRAME_CONTRACT_20260919.md).

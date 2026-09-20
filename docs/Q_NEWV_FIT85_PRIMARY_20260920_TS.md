@@ -1,6 +1,6 @@
 > **T009/T010 pipeline by-product:** the 'primary' contrast below is vs PT_linear on this fit's TEST (not the scale-split primary); union TEST is not a contract cell.
 
-# q primary table ??new V OOF labels (fit85 MLP lineage)
+# q primary table — new V OOF labels (fit85 MLP lineage)
 
 Generated: 2026-09-21T00:20:00+09:00
 **Cohort tag:** `TS`
@@ -12,7 +12,7 @@ Contract: [Q_PREDICTION_DESIGN_CONTRACT_20260920.md](Q_PREDICTION_DESIGN_CONTRAC
 
 | Model | Brier | logloss | AUC |
 |---|---:|---:|---:|
-| logit_state ??selected | 0.2432 | 0.6793 | 0.5937 |
+| logit_state ← selected | 0.2432 | 0.6793 | 0.5937 |
 | lgbm_state (diagnostic) | 0.2441 | 0.6812 | 0.5842 |
 | b_p | 0.2471 | 0.6873 | 0.5619 |
 | PT | 0.2471 | 0.6874 | 0.5616 |
@@ -28,11 +28,11 @@ Contract: [Q_PREDICTION_DESIGN_CONTRACT_20260920.md](Q_PREDICTION_DESIGN_CONTRAC
 | PT | 0.2474 | 0.6880 | 0.5585 |
 | constant | 0.2500 | 0.6931 | 0.5000 |
 
-### Primary contrast: ?Brier(`logit_state` ??PT_linear)
+### Primary contrast: ΔBrier(`logit_state` − PT_linear)
 
-- estimate=-0.00422  (negative ??q better)
+- estimate=-0.00422  (negative ⇒ q better)
 - 95% CI=[-0.00464, -0.00382]
-- ?=0.001 interpretation threshold (a priori)
+- τ=0.001 interpretation threshold (a priori)
 - PT_linear := StandardScaler+Logistic on [p_pre, time_minutes]
 - Q_CAL: LGBM early_stopping only (no post-hoc q calibrator)
 
@@ -46,8 +46,8 @@ Contract: [Q_PREDICTION_DESIGN_CONTRACT_20260920.md](Q_PREDICTION_DESIGN_CONTRAC
 | b_p | 0.2501 | 0.5084 |
 | PT | 0.2501 | 0.5073 |
 
-### B40 contrast: ?Brier(`logit_state` ??PT_linear)
+### B40 contrast: ΔBrier(`logit_state` − PT_linear)
 
 - estimate=-0.00197
 - 95% CI=[-0.00251, -0.00136]
-- P(?>0)=0.0000
+- P(Δ>0)=0.0000

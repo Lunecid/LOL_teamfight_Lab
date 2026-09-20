@@ -25,6 +25,7 @@ Framing (lit): **direction-of-change + conditional predictive ability on estimat
 | **RR6a** | \(V\to W\) / \(q\to\mathrm{SVI}\) CORP | fit85; RR12 | Score-gap MCB | **CLOSED** — [RR6a CORP](REVIEW_RESPONSE_RR6A_CORP_20260920.md) · `948b36a` |
 | **RR6b** | Horizon / V-spec stability | h60/90/120 | Endpoint identity + flips | **CLOSED** — [RR5/RR6b](REVIEW_RESPONSE_RR5_RR6B_20260920.md) |
 | **RRX** | External dual stage | Transfer 16.x | \(V\to W\) + \(q\to\mathrm{SVI}\) CORP per cohort | **CLOSED** — [RRX external](REVIEW_RESPONSE_RRX_EXTERNAL_20260920.md) |
+| **SS** | Scale split T vs S (author question 2026-09-20; not a reviewer ask) | Frozen T RR12/RRX; S labels from the same fit85 bundle and fold evaluators | q_S / q_T→S / q_TS, PT_flex_S; paired CIs; S EXT dual-stage; identity main + selection sensitivity | **done** — [results](SCALE_SPLIT_TvsS_RESULTS_20260920.md), [manifest](SCALE_SPLIT_RR0_MANIFEST_20260920.json); promoted to main text 2026-09-21 (contract §8, option C) |
 
 ### Lit → RR map (this pass)
 

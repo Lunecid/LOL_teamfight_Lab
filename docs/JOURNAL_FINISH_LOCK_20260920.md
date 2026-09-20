@@ -19,6 +19,12 @@ This is **not** “current models are optimal.” It is “the research question
 | Beyond \(p,t\)? | All-T ΔBrier(q−PT_flex) ≈ −0.00373, CI excludes 0 |
 | In balanced states? | B40 ≈ −0.00214 (exploratory; upper CI near 0 — do not oversell) |
 | Transfer? | KR/NA1 16.13: lift lost; CORP shows q DSC still > PT but ΔMCB dominates |
+| *(2026-09-21, S cohort added to the main text — SCALE_SPLIT §8 option C; identity calibrator, contract-literal)* | |
+| S: pre-state predicts SVI direction? | Yes, limited: 15.16 S q_S AUC ≈0.577; beats PT_flex_S on Brier |
+| S: beyond \(p,t\)? | All-S ΔBrier(q_S−PT_flex_S) −0.00335 [−0.00379, −0.00288]; selection-variant sensitivity −0.00346 |
+| S: balanced states? | S∩B40 −0.00210 [−0.00266, −0.00149] (within-S only; not placed beside T B40) |
+| S: transfer? | KR/NA1 16.13 S rows: ΔBrier −0.0018 / −0.0020 (score-only, no interval); T and S external readings are listed side by side as observed orderings, not contrasted |
+| Pooling T∪S? | q_TS costs T +0.00071 [+0.00018, +0.00126] and gives S −0.00024 [−0.00039, −0.00009]; cohort-specific q kept |
 
 Sources: RR12, RR4, RR6a (`948b36a` CORP), RRX (`3654d4e` common-valid rows).
 
@@ -33,6 +39,9 @@ Sources: RR12, RR4, RR6a (`948b36a` CORP), RRX (`3654d4e` common-valid rows).
 - “External failure is only calibration” / “recalibration will fix transfer” (EXT CORP is diagnostic; no EXT adapter was validated)
 - “We found the best architecture” / exhaustive model ranking
 - Equating material/next-objective correspondence with \(q\) accuracy or causal ATT
+- *(added 2026-09-21)* “Teamfights (or skirmishes) are more predictable” / any scale gradient — the cut-dependent sign reversal (`sec_prediction.tex` §pred-cut) still applies
+- *(added 2026-09-21)* Any mechanism story for a T/S difference (claim ledger X-31 stays withdrawn)
+- *(added 2026-09-21)* Pooled T∪S rows, pick results, or small external cohorts substituted for a cohort's own contrast
 
 ## Allowed / required manuscript moves
 
@@ -49,6 +58,7 @@ Sources: RR12, RR4, RR6a (`948b36a` CORP), RRX (`3654d4e` common-valid rows).
 | Expand \(q\) zoo (Transformer/GNN/TabM…) for max AUC | **No** — selection overfitting risk; not failure-driven |
 | Re-run same Q_CAL sigmoid story | **No** — already identity-selected on Q_SELECT |
 | Block manuscript on new performance | **No** |
+| Add the S (skirmish) cohort to the main text *(2026-09-21)* | **Yes, as scope extension** — predeclared contract (SCALE_SPLIT, 2026-09-20), same frozen \(V\), same learner spec, identity calibrator; not a V/q performance search |
 
 Quality fixes already done (do not re-open as “search”): CORP score-gap MCB; RRX common-valid rows + feature-order; RR5b game-end vs censored split (`3654d4e`).
 
