@@ -1,27 +1,28 @@
-# Evaluator bundle reload check — A_MLP_expanded
+# Evaluator bundle reproducibility — A_MLP_expanded
 
-Generated: 2026-09-20T00:10:58+09:00
+Updated: 2026-09-20T00:32:08+09:00
 
-**Fit scope (LOCKED for continuity):** `train_fit85_match_holdout_frac0.15_seed7_NO_full_train_refit`
+**Fit scope (LOCKED):** `train_fit85_match_holdout_frac0.15_seed7_NO_full_train_refit`
 
-Collaborator freeze-prep: preproc + model + calibration must travel together. This check loads the joblib in-process twice and compares calibrated probs.
+$$\widehat{V}_{\mathrm{fit85}}=g_{\mathrm{V\_CAL}}\circ f_{\mathrm{MLP,fit85}}\circ T_{\mathrm{fit85}}$$
 
-## Bundle path
+## Scope of checks
 
-- `outputs/v_redesign_wave4_corrected_20260919/evaluators/A_MLP_expanded_evaluator.joblib`
-- Meta: `outputs/v_redesign_wave4_corrected_20260919/evaluators/A_MLP_expanded_evaluator_meta.json`
+| Check | Meaning | Status |
+|---|---|---|
+| Same-process reload | Load bundle twice in one process | done earlier (diff=0) |
+| **Bundle vs wave-4 live path** | Rebuild TRAIN fit85 `ProfileBundle` + `A_MLP_expanded.joblib` + calib vs bundle | **True** (max abs=0.000e+00) |
+| **Fresh OS subprocess** | Worker gets **only** bundle + fixed `X.npy` (no TRAIN, no refit) | **True** (max abs=0.000e+00) |
 
-## Checks
+**PASS all:** **True** (n=4096, atol=1e-06)
 
-| Check | Result |
-|---|---|
-| Reload bit-match (atol=1e-06) | **True** (max abs diff=0.000e+00) |
-| Single vs batch (n≤64) | **True** |
-| Finite raw/calib | **True** |
-| **PASS** | **True** |
+## Artifacts
 
-## Contract notes
+- Bundle: `outputs/v_redesign_wave4_corrected_20260919/evaluators/A_MLP_expanded_evaluator.joblib`
+- JSON: `docs/V_EVALUATOR_REPRO_SUBPROCESS_PARITY_20260920.json`
+- Worker: `scripts/rr20260919_v_score_bundle_worker.py`
 
-- Continuity / SVI labels for this lineage must use **this** evaluator, not a later full-TRAIN refit, unless a new bundle version is cut.
-- Full-TRAIN refit remains optional `corrected_v2` and requires recorded `best_epoch` before re-calib + continuity.
-- History density caveat for GRU/H5 unchanged — see wave-4 ledger.
+## Reading
+
+- Earlier ‘reload PASS’ was **same-process only**; this update closes **subprocess + live-path parity**.
+- Continuity / TEST band tables must score through this bundle (or an identical hash).

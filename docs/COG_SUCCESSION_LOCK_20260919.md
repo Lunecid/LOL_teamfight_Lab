@@ -120,6 +120,8 @@ Intro RQs are written **from this succession agenda**, not from every sealed ΔB
 | **Journal** | J-RQ1 (measure I1·I2) · J-RQ2 (predict I3) · J-RQ3 (meaning/scope I4) | [JOURNAL_RESEARCH_PLAN_20260919.md](JOURNAL_RESEARCH_PLAN_20260919.md) |
 | **Master thesis** | M-RQ1 (unit) · M-RQ2 (value) · M-RQ3 (info/learner) · M-RQ4 (validation) | [MASTER_THESIS_RESEARCH_PLAN_20260919.md](MASTER_THESIS_RESEARCH_PLAN_20260919.md) |
 
+**2026-09-20:** J-RQ1 wording/scope locked; verification incomplete. Current \(\widehat{V}\) work = J-RQ1 part ① / master **M-RQ2**. See [J_RQ1_SCOPE_LOCK_20260920.md](J_RQ1_SCOPE_LOCK_20260920.md).
+
 Shared evidence; different depth. Master-only M01 (frame/event info blocks) does **not** auto-replace journal primary \(q\).
 
 ---

@@ -2,7 +2,8 @@
 
 **Date:** 2026-09-20  
 **Reviewed commit:** `18a2c39`  
-**Status:** Design direction accepted. **Not yet frozen.**
+**Status:** Design direction accepted. **Not yet frozen.**  
+**RQ framing:** 저널 **J-RQ1** 문구는 고정([J_RQ1_SCOPE_LOCK_20260920.md](J_RQ1_SCOPE_LOCK_20260920.md)). 현재 작업은 RQ1 **부분 ①** (\(\widehat{V}\to W\)). 석사 인용 번호는 **M-RQ2**. 질문 고정 ≠ RQ1/M-RQ2 검증 완료.
 
 ---
 
@@ -10,7 +11,7 @@
 
 - Corrected-input comparison is **much better** than INPUT_IMPL_v0.
 - **Provisional leader:** Expanded361 embedding MLP (`A_MLP_expanded`) by **predeclared** \(L_{\mathrm{time}}\) on V_SELECT — not because overall Brier/AUC win (GRU is slightly better there).
-- Do **not** restart architecture search; finish the evaluator.
+- Do **not** restart architecture search; finish the evaluator, then connect **ΔV/SVI meaning & stability** (RQ1 part ② / M-RQ2).
 
 ---
 
@@ -42,12 +43,14 @@ Identifier: `train_fit85_match_holdout_frac0.15_seed7_NO_full_train_refit`
 
 | Priority | Item | Status |
 |---|---|---|
-| P0 | Persist **full evaluator_bundle** (schema, mean/std, vocab, weights, \(g\), fit scope) | script + check |
-| P0 | New-process **reload reproducibility** on fixed queries | check doc |
-| P1 | DEV continuity on MLP (+ corrected LR, wave2 A0, GRU as peers) | next |
-| P1 | **TEST band-wise** ledger (not overall-only) for leader | next |
+| P0 | Persist **full evaluator_bundle** (schema, mean/std, vocab, weights, \(g\), fit scope) | done (script + check) |
+| P0 | New-process **reload reproducibility** on fixed queries | done (subprocess PASS) |
+| P1 | DEV continuity on MLP (+ corrected LR, wave2 A0 as peers) | ledger written; interpret as diagnostic |
+| P1 | **TEST** time-resolved ledger (band + per-minute raw grid) | ledgers + figures |
+| P1 | **RQ1 part ② / M-RQ2:** ΔV/SVI meaning & stability on same `fit85` evaluator | **table + analyses written** → [NEWV_ENGAGEMENT_VALUE_VERIFY_20260920.md](NEWV_ENGAGEMENT_VALUE_VERIFY_20260920.md); quiet smoke optional; then RQ1 writeup (still not q) |
+| P0 | V freeze close + SHA256 | [V_EVALUATOR_FREEZE_CLOSE_20260920.md](V_EVALUATOR_FREEZE_CLOSE_20260920.md) |
 | P2 | History density unification (only if promoting GRU/H5) | scoped caveat for now |
-| P2 | Optional: LR numeric-only scaling; shared Brier early-stop | version bump if changed |
+| P2 | Optional: full TRAIN refit → `corrected_v2` | deferred |
 
 ---
 

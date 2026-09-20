@@ -16,6 +16,11 @@
 | [PAPER_COHORT_CONTRACT_20260919.md](PAPER_COHORT_CONTRACT_20260919.md) | 210k / 15.16 T 평가 계약 |
 | [JOURNAL_RESEARCH_PLAN_20260919.md](JOURNAL_RESEARCH_PLAN_20260919.md) | 저널 분기 (J-RQ1–3) |
 | [MASTER_THESIS_RESEARCH_PLAN_20260919.md](MASTER_THESIS_RESEARCH_PLAN_20260919.md) | 석사 분기 (M-RQ1–4) |
+| [J_RQ1_SCOPE_LOCK_20260920.md](J_RQ1_SCOPE_LOCK_20260920.md) | **J-RQ1 문구·범위 LOCK** (질문≠검증완료; 석사=M-RQ2) |
+| [V_Q_TARGET_LOCK_20260920.md](V_Q_TARGET_LOCK_20260920.md) | **V vs q · 방향(SVI) vs 변화량** 목적 고정 |
+| [Q_PREDICTION_DESIGN_CONTRACT_20260920.md](Q_PREDICTION_DESIGN_CONTRACT_20260920.md) | **q 예측·실행 계약** (경기-fold OOF · Q동결→TEST · 측정≠예측 차트) |
+| [V_EVALUATOR_FREEZE_CLOSE_20260920.md](V_EVALUATOR_FREEZE_CLOSE_20260920.md) | fit85 MLP 평가기 동결·SHA256 |
+| [NEWV_ENGAGEMENT_VALUE_VERIFY_20260920.md](NEWV_ENGAGEMENT_VALUE_VERIFY_20260920.md) | 새 V 기반 ΔV/SVI 결과표·물질·안정성 (J-RQ1②) |
 | [V_REDESIGN_CONTRACT_20260919.md](V_REDESIGN_CONTRACT_20260919.md) | 공유 시간조건부 \(\widehat{V}\) 재설계 계약 |
 | [V1_TASK_CONTRACT_20260919.md](V1_TASK_CONTRACT_20260919.md) | V-1 필드 잠금 |
 | [V_DYNAMIC_FRAME_CONTRACT_20260919.md](V_DYNAMIC_FRAME_CONTRACT_20260919.md) | 프레임 시계·시간층 **보고** |
@@ -36,6 +41,9 @@
 > 공개 텔레메트리로 관측되는 교전 전 정보를 이용해, 정의된 교전과 후속 구간에서 어느 팀의 전략적 가치가 개선되는지를 예측하고, 그 예측이 반영하는 정보와 해석의 한계를 이해한다.
 
 목적 수준의 ‘전략적 이득’과 실제 측정량은 구분한다. 실제 주 목표는 고정된 경기 승률 추정모형의 전후 변화가 양수인지 나타내는 SVI다. 이진 SVI의 예측확률은 기대 승률 증가량이나 전술 선택의 효용이 아니다.
+
+**목적 고정 (2026-09-20):** 최종 예측 대상은 경기 승자 \(W\)가 아니라, 한타 전 정보로 **추정 승률의 이동 방향**이다. \(V\)=시점별 승률 평가(토대), \(q\)=사전 방향 예측(중심). 연속 ΔV는 주 목표가 아니다.  
+권위: [V_Q_TARGET_LOCK_20260920.md](V_Q_TARGET_LOCK_20260920.md).
 
 CoG가 이미 했던 일을 누락하지 않는다. CoG는 킬 수만을 예측한 논문이 아니며, 고정 계수의 교환 가치와 운영적 라벨이라는 한계를 명시했다. 같은 표형 입력의 MLP와 시간순 패치 분할도 이미 포함했다. 후속 연구의 개선은 이를 처음 도입했다는 주장이 아니라 정의 근거·평가 범위·정보 비교를 확장하는 것이다. [S1]
 
@@ -59,6 +67,9 @@ I1의 사례·시간 경계는 **X와 Y 모두**에 연결한다. I2는 I1이 �
 - ΔV̂ = V̂(S_end) − V̂(S_pre).
 - Y_SVI = 1[ΔV̂ > 0]: 블루 방향의 모델 추정 전략적 가치 개선 여부.
 - q(X_pre): 주 교전 집단에 조건부로 SVI가 양성일 확률을 예측하는 모형.
+
+**동시에 성립할 수 있음:** \(p_{\mathrm{post}}\)가 여전히 블루 유리(예: 0.60)이면서 \(\Delta\widehat{V}<0\)(예: 0.70→0.60).  
+\(q\)는 전자(수준)를 다시 말하지 않고 후자(구간 내 이동 방향)를 예측한다. Post는 라벨만, 입력은 pre만. 상세: [V_Q_TARGET_LOCK_20260920.md](V_Q_TARGET_LOCK_20260920.md).
 - b(p): p_pre만으로 SVI 발생확률을 추정하는 기준모형. p_pre 자체와 사건이 다르다.
 - PT: 사전 승률과 경기 시간을 사용하는 강화 기준모형.
 - B40: 0.40 ≤ p_pre ≤ 0.60, B45: 0.45 ≤ p_pre ≤ 0.55. 둘은 연구 목적이나 정답 난이도 정의가 아니라 검증 집단이다.
