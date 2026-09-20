@@ -3,7 +3,7 @@
   "epistemic": "EXPLORATORY_SCALE_SPLIT_PRIOR_TEST_EXPOSURE",
   "role_tag": "EXPLORATORY_SCALE_SPLIT_PRIOR_TEST_EXPOSURE",
   "contract": "docs/SCALE_SPLIT_EXPERIMENT_CONTRACT_20260920.md",
-  "source_commit": "06e856a0835bfaf0a332871da78c91547fdd4a66",
+  "source_commit": "62f4455dc62cd53f54344947712bec97531ba8f3",
   "note_T_numbers": "T numerical headlines cited from frozen RR12/RRX packs; not recomputed here except q_TS-on-T secondary.",
   "table1_S_TEST": {
     "q_S": {
