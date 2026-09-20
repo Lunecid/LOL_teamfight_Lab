@@ -1,13 +1,24 @@
 # RR4 — small-|ΔV| sensitivity (binary SVI retained)
 
-Generated: 2026-09-20T15:29:19+09:00
+Generated: 2026-09-20T15:55:43+09:00
 
-Primary target stays \(Y=1[\Delta V>0]\). λ-grid uses DEV quiet \(s_Q(z)\) from RR3 fallback; absolute cutoffs are auxiliary only.
+Primary target stays \(Y=1[\Delta V>0]\) because that is the research question (direction), not because the triad “proves” direction is predictable. λ-grid uses DEV quiet \(s_Q(z)\) from RR3 fallback; absolute cutoffs are auxiliary only.
 
-- TEST n=32981; L>120s rows=3031
-- s_Q level counts: `{"p": 21401, "p_t": 7018, "p_t_L": 4562}`
+- TEST n=32981; L>120s rows=3031 (9.2%) — outside RR3 equal-L match support; \(s_Q\) there is a coarser fallback reference.
+
+## \(s_Q\) fallback composition (all TEST rows)
+
+| Level used | n | share |
+|---|---:|---:|
+| `p_t_L` | 4562 | 13.8% |
+| `p_t` | 7018 | 21.3% |
+| `p` | 21401 | 64.9% |
+
+Most rows use **p-only** quiet scale, not full \(p,t,L\). Do not describe \(s_Q\) as if every fight had dense same-length quiet support.
 
 ## Direction / mean / scale triad by \(p_{\mathrm{pre}}\)
+
+Role: show the three objects differ. Direction predictability is evidenced by RR1/RR2 holdout ΔBrier, not by large \(E[|\Delta V|]\) alone.
 
 | p bin | n | P(ΔV>0) | E[ΔV] | E[|ΔV|] |
 |---|---:|---:|---:|---:|
@@ -22,14 +33,23 @@ Primary target stays \(Y=1[\Delta V>0]\). λ-grid uses DEV quiet \(s_Q(z)\) from
 | [0.8,0.9] | 2918 | 0.5773 | -0.0276 | 0.1185 |
 | [0.9,1.0] | 5695 | 0.6257 | -0.0154 | 0.0416 |
 
-## λ · s_Q sensitivity (post-hoc)
+## λ · s_Q sensitivity (post-hoc) — all-T
 
-| λ | n | cov | p_pos | E[|ΔV|] | ΔBrier(q−PT_flex) | CI95 |
+| λ | n | cov | p_pos | E[|ΔV|] | ΔBrier all-T | CI95 |
 |---:|---:|---:|---:|---:|---:|---|
 | 0.0 | 32981 | 1.000 | 0.4977 | 0.1123 | -0.0037 | [-0.0046, -0.0028] |
 | 0.25 | 30876 | 0.936 | 0.4960 | 0.1199 | -0.0042 | [-0.0051, -0.0032] |
 | 0.5 | 29210 | 0.886 | 0.4947 | 0.1265 | -0.0041 | [-0.0050, -0.0031] |
 | 1.0 | 26297 | 0.797 | 0.4929 | 0.1394 | -0.0042 | [-0.0051, -0.0032] |
+
+## λ · s_Q — B40 within each λ-slice (exploratory; not assumed equal to all-T)
+
+| λ | B40 n | ΔBrier B40 | CI95 |
+|---:|---:|---:|---|
+| 0.0 | 5423 | -0.0021 | [-0.0042, -0.0001] |
+| 0.25 | 5283 | -0.0023 | [-0.0044, -0.0003] |
+| 0.5 | 5132 | -0.0028 | [-0.0049, -0.0006] |
+| 1.0 | 4861 | -0.0029 | [-0.0052, -0.0007] |
 
 ## Absolute |ΔV| cutoffs (auxiliary, different definition)
 
@@ -42,6 +62,7 @@ Primary target stays \(Y=1[\Delta V>0]\). λ-grid uses DEV quiet \(s_Q(z)\) from
 
 ## Reading
 
-- Do **not** select λ by TEST performance.
-- Composition shift (p_pos, mean |ΔV|) under exclusion is a primary reporting object.
+- Under tested small-change exclusion rules, **all-T** q−PT_flex improvement **does not disappear**.
+- That is **not** “small ΔV labels are fine” and **not** a deployable large-move selector.
+- Do **not** select λ by TEST performance; do **not** infer B40 from all-T.
 - Artifacts: `outputs/review_response_rr4_margin_20260920/`

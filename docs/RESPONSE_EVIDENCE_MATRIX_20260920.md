@@ -36,7 +36,7 @@ Framing (lit): **direction-of-change + conditional predictive ability on estimat
 
 ## Allowed headline (RR1–RR4 / RR6a)
 
-15.16: frozen \(q\) beats tested `PT_flex` on all-T (B40 exploratory). Matched no-kill windows under fit85 show **much smaller** \|ΔV\| than fights (TEST E[|ΔV|] 0.080 vs 0.017; paired abs excess ≈0.063, CI excludes 0). Not causal; coverage ≈28% under proposal match tolerances. CORP: V→W timeline MCB≈0 (well calibrated); q→SVI DSC is the main score contribution (MCB small). λ·\(s_Q\) post-hoc filters do not flip the all-T ΔBrier sign.
+15.16: frozen \(q\) beats tested `PT_flex` on all-T (B40 exploratory). Matched quiet under fit85: fight \(\lvert\Delta V\rvert\) ≫ quiet on matchable subset (not ATT). Corrected CORP: \(q\)’s net Brier gain = higher DSC minus somewhat higher MCB vs PT_flex (ΔBS=ΔMCB−ΔDSC). λ·\(s_Q\) post-hoc: all-T (and B40-within-slice) ΔBrier sign preserved; most \(s_Q\) rows are p-only fallback. 15.16 CORP does not explain 16.x transfer.
 
 ## Forbidden
 
@@ -46,4 +46,7 @@ Framing (lit): **direction-of-change + conditional predictive ability on estimat
 - Reuse old_V quiet ratios for RR3
 - Apply TEST-fit CORP isotonic as frozen-model “fix”
 - Equate ΔV with financial returns or claim martingale ⇒ sign unpredictable
+- Claim large \(E[|\Delta V|]\) alone implies direction predictability
+- Claim “calibration OK / external fail = discrimination only” from MAIN CORP
+- Use \(\langle(p-p^*)^2\rangle\) as CORP MCB
 - Rename match-bootstrap ΔBrier as Diebold–Mariano / Giacomini–White

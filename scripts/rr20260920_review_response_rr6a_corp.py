@@ -404,10 +404,17 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         )
     md += [
         "",
+        "## CORP definition (corrected)",
+        "",
+        r"MCB \(=\) BS − BS\(_\mathrm{iso}\), DSC \(=\) UNC − BS\(_\mathrm{iso}\). "
+        "Exact identity BS = MCB − DSC + UNC (asserted in code). "
+        r"Do **not** use \(\langle(p-p^*)^2\rangle\) as MCB.",
+        "",
         "## Reading",
         "",
-        "- **MCB** = miscalibration (lower better); **DSC** = discrimination of recalibrated probs; "
-        "**UNC** = outcome uncertainty.",
+        "- Report **relative** MCB vs DSC contributions; do not claim “calibration is fine” from small absolute MCB alone "
+        r"(ΔBrier vs PT is \(O(10^{-3})\), so MCB differences of that order matter).",
+        "- 15.16 MAIN diagnostics do **not** explain 16.x external transfer; RRX must score V→W and q→SVI externally.",
         "- V→W and q→SVI are **separate** stages — never pooled into one reliability diagram.",
         "- Artifacts: `outputs/review_response_rr6a_corp_20260920/`",
         "",

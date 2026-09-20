@@ -378,6 +378,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         for r in triad:
             w.writerow(r)
 
+    n_tot = int(len(y))
+    level_share = {k: dict(n=v, share=float(v / n_tot)) for k, v in level_counts.items()}
     payload = dict(
         generated=datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds"),
         epistemic=ROLE,
@@ -385,9 +387,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         lit="docs/ECONOMETRICS_LIT_APPLICATION_LOCK_20260920.md",
         preds="outputs/review_response_rr12_20260920/prediction_table.npz",
         s_Q="outputs/review_response_rr3_quiet_20260920/quiet_mu_s_Q_CAL_fallback.json",
-        n_test=int(len(y)),
+        n_test=n_tot,
         s_Q_level_counts=level_counts,
+        s_Q_level_share=level_share,
         n_L_gt_120s=n_L_gt_120,
+        share_L_gt_120s=float(n_L_gt_120 / n_tot),
         note_L_gt_120=(
             "L>120s fights were out of RR3 match support; s_Q still resolved via fallback "
             "hierarchy but long-L cells are weakly identified — do not over-interpret λ filters there."
@@ -396,9 +400,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         lambda_sQ=lambda_payload,
         absolute_cut_auxiliary=abs_payload,
         reading=(
-            "λ filters are post-hoc on |ΔV| (uses post info) — not a deployable abstention rule. "
-            "Do not promote the λ with best TEST ΔBrier to primary. "
-            "Absolute cutoffs are a different auxiliary definition, not state-volatility adjusted."
+            "Under the tested small-|ΔV| exclusion rules, all-T q−PT_flex ΔBrier sign is preserved. "
+            "This does not prove labels are fine for small ΔV, nor that pre-selecting large moves is a deployable rule. "
+            "λ filters are post-hoc (use post |ΔV|). Do not promote best TEST λ. "
+            "Do not assume all-T sensitivity implies B40 sensitivity — report B40 ΔBrier per λ separately. "
+            "Most rows use coarse s_Q fallback (p-only), not full p,t,L support."
         ),
     )
     (OUT / "rr4_margin_results.json").write_text(json.dumps(scrub(payload), indent=2) + "\n", encoding="utf-8")
@@ -408,13 +414,28 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         "",
         f"Generated: {payload['generated']}",
         "",
-        r"Primary target stays \(Y=1[\Delta V>0]\). "
+        r"Primary target stays \(Y=1[\Delta V>0]\) because that is the research question "
+        r"(direction), not because the triad “proves” direction is predictable. "
         r"λ-grid uses DEV quiet \(s_Q(z)\) from RR3 fallback; absolute cutoffs are auxiliary only.",
         "",
-        f"- TEST n={payload['n_test']}; L>120s rows={n_L_gt_120}",
-        f"- s_Q level counts: `{json.dumps(level_counts)}`",
+        f"- TEST n={n_tot}; L>120s rows={n_L_gt_120} ({100.0 * n_L_gt_120 / n_tot:.1f}%) — "
+        r"outside RR3 equal-L match support; \(s_Q\) there is a coarser fallback reference.",
+        "",
+        r"## \(s_Q\) fallback composition (all TEST rows)",
+        "",
+        "| Level used | n | share |",
+        "|---|---:|---:|",
+    ]
+    for lev in ("p_t_L", "p_t", "p", "global"):
+        if lev in level_counts:
+            md.append(f"| `{lev}` | {level_counts[lev]} | {100.0 * level_counts[lev] / n_tot:.1f}% |")
+    md += [
+        "",
+        r"Most rows use **p-only** quiet scale, not full \(p,t,L\). Do not describe \(s_Q\) as if every fight had dense same-length quiet support.",
         "",
         r"## Direction / mean / scale triad by \(p_{\mathrm{pre}}\)",
+        "",
+        r"Role: show the three objects differ. Direction predictability is evidenced by RR1/RR2 holdout ΔBrier, not by large \(E[|\Delta V|]\) alone.",
         "",
         "| p bin | n | P(ΔV>0) | E[ΔV] | E[|ΔV|] |",
         "|---|---:|---:|---:|---:|",
@@ -428,9 +449,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         )
     md += [
         "",
-        "## λ · s_Q sensitivity (post-hoc)",
+        "## λ · s_Q sensitivity (post-hoc) — all-T",
         "",
-        "| λ | n | cov | p_pos | E[|ΔV|] | ΔBrier(q−PT_flex) | CI95 |",
+        "| λ | n | cov | p_pos | E[|ΔV|] | ΔBrier all-T | CI95 |",
         "|---:|---:|---:|---:|---:|---:|---|",
     ]
     for lam in LAMBDAS:
@@ -439,6 +460,23 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         md.append(
             f"| {lam} | {b['n']} | {fmt(b['coverage'],3)} | {fmt(b['p_pos'])} | {fmt(b['mean_abs_delta'])} | "
             f"{fmt(d['estimate'])} | [{fmt(d['ci95'][0])}, {fmt(d['ci95'][1])}] |"
+        )
+    md += [
+        "",
+        "## λ · s_Q — B40 within each λ-slice (exploratory; not assumed equal to all-T)",
+        "",
+        "| λ | B40 n | ΔBrier B40 | CI95 |",
+        "|---:|---:|---:|---|",
+    ]
+    for lam in LAMBDAS:
+        b = lambda_payload[f"lambda_{lam}"]
+        d40 = b.get("B40_delta_brier")
+        if not d40:
+            md.append(f"| {lam} | — | NA | — |")
+            continue
+        md.append(
+            f"| {lam} | {b.get('B40_n', 'NA')} | {fmt(d40['estimate'])} | "
+            f"[{fmt(d40['ci95'][0])}, {fmt(d40['ci95'][1])}] |"
         )
     md += [
         "",
@@ -458,8 +496,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         "",
         "## Reading",
         "",
-        "- Do **not** select λ by TEST performance.",
-        "- Composition shift (p_pos, mean |ΔV|) under exclusion is a primary reporting object.",
+        "- Under tested small-change exclusion rules, **all-T** q−PT_flex improvement **does not disappear**.",
+        "- That is **not** “small ΔV labels are fine” and **not** a deployable large-move selector.",
+        "- Do **not** select λ by TEST performance; do **not** infer B40 from all-T.",
         "- Artifacts: `outputs/review_response_rr4_margin_20260920/`",
         "",
     ]
