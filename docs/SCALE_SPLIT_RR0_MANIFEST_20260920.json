@@ -2,7 +2,7 @@
   "generated": "2026-09-21T01:12:19+09:00",
   "epistemic": "EXPLORATORY_SCALE_SPLIT_PRIOR_TEST_EXPOSURE",
   "role_tag": "EXPLORATORY_SCALE_SPLIT_PRIOR_TEST_EXPOSURE",
-  "source_commit": "78695a6d5924e6e8755599ee89873bafd993ed36",
+  "source_commit": "e753fb41c4d596e5fa1ec81259f3d77cb4959784",
   "contract": "docs/SCALE_SPLIT_EXPERIMENT_CONTRACT_20260920.md",
   "task": "T009",
   "generator": {
