@@ -1,7 +1,7 @@
 # Review-response evidence matrix (RR1–RR6)
 
 **Date:** 2026-09-20  
-**Status:** PLAN LOCKED · **RR0–RR6b + RRX CLOSED** (lit/CORP lock `948b36a`; packs through RRX)  
+**Status:** PLAN LOCKED · **RR0–RRX CLOSED** (manuscript/review-answer phase next)  
 **Design:** [REVIEW_RESPONSE_EXPERIMENT_DESIGN_20260920.md](REVIEW_RESPONSE_EXPERIMENT_DESIGN_20260920.md)  
 **Lit application:** [ECONOMETRICS_LIT_APPLICATION_LOCK_20260920.md](ECONOMETRICS_LIT_APPLICATION_LOCK_20260920.md)  
 **Lit × results bridge (CLOSED):** [LIT_RESULT_BRIDGE_RR46_20260920.md](LIT_RESULT_BRIDGE_RR46_20260920.md)  

@@ -250,12 +250,17 @@ def next_objective_label(
     game_end: Optional[int],
     window_ms: int = NEXT_OBJ_WINDOW_MS,
 ) -> Dict[str, Any]:
-    """First eligible elite in (endpoint, endpoint+window]; no V/q reads."""
+    """First eligible elite in (endpoint, endpoint+window]; no V/q reads.
+
+    Labels:
+      Blue / Red / tie_ambiguous / none
+      game_ended_before_objective — match already over at endpoint
+      game_ended_in_window_no_objective — match ended inside (endpoint, t1] with no elite
+      observation_censored — cache/pack missing or end time unknown so full 180s not guaranteed
+    """
     t1 = endpoint + window_ms
     if game_end is not None and game_end <= endpoint:
         return dict(label="game_ended_before_objective", team=None, family=None, detail=None, ts=None)
-    # censored if we cannot observe full window
-    censored = game_end is not None and game_end < t1
 
     cands = []
     for e in events:
@@ -268,11 +273,18 @@ def next_objective_label(
         team = team_of_elite(e, team_map)
         cands.append((ts, team, fam[0], fam[1]))
     if not cands:
-        if censored:
+        if game_end is None:
             return dict(label="observation_censored", team=None, family=None, detail=None, ts=None)
-        if game_end is not None and game_end <= t1:
-            # game ended in window with no elite
-            return dict(label="none", team=None, family=None, detail=None, ts=None, game_end_in_window=True)
+        if endpoint < game_end < t1:
+            return dict(
+                label="game_ended_in_window_no_objective",
+                team=None,
+                family=None,
+                detail=None,
+                ts=None,
+                game_end_ms=int(game_end),
+            )
+        # full window observable, no elite
         return dict(label="none", team=None, family=None, detail=None, ts=None)
 
     cands.sort(key=lambda x: x[0])
@@ -521,7 +533,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             by_time={},
             reading=(
                 "Convergent correspondence only — not causal fight effect; shares common causes with state. "
-                "Do not convert none→Red. Labels ignore V/q."
+                "Do not convert none→Red. Labels ignore V/q. "
+                "game_ended_* vs observation_censored: incomplete 180s follow-up is not all missing data."
             ),
         )
         for lo, hi, name in ((2.0, 10.0, "t_2_10"), (10.0, 20.0, "t_10_20"), (20.0, 30.0, "t_20_30"), (30.0, 1e9, "t_30_inf")):
@@ -627,18 +640,38 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             "",
             f"Eligible: `{ELIGIBLE_MONSTERS}`. Labels ignore V/q. none ≠ Red.",
             "",
-            "| Scope | none | Blue | Red | tie_ambiguous | censored / ended | N |",
-            "|---|---:|---:|---:|---:|---:|---:|",
+            "Denominator notes: Blue/Red rates use *decided* cases only. "
+            "Incomplete 180s follow-up is **not** all missing data — split "
+            "`game_ended_before_objective` / `game_ended_in_window_no_objective` / `observation_censored` "
+            "(cache miss or unknown end). Their sum = cases without an established full 180s window.",
+            "",
+            "| Scope | none | Blue | Red | tie | ended_before | ended_in_win | censored | N | decided |",
+            "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
         ]
         for sk in ("all_T", "B40", "SVI_pos", "SVI_neg"):
             c = nextobj[sk]["counts"]
             N = nextobj[sk]["n"]
+            n_blue = c.get("Blue", 0)
+            n_red = c.get("Red", 0)
             md.append(
-                f"| {sk} | {c.get('none',0)} | {c.get('Blue',0)} | {c.get('Red',0)} | "
-                f"{c.get('tie_ambiguous',0)} | {c.get('observation_censored',0)+c.get('game_ended_before_objective',0)} | {N} |"
+                f"| {sk} | {c.get('none',0)} | {n_blue} | {n_red} | {c.get('tie_ambiguous',0)} | "
+                f"{c.get('game_ended_before_objective',0)} | {c.get('game_ended_in_window_no_objective',0)} | "
+                f"{c.get('observation_censored',0)} | {N} | {n_blue + n_red} |"
             )
-        md.append("")
-        md.append(nextobj["reading"])
+
+        def _blue_rate(sk):
+            c = nextobj[sk]["counts"]
+            d = c.get("Blue", 0) + c.get("Red", 0)
+            return (c.get("Blue", 0) / d) if d else float("nan")
+
+        md += [
+            "",
+            f"- Among decided (Blue|Red): SVI+ Blue rate={fmt(_blue_rate('SVI_pos'),3)}; "
+            f"SVI− Blue rate={fmt(_blue_rate('SVI_neg'),3)}. "
+            "**Not** q accuracy — measured SVI vs post-endpoint objective.",
+            "",
+            nextobj["reading"],
+        ]
     md += [
         "",
         "## RR6b — horizon stability + endpoint identity",

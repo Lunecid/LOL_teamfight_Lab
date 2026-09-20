@@ -7,7 +7,7 @@
 **Application map:** [ECONOMETRICS_LIT_APPLICATION_LOCK_20260920.md](ECONOMETRICS_LIT_APPLICATION_LOCK_20260920.md)  
 **Evidence matrix:** [RESPONSE_EVIDENCE_MATRIX_20260920.md](RESPONSE_EVIDENCE_MATRIX_20260920.md)
 
-**Close-out (collaborator-confirmed):** CORP formula, lit→result scope, and RR4 (all-T + B40 λ, \(s_Q\) fallback disclosure) are frozen for manuscript wording. Do not reopen for redesign. Next scheduled packs: **RR5 · RR6b · RRX** (external CORP not inferred from 15.16).
+**Close-out (collaborator-confirmed):** CORP formula, lit→result scope, and RR4 (all-T + B40 λ, \(s_Q\) fallback disclosure) are frozen for manuscript wording. **RR5 · RR6b · RRX shipped** (external CORP on common-valid rows; do not infer from 15.16 alone). Do not reopen V/q architecture for EXT recovery.
 
 Framing: **direction-of-change forecasting and conditional predictive ability on estimated WP**, not stock prediction on LoL. \(\widehat V\) is learned probability, not a market price.
 
@@ -120,6 +120,7 @@ L>120s: 3031 rows (9.2%) — outside RR3 equal-L match support; \(s_Q\) there is
 
 ---
 
-## 6. Deferred (unchanged)
+## 6. Deferred (thesis / v2 only — review packs closed)
 
-Foster–Stine path filter, Patton–Timmermann multi-horizon, Brill–Yurko–Wyner ΔV uncertainty, Clements–Harvey \(q_\lambda\), RR5 / RR6b / RRX.
+Foster–Stine path filter, Patton–Timmermann multi-horizon, Brill–Yurko–Wyner ΔV uncertainty, Clements–Harvey \(q_\lambda\).  
+**RR5 / RR6b / RRX:** done — see [REVIEW_RESPONSE_RR5_RR6B_20260920.md](REVIEW_RESPONSE_RR5_RR6B_20260920.md), [REVIEW_RESPONSE_RRX_EXTERNAL_20260920.md](REVIEW_RESPONSE_RRX_EXTERNAL_20260920.md).

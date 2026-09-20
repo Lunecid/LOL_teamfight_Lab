@@ -1,6 +1,6 @@
 # RR5 + RR6b — material correspondence, next objective, horizon stability
 
-Generated: 2026-09-20T17:03:22+09:00
+Generated: 2026-09-20T17:31:09+09:00
 **Bundle sha16:** `ac459cc4397630a9`
 
 ## RR5a — material correspondence (not independent accuracy)
@@ -26,14 +26,18 @@ Correspondence with same-window material nets — not independent fight-winner a
 
 Eligible: `('BARON_NASHOR', 'DRAGON', 'RIFTHERALD', 'HORDE', 'ATAKHAN')`. Labels ignore V/q. none ≠ Red.
 
-| Scope | none | Blue | Red | tie_ambiguous | censored / ended | N |
-|---|---:|---:|---:|---:|---:|---:|
-| all_T | 4649 | 10076 | 10135 | 9 | 8112 | 32981 |
-| B40 | 1061 | 1894 | 1869 | 2 | 597 | 5423 |
-| SVI_pos | 2370 | 6004 | 3930 | 3 | 4051 | 16358 |
-| SVI_neg | 2279 | 4072 | 6205 | 6 | 4061 | 16623 |
+Denominator notes: Blue/Red rates use *decided* cases only. Incomplete 180s follow-up is **not** all missing data — split `game_ended_before_objective` / `game_ended_in_window_no_objective` / `observation_censored` (cache miss or unknown end). Their sum = cases without an established full 180s window.
 
-Convergent correspondence only — not causal fight effect; shares common causes with state. Do not convert none→Red. Labels ignore V/q.
+| Scope | none | Blue | Red | tie | ended_before | ended_in_win | censored | N | decided |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| all_T | 4649 | 10076 | 10135 | 9 | 0 | 8112 | 0 | 32981 | 20211 |
+| B40 | 1061 | 1894 | 1869 | 2 | 0 | 597 | 0 | 5423 | 3763 |
+| SVI_pos | 2370 | 6004 | 3930 | 3 | 0 | 4051 | 0 | 16358 | 9934 |
+| SVI_neg | 2279 | 4072 | 6205 | 6 | 0 | 4061 | 0 | 16623 | 10277 |
+
+- Among decided (Blue|Red): SVI+ Blue rate=0.604; SVI− Blue rate=0.396. **Not** q accuracy — measured SVI vs post-endpoint objective.
+
+Convergent correspondence only — not causal fight effect; shares common causes with state. Do not convert none→Red. Labels ignore V/q. game_ended_* vs observation_censored: incomplete 180s follow-up is not all missing data.
 
 ## RR6b — horizon stability + endpoint identity
 
