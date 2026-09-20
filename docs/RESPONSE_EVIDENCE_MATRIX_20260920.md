@@ -1,7 +1,7 @@
 # Review-response evidence matrix (RR1–RR6)
 
 **Date:** 2026-09-20  
-**Status:** PLAN LOCKED · **RR0–RR4 + RR6a CLOSED** at `948b36a` · next: RR5 / RR6b / RRX  
+**Status:** PLAN LOCKED · **RR0–RR6b + RRX CLOSED** (lit/CORP lock `948b36a`; packs through RRX)  
 **Design:** [REVIEW_RESPONSE_EXPERIMENT_DESIGN_20260920.md](REVIEW_RESPONSE_EXPERIMENT_DESIGN_20260920.md)  
 **Lit application:** [ECONOMETRICS_LIT_APPLICATION_LOCK_20260920.md](ECONOMETRICS_LIT_APPLICATION_LOCK_20260920.md)  
 **Lit × results bridge (CLOSED):** [LIT_RESULT_BRIDGE_RR46_20260920.md](LIT_RESULT_BRIDGE_RR46_20260920.md)  
@@ -19,11 +19,11 @@ Framing (lit): **direction-of-change + conditional predictive ability on estimat
 | **RR2** | All-T ∥ B40 ∥ narrow bins; \(H\) | RR1 frozen preds | Bin tables + paired CI | **done** — [RR12 results](REVIEW_RESPONSE_RR12_RESULTS_20260920.md) |
 | **RR3** | Quiet vs fight ΔV (new V) | — | Matched quiet under fit85 | **done** + [close-out](REVIEW_RESPONSE_RR3_CLOSEOUT_20260920.md) |
 | **RR4** | Small-ΔV sensitivity | RR12 preds; RR3 \(s_Q\) | λ·\(s_Q\) + abs cutoffs; triad; B40-within-λ | **CLOSED** — [RR4 margin](REVIEW_RESPONSE_RR4_MARGIN_20260920.md) |
-| RR5a | Material correspondence | NEWV verify table | Denominators / crosstabs | **next** |
-| RR5b | Next objective after endpoint | — | 180s window events | **next** |
-| **RR6a** | \(V\to W\) / \(q\to\mathrm{SVI}\) CORP | fit85 bundle; RR12 preds | CORP MCB=BS−BS_iso (score-gap) | **CLOSED** — [RR6a CORP](REVIEW_RESPONSE_RR6A_CORP_20260920.md) · lock `948b36a` |
-| RR6b | Horizon / V-spec stability | h60/90/120, peer flips | Common-support flips | **next** |
-| RRX | External dual stage | Transfer 16.x tables | \(V\to W\) + \(q\to\mathrm{SVI}\) split (do not infer from 15.16 CORP) | **next** |
+| **RR5a** | Material correspondence | NEWV verify | Exact 2×2 crosstabs + alive freshness | **CLOSED** — [RR5/RR6b](REVIEW_RESPONSE_RR5_RR6B_20260920.md) |
+| **RR5b** | Next objective after endpoint | — | Elite enum + 180s window | **CLOSED** — same |
+| **RR6a** | \(V\to W\) / \(q\to\mathrm{SVI}\) CORP | fit85; RR12 | Score-gap MCB | **CLOSED** — [RR6a CORP](REVIEW_RESPONSE_RR6A_CORP_20260920.md) · `948b36a` |
+| **RR6b** | Horizon / V-spec stability | h60/90/120 | Endpoint identity + flips | **CLOSED** — [RR5/RR6b](REVIEW_RESPONSE_RR5_RR6B_20260920.md) |
+| **RRX** | External dual stage | Transfer 16.x | \(V\to W\) + \(q\to\mathrm{SVI}\) CORP per cohort | **CLOSED** — [RRX external](REVIEW_RESPONSE_RRX_EXTERNAL_20260920.md) |
 
 ### Lit → RR map (this pass)
 
@@ -34,9 +34,9 @@ Framing (lit): **direction-of-change + conditional predictive ability on estimat
 | Brown–Warner (event scale) | RR3/RR4 interpretation (not causal ATT) |
 | Giacomini–White / Clements–Harvey | Motivation only — do not rename match-bootstrap ΔBrier |
 
-## Allowed headline (RR1–RR4 / RR6a)
+## Allowed headline (RR1–RRX)
 
-15.16: frozen \(q\) beats tested `PT_flex` on all-T (B40 exploratory). Matched quiet under fit85: fight \(\lvert\Delta V\rvert\) ≫ quiet on matchable subset (not ATT). Corrected CORP: \(q\)’s net Brier gain = higher DSC minus somewhat higher MCB vs PT_flex (ΔBS=ΔMCB−ΔDSC). λ·\(s_Q\) post-hoc: all-T (and B40-within-slice) ΔBrier sign preserved; most \(s_Q\) rows are p-only fallback. 15.16 CORP does not explain 16.x transfer.
+15.16: frozen \(q\) beats `PT_flex` (DSC outweighs higher MCB). Quiet \(\lvert\Delta V\rvert\) ≪ fight on matchable subset (not ATT). Material kill-axis agree ≈0.90 (correspondence). Horizon flips low; much of agree is shared endpoints. **KR/NA1 16.13:** q lift lost vs PT_flex while \(V\to W\) Brier stays ~0.15 — do not blame EXT failure on 15.16 CORP alone; per-cohort CORP shows elevated q MCB / weak DSC.
 
 ## Forbidden
 
