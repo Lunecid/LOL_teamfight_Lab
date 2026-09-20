@@ -25,7 +25,15 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "scripts"))
 WAVE4 = REPO / "outputs" / "v_redesign_wave4_corrected_20260919"
 BUNDLE = WAVE4 / "evaluators" / "A_MLP_expanded_evaluator.joblib"
-OUT = REPO / "outputs" / "q_newv_fit85_20260920" / "labels"
+OUT_T = REPO / "outputs" / "q_newv_fit85_20260920" / "labels"
+OUT_S = REPO / "outputs" / "q_newv_fit85_20260920_S" / "labels"
+# Back-compat alias (default T path)
+OUT = OUT_T
+
+COHORT_MASK_RULE = {
+    "T": "(cohort==1) & (valid_h90==1)",
+    "S": "(cohort==0) & (fine==1) & (valid_h90==1)",
+}
 
 from v_redesign_evaluator_bundle import load_evaluator, predict_calibrated  # noqa: E402
 
@@ -48,6 +56,14 @@ def _setup(data_root: Path) -> None:
     )
 
 
+def labels_out_dir(cohort: str = "T") -> Path:
+    if cohort == "T":
+        return OUT_T
+    if cohort == "S":
+        return OUT_S
+    raise SystemExit(f"unsupported cohort {cohort!r}; expected T or S")
+
+
 def sha256_file(path: Path) -> str:
     h = hashlib.sha256()
     with path.open("rb") as f:
@@ -56,7 +72,8 @@ def sha256_file(path: Path) -> str:
     return h.hexdigest().upper()
 
 
-def cohort_keys(data_root: Path, set_name: str) -> set:
+def cohort_keys(data_root: Path, set_name: str, cohort: str = "T") -> set:
+    """Engagement (match, s) keys for cohort T (teamfight) or S (skirmish)."""
     lab = np.load(
         data_root / "outputs" / "full_corpus_training_20260915" / "labels" / f"{set_name}_labels.npz",
         allow_pickle=False,
@@ -65,7 +82,14 @@ def cohort_keys(data_root: Path, set_name: str) -> set:
         data_root / "outputs" / "cohort_role_training_20260915" / "cohorts" / f"{set_name}_cohort.npz",
         allow_pickle=False,
     )
-    m = (coh["cohort"] == 1) & (lab["valid_h90"] == 1)
+    if cohort == "T":
+        m = (coh["cohort"] == 1) & (lab["valid_h90"] == 1)
+    elif cohort == "S":
+        if "fine" not in coh.files:
+            raise SystemExit("cohort file lacks 'fine'")
+        m = (coh["cohort"] == 0) & (coh["fine"] == 1) & (lab["valid_h90"] == 1)
+    else:
+        raise SystemExit(f"unsupported cohort {cohort!r}; expected T or S")
     return set(
         zip(lab["match"][m].astype(str).tolist(), lab["s"][m].astype(np.int64).tolist())
     )
@@ -118,6 +142,14 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                     help="frozen-eval label roles (default: TEST Q_CAL Q_SELECT)")
     ap.add_argument("--train-oof", action="store_true",
                     help="build TRAIN OOF labels (5-fold MLP; heavy — separate step)")
+    ap.add_argument("--cohort", choices=["T", "S"], default="T",
+                    help="engagement cohort: T=teamfight (default), S=skirmish")
+    ap.add_argument(
+        "--out-dir",
+        type=str,
+        default=None,
+        help="override labels output directory (default: cohort path; T freeze path unchanged)",
+    )
     args = ap.parse_args(argv)
 
     data_root = _data_root()
@@ -125,7 +157,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     import fc20260915_data as D
     import fc20260915_common as C
 
-    OUT.mkdir(parents=True, exist_ok=True)
+    out_dir = Path(args.out_dir) if args.out_dir else labels_out_dir(args.cohort)
+    out_dir.mkdir(parents=True, exist_ok=True)
     if not BUNDLE.is_file():
         raise SystemExit(f"missing {BUNDLE}")
     v_sha = sha256_file(BUNDLE)
@@ -142,17 +175,19 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     }
     # Q_CAL / Q_SELECT share MAIN_VALIDATION cohort file; filter by sub_role after load
     for role in args.roles:
-        print(f"label {role} (frozen eval)…", flush=True)
+        print(f"label {role} cohort={args.cohort} (frozen eval)…", flush=True)
         set_name = role_to_set.get(role)
         if set_name is None:
             raise SystemExit(f"unsupported frozen role {role}")
-        keys = cohort_keys(data_root, set_name)
+        keys = cohort_keys(data_root, set_name, cohort=args.cohort)
         pack = score_role(D, L, [role], keys, predict_frozen, "frozen_eval", v_sha, "A_MLP_expanded_fit85")
         # For VAL roles, cohort file is pooled — already filtered by load_engagements role
-        path = OUT / f"{role}_h90.npz"
+        path = out_dir / f"{role}_h90.npz"
         np.savez_compressed(path, **pack)
         meta = dict(
             role=role,
+            cohort=args.cohort,
+            cohort_mask_rule=COHORT_MASK_RULE[args.cohort],
             n=int(len(pack["Y_SVI"])),
             P_SVI=float(np.mean(pack["Y_SVI"][pack["Y_SVI"] >= 0] == 1)),
             B40_n=int(pack["B40"].sum()),
@@ -160,35 +195,46 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             v_sha256=v_sha,
             generated=datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds"),
         )
-        (OUT / f"{role}_h90_meta.json").write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
+        (out_dir / f"{role}_h90_meta.json").write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
         print(f"  wrote {path} n={meta['n']} P(SVI=1)={meta['P_SVI']:.3f} B40={meta['B40_n']}", flush=True)
 
     if args.train_oof:
         print("TRAIN OOF: launching fold loop (heavy)…", flush=True)
-        return _train_oof(data_root, D, L, C, v_sha)
+        return _train_oof(data_root, D, L, C, v_sha, cohort=args.cohort, out_dir=out_dir)
     else:
         note = {
             "train_oof": "NOT BUILT — run with --train-oof after confirming GPU/time budget",
+            "cohort": args.cohort,
+            "cohort_mask_rule": COHORT_MASK_RULE[args.cohort],
             "contract": "docs/Q_PREDICTION_DESIGN_CONTRACT_20260920.md",
             "forbidden": "Do not fit q on TRAIN using frozen_eval labels",
         }
-        (OUT / "TRAIN_oof_STATUS.json").write_text(json.dumps(note, indent=2) + "\n", encoding="utf-8")
+        (out_dir / "TRAIN_oof_STATUS.json").write_text(json.dumps(note, indent=2) + "\n", encoding="utf-8")
         print("TRAIN OOF deferred (see TRAIN_oof_STATUS.json)", flush=True)
     return 0
 
 
-def _train_oof(data_root, D, L, C, frozen_sha_note: str) -> int:
+def _train_oof(
+    data_root,
+    D,
+    L,
+    C,
+    frozen_sha_note: str,
+    cohort: str = "T",
+    out_dir: Optional[Path] = None,
+) -> int:
     """Leave-fold MLP Expanded labels for TRAIN engagements.
 
     Reuses wave-4 architecture via v_redesign_feature_adapters + same training recipe
     as rr20260919_v_redesign_fit_wave4_corrected (fit85 holdout inside each fold-train).
     """
+    out = out_dir if out_dir is not None else labels_out_dir(cohort)
     # Heavy path: import training helpers from wave4 module when available.
     # For safety, this first cut writes a runnable checklist if import/train is too coupled.
     try:
         from v_redesign_feature_adapters import FeatureSchema, ProfileBundle, match_holdout_mask
     except Exception as e:
-        (OUT / "TRAIN_oof_STATUS.json").write_text(
+        (out / "TRAIN_oof_STATUS.json").write_text(
             json.dumps({"error": str(e), "status": "adapters_missing"}, indent=2) + "\n",
             encoding="utf-8",
         )
@@ -201,21 +247,22 @@ def _train_oof(data_root, D, L, C, frozen_sha_note: str) -> int:
     for k, role in enumerate(folds):
         E = D.load_engagements(L, "MAIN", [role], states=False, counts=False)
         keep = (E["pre_ok"] == 1) & (E["valid_h90"] == 1)
-        # Restrict to T cohort via MAIN_TRAIN labels
-        keys = cohort_keys(data_root, "MAIN_TRAIN")
+        keys = cohort_keys(data_root, "MAIN_TRAIN", cohort=cohort)
         em, es = E["match"].astype(str), E["s"].astype(np.int64)
-        in_t = np.array([(a, int(b)) in keys for a, b in zip(em.tolist(), es.tolist())], dtype=bool)
-        keep &= in_t
+        in_coh = np.array([(a, int(b)) in keys for a, b in zip(em.tolist(), es.tolist())], dtype=bool)
+        keep &= in_coh
         index[role] = dict(
             n=int(keep.sum()),
             n_matches=int(len(np.unique(em[keep]))),
             train_folds=[f for f in folds if f != role],
         )
-        print(f"  {role}: T∩valid engagements={index[role]['n']}", flush=True)
+        print(f"  {role}: {cohort}∩valid engagements={index[role]['n']}", flush=True)
 
     manifest = dict(
         status="INDEX_READY_TRAINING_PENDING",
         design="leave_fold_MLP_expanded_fit85_recipe",
+        cohort=cohort,
+        cohort_mask_rule=COHORT_MASK_RULE[cohort],
         folds=index,
         note=(
             "Worker must fit MLP on train_folds (bucket V rows), calibrate on V_CAL, "
@@ -224,7 +271,7 @@ def _train_oof(data_root, D, L, C, frozen_sha_note: str) -> int:
         frozen_eval_sha_not_for_train=frozen_sha_note[:16],
         contract="docs/Q_PREDICTION_DESIGN_CONTRACT_20260920.md",
     )
-    (OUT / "TRAIN_oof_STATUS.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    (out / "TRAIN_oof_STATUS.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     print("wrote TRAIN_oof_STATUS.json (index ready; fold MLP training is next worker)", flush=True)
     return 0
 

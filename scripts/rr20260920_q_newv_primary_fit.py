@@ -21,9 +21,22 @@ import numpy as np
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "scripts"))
-LAB = REPO / "outputs" / "q_newv_fit85_20260920" / "labels"
-OUT = REPO / "outputs" / "q_newv_fit85_20260920"
+OUT_T = REPO / "outputs" / "q_newv_fit85_20260920"
+OUT_S = REPO / "outputs" / "q_newv_fit85_20260920_S"
+OUT_TS = REPO / "outputs" / "q_newv_fit85_20260920_TS"
 ROLE = "EXPLORATORY_Q_NEWV_PRIOR_TEST_EXPOSURE_NOT_CONFIRMATORY"
+ROLE_S = "EXPLORATORY_SCALE_SPLIT_PRIOR_TEST_EXPOSURE"
+
+
+def _paths_for_tag(tag: str) -> tuple[Path, Path]:
+    """Return (LAB, OUT) for cohort-tag T / S / TS."""
+    if tag == "T":
+        return OUT_T / "labels", OUT_T
+    if tag == "S":
+        return OUT_S / "labels", OUT_S
+    if tag == "TS":
+        return OUT_TS / "labels", OUT_TS
+    raise SystemExit(f"unsupported --cohort-tag {tag!r}")
 
 
 def _data_root() -> Path:
@@ -153,7 +166,17 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--boot-reps", type=int, default=800)
+    ap.add_argument("--cohort-tag", choices=["T", "S", "TS"], default="T")
+    ap.add_argument(
+        "--fixed-learner",
+        choices=["logit_state"],
+        default=None,
+        help="if set, skip learner re-selection; fix primary to logit_state (lgbm = diagnostic)",
+    )
     args = ap.parse_args(argv)
+
+    LAB, OUT = _paths_for_tag(args.cohort_tag)
+    epistemic = ROLE_S if args.cohort_tag != "T" else ROLE
 
     train_lab = LAB / "TRAIN_oof_h90.npz"
     if not train_lab.is_file():
@@ -175,7 +198,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     L = D.Layout(False)
     train_roles = [f"fold{k}" for k in range(C.N_FOLDS)]
-    print("load packs…", flush=True)
+    print(f"load packs… cohort-tag={args.cohort_tag}", flush=True)
     TR = load_role_pack(train_lab, D, L, train_roles, data_root)
     CA = load_role_pack(LAB / "Q_CAL_h90.npz", D, L, ["Q_CAL"], data_root)
     SE = load_role_pack(LAB / "Q_SELECT_h90.npz", D, L, ["Q_SELECT"], data_root)
@@ -267,17 +290,30 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     print("select on Q_SELECT…", flush=True)
     sel_scores = {n: metrics(SE["y"], predict(n, SE), SE["g"]) for n in models}
-    winner = min(sel_scores, key=lambda n: (sel_scores[n]["brier"], sel_scores[n]["logloss"], n))
-    print(f"  winner={winner} Brier={fmt(sel_scores[winner]['brier'])}", flush=True)
+    if args.fixed_learner == "logit_state":
+        winner = "logit_state"
+        print(
+            f"  fixed-learner=logit_state (lgbm_state diagnostic); "
+            f"Brier={fmt(sel_scores[winner]['brier'])}",
+            flush=True,
+        )
+    else:
+        winner = min(sel_scores, key=lambda n: (sel_scores[n]["brier"], sel_scores[n]["logloss"], n))
+        print(f"  winner={winner} Brier={fmt(sel_scores[winner]['brier'])}", flush=True)
 
     # Freeze selection (do not peek TEST for choice)
     freeze = dict(
         selected_q=winner,
-        selection_metric="match_weighted_Brier_on_Q_SELECT_T",
+        fixed_learner=args.fixed_learner,
+        selection_metric="match_weighted_Brier_on_Q_SELECT_T"
+        if args.fixed_learner is None
+        else "fixed_a_priori_logit_state",
         selection_scores=sel_scores,
+        lgbm_state_role="diagnostic" if args.fixed_learner == "logit_state" else "candidate",
         label_train="TRAIN_oof_h90.npz",
         label_eval="frozen_fit85 for Q_CAL/Q_SELECT/TEST",
-        engagement_def="T_h90",
+        engagement_def=f"{args.cohort_tag}_h90",
+        cohort_tag=args.cohort_tag,
         direction_threshold="Y=1[delta_V>0]; exact0 -> Y=0",
         primary_contrast="DeltaBrier = Brier(q)-Brier(PT_linear) on identical TEST rows",
         pt_definition="PT_linear: StandardScaler+Logistic on [p_pre, time_minutes]; no spline/interaction",
@@ -285,6 +321,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         tau=0.001,
         generated=datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds"),
     )
+    OUT.mkdir(parents=True, exist_ok=True)
     (OUT / "selection_freeze.json").write_text(json.dumps(scrub(freeze), indent=2) + "\n", encoding="utf-8")
 
     print("score TEST (frozen)…", flush=True)
@@ -317,7 +354,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     payload = dict(
         generated=freeze["generated"],
-        epistemic=ROLE,
+        epistemic=epistemic,
+        cohort_tag=args.cohort_tag,
         contract="docs/Q_PREDICTION_DESIGN_CONTRACT_20260920.md",
         census=dict(
             train=len(TR["y"]),
@@ -346,6 +384,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         "# q primary table — new V OOF labels (fit85 MLP lineage)",
         "",
         f"Generated: {payload['generated']}",
+        f"**Cohort tag:** `{args.cohort_tag}`",
         f"**Selected q (Q_SELECT Brier):** `{winner}`",
         "",
         "Contract: [Q_PREDICTION_DESIGN_CONTRACT_20260920.md](Q_PREDICTION_DESIGN_CONTRACT_20260920.md)",
@@ -357,10 +396,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     ]
     for n, sc in sorted(sel_scores.items(), key=lambda kv: kv[1]["brier"]):
         mark = " ← selected" if n == winner else ""
+        if args.fixed_learner == "logit_state" and n == "lgbm_state":
+            mark = " (diagnostic)"
         lines.append(f"| {n}{mark} | {fmt(sc['brier'])} | {fmt(sc['logloss'])} | {fmt(sc['auc'])} |")
     lines += [
         "",
-        "## TEST 15.16 T (after freeze)",
+        f"## TEST 15.16 {args.cohort_tag} (after freeze)",
         "",
         "| Model | Brier | logloss | AUC |",
         "|---|---:|---:|---:|",
@@ -396,7 +437,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 f"- 95% CI=[{fmt(db['ci95'][0], 5)}, {fmt(db['ci95'][1], 5)}]",
                 f"- P(Δ>0)={fmt(db.get('p_gt0', float('nan')), 4)}",
             ]
-    md = REPO / "docs" / "Q_NEWV_FIT85_PRIMARY_20260920.md"
+    if args.cohort_tag == "T":
+        md = REPO / "docs" / "Q_NEWV_FIT85_PRIMARY_20260920.md"
+    else:
+        md = REPO / "docs" / f"Q_NEWV_FIT85_PRIMARY_20260920_{args.cohort_tag}.md"
     md.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("wrote", OUT / "primary_table.json", md, flush=True)
     print(

@@ -29,10 +29,14 @@ import numpy as np
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "scripts"))
-OUT = REPO / "outputs" / "q_newv_fit85_20260920"
-LAB = OUT / "labels"
-OOF_DIR = OUT / "oof_evaluators"
-ROLE = "EXPLORATORY_Q_NEWV_OOF_PRIOR_TEST_EXPOSURE"
+OUT_T = REPO / "outputs" / "q_newv_fit85_20260920"
+OUT_S_ROOT = REPO / "outputs" / "q_newv_fit85_20260920_S"
+OOF_DIR_T = OUT_T / "oof_evaluators"  # always reuse T fold evaluators for S
+ROLE_T = "EXPLORATORY_Q_NEWV_OOF_PRIOR_TEST_EXPOSURE"
+ROLE_S = "EXPLORATORY_SCALE_SPLIT_PRIOR_TEST_EXPOSURE"
+
+# Contract §2 expected S TRAIN h90 row counts per fold (warn-only on mismatch)
+EXPECTED_ENG_S = {0: 24030, 1: 25005, 2: 24520, 3: 24690, 4: 24804}
 
 from v_redesign_feature_adapters import (  # noqa: E402
     FeatureSchema,
@@ -40,6 +44,7 @@ from v_redesign_feature_adapters import (  # noqa: E402
     mean_one_match_weights,
     match_holdout_mask,
 )
+from rr20260920_q_build_newv_labels import cohort_keys  # noqa: E402
 
 
 def _load_wave4():
@@ -73,17 +78,16 @@ def sha256_bytes(b: bytes) -> str:
     return hashlib.sha256(b).hexdigest().upper()
 
 
-def cohort_t_keys(data_root: Path, set_name: str) -> set:
-    lab = np.load(
-        data_root / "outputs" / "full_corpus_training_20260915" / "labels" / f"{set_name}_labels.npz",
-        allow_pickle=False,
-    )
-    coh = np.load(
-        data_root / "outputs" / "cohort_role_training_20260915" / "cohorts" / f"{set_name}_cohort.npz",
-        allow_pickle=False,
-    )
-    m = (coh["cohort"] == 1) & (lab["valid_h90"] == 1)
-    return set(zip(lab["match"][m].astype(str).tolist(), lab["s"][m].astype(np.int64).tolist()))
+def sha256_file(path: Path) -> str:
+    return sha256_bytes(path.read_bytes())
+
+
+def labels_dir(cohort: str) -> Path:
+    if cohort == "T":
+        return OUT_T / "labels"
+    if cohort == "S":
+        return OUT_S_ROOT / "labels"
+    raise SystemExit(f"unsupported cohort {cohort!r}")
 
 
 def integrity_report(pack: Dict[str, np.ndarray], fold_meta: List[Dict], expected_n: int) -> Dict[str, Any]:
@@ -131,6 +135,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     ap.add_argument("--max-epochs", type=int, default=100)
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--holdout-frac", type=float, default=0.15)
+    ap.add_argument("--cohort", choices=["T", "S"], default="T")
+    ap.add_argument(
+        "--reuse-evaluators",
+        action="store_true",
+        default=False,
+        help="score cohort engagements with saved T fold V^(-k); skip fit (required for S)",
+    )
     args = ap.parse_args(argv)
 
     data_root = _data_root()
@@ -144,114 +155,197 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     predict_mlp_emb = W4.predict_mlp_emb
     PosSlopeSigmoid = W4.PosSlopeSigmoid
 
+    LAB = labels_dir(args.cohort)
+    OOF_DIR = OOF_DIR_T  # evaluators always from T lineage
+    ROLE = ROLE_S if args.cohort == "S" else ROLE_T
     LAB.mkdir(parents=True, exist_ok=True)
     OOF_DIR.mkdir(parents=True, exist_ok=True)
     L = D.Layout(False)
-    train_keys = cohort_t_keys(data_root, "MAIN_TRAIN")
+    train_keys = cohort_keys(data_root, "MAIN_TRAIN", cohort=args.cohort)
 
     fold_ids = [int(x) for x in args.folds.split(",") if x.strip() != ""]
     all_roles = [f"fold{k}" for k in range(C.N_FOLDS)]
 
-    print("load all TRAIN fold bucket V rows…", flush=True)
-    TR = D.load_v_rows(L, "MAIN", all_roles, bucket_only=True)
-    names = list(TR["names"])
-    schema = FeatureSchema.from_names(names)
-    W_tr = D.load_outcomes(L, "MAIN", all_roles, purpose="q OOF V")
-    yTR = np.asarray([W_tr[m][0] for m in TR["match"].tolist()], dtype=np.float64)
-    gTR = TR["match"].astype(str)
-    print(f"  TR n={len(yTR)} matches={len(np.unique(gTR))}", flush=True)
-
-    print("load V_CAL for fold-wise g…", flush=True)
-    CA = D.load_v_rows(L, "MAIN", ["V_CAL"], bucket_only=True)
-    W_cal = D.load_outcomes(L, "MAIN", ["V_CAL"], purpose="q OOF calib")
-    yCA = np.asarray([W_cal[m][0] for m in CA["match"].astype(str).tolist()], dtype=np.float64)
-    gCA = CA["match"].astype(str)
-
-    # Match-level fold assignment from V bucket rows (same match → same fold for all states)
     fold_matches: Dict[int, set] = {}
-    for k in range(C.N_FOLDS):
-        fold_matches[k] = set(gTR[TR["sub_role"].astype(str) == f"fold{k}"].tolist())
-        print(f"  fold{k}: V-bucket matches={len(fold_matches[k])}", flush=True)
+    expected_by_fold: Dict[int, int] = {}
+    census_warnings: List[str] = []
+
+    if not args.reuse_evaluators:
+        print("load all TRAIN fold bucket V rows…", flush=True)
+        TR = D.load_v_rows(L, "MAIN", all_roles, bucket_only=True)
+        names = list(TR["names"])
+        schema = FeatureSchema.from_names(names)
+        W_tr = D.load_outcomes(L, "MAIN", all_roles, purpose="q OOF V")
+        yTR = np.asarray([W_tr[m][0] for m in TR["match"].tolist()], dtype=np.float64)
+        gTR = TR["match"].astype(str)
+        print(f"  TR n={len(yTR)} matches={len(np.unique(gTR))}", flush=True)
+
+        print("load V_CAL for fold-wise g…", flush=True)
+        CA = D.load_v_rows(L, "MAIN", ["V_CAL"], bucket_only=True)
+        W_cal = D.load_outcomes(L, "MAIN", ["V_CAL"], purpose="q OOF calib")
+        yCA = np.asarray([W_cal[m][0] for m in CA["match"].astype(str).tolist()], dtype=np.float64)
+        gCA = CA["match"].astype(str)
+
+        for k in range(C.N_FOLDS):
+            fold_matches[k] = set(gTR[TR["sub_role"].astype(str) == f"fold{k}"].tolist())
+            print(f"  fold{k}: V-bucket matches={len(fold_matches[k])}", flush=True)
+    else:
+        TR = yTR = gTR = CA = yCA = gCA = schema = None  # unused when reusing
+        # Match sets from engagement fold roles (same leave-match guarantee)
+        for k in range(C.N_FOLDS):
+            E0 = D.load_engagements(L, "MAIN", [f"fold{k}"], states=False, counts=False)
+            fold_matches[k] = set(E0["match"].astype(str).tolist())
+            print(f"  fold{k}: eng-role matches={len(fold_matches[k])} (reuse mode)", flush=True)
 
     expected_eng = 0
     for k in range(C.N_FOLDS):
         E = D.load_engagements(L, "MAIN", [f"fold{k}"], states=False, counts=False)
         em, es = E["match"].astype(str), E["s"].astype(np.int64)
         keep = (E["pre_ok"] == 1) & (E["valid_h90"] == 1)
-        in_t = np.array([(a, int(b)) in train_keys for a, b in zip(em.tolist(), es.tolist())], dtype=bool)
-        keep &= in_t
-        expected_eng += int(keep.sum())
-        # engagements' matches must sit in this fold's match set
+        in_coh = np.array([(a, int(b)) in train_keys for a, b in zip(em.tolist(), es.tolist())], dtype=bool)
+        keep &= in_coh
+        n_k = int(keep.sum())
+        expected_by_fold[k] = n_k
+        expected_eng += n_k
+        if args.cohort == "S":
+            exp = EXPECTED_ENG_S[k]
+            if n_k != exp:
+                msg = f"fold{k}: eng_labels={n_k} expected_census={exp} (warn only)"
+                census_warnings.append(msg)
+                print(f"  WARN {msg}", flush=True)
         stray = [m for m in set(em[keep].tolist()) if m not in fold_matches[k]]
         if stray:
             raise SystemExit(f"fold{k}: engagement match not in V fold match set e.g. {stray[0]}")
-        print(f"  fold{k}: eng_labels_expected={int(keep.sum())}", flush=True)
+        print(f"  fold{k}: eng_labels_expected={n_k}", flush=True)
+
+    # For S integrity: use actual totals so finite-score drift does not FAIL the pack
+    integrity_expected = expected_eng
 
     parts: List[Dict[str, np.ndarray]] = []
     fold_meta: List[Dict[str, Any]] = []
+    evaluator_sha: Dict[str, str] = {}
 
     for k in fold_ids:
         t_fold0 = time.time()
         held = fold_matches[k]
-        print(f"\n=== OOF fold{k}: hold {len(held)} matches ===", flush=True)
-        in_held = np.array([m in held for m in gTR.tolist()], dtype=bool)
-        train_rows = ~in_held
-        # leak check: no held match in train rows
-        assert not np.any(in_held & train_rows)
-        stop = match_holdout_mask(gTR, args.holdout_frac, seed=args.seed) & train_rows
-        fit_m = train_rows & ~stop
-        print(
-            f"  fit_rows={int(fit_m.sum())} stop_rows={int(stop.sum())} "
-            f"held_query_rows={int(in_held.sum())}",
-            flush=True,
-        )
-        if int(np.any(np.array([m in held for m in gTR[fit_m].tolist()], dtype=bool))):
-            raise SystemExit("LEAK: held match in fit set")
-        if int(np.any(np.array([m in held for m in gTR[stop].tolist()], dtype=bool))):
-            raise SystemExit("LEAK: held match in stop set")
+        print(f"\n=== OOF fold{k} cohort={args.cohort}: hold {len(held)} matches ===", flush=True)
 
-        bun = ProfileBundle(schema, "expanded").fit(TR["X"][fit_m])
-        num_all = bun.standardize_numeric(bun.numeric_raw(TR["X"]))
-        id_all = bun.embedding_ids(TR["X"])
-        print("  fit MLP…", flush=True)
-        pack = fit_mlp_emb(
-            num_all[fit_m],
-            id_all[fit_m],
-            yTR[fit_m],
-            mean_one_match_weights(gTR[fit_m]),
-            num_all[stop],
-            id_all[stop],
-            yTR[stop],
-            mean_one_match_weights(gTR[stop]),
-            n_vocab=bun.vocab.n_vocab,
-            max_epochs=args.max_epochs,
-            seed=args.seed,
-        )
-        print(
-            f"  MLP best_epoch={pack['best_epoch']} best_val_brier={pack['best_val_brier']:.5f} "
-            f"({time.time()-t_fold0:.0f}s so far)",
-            flush=True,
-        )
+        if args.reuse_evaluators:
+            fold_path = OOF_DIR / f"V_oof_fold{k}_mlp_expanded.joblib"
+            bun_path = OOF_DIR / f"bundle_oof_fold{k}.joblib"
+            missing = [str(p) for p in (fold_path, bun_path) if not p.is_file()]
+            if missing:
+                raise SystemExit(
+                    "reuse-evaluators missing files:\n  " + "\n  ".join(missing)
+                )
+            fold_obj = joblib.load(fold_path)
+            bun_obj = joblib.load(bun_path)
+            bun = bun_obj["bundle"]
+            pack = fold_obj["mlp"]
+            calib = fold_obj["calib"]
+            gcal = PosSlopeSigmoid()
+            gcal.coef_ = float(calib["coef"])
+            gcal.intercept_ = float(calib["intercept"])
+            gcal.ok = bool(calib["ok"])
+            evaluator_sha[f"V_oof_fold{k}"] = sha256_file(fold_path)[:16]
+            evaluator_sha[f"bundle_oof_fold{k}"] = sha256_file(bun_path)[:16]
 
-        # calibrate on V_CAL
-        num_ca = bun.standardize_numeric(bun.numeric_raw(CA["X"]))
-        id_ca = bun.embedding_ids(CA["X"])
-        raw_ca = predict_mlp_emb(pack, num_ca, id_ca)
-        gcal = PosSlopeSigmoid().fit(raw_ca, yCA, mean_one_match_weights(gCA))
-        print(f"  g^(-{k}) ok={gcal.ok} coef={gcal.coef_:.4f} intercept={gcal.intercept_:.4f}", flush=True)
+            def predict_cal(X, _bun=bun, _pack=pack, _gcal=gcal):
+                num = _bun.standardize_numeric(_bun.numeric_raw(X))
+                ids = _bun.embedding_ids(X)
+                return _gcal.transform(predict_mlp_emb(_pack, num, ids))
 
-        def predict_cal(X):
-            num = bun.standardize_numeric(bun.numeric_raw(X))
-            ids = bun.embedding_ids(X)
-            return gcal.transform(predict_mlp_emb(pack, num, ids))
+            if isinstance(pack, dict) and "best_epoch" in pack:
+                best_epoch = int(pack["best_epoch"])
+                best_val_brier = float(pack.get("best_val_brier", float("nan")))
+            else:
+                best_epoch = -1
+                best_val_brier = float("nan")
+            fit_m_sum = int(fold_obj.get("n_fit_rows", -1))
+            stop_sum = int(fold_obj.get("n_stop_rows", -1))
+        else:
+            assert TR is not None and gTR is not None
+            in_held = np.array([m in held for m in gTR.tolist()], dtype=bool)
+            train_rows = ~in_held
+            assert not np.any(in_held & train_rows)
+            stop = match_holdout_mask(gTR, args.holdout_frac, seed=args.seed) & train_rows
+            fit_m = train_rows & ~stop
+            print(
+                f"  fit_rows={int(fit_m.sum())} stop_rows={int(stop.sum())} "
+                f"held_query_rows={int(in_held.sum())}",
+                flush=True,
+            )
+            if int(np.any(np.array([m in held for m in gTR[fit_m].tolist()], dtype=bool))):
+                raise SystemExit("LEAK: held match in fit set")
+            if int(np.any(np.array([m in held for m in gTR[stop].tolist()], dtype=bool))):
+                raise SystemExit("LEAK: held match in stop set")
+
+            bun = ProfileBundle(schema, "expanded").fit(TR["X"][fit_m])
+            num_all = bun.standardize_numeric(bun.numeric_raw(TR["X"]))
+            id_all = bun.embedding_ids(TR["X"])
+            print("  fit MLP…", flush=True)
+            pack = fit_mlp_emb(
+                num_all[fit_m],
+                id_all[fit_m],
+                yTR[fit_m],
+                mean_one_match_weights(gTR[fit_m]),
+                num_all[stop],
+                id_all[stop],
+                yTR[stop],
+                mean_one_match_weights(gTR[stop]),
+                n_vocab=bun.vocab.n_vocab,
+                max_epochs=args.max_epochs,
+                seed=args.seed,
+            )
+            print(
+                f"  MLP best_epoch={pack['best_epoch']} best_val_brier={pack['best_val_brier']:.5f} "
+                f"({time.time()-t_fold0:.0f}s so far)",
+                flush=True,
+            )
+
+            num_ca = bun.standardize_numeric(bun.numeric_raw(CA["X"]))
+            id_ca = bun.embedding_ids(CA["X"])
+            raw_ca = predict_mlp_emb(pack, num_ca, id_ca)
+            gcal = PosSlopeSigmoid().fit(raw_ca, yCA, mean_one_match_weights(gCA))
+            print(f"  g^(-{k}) ok={gcal.ok} coef={gcal.coef_:.4f} intercept={gcal.intercept_:.4f}", flush=True)
+
+            def predict_cal(X, _bun=bun, _pack=pack, _gcal=gcal):
+                num = _bun.standardize_numeric(_bun.numeric_raw(X))
+                ids = _bun.embedding_ids(X)
+                return _gcal.transform(predict_mlp_emb(_pack, num, ids))
+
+            fold_path = OOF_DIR / f"V_oof_fold{k}_mlp_expanded.joblib"
+            joblib.dump(
+                dict(
+                    kind="mlp_embedding_oof",
+                    fold=k,
+                    profile="expanded",
+                    mlp=pack,
+                    calib=dict(coef=gcal.coef_, intercept=gcal.intercept_, ok=gcal.ok),
+                    fit_scope=f"leave_fold{k}_match_holdout_frac{args.holdout_frac}_seed{args.seed}",
+                    n_fit_rows=int(fit_m.sum()),
+                    n_stop_rows=int(stop.sum()),
+                    n_held_matches=len(held),
+                    n_eng_labeled=-1,
+                ),
+                fold_path,
+            )
+            try:
+                joblib.dump({"profile": "expanded", "bundle": bun}, OOF_DIR / f"bundle_oof_fold{k}.joblib")
+            except Exception as e:
+                print(f"  warn: could not dump ProfileBundle ({e})", flush=True)
+            fit_m_sum = int(fit_m.sum())
+            stop_sum = int(stop.sum())
+            best_epoch = int(pack["best_epoch"])
+            best_val_brier = float(pack["best_val_brier"])
+            evaluator_sha[f"V_oof_fold{k}"] = sha256_file(fold_path)[:16]
 
         # score engagements in fold k
         E = D.load_engagements(L, "MAIN", [f"fold{k}"], states=True, counts=False)
         em, es = E["match"].astype(str), E["s"].astype(np.int64)
         keep = (E["pre_ok"] == 1) & (E["valid_h90"] == 1)
-        in_t = np.array([(a, int(b)) in train_keys for a, b in zip(em.tolist(), es.tolist())], dtype=bool)
-        keep &= in_t
-        # all kept matches must be in held
+        in_coh = np.array([(a, int(b)) in train_keys for a, b in zip(em.tolist(), es.tolist())], dtype=bool)
+        keep &= in_coh
         bad = [m for m in em[keep].tolist() if m not in held]
         if bad:
             raise SystemExit(f"fold{k}: engagement match not in fold match set example={bad[0]}")
@@ -265,27 +359,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         n_k = int(keep.sum())
         print(f"  labeled eng={n_k} P(SVI=1)={float(np.mean(y[~miss]==1)):.3f}", flush=True)
 
-        # persist fold evaluator (no fit85 weights)
-        fold_path = OOF_DIR / f"V_oof_fold{k}_mlp_expanded.joblib"
-        joblib.dump(
-            dict(
-                kind="mlp_embedding_oof",
-                fold=k,
-                profile="expanded",
-                mlp=pack,
-                calib=dict(coef=gcal.coef_, intercept=gcal.intercept_, ok=gcal.ok),
-                fit_scope=f"leave_fold{k}_match_holdout_frac{args.holdout_frac}_seed{args.seed}",
-                n_fit_rows=int(fit_m.sum()),
-                n_stop_rows=int(stop.sum()),
-                n_held_matches=len(held),
-                n_eng_labeled=n_k,
-            ),
-            fold_path,
-        )
-        try:
-            joblib.dump({"profile": "expanded", "bundle": bun}, OOF_DIR / f"bundle_oof_fold{k}.joblib")
-        except Exception as e:
-            print(f"  warn: could not dump ProfileBundle ({e})", flush=True)
+        if not args.reuse_evaluators:
+            # update n_eng_labeled on dump already written — rewrite lightly
+            fold_path = OOF_DIR / f"V_oof_fold{k}_mlp_expanded.joblib"
+            obj = joblib.load(fold_path)
+            obj["n_eng_labeled"] = n_k
+            joblib.dump(obj, fold_path)
 
         parts.append(
             dict(
@@ -310,35 +389,41 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 fold=k,
                 n_held_matches=len(held),
                 n_eng=n_k,
-                n_fit_rows=int(fit_m.sum()),
-                n_stop_rows=int(stop.sum()),
-                best_epoch=int(pack["best_epoch"]),
-                best_val_brier=float(pack["best_val_brier"]),
+                n_fit_rows=fit_m_sum,
+                n_stop_rows=stop_sum,
+                best_epoch=best_epoch,
+                best_val_brier=best_val_brier,
                 calib_ok=bool(gcal.ok),
                 calib_coef=float(gcal.coef_),
                 calib_intercept=float(gcal.intercept_),
                 wall_s=float(time.time() - t_fold0),
-                evaluator=str(fold_path.relative_to(REPO)).replace("\\", "/"),
+                evaluator=str((OOF_DIR / f"V_oof_fold{k}_mlp_expanded.joblib").relative_to(REPO)).replace("\\", "/"),
+                evaluator_reused=bool(args.reuse_evaluators),
             )
         )
 
     if set(fold_ids) != set(range(5)):
-        # partial run: write partial artifact only
         status = dict(status="PARTIAL", folds=fold_meta, note="Re-run with all folds 0-4 to finalize TRAIN_oof_h90.npz")
         (LAB / "TRAIN_oof_STATUS.json").write_text(json.dumps(status, indent=2) + "\n", encoding="utf-8")
         print("partial fold run — not writing final TRAIN_oof_h90.npz", flush=True)
         return 0
 
-    # concat
     keys = parts[0].keys()
     pack = {k: np.concatenate([p[k] for p in parts], axis=0) for k in keys}
-    checks = integrity_report(pack, fold_meta, expected_eng)
+    checks = integrity_report(pack, fold_meta, integrity_expected)
     out_npz = LAB / "TRAIN_oof_h90.npz"
     np.savez_compressed(out_npz, **pack)
     meta = dict(
         generated=datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds"),
         epistemic=ROLE,
+        role_tag=ROLE,
+        cohort=args.cohort,
+        evaluator_reused=bool(args.reuse_evaluators),
+        evaluator_sha16=evaluator_sha,
+        census_warnings=census_warnings,
+        expected_eng_by_fold=expected_by_fold,
         contract="docs/Q_PREDICTION_DESIGN_CONTRACT_20260920.md",
+        scale_split_contract="docs/SCALE_SPLIT_EXPERIMENT_CONTRACT_20260920.md",
         architecture="Expanded embedding MLP (wave-4 recipe); NOT fit85 weight clone",
         folds=fold_meta,
         integrity=checks,

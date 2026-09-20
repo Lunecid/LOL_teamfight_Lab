@@ -25,10 +25,18 @@ import numpy as np
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "scripts"))
 
-LAB = REPO / "outputs" / "q_newv_fit85_20260920" / "labels"
-QDIR = REPO / "outputs" / "q_newv_fit85_20260920"
-OUT = REPO / "outputs" / "review_response_rr12_20260920"
+QDIR_T = REPO / "outputs" / "q_newv_fit85_20260920"
+QDIR_S = REPO / "outputs" / "q_newv_fit85_20260920_S"
 ROLE = "EXPLORATORY_REVIEW_RESPONSE_PRIOR_TEST_EXPOSURE"
+ROLE_S = "EXPLORATORY_SCALE_SPLIT_PRIOR_TEST_EXPOSURE"
+
+
+def _paths_for_tag(tag: str):
+    if tag == "T":
+        return QDIR_T / "labels", QDIR_T, REPO / "outputs" / "review_response_rr12_20260920"
+    if tag == "S":
+        return QDIR_S / "labels", QDIR_S, REPO / "outputs" / "review_response_rr12_20260920_S"
+    raise SystemExit(f"unsupported --cohort-tag {tag!r}")
 
 
 def _data_root() -> Path:
@@ -341,14 +349,25 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--boot-reps", type=int, default=2000)
     ap.add_argument("--seed", type=int, default=7)
+    ap.add_argument("--cohort-tag", choices=["T", "S"], default="T")
+    ap.add_argument(
+        "--q-model",
+        type=str,
+        default=None,
+        help="path to q joblib (default: <QDIR>/models/logit_state.joblib)",
+    )
     args = ap.parse_args(argv)
+
+    LAB, QDIR, OUT = _paths_for_tag(args.cohort_tag)
+    epistemic = ROLE_S if args.cohort_tag == "S" else ROLE
+    q_model_path = Path(args.q_model) if args.q_model else (QDIR / "models" / "logit_state.joblib")
 
     for need in (
         LAB / "TRAIN_oof_h90.npz",
         LAB / "Q_CAL_h90.npz",
         LAB / "Q_SELECT_h90.npz",
         LAB / "TEST_h90.npz",
-        QDIR / "models" / "logit_state.joblib",
+        q_model_path,
     ):
         if not need.is_file():
             raise SystemExit(f"missing {need}")
@@ -360,7 +379,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     L = D.Layout(False)
     train_roles = [f"fold{k}" for k in range(C.N_FOLDS)]
-    print("load packs…", flush=True)
+    print(f"load packs… cohort-tag={args.cohort_tag}", flush=True)
     TR = load_role_pack(LAB / "TRAIN_oof_h90.npz", D, L, train_roles)
     CA = load_role_pack(LAB / "Q_CAL_h90.npz", D, L, ["Q_CAL"])
     SE = load_role_pack(LAB / "Q_SELECT_h90.npz", D, L, ["Q_SELECT"])
@@ -369,7 +388,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     w_tr = match_weights(TR["g"])
     w_ca = match_weights(CA["g"])
-    logit_obj = joblib.load(QDIR / "models" / "logit_state.joblib")
+    logit_obj = joblib.load(q_model_path)
 
     # --- raw predictors ---
     raw_models: Dict[str, Any] = {}
@@ -682,14 +701,15 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     selection = dict(
         generated=datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds"),
-        epistemic=ROLE,
+        epistemic=epistemic,
+        cohort_tag=args.cohort_tag,
         design="docs/REVIEW_RESPONSE_EXPERIMENT_DESIGN_20260920.md",
-        frozen_q="outputs/q_newv_fit85_20260920/models/logit_state.joblib",
+        frozen_q=str(q_model_path.as_posix()),
         b_spline=raw_models["b_spline"]["config"],
         PT_flex=raw_models["PT_flex"]["config"],
         calibrator_choice={n: calib[n]["mode"] for n in report_names},
         calibrator_params={n: calib[n]["g_dict"] for n in report_names},
-        q_cal_note="g_q only; g_V untouched. Selection on Q_SELECT all-T Brier (not B40).",
+        q_cal_note=f"g_q only; g_V untouched. Selection on Q_SELECT all-{args.cohort_tag} Brier (not B40).",
         aliases=alias,
     )
     (OUT / "baseline_selection.json").write_text(json.dumps(scrub(selection), indent=2) + "\n", encoding="utf-8")
@@ -710,7 +730,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     payload = dict(
         generated=selection["generated"],
-        epistemic=ROLE,
+        epistemic=epistemic,
+        cohort_tag=args.cohort_tag,
         design="docs/REVIEW_RESPONSE_EXPERIMENT_DESIGN_20260920.md",
         census=dict(train=len(TR["y"]), q_cal=len(CA["y"]), q_select=len(SE["y"]), test=len(TE["y"]), test_B40=int(b40.sum())),
         selection=selection,
@@ -759,27 +780,28 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         "",
         f"Generated: {payload['generated']}",
         f"**Design:** [REVIEW_RESPONSE_EXPERIMENT_DESIGN_20260920.md](REVIEW_RESPONSE_EXPERIMENT_DESIGN_20260920.md)",
-        f"**Epistemic:** {ROLE} (post-TEST review response; not confirmatory preregistration)",
+        f"**Epistemic:** {epistemic} (post-TEST review response; not confirmatory preregistration)",
+        f"**Cohort tag:** `{args.cohort_tag}`",
         "",
         "## Locks",
         "",
-        "- V / SVI / engagement T / frozen `logit_state` weights: **unchanged**",
-        "- New: `b_spline`, `PT_flex`, optional `g_q` (PosSlopeSigmoid) selected on Q_SELECT all-T",
+        f"- V / SVI / engagement {args.cohort_tag} / frozen `logit_state` weights: **unchanged**",
+        f"- New: `b_spline`, `PT_flex`, optional `g_q` (PosSlopeSigmoid) selected on Q_SELECT all-{args.cohort_tag}",
         f"- Selected calibrators: `{json.dumps({n: selected[n] for n in report_names})}`",
         f"- PT_flex config: `{json.dumps(raw_models['PT_flex']['config'])}`",
         f"- b_spline config: `{json.dumps(raw_models['b_spline']['config'])}`",
         "",
     ]
-    lines += table_block("TEST 15.16 T — all", scores_all)
+    lines += table_block(f"TEST 15.16 {args.cohort_tag} — all", scores_all)
     lines += [""]
-    lines += table_block("TEST 15.16 T — B40", scores_b40)
+    lines += table_block(f"TEST 15.16 {args.cohort_tag} — B40", scores_b40)
     lines += [
         "",
         "### Primary RR contrast: ΔBrier(q_RR − PT_flex)",
         "",
-        f"- **All T:** estimate={fmt(d_all['estimate'], 5)}  CI95=[{fmt(d_all['ci95'][0], 5)}, {fmt(d_all['ci95'][1], 5)}]  bootstrap_fraction_positive={fmt(d_all['p_gt0'], 4)}",
+        f"- **All {args.cohort_tag}:** estimate={fmt(d_all['estimate'], 5)}  CI95=[{fmt(d_all['ci95'][0], 5)}, {fmt(d_all['ci95'][1], 5)}]  bootstrap_fraction_positive={fmt(d_all['p_gt0'], 4)}",
         f"- **B40:** estimate={fmt(d_b40['estimate'], 5)}  CI95=[{fmt(d_b40['ci95'][0], 5)}, {fmt(d_b40['ci95'][1], 5)}]  bootstrap_fraction_positive={fmt(d_b40['p_gt0'], 4)}",
-        f"- All T vs PT_linear (continuity): estimate={fmt(d_lin['estimate'], 5)}  CI95=[{fmt(d_lin['ci95'][0], 5)}, {fmt(d_lin['ci95'][1], 5)}]",
+        f"- All {args.cohort_tag} vs PT_linear (continuity): estimate={fmt(d_lin['estimate'], 5)}  CI95=[{fmt(d_lin['ci95'][0], 5)}, {fmt(d_lin['ci95'][1], 5)}]",
         "",
         "### Heterogeneity H = D_B40 − D_outside (D = Brier(q)−Brier(PT_flex))",
         "",
@@ -828,7 +850,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         f"Artifacts: `{OUT.as_posix()}/`",
         "",
     ]
-    md = REPO / "docs" / "REVIEW_RESPONSE_RR12_RESULTS_20260920.md"
+    if args.cohort_tag == "T":
+        md = REPO / "docs" / "REVIEW_RESPONSE_RR12_RESULTS_20260920.md"
+        md_json = REPO / "docs" / "REVIEW_RESPONSE_RR12_RESULTS_20260920.json"
+    else:
+        md = REPO / "docs" / f"REVIEW_RESPONSE_RR12_RESULTS_20260920_{args.cohort_tag}.md"
+        md_json = REPO / "docs" / f"REVIEW_RESPONSE_RR12_RESULTS_20260920_{args.cohort_tag}.json"
     md.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     # public JSON copy (small)
@@ -849,9 +876,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     public["calibrator_choice"] = selection["calibrator_choice"]
     public["PT_flex"] = selection["PT_flex"]
     public["b_spline"] = selection["b_spline"]
-    (REPO / "docs" / "REVIEW_RESPONSE_RR12_RESULTS_20260920.json").write_text(
-        json.dumps(scrub(public), indent=2) + "\n", encoding="utf-8"
-    )
+    public["cohort_tag"] = args.cohort_tag
+    md_json.write_text(json.dumps(scrub(public), indent=2) + "\n", encoding="utf-8")
 
     print("wrote", OUT / "paired_ci.json", md, flush=True)
     print(
