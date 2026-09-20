@@ -1,0 +1,52 @@
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 330' width='1000' height='330' role='img' aria-label="Pipeline: engagement detection, frozen win-probability evaluator, direction label, pre-fight predictor against p,t baselines, and the verification checks" font-family='Helvetica, Arial, sans-serif' style='max-width:100%;height:auto;color:#111'><defs><marker id='arrow' viewBox='0 0 10 10' refX='9' refY='5' markerWidth='7' markerHeight='7' orient='auto-start-reverse'><path d='M0,0 L10,5 L0,10 z' fill='currentColor'/></marker></defs><rect width='100%' height='100%' fill='white'/>
+<rect x='30.0' y='40.0' width='170.0' height='64.0' rx='6' stroke='currentColor' stroke-width='1.2' fill='none'/>
+<text x='115.0' y='60.0' font-size='13' text-anchor='middle' font-weight='bold' fill='currentColor'>Timeline + events</text>
+<text x='115.0' y='78.0' font-size='11' text-anchor='middle' font-weight='normal' fill='currentColor'>210 000 KR matches</text>
+<text x='115.0' y='94.0' font-size='11' text-anchor='middle' font-weight='normal' fill='currentColor'>patches 15.14–15.16</text>
+<rect x='230.0' y='40.0' width='170.0' height='64.0' rx='6' stroke='currentColor' stroke-width='1.2' fill='none'/>
+<text x='315.0' y='60.0' font-size='13' text-anchor='middle' font-weight='bold' fill='currentColor'>Engagement detector v3.3</text>
+<text x='315.0' y='78.0' font-size='11' text-anchor='middle' font-weight='normal' fill='currentColor'>kill clusters: G, D, R, B</text>
+<text x='315.0' y='94.0' font-size='11' text-anchor='middle' font-weight='normal' fill='currentColor'>cohorts T (n_min ≥ 4), S (2–3)</text>
+<rect x='430.0' y='40.0' width='170.0' height='64.0' rx='6' stroke='currentColor' stroke-width='1.2' fill='none'/>
+<text x='515.0' y='60.0' font-size='13' text-anchor='middle' font-weight='bold' fill='currentColor'>Frozen evaluator V̂</text>
+<text x='515.0' y='78.0' font-size='11' text-anchor='middle' font-weight='normal' fill='currentColor'>fit85 MLP on match outcome W</text>
+<text x='515.0' y='94.0' font-size='11' text-anchor='middle' font-weight='normal' fill='currentColor'>scores states, never refit</text>
+<rect x='630.0' y='40.0' width='170.0' height='64.0' rx='6' stroke='currentColor' stroke-width='1.2' fill='none'/>
+<text x='715.0' y='60.0' font-size='13' text-anchor='middle' font-weight='bold' fill='currentColor'>Direction label</text>
+<text x='715.0' y='78.0' font-size='11' text-anchor='middle' font-weight='normal' fill='currentColor'>ΔV̂ = V̂(S(e_h)) − V̂(S_pre)</text>
+<text x='715.0' y='94.0' font-size='11' text-anchor='middle' font-weight='normal' fill='currentColor'>Y = 1[ΔV̂ > 0]</text>
+<rect x='830.0' y='40.0' width='170.0' height='64.0' rx='6' stroke='currentColor' stroke-width='1.2' fill='none'/>
+<text x='915.0' y='60.0' font-size='13' text-anchor='middle' font-weight='bold' fill='currentColor'>Pre-fight predictor q</text>
+<text x='915.0' y='78.0' font-size='11' text-anchor='middle' font-weight='normal' fill='currentColor'>351 numeric + p_pre (logistic)</text>
+<text x='915.0' y='94.0' font-size='11' text-anchor='middle' font-weight='normal' fill='currentColor'>vs PT_flex(p_pre, t)</text>
+<line x1='202.0' y1='72.0' x2='226.0' y2='72.0' stroke='currentColor' stroke-width='1' marker-end='url(#arrow)'/>
+<text x='215.0' y='32.0' font-size='10' text-anchor='middle' font-weight='normal' fill='#7a7a7a'>detect</text>
+<line x1='402.0' y1='72.0' x2='426.0' y2='72.0' stroke='currentColor' stroke-width='1' marker-end='url(#arrow)'/>
+<text x='415.0' y='32.0' font-size='10' text-anchor='middle' font-weight='normal' fill='#7a7a7a'>state at τ = K − 15 s and at e_h</text>
+<line x1='602.0' y1='72.0' x2='626.0' y2='72.0' stroke='currentColor' stroke-width='1' marker-end='url(#arrow)'/>
+<text x='615.0' y='32.0' font-size='10' text-anchor='middle' font-weight='normal' fill='#7a7a7a'>p_pre, p_post</text>
+<line x1='802.0' y1='72.0' x2='826.0' y2='72.0' stroke='currentColor' stroke-width='1' marker-end='url(#arrow)'/>
+<text x='815.0' y='32.0' font-size='10' text-anchor='middle' font-weight='normal' fill='#7a7a7a'>labels rows</text>
+<text x='315.0' y='126.0' font-size='10' text-anchor='middle' font-weight='normal' fill='#7a7a7a'>e_h = min(L + 90 s, next kill − 1 ms, next onset − 1 ms, match end − 1 ms)</text>
+<text x='715.0' y='126.0' font-size='10' text-anchor='middle' font-weight='normal' fill='#7a7a7a'>TRAIN rows: fold evaluator V̂^(−k); other rows: frozen bundle</text>
+<text x='30.0' y='180.0' font-size='12' text-anchor='start' font-weight='bold' fill='currentColor'>Verification (no new estimand)</text>
+<rect x='30.0' y='192.0' width='176.0' height='52.0' rx='6' stroke='#7a7a7a' stroke-width='1' fill='none'/>
+<text x='118.0' y='212.0' font-size='12' text-anchor='middle' font-weight='bold' fill='currentColor'>V̂ → W quality</text>
+<text x='118.0' y='229.0' font-size='10.5' text-anchor='middle' font-weight='normal' fill='#7a7a7a'>timeline bands; engagement pre/post</text>
+<rect x='226.0' y='192.0' width='176.0' height='52.0' rx='6' stroke='#7a7a7a' stroke-width='1' fill='none'/>
+<text x='314.0' y='212.0' font-size='12' text-anchor='middle' font-weight='bold' fill='currentColor'>Quiet vs fight |ΔV̂|</text>
+<text x='314.0' y='229.0' font-size='10.5' text-anchor='middle' font-weight='normal' fill='#7a7a7a'>matched windows (RR3)</text>
+<rect x='422.0' y='192.0' width='176.0' height='52.0' rx='6' stroke='#7a7a7a' stroke-width='1' fill='none'/>
+<text x='510.0' y='212.0' font-size='12' text-anchor='middle' font-weight='bold' fill='currentColor'>Correspondence</text>
+<text x='510.0' y='229.0' font-size='10.5' text-anchor='middle' font-weight='normal' fill='#7a7a7a'>kill nets; next objective (RR5)</text>
+<rect x='618.0' y='192.0' width='176.0' height='52.0' rx='6' stroke='#7a7a7a' stroke-width='1' fill='none'/>
+<text x='706.0' y='212.0' font-size='12' text-anchor='middle' font-weight='bold' fill='currentColor'>Horizons</text>
+<text x='706.0' y='229.0' font-size='10.5' text-anchor='middle' font-weight='normal' fill='#7a7a7a'>h60 / h90 / h120 (RR6b)</text>
+<rect x='814.0' y='192.0' width='176.0' height='52.0' rx='6' stroke='#7a7a7a' stroke-width='1' fill='none'/>
+<text x='902.0' y='212.0' font-size='12' text-anchor='middle' font-weight='bold' fill='currentColor'>Small-|ΔV̂| filters</text>
+<text x='902.0' y='229.0' font-size='10.5' text-anchor='middle' font-weight='normal' fill='#7a7a7a'>λ·s_Q exclusion (RR4)</text>
+<text x='30.0' y='262.0' font-size='12' text-anchor='start' font-weight='bold' fill='currentColor'>Evaluation, per cohort (T block, S block; never pooled, never ranked)</text>
+<text x='30.0' y='282.0' font-size='10.5' text-anchor='start' font-weight='normal' fill='#111111'>ΔBrier(q − PT_flex) with match-cluster percentile bootstrap (2 000 draws, seed 7, w = 1/n_m) · B40 slice within cohort · CORP decomposition (point values) · 16.x external, score-only, no intervals</text>
+<text x='30.0' y='300.0' font-size='10.5' text-anchor='start' font-weight='normal' fill='#7a7a7a'>Secondary, identical rows: q_T→S vs PT_flex_S · q_S vs q_T→S · q_S vs q_TS · q_TS vs q on T</text>
+<line x1='515.0' y1='134.0' x2='515.0' y2='184.0' stroke='#7a7a7a' stroke-width='1' stroke-dasharray='3,3' marker-end='url(#arrow)'/>
+</svg>

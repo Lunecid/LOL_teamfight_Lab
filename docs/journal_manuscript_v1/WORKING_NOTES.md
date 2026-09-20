@@ -55,3 +55,9 @@ When those sections are written, every headline sentence should be checkable aga
 
 #### 결정 기록
 - (저자가 채움) 선택안: ___ / 날짜: ___ / 비고: ___
+
+### D.1 2026-09-21 addendum (synced from `.ai/RQ_DECISION_BRIEF.md`)
+- The author decided (contract SCALE_SPLIT §8, option C) to report the skirmish cohort S in the main text. The RQ wording is still undecided and is not changed by that decision.
+- Whichever option (A/B/C) is chosen, J-RQ3's scope list must include engagement scale (T and S cohorts); J-RQ2 is answered per cohort with one primary contrast each.
+- Forbidden as an RQ answer: any ranking of cohorts by absolute score. Allowed: within-cohort lift over PT_flex; partial transfer of the T model to S; no gain from pooling.
+- The writing package prepared on 2026-09-21 (`00_WRITING_DOSSIER.md`) lists the decision as the first blocking item.
