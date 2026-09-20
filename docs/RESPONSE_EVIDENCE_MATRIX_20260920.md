@@ -1,7 +1,7 @@
 # Review-response evidence matrix (RR1–RR6)
 
 **Date:** 2026-09-20  
-**Status:** **JOURNAL FREEZE** · RR0–RRX analysis CLOSED · write Results/Discussion next  
+**Status:** **JOURNAL FREEZE** · RR0–RRX analysis CLOSED · **draft spine:** [journal_manuscript_v1/](journal_manuscript_v1/README.md)  
 **Journal finish lock:** [JOURNAL_FINISH_LOCK_20260920.md](JOURNAL_FINISH_LOCK_20260920.md)  
 **Design:** [REVIEW_RESPONSE_EXPERIMENT_DESIGN_20260920.md](REVIEW_RESPONSE_EXPERIMENT_DESIGN_20260920.md)  
 **Lit application:** [ECONOMETRICS_LIT_APPLICATION_LOCK_20260920.md](ECONOMETRICS_LIT_APPLICATION_LOCK_20260920.md)  

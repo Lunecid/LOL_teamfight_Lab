@@ -1,9 +1,11 @@
-# J-RQ1 문구·범위 고정 (질문 고정 ≠ 검증 완료)
+# J-RQ1 문구·범위 고정 (질문 고정; 집필용 검증 스택은 RR로 닫힘)
 
 **Date:** 2026-09-20  
-**Status:** **연구질문 문구·범위 LOCKED.** RQ1 전체 검증은 **미완료**.  
+**Status:** **연구질문 문구·범위 LOCKED.**  
+**Writing update (same day):** Under [JOURNAL_FINISH_LOCK_20260920.md](JOURNAL_FINISH_LOCK_20260920.md), J-RQ1 is answered for the **journal draft** by frozen fit85 \(V\) + closed RR3/RR5/RR6b measurement stack, with residual limitations explicit in manuscript prose. This does **not** mean “SVI is the true fight winner” or that every sensitivity is exhausted.  
 **Applies to:** 저널 원고의 **J-RQ1**. 동일 실험 줄기는 석사에서 **M-RQ2**로 인용한다 (아래 §4).  
-**목적·목표 문구:** [V_Q_TARGET_LOCK_20260920.md](V_Q_TARGET_LOCK_20260920.md) — \(V\)=토대(수준), \(q\)=중심(이동 방향); 주 목표=이진 SVI.
+**목적·목표 문구:** [V_Q_TARGET_LOCK_20260920.md](V_Q_TARGET_LOCK_20260920.md) — \(V\)=토대(수준), \(q\)=중심(이동 방향); 주 목표=이진 SVI.  
+**Draft spine:** [journal_manuscript_v1/](journal_manuscript_v1/README.md)
 
 ---
 
@@ -12,10 +14,10 @@
 | 상태 | 의미 | 현재 |
 |---|---|---|
 | **질문 고정** | 무엇을 물을지·무엇을 답의 대상으로 할지 확정 | **완료** |
-| **검증 완료** | 그 질문에 대한 측정·해석·안정성 근거가 원고 수준으로 닫힘 | **미완료** |
+| **집필용 검증 스택** | fit85 동결 + RR3/5/6b 등으로 측정·대응·구간 민감성을 원고에 쓸 수 있는 수준 | **완료 (한계 명시 조건)** |
+| **강한 존재론적 결론** | “SVI = 참 한타 승패” / “모든 합리적 \(V\)에서 동일” | **주장하지 않음** |
 
-지금까지 확보한 것은 **경기 승률 평가기 \(\widehat{V}\)의 설계·후보 선정과 시간대별 성능 근거**다.  
-이를 “RQ1을 끝냈다” 또는 “SVI가 올바른 한타 승패다”로 쓰지 않는다.
+이전 문구 “RQ1 전체 검증 미완료”는 **강한 존재론·완전 민감성 탐색**을 뜻했다. 저널 마감에서는 위 중간 행을 기준으로 원고를 쓴다.
 
 ---
 

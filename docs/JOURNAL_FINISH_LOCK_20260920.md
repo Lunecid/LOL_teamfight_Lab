@@ -73,6 +73,7 @@ Do not structure the project so the journal cannot finish without the thesis dee
 
 ## Immediate next work (writing, not modeling)
 
-1. Journal Results + Discussion around the thesis paragraph above.  
-2. Review-response narrative keyed to [RESPONSE_EVIDENCE_MATRIX_20260920.md](RESPONSE_EVIDENCE_MATRIX_20260920.md).  
-3. Related Work: Maymin prior; econometrics as object-separation language ([LIT_RESULT_BRIDGE_RR46_20260920.md](LIT_RESULT_BRIDGE_RR46_20260920.md)) — not “finance applied to LoL.”
+1. **Draft spine (started):** [journal_manuscript_v1/](journal_manuscript_v1/README.md) — outline, claim map, Methods, Results, Discussion.  
+2. Next writing: Introduction, Abstract, Conclusion, Related Work — only after Methods/Results claims stay stable.  
+3. Preserve `docs/tog_manuscript/` as CoG-extension lineage; do not complete `sec_learners` pendings for this version.  
+4. Review-response narrative keyed to [RESPONSE_EVIDENCE_MATRIX_20260920.md](RESPONSE_EVIDENCE_MATRIX_20260920.md).
