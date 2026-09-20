@@ -41,13 +41,15 @@ Framing (lit): **direction-of-change + conditional predictive ability on estimat
 
 ## Forbidden
 
-- Reopen V architecture or q model zoo
+- Reopen V architecture or q model zoo for this journal version ([JOURNAL_FINISH_LOCK_20260920.md](JOURNAL_FINISH_LOCK_20260920.md))
 - Retune B40 thresholds on TEST
 - Promote RR sensitivity slices / best-λ to primary without stating post-hoc
 - Reuse old_V quiet ratios for RR3
 - Apply TEST-fit CORP isotonic as frozen-model “fix”
 - Equate ΔV with financial returns or claim martingale ⇒ sign unpredictable
-- Claim large \(E[|\Delta V|]\) alone implies direction predictability
+- Claim large \(E[|ΔV|]\) alone implies direction predictability
 - Claim “calibration OK / external fail = discrimination only” from MAIN CORP
 - Use \(\langle(p-p^*)^2\rangle\) as CORP MCB
 - Rename match-bootstrap ΔBrier as Diebold–Mariano / Giacomini–White
+- Claim public telemetry cannot exceed observed AUC / that B40 weakness proves missing combat skill
+- Block journal completion on EXT recalibration experiments (thesis/v2 only)
