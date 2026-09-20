@@ -78,6 +78,8 @@
 - 코호트 하드코딩 지점: `rr20260920_q_build_newv_labels.py` `cohort_keys` L59–71, `rr20260920_q_train_oof_mlp_folds.py` `cohort_t_keys` L76–85. q 적합·RR12 평가는 라벨 파일에서 코호트를 물려받음(경로만 매개변수화).
 - fold 평가기: `outputs/q_newv_fit85_20260920/oof_evaluators/V_oof_fold{k}_mlp_expanded.joblib` + `bundle_oof_fold{k}.joblib` — 문서로 존재 미보증, 실행 전 확인.
 - S h90 census: TRAIN fold0–4 24,030/25,005/24,520/24,690/24,804; Q_CAL 31,302; Q_SELECT 31,059; TEST 101,205; EXT KR16.13 15,641 / NA1 16,100 / KR16.15 1,307 / pilot 285.
+- 진행 상태 (2026-09-20 밤): **T007 통과**(`7cee54e`, 검토 `.ai/reports/T007_review.md`) · **T008 통과**(`325ab76`, 검토 `.ai/reports/T008_review.md`; S 라벨 4역할 census 완전 일치, S∩T 키 0, fold 분리 V-held 기준 확인, T 동결 무변경) · **T009 대기**(0단계 R1·G1·R2 선행 수정 후 실행).
+- T008 확정 사실: reuse 모드의 fold held 집합은 V-bucket(`load_v_rows … sub_role==fold{k}`) 기준이며 refit 경로와 동일 구성; 교전 fold 경기 집합은 그 진부분집합(fold당 V-only 981–1,054경기). fold별 S 경기 11,962/12,352/12,138/12,138/12,230; S TEST 경기 49,730 / Q_CAL 15,254 / Q_SELECT 15,282 / TRAIN 60,820. S TEST B40 31,675행(≈31.3 %; T 16.4 %) — 코호트 간 나란히 비교 금지. manifest: `docs/SCALE_SPLIT_RR0_MANIFEST_20260920.json`.
 - 잠금 입장: 실험 자체를 금지하는 잠금 없음(I1 허용, M-RQ1 담당). 저널 승격 시 해제할 문장: COMMON_RESEARCH_SPINE §3 "주 교전 T; N은 보조·부록", PAPER_COHORT_CONTRACT "all models … these rows only", JOURNAL_FINISH_LOCK "Block manuscript on new performance — No".
 
 ## 이 브랜치에 없는 것 (찾지 말 것)
