@@ -1,0 +1,189 @@
+[
+  {
+    "key": "ChristoffersenDiebold2006",
+    "title": "Financial Asset Returns, Direction-of-Change Forecasting, and Volatility Dynamics",
+    "authors": "Peter F. Christoffersen and Francis X. Diebold",
+    "year": 2006,
+    "venue": "Management Science",
+    "doi": "10.1287/mnsc.1060.0520",
+    "url": "https://pubsonline.informs.org/doi/10.1287/mnsc.1060.0520",
+    "open_version_or_archive": "https://www.nber.org/papers/w10009",
+    "application_and_caution": "방향 예측과 조건부 평균·변동성의 관계. SVI 유지 논리와 상태별 변동 규모 진단. 금융 수익률 가정이 게임에 자동 적용되지는 않음."
+  },
+  {
+    "key": "FosterStine2021",
+    "title": "Threshold Martingales and the Evolution of Forecasts",
+    "authors": "Dean P. Foster and Robert A. Stine",
+    "year": 2021,
+    "venue": "arXiv preprint",
+    "doi": "10.48550/arXiv.2105.06834",
+    "url": "https://arxiv.org/abs/2105.06834",
+    "open_version_or_archive": "https://arxiv.org/pdf/2105.06834",
+    "application_and_caution": "시점별 확률 품질과 예측 경로의 변동성을 구분. 전체 경기 경로의 진단·별도 버전 후처리 후보. 프리프린트. 필터는 [0,1] 밖 예측을 낼 수 있어 그대로 확률 평가기로 쓰지 않음."
+  },
+  {
+    "key": "PattonTimmermann2012",
+    "title": "Forecast Rationality Tests Based on Multi-Horizon Bounds",
+    "authors": "Andrew J. Patton and Allan Timmermann",
+    "year": 2012,
+    "venue": "Journal of Business & Economic Statistics",
+    "doi": "10.1080/07350015.2012.634337",
+    "url": "https://doi.org/10.1080/07350015.2012.634337",
+    "open_version_or_archive": "https://cepr.org/publications/dp8194",
+    "application_and_caution": "다중 시점 예측·수정의 합리성 진단. 고정 최종 결과·정보집합 조건과 교전 사후 선택의 차이를 구분."
+  },
+  {
+    "key": "ClementsHarvey2010",
+    "title": "Forecast Encompassing Tests and Probability Forecasts",
+    "authors": "Michael P. Clements and David I. Harvey",
+    "year": 2010,
+    "venue": "Journal of Applied Econometrics",
+    "doi": "10.1002/jae.1097",
+    "url": "https://doi.org/10.1002/jae.1097",
+    "open_version_or_archive": "https://wrap.warwick.ac.uk/id/eprint/4972/",
+    "application_and_caution": "확률예측의 추가 정보·포섭. 단독 ΔBrier 개선과 포섭은 다름. q/PT 결합은 개발자료에서만 적합하는 별도 버전."
+  },
+  {
+    "key": "GiacominiWhite2006",
+    "title": "Tests of Conditional Predictive Ability",
+    "authors": "Raffaella Giacomini and Halbert White",
+    "year": 2006,
+    "venue": "Econometrica",
+    "doi": "10.1111/j.1468-0262.2006.00718.x",
+    "url": "https://doi.org/10.1111/j.1468-0262.2006.00718.x",
+    "open_version_or_archive": "",
+    "application_and_caution": "전체 평균과 상태별 예측력 구분. B40·시간대 손실 차이 분석. 원 논문의 시계열 검정을 경기 단위 자료에 그대로 적용했다고 쓰지 않음."
+  },
+  {
+    "key": "GneitingRaftery2007",
+    "title": "Strictly Proper Scoring Rules, Prediction, and Estimation",
+    "authors": "Tilmann Gneiting and Adrian E. Raftery",
+    "year": 2007,
+    "venue": "Journal of the American Statistical Association",
+    "doi": "10.1198/016214506000001437",
+    "url": "https://doi.org/10.1198/016214506000001437",
+    "open_version_or_archive": "https://stat.uw.edu/research/tech-reports/strictly-proper-scoring-rules-prediction-and-estimation-revised",
+    "application_and_caution": "V와 q 확률 평가에 Brier/log loss를 사용하는 근거. 적정 점수규칙이 라벨 의미의 타당성을 보증하지 않음."
+  },
+  {
+    "key": "DimitriadisGneitingJordan2021",
+    "title": "Stable Reliability Diagrams for Probabilistic Classifiers",
+    "authors": "Timo Dimitriadis and Tilmann Gneiting and Alexander I. Jordan",
+    "year": 2021,
+    "venue": "Proceedings of the National Academy of Sciences",
+    "doi": "10.1073/pnas.2016191118",
+    "url": "https://doi.org/10.1073/pnas.2016191118",
+    "open_version_or_archive": "https://publikationen.bibliothek.kit.edu/1000130510",
+    "application_and_caution": "CORP reliability와 점수 분해. V→W, q→SVI를 각각 진단. TEST에서 진단용으로 얻은 재보정 곡선을 동결 예측 개선에 사용하지 않음."
+  },
+  {
+    "key": "BrownWarner1985",
+    "title": "Using Daily Stock Returns: The Case of Event Studies",
+    "authors": "Stephen J. Brown and Jerold B. Warner",
+    "year": 1985,
+    "venue": "Journal of Financial Economics",
+    "doi": "10.1016/0304-405X(85)90042-X",
+    "url": "https://doi.org/10.1016/0304-405X(85)90042-X",
+    "open_version_or_archive": "",
+    "application_and_caution": "사건 전후 기대 외 변동과 사건 유발 분산, 데이터 종속성의 설계. Quiet 참고 비교에 아이디어를 차용하되 인과효과로 해석하지 않음."
+  },
+  {
+    "key": "Maymin2021",
+    "title": "Smart Kills and Worthless Deaths: eSports Analytics for League of Legends",
+    "authors": "Philip Z. Maymin",
+    "year": 2021,
+    "venue": "Journal of Quantitative Analysis in Sports",
+    "doi": "10.1515/jqas-2019-0096",
+    "url": "https://doi.org/10.1515/jqas-2019-0096",
+    "open_version_or_archive": "https://www.degruyterbrill.com/document/doi/10.1515/jqas-2019-0096/html",
+    "application_and_caution": "LoL 사건을 추정 승률 변화로 평가하는 직접 선행연구. 고해상도 자료, 사후 기여 평가와 공개 분 단위 자료의 사전 방향 예측을 구분."
+  },
+  {
+    "key": "DecroosEtAl2019",
+    "title": "Actions Speak Louder than Goals: Valuing Player Actions in Soccer",
+    "authors": "Tom Decroos and Lotte Bransen and Jan Van Haaren and Jesse Davis",
+    "year": 2019,
+    "venue": "Proceedings of the 25th ACM SIGKDD International Conference on Knowledge Discovery & Data Mining",
+    "doi": "10.1145/3292500.3330758",
+    "url": "https://doi.org/10.1145/3292500.3330758",
+    "open_version_or_archive": "https://arxiv.org/abs/1802.07127",
+    "application_and_caution": "상황에 따른 공격·수비 결과 확률 변화로 행동 가치를 평가. 최종 경기 승률과 다음 득실점 확률은 다른 대상."
+  },
+  {
+    "key": "BrillYurkoWyner2026",
+    "title": "Exploring the Difficulty of Estimating Win Probability: A Simulation Study",
+    "authors": "Ryan S. Brill and Ronald Yurko and Abraham J. Wyner",
+    "year": 2026,
+    "venue": "Journal of Quantitative Analysis in Sports",
+    "doi": "10.1515/jqas-2024-0130",
+    "url": "https://doi.org/10.1515/jqas-2024-0130",
+    "open_version_or_archive": "https://arxiv.org/abs/2406.16171",
+    "application_and_caution": "경기별 공유 승패와 관측 종속성의 추정 불확실성. 원고는 2024 preprint, 2025 online, 2026 issue. 특정 시뮬레이션의 ESS·구간 폭을 우리 데이터에 복사하지 않음."
+  },
+  {
+    "key": "CameronMiller2015",
+    "title": "A Practitioner's Guide to Cluster-Robust Inference",
+    "authors": "A. Colin Cameron and Douglas L. Miller",
+    "year": 2015,
+    "venue": "Journal of Human Resources",
+    "doi": "10.3368/jhr.50.2.317",
+    "url": "https://doi.org/10.3368/jhr.50.2.317",
+    "open_version_or_archive": "https://escholarship.org/uc/item/1jq5d0pq",
+    "application_and_caution": "같은 경기 안의 교전·시간 행 종속성 고려. 경기 가중 통계와 cluster bootstrap의 근거. 클러스터 사이 독립성 가정도 명시."
+  },
+  {
+    "key": "PesaranTimmermann1992",
+    "title": "A Simple Nonparametric Test of Predictive Performance",
+    "authors": "M. Hashem Pesaran and Allan Timmermann",
+    "year": 1992,
+    "venue": "Journal of Business & Economic Statistics",
+    "doi": "10.1080/07350015.1992.10509922",
+    "url": "https://doi.org/10.1080/07350015.1992.10509922",
+    "open_version_or_archive": "",
+    "application_and_caution": "방향 예측 성능과 주변 확률을 구분하는 고전적 기준. 기본 검정의 자료 가정 점검 필요. Brier 주 평가를 대체하지 않음."
+  },
+  {
+    "key": "DieboldMariano1995",
+    "title": "Comparing Predictive Accuracy",
+    "authors": "Francis X. Diebold and Roberto S. Mariano",
+    "year": 1995,
+    "venue": "Journal of Business & Economic Statistics",
+    "doi": "10.1080/07350015.1995.10524599",
+    "url": "https://doi.org/10.1080/07350015.1995.10524599",
+    "open_version_or_archive": "",
+    "application_and_caution": "예측 손실 차이 비교의 고전적 근거. 현재 경기 bootstrap을 그대로 DM test라고 부르지 않음."
+  },
+  {
+    "key": "HansenLundeNason2011",
+    "title": "The Model Confidence Set",
+    "authors": "Peter R. Hansen and Asger Lunde and James M. Nason",
+    "year": 2011,
+    "venue": "Econometrica",
+    "doi": "10.3982/ECTA5771",
+    "url": "https://doi.org/10.3982/ECTA5771",
+    "open_version_or_archive": "",
+    "application_and_caution": "여러 후보에서 하나의 확정 우승자보다 구분하기 어려운 모델 집합을 보고하는 방법. 현재 동결 모델 재선정의 이유로 쓰지 않음."
+  },
+  {
+    "key": "AbadieImbens2008",
+    "title": "On the Failure of the Bootstrap for Matching Estimators",
+    "authors": "Alberto Abadie and Guido W. Imbens",
+    "year": 2008,
+    "venue": "Econometrica",
+    "doi": "10.3982/ECTA6474",
+    "url": "https://doi.org/10.3982/ECTA6474",
+    "open_version_or_archive": "https://www.nber.org/papers/t0325",
+    "application_and_caution": "일반적인 nearest-neighbor matching 추정량의 bootstrap 실패. 현재 경기 내부 매칭의 경기별 대비를 자동 무효화하지 않으며 대상 추정량과 재표집 단위를 따로 따져야 함."
+  },
+  {
+    "key": "PippingGamonWyner2026",
+    "title": "Extreme-Path Benchmarks for Sequential Probability Forecasts",
+    "authors": "Jonathan Pipping-Gam{\\'o}n and Abraham J. Wyner",
+    "year": 2026,
+    "venue": "arXiv preprint",
+    "doi": "10.48550/arXiv.2601.18774",
+    "url": "https://arxiv.org/abs/2601.18774v3",
+    "open_version_or_archive": "https://arxiv.org/html/2601.18774v3",
+    "application_and_caution": "승률 경로의 최고점·최종 패배 등 극값의 기준분포. v3 프리프린트, Annals of Applied Statistics에 투고했다고 표기. 채택·정식출판으로 인용하지 않음."
+  }
+]

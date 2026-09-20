@@ -1,0 +1,230 @@
+{
+  "generated": "2026-09-20T15:06:39+09:00",
+  "epistemic": "EXPLORATORY_RR3_CLOSEOUT_PRIOR_TEST_EXPOSURE",
+  "design": "docs/REVIEW_RESPONSE_EXPERIMENT_DESIGN_20260920.md \u00a77",
+  "parent_commit_note": "Closes RR3 reporting gaps without retuning match tolerances or refitting V/q",
+  "scope": {
+    "matching_tolerances": {
+      "dp_max": 0.025,
+      "dt_max_ms": 120000
+    },
+    "logical_constraint": "With equal length L and no overlap with [s,s+L], any quiet start must satisfy |t-s|>=L. Combined with |t-s|<=120s, fights with L>120s are unmatchable under this rule.",
+    "TEST_share_L_gt_120s": 0.09190139777447622,
+    "TEST_n_L_gt_120s": 3031,
+    "TEST_coverage_bins": [
+      {
+        "bin": "L_le_60s",
+        "n": 12753,
+        "n_matched": 7020,
+        "coverage": 0.5504587155963303
+      },
+      {
+        "bin": "L_60_120s",
+        "n": 17197,
+        "n_matched": 2120,
+        "coverage": 0.12327731581089725
+      },
+      {
+        "bin": "L_gt_120s",
+        "n": 3031,
+        "n_matched": 0,
+        "coverage": 0.0
+      },
+      {
+        "bin": "t_2_10",
+        "n": 2265,
+        "n_matched": 412,
+        "coverage": 0.18189845474613686
+      },
+      {
+        "bin": "t_10_20",
+        "n": 11858,
+        "n_matched": 2559,
+        "coverage": 0.21580367684263788
+      },
+      {
+        "bin": "t_20_30",
+        "n": 15446,
+        "n_matched": 4826,
+        "coverage": 0.31244335102939275
+      },
+      {
+        "bin": "t_30_inf",
+        "n": 3412,
+        "n_matched": 1343,
+        "coverage": 0.3936107854630715
+      },
+      {
+        "bin": "B40",
+        "n": 5423,
+        "n_matched": 922,
+        "coverage": 0.1700165959800848
+      },
+      {
+        "bin": "outside_B40",
+        "n": 27558,
+        "n_matched": 8218,
+        "coverage": 0.29820741708396836
+      }
+    ],
+    "Q_CAL_coverage_bins": [
+      {
+        "bin": "L_le_60s",
+        "n": 3961,
+        "n_matched": 2258,
+        "coverage": 0.570058066144913
+      },
+      {
+        "bin": "L_60_120s",
+        "n": 5412,
+        "n_matched": 729,
+        "coverage": 0.13470066518847007
+      },
+      {
+        "bin": "L_gt_120s",
+        "n": 1017,
+        "n_matched": 0,
+        "coverage": 0.0
+      },
+      {
+        "bin": "t_2_10",
+        "n": 702,
+        "n_matched": 129,
+        "coverage": 0.18376068376068377
+      },
+      {
+        "bin": "t_10_20",
+        "n": 3822,
+        "n_matched": 822,
+        "coverage": 0.2150706436420722
+      },
+      {
+        "bin": "t_20_30",
+        "n": 4809,
+        "n_matched": 1609,
+        "coverage": 0.33458099396964025
+      },
+      {
+        "bin": "t_30_inf",
+        "n": 1057,
+        "n_matched": 427,
+        "coverage": 0.40397350993377484
+      },
+      {
+        "bin": "B40",
+        "n": 1697,
+        "n_matched": 277,
+        "coverage": 0.1632292280494991
+      },
+      {
+        "bin": "outside_B40",
+        "n": 8693,
+        "n_matched": 2710,
+        "coverage": 0.3117450822500863
+      }
+    ],
+    "TEST_matched_traits": {
+      "n": 9140,
+      "mean_p": 0.5004633088275195,
+      "mean_t_min": 23.010526812545585,
+      "mean_L_s": 52.376526586433265,
+      "mean_abs_dV": 0.08051220261913682
+    },
+    "TEST_unmatched_traits": {
+      "n": 23841,
+      "mean_p": 0.5063313024617506,
+      "mean_t_min": 20.593939677446418,
+      "mean_L_s": 87.75174065685165,
+      "mean_abs_dV": 0.128728656055706
+    },
+    "Q_CAL_matched_traits": {
+      "n": 2987,
+      "mean_p": 0.5042904026215197,
+      "mean_t_min": 23.095105512777593,
+      "mean_L_s": 52.7122942751925,
+      "mean_abs_dV": 0.07572821212575777
+    },
+    "Q_CAL_unmatched_traits": {
+      "n": 7403,
+      "mean_p": 0.5033071085748514,
+      "mean_t_min": 20.46373454230267,
+      "mean_L_s": 88.8823300013508,
+      "mean_abs_dV": 0.12979698612928486
+    },
+    "summarize_delta_note": "In RR3 tables, means / mean|\u0394V| / P(\u0394V>0) are match-weighted; median and quantiles are row-level (unweighted). Do not label the whole table as match-weighted."
+  },
+  "path_parity": {
+    "n_requested": 200,
+    "n_ok": 200,
+    "n_fail": 0,
+    "fight_rebuild_abs_err_p_pre": {
+      "n": 200,
+      "mean": 7.175840437412262e-08,
+      "p50": 3.5390257835388184e-08,
+      "p95": 2.384185791015625e-07,
+      "max": 4.470348358154297e-07
+    },
+    "fight_rebuild_abs_err_delta": {
+      "n": 200,
+      "mean": 1.2209173291921615e-07,
+      "p50": 6.705522537231445e-08,
+      "p95": 4.3287873268127416e-07,
+      "max": 7.152557373046875e-07
+    },
+    "quiet_rebuild_abs_err_delta_Lminus1": {
+      "n": 200,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "max": 0.0
+    },
+    "quiet_rebuild_abs_err_delta_if_end_t0_plus_L": {
+      "n": 200,
+      "mean": 6.538815796375274e-08,
+      "p50": 2.9802322387695312e-08,
+      "p95": 2.384185791015625e-07,
+      "max": 4.172325134277344e-07
+    },
+    "measured_span_ms": {
+      "fight_post_minus_pre_mean": 54838.38,
+      "quiet_shipped_t0_to_t0_plus_L_minus_1_mean": 54838.38,
+      "stored_L_mean": 54839.38,
+      "note": "Shipped quiet scores at [t0, t0+L-1] (span L-1 ms). Stored L=endpoint-s. Fight rebuild uses [s, endpoint-1]. 1 ms span difference is documented; not assumed to explain |\u0394V| gap."
+    },
+    "convention_lock": "Going forward report measurement length as (post_query_ms - pre_query_ms). Shipped RR3 quiet used post=t0+L-1; overlap/kill checks used [t0, t0+L]."
+  },
+  "mu_s_fallback": {
+    "path": "outputs/review_response_rr3_quiet_20260920/quiet_mu_s_Q_CAL_fallback.json",
+    "fallback_counts": {
+      "to_p_t": 156,
+      "to_p": 140
+    },
+    "min_matches": 100
+  },
+  "preserved_primary_contrast": {
+    "mean_abs_fight_minus_quiet": {
+      "estimate": 0.06333160664538526,
+      "ci95": [
+        0.06118756221474504,
+        0.06542419549310519
+      ],
+      "bootstrap_fraction_positive": 1.0
+    },
+    "mean_signed_fight_minus_quiet": {
+      "estimate": 0.002797048560068782,
+      "ci95": [
+        1.6788438823777353e-05,
+        0.005648746117102285
+      ],
+      "bootstrap_fraction_positive": 0.975
+    },
+    "p_pos_fight_minus_quiet": {
+      "estimate": 0.019218614205577942,
+      "ci95": [
+        0.004559235995891601,
+        0.0338745358299755
+      ],
+      "bootstrap_fraction_positive": 0.992
+    }
+  }
+}

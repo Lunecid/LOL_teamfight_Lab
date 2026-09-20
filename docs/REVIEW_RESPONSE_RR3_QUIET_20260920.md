@@ -47,6 +47,8 @@ Balance: mean|Δp|=0.0091 mean|Δt|=72.7688s mean|ΔL|=0.0000ms
 
 Balance: mean|Δp|=0.0088 mean|Δt|=72.2017s mean|ΔL|=0.0000ms
 
+Close-out (traits, \(L>120\)s constraint, timing parity, \(s_Q\) fallback): [REVIEW_RESPONSE_RR3_CLOSEOUT_20260920.md](REVIEW_RESPONSE_RR3_CLOSEOUT_20260920.md)
+
 ## Guardrails
 
 - Do not call quiet a causal control or independent fight-winner accuracy.

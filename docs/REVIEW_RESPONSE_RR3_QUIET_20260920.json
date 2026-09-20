@@ -76,6 +76,20 @@
     },
     "unmatched_reason": {
       "no_candidate": 7403
+    },
+    "matched_fight_traits": {
+      "n": 2987,
+      "mean_p": 0.5042904026215197,
+      "mean_t_min": 23.095105512777593,
+      "mean_L_s": 52.7122942751925,
+      "mean_abs_dV": 0.07572821212575777
+    },
+    "unmatched_fight_traits": {
+      "n": 7403,
+      "mean_p": 0.5033071085748514,
+      "mean_t_min": 20.46373454230267,
+      "mean_L_s": 88.8823300013508,
+      "mean_abs_dV": 0.12979698612928486
     }
   },
   "TEST": {
@@ -143,6 +157,22 @@
     },
     "unmatched_reason": {
       "no_candidate": 23841
+    },
+    "matched_fight_traits": {
+      "n": 9140,
+      "mean_p": 0.5004633088275195,
+      "mean_t_min": 23.010526812545585,
+      "mean_L_s": 52.376526586433265,
+      "mean_abs_dV": 0.08051220261913682
+    },
+    "unmatched_fight_traits": {
+      "n": 23841,
+      "mean_p": 0.5063313024617506,
+      "mean_t_min": 20.593939677446418,
+      "mean_L_s": 87.75174065685165,
+      "mean_abs_dV": 0.128728656055706
     }
-  }
+  },
+  "closeout": "docs/REVIEW_RESPONSE_RR3_CLOSEOUT_20260920.md",
+  "scope_note": "Results apply to the matchable subset under |dp|<=0.025, |dt|<=120s, equal L; L>120s unmatchable by construction."
 }
