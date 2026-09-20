@@ -10,6 +10,8 @@ The primary held-out contrasts that flex \(p,t\) baselines and report CORP / ext
 
 Where execution of the flexible-baseline protocol differed from the written design (uniform spline knots rather than weighted quantiles; fitting weights not mean-normalized; two-stage hyperparameter then calibrator selection), we follow the execution addendum rather than rewriting history [RR1 addendum; RR0 manifest].
 
+The skirmish cohort **S** (§1, §5) was added on 2026-09-21 under a predeclared contract (`SCALE_SPLIT_EXPERIMENT_CONTRACT_20260920.md`; tag `EXPLORATORY_SCALE_SPLIT_PRIOR_TEST_EXPOSURE`). Its 15.16 rows had been scored in the 2026-09-15 lineage as part of the non-teamfight cohort, so S carries the same prior-exposure status as T. Its contrasts use the contract-literal **identity** calibrator; the RR12 two-stage selection, which chose a positive-slope sigmoid for every S model, is reported only as a sensitivity variant (§4.2, Results §3.1).
+
 ---
 
 ## 1. Engagement unit
@@ -46,7 +48,7 @@ An **engagement** is a kill-anchored cluster in Riot Match-V5 timeline telemetry
 | Draws (gold label) | dropped | Convention | 33 905 of 566 452 |
 
 - **Per-patch re-estimation.** \(G\) and \(D\) re-estimated per patch (15.14 / 15.15 / 15.16: \(G\) = 14.0 / 13.5 / 13.7 s; \(D\) = 4 285 / 4 265 / 4 241 u) all lie inside the pooled plateau and within 10% of the pooled \(D\), so one pooled definition serves the corpus. [§Re-estimation per patch]
-- **Scale classes and the teamfight cohort T.** Participation per side counts that side's champions among the killers, victims and assisters of the engagement's kills plus the actors of other timeline events within 3 000 u of the anchor between \(\tau\) and the last kill; classes use the smaller side's count \(n_{\min}\): *pick* \(n_{\min}\le 1\), *skirmish* \(2\le n_{\min}\le 3\), **teamfight \(n_{\min}\ge 4\)**. The prediction sample of this paper, **T**, is the teamfight class. In the frozen pipeline its membership is the flag `cohort == 1` written by the 2026-09-15 cohort-role build, computed by `scale_classes` as \(\min(\texttt{cluster\_blue},\texttt{cluster\_red})\ge 4\) on the stored v3.3 participation counts (kill participants plus interaction actors within 3 000 u; not the pre-cutoff presence count), with no other filter; it coincides exactly with the v3.3 teamfight class (`fine == 2`) in every set (`docs/lineage_20260915/cr20260915_common.py` L37–60; `docs/lineage_20260915/cohort_manifest.json` `rules`). Rows additionally require `valid_h90 == 1` and finite pre/post scores (§5). Fold and validation roles are match-level: TRAIN fold = sha256('full-v-oof-20260915:' + match)[:8] mod 5; VALIDATION role = sha256('full-val-20260915:' + match)[:8] mod 4 → V_CAL, V_SELECT, Q_CAL, Q_SELECT (`docs/lineage_20260915/README.md`). The corpus counts of the definition lineage (532 547 v3.3 engagements from 208 141 matches, of which 109 829 teamfights) come from a different corpus and filter than the pooled T of this paper (113 901 from 210 000 matches) and are not tabulated together. [§Scale classes]
+- **Scale classes and the teamfight cohort T.** Participation per side counts that side's champions among the killers, victims and assisters of the engagement's kills plus the actors of other timeline events within 3 000 u of the anchor between \(\tau\) and the last kill; classes use the smaller side's count \(n_{\min}\): *pick* \(n_{\min}\le 1\), *skirmish* \(2\le n_{\min}\le 3\), **teamfight \(n_{\min}\ge 4\)**. The prediction sample of this paper consists of **two cohorts reported side by side**: the teamfight class **T** and the skirmish class **S** (\(2\le n_{\min}\le 3\); flag `cohort == 0 & fine == 1` in the same build). Picks (\(n_{\min}\le 1\)) are excluded a priori \pending{pick-exclusion-wording: author sentence for the reason; the scale-split contract excluded picks and no fit85-lineage result exists for them}. Each cohort has its own fitted \(q\) and baselines and its own primary contrast; the cohorts are never pooled into one table row and their absolute scores are not compared (Discussion §5). In the frozen pipeline T membership is the flag `cohort == 1` written by the 2026-09-15 cohort-role build, computed by `scale_classes` as \(\min(\texttt{cluster\_blue},\texttt{cluster\_red})\ge 4\) on the stored v3.3 participation counts (kill participants plus interaction actors within 3 000 u; not the pre-cutoff presence count), with no other filter; it coincides exactly with the v3.3 teamfight class (`fine == 2`) in every set (`docs/lineage_20260915/cr20260915_common.py` L37–60; `docs/lineage_20260915/cohort_manifest.json` `rules`). Rows additionally require `valid_h90 == 1` and finite pre/post scores (§5). Fold and validation roles are match-level: TRAIN fold = sha256('full-v-oof-20260915:' + match)[:8] mod 5; VALIDATION role = sha256('full-val-20260915:' + match)[:8] mod 4 → V_CAL, V_SELECT, Q_CAL, Q_SELECT (`docs/lineage_20260915/README.md`). The corpus counts of the definition lineage (532 547 v3.3 engagements from 208 141 matches, of which 109 829 teamfights) come from a different corpus and filter than the pooled T of this paper (113 901 from 210 000 matches) and are not tabulated together. [§Scale classes]
 
 Sensitivity of secondary constants (anchor placement, shop-event exclusion, label horizon, execution kills, position-grid error, the \(G\times D\) sweep) was measured on conference-era or pilot corpora and is documented in the definition lineage; it has not been re-run under the current corpus. Kill-less proximity exchanges lie outside this detector's instances and are not the prediction target of this paper.
 
@@ -121,9 +123,11 @@ q(x_{\mathrm{pre}})
 \widehat{\Pr}\!\left(Y_{\mathrm{SVI}}=1\mid x_{\mathrm{pre}}\right)
 \]
 
-is the locked **logistic / `logit_state`** model trained on out-of-fold SVI labels under the sealed feature order (MAIN feature-order sha16 `103f0b92094847bc` for external score-only application). Inputs use **pre-state only**. For the reported RR contrasts, the selected probability mapping on Q_SELECT was **identity** (no additional increasing calibrator on \(q\)).
+is the locked **logistic / `logit_state`** model trained on out-of-fold SVI labels under the sealed feature order (MAIN feature-order sha16 `103f0b92094847bc` for external score-only application). Inputs use **pre-state only**. For the reported RR contrasts on T, the selected probability mapping on Q_SELECT was **identity** (no additional increasing calibrator on \(q\)).
 
 Inputs are the 351 numeric pre-state features plus \(p_{\mathrm{pre}} = \widehat V(x_{\mathrm{pre}})\) (352 inputs), standardized and fit with L2-regularized logistic regression; the 10 raw champion-ID slots are excluded. The LightGBM candidate `lgbm_state` used the same numeric block plus the 10 champion IDs as categorical features (362 inputs), so the two learners were not compared on identical inputs. [`scripts/rr20260920_q_newv_primary_fit.py` L185–L225]
+
+**Cohort-specific \(q\).** For S, \(q_S\) is fit with the identical specification (same 352 inputs, same L2 logistic learner fixed a priori, no learner re-selection) on S TRAIN out-of-fold labels. Two secondary arms exist only for Results §3.4: the frozen T model applied unchanged to S rows (\(q_{T\to S}\)), and a pooled fit on T ∪ S TRAIN with match weights recomputed inside the union (\(q_{TS}\)). [`scripts/rr20260920_q_newv_primary_fit.py` `--cohort-tag`, `--fixed-learner`; `scripts/ss20260920_union_labels.py`]
 
 ### 4.2 Baselines in \(p_{\mathrm{pre}}\) and time
 
@@ -132,9 +136,11 @@ Inputs are the 351 numeric pre-state features plus \(p_{\mathrm{pre}} = \widehat
 
 PT_flex in detail: cubic B-spline bases (`SplineTransformer`, uniform knots, `include_bias=False`, constant extrapolation) on \(p_{\mathrm{pre}}\) (`n_knots_p`) and on time in minutes (`n_knots_t` = 4, fixed), plus the full tensor product of the two bases; standardized and fit with L2 logistic regression (lbfgs) under weights \(1/n_m\). The search grid was `n_knots_p` ∈ {4, 6} × \(C\) ∈ {0.01, 0.1, 1}; the winner by Q_SELECT match-weighted Brier was (4, 4, 0.01). The \(p\)-only spline baseline uses \(p_{\mathrm{pre}}\) alone (`n_knots` 6, \(C\) 0.01); PT_linear is standardized logistic regression on \([p_{\mathrm{pre}}, t]\). As stated in §0, knots are uniform rather than weighted-quantile, fitting weights were not mean-normalized, and hyperparameters were chosen before the identity/sigmoid calibrator (two-stage). [`scripts/rr20260920_review_response_rr12.py` `PTFlexFeatures`, `fit_pt_flex`; RR12 JSON `PT_flex`, `b_spline`]
 
-**Selection and calibration of \(q\).** Candidates and baselines were fit on 15.14 TRAIN (out-of-fold labels), selected on 15.15 Q_SELECT by match-weighted Brier over all T, and then frozen. Q_CAL was used only for LightGBM early stopping; a positive-slope sigmoid \(g_q\) was fit on Q_CAL for every model and compared with the identity on Q_SELECT, and the identity was retained for \(q\) and PT_flex. No separate probability calibrator is applied to the reported \(q\). [`Q_PREDICTION_DESIGN_CONTRACT_20260920.md` §3; RR12 JSON `calibrator_choice`]
+**PT_flex_S and the S calibrator policy.** For S the same grid was searched on S Q_SELECT and the same winner (4, 4, 0.01) was selected; PT_linear_S and \(b(p)_S\) are fit likewise on S TRAIN. The two-stage rule of RR12, applied to S, chose the positive-slope sigmoid for every model (\(q_S\), PT_flex_S, PT_linear_S, \(b(p)_S\)). Because the scale-split contract fixed the identity calibrator a priori and defines \(q_{T\to S}\) as the frozen T model applied as-is, all S results in this paper use the **identity** calibrator; the selection variant is reported as a sensitivity row and moves the S primary contrast from −0.00335 to −0.00346 (Results §3.1). [`scripts/rr20260920_review_response_rr12.py` `--calibrator`; `docs/SCALE_SPLIT_TvsS_RESULTS_20260920.json` `table2a_identity`, `table2b_sensitivity`]
 
-**Primary contrast for this paper:** ΔBrier and related scores of frozen \(q\) versus **PT_flex** on the same rows. PT_linear is retained for continuity with earlier tables. Constant and \(p\)-only splines are reported only as context in the RR12 table, not as a model zoo search.
+**Selection and calibration of \(q\).** Candidates and baselines were fit on 15.14 TRAIN (out-of-fold labels), selected on 15.15 Q_SELECT by match-weighted Brier over all T, and then frozen. Q_CAL was used only for LightGBM early stopping; a positive-slope sigmoid \(g_q\) was fit on Q_CAL for every model and compared with the identity on Q_SELECT, and the identity was retained for \(q\) and PT_flex. No separate probability calibrator is applied to the reported \(q\). The same steps were run separately on the S roles (learner fixed to `logit_state` a priori; PT_flex knots / \(C\) selected on S Q_SELECT; identity calibrator by contract). [`Q_PREDICTION_DESIGN_CONTRACT_20260920.md` §3; RR12 JSON `calibrator_choice`; `docs/SCALE_SPLIT_EXPERIMENT_CONTRACT_20260920.md` §4]
+
+**Primary contrasts for this paper (one per cohort):** ΔBrier and related scores of frozen \(q\) versus **PT_flex** on the same T rows, and of \(q_S\) versus **PT_flex_S** on the same S rows. PT_linear is retained for continuity with earlier tables. Constant and \(p\)-only splines are reported only as context in the RR12 table, not as a model zoo search.
 
 We do not expand Transformer / GNN / TabM candidates for this version.
 
@@ -168,8 +174,19 @@ TRAIN total 424 160 = 360 479 + 63 681. Match counts not recorded in the c
 | EXT NA1 16.13 | NA1 | 5 312 | 3 955 (10 000 collected) | fit85 | score-only |
 | EXT KR 16.15 | KR | 507 | 377 (926 collected) | fit85 | reported, not pooled |
 | EXT KR 16.14 pilot | KR | 101 | 80 (200 collected) | fit85 | reported, not pooled |
+| TRAIN (S) | 15.14 | 123 049 | 60 820 | \(\widehat V^{(-k)}\) out-of-fold, same fold evaluators as T | fit \(q_S\), PT_flex_S, \(b(p)_S\) |
+| Q_CAL (S) | 15.15 | 31 302 | 15 254 | fit85 | LightGBM early stop (diagnostic only) |
+| Q_SELECT (S) | 15.15 | 31 059 | 15 282 | fit85 | select knots / \(C\) |
+| TEST (S) | 15.16 | 101 205 | 49 730 | fit85 | primary (S block) |
+| B40 ⊂ TEST (S) | 15.16 | 31 675 | 25 039 | fit85 | conditional (within-S) |
+| EXT KR 16.13 (S) | KR | 15 641 | — | fit85 | score-only |
+| EXT NA1 16.13 (S) | NA1 | 16 100 | — | fit85 | score-only |
+| EXT KR 16.15 (S) | KR | 1 307 | — | fit85 | reported, not pooled |
+| EXT KR 16.14 pilot (S) | KR | 285 | — | fit85 | reported, not pooled |
 
 Pooled T (15.14 + 15.15 + 15.16) = 113 901 engagements, used for measurement tables only; summing the recorded per-role match counts gives 83 108 matches (a sum of `cohort_manifest.json` fields, not itself a recorded figure). Every T row is valid at h90; the 348 invalid rows of the corpus are all non-teamfight engagements. Sample flow: source matches (210 000 KR, patches 15.14–15.16) → detected engagements → teamfight class T → pre-state available and `valid_h90` → finite pre/post scores → role assignment as above; counts for the intermediate stages are not recorded in the freeze documents and are not estimated here.
+
+S rows follow the same flow with the skirmish class in place of T and are labeled by the same two evaluator paths (T008 manifest: S∩T key intersection 0; every S and T TRAIN match lies inside its fold's held-out match set, 14 628–15 017 matches per fold). In 15.16, 101 242 skirmish engagements are detected and 101 205 are valid at h90. S match counts for the external sets are not recorded. For \(q_{TS}\) the T and S label sets are concatenated (TRAIN 162 654 rows from 65 465 matches; key overlap 0) and weights are recomputed inside the union; the union TEST is not an evaluation cell. [`docs/SCALE_SPLIT_RR0_MANIFEST_20260920.json` `row_counts`, `integrity`; `docs/lineage_20260915/cohort_manifest.json` `sets.MAIN_TEST.skirmish`; `.ai/reports/logs/T009_union.txt`]
 
 **Two evaluator paths.**
 
@@ -185,6 +202,7 @@ External application is **score-only**: no refit of \(V\) or \(q\) weights; fail
 ## 6. Scores and uncertainty
 
 - **Proper scores:** Brier score and log loss (lower better).  
+- **Cells:** every evaluation cell is cohort-specific (T or S). No pooled T ∪ S cell is scored, and no statistic compares the two cohorts' absolute scores; cross-cohort statements are limited to the predeclared transfer and pooling contrasts on identical rows (Results §3.4).  
 - **Ranking:** AUC (reported; not the sole success criterion).  
 - **Paired contrast:** ΔBrier(\(q\) − baseline) with **match-cluster bootstrap** 95% intervals. We do **not** rename these intervals as Diebold–Mariano or Giacomini–White tests.  
 - **Weighting:** in every evaluation cell, each engagement (or time-state query) carries weight \(w_i = 1/n_m\), where \(n_m\) is the number of that match's rows inside the cell; weights are recomputed per cell, and Brier, log loss, AUC, positive rate, ECE and the CORP components are all weighted averages under \(w\). Exceptions are labeled where they occur: RR3 medians and quantiles are row-level; RR5a disagreement shares are unweighted; RR5b next-objective counts are unweighted. [`scripts/rr20260920_review_response_rr12.py` `match_weights`; design §4.2]  
@@ -226,7 +244,7 @@ CORP is a **score decomposition** on that sample. No bootstrap intervals were co
 
 ## 9. Evidence trace
 
-Every number reported in Results resolves to one of the following artifacts at commit `21391b2`.
+Every number reported in Results resolves to one of the following artifacts at commit `21391b2` (T rows) or `69130a4` (S rows, added 2026-09-21).
 
 | Manuscript number | Source file | Field / row |
 |---|---|---|
@@ -254,6 +272,17 @@ Every number reported in Results resolves to one of the following artifacts at c
 | Endpoint rule, validity flags | `docs/lineage_20260915/engagement_labels_v3_rules.py` | `endpoint_rule`, `endpoint_validity` |
 | Valid rows 566 104 / 566 452; 348 overlap exclusions; realised follow-up 45.493 s / 39.440 s; cap reached 14.286%; next-kill stop ≈78.9% | `docs/lineage_20260915/README.md` (excerpts of `e0ec3d0:docs/tog_delta_v_20260916/manuscript.md` L200–208, L351–358) | tables |
 | Detector constants table | `docs/tog_manuscript/sec_definition.tex` | `tab:constants` L451–L641 |
+| S TEST \(q_S\): Brier 0.2458, log loss 0.6849, AUC 0.5767; PT_flex_S 0.2492 / 0.6915 / 0.5360; PT_linear_S 0.2495 / 0.6921 / 0.5301; n 101 205 / 49 730; positive rate 0.511 | `docs/SCALE_SPLIT_TvsS_RESULTS_20260920.json` | `table1_S_TEST_identity.{q_S,PT_flex_S,PT_linear_S}`; `.q_S.p_pos` |
+| ΔBrier \(q_S\)−PT_flex_S −0.00335 [−0.00379, −0.00288] | same | `table2a_identity.q_S_minus_PT_flex_S` |
+| Sensitivity (RR12 calibrator selection) −0.00346 [−0.00382, −0.00307] | same | `table2b_sensitivity.q_S_minus_PT_flex_S` |
+| ΔBrier \(q_S\)−PT_linear_S −0.00368 [−0.00412, −0.00321] | `docs/REVIEW_RESPONSE_RR12_RESULTS_20260920_S_qS_id.json` | `bootstrap.all_q_minus_PT_linear` |
+| \(q_{T\to S}\)−PT_flex_S −0.00141 [−0.00186, −0.00094] | `docs/REVIEW_RESPONSE_RR12_RESULTS_20260920_S_qT_id.json` | `bootstrap.all_q_minus_PT_flex` |
+| \(q_S\)−\(q_{T\to S}\) −0.00194 [−0.00236, −0.00153]; \(q_S\)−\(q_{TS}\) −0.00024 [−0.00039, −0.00009]; \(q_{TS}\)−\(q\) (T rows) +0.00071 [+0.00018, +0.00126] | `docs/SCALE_SPLIT_TvsS_RESULTS_20260920.json` | `table2a_identity.{q_S_minus_q_T_to_S,q_S_minus_q_TS,q_TS_minus_q_T}` |
+| S∩B40 ΔBrier −0.00210 [−0.00266, −0.00149]; n 31 675 / 25 039; \(H_S\) +0.00178 [+0.00096, +0.00259]; B40 Brier \(q_S\) 0.2481 / PT_flex_S 0.2502, AUC 0.5530 / 0.4999 | same; `..._S_qS_id.json` | `table2a_identity.q_S_minus_PT_flex_S_B40`; `bootstrap.H_B40_minus_outside`; `TEST_B40.{q_base,PT_flex}` |
+| S CORP: \(q_S\) MCB 0.0008 / DSC 0.0048; PT_flex_S 0.0007 / 0.0014 | `docs/SCALE_SPLIT_TvsS_RESULTS_20260920.json` | `table3_CORP_identity` |
+| EXT S: n 15 641 / 16 100 / 1 307 / 285; \(V_{\mathrm{pre}}\) Brier 0.1872 / 0.1871 / 0.1829 / 0.1787; ΔBrier −0.0018 / −0.0020 / −0.0033 / +0.0035; ΔMCB 0.0011 / 0.0013; ΔDSC 0.0029 / 0.0033; \(q_S\) MCB 0.0028 / 0.0038; DSC 0.0034 / 0.0035 | same; `docs/REVIEW_RESPONSE_RRX_EXTERNAL_20260920_S.md` | `table4_EXT_S`; summary table |
+| S roles (Table 5b): 123 049 / 31 302 / 31 059 / 101 205 rows; 60 820 / 15 254 / 15 282 / 49 730 matches; skirmish detected 101 242; union TRAIN 162 654 / 65 465 | `docs/SCALE_SPLIT_RR0_MANIFEST_20260920.json`; `docs/lineage_20260915/cohort_manifest.json`; `.ai/reports/logs/T009_union.txt` | `row_counts`, `integrity.value_checks.<ROLE>.n_matches`; `sets.MAIN_TEST.skirmish`; union log |
+| T positive rate 0.498 (match-weighted) | `docs/REVIEW_RESPONSE_RR12_RESULTS_20260920.json` | `TEST_all.constant.p_pos` |
 
 ---
 

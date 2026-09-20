@@ -34,3 +34,5 @@
 - T005 — `\pending` items resolved from the 2026-09-15 lineage (cohort rule, h90 endpoint rule, per-role match counts) with byte-identical copies under `docs/lineage_20260915/` — see `.ai/reports/T005.md`
 - T006 — detector constants table (value + source class) in Methods §1 — see `.ai/reports/T006.md`
 - T004 — lineage banners on PAPER_COHORT_CONTRACT §5–§6, 15.15 remainder note, uncertainty-coverage line on RESPONSE_EVIDENCE_MATRIX — see `.ai/reports/T004.md`
+- T011 (2026-09-21) — scale-split promotion (author option C): dated additions-only amendments to PAPER_COHORT_CONTRACT §1, COMMON_RESEARCH_SPINE, JOURNAL_FINISH_LOCK, Q_PREDICTION_DESIGN_CONTRACT, SCALE_SPLIT contract §8, RESPONSE_EVIDENCE_MATRIX (row SS) — see `.ai/tasks/T011.md`
+- T012 (2026-09-21) — skirmish cohort S integrated as a second block in Methods §0/§1/§4/§5/§6/§9, Results §3.1–§3.4/§5/§6, Discussion §1/§5/§6 and the claim–evidence map (C18–C22, F6–F8); all S numbers from `docs/SCALE_SPLIT_TvsS_RESULTS_20260920.json` (identity) — two `\pending` items for author wording — see `.ai/tasks/T012.md`

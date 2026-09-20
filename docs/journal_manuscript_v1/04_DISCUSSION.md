@@ -8,6 +8,8 @@ The conference line of work asked how much **public pre-fight information** can 
 
 On held-out patch 15.16, a frozen tabular \(q\) improves Brier score relative to the tested PT_flex baseline by about **0.0037** (AUC 0.6403 vs 0.6200). The gain is real under the locked protocol and small in absolute terms. In the balanced B40 slice the gain is smaller still and should be read cautiously. On the main external 16.13 cohorts the Brier advantage **disappears**, even though discrimination components remain favorable to \(q\) in the score decomposition.
 
+The same question was asked of the skirmish cohort S under a predeclared contract added on 2026-09-21. There \(q_S\) improves Brier over PT_flex_S by about **0.0034** (AUC 0.5767 vs 0.5360), the frozen teamfight model applied unchanged still beats PT_flex_S on skirmish rows, and pooling the two cohorts into one training set helps neither. Each cohort is read on its own; the paper does not rank the two engagement scales against each other.
+
 Together, these results answer the research questions as **scoped predictability plus transfer limits**, not as a claim of a strong, portable fight tip model.
 
 ---
@@ -42,6 +44,9 @@ On 15.16, the Brier gap between \(q\) and PT_flex co-moves with a larger discrim
 - We do **not** claim that external failure is “only calibration” or that recalibration will fix transfer.  
 - We do **not** claim an exhaustive model ranking or an optimal architecture.  
 - We do **not** equate material/next-objective correspondence with \(q\) accuracy or with causal ATT from quiet contrasts.
+- We do **not** claim that teamfights or skirmishes are “more predictable”, nor any scale gradient: in the definition lineage the pick-minus-teamfight AUC difference changes sign with the class cut (3 / 4 / 5), and the two cohorts here differ in size, positive rate and B40 share.  
+- We do **not** offer a mechanism for any T/S difference in transfer or in absolute scores (claim ledger X-31 stays withdrawn).  
+- We do **not** substitute pooled T ∪ S rows, pick results, or the small external cohorts for a cohort's own contrast.
 
 ---
 
@@ -52,5 +57,8 @@ On 15.16, the Brier gap between \(q\) and PT_flex co-moves with a larger discrim
 - **Quiet match coverage** and **\(s_Q\) coarseness** limit how strongly small-ΔV analyses can speak.  
 - **External ΔV** is not validated merely by \(V_{\mathrm{pre}}\) Brier ≈0.15.  
 - **Prior CoG-extension learner comparisons** remain incomplete and are out of scope for this freeze.
+- **Cohort scope:** picks (\(n_{\min}\le 1\), about 18% of 15.16 engagements) are excluded a priori; no fit85-lineage result exists for them.  
+- **S calibrator variant:** the RR12 two-stage rule chose a sigmoid for every S model; results use the contract-literal identity and report the variant as a sensitivity row with the same sign.  
+- **Cell heterogeneity:** T and S differ in rows (32 981 vs 101 205), match-weighted positive rate (0.498 vs 0.511) and B40 share (16.4% vs 31.3%); every interval is within-cohort.
 
 Deferred follow-up work is listed in the working notes, not in this paper.

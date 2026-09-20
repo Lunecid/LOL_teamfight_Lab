@@ -6,6 +6,8 @@ Working title (provisional):
 Thesis (locked):  
 We define fight-interval win-probability **direction** from a frozen match-outcome evaluator \(\widehat V\), and ask how much of that direction is predictable from pre-fight public state beyond initial win probability and time. On held-out 15.16, a frozen \(q\) shows limited proper-score lift over flexed \(p,t\) baselines; measurement checks and external transfer bound how far that lift travels.
 
+*Scope note (2026-09-21):* the same question is answered for the skirmish cohort S in a second block of every prediction table (scale-split contract §8, author option C); T and S are never compared as scales.
+
 ---
 
 ## Research questions (editorial proposal — pending author confirmation)
@@ -17,6 +19,7 @@ We define fight-interval win-probability **direction** from a frozen match-outco
 | **Transfer / scope** | Does that lift hold on later external cohorts under score-only freeze? | Results §EXT |
 
 *Status note.* The locked journal plan (`docs/JOURNAL_RESEARCH_PLAN_20260919.md` §6) lists three questions, J-RQ1 / J-RQ2 / J-RQ3. The table above merges the first clause of J-RQ3 (dependence on initial edge) into J-RQ2 and leaves transfer unnumbered. The final structure awaits the author's decision; no wording in the Question column has been changed here.
+With the 2026-09-21 decision to report S in the main text, the scope list of J-RQ3 will need "engagement scale (T, S cohorts)" whichever option is chosen (`.ai/RQ_DECISION_BRIEF.md`).
 
 Purpose continuity with CoG: recover how much **pre-information** is available before a fight — here the object is **direction of estimated WP change**, not gold engagement winner.
 
@@ -30,9 +33,9 @@ Purpose continuity with CoG: recover how much **pre-information** is available b
 4. **Results**  
    4.1 \(V\to W\) quality (timeline + engagement pre/post)  
    4.2 ΔV / SVI characteristics (triad; quiet contrast; material / next-objective; horizons)  
-   4.3 Direction prediction: \(q\) vs PT_flex (all-T + B40)  
+   4.3 Direction prediction: \(q\) vs PT_flex per cohort (T block, S block; B40 within each); transfer and pooling as secondary  
    4.4 Sensitivity (λ·\(s_Q\); post-hoc)  
-   4.5 External dual-stage (KR/NA1 16.13)  
+   4.5 External dual-stage (KR/NA1 16.13; T rows and S rows)  
 5. **Discussion** — what the lift means; dependence on \(\widehat V\); where lift fails; Forbidden denials; deferred work.  
 6. **Limitations / Availability / Conclusion** *(later)*
 
@@ -65,11 +68,19 @@ Uncertainty column = bootstrap interval only (match-cluster percentile, 2 000 
 | C15 | Main KR/NA1 16.13: q Brier **worse** than PT_flex | n=5202 / 5312 | ΔBrier +0.0026 / +0.0040 | — (no interval; point-estimate ordering) | RRX | supported | Lift does not transfer under score-only freeze; ΔMCB > ΔDSC is the decomposition reading |
 | C16 | On those cohorts q DSC still > PT but MCB larger | KR/NA1 | q MCB 0.0065/0.0100; DSC 0.0082/0.0064 | — | RRX | diagnostic | Not proof that recalibration will fix transfer |
 | C17 | \(V_{\mathrm{pre}}\) Brier ~0.15 on EXT | KR/NA1 | 0.1511 / 0.1514 | — | RRX | supported | Does **not** alone validate EXT ΔV labels |
+| C18 | On 15.16 all-S, \(q_S\) beats PT_flex_S on Brier (identity calibrator) | n=101205; matches=49730 | ΔBrier −0.00335; q_S AUC 0.5767; PT_flex_S AUC 0.5360 | CI95 [−0.00379, −0.00288] | SS | **exploratory** (prior TEST exposure) | Within-S only; sensitivity −0.00346 [−0.00382, −0.00307] under RR12 calibrator selection; never compared with C9 |
+| C19 | Frozen T model transfers part of its signal to S; \(q_S\) adds more | S rows | \(q_{T\to S}\)−PT_flex_S −0.00141; \(q_S\)−\(q_{T\to S}\) −0.00194 | CI95 [−0.00186, −0.00094]; [−0.00236, −0.00153] | SS | exploratory (secondary) | Fitted-model transfer on identical rows; no mechanism (X-31) |
+| C20 | Pooling T ∪ S helps neither cohort | S rows / T rows | \(q_S\)−\(q_{TS}\) −0.00024; \(q_{TS}\)−\(q\) +0.00071 | CI95 [−0.00039, −0.00009]; [+0.00018, +0.00126] | SS | exploratory (secondary) | Cohort-specific \(q\) retained |
+| C21 | S∩B40 lift clearly nonzero and smaller than outside B40 | n=31675 | ΔBrier −0.00210; \(H_S\) +0.00178 | CI95 [−0.00266, −0.00149]; [+0.00096, +0.00259] | SS | exploratory | Within-S; not placed beside C11 / C12 |
+| C22 | KR/NA1 16.13 S rows: \(q_S\) Brier below PT_flex_S | n=15641 / 16100 | ΔBrier −0.0018 / −0.0020 | — (no interval; point-estimate ordering) | SS (rrx S) | supported as observed ordering | Not a T-vs-S contrast; no mechanism; pending author sentence |
 | F1 | Public telemetry cannot exceed AUC 0.64 | — | — | — | — | **forbidden** | |
 | F2 | B40 weakness proves missing combat skill | — | — | — | — | **forbidden** | |
 | F3 | Recalibration will fix EXT | — | — | — | — | **forbidden** / deferred adapter | |
 | F4 | Best architecture / exhaustive ranking | — | — | — | — | **forbidden** | |
 | F5 | Material correspondence = q accuracy or ATT | — | — | — | — | **forbidden** | |
+| F6 | Teamfights (or skirmishes) are more predictable / any scale gradient | — | — | — | — | **forbidden** | cut-dependent sign reversal in the definition lineage |
+| F7 | A mechanism for the T/S difference | — | — | — | — | **forbidden** (X-31 withdrawn) | |
+| F8 | Pooled T ∪ S, pick or small-EXT results substituted for a cohort's own contrast | — | — | — | — | **forbidden** | |
 
 ---
 
