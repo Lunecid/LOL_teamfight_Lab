@@ -81,6 +81,6 @@
 - 잠금 입장: 실험 자체를 금지하는 잠금 없음(I1 허용, M-RQ1 담당). 저널 승격 시 해제할 문장: COMMON_RESEARCH_SPINE §3 "주 교전 T; N은 보조·부록", PAPER_COHORT_CONTRACT "all models … these rows only", JOURNAL_FINISH_LOCK "Block manuscript on new performance — No".
 
 ## 이 브랜치에 없는 것 (찾지 말 것)
-- 교전 코호트 플래그(`cohort == 1`, `valid_h90`)를 생성한 2026-09-15 파이프라인 코드와 `outputs/` 산출물. T의 자격 규칙 문장이 `docs/`에서 확인되지 않으면 `\pending`으로 남긴다.
+- 2026-09-15 파이프라인의 실행 코드 전체와 `outputs/` 산출물. 단, 규칙을 정하는 파일 6개는 `docs/lineage_20260915/`에 바이트 동일 사본으로 있고(README에 발췌·출처 줄 번호), Methods의 `\pending` 3건은 T005로 해소됨.
 - CoG 118 리뷰 원문 (요약만 `docs/CLAUDE_TOG_PAPER_PLAN.md` §7–8).
 - 협업자 교정 patch (리뷰어 샌드박스에만 존재). 작업서는 그 지적을 저장소 근거로 재구성한 것.

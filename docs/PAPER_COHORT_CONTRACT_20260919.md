@@ -30,7 +30,7 @@ Same corpus ≠ same evaluation sample. Never report \(p_{\mathrm{pre}}\) AUC on
 | Pooled T (all three) | 113,901 | Measurement: label mix, material concordance, patch strata |
 | EXT KR/NA1 16.x | see §4 | Transfer section only |
 
-> **Note (journal freeze, 2026-09-20):** the four q roles sum to 93,171 (39,605 + 10,390 + 10,195 + 32,981). The remaining 20,730 rows of pooled T are the part of 15.15 (VAL total 41,315; see EXPERIMENT_INVENTORY_COHORT_20260919.md §E) that was not assigned to Q_CAL or Q_SELECT. They are not used in any prediction table.
+> **Note (journal freeze, 2026-09-20):** the four q roles sum to 93,171 (39,605 + 10,390 + 10,195 + 32,981). The remaining 20,730 rows of pooled T are the part of 15.15 (VAL total 41,315; see EXPERIMENT_INVENTORY_COHORT_20260919.md §E) that was not assigned to Q_CAL or Q_SELECT (they are the V_CAL 10,191 + V_SELECT 10,539 engagement rows of the 15.15 matches used only for state-value evaluator calibration/selection; see docs/lineage_20260915/cohort_manifest.json). They are not used in any prediction table.
 
 TRAIN in-sample \(q\) never appears as a main lift number.  
 15.14/15.15 “same pattern” ≠ independent holdout proof.

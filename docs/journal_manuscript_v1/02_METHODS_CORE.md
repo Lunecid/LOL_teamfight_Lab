@@ -20,9 +20,33 @@ An **engagement** is a kill-anchored cluster in Riot Match-V5 timeline telemetry
 - **Spatial split and the diameter \(D\).** An episode is split so that no two of its kills lie more than \(D\) apart (time-ordered first-fit grouping). \(D\) is the distance at which the rate of consecutive kill pairs sharing a champion (as killer, victim or assister) falls to 0.5: \(\hat D = 4\,263.87\) u over 5 460 008 pairs, run at \(D = 4\,264.0\) u; match-bootstrap 95% CI 4 256–4 274 u, which reflects sampling only because the estimate interpolates between bin centres 750 u apart. [§The spatial boundary \(D\)]
 - **Presence gate (\(R\), \(B\), \(M\)).** The cutoff is \(\tau = t_{\text{first kill}} - B\) with \(B = 15\) s. An episode becomes an engagement only if, at \(\tau\), at least \(M = 2\) alive champions of **each** team stand within \(R = 1\,600\) u of the first kill's position (the anchor). Alive status is read from the last one-minute frame before \(\tau\); positions come from a 5 s grid interpolated between one-minute frames, with each kill participant's path drawn towards its kill position. \(R\) and \(B\) are rule anchors (champion-death experience-sharing radius; assist window) held fixed by assumption and checked against patch notes 25.14–25.16; \(M\) is a convention. [§Presence gate, lead and anchor]
 - **Gold-label attribution window.** The CoG-continuity label `market_event` reads events in \([\tau,\ \max(t_{\text{last kill}}+1\,\text{ms},\ \tau+H))\) with \(H = 35\) s, cut short at an ace, and only inside a disc of radius \(D\) centred on the anchor. The SVI endpoint is defined separately (§1b). [§Which events the label may read]
-- **Assembly guards (engineering constants).** Re-engagement merge on, maximum gap 15 s, merge radius 2 000 u; merged-duration cap 60 s; cutoffs in the first 2 min, or less than 35 s before the last frame, rejected; a 30 s observation window in 5 s bins up to \(\tau\); overlap between engagements resolved by participation priority with location radius \(D\); interaction radius 3 000 u for participation counts (shop events included); engagements on which the gold label finds no winner dropped. [`tab:constants`]
+- **Assembly guards and remaining constants.** The table below lists every constant that shapes the engagement set, with the source class used in the definition lineage (data-derived / rule anchor / convention / engineering); values are those injected into the v3.3 detector. [`tab:constants`, sec_definition L451–L641]
+
+| Constant | Value | Source class | Basis (measured impact where it exists) |
+|---|---|---|---|
+| Kill gap \(G\) | 13.7 s (estimate 13.7246 s; run at 13 700 ms) | Data-derived | KDE antimode of log inter-kill intervals; CI 12.2–15.7 s; ARI ≥ 0.9 for 10–18 s |
+| Diameter \(D\) | 4 264 u (estimate 4 263.87 u) | Data-derived | 0.5 crossing of champion-sharing rate over 5 460 008 pairs; CI 4 256–4 274 u (sampling only) |
+| Executions (kills with `killerId` 0) | included | Engineering | 0.41% of kills in a pilot; effect on engagements not measured |
+| Presence radius \(R\) | 1 600 u | Rule anchor | champion-death experience-sharing radius; patch notes 25.14–25.16 list no change |
+| Lead \(B\) | 15 s | Rule anchor | assist window; sets \(\tau\) |
+| Minimum per team \(M\) | 2 (both teams, within \(R\), alive) | Convention | after Ke et al.; at \(M=3\) the corpus shrinks to 76 290 engagements |
+| Position grid | 5 s; frame and kill-trajectory interpolation on | Engineering | median position error 1 149 u in a pilot; effect on the gate not measured |
+| Re-engagement merge, gap, radius | on; 15 s; 2 000 u | Engineering | merges not counted |
+| Duration cap | 60 s after \(\tau\) | Engineering | not measured |
+| Start and end exclusion | first 2 min; \(\tau+35\) s before last frame | Engineering | not measured |
+| Context guard, observation window | 30 s in 5 s bins up to \(\tau\); gap 0 | Convention (conference version) | window sweep reported in the definition lineage |
+| Label horizon \(H\) (gold label only) | 35 s; ace truncation on | Engineering; convention | applies to `market_event`, not to the SVI endpoint (§1b) |
+| Overlap resolution | location radius \(=D\); participation priority | Engineering | — |
+| Tail buffer, minimum start gap | 0, 0 (disabled) | Engineering | — |
+| Post-fight window | 30 s (diagnostic only, unused by label or features) | Engineering (unused) | no effect on the corpus |
+| Interaction radius; shop events | 3 000 u; included | Engineering | participation counts (scale classes) only |
+| Scale cuts | pick ≤ 1 / skirmish 2–3 / teamfight ≥ 4 | Convention | pick − teamfight AUC sign follows the cut (definition lineage) |
+| Dead zone \(\varepsilon\) (gold label) | 300 g | Engineering (rule-motivated) | one base kill bounty; label-family variants in the lineage |
+| Attribution radius (gold label) | \(D\) (disc diameter \(2D\)) | Engineering (tied to \(D\)) | — |
+| Draws (gold label) | dropped | Convention | 33 905 of 566 452 |
+
 - **Per-patch re-estimation.** \(G\) and \(D\) re-estimated per patch (15.14 / 15.15 / 15.16: \(G\) = 14.0 / 13.5 / 13.7 s; \(D\) = 4 285 / 4 265 / 4 241 u) all lie inside the pooled plateau and within 10% of the pooled \(D\), so one pooled definition serves the corpus. [§Re-estimation per patch]
-- **Scale classes and the teamfight cohort T.** Participation per side counts that side's champions among the killers, victims and assisters of the engagement's kills plus the actors of other timeline events within 3 000 u of the anchor between \(\tau\) and the last kill; classes use the smaller side's count \(n_{\min}\): *pick* \(n_{\min}\le 1\), *skirmish* \(2\le n_{\min}\le 3\), **teamfight \(n_{\min}\ge 4\)**. The prediction sample of this paper, **T**, is the teamfight class. In the frozen pipeline its membership is carried by the `cohort == 1` flag of the 2026-09-15 cohort-role build together with `valid_h90 == 1` and finite pre/post scores (§5); the code of that cohort build is not in this branch (\pending{T-cohort-build-provenance}). The corpus counts of the definition lineage (532 547 v3.3 engagements from 208 141 matches, of which 109 829 teamfights) come from a different corpus and filter than the pooled T of this paper (113 901 from 210 000 matches) and are not tabulated together. [§Scale classes]
+- **Scale classes and the teamfight cohort T.** Participation per side counts that side's champions among the killers, victims and assisters of the engagement's kills plus the actors of other timeline events within 3 000 u of the anchor between \(\tau\) and the last kill; classes use the smaller side's count \(n_{\min}\): *pick* \(n_{\min}\le 1\), *skirmish* \(2\le n_{\min}\le 3\), **teamfight \(n_{\min}\ge 4\)**. The prediction sample of this paper, **T**, is the teamfight class. In the frozen pipeline its membership is the flag `cohort == 1` written by the 2026-09-15 cohort-role build, computed by `scale_classes` as \(\min(\texttt{cluster\_blue},\texttt{cluster\_red})\ge 4\) on the stored v3.3 participation counts (kill participants plus interaction actors within 3 000 u; not the pre-cutoff presence count), with no other filter; it coincides exactly with the v3.3 teamfight class (`fine == 2`) in every set (`docs/lineage_20260915/cr20260915_common.py` L37–60; `docs/lineage_20260915/cohort_manifest.json` `rules`). Rows additionally require `valid_h90 == 1` and finite pre/post scores (§5). Fold and validation roles are match-level: TRAIN fold = sha256('full-v-oof-20260915:' + match)[:8] mod 5; VALIDATION role = sha256('full-val-20260915:' + match)[:8] mod 4 → V_CAL, V_SELECT, Q_CAL, Q_SELECT (`docs/lineage_20260915/README.md`). The corpus counts of the definition lineage (532 547 v3.3 engagements from 208 141 matches, of which 109 829 teamfights) come from a different corpus and filter than the pooled T of this paper (113 901 from 210 000 matches) and are not tabulated together. [§Scale classes]
 
 Sensitivity of secondary constants (anchor placement, shop-event exclusion, label horizon, execution kills, position-grid error, the \(G\times D\) sweep) was measured on conference-era or pilot corpora and is documented in the definition lineage; it has not been re-run under the current corpus. Kill-less proximity exchanges lie outside this detector's instances and are not the prediction target of this paper.
 
@@ -31,7 +55,13 @@ We do **not** treat the gold engagement-winner label `market_event` as the freez
 ### 1b. Prediction time and outcome time
 
 - **Prediction time.** The feature cutoff is \(\tau = t_{\text{first kill}} - B\) (\(B = 15\) s). \(q\) and the PT baselines read only the pre-state snapshot \(S_{\mathrm{pre}}\) taken at or just before \(\tau\); the actual endpoint, the actual interval length, post-engagement participants and post states are never inputs. [`V_DYNAMIC_FRAME_CONTRACT_20260919.md`; `REVIEW_RESPONSE_EXPERIMENT_DESIGN_20260920.md` §2.1]
-- **Outcome time.** The post state \(S_{\mathrm{end}}\) is the snapshot at the label endpoint under horizon \(h\), primary **h90**, and \(\Delta\widehat V = \widehat V(S_{\mathrm{end}}) - \widehat V(S_{\mathrm{pre}})\). "h90" does not mean that every interval is 90 s long: each engagement has its own length \(L_i = \text{endpoint}_i - \text{pre\_query}_i\), and analyses that need a length (quiet matching, RR3) use \(L_i\). Only engagements with `valid_h90 == 1` (an endpoint state exists under the frozen state pipeline) are labeled; h60 and h120 are sensitivity horizons only. The exact endpoint construction (early match end, truncation) is carried by the 2026-09-15 label build and is not restated in this branch's documents (\pending{h90-endpoint-rule}). [design §2.1 L44, L177; `Q_PREDICTION_DESIGN_CONTRACT_20260920.md` L119]
+- **Outcome time.** Let \(K\) be the first kill, \(s = K - 15\) s, \(q_{\mathrm{pre}} = s - 1\) ms, \(L\) the last kill of the engagement, \(K_{\mathrm{next}}\) the first champion kill anywhere on the map strictly after \(L\), \(S_{\mathrm{next}}\) the onset of the next eligible engagement (itself 15 s before its first kill), and \(T_{\mathrm{end}}\) the match end; absent events are \(+\infty\). The endpoint under horizon \(h\) is
+
+\[
+e_h=\min\bigl(L+1000h,\ K_{\mathrm{next}}-1,\ S_{\mathrm{next}}-1,\ T_{\mathrm{end}}-1\bigr)\ \text{[ms]},\qquad h=90\ \text{(primary)},\ 60,\ 120\ \text{(sensitivity)},
+\]
+
+  and \(\Delta\widehat V=\widehat V(S(e_h))-\widehat V(S(q_{\mathrm{pre}}))\). Objective acquisitions and aces are not terminal events under this rule. The state at a query time is the last observed one-minute frame at or before it plus every event up to it (closed inclusion; no interpolation; the frame age is stored). A row is labeled only if \(e_h\ge L\), \(e_h>q_{\mathrm{pre}}\), \(e_h\le\) last frame, \(q_{\mathrm{pre}}\) lies inside the observed frames, \(S_{\mathrm{next}}>L\), and the state builder succeeds at both queries (`valid_h90 == 1`); failures are excluded with a recorded reason, never dropped silently, and an early match end truncates \(e_h\) rather than invalidating the row or replacing \(\widehat V\) by the final outcome. Of 566 452 detected engagements, 566 104 are valid at h60, h90 and h120 alike; all 348 invalid rows are overlap cases (\(S_{\mathrm{next}}\le L\)) and none is a teamfight. Because the cap is anchored at the last kill, "h90" is not a 90 s window: on the 15.16 timeline the observed follow-up after \(L\) averages 45.493 s (median 39.440 s), 14.286% of rows reach the cap and ≈78.9% stop at the next kill; the interval length used for quiet matching (RR3), \(L_i=e_h-q_{\mathrm{pre}}\), also contains the 15 s lead and the kill cluster itself. [`docs/lineage_20260915/engagement_labels_v3_rules.py` `endpoint_rule`, `endpoint_validity`; `docs/lineage_20260915/LABEL_ENDPOINT_RULE_AND_EXAMPLES_20260914.md`; `docs/lineage_20260915/README.md` excerpts; design §2.1 L44, L177]
 
 ---
 
@@ -128,18 +158,18 @@ TRAIN total 424 160 = 360 479 + 63 681. Match counts not recorded in the c
 
 | Role | Patch / region | Engagements | Matches | Label source | Use |
 |---|---|---:|---:|---|---|
-| TRAIN | 15.14 | 39 605 | — | \(\widehat V^{(-k)}\) out-of-fold | fit \(q\), PT_flex, \(b(p)\) |
-| Q_CAL | 15.15 | 10 390 | — | fit85 | LightGBM early stop; \(g_q\) candidates |
-| Q_SELECT | 15.15 | 10 195 | — | fit85 | select knots / \(C\) / calibrator |
-| 15.15 remainder | 15.15 | 20 730 | — | — | not assigned (15.15 VAL total 41 315) |
+| TRAIN | 15.14 | 39 605 | 28 989 (Σ 5 folds) | \(\widehat V^{(-k)}\) out-of-fold | fit \(q\), PT_flex, \(b(p)\) |
+| Q_CAL | 15.15 | 10 390 | 7 550 | fit85 | LightGBM early stop; \(g_q\) candidates |
+| Q_SELECT | 15.15 | 10 195 | 7 469 | fit85 | select knots / \(C\) / calibrator |
+| V_CAL / V_SELECT | 15.15 | 10 191 / 10 539 | 7 448 / 7 632 | — | evaluator calibration / selection matches only; never used for \(q\) (15.15 VAL total 41 315) |
 | TEST | 15.16 | 32 981 | 24 020 | fit85 | primary |
 | B40 ⊂ TEST | 15.16 | 5 423 | 4 945 | fit85 | conditional |
-| EXT KR 16.13 | KR | 5 202 | 10 064 collected | fit85 | score-only |
-| EXT NA1 16.13 | NA1 | 5 312 | 10 000 collected | fit85 | score-only |
-| EXT KR 16.15 | KR | 507 | 926 collected | fit85 | reported, not pooled |
-| EXT KR 16.14 pilot | KR | 101 | 200 collected | fit85 | reported, not pooled |
+| EXT KR 16.13 | KR | 5 202 | 3 859 (10 064 collected) | fit85 | score-only |
+| EXT NA1 16.13 | NA1 | 5 312 | 3 955 (10 000 collected) | fit85 | score-only |
+| EXT KR 16.15 | KR | 507 | 377 (926 collected) | fit85 | reported, not pooled |
+| EXT KR 16.14 pilot | KR | 101 | 80 (200 collected) | fit85 | reported, not pooled |
 
-Pooled T (15.14 + 15.15 + 15.16) = 113 901 engagements, used for measurement tables only; its match count is not recorded in the freeze documents (\pending{pooled-T-matches}). Sample flow: source matches (210 000 KR, patches 15.14–15.16) → detected engagements → teamfight class T → pre-state available and `valid_h90` → finite pre/post scores → role assignment as above; counts for the intermediate stages are not recorded in the freeze documents and are not estimated here.
+Pooled T (15.14 + 15.15 + 15.16) = 113 901 engagements, used for measurement tables only; summing the recorded per-role match counts gives 83 108 matches (a sum of `cohort_manifest.json` fields, not itself a recorded figure). Every T row is valid at h90; the 348 invalid rows of the corpus are all non-teamfight engagements. Sample flow: source matches (210 000 KR, patches 15.14–15.16) → detected engagements → teamfight class T → pre-state available and `valid_h90` → finite pre/post scores → role assignment as above; counts for the intermediate stages are not recorded in the freeze documents and are not estimated here.
 
 **Two evaluator paths.**
 
@@ -219,6 +249,11 @@ Every number reported in Results resolves to one of the following artifacts at c
 | Evaluator census (Table 5a) | `docs/A_MLP_expanded_evaluator_meta_20260919.json` | `meta.census` |
 | Engagement roles (Table 5b) | `docs/PAPER_COHORT_CONTRACT_20260919.md` §2; `docs/EXPERIMENT_INVENTORY_COHORT_20260919.md` §E | tables |
 | Out-of-fold folds (5; per-fold n) | `docs/Q_NEWV_FIT85_OOF_META_SLIM_20260920.json` | per-fold entries |
+| Cohort rule `cohort == 1` ⟺ min participation ≥ 4; `fine` classes | `docs/lineage_20260915/cr20260915_common.py`; `docs/lineage_20260915/cohort_manifest.json` | `scale_classes` L37–60; `rules` |
+| Per-role T match counts (28 989 Σ folds; 7 550; 7 469; 7 448; 7 632; 24 020; EXT 3 859 / 3 955 / 377 / 80) | `docs/lineage_20260915/cohort_manifest.json` | `sets.<SET>.by_sub_role.<ROLE>.h90.T_matches` |
+| Endpoint rule, validity flags | `docs/lineage_20260915/engagement_labels_v3_rules.py` | `endpoint_rule`, `endpoint_validity` |
+| Valid rows 566 104 / 566 452; 348 overlap exclusions; realised follow-up 45.493 s / 39.440 s; cap reached 14.286%; next-kill stop ≈78.9% | `docs/lineage_20260915/README.md` (excerpts of `e0ec3d0:docs/tog_delta_v_20260916/manuscript.md` L200–208, L351–358) | tables |
+| Detector constants table | `docs/tog_manuscript/sec_definition.tex` | `tab:constants` L451–L641 |
 
 ---
 

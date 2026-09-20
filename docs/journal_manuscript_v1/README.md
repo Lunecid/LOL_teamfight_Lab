@@ -31,4 +31,6 @@
 - T001 — technical corrections (SVI naming, B40 definition, percentage-point units, OOF evaluator path, RR4 exclusion wording, RR5b denominators, uncertainty column) — see `.ai/reports/T001.md`
 - T002 — Methods transcription (engagement constants, prediction/outcome times, role tables with counts, evaluator and q procedures, weighting and bootstrap, evidence-trace table; three `\pending` items) — see `.ai/reports/T002.md`
 - T003 — journal-fit memo, deferred work and next-pass instructions moved from 04_DISCUSSION.md to WORKING_NOTES.md — see `.ai/reports/T003.md`
+- T005 — `\pending` items resolved from the 2026-09-15 lineage (cohort rule, h90 endpoint rule, per-role match counts) with byte-identical copies under `docs/lineage_20260915/` — see `.ai/reports/T005.md`
+- T006 — detector constants table (value + source class) in Methods §1 — see `.ai/reports/T006.md`
 - T004 — lineage banners on PAPER_COHORT_CONTRACT §5–§6, 15.15 remainder note, uncertainty-coverage line on RESPONSE_EVIDENCE_MATRIX — see `.ai/reports/T004.md`

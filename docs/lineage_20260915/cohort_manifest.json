@@ -1,0 +1,1357 @@
+{
+ "version": "cohort_role_training_20260915",
+ "role": "EXPLORATORY_FOLLOWUP_MODEL_DEFINED_LABELS_PRIOR_TEST_EXPOSURE",
+ "written_at": "2026-09-15 14:26:26",
+ "inputs": {
+  "shard_manifest_sha256": "0ce8256ef1d6ecc74580a2e921965e5355a6e24a96404e6f093e4d03e5d87e09",
+  "shard_manifest_scale": {
+   "pick_max": 1,
+   "skirmish_min": 2,
+   "teamfight_min": 4
+  },
+  "shard_manifest_detector": {
+   "TF2_KILL_CLUSTER_GAP_MS": 13700,
+   "CLUSTER_MAX_DIAMETER": 4264.0,
+   "TF2_VALIDITY_RADIUS": 1600.0,
+   "TF2_ENGAGE_PRE_KILL_MS": 15000,
+   "FIGHT_HORIZON_SEC": 35
+  },
+  "shard_git_commit": "aac7131527f2ab4f5a401e07a58292ea9aa437d2",
+  "shard_sha256": {
+   "shard_000.npz": "0043344054532cd9d91aec5f01f2a967ca6b4d67574642f45d2f2e3685ddcd7b",
+   "shard_001.npz": "b248a47c3168f9cbd4346394dd5926d5babadbe4b0371e69f4ba5822bd570851",
+   "shard_002.npz": "a2c6cd69c585053efb4fe39d17cecc60363a8a838388cf8473e4b27e0f6a2f09",
+   "shard_003.npz": "1d905efa3008feec3464dd56a08f748deafb77a900ac67e9302039a785ca8e69",
+   "shard_004.npz": "0a6bd79e013e7acb9ca671b7bbda3dfc706c1deb3652b214b41b9fdec9c7e1da",
+   "shard_005.npz": "bb43cd5e519a7e0cf588a3eb1a00f666d12243e1a0e8245e0db8e5db5ad64504",
+   "shard_006.npz": "2a5cbfa12cd2258c8fb1b99dba28b7cd5eefcedd852c1153ccd90aac3525e27c",
+   "shard_007.npz": "ded2a0f1176d470efe84b64efa7514525df9e959d571de8a1ed5d9c5791969d0",
+   "shard_008.npz": "cc63d5f3e125709080de56c22c8eafa4a3b633082d1bf862a482ba4cfafdb9e4",
+   "shard_009.npz": "ac3b15756e863d4ab57efef8dbb12395b2f31a5547d9b0a20a24cd834640c908",
+   "shard_010.npz": "bee1e1f43bc48d2fd4d1d7909eda55f200d317c7672de88aa00ac01568861753",
+   "shard_011.npz": "c5affe05ca8127cbe2dd909c1239e5843fa5c758d7ba1e2576b9ab345e280626",
+   "shard_012.npz": "855490a07937612a96537d5ae2255324c9dfe49dda9909075025f12e365f75d7",
+   "shard_013.npz": "b169a78d393c0777b5e12a7453842ac828b3491e769b6fd3e6d4e8aed5714af8",
+   "shard_014.npz": "3833032fe48bfcffc4b549428614c9b800c5658d55b21885fa95847d81d4ebcd",
+   "shard_015.npz": "70bf5d7e506a62bd2217ea1ff451c5e3e5753e70a209eb13f79cfe1d799848ed",
+   "shard_016.npz": "5e15c8a05baeb1c06598c38eca9d0e513d7f21768e5e9981a4bd8d3ed86ff9eb",
+   "shard_017.npz": "a01c09d353db6fd35c905ae15af7a085af430aad08d7190cc199382978e1a4a2",
+   "shard_018.npz": "65eb3d2ca124a3b8ee8910342576c25b2c124618d89905393e68b463fa7f5b2d",
+   "shard_019.npz": "e0fc7e9dab4fafcd4666635be2fc827c24bb18b4b495405eca7b368803a50587",
+   "shard_020.npz": "5b4a43f4a270dfd99888c48e583d2fbad35a9ebda60eea3697920307883da077",
+   "shard_021.npz": "0a44549c1576d3c625a862566cb561d246a213c947458081af8b1a146083dfc6",
+   "shard_022.npz": "0b86700778d937cffc2595f1eacfdcfc745a38c0b6232c2973fe1ba6f25e5ae1",
+   "shard_023.npz": "728868902e7276944868b3dbcc9977b036cdb9295ea35360403cef79da025cbe",
+   "shard_024.npz": "a6d746585ce7c1478363e984dc538e9c5ee1afb1c95c198a740f09a7967de323",
+   "shard_025.npz": "ca9c7efa2d6dceddf4a0aa7bebc10031227879b62b3800fa75971c91f6b4950c",
+   "shard_026.npz": "fe1d00e4c9540e55daea0d21d0283f1fd595f387275daa92a663c6d63a6af13a",
+   "shard_027.npz": "d4e1f78c813f837eba7c7d4a05007c6f2391807dfe8b2a78cfa79f2d1fa7bea3",
+   "shard_028.npz": "4c181529c38a550dfa3bfc58b9553604173bb61da0f76a2d16acbaff034ac087",
+   "shard_029.npz": "fee6937d652c3e063ca6de92065afbc74630acb57d0c78dacd7c0858ac863f5e",
+   "shard_030.npz": "1704c3697031a0c3dac7903564974ccb9f461402e8ba6a3f6139cebcc476e299",
+   "shard_031.npz": "457e00330ca6e3bd2527266ffc161144df482f22a8878839061b4ee69fd51d9b"
+  },
+  "parent_exposures_sha256": "6e07eef42a68ab5deabe6bca544885c64d26533a88bd5b5c9e8116036e6a7977",
+  "frozen_label_hashes_equal_prior_manifests": {
+   "MAIN_TRAIN": {
+    "labels": true,
+    "features": true
+   },
+   "MAIN_VALIDATION": {
+    "labels": true,
+    "features": true
+   },
+   "MAIN_TEST": {
+    "labels": true,
+    "features": true
+   },
+   "EXT_KR_16.13": {
+    "labels": true,
+    "features": true
+   },
+   "EXT_KR_16.14_pilot": {
+    "labels": true,
+    "features": true
+   },
+   "EXT_KR_16.15": {
+    "labels": true,
+    "features": true
+   },
+   "EXT_NA1_16.13": {
+    "labels": true,
+    "features": true
+   }
+  }
+ },
+ "join": {
+  "shard_rows": 566452,
+  "shard_rows_used_once": 566452,
+  "shard_rows_unused": 0,
+  "shard_rows_used_multiple": 0,
+  "label_rows": 566452,
+  "valid_rows": {
+   "h60": 566104,
+   "h90": 566104,
+   "h120": 566104
+  },
+  "parent_exposure_rows": 566452,
+  "label_sL_equals_parent_exposure_sL_all_matches": true,
+  "patch_equal": true,
+  "ok": true
+ },
+ "rules": {
+  "E": "every engagement row of the frozen full-corpus labels (valid or not); comparisons use valid_h rows",
+  "participation": "v3.3 stored cluster_blue/cluster_red (det_cluster_*): kill participants + in-radius interaction actors (3,000 u, shop events included); NOT the presence count",
+  "T": "known & min(cluster_blue, cluster_red) >= 4 (manifest scale.teamfight_min)",
+  "N": "known & min < 4 (E minus T minus unknown)",
+  "fine": "pick min <= 1, skirmish 2..3, teamfight >= 4",
+  "negative": "-1 -> 0 only when proven by re-detection (negative_count_provenance.json); else unknown",
+  "unknown": "excluded from T/N comparisons, retained in pooled E baseline",
+  "diagnostic_cut3_cut5": "same counts, cuts 3 and 5 (diagnostic only; main cut stays 4)",
+  "presence": "present_blue/red min, diagnostic only",
+  "stale_definition_note": "ENGAGEMENT_SCALE_DEFINITION.md (v2, cut3) is stale and not used"
+ },
+ "sets": {
+  "MAIN_TRAIN": {
+   "file": "cohorts/MAIN_TRAIN_cohort.npz",
+   "sha256": "71fbe5239e9cb76bf97466f1018092755f4f34f6ac941f337593b4cd2d0b1746",
+   "rows": 199480,
+   "matches": 69124,
+   "T": 39605,
+   "N": 159875,
+   "unknown": 0,
+   "T_and_N_intersection": 0,
+   "T_union_N_equals_known": true,
+   "pick": 36774,
+   "skirmish": 123101,
+   "teamfight": 39605,
+   "cut3_teamfight_DIAG": 79571,
+   "cut5_teamfight_DIAG": 13627,
+   "presence_n_min_ge4_DIAG": 3993,
+   "negative_count_rows": 16,
+   "negative_read_as_zero_rows": 16,
+   "by_sub_role": {
+    "fold0": {
+     "h60": {
+      "valid": 39197,
+      "T": 7870,
+      "N": 31327,
+      "unknown": 0,
+      "T_matches": 5732,
+      "N_matches": 13125,
+      "pick": 7297,
+      "skirmish": 24030
+     },
+     "h90": {
+      "valid": 39197,
+      "T": 7870,
+      "N": 31327,
+      "unknown": 0,
+      "T_matches": 5732,
+      "N_matches": 13125,
+      "pick": 7297,
+      "skirmish": 24030
+     },
+     "h120": {
+      "valid": 39197,
+      "T": 7870,
+      "N": 31327,
+      "unknown": 0,
+      "T_matches": 5732,
+      "N_matches": 13125,
+      "pick": 7297,
+      "skirmish": 24030
+     },
+     "all_rows": {
+      "rows": 39219,
+      "T": 7870,
+      "N": 31349,
+      "unknown": 0
+     }
+    },
+    "fold1": {
+     "h60": {
+      "valid": 40167,
+      "T": 7850,
+      "N": 32317,
+      "unknown": 0,
+      "T_matches": 5858,
+      "N_matches": 13451,
+      "pick": 7312,
+      "skirmish": 25005
+     },
+     "h90": {
+      "valid": 40167,
+      "T": 7850,
+      "N": 32317,
+      "unknown": 0,
+      "T_matches": 5858,
+      "N_matches": 13451,
+      "pick": 7312,
+      "skirmish": 25005
+     },
+     "h120": {
+      "valid": 40167,
+      "T": 7850,
+      "N": 32317,
+      "unknown": 0,
+      "T_matches": 5858,
+      "N_matches": 13451,
+      "pick": 7312,
+      "skirmish": 25005
+     },
+     "all_rows": {
+      "rows": 40202,
+      "T": 7850,
+      "N": 32352,
+      "unknown": 0
+     }
+    },
+    "fold2": {
+     "h60": {
+      "valid": 39777,
+      "T": 7860,
+      "N": 31917,
+      "unknown": 0,
+      "T_matches": 5725,
+      "N_matches": 13300,
+      "pick": 7397,
+      "skirmish": 24520
+     },
+     "h90": {
+      "valid": 39777,
+      "T": 7860,
+      "N": 31917,
+      "unknown": 0,
+      "T_matches": 5725,
+      "N_matches": 13300,
+      "pick": 7397,
+      "skirmish": 24520
+     },
+     "h120": {
+      "valid": 39777,
+      "T": 7860,
+      "N": 31917,
+      "unknown": 0,
+      "T_matches": 5725,
+      "N_matches": 13300,
+      "pick": 7397,
+      "skirmish": 24520
+     },
+     "all_rows": {
+      "rows": 39796,
+      "T": 7860,
+      "N": 31936,
+      "unknown": 0
+     }
+    },
+    "fold3": {
+     "h60": {
+      "valid": 39980,
+      "T": 8037,
+      "N": 31943,
+      "unknown": 0,
+      "T_matches": 5845,
+      "N_matches": 13267,
+      "pick": 7253,
+      "skirmish": 24690
+     },
+     "h90": {
+      "valid": 39980,
+      "T": 8037,
+      "N": 31943,
+      "unknown": 0,
+      "T_matches": 5845,
+      "N_matches": 13267,
+      "pick": 7253,
+      "skirmish": 24690
+     },
+     "h120": {
+      "valid": 39980,
+      "T": 8037,
+      "N": 31943,
+      "unknown": 0,
+      "T_matches": 5845,
+      "N_matches": 13267,
+      "pick": 7253,
+      "skirmish": 24690
+     },
+     "all_rows": {
+      "rows": 40005,
+      "T": 8037,
+      "N": 31968,
+      "unknown": 0
+     }
+    },
+    "fold4": {
+     "h60": {
+      "valid": 40237,
+      "T": 7988,
+      "N": 32249,
+      "unknown": 0,
+      "T_matches": 5829,
+      "N_matches": 13402,
+      "pick": 7445,
+      "skirmish": 24804
+     },
+     "h90": {
+      "valid": 40237,
+      "T": 7988,
+      "N": 32249,
+      "unknown": 0,
+      "T_matches": 5829,
+      "N_matches": 13402,
+      "pick": 7445,
+      "skirmish": 24804
+     },
+     "h120": {
+      "valid": 40237,
+      "T": 7988,
+      "N": 32249,
+      "unknown": 0,
+      "T_matches": 5829,
+      "N_matches": 13402,
+      "pick": 7445,
+      "skirmish": 24804
+     },
+     "all_rows": {
+      "rows": 40258,
+      "T": 7988,
+      "N": 32270,
+      "unknown": 0
+     }
+    }
+   },
+   "joint_counts_rows_blue_minus1_to_5_cols_red_minus1_to_5": [
+    [
+     0,
+     0,
+     4,
+     4,
+     2,
+     0,
+     0
+    ],
+    [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    [
+     5,
+     0,
+     814,
+     8479,
+     6586,
+     2013,
+     454
+    ],
+    [
+     1,
+     0,
+     8952,
+     31624,
+     18316,
+     5879,
+     1502
+    ],
+    [
+     0,
+     0,
+     6982,
+     18611,
+     15692,
+     9022,
+     3163
+    ],
+    [
+     0,
+     0,
+     1979,
+     5612,
+     8885,
+     12336,
+     6708
+    ],
+    [
+     0,
+     0,
+     499,
+     1591,
+     3204,
+     6934,
+     13627
+    ]
+   ],
+   "source": [
+    "v33_shard"
+   ]
+  },
+  "MAIN_VALIDATION": {
+   "file": "cohorts/MAIN_VALIDATION_cohort.npz",
+   "sha256": "a4efc653ebdf698a06dfbb6b2b33dca2ef2759d094fa22d210e14f4936622bf6",
+   "rows": 203292,
+   "matches": 69298,
+   "T": 41315,
+   "N": 161977,
+   "unknown": 0,
+   "T_and_N_intersection": 0,
+   "T_union_N_equals_known": true,
+   "pick": 37072,
+   "skirmish": 124905,
+   "teamfight": 41315,
+   "cut3_teamfight_DIAG": 82455,
+   "cut5_teamfight_DIAG": 14502,
+   "presence_n_min_ge4_DIAG": 4439,
+   "negative_count_rows": 18,
+   "negative_read_as_zero_rows": 18,
+   "by_sub_role": {
+    "Q_CAL": {
+     "h60": {
+      "valid": 50955,
+      "T": 10390,
+      "N": 40565,
+      "unknown": 0,
+      "T_matches": 7550,
+      "N_matches": 16616,
+      "pick": 9263,
+      "skirmish": 31302
+     },
+     "h90": {
+      "valid": 50955,
+      "T": 10390,
+      "N": 40565,
+      "unknown": 0,
+      "T_matches": 7550,
+      "N_matches": 16616,
+      "pick": 9263,
+      "skirmish": 31302
+     },
+     "h120": {
+      "valid": 50955,
+      "T": 10390,
+      "N": 40565,
+      "unknown": 0,
+      "T_matches": 7550,
+      "N_matches": 16616,
+      "pick": 9263,
+      "skirmish": 31302
+     },
+     "all_rows": {
+      "rows": 50981,
+      "T": 10390,
+      "N": 40591,
+      "unknown": 0
+     }
+    },
+    "Q_SELECT": {
+     "h60": {
+      "valid": 50375,
+      "T": 10195,
+      "N": 40180,
+      "unknown": 0,
+      "T_matches": 7469,
+      "N_matches": 16598,
+      "pick": 9121,
+      "skirmish": 31059
+     },
+     "h90": {
+      "valid": 50375,
+      "T": 10195,
+      "N": 40180,
+      "unknown": 0,
+      "T_matches": 7469,
+      "N_matches": 16598,
+      "pick": 9121,
+      "skirmish": 31059
+     },
+     "h120": {
+      "valid": 50375,
+      "T": 10195,
+      "N": 40180,
+      "unknown": 0,
+      "T_matches": 7469,
+      "N_matches": 16598,
+      "pick": 9121,
+      "skirmish": 31059
+     },
+     "all_rows": {
+      "rows": 50412,
+      "T": 10195,
+      "N": 40217,
+      "unknown": 0
+     }
+    },
+    "V_CAL": {
+     "h60": {
+      "valid": 50372,
+      "T": 10191,
+      "N": 40181,
+      "unknown": 0,
+      "T_matches": 7448,
+      "N_matches": 16622,
+      "pick": 9199,
+      "skirmish": 30982
+     },
+     "h90": {
+      "valid": 50372,
+      "T": 10191,
+      "N": 40181,
+      "unknown": 0,
+      "T_matches": 7448,
+      "N_matches": 16622,
+      "pick": 9199,
+      "skirmish": 30982
+     },
+     "h120": {
+      "valid": 50372,
+      "T": 10191,
+      "N": 40181,
+      "unknown": 0,
+      "T_matches": 7448,
+      "N_matches": 16622,
+      "pick": 9199,
+      "skirmish": 30982
+     },
+     "all_rows": {
+      "rows": 50397,
+      "T": 10191,
+      "N": 40206,
+      "unknown": 0
+     }
+    },
+    "V_SELECT": {
+     "h60": {
+      "valid": 51468,
+      "T": 10539,
+      "N": 40929,
+      "unknown": 0,
+      "T_matches": 7632,
+      "N_matches": 16859,
+      "pick": 9413,
+      "skirmish": 31516
+     },
+     "h90": {
+      "valid": 51468,
+      "T": 10539,
+      "N": 40929,
+      "unknown": 0,
+      "T_matches": 7632,
+      "N_matches": 16859,
+      "pick": 9413,
+      "skirmish": 31516
+     },
+     "h120": {
+      "valid": 51468,
+      "T": 10539,
+      "N": 40929,
+      "unknown": 0,
+      "T_matches": 7632,
+      "N_matches": 16859,
+      "pick": 9413,
+      "skirmish": 31516
+     },
+     "all_rows": {
+      "rows": 51502,
+      "T": 10539,
+      "N": 40963,
+      "unknown": 0
+     }
+    }
+   },
+   "joint_counts_rows_blue_minus1_to_5_cols_red_minus1_to_5": [
+    [
+     0,
+     0,
+     5,
+     2,
+     1,
+     0,
+     0
+    ],
+    [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    [
+     5,
+     0,
+     792,
+     8616,
+     6612,
+     2102,
+     462
+    ],
+    [
+     5,
+     0,
+     9026,
+     31714,
+     18650,
+     5849,
+     1640
+    ],
+    [
+     0,
+     0,
+     6916,
+     18519,
+     16077,
+     9141,
+     3401
+    ],
+    [
+     0,
+     0,
+     2016,
+     5736,
+     9022,
+     12307,
+     7209
+    ],
+    [
+     0,
+     0,
+     512,
+     1657,
+     3499,
+     7297,
+     14502
+    ]
+   ],
+   "source": [
+    "v33_shard"
+   ]
+  },
+  "MAIN_TEST": {
+   "file": "cohorts/MAIN_TEST_cohort.npz",
+   "sha256": "3239e4c7ac81678adf75e07ec1cc9035136c1572e82e06601695ad78bc162844",
+   "rows": 163680,
+   "matches": 56254,
+   "T": 32981,
+   "N": 130699,
+   "unknown": 0,
+   "T_and_N_intersection": 0,
+   "T_union_N_equals_known": true,
+   "pick": 29457,
+   "skirmish": 101242,
+   "teamfight": 32981,
+   "cut3_teamfight_DIAG": 66089,
+   "cut5_teamfight_DIAG": 11426,
+   "presence_n_min_ge4_DIAG": 3357,
+   "negative_count_rows": 25,
+   "negative_read_as_zero_rows": 25,
+   "by_sub_role": {
+    "TEST": {
+     "h60": {
+      "valid": 163576,
+      "T": 32981,
+      "N": 130595,
+      "unknown": 0,
+      "T_matches": 24020,
+      "N_matches": 54182,
+      "pick": 29390,
+      "skirmish": 101205
+     },
+     "h90": {
+      "valid": 163576,
+      "T": 32981,
+      "N": 130595,
+      "unknown": 0,
+      "T_matches": 24020,
+      "N_matches": 54182,
+      "pick": 29390,
+      "skirmish": 101205
+     },
+     "h120": {
+      "valid": 163576,
+      "T": 32981,
+      "N": 130595,
+      "unknown": 0,
+      "T_matches": 24020,
+      "N_matches": 54182,
+      "pick": 29390,
+      "skirmish": 101205
+     },
+     "all_rows": {
+      "rows": 163680,
+      "T": 32981,
+      "N": 130699,
+      "unknown": 0
+     }
+    }
+   },
+   "joint_counts_rows_blue_minus1_to_5_cols_red_minus1_to_5": [
+    [
+     0,
+     0,
+     7,
+     2,
+     1,
+     0,
+     0
+    ],
+    [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    [
+     2,
+     0,
+     687,
+     6850,
+     5302,
+     1669,
+     374
+    ],
+    [
+     9,
+     0,
+     7131,
+     25611,
+     15644,
+     4712,
+     1191
+    ],
+    [
+     4,
+     0,
+     5447,
+     15174,
+     13127,
+     7471,
+     2644
+    ],
+    [
+     0,
+     0,
+     1589,
+     4529,
+     7221,
+     10007,
+     5680
+    ],
+    [
+     0,
+     0,
+     383,
+     1273,
+     2645,
+     5868,
+     11426
+    ]
+   ],
+   "source": [
+    "v33_shard"
+   ]
+  },
+  "EXT_KR_16.13": {
+   "file": "cohorts/EXT_KR_16.13_cohort.npz",
+   "sha256": "8cc6d95039ca30d73e82429895dd2502408195452452793cb80b8bdd8f6dc98f",
+   "rows": 25443,
+   "matches": 9051,
+   "T": 5202,
+   "N": 20241,
+   "unknown": 0,
+   "T_and_N_intersection": 0,
+   "T_union_N_equals_known": true,
+   "pick": 4597,
+   "skirmish": 15644,
+   "teamfight": 5202,
+   "cut3_teamfight_DIAG": 10677,
+   "cut5_teamfight_DIAG": 1724,
+   "presence_n_min_ge4_DIAG": 542,
+   "negative_count_rows": 1,
+   "negative_read_as_zero_rows": 1,
+   "by_sub_role": {
+    "EXTERNAL": {
+     "h60": {
+      "valid": 25430,
+      "T": 5202,
+      "N": 20228,
+      "unknown": 0,
+      "T_matches": 3859,
+      "N_matches": 8642,
+      "pick": 4587,
+      "skirmish": 15641
+     },
+     "h90": {
+      "valid": 25430,
+      "T": 5202,
+      "N": 20228,
+      "unknown": 0,
+      "T_matches": 3859,
+      "N_matches": 8642,
+      "pick": 4587,
+      "skirmish": 15641
+     },
+     "h120": {
+      "valid": 25430,
+      "T": 5202,
+      "N": 20228,
+      "unknown": 0,
+      "T_matches": 3859,
+      "N_matches": 8642,
+      "pick": 4587,
+      "skirmish": 15641
+     },
+     "all_rows": {
+      "rows": 25443,
+      "T": 5202,
+      "N": 20241,
+      "unknown": 0
+     }
+    }
+   },
+   "joint_counts_rows_blue_minus1_to_5_cols_red_minus1_to_5": [
+    [
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0
+    ],
+    [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    [
+     0,
+     0,
+     108,
+     1109,
+     905,
+     244,
+     45
+    ],
+    [
+     0,
+     0,
+     1069,
+     3657,
+     2422,
+     725,
+     213
+    ],
+    [
+     0,
+     0,
+     818,
+     2256,
+     2105,
+     1257,
+     458
+    ],
+    [
+     0,
+     0,
+     252,
+     701,
+     1192,
+     1637,
+     877
+    ],
+    [
+     0,
+     0,
+     46,
+     195,
+     463,
+     964,
+     1724
+    ]
+   ],
+   "source": [
+    "frozen_detector_rerun_on_adapted_cache"
+   ]
+  },
+  "EXT_KR_16.14_pilot": {
+   "file": "cohorts/EXT_KR_16.14_pilot_cohort.npz",
+   "sha256": "87c5cf979d274ab7d2b1b4234a32cc6b3262d845be39b3356d2aba056231c32e",
+   "rows": 475,
+   "matches": 177,
+   "T": 101,
+   "N": 374,
+   "unknown": 0,
+   "T_and_N_intersection": 0,
+   "T_union_N_equals_known": true,
+   "pick": 89,
+   "skirmish": 285,
+   "teamfight": 101,
+   "cut3_teamfight_DIAG": 185,
+   "cut5_teamfight_DIAG": 28,
+   "presence_n_min_ge4_DIAG": 11,
+   "negative_count_rows": 0,
+   "negative_read_as_zero_rows": 0,
+   "by_sub_role": {
+    "EXTERNAL": {
+     "h60": {
+      "valid": 475,
+      "T": 101,
+      "N": 374,
+      "unknown": 0,
+      "T_matches": 80,
+      "N_matches": 165,
+      "pick": 89,
+      "skirmish": 285
+     },
+     "h90": {
+      "valid": 475,
+      "T": 101,
+      "N": 374,
+      "unknown": 0,
+      "T_matches": 80,
+      "N_matches": 165,
+      "pick": 89,
+      "skirmish": 285
+     },
+     "h120": {
+      "valid": 475,
+      "T": 101,
+      "N": 374,
+      "unknown": 0,
+      "T_matches": 80,
+      "N_matches": 165,
+      "pick": 89,
+      "skirmish": 285
+     },
+     "all_rows": {
+      "rows": 475,
+      "T": 101,
+      "N": 374,
+      "unknown": 0
+     }
+    }
+   },
+   "joint_counts_rows_blue_minus1_to_5_cols_red_minus1_to_5": [
+    [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    [
+     0,
+     0,
+     1,
+     14,
+     16,
+     6,
+     0
+    ],
+    [
+     0,
+     0,
+     31,
+     77,
+     44,
+     13,
+     2
+    ],
+    [
+     0,
+     0,
+     15,
+     45,
+     29,
+     18,
+     7
+    ],
+    [
+     0,
+     0,
+     4,
+     16,
+     21,
+     42,
+     18
+    ],
+    [
+     0,
+     0,
+     2,
+     4,
+     9,
+     13,
+     28
+    ]
+   ],
+   "source": [
+    "frozen_detector_rerun_on_adapted_cache"
+   ]
+  },
+  "EXT_KR_16.15": {
+   "file": "cohorts/EXT_KR_16.15_cohort.npz",
+   "sha256": "4d120ca58e59865817cf6f11a02cc45512eeea17f82b5341d86b4e855f57cf97",
+   "rows": 2219,
+   "matches": 813,
+   "T": 507,
+   "N": 1712,
+   "unknown": 0,
+   "T_and_N_intersection": 0,
+   "T_union_N_equals_known": true,
+   "pick": 405,
+   "skirmish": 1307,
+   "teamfight": 507,
+   "cut3_teamfight_DIAG": 973,
+   "cut5_teamfight_DIAG": 160,
+   "presence_n_min_ge4_DIAG": 48,
+   "negative_count_rows": 0,
+   "negative_read_as_zero_rows": 0,
+   "by_sub_role": {
+    "EXTERNAL": {
+     "h60": {
+      "valid": 2219,
+      "T": 507,
+      "N": 1712,
+      "unknown": 0,
+      "T_matches": 377,
+      "N_matches": 764,
+      "pick": 405,
+      "skirmish": 1307
+     },
+     "h90": {
+      "valid": 2219,
+      "T": 507,
+      "N": 1712,
+      "unknown": 0,
+      "T_matches": 377,
+      "N_matches": 764,
+      "pick": 405,
+      "skirmish": 1307
+     },
+     "h120": {
+      "valid": 2219,
+      "T": 507,
+      "N": 1712,
+      "unknown": 0,
+      "T_matches": 377,
+      "N_matches": 764,
+      "pick": 405,
+      "skirmish": 1307
+     },
+     "all_rows": {
+      "rows": 2219,
+      "T": 507,
+      "N": 1712,
+      "unknown": 0
+     }
+    }
+   },
+   "joint_counts_rows_blue_minus1_to_5_cols_red_minus1_to_5": [
+    [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    [
+     0,
+     0,
+     12,
+     104,
+     77,
+     21,
+     5
+    ],
+    [
+     0,
+     0,
+     89,
+     299,
+     203,
+     64,
+     15
+    ],
+    [
+     0,
+     0,
+     74,
+     173,
+     173,
+     115,
+     41
+    ],
+    [
+     0,
+     0,
+     21,
+     64,
+     100,
+     160,
+     78
+    ],
+    [
+     0,
+     0,
+     2,
+     23,
+     37,
+     109,
+     160
+    ]
+   ],
+   "source": [
+    "frozen_detector_rerun_on_adapted_cache"
+   ]
+  },
+  "EXT_NA1_16.13": {
+   "file": "cohorts/EXT_NA1_16.13_cohort.npz",
+   "sha256": "bd77c1b6f4824fe25ff00408cffd1d4fa10b8501e58fc265dcae04db4caea0ad",
+   "rows": 26549,
+   "matches": 9090,
+   "T": 5312,
+   "N": 21237,
+   "unknown": 0,
+   "T_and_N_intersection": 0,
+   "T_union_N_equals_known": true,
+   "pick": 5133,
+   "skirmish": 16104,
+   "teamfight": 5312,
+   "cut3_teamfight_DIAG": 10754,
+   "cut5_teamfight_DIAG": 1738,
+   "presence_n_min_ge4_DIAG": 569,
+   "negative_count_rows": 5,
+   "negative_read_as_zero_rows": 5,
+   "by_sub_role": {
+    "EXTERNAL": {
+     "h60": {
+      "valid": 26538,
+      "T": 5312,
+      "N": 21226,
+      "unknown": 0,
+      "T_matches": 3955,
+      "N_matches": 8753,
+      "pick": 5126,
+      "skirmish": 16100
+     },
+     "h90": {
+      "valid": 26538,
+      "T": 5312,
+      "N": 21226,
+      "unknown": 0,
+      "T_matches": 3955,
+      "N_matches": 8753,
+      "pick": 5126,
+      "skirmish": 16100
+     },
+     "h120": {
+      "valid": 26538,
+      "T": 5312,
+      "N": 21226,
+      "unknown": 0,
+      "T_matches": 3955,
+      "N_matches": 8753,
+      "pick": 5126,
+      "skirmish": 16100
+     },
+     "all_rows": {
+      "rows": 26549,
+      "T": 5312,
+      "N": 21237,
+      "unknown": 0
+     }
+    }
+   },
+   "joint_counts_rows_blue_minus1_to_5_cols_red_minus1_to_5": [
+    [
+     0,
+     0,
+     0,
+     2,
+     0,
+     0,
+     0
+    ],
+    [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    [
+     2,
+     0,
+     123,
+     1280,
+     876,
+     271,
+     56
+    ],
+    [
+     1,
+     0,
+     1278,
+     3986,
+     2370,
+     787,
+     203
+    ],
+    [
+     0,
+     0,
+     907,
+     2292,
+     2038,
+     1216,
+     464
+    ],
+    [
+     0,
+     0,
+     278,
+     814,
+     1257,
+     1636,
+     941
+    ],
+    [
+     0,
+     0,
+     59,
+     210,
+     467,
+     997,
+     1738
+    ]
+   ],
+   "source": [
+    "frozen_detector_rerun_on_adapted_cache"
+   ]
+  }
+ },
+ "external_checks": {
+  "EXT_KR_16.13": {
+   "matches": 10064,
+   "detector_errors": 0,
+   "error_examples": {},
+   "exposure_tuples_equal_matches": 10064,
+   "duplicate_s_keys": 0,
+   "label_rows": 25443,
+   "label_rows_without_redetected": 0,
+   "label_rows_L_mismatch": 0,
+   "label_keys_equal_redetected_exposure_keys": true,
+   "rows_with_raw_count_not_int": 0,
+   "rows_negative_count": 1,
+   "rows_negative_count_proven_zero": 1,
+   "exposures_csv_sha256": "c5b24db5629d8d1f330775ccd12dbef81f75b4ee7fb427b5cc13c367dc932e2b",
+   "prepared_manifest_sha256": "2aa0793dc4c688bccb825236e68b6a54cf8cc1179a03d258e65f403016edf270",
+   "pass_": true
+  },
+  "EXT_KR_16.14_pilot": {
+   "matches": 200,
+   "detector_errors": 0,
+   "error_examples": {},
+   "exposure_tuples_equal_matches": 200,
+   "duplicate_s_keys": 0,
+   "label_rows": 475,
+   "label_rows_without_redetected": 0,
+   "label_rows_L_mismatch": 0,
+   "label_keys_equal_redetected_exposure_keys": true,
+   "rows_with_raw_count_not_int": 0,
+   "rows_negative_count": 0,
+   "rows_negative_count_proven_zero": 0,
+   "exposures_csv_sha256": "b802e355d8a0e1da9b47ad60f7299175b32d0b16ac48c8b4f63381bfa0b82341",
+   "prepared_manifest_sha256": "5777b2a664ee6dc7d6e5d80966f77d3c779b160f2d5aba5f0c84850d1a2eee96",
+   "pass_": true
+  },
+  "EXT_KR_16.15": {
+   "matches": 926,
+   "detector_errors": 0,
+   "error_examples": {},
+   "exposure_tuples_equal_matches": 926,
+   "duplicate_s_keys": 0,
+   "label_rows": 2219,
+   "label_rows_without_redetected": 0,
+   "label_rows_L_mismatch": 0,
+   "label_keys_equal_redetected_exposure_keys": true,
+   "rows_with_raw_count_not_int": 0,
+   "rows_negative_count": 0,
+   "rows_negative_count_proven_zero": 0,
+   "exposures_csv_sha256": "b960e111601994653a6f77f3e20ba237fab48588cd9fecc6e0214e486c3b37ed",
+   "prepared_manifest_sha256": "136ba7ffed4004114c4f60c92c70f14fc8d8b3d5860a8f8244501b2308373d29",
+   "pass_": true
+  },
+  "EXT_NA1_16.13": {
+   "matches": 10000,
+   "detector_errors": 0,
+   "error_examples": {},
+   "exposure_tuples_equal_matches": 10000,
+   "duplicate_s_keys": 0,
+   "label_rows": 26549,
+   "label_rows_without_redetected": 0,
+   "label_rows_L_mismatch": 0,
+   "label_keys_equal_redetected_exposure_keys": true,
+   "rows_with_raw_count_not_int": 0,
+   "rows_negative_count": 5,
+   "rows_negative_count_proven_zero": 5,
+   "exposures_csv_sha256": "5f9b94bcbe96a7f986417610465787d1d03ad05d1f971cf586bed89c3e987039",
+   "prepared_manifest_sha256": "bc5e749bc6da5a26d9da60b073ff172dbc93084b82b11e726a27c7dd3b3cb0a0",
+   "pass_": true
+  }
+ },
+ "train_detector_fixture": {
+  "pass_": true,
+  "counts": {
+   "matches": 400,
+   "exposure_tuple_equal": 400,
+   "engagements": 1070,
+   "counts_equal_shard": 1070,
+   "raw_keys_present_int": 1070,
+   "raw_zero_side": 0
+  }
+ },
+ "negative_counts": {
+  "main_rows": 59,
+  "main_proven_zero": 59
+ },
+ "statement": "Written before any cohort/role/arm model fitting. Contains keys, counts, sources and rules only; no generated label, delta, V output or outcome was read by this stage."
+}
