@@ -54,7 +54,7 @@
 | EXT KR / NA1 16.13 | n 5,202 / 5,312; V_pre Brier 0.1511 / 0.1514; ΔBrier(q−PT_flex) +0.0026 / +0.0040; ΔMCB 0.0045 / 0.0063; ΔDSC 0.0019 / 0.0023; q MCB 0.0065 / 0.0100; q DSC 0.0082 / 0.0064 (CI 없음) | `RRX_EXTERNAL` 요약표 |
 | EXT vs PT_linear (다른 기준선) | +0.00274 / +0.00342 | `Q_NEWV_FIT85_TRANSFER_16X` |
 | V 시간상태 census | train 424,160 (fit 360,479 + stop 63,681), V_CAL 106,580, V_SELECT 108,558, TEST 347,234 | `A_MLP_expanded_evaluator_meta_20260919.json` `meta.census` |
-| q 교전 역할 | 15.14 TRAIN 39,605 / 15.15 Q_CAL 10,390 · Q_SELECT 10,195 · 미배정 20,730 (VAL 41,315) / 15.16 TEST 32,981 / pooled T 113,901 (pooled 경기 수는 문서에 없음) | `PAPER_COHORT_CONTRACT` §2; `EXPERIMENT_INVENTORY_COHORT` §E |
+| q 교전 역할 | 15.14 TRAIN 39,605 / 15.15 Q_CAL 10,390 · Q_SELECT 10,195 · V_CAL 10,191 · V_SELECT 10,539 (VAL 41,315) / 15.16 TEST 32,981 / pooled T 113,901 (pooled 경기 수는 문서에 없음) | `PAPER_COHORT_CONTRACT` §2; `EXPERIMENT_INVENTORY_COHORT` §E |
 | PT_flex 선택 설정 | n_knots_p 4, n_knots_t 4, C 0.01, degree 3; 보정기 identity | `RR12 json` `PT_flex`, `calibrator_choice` |
 | V 보정 | PosSlopeSigmoid coef 0.9076, intercept 0.0640 | `A_MLP_expanded_evaluator_meta` `calibration` |
 
@@ -65,6 +65,20 @@
 - 첫 시간대 라벨 `t_0_10` vs `t_2_10` → 원고는 **[2,10)** (t<2분 제외).
 - `PAPER_COHORT_CONTRACT` §5–§6 수치는 **구 V 계보**. 새 원고 헤드라인으로 옮기지 않는다 (T004가 배너 추가).
 - 부트스트랩 설정은 문서에 인쇄돼 있지 않고 코드에만 있다 → T002가 Methods에 명시.
+
+## 계보 확인 결과 (2026-09-20 밤, `codex/research-snapshot-20260917` = `e0ec3d0`에서 읽음)
+- **T 코호트 규칙:** `cohort == 1` ⟺ `min(cluster_blue, cluster_red) ≥ 4` (`e0ec3d0:scripts/cr20260915_common.py` L37–60 `scale_classes`); 다른 필터 없음; v3.3 teamfight 계급(`fine == 2`)과 모든 세트에서 동일. `{SET}_cohort.npz`에는 `cohort`(1 T / 0 N / −1 unknown), `fine`(0 pick / 1 skirmish / 2 teamfight), `n_min`, `scale_known` 열이 있음(`cr20260915_cohorts.py` L441–444).
+- **sub_role:** 경기 단위 sha256 해시(`fc20260915_common.py` L65–77): TRAIN fold = %5, VALIDATION = %4 → V_CAL / V_SELECT / Q_CAL / Q_SELECT. 15.15의 T 20,730행 = V_CAL 10,191 + V_SELECT 10,539(**미배정이 아니라 V 보정·선정 경기**; q에 사용 금지).
+- **역할별 T 경기 수(`cohort_manifest.json` `by_sub_role.*.h90.T_matches`):** TRAIN fold 5,732/5,858/5,725/5,845/5,829; Q_CAL 7,550; Q_SELECT 7,469; V_CAL 7,448; V_SELECT 7,632; TEST 24,020; EXT KR16.13 3,859 / NA1 3,955 / KR16.15 377 / pilot 80. pooled 합 83,108은 기록된 필드가 아님.
+- **h90 endpoint:** s = 첫 킬 − 15 s, q_pre = s − 1 ms, L = 마지막 킬; endpoint_h = min(L + 1000h, 다음 킬 − 1, 다음 교전 시작 − 1, 경기 종료 − 1) [ms]; 오브젝트·ace는 종료 사건 아님(`e0ec3d0:scripts/engagement_labels_v3_rules.py` `endpoint_rule`/`endpoint_validity`; `docs/LABEL_ENDPOINT_RULE_AND_EXAMPLES_20260914.md`). 유효 566,104/566,452, 무효 348행 전부 N(overlap: 다음 교전 시작 ≤ L). main TEST h90 실현: L 이후 평균 45.493 s / 중앙 39.440 s, 상한 도달 14.286%, 다음 킬 종료 ≈78.9%, L 이후 새 프레임 없음 35.145%.
+- **9/15 코호트별 학습(구 로지스틱 V):** T specialist vs pooled ΔBrier −0.00166 [−0.00235, −0.00104]; N −0.00042; skirmish(2–3) −0.00023 [−0.00043, −0.00004]; pick −0.00083. PT 기준선 없음. "N 특화는 robust하지 않음"; T/N 기전 설명 철회(X-31).
+
+## 규모 분리 실험선 (T007–T009; 계약 `docs/SCALE_SPLIT_EXPERIMENT_CONTRACT_20260920.md`)
+- 저자 결정: 석사/v2 계약으로 먼저 실행 → 결과 후 저널 포함 결정; 비교 = T vs **S = `cohort==0 & fine==1`(2 ≤ n_min ≤ 3)**; pick 제외; Cursor 실행.
+- 코호트 하드코딩 지점: `rr20260920_q_build_newv_labels.py` `cohort_keys` L59–71, `rr20260920_q_train_oof_mlp_folds.py` `cohort_t_keys` L76–85. q 적합·RR12 평가는 라벨 파일에서 코호트를 물려받음(경로만 매개변수화).
+- fold 평가기: `outputs/q_newv_fit85_20260920/oof_evaluators/V_oof_fold{k}_mlp_expanded.joblib` + `bundle_oof_fold{k}.joblib` — 문서로 존재 미보증, 실행 전 확인.
+- S h90 census: TRAIN fold0–4 24,030/25,005/24,520/24,690/24,804; Q_CAL 31,302; Q_SELECT 31,059; TEST 101,205; EXT KR16.13 15,641 / NA1 16,100 / KR16.15 1,307 / pilot 285.
+- 잠금 입장: 실험 자체를 금지하는 잠금 없음(I1 허용, M-RQ1 담당). 저널 승격 시 해제할 문장: COMMON_RESEARCH_SPINE §3 "주 교전 T; N은 보조·부록", PAPER_COHORT_CONTRACT "all models … these rows only", JOURNAL_FINISH_LOCK "Block manuscript on new performance — No".
 
 ## 이 브랜치에 없는 것 (찾지 말 것)
 - 교전 코호트 플래그(`cohort == 1`, `valid_h90`)를 생성한 2026-09-15 파이프라인 코드와 `outputs/` 산출물. T의 자격 규칙 문장이 `docs/`에서 확인되지 않으면 `\pending`으로 남긴다.
