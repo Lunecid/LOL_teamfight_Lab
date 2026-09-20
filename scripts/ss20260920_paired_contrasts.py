@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Scale-split paired ΔBrier contrasts (§5) + CORP point values.
 
-Primary: ΔBrier(q_S − PT_flex_S) on S TEST.
-Secondary: q_S−q_T→S, q_S−q_TS on S; q_TS−q_T on T; S∩B40 primary.
-Bootstrap: 2000 match-cluster draws, seed 7, w=1/n_m.
+--variant sel (default): T009 sigmoid-selected packs (_qS/_qT/_qTS)
+--variant id: T010 identity packs (_qS_id/_qT_id/_qTS_id)
 """
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from datetime import datetime, timezone
@@ -23,12 +23,23 @@ from rr20260920_review_response_rr12 import bootstrap_delta_brier, metrics  # no
 
 OUT = REPO / "outputs" / "scale_split_TvsS_20260920"
 ROLE = "EXPLORATORY_SCALE_SPLIT_PRIOR_TEST_EXPOSURE"
-
-S_QS = REPO / "outputs" / "review_response_rr12_20260920_S_qS"
-S_QT = REPO / "outputs" / "review_response_rr12_20260920_S_qT"
-S_QTS = REPO / "outputs" / "review_response_rr12_20260920_S_qTS"
 T_QTS = REPO / "outputs" / "review_response_rr12_20260920_qTS_on_T"
 T_FROZEN = REPO / "outputs" / "review_response_rr12_20260920"
+
+VARIANT = {
+    "sel": dict(
+        suffix="",
+        out_name="paired_contrasts.json",
+        note="RR12 two-stage calibrator selection (sensitivity)",
+        primary_label="sensitivity",
+    ),
+    "id": dict(
+        suffix="_id",
+        out_name="paired_contrasts_id.json",
+        note="contract §4 identity calibrator (main)",
+        primary_label="primary",
+    ),
+}
 
 
 def load_pred(path: Path) -> Dict[str, np.ndarray]:
@@ -76,14 +87,23 @@ def corp_cell(y, p, g, label: str) -> Dict[str, Any]:
     )
 
 
-def main() -> int:
-    for need in (S_QS, S_QT, S_QTS, T_QTS, T_FROZEN):
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--variant", choices=["sel", "id"], default="sel")
+    args = ap.parse_args(argv)
+    cfg = VARIANT[args.variant]
+    sfx = cfg["suffix"]
+    s_qs = REPO / f"outputs/review_response_rr12_20260920_S_qS{sfx}"
+    s_qt = REPO / f"outputs/review_response_rr12_20260920_S_qT{sfx}"
+    s_qts = REPO / f"outputs/review_response_rr12_20260920_S_qTS{sfx}"
+
+    for need in (s_qs, s_qt, s_qts, T_QTS, T_FROZEN):
         if not (need / "prediction_table.npz").is_file():
             raise SystemExit(f"missing {need / 'prediction_table.npz'}")
 
-    qs = load_pred(S_QS)
-    qt = load_pred(S_QT)
-    qts = load_pred(S_QTS)
+    qs = load_pred(s_qs)
+    qt = load_pred(s_qt)
+    qts = load_pred(s_qts)
     align_keys(qs, qt)
     align_keys(qs, qts)
 
@@ -95,8 +115,17 @@ def main() -> int:
     p_qt = qt["p_q_base"].astype(float)
     p_qts_s = qts["p_q_base"].astype(float)
 
+    is_main = args.variant == "id"
     contrasts = [
-        contrast("q_S_minus_PT_flex_S", y, p_qs, p_pt, g, "S TEST; primary", primary=True),
+        contrast(
+            "q_S_minus_PT_flex_S",
+            y,
+            p_qs,
+            p_pt,
+            g,
+            f"S TEST; {cfg['note']}",
+            primary=is_main,
+        ),
         contrast("q_S_minus_q_T_to_S", y, p_qs, p_qt, g, "S TEST; secondary transfer"),
         contrast("q_S_minus_q_TS", y, p_qs, p_qts_s, g, "S TEST; secondary pooled"),
         contrast(
@@ -110,7 +139,6 @@ def main() -> int:
         ),
     ]
 
-    # T rows: q_TS vs frozen q_T (and report vs frozen PT_flex for context in metrics)
     t_qts = load_pred(T_QTS)
     t_fr = load_pred(T_FROZEN)
     align_keys(t_qts, t_fr)
@@ -132,7 +160,6 @@ def main() -> int:
         PT_flex_S=corp_cell(y, p_pt, g, "PT_flex_S"),
     )
 
-    # Table-1 style scores from S_qS pack + transfer preds
     table1 = {
         "q_S": metrics(y, p_qs, g),
         "q_T_to_S": metrics(y, p_qt, g),
@@ -144,14 +171,17 @@ def main() -> int:
     }
 
     OUT.mkdir(parents=True, exist_ok=True)
+    out_path = OUT / cfg["out_name"]
     payload = dict(
         generated=datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds"),
         epistemic=ROLE,
+        variant=args.variant,
+        calibrator_note=cfg["note"],
         contract="docs/SCALE_SPLIT_EXPERIMENT_CONTRACT_20260920.md",
         sources=dict(
-            S_qS=str(S_QS.as_posix()),
-            S_qT=str(S_QT.as_posix()),
-            S_qTS=str(S_QTS.as_posix()),
+            S_qS=str(s_qs.as_posix()),
+            S_qT=str(s_qt.as_posix()),
+            S_qTS=str(s_qts.as_posix()),
             T_qTS_on_T=str(T_QTS.as_posix()),
             T_frozen_rr12=str(T_FROZEN.as_posix()),
         ),
@@ -160,8 +190,8 @@ def main() -> int:
         CORP=corp,
         primary_name="q_S_minus_PT_flex_S",
     )
-    (OUT / "paired_contrasts.json").write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-    print("wrote", OUT / "paired_contrasts.json", flush=True)
+    out_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    print("wrote", out_path, flush=True)
     for c in contrasts:
         d = c["delta_brier"]
         tag = "PRIMARY" if c["primary"] else "secondary"

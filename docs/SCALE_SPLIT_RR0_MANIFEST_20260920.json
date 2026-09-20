@@ -1,8 +1,8 @@
 {
-  "generated": "2026-09-21T00:28:49+09:00",
+  "generated": "2026-09-21T01:12:19+09:00",
   "epistemic": "EXPLORATORY_SCALE_SPLIT_PRIOR_TEST_EXPOSURE",
   "role_tag": "EXPLORATORY_SCALE_SPLIT_PRIOR_TEST_EXPOSURE",
-  "source_commit": "62f4455dc62cd53f54344947712bec97531ba8f3",
+  "source_commit": "78695a6d5924e6e8755599ee89873bafd993ed36",
   "contract": "docs/SCALE_SPLIT_EXPERIMENT_CONTRACT_20260920.md",
   "task": "T009",
   "generator": {
@@ -550,6 +550,27 @@
       "sha16": "56c041d107305389",
       "bytes": 37253
     },
+    "rr12_S_qS_id": {
+      "path": "outputs/review_response_rr12_20260920_S_qS_id/paired_ci.json",
+      "exists": true,
+      "sha256": "867861a6cba7ede78d7e3448e6a0d1e8d38918f7d594511bc17b35b38a82bb90",
+      "sha16": "867861a6cba7ede7",
+      "bytes": 37355
+    },
+    "rr12_S_qT_id": {
+      "path": "outputs/review_response_rr12_20260920_S_qT_id/paired_ci.json",
+      "exists": true,
+      "sha256": "8ad8b82cf36c4a8c580b224ae3338e07054f09c36d6c90f8898cd1785d00c6d2",
+      "sha16": "8ad8b82cf36c4a8c",
+      "bytes": 37392
+    },
+    "rr12_S_qTS_id": {
+      "path": "outputs/review_response_rr12_20260920_S_qTS_id/paired_ci.json",
+      "exists": true,
+      "sha256": "600510325274eec11bf9a055f088fb9c11e920d5e672e45ab7b6933aca4d6181",
+      "sha16": "600510325274eec1",
+      "bytes": 37351
+    },
     "rr12_qTS_on_T": {
       "path": "outputs/review_response_rr12_20260920_qTS_on_T/paired_ci.json",
       "exists": true,
@@ -564,6 +585,13 @@
       "sha16": "8af7755177be6761",
       "bytes": 7652
     },
+    "paired_contrasts_id": {
+      "path": "outputs/scale_split_TvsS_20260920/paired_contrasts_id.json",
+      "exists": true,
+      "sha256": "eb79717711b471445566782fb6d88941f02234869e7716de177c5e79d9baa36d",
+      "sha16": "eb79717711b47144",
+      "bytes": 7781
+    },
     "rrx_S": {
       "path": "outputs/review_response_rrx_external_20260920_S/rrx_external_results.json",
       "exists": true,
@@ -574,16 +602,16 @@
     "results_json": {
       "path": "docs/SCALE_SPLIT_TvsS_RESULTS_20260920.json",
       "exists": true,
-      "sha256": "7e957dd93cb901b841ed86b04296897e4eceba0102e9a3e743a0963591b89935",
-      "sha16": "7e957dd93cb901b8",
-      "bytes": 6208
+      "sha256": "b78cbdb123b3f0ec9aba3ae8d170f8e916b87a9332c74875b255336a905846c0",
+      "sha16": "b78cbdb123b3f0ec",
+      "bytes": 10463
     },
     "results_md": {
       "path": "docs/SCALE_SPLIT_TvsS_RESULTS_20260920.md",
       "exists": true,
-      "sha256": "a335f510f1ec5f29ccd332c75dda4d041f8ddeb5a40e8523fec0da2a25266eac",
-      "sha16": "a335f510f1ec5f29",
-      "bytes": 4216
+      "sha256": "51f716fbf5ea816c1d2176f105d87076297da8d685db081ee1322501fb848ccb",
+      "sha16": "51f716fbf5ea816c",
+      "bytes": 5659
     }
   },
   "EXT_S_census": {
@@ -615,5 +643,74 @@
       }
     ],
     "note": "deltas vs contract \u00a72 may be finite-score exclusions"
-  }
+  },
+  "T_frozen_rr0_digests": {
+    "rows": [
+      {
+        "key": "logit_state",
+        "path": "outputs/q_newv_fit85_20260920/models/logit_state.joblib",
+        "expected_sha16": "d6e8fc31310a5a58",
+        "got_sha16": "d6e8fc31310a5a58",
+        "PASS": true
+      },
+      {
+        "key": "primary_table",
+        "path": "outputs/q_newv_fit85_20260920/primary_table.json",
+        "expected_sha16": "a80340fede7b6e6a",
+        "got_sha16": "a80340fede7b6e6a",
+        "PASS": true
+      },
+      {
+        "key": "selection_freeze",
+        "path": "outputs/q_newv_fit85_20260920/selection_freeze.json",
+        "expected_sha16": "294a3e4261f9a40e",
+        "got_sha16": "294a3e4261f9a40e",
+        "PASS": true
+      },
+      {
+        "key": "rr12_paired_ci",
+        "path": "outputs/review_response_rr12_20260920/paired_ci.json",
+        "expected_sha16": "9484c09c4e097f25",
+        "got_sha16": "9484c09c4e097f25",
+        "PASS": true
+      },
+      {
+        "key": "rr12_prediction_table",
+        "path": "outputs/review_response_rr12_20260920/prediction_table.npz",
+        "expected_sha16": "b16b1ce417d61f53",
+        "got_sha16": "b16b1ce417d61f53",
+        "PASS": true
+      },
+      {
+        "key": "rr12_PT_flex",
+        "path": "outputs/review_response_rr12_20260920/models/PT_flex.joblib",
+        "expected_sha16": "15acc630abe5930d",
+        "got_sha16": "15acc630abe5930d",
+        "PASS": true
+      },
+      {
+        "key": "rr12_PT_linear",
+        "path": "outputs/review_response_rr12_20260920/models/PT_linear.joblib",
+        "expected_sha16": "2215150ca4bc0f89",
+        "got_sha16": "2215150ca4bc0f89",
+        "PASS": true
+      },
+      {
+        "key": "rr12_b_spline",
+        "path": "outputs/review_response_rr12_20260920/models/b_spline.joblib",
+        "expected_sha16": "b34f46c62d72637b",
+        "got_sha16": "b34f46c62d72637b",
+        "PASS": true
+      },
+      {
+        "key": "rr12_baseline_selection",
+        "path": "outputs/review_response_rr12_20260920/baseline_selection.json",
+        "expected_sha16": "4b798eed3795e789",
+        "got_sha16": "4b798eed3795e789",
+        "PASS": true
+      }
+    ],
+    "PASS": true
+  },
+  "T_frozen_rr0_digests_match": true
 }

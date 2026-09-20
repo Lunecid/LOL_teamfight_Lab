@@ -2,12 +2,30 @@
 
 **role_tag:** `EXPLORATORY_SCALE_SPLIT_PRIOR_TEST_EXPOSURE`  
 **contract:** [SCALE_SPLIT_EXPERIMENT_CONTRACT_20260920.md](SCALE_SPLIT_EXPERIMENT_CONTRACT_20260920.md)  
-**source_commit:** `06e856a0835bfaf0a332871da78c91547fdd4a66`  
-**generated:** 2026-09-21T00:28:10+09:00  
+**source_commit:** `78695a6d5924e6e8755599ee89873bafd993ed36`  
+**generated:** 2026-09-21T01:11:39+09:00  
 
-T headline numbers are **cited from frozen** RR12/RRX artifacts. This pack evaluates S arms and the predeclared §5 contrasts only.
+Main reporting uses **identity calibrator** (contract §4 literal). T009 RR12 two-stage selection values are sensitivity only.
+Main-contrast sign identical across variants: **True** (identity -0.00335; sensitivity -0.00346).
 
-## Table 1 — S TEST point metrics
+T headline numbers are **cited from frozen** RR12/RRX artifacts.
+
+## Table 1 — S TEST point metrics (identity; main)
+
+| Model | n | matches | Brier | logloss | AUC |
+|---|---:|---:|---:|---:|---:|
+| q_S | 101205 | 49730 | 0.2458 | 0.6849 | 0.5767 |
+| q_T→S | 101205 | 49730 | 0.2478 | 0.6890 | 0.5625 |
+| q_TS | 101205 | 49730 | 0.2460 | 0.6854 | 0.5757 |
+| PT_flex_S | 101205 | 49730 | 0.2492 | 0.6915 | 0.5360 |
+| PT_linear_S | 101205 | 49730 | 0.2495 | 0.6921 | 0.5301 |
+| b(p)_spline_S | 101205 | 49730 | 0.2494 | 0.6919 | 0.5301 |
+| b(p)_linear_S | 101205 | 49730 | 0.2495 | 0.6921 | 0.5301 |
+| lgbm_state_S (diagnostic) | 101205 | 49730 | 0.2475 | 0.6880 | 0.5560 |
+
+Source: `paired_contrasts_id.json` → `table1_S_TEST`; lgbm diagnostic from S fit `TEST.lgbm_state` (n=101205).
+
+## Table 1b — S TEST (RR12 2-stage selection; sensitivity)
 
 | Model | n | matches | Brier | logloss | AUC |
 |---|---:|---:|---:|---:|---:|
@@ -18,32 +36,45 @@ T headline numbers are **cited from frozen** RR12/RRX artifacts. This pack evalu
 | PT_linear_S | 101205 | 49730 | 0.2492 | 0.6915 | 0.5301 |
 | b(p)_spline_S | 101205 | 49730 | 0.2491 | 0.6914 | 0.5301 |
 | b(p)_linear_S | 101205 | 49730 | 0.2492 | 0.6915 | 0.5301 |
-| lgbm_state_S (diagnostic) | 31059 | 15282 | 0.2474 | 0.6879 | 0.5563 |
 
-Source: `outputs/scale_split_TvsS_20260920/paired_contrasts.json` → `table1_S_TEST` (lgbm diagnostic row from S fit outputs under `outputs/q_newv_fit85_20260920_S/`).
+Source: `paired_contrasts.json` → `table1_S_TEST`.
 
-## Table 2 — Contrasts (ΔBrier = A − B; negative ⇒ A better)
+## Table 2a — Contrasts, contract-literal identity
 
 | Contrast | role | estimate | CI95 | p_gt0 | n | matches | seed |
 |---|---|---:|---|---:|---:|---:|---:|
-| q_S − PT_flex_S (S TEST) | **primary** | -0.00346 | [-0.00382, -0.00307] | 0.0000 | 101205 | 49730 | 7 |
+| q_S − PT_flex_S (S TEST) | **primary** | -0.00335 | [-0.00379, -0.00288] | 0.0000 | 101205 | 49730 | 7 |
+| q_S − q_T→S (S TEST) | secondary | -0.00194 | [-0.00236, -0.00153] | 0.0000 | 101205 | 49730 | 7 |
+| q_S − q_TS (S TEST) | secondary | -0.00024 | [-0.00039, -0.00009] | 0.0005 | 101205 | 49730 | 7 |
+| q_TS − q_T (T TEST) | secondary | 0.00071 | [0.00018, 0.00126] | 0.9940 | 32981 | 24020 | 7 |
+| q_S − PT_flex_S (S∩B40) | secondary | -0.00210 | [-0.00266, -0.00149] | 0.0000 | 31675 | 25039 | 7 |
+
+Source: `paired_contrasts_id.json` → `contrasts` (2000 draws, seed 7, w=1/n_m).
+
+## Table 2b — Contrasts, RR12 2-stage selection (sensitivity)
+
+| Contrast | role | estimate | CI95 | p_gt0 | n | matches | seed |
+|---|---|---:|---|---:|---:|---:|---:|
+| q_S − PT_flex_S (S TEST) | sensitivity | -0.00346 | [-0.00382, -0.00307] | 0.0000 | 101205 | 49730 | 7 |
 | q_S − q_T→S (S TEST) | secondary | -0.00138 | [-0.00168, -0.00108] | 0.0000 | 101205 | 49730 | 7 |
 | q_S − q_TS (S TEST) | secondary | -0.00012 | [-0.00024, 0.00001] | 0.0345 | 101205 | 49730 | 7 |
 | q_TS − q_T (T TEST) | secondary | 0.00071 | [0.00018, 0.00126] | 0.9940 | 32981 | 24020 | 7 |
 | q_S − PT_flex_S (S∩B40) | secondary | -0.00210 | [-0.00256, -0.00160] | 0.0000 | 31675 | 25039 | 7 |
 
-Source: `paired_contrasts.json` → `contrasts[*].delta_brier` (2000 match-cluster draws, seed 7, w=1/n_m).
+Source: `paired_contrasts.json` → `contrasts`.
 
 B40 cell is a **within-S** secondary contrast only (S TEST B40 n=31675 / 101205 ≈ 31.3%; not placed beside T B40).
 
 ## Table 3 — CORP point values (S TEST; no intervals)
 
-| Model | n | MCB | DSC | UNC |
-|---|---:|---:|---:|---:|
-| q_S | 101205 | 0.0004 | 0.0048 | 0.2499 |
-| PT_flex_S | 101205 | 0.0004 | 0.0014 | 0.2499 |
+| Variant | Model | n | MCB | DSC | UNC |
+|---|---|---:|---:|---:|---:|
+| identity | q_S | 101205 | 0.0008 | 0.0048 | 0.2499 |
+| identity | PT_flex_S | 101205 | 0.0007 | 0.0014 | 0.2499 |
+| sensitivity | q_S | 101205 | 0.0004 | 0.0048 | 0.2499 |
+| sensitivity | PT_flex_S | 101205 | 0.0004 | 0.0014 | 0.2499 |
 
-Source: `paired_contrasts.json` → `CORP` via `forecast_diagnostics.metrics_bundle` (score-gap MCB/DSC).
+Source: `paired_contrasts_id.json` / `paired_contrasts.json` → `CORP`.
 
 ## Table 4 — EXT S (score-only; no CI; small cohorts reported, not pooled)
 
@@ -54,8 +85,8 @@ Source: `paired_contrasts.json` → `CORP` via `forecast_diagnostics.metrics_bun
 | KR 16.15 | 1307 | 0.1829 | -0.0033 | 0.0014 | 0.0046 |
 | KR 16.14 pilot | 285 | 0.1787 | 0.0035 | 0.0091 | 0.0056 |
 
-Source: `outputs/review_response_rrx_external_20260920_S/rrx_external_results.json` → `cohorts`.
-Census vs contract §2: KR 15641 / NA1 16100 / KR16.15 1307 / pilot 285 (exact match on common-valid rows).
+Source: `rrx_external_results.json` → `cohorts` (unchanged from T009; raw).
+Census vs contract §2: KR 15641 / NA1 16100 / KR16.15 1307 / pilot 285.
 
 ## Allowed / Forbidden readings
 
@@ -73,6 +104,6 @@ Copied from contract §6 (Forbidden readings):
 
 ## Suggestions (not executed)
 
-- Whether a shared PT_flex object should be frozen once on S Q_SELECT and reused for all S arms (current runs re-select independently; grids identical).
-- Whether EXT S ΔBrier sign vs T EXT should be discussed only after a predeclared transfer protocol (not in this contract).
+- Whether a shared PT_flex object should be frozen once on S Q_SELECT and reused for all S arms.
+- Whether EXT S ΔBrier sign vs T EXT should be discussed only after a predeclared transfer protocol.
 

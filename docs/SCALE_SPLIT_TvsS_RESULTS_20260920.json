@@ -1,11 +1,79 @@
 {
-  "generated": "2026-09-21T00:28:10+09:00",
+  "generated": "2026-09-21T01:11:39+09:00",
   "epistemic": "EXPLORATORY_SCALE_SPLIT_PRIOR_TEST_EXPOSURE",
   "role_tag": "EXPLORATORY_SCALE_SPLIT_PRIOR_TEST_EXPOSURE",
   "contract": "docs/SCALE_SPLIT_EXPERIMENT_CONTRACT_20260920.md",
-  "source_commit": "62f4455dc62cd53f54344947712bec97531ba8f3",
+  "source_commit": "78695a6d5924e6e8755599ee89873bafd993ed36",
+  "main_calibrator": "identity",
+  "sensitivity_calibrator": "rr12_two_stage_select",
+  "primary_sign_same_across_variants": true,
   "note_T_numbers": "T numerical headlines cited from frozen RR12/RRX packs; not recomputed here except q_TS-on-T secondary.",
-  "table1_S_TEST": {
+  "table1_S_TEST_identity": {
+    "q_S": {
+      "n": 101205,
+      "n_matches": 49730,
+      "brier": 0.24580968702464062,
+      "logloss": 0.6848722741977517,
+      "auc": 0.5767357825644206,
+      "p_pos": 0.5107415519998467
+    },
+    "q_T_to_S": {
+      "n": 101205,
+      "n_matches": 49730,
+      "brier": 0.24775145558575823,
+      "logloss": 0.6890327136781823,
+      "auc": 0.5624587161010087,
+      "p_pos": 0.5107415519998467
+    },
+    "q_TS": {
+      "n": 101205,
+      "n_matches": 49730,
+      "brier": 0.24604978250175302,
+      "logloss": 0.6853849360694013,
+      "auc": 0.5756876430414384,
+      "p_pos": 0.5107415519998467
+    },
+    "PT_flex_S": {
+      "n": 101205,
+      "n_matches": 49730,
+      "brier": 0.24916230324533656,
+      "logloss": 0.6914872899485389,
+      "auc": 0.5359721644725058,
+      "p_pos": 0.5107415519998467
+    },
+    "PT_linear_S": {
+      "n": 101205,
+      "n_matches": 49730,
+      "brier": 0.24949133978754504,
+      "logloss": 0.6921301864831688,
+      "auc": 0.5300612366230959,
+      "p_pos": 0.5107415519998467
+    },
+    "b_spline_S": {
+      "n": 101205,
+      "n_matches": 49730,
+      "brier": 0.2493850851595277,
+      "logloss": 0.6919189871557538,
+      "auc": 0.5301382511887297,
+      "p_pos": 0.5107415519998467
+    },
+    "b_linear_S": {
+      "n": 101205,
+      "n_matches": 49730,
+      "brier": 0.24948140877474986,
+      "logloss": 0.6921102221760825,
+      "auc": 0.5301382176960273,
+      "p_pos": 0.5107415519998467
+    },
+    "lgbm_state_S": {
+      "n": 101205,
+      "n_matches": 49730,
+      "brier": 0.2474555919063348,
+      "logloss": 0.6880242303294266,
+      "auc": 0.5559850963418409
+    }
+  },
+  "table1b_S_TEST_sensitivity": {
     "q_S": {
       "n": 101205,
       "n_matches": 49730,
@@ -61,29 +129,22 @@
       "logloss": 0.6915191765416745,
       "auc": 0.5301382176960273,
       "p_pos": 0.5107415519998467
-    },
-    "lgbm_state_S": {
-      "n": 31059,
-      "n_matches": 15282,
-      "brier": 0.24738251723961002,
-      "logloss": 0.687871305069397,
-      "auc": 0.5562886785914037
     }
   },
-  "table2_contrasts": {
+  "table2a_identity": {
     "q_S_minus_PT_flex_S": {
       "primary": true,
       "n": 101205,
       "n_matches": 49730,
       "seed": 7,
       "boot_reps": 2000,
-      "estimate": -0.0034552434195396693,
+      "estimate": -0.0033526162206958523,
       "ci95": [
-        -0.003822843373058933,
-        -0.003066133700555729
+        -0.003794618688012673,
+        -0.0028843522795910397
       ],
       "p_gt0": 0.0,
-      "note": "S TEST; primary"
+      "note": "S TEST; contract \u00a74 identity calibrator (main)"
     },
     "q_S_minus_q_T_to_S": {
       "primary": false,
@@ -91,10 +152,10 @@
       "n_matches": 49730,
       "seed": 7,
       "boot_reps": 2000,
-      "estimate": -0.0013830556590060114,
+      "estimate": -0.001941768561117526,
       "ci95": [
-        -0.0016791319190243806,
-        -0.001082975519594704
+        -0.002361110946255511,
+        -0.0015314764031623925
       ],
       "p_gt0": 0.0,
       "note": "S TEST; secondary transfer"
@@ -105,12 +166,12 @@
       "n_matches": 49730,
       "seed": 7,
       "boot_reps": 2000,
-      "estimate": -0.00011836530273006742,
+      "estimate": -0.00024009547711238344,
       "ci95": [
-        -0.00024191512578068623,
-        5.1970946342127836e-06
+        -0.000393409048403115,
+        -9.064136291442028e-05
       ],
-      "p_gt0": 0.0345,
+      "p_gt0": 0.0005,
       "note": "S TEST; secondary pooled"
     },
     "q_S_minus_PT_flex_S_B40": {
@@ -119,10 +180,10 @@
       "n_matches": 25039,
       "seed": 7,
       "boot_reps": 2000,
-      "estimate": -0.0021016509265807774,
+      "estimate": -0.00210113385668328,
       "ci95": [
-        -0.0025614173371545624,
-        -0.0016018633268090547
+        -0.002660300890560802,
+        -0.0014943538997199352
       ],
       "p_gt0": 0.0,
       "note": "S TEST \u2229 B40; secondary (within-S only)"
@@ -142,7 +203,107 @@
       "note": "T TEST; secondary pooling cost"
     }
   },
-  "table3_CORP": {
+  "table2b_sensitivity": {
+    "q_S_minus_PT_flex_S": {
+      "sensitivity": true,
+      "n": 101205,
+      "n_matches": 49730,
+      "seed": 7,
+      "boot_reps": 2000,
+      "estimate": -0.0034552434195396693,
+      "ci95": [
+        -0.003822843373058933,
+        -0.003066133700555729
+      ],
+      "p_gt0": 0.0,
+      "note": "S TEST; primary"
+    },
+    "q_S_minus_q_T_to_S": {
+      "sensitivity": true,
+      "n": 101205,
+      "n_matches": 49730,
+      "seed": 7,
+      "boot_reps": 2000,
+      "estimate": -0.0013830556590060114,
+      "ci95": [
+        -0.0016791319190243806,
+        -0.001082975519594704
+      ],
+      "p_gt0": 0.0,
+      "note": "S TEST; secondary transfer"
+    },
+    "q_S_minus_q_TS": {
+      "sensitivity": true,
+      "n": 101205,
+      "n_matches": 49730,
+      "seed": 7,
+      "boot_reps": 2000,
+      "estimate": -0.00011836530273006742,
+      "ci95": [
+        -0.00024191512578068623,
+        5.1970946342127836e-06
+      ],
+      "p_gt0": 0.0345,
+      "note": "S TEST; secondary pooled"
+    },
+    "q_S_minus_PT_flex_S_B40": {
+      "sensitivity": true,
+      "n": 31675,
+      "n_matches": 25039,
+      "seed": 7,
+      "boot_reps": 2000,
+      "estimate": -0.0021016509265807774,
+      "ci95": [
+        -0.0025614173371545624,
+        -0.0016018633268090547
+      ],
+      "p_gt0": 0.0,
+      "note": "S TEST \u2229 B40; secondary (within-S only)"
+    },
+    "q_TS_minus_q_T": {
+      "sensitivity": true,
+      "n": 32981,
+      "n_matches": 24020,
+      "seed": 7,
+      "boot_reps": 2000,
+      "estimate": 0.0007052086331439494,
+      "ci95": [
+        0.00017717790286611243,
+        0.0012608909147895592
+      ],
+      "p_gt0": 0.994,
+      "note": "T TEST; secondary pooling cost"
+    }
+  },
+  "table3_CORP_identity": {
+    "q_S": {
+      "label": "q_S",
+      "n": 101205,
+      "n_matches": 49730,
+      "brier": 0.24580968702464062,
+      "CORP": {
+        "MCB": 0.0007618223514307132,
+        "DSC": 0.004836754387424674,
+        "UNC": 0.24988461906063458,
+        "ECE": null,
+        "gap": 0.0
+      }
+    },
+    "PT_flex_S": {
+      "label": "PT_flex_S",
+      "n": 101205,
+      "n_matches": 49730,
+      "brier": 0.24916230324533656,
+      "CORP": {
+        "MCB": 0.0006813908557952442,
+        "DSC": 0.0014037066710932689,
+        "UNC": 0.24988461906063458,
+        "ECE": null,
+        "gap": 0.0
+      }
+    }
+  },
+  "table3_CORP_sensitivity": {
     "q_S": {
       "label": "q_S",
       "n": 101205,
@@ -213,9 +374,9 @@
     }
   },
   "sources": {
-    "paired_contrasts": "outputs/scale_split_TvsS_20260920/paired_contrasts.json",
+    "paired_contrasts_id": "outputs/scale_split_TvsS_20260920/paired_contrasts_id.json",
+    "paired_contrasts_sel": "outputs/scale_split_TvsS_20260920/paired_contrasts.json",
     "rrx_S": "outputs/review_response_rrx_external_20260920_S/rrx_external_results.json",
-    "primary_S": "outputs/q_newv_fit85_20260920_S/primary_table.json",
-    "rr12_S_qS": "outputs/review_response_rr12_20260920_S_qS/paired_ci.json"
+    "primary_S": "outputs/q_newv_fit85_20260920_S/primary_table.json"
   }
 }

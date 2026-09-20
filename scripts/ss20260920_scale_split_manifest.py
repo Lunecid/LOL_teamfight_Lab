@@ -294,13 +294,48 @@ def collect_t009_digests() -> Dict[str, Any]:
         "rr12_S_qS": REPO / "outputs" / "review_response_rr12_20260920_S_qS" / "paired_ci.json",
         "rr12_S_qT": REPO / "outputs" / "review_response_rr12_20260920_S_qT" / "paired_ci.json",
         "rr12_S_qTS": REPO / "outputs" / "review_response_rr12_20260920_S_qTS" / "paired_ci.json",
+        "rr12_S_qS_id": REPO / "outputs" / "review_response_rr12_20260920_S_qS_id" / "paired_ci.json",
+        "rr12_S_qT_id": REPO / "outputs" / "review_response_rr12_20260920_S_qT_id" / "paired_ci.json",
+        "rr12_S_qTS_id": REPO / "outputs" / "review_response_rr12_20260920_S_qTS_id" / "paired_ci.json",
         "rr12_qTS_on_T": REPO / "outputs" / "review_response_rr12_20260920_qTS_on_T" / "paired_ci.json",
         "paired_contrasts": REPO / "outputs" / "scale_split_TvsS_20260920" / "paired_contrasts.json",
+        "paired_contrasts_id": REPO / "outputs" / "scale_split_TvsS_20260920" / "paired_contrasts_id.json",
         "rrx_S": REPO / "outputs" / "review_response_rrx_external_20260920_S" / "rrx_external_results.json",
         "results_json": REPO / "docs" / "SCALE_SPLIT_TvsS_RESULTS_20260920.json",
         "results_md": REPO / "docs" / "SCALE_SPLIT_TvsS_RESULTS_20260920.md",
     }
     return {k: digest_entry(p) for k, p in paths.items()}
+
+
+# G2 — RR0 frozen digests (from docs/REVIEW_RESPONSE_RR0_MANIFEST_20260920.json)
+RR0_EXPECTED = {
+    "logit_state": ("outputs/q_newv_fit85_20260920/models/logit_state.joblib", "d6e8fc31310a5a58"),
+    "primary_table": ("outputs/q_newv_fit85_20260920/primary_table.json", "a80340fede7b6e6a"),
+    "selection_freeze": ("outputs/q_newv_fit85_20260920/selection_freeze.json", "294a3e4261f9a40e"),
+    "rr12_paired_ci": ("outputs/review_response_rr12_20260920/paired_ci.json", "9484c09c4e097f25"),
+    "rr12_prediction_table": ("outputs/review_response_rr12_20260920/prediction_table.npz", "b16b1ce417d61f53"),
+    "rr12_PT_flex": ("outputs/review_response_rr12_20260920/models/PT_flex.joblib", "15acc630abe5930d"),
+    "rr12_PT_linear": ("outputs/review_response_rr12_20260920/models/PT_linear.joblib", "2215150ca4bc0f89"),
+    "rr12_b_spline": ("outputs/review_response_rr12_20260920/models/b_spline.joblib", "b34f46c62d72637b"),
+    "rr12_baseline_selection": ("outputs/review_response_rr12_20260920/baseline_selection.json", "4b798eed3795e789"),
+}
+
+
+def check_rr0_frozen_digests() -> Dict[str, Any]:
+    rows = []
+    ok_all = True
+    for key, (rel, exp16) in RR0_EXPECTED.items():
+        p = REPO / rel
+        if not p.is_file():
+            rows.append({"key": key, "path": rel, "exists": False, "PASS": False})
+            ok_all = False
+            continue
+        got = sha256_file(p)[1]
+        match = got == exp16
+        if not match:
+            ok_all = False
+        rows.append({"key": key, "path": rel, "expected_sha16": exp16, "got_sha16": got, "PASS": match})
+    return {"rows": rows, "PASS": ok_all}
 
 
 def ext_census_check() -> Dict[str, Any]:
@@ -384,6 +419,15 @@ def main(argv: Optional[list] = None) -> int:
     if args.with_t009:
         manifest["digests_T009"] = collect_t009_digests()
         manifest["EXT_S_census"] = ext_census_check()
+        rr0 = check_rr0_frozen_digests()
+        manifest["T_frozen_rr0_digests"] = rr0
+        manifest["T_frozen_rr0_digests_match"] = bool(rr0["PASS"])
+        if not rr0["PASS"]:
+            print("BLOCKED: T_frozen_rr0_digests_match=false", flush=True)
+            for row in rr0["rows"]:
+                if not row.get("PASS"):
+                    print(" ", row, flush=True)
+            return 2
 
     MANIFEST.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     print("wrote", MANIFEST, "PASS", manifest["PASS"], flush=True)

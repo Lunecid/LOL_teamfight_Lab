@@ -1,4 +1,4 @@
-# Review response RR1+RR2 — flexible baselines vs frozen q
+# Review response RR1+RR2 ??flexible baselines vs frozen q
 
 Generated: 2026-09-21T00:22:21+09:00
 **Design:** [REVIEW_RESPONSE_EXPERIMENT_DESIGN_20260920.md](REVIEW_RESPONSE_EXPERIMENT_DESIGN_20260920.md)
@@ -13,7 +13,7 @@ Generated: 2026-09-21T00:22:21+09:00
 - PT_flex config: `{"n_knots_p": 4, "n_knots_t": 4, "C": 0.01, "degree": 3}`
 - b_spline config: `{"n_knots": 4, "C": 0.01}`
 
-## TEST 15.16 S — all
+## TEST 15.16 S ??all
 
 | Model | n | matches | Brier | logloss | AUC |
 |---|---:|---:|---:|---:|---:|
@@ -25,7 +25,7 @@ Generated: 2026-09-21T00:22:21+09:00
 | constant | 101205 | 49730 | 0.2500 | 0.6932 | 0.5000 |
 | q_base_raw | 101205 | 49730 | 0.2478 | 0.6890 | 0.5625 |
 
-## TEST 15.16 S — B40
+## TEST 15.16 S ??B40
 
 | Model | n | matches | Brier | logloss | AUC |
 |---|---:|---:|---:|---:|---:|
@@ -37,25 +37,24 @@ Generated: 2026-09-21T00:22:21+09:00
 | constant | 31675 | 25039 | 0.2501 | 0.6933 | 0.5000 |
 | q_base_raw | 31675 | 25039 | 0.2491 | 0.6914 | 0.5344 |
 
-### Primary RR contrast: ΔBrier(q_RR − PT_flex)
+### Primary RR contrast: ?Brier(q_RR ??PT_flex)
 
 - **All S:** estimate=-0.00207  CI95=[-0.00237, -0.00175]  bootstrap_fraction_positive=0.0000
 - **B40:** estimate=-0.00113  CI95=[-0.00154, -0.00069]  bootstrap_fraction_positive=0.0000
 - All S vs PT_linear (continuity): estimate=-0.00237  CI95=[-0.00270, -0.00202]
 
-### Heterogeneity H = D_B40 − D_outside (D = Brier(q)−Brier(PT_flex))
+### Heterogeneity H = D_B40 ??D_outside (D = Brier(q)?�Brier(PT_flex))
 
 - D_B40=-0.00113  D_outside=-0.00264  H=0.00151
 - 95% CI=[0.00092, 0.00210]  bootstrap_fraction_positive(H>0)=1.0000
 
-Note: bootstrap_fraction_positive (JSON p_gt0) is match-bootstrap draw share with Delta>0 — not a classical p-value.
-B40: small exploratory support (CI near 0); do not claim clear tau=0.001 gain.
+Note: bootstrap_fraction_positive (JSON p_gt0) is match-bootstrap draw share with Delta>0 ??not a classical p-value.
 Execution honesty: docs/REVIEW_RESPONSE_RR1_EXECUTION_ADDENDUM_20260920.md
 RR0: docs/REVIEW_RESPONSE_RR0_MANIFEST_20260920.json
 
 ## Balance neighborhood (0.05-width)
 
-| Bin | n | matches | q Brier | PT_flex Brier | ΔBrier | CI95 | low-support |
+| Bin | n | matches | q Brier | PT_flex Brier | ?Brier | CI95 | low-support |
 |---|---:|---:|---:|---:|---:|---|---|
 | [0.40,0.45) | 7612 | 7167 | 0.2491 | 0.2498 | -0.00069 | [-0.00156, 0.00016] | False |
 | [0.45,0.50) | 8693 | 8133 | 0.2491 | 0.2498 | -0.00067 | [-0.00140, 0.00013] | False |
@@ -64,7 +63,7 @@ RR0: docs/REVIEW_RESPONSE_RR0_MANIFEST_20260920.json
 
 ## Narrow p_pre bins (diagnostic; do not cherry-merge)
 
-| Bin | n | matches | P(Y=1) | E[ΔV] | ΔBrier(q−PT_flex) | low-support |
+| Bin | n | matches | P(Y=1) | E[?V] | ?Brier(q?�PT_flex) | low-support |
 |---|---:|---:|---:|---:|---:|---|
 | [0.00,0.05) | 4942 | 4232 | 0.4345 | 0.0065 | -0.00329 | False |
 | [0.05,0.10) | 3751 | 3475 | 0.4476 | 0.0150 | -0.00158 | False |
@@ -89,9 +88,9 @@ RR0: docs/REVIEW_RESPONSE_RR0_MANIFEST_20260920.json
 
 ## Interpretation guardrails
 
-- Negative ΔBrier ⇒ q better than that baseline on this cell.
-- If B40 CI includes 0: **additional lift not clearly confirmed** here — not 'no information' / study failure.
-- Surviving PT_flex ⇒ 'beyond the *tested* p/time summaries'; disappearing ⇒ function form of initial edge explained part of the prior linear gap.
+- Negative ?Brier ??q better than that baseline on this cell.
+- If B40 CI includes 0: **additional lift not clearly confirmed** here ??not 'no information' / study failure.
+- Surviving PT_flex ??'beyond the *tested* p/time summaries'; disappearing ??function form of initial edge explained part of the prior linear gap.
 - Original primary table vs PT_linear remains the historical result; this pack is review-response.
 
 Artifacts: `C:/Users/todtj/PycharmProjects/LOL_teamfight/outputs/review_response_rr12_20260920_S_qT/`

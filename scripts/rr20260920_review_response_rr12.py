@@ -362,6 +362,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         default="",
         help="appended to OUT dirname and docs filenames; required when --q-model is non-default",
     )
+    ap.add_argument(
+        "--calibrator",
+        choices=["select", "identity"],
+        default="select",
+        help="select=RR12 two-stage (default); identity=force identity for all models (contract §4 literal)",
+    )
     args = ap.parse_args(argv)
 
     LAB, QDIR, OUT_BASE = _paths_for_tag(args.cohort_tag)
@@ -478,7 +484,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         raise KeyError(name)
 
     # --- Q_CAL calibrators ---
-    print("fit g_q (identity vs PosSlopeSigmoid) on Q_CAL…", flush=True)
+    print(
+        f"fit g_q (identity vs PosSlopeSigmoid) on Q_CAL… policy={args.calibrator}",
+        flush=True,
+    )
     calib: Dict[str, Any] = {}
     selected: Dict[str, str] = {}
     for name in raw_models:
@@ -488,14 +497,18 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         pcal_se = gq.transform(praw_se)
         sc_id = metrics(SE["y"], praw_se, SE["g"])
         sc_cal = metrics(SE["y"], pcal_se, SE["g"])
-        # choose identity if cal not ok or worse Brier; tie → logloss
-        use_cal = False
-        if gq.ok:
-            if sc_cal["brier"] < sc_id["brier"] - 1e-15:
-                use_cal = True
-            elif abs(sc_cal["brier"] - sc_id["brier"]) <= 1e-15 and sc_cal["logloss"] < sc_id["logloss"]:
-                use_cal = True
-        mode = "sigmoid" if use_cal else "identity"
+        if args.calibrator == "identity":
+            use_cal = False
+            mode = "identity"
+        else:
+            # choose identity if cal not ok or worse Brier; tie → logloss
+            use_cal = False
+            if gq.ok:
+                if sc_cal["brier"] < sc_id["brier"] - 1e-15:
+                    use_cal = True
+                elif abs(sc_cal["brier"] - sc_id["brier"]) <= 1e-15 and sc_cal["logloss"] < sc_id["logloss"]:
+                    use_cal = True
+            mode = "sigmoid" if use_cal else "identity"
         selected[name] = mode
         calib[name] = dict(
             g=gq,
@@ -518,8 +531,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     # rename for reporting
     report_names = ["constant", "b_linear", "b_spline", "PT_linear", "PT_flex", "q_base"]
-    # q_RR is q_base under selected calibrator
-    alias = {n: ("q_RR" if n == "q_base" and selected[n] == "sigmoid" else n) for n in report_names}
+    # under identity policy always label q_base; under select, q_RR alias only if sigmoid
+    if args.calibrator == "identity":
+        alias = {n: n for n in report_names}
+    else:
+        alias = {n: ("q_RR" if n == "q_base" and selected[n] == "sigmoid" else n) for n in report_names}
 
     print("score TEST…", flush=True)
     test_pred = {n: predict_rr(n, TE) for n in report_names}
@@ -716,13 +732,16 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         generated=datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds"),
         epistemic=epistemic,
         cohort_tag=args.cohort_tag,
+        calibrator_policy=args.calibrator,
         design="docs/REVIEW_RESPONSE_EXPERIMENT_DESIGN_20260920.md",
         frozen_q=str(q_model_path.as_posix()),
         b_spline=raw_models["b_spline"]["config"],
         PT_flex=raw_models["PT_flex"]["config"],
         calibrator_choice={n: calib[n]["mode"] for n in report_names},
         calibrator_params={n: calib[n]["g_dict"] for n in report_names},
-        q_cal_note=f"g_q only; g_V untouched. Selection on Q_SELECT all-{args.cohort_tag} Brier (not B40).",
+        q_cal_note=f"g_q only; g_V untouched. Selection on Q_SELECT all-{args.cohort_tag} Brier (not B40)."
+        if args.calibrator == "select"
+        else f"calibrator_policy=identity: two-stage skipped; all models identity (contract §4 literal).",
         aliases=alias,
     )
     (OUT / "baseline_selection.json").write_text(json.dumps(scrub(selection), indent=2) + "\n", encoding="utf-8")
@@ -777,7 +796,14 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             sc = scores[n]
             label = n
             if n == "q_base":
-                label = f"q_RR ({selected['q_base']})"
+                if args.calibrator == "identity":
+                    label = "q_base (identity)"
+                else:
+                    label = f"q_RR ({selected['q_base']})"
+                lines.append(
+                    f"| {label} | {sc['n']} | {sc['n_matches']} | {fmt(sc['brier'])} | {fmt(sc['logloss'])} | {fmt(sc['auc'])} |"
+                )
+                continue
             lines.append(
                 f"| {label} | {sc['n']} | {sc['n_matches']} | {fmt(sc['brier'])} | {fmt(sc['logloss'])} | {fmt(sc['auc'])} |"
             )
@@ -801,6 +827,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         f"- V / SVI / engagement {args.cohort_tag} / frozen `logit_state` weights: **unchanged**",
         f"- New: `b_spline`, `PT_flex`, optional `g_q` (PosSlopeSigmoid) selected on Q_SELECT all-{args.cohort_tag}",
         f"- Selected calibrators: `{json.dumps({n: selected[n] for n in report_names})}`",
+        f"- calibrator_policy: `{args.calibrator}`",
         f"- PT_flex config: `{json.dumps(raw_models['PT_flex']['config'])}`",
         f"- b_spline config: `{json.dumps(raw_models['b_spline']['config'])}`",
         "",
@@ -822,7 +849,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         f"- 95% CI=[{fmt(H['ci95'][0], 5)}, {fmt(H['ci95'][1], 5)}]  bootstrap_fraction_positive(H>0)={fmt(H['p_gt0'], 4)}",
         "",
         "Note: bootstrap_fraction_positive (JSON p_gt0) is match-bootstrap draw share with Delta>0 — not a classical p-value.",
-        "B40: small exploratory support (CI near 0); do not claim clear tau=0.001 gain.",
+    ]
+    # R5: only when B40 CI includes 0
+    if d_b40["ci95"][0] <= 0.0 <= d_b40["ci95"][1]:
+        lines.append(
+            "B40: small exploratory support (CI near 0); do not claim clear tau=0.001 gain."
+        )
+    lines += [
         "Execution honesty: docs/REVIEW_RESPONSE_RR1_EXECUTION_ADDENDUM_20260920.md",
         "RR0: docs/REVIEW_RESPONSE_RR0_MANIFEST_20260920.json",
         "",
@@ -890,6 +923,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         )
     }
     public["calibrator_choice"] = selection["calibrator_choice"]
+    public["calibrator_policy"] = selection["calibrator_policy"]
     public["PT_flex"] = selection["PT_flex"]
     public["b_spline"] = selection["b_spline"]
     public["cohort_tag"] = args.cohort_tag
