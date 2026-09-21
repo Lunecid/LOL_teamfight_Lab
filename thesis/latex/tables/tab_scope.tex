@@ -1,0 +1,27 @@
+%% table 객체: tab:scope — 연구 결과의 해석 범위 (독자용). 내부 추적 ID F1–F12는 thesis/docs/CLAIMS.md; 행 끝 주석에만 둔다.
+\begin{table}[!t]
+  \centering
+  \caption{연구 결과의 해석 범위}
+  \label{tab:scope}
+  \footnotesize
+  \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3.1cm}>{\raggedright\arraybackslash}p{5.3cm}X@{}}
+    \toprule
+    분석 & 뒷받침되는 해석 & 적용 조건 \\
+    \midrule
+    주 대비 $q$ 대 $\PTflex$ (T, S; §\ref{sec:pred-primary-T}, \ref{sec:pred-primary-S}) & 교전 전 상태가 현재 승률과 경기 시각의 유연한 함수를 넘어 적정 점수를 낮춘다 & 동결 평가기와 정의, 15.16 홀드아웃, 시험된 기준선; 각 코호트 안에서 읽음; 고정 사양 하나의 결과 \\ % F1, F4, F6
+    균형 구간 $\Bforty$ (§\ref{sec:val-b40}) & 초기 우세가 거의 없는 상태에서의 이득의 크기와 구간 & 해당 코호트 안; T는 구간 상단이 0 근처; 구간 안팎의 차이는 불확실 \\ % F2
+    점수 분해 (§\ref{sec:val-corp}) & 평가 표본에서 Brier 격차가 판별·오보정 성분으로 나뉘는 방식 & 점값의 기술; 재보정의 효과는 별도 실험의 대상 \\ % F3
+    전이·합동 대비 (§\ref{sec:pred-transfer}) & 동일 행에서 적합된 모델 사이의 전이와 합동 학습의 효과 & 검토한 설정과 보정기; 코호트별 모델이 단위 \\ % F7, F8
+    정보군 비교 (§\ref{sec:pred-infogroups}) & 공유 승률 요약에 조건부인 프레임·사건 특징의 직접 추가 효용 & 해당 LightGBM 절차와 예산; $q$ 대 $\PTflex$와 다른 척도; T/S 차이는 미검정 \\ % F4, F6
+    물질 축·다음 오브젝트 대응 (§\ref{sec:value-correspondence}) & 같은 사례에서 $\SVI$ 부호와 물질 결과가 일치하는 정도 & 물질 특징이 $\Vhat$ 입력과 겹침; 통계량마다 분모가 다름 \\ % F5, F11
+    교환가치 라벨·후속 결과 모형 (§\ref{sec:value-samecase}) & 표적 라벨에 대한 예측 비교의 의존성; 결과 시점 이후 정보의 사후 활용 & 사전 예측기 $q$와 구분; $R_1$은 결과 시점 승률과 재매개화 관계 \\ % F10
+    시간 경과·관측 갱신 분해 (§\ref{sec:value-shold}) & 선택한 갱신 순서에서의 산술 분해 & hold 상태의 지원 범위; 절댓값 평균은 기여율과 다름 \\ % F9
+    관측 갱신 층화 (§\ref{sec:val-frame}) & 동결 점수 아래 셀 조성의 차이 & 셀 표본 크기; 갱신 여부는 예측 시점 이후의 정보 \\ % F9
+    지평·동료 평가기 라벨 이식 (§\ref{sec:value-horizon}) & 라벨의 일치성과 고정 예측의 순서 유지 & 평가기·종점·표적 정의; 작은 변화량에서 부호 반전 \\
+    외부 점수 전용 평가와 부트스트랩 (§\ref{sec:val-external}) & 평가한 지역·패치에서의 상대 성능과 그 불확실성 & 해당 표본; 동결 모델에 조건부; 가족 보정 수준을 병기; 원인 식별은 별도 \\ % F3
+    공통 경기 대비 $H$ (§\ref{sec:val-external}) & 공통 경기 모집단에서의 T$-$S 손실차 & 전체 코호트의 차와 다른 대상 \\ % F7
+    정의 민감도 (§\ref{sec:eng-sensitivity}) & 정의 상수 변경에 따른 사례 구성의 변화 & 예산 표본; 점수 민감도는 미실행 \\
+    무결성 검사 (부록 \ref{app:repro}) & 동결 예측표에서의 재집계와 아티팩트 digest의 일치 & 원자료부터의 재현성 검증과 구분; 미노출 표본의 확인적 재현은 미실행 \\ % F12
+    \bottomrule
+  \end{tabularx}
+\end{table}
