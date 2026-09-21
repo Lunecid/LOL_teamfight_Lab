@@ -95,6 +95,25 @@ def validate_cohort_reuse(cohort: str, reuse_evaluators: bool) -> None:
         )
 
 
+def assert_oof_evaluator_write_allowed(cohort: str, reuse_evaluators: bool) -> None:
+    """Refuse dumps into the shared T OOF directory under reuse or cohort S.
+
+    G0 §3.1.3: S runs must force evaluator reuse, and a write into the T
+    evaluator path must fail rather than silently overwrite frozen files.
+    """
+    if reuse_evaluators:
+        raise SystemExit(
+            "refusing OOF evaluator write under --reuse-evaluators "
+            "(load-only from OOF_DIR_T)"
+        )
+    if cohort == "S":
+        raise SystemExit(
+            "refusing OOF evaluator write for cohort S: evaluators live in the "
+            "shared T lineage directory (OOF_DIR_T)"
+        )
+    return None
+
+
 def _setup(data_root: Path) -> None:
     wt = data_root / "worktrees" / "engagement-state-value"
     sys.path.insert(0, str(REPO))
@@ -379,6 +398,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 ids = _bun.embedding_ids(X)
                 return _gcal.transform(predict_mlp_emb(_pack, num, ids))
 
+            assert_oof_evaluator_write_allowed(args.cohort, args.reuse_evaluators)
             fold_path = OOF_DIR / f"V_oof_fold{k}_mlp_expanded.joblib"
             joblib.dump(
                 dict(
@@ -397,6 +417,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             )
             bun_path = OOF_DIR / f"bundle_oof_fold{k}.joblib"
             try:
+                assert_oof_evaluator_write_allowed(args.cohort, args.reuse_evaluators)
                 joblib.dump({"profile": "expanded", "bundle": bun}, bun_path)
                 evaluator_sha[f"bundle_oof_fold{k}"] = sha256_file(bun_path)[:16]
             except Exception as e:

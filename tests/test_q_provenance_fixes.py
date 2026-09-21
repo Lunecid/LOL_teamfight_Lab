@@ -54,6 +54,16 @@ def test_validate_cohort_reuse_t_ok_either_way():
     assert oof.validate_cohort_reuse("T", reuse_evaluators=True) is None
 
 
+def test_oof_write_allowed_only_for_t_fit():
+    assert oof.assert_oof_evaluator_write_allowed("T", reuse_evaluators=False) is None
+    with pytest.raises(SystemExit):
+        oof.assert_oof_evaluator_write_allowed("T", reuse_evaluators=True)
+    with pytest.raises(SystemExit):
+        oof.assert_oof_evaluator_write_allowed("S", reuse_evaluators=False)
+    with pytest.raises(SystemExit):
+        oof.assert_oof_evaluator_write_allowed("S", reuse_evaluators=True)
+
+
 # ------------------------------------------------------ 6.1 finalize + hash
 def test_finalize_fold_evaluator_hash_matches_final_file(tmp_path):
     import joblib

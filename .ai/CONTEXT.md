@@ -3,11 +3,13 @@
 작성: 2026-09-20, Claude 계획 세션. 기준 커밋 **21391b2** (`feature/fight-boundary-pipeline`).
 
 ## 현재 목표
-저널 원고 `docs/journal_manuscript_v1/`를 **검증 연구**로 마감한다. 실험은 닫혔다 (`docs/JOURNAL_FINISH_LOCK_20260920.md`, `docs/RESPONSE_EVIDENCE_MATRIX_20260920.md`: RR0~RRX CLOSED). 지금은 Methods/Results/Discussion 스파인의 **교정·전사** 단계이며, Introduction/Abstract/Conclusion/Related Work는 그 뒤에 쓴다.
+저널 freeze는 유지한다. 보완 실험은 [`docs/SUPPLEMENTARY_EXPERIMENT_DESIGN_20260921.md`](../docs/SUPPLEMENTARY_EXPERIMENT_DESIGN_20260921.md) 경로만.  
+**T015 (2026-09-21):** G0 Phase A 완료 → `docs/G0_INTEGRITY_STATUS_20260921.md` (`PARTIAL_PHASE_A`). Phase B(outputs)는 별도 작업서.  
+석사 Markdown 골격: `docs/master_thesis_v1/`; LaTeX: `thesis/`.
 
 ## 브랜치와 인계
-- 작업서·보고서 양식은 Claude가 `claude/happy-heisenberg-h93ypi`에 push한다. 저자가 로컬 `feature/fight-boundary-pipeline`에 merge한 뒤 Cursor에서 실행하고, 보고서를 push한다.
-- `codex/research-snapshot-20260917`은 별도 계열(공통 조상 `576cd17`, 병합되지 않음). 그 문서는 참조만 한다.
+- 주 작업 브랜치: `feature/fight-boundary-pipeline`.
+- 작업서·보고서는 `.ai/tasks/` · `.ai/reports/`.
 - `docs/tog_manuscript/`는 CoG 확장(승자 예측) 계보. 읽기 전용.
 
 ## 문서 지도 (읽기 우선순위)

@@ -66,7 +66,7 @@
 
 | ID | 내용 | 문서 | 상태 |
 |---|---|---|---|
-| **G0** | 실행 무결성·미래정보 불변성·reload parity | 보완설계 §3; `cursor/q-provenance-repro-fixes` 일부 코드 착수 | **부분** (해시·S reuse·join 가드·회귀 테스트 병합됨; 전수 G0 미완) |
+| **G0** | 실행 무결성·미래정보 불변성·reload parity | 보완설계 §3; [`../G0_INTEGRITY_STATUS_20260921.md`](../G0_INTEGRITY_STATUS_20260921.md) | **PARTIAL_PHASE_A** (G0.2–4·8 PASS; G0.1 PARTIAL; G0.5–7·F INCOMPLETE→Phase B/`outputs`) |
 | E1 / M-F0–F3 | 프레임×사건 2×2 (LGBM 4 arm + Q0) | 보완설계 §4; 계획서 §5 | 미실행 |
 | E2 | 시간경과·프레임 갱신 진단 | 보완설계 §5 | 미실행 |
 | E3 | 외부 paired match-bootstrap (T/S×KR/NA1) | 보완설계 §6; ≈F4 일부 | 미실행 |
