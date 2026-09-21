@@ -5,7 +5,8 @@
 ## 현재 목표
 저널 freeze는 유지한다. 보완 실험은 [`docs/SUPPLEMENTARY_EXPERIMENT_DESIGN_20260921.md`](../docs/SUPPLEMENTARY_EXPERIMENT_DESIGN_20260921.md) 경로만.  
 **T019 (2026-09-21):** E2 §5.4 프레임 층화 DONE; §5.2 S_hold INCOMPLETE → `docs/SUPPLEMENTARY_E2_FRAME_STRATA_20260921.md`.  
-다음 보완 후보: E2 S_hold 재구성(T020) 또는 E4 민감도.  
+**T020 (2026-09-21):** E4 §7.1/7.2 horizon strata + peer LR label-transfer DONE; §7.3 e_fixed / §7.4 OAT INCOMPLETE (캐시 0) → `docs/SUPPLEMENTARY_E4_SENSITIVITY_20260921.md`.  
+다음 보완 후보: 매치 팩 복원 후 S_hold / e_fixed / 정의 OAT; 또는 E5 최소 대응.  
 석사 Markdown 골격: `docs/master_thesis_v1/`; LaTeX: `thesis/`.
 
 ## 브랜치와 인계
