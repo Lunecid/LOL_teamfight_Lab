@@ -21,9 +21,11 @@
 - [ ] 100 % 인쇄 후 여백(위 35 / 아래 25 / 왼쪽 30 / 오른쪽 25 mm) 자로 확인
 
 ## 원고 품질
-- [ ] `\todo{}` 0 건 (`grep -rn "todo{" latex/`)
+- [ ] `\todo{}` 0 건, `\pendingauthor{}` 0 건 (`grep -rn "todo{\|pendingauthor{" latex/`)
 - [ ] `config/numbers.tex` 의 모든 값이 `docs/NUMBERS.md` 에 출처와 함께 기록됨
 - [ ] 모든 정의에 출처 인용, 모든 표·그림이 본문에서 참조됨
+- [ ] 금지 문구 grep 0 건 (`STYLE.md`), 세 계보(F/L/O) 수치가 한 표에 없음
+- [ ] 금지 문구 grep 0 건 (`STYLE.md`), 세 계보 수치가 한 표에 없음
 - [ ] 참고문헌 전 항목 DOI/URL 로 실재 확인
 - [ ] 차례·표 차례·그림 차례 자동 생성 확인, 페이지 번호(앞부분 로마, 본문 아라비아)
 - [ ] 지도교수 승인

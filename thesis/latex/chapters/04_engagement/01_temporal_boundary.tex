@@ -1,0 +1,11 @@
+%!TEX root = ../../main.tex
+\section{킬 에피소드와 시간 경계 $G$}
+\label{sec:eng-temporal}
+
+한 경기의 연속한 킬은 간격이 $G$ 이하일 때 하나의 \emph{에피소드}로 묶인다. 같은 전투 안의 킬 간격은 짧고 전투 사이의 간격은 길므로 모든 간격의 분포는 두 봉우리를 가지며, 자연스러운 경계는 그 사이의 가장 낮은 점, 즉 \emph{antimode}이다. 활동 간격으로 세션을 식별하는 연구 \cite{halfaker2015session,mehrzadi2012session}와 최근접 시공간 거리로 지진을 군집화하는 연구 \cite{zaliapin2013clusters}가 경계를 같은 방식으로 두며, 커널 밀도 추정(KDE)은 그런 봉우리를 찾는 표준 도구이다 \cite{silverman1981multimodality}.
+
+밑이 10인 로그 척도에서 연속 킬 간격은 전투 안 모드 \constGmodeIn{}초와 전투 사이 모드 \constGmodeOut{}초를 갖는다. 두 성분 가우스 혼합이 각 모드가 분포의 어느 쪽에 있는지를 정하고, 경계는 두 KDE 봉우리 사이 가우스 KDE의 최소점이다. \numMatchesDef{} 경기의 \numIntervalsDef{} 간격(KDE와 혼합은 시드 고정 부표본 100만 개에 적합)에서 골은 $\hat G = \constGest$초에 놓이고, 골의 깊이(골의 밀도를 낮은 쪽 모드 밀도로 나눈 값)는 \constGdepth{}이다. 경기 전체를 재표본하는 부트스트랩 \cite{efron1993bootstrap} 200회는 95\% 신뢰구간 \constGciLo{}--\constGciHi{}초를 주며, 각 반복이 10만 간격으로 부표본화되므로 이 구간은 코퍼스가 허용하는 것보다 넓다. 대역폭 인자를 바꾸면 골은 13.6--14.1초 사이를 움직이고, 혼합의 교차점은 14.5초이며, 세 패치는 각각 \constGpatchA{}, \constGpatchB{}, \constGpatchC{}초를 준다.
+
+KDE는 고정 격자(로그 간격 0.0025, 13.7초에서 79 ms) 위에서 계산되므로 골은 언제나 격자점이다. 이것이 합동 추정치와 패치 15.16의 추정치가 모든 자릿수에서 일치하는 이유이며, 따라서 $G$는 소수 첫째 자리까지만 보고한다. 검출기는 $G = \constGrun$ ms로 실행되었다.
+
+조정 랜드 지수(adjusted Rand index, ARI)는 두 분할이 같은 항목을 얼마나 비슷하게 묶는지 재는 지표로, 동일하면 1이고 우연 수준이면 0에 가깝다 \cite{hubert1985comparing}. 분할은 골 근처의 $G$에 둔감하다. $\hat G$에서의 에피소드와 다른 간격에서의 에피소드 사이의 ARI는 \ariPlateauLo{}--\ariPlateauHi{}초의 모든 시험 간격에서 0.9 이상이며, 이를 안정성 기반 군집 선택 \cite{campello2013hdbscan}의 정신에서 \emph{plateau}로 보고한다. 선행 연구의 18초는 자료에서 얻은 값과 거의 같은 에피소드를 만든다(ARI \ariVsEighteen{}). 이 단계에서 추정된 상수는 선행 연구의 분할을 뒤집는 것이 아니라 정당화한다.

@@ -1,0 +1,17 @@
+%% table 객체: tab:ext-S — 출처 SCALE_SPLIT_TvsS_RESULTS json table4_EXT_S; RRX_EXTERNAL_S
+\begin{table}[htbp]
+  \centering
+  \caption{외부 점수 전용 평가, S 행 (동결 $\qS$, $\PTflexS$; 항등; 구간 없음). T 행과 대비하지 않는다.}
+  \label{tab:ext-S}
+  \small
+  \begin{tabular}{@{}lrrrrrrr@{}}
+    \toprule
+    코호트 & $n$ & $V_{\mathrm{pre}}$ Brier & $\dBrier(\qS - \PTflexS)$ & $\Delta\MCB$ & $\Delta\DSC$ & $\qS$ $\MCB$ & $\qS$ $\DSC$ \\
+    \midrule
+    KR 16.13 & \numSExtKR{} & \extSKRVpre{} & \textbf{\extSKRdBrier{}} & \extSKRdMCB{} & \extSKRdDSC{} & \extSKRqMCB{} & \extSKRqDSC{} \\
+    NA1 16.13 & \numSExtNA{} & \extSNAVpre{} & \textbf{\extSNAdBrier{}} & \extSNAdMCB{} & \extSNAdDSC{} & \extSNAqMCB{} & \extSNAqDSC{} \\
+    KR 16.15 & \numSExtKRb{} & \extSKRbVpre{} & \extSKRbdBrier{} & \extSKRbdMCB{} & \extSKRbdDSC{} & \extSKRbqMCB{} & \extSKRbqDSC{} \\
+    KR 16.14 파일럿 & \numSExtPilot{} & \extSPilotVpre{} & \extSPilotdBrier{} & \extSPilotdMCB{} & \extSPilotdDSC{} & \extSPilotqMCB{} & \extSPilotqDSC{} \\
+    \bottomrule
+  \end{tabular}
+\end{table}

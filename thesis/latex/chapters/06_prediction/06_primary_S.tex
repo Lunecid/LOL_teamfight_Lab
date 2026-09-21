@@ -1,0 +1,13 @@
+%!TEX root = ../../main.tex
+\section{주 결과: 소규모 교전 코호트 S}
+\label{sec:pred-primary-S}
+
+표 \ref{tab:primary-S}는 15.16 TEST의 S 행(\numSTest{} 교전, \numSTestMatches{} 경기)에서 항등 보정기 아래 $\qS$, $\PTflexS$, $\PTlinS$의 점수를 보인다. 주 대비 $\dBrier(\qS - \PTflexS)$는
+\begin{equation}
+  \dBrier = \dBrierS, \qquad 95\%\ \text{CI}\ \ci{\dBrierSLo}{\dBrierSHi}
+\end{equation}
+이며 $\dBrier > 0$인 추출은 없었다. $\PTlinS$에 대한 연속성은 \dBrierSlin{} \ci{\dBrierSlinLo}{\dBrierSlinHi}이다. 민감도로, RR12의 두 단계 보정기 선택(모든 S 모델에 양의 기울기 시그모이드)을 적용하면 주 대비는 \dBrierSsens{} \ci{\dBrierSsensLo}{\dBrierSsensHi}로 부호와 크기가 계약대로의 항등 결과와 일치한다.
+
+\input{tables/tab_primary_S}
+
+각 코호트 안에서 교전 전 상태 모델은 시험된 $(\ppre, t)$의 유연한 함수보다 비슷한 절대 폭만큼 적정 점수 손실을 낮춘다. 두 블록은 행 수(\numSTest{} 대 \numTTest), 경기 가중 양성 비율(S \posRateS, T \posRateT), $\Bforty$ 비율(\shareSBforty\% 대 \shareTBforty\%)이 다르므로 절대 Brier와 AUC는 같은 척도 위에 있지 않으며 비교하지 않는다. 본 논문은 두 교전 규모의 상대적 예측 가능성에 관해 어떤 주장도 하지 않는다.

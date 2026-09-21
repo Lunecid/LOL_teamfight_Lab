@@ -1,0 +1,5 @@
+%!TEX root = ../../main.tex
+\section{작은 변화에 대한 민감도 (사후)}
+\label{sec:val-lambda}
+
+$\SVI$는 $\dV$의 부호이므로 아주 작은 변화도 라벨을 결정한다. 제 \ref{sec:val-quiet} 절의 비교전 구간 규모 $s_Q$를 참조 척도로 하여(TEST 행의 \sharePonlyFallback\%는 $\ppre$만의 대체 척도를 쓴다), $|\dV| < \lambda s_Q$인 행을 $\lambda \in \{0.25, 0.5, 1.0\}$에 대해 제외해도 전체 T에서 $q$의 $\PTflex$에 대한 Brier 우위는 사라지지 않는다. 점추정은 약 \lambdaDeltaApprox{}에 머물고 구간은 0을 제외하며, $\lambda = 1$에서 행 수는 \numTTest{}에서 \numRowsLambdaOne{}로 준다. 절대 $|\dV|$ 절단도 같은 정성적 양상을 준다. 제외는 부표본 평가이지 가중치 감소가 아니다. 이 분석은 \emph{사후}이며, TEST에서 $\lambda$를 고르거나 작은 $\dV$ 라벨이 문제없다고 주장할 권한을 주지 않는다.

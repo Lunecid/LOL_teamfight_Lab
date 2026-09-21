@@ -1,0 +1,21 @@
+%% table 객체: tab:vw-quality — 출처 TEST_BAND_LEDGER_MLP_FIT85 L5–12; RR6A_CORP rows V_to_W_*
+\begin{table}[htbp]
+  \centering
+  \caption{동결 fit85 평가기의 15.16 경기 승패 예측 품질 (경기 가중; 구간 없음). 밴드는 경기 시각(분).}
+  \label{tab:vw-quality}
+  \small
+  \begin{tabular}{@{}lrrrrr@{}}
+    \toprule
+    셀 & $n$ & Brier & AUC & $\MCB$ & $\DSC$ \\
+    \midrule
+    timeline 전체 & \numVTest{} & \vwBrier{} & \vwAUC{} & \vwMCB{} & \vwDSC{} \\
+    $[2,10)$ & \numVEarly{} & \vwEarlyBrier{} & \vwEarlyAUC{} & --- & --- \\
+    $[10,20)$ & --- & \vwMidBrier{} & \vwMidAUC{} & --- & --- \\
+    $[20,30)$ & --- & \vwLateBrier{} & \vwLateAUC{} & --- & --- \\
+    $[30,\infty)$ & --- & \vwVeryLateBrier{} & \vwVeryLateAUC{} & --- & --- \\
+    \midrule
+    교전 전 $V_{\mathrm{pre}}$ & \numTTest{} & \vpreBrier{} & \vpreAUC{} & --- & --- \\
+    교전 후 $V_{\mathrm{post}}$ & \numTTest{} & \vpostBrier{} & \vpostAUC{} & --- & --- \\
+    \bottomrule
+  \end{tabular}
+\end{table}

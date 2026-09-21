@@ -1,0 +1,13 @@
+%!TEX root = ../../main.tex
+\section{다른 패치와 지역: 점수 전용 외부 평가}
+\label{sec:val-external}
+
+외부 평가는 이중 단계이다. 먼저 동결 평가기의 $V_{\mathrm{pre}} \to W$ 품질을, 다음으로 동결 $q$와 동결 기준선의 $\SVI$ 예측을 같은 공통 유효 행에서 봉인된 특징 순서로 점수화한다. 어떤 모델도 재적합하지 않았고 외부 어댑터도 적합·검증하지 않았다. 표 \ref{tab:ext-T}와 \ref{tab:ext-S}에는 부트스트랩 구간이 없다.
+
+\input{tables/tab_ext_T}
+
+\paragraph{T의 읽기 (KR/NA1 16.13).} 15.16에서의 $q$의 $\PTflex$ 대비 Brier 이득은 \emph{유지되지 않는다}. 이 코호트들에서 $q$의 판별은 여전히 $\PTflex$보다 높지만 더 큰 오보정 성분이 순 Brier 격차를 지배한다. $V_{\mathrm{pre}}$ Brier $\approx 0.15$는 그 자체로 외부 $\dV$ 라벨을 검증하지 않는다. 여기의 CORP는 진단이며, 재보정이 전이를 복구한다는 증거가 아니다. 구간이 없으므로 ``유지되지 않는다''는 검정된 차이가 아니라 점추정의 관측된 순서이다. $\PTlin$ 기준선에 대한 동반 전이표(\extTKRdBrierLin{} / \extTNAdBrierLin{})는 다른 기준선이므로 같은 양이 아니다. 소규모 코호트(16.15, 파일럿)는 완전성을 위해 보고하며 성공 주장으로 합산하지 않는다.
+
+\input{tables/tab_ext_S}
+
+\paragraph{S의 읽기.} 같은 코호트의 S 행에서는 점추정의 순서가 KR과 NA1 16.13 모두에서 $\qS$를 $\PTflexS$ 앞에 두며, T 행에서는 그 순서가 뒤집혀 있다. 두 블록 모두 구간 없는 점추정의 순서이며, T와 S의 외부 읽기는 나란히 나열될 뿐 서로 대비하지 않고 그 차이에 대한 기전도 제시하지 않는다. \pendingauthor{T/S 외부 병기 문장의 유지 여부 (저널 \texttt{\textbackslash pending\{ext-TS-sentence\}}과 동일하게 결정)} 예비 선언된 T 대 S 외부 전이 대비(F4)와 외부 확률 어댑터(F1)는 부록 \ref{app:deferred}에 이연된다.

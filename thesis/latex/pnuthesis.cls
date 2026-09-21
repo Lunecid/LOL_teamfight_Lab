@@ -66,6 +66,8 @@
 \RequirePackage{xcolor}
 \RequirePackage{rotating}
 \RequirePackage{float}
+\RequirePackage{tikz}
+\usetikzlibrary{arrows.meta,positioning}
 \RequirePackage[numbers,sort&compress]{natbib}
 \RequirePackage[hidelinks,bookmarksnumbered,pdfencoding=auto,unicode]{hyperref}
 

@@ -1,0 +1,18 @@
+%% table 객체: tab:corpus-census — 출처 lineage_20260915/README.md L82–86 (e0ec3d0 manuscript.md L200–208)
+\begin{table}[htbp]
+  \centering
+  \caption{패치별 원천 코퍼스 census. 유효 행은 결과 시점 규칙 h60/h90/h120에서 동일하며, 제외된 \numEngInvalid{} 행은 다음 교전의 시작이 현재 마지막 킬 이하인 중첩 사례로 모두 N에 속한다.}
+  \label{tab:corpus-census}
+  \small
+  \begin{tabular}{@{}llrrrrr@{}}
+    \toprule
+    역할 & 패치 & 경기 & 검출 교전 & 유효 교전 & T 행 & N 행 \\
+    \midrule
+    TRAIN & 15.14 & \numMatchesTrain{} & \numEngTrainDet{} & \numEngTrainValid{} & \numTTrain{} & \numNTrain{} \\
+    VALIDATION & 15.15 & \numMatchesVal{} & \numEngValDet{} & \numEngValValid{} & \numTVal{} & \numNVal{} \\
+    TEST & 15.16 & \numMatchesTest{} & \numEngTestDet{} & \numEngTestValid{} & \numTTest{} & \numNTest{} \\
+    \midrule
+    합계 & & \numMatchesTotal{} & \numEngDetected{} & \numEngValid{} & \numTPooled{} & \numNPooled{} \\
+    \bottomrule
+  \end{tabular}
+\end{table}

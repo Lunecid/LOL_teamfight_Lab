@@ -1,7 +1,10 @@
 # 석사 학위논문 (부산대학교 데이터사이언스전문대학원 양식)
 
-본 저장소의 연구(리그 오브 레전드 교전 결과 예측)를 **부산대학교 대학원 학위논문 규격**으로 작성하기 위한
-LaTeX 프로젝트(Overleaf 호환), 공식 서식 원본, 그리고 설계·계획 문서를 담는다.
+**비동기 공개 텔레메트리 기반 교전 구성과 전략적 가치 개선 예측: League of Legends를 중심으로**
+
+`docs/master_thesis_v1/` 의 8장 골격(M-RQ1–4)과 저널 원고 `docs/journal_manuscript_v1/` 의 동결 증거(C1–C22)를 **부산대학교 대학원 학위논문 규격**의
+LaTeX 프로젝트(Overleaf 호환)로 구현한 것이다. 집필 규칙은 저장소의 `AGENTS.md`(새 수치 금지), `docs/JOURNAL_FINISH_LOCK_20260920.md`(금지 주장 F1–F8),
+`docs/SCALE_SPLIT_EXPERIMENT_CONTRACT_20260920.md` §6(T/S 코호트별 보고)을 따른다. 실행 작업은 `.ai/tasks/` 작업서로 Cursor에 인계한다.
 
 ```
 thesis/
@@ -13,8 +16,7 @@ thesis/
 │   ├── NUMBERS.md         #   수치 매크로 레지스트리와 출처
 │   ├── OVERLEAF.md        #   Overleaf 설정과 git 동기화
 │   ├── CHECKLIST.md       #   부산대 제출 체크리스트
-│   ├── TASKS.md           #   전체 작업 목록·우선순위·의존·결정 사항
-│   └── revision/          #   수정 작업 명세 (Cursor 인계용); TEMPLATE.md 참고
+│   ├── TASKS.md           #   저자 결정·원고·실행(이연 계약)·검증 작업 목록
 ├── forms/                 # 부산대 공식 서식 원본 (HWP 가이드, Word 서식, 여백 그림)
 └── latex/                 # ★ Overleaf 프로젝트 루트
     ├── main.tex           #   조립 루트: 무엇을 어떤 순서로 붙이는가
@@ -26,12 +28,15 @@ thesis/
     │   └── notation.tex   #   수학 기호·연산자 매크로
     ├── frontmatter/       #   abstract_ko.tex, abstract_en.tex
     ├── chapters/
-    │   ├── 01_introduction/
-    │   │   ├── chapter.tex        # 장 모듈: \chapter + 절 \input 목록
-    │   │   ├── 01_background.tex  # 절 = 최소 편집 단위 (헤더에 라벨·참조·포함 객체 자동 기록)
-    │   │   └── …
-    │   ├── … 11_conclusion/
-    │   └── appendix/      #   A_features … D_treatments
+    │   ├── 01_introduction/   # 서론 (I1–I4, M-RQ1–4, 기여·비주장, 증거 지위)
+    │   ├── 02_related_work/   # 승률 모형·교전 검출·사건 가치·적정 점수·측정 타당성·선행 연구 위치
+    │   ├── 03_data/           # 비동기 텔레메트리, 코퍼스, 데이터 역할, 교전 전 입력, 시간 계약 (M-RQ1)
+    │   ├── 04_engagement/     # v3.3 정의: G, D, R/B/M, 상수표, 규모 계급·코호트, 결과 시점, 킬 없는 전투 (M-RQ1)
+    │   ├── 05_value/          # 동결 평가기 V̂, SVI, 삼중 분해, quiet 대조, 대응, 지평 (M-RQ2)
+    │   ├── 06_prediction/     # q, PT_flex, 선정·동결, 평가 규칙, T/S 주 결과, 전이·합동 (M-RQ3)
+    │   ├── 07_validation/     # B40, λ·s_Q, CORP, 외부 점수 전용 (M-RQ4)
+    │   ├── 08_discussion/     # 연결, 기여, 평가기 의존, 금지 주장, 한계, 향후, 결론
+    │   └── appendix/          # A 재현, B 상수표 전체, C census, D 증거 추적, E 이연 계획
     ├── tables/            #   표 객체: 파일당 하나 (tab_<label>.tex)
     ├── figures/           #   그림 객체 (fig_<label>.tex) + src/ 이미지
     ├── algorithms/        #   알고리즘 객체 (alg_<label>.tex)
@@ -97,20 +102,14 @@ latexmk -xelatex main.tex
 
 ## 작업 흐름
 
-1. **계획·설계** (이 저장소의 `docs/`): 수정 항목을 `docs/revision/R<NN>_<slug>.md` 로 명세한다 (`TEMPLATE.md`).
-2. **구현·실행** (Cursor): 명세대로 코드를 고치고 실험을 돌린다. 산출물 경로와 핵심 수치를 명세의 "결과" 절에 적는다.
-3. **반영** (Overleaf 또는 로컬): `config/numbers.tex` 의 매크로 값을 갱신하고, 해당 절·표·그림 파일만 수정한다.
-   `docs/NUMBERS.md` 에 출처(실행 ID·커밋)를 기록하고, `docs/OUTLINE.md` 의 상태를 갱신한다.
+1. **계획·설계·원고** (이 폴더): 절·표·수치를 고친다. 수치는 `latex/config/numbers.tex` 만, 출처는 `docs/NUMBERS.md`.
+2. **실행** (Cursor): 이연 항목(F1–F6, M-F0–M-F3)은 `.ai/tasks/T0xx.md` 작업서와 예비 선언 계약 아래에서만 실행하고 `.ai/reports/` 에 보고한다.
+3. **반영**: 보고서의 값을 `numbers.tex` 에 옮기고 `NUMBERS.md` 에 출처 필드를 기록한 뒤 해당 절·표만 갱신한다.
 
-## 작성 현황 / TODO
+## 작성 현황
 
-- [x] 클래스: 표지, 면지, 속표지·인준지, 차례(장·표·그림), 국문·영문 초록, 부록, 페이지 번호(앞부분 로마, 본문 아라비아)
-- [x] 초안: 서론, 배경 이론(정의·기원·출처), 문제 정식화, 국소화 알고리즘, 교환가치 라벨, 특징, 모델·처치, 실험 설계, 결과, 고찰, 결론, 부록
-- [x] 모듈화: 절 단위 파일, 표·그림·알고리즘 객체, 수치 매크로, Overleaf 설정
-- [x] `config/meta.tex`: 소속 = 데이터사이언스전문대학원 데이터사이언스학과
-- [ ] `config/meta.tex`: 석사 학위명(공학석사 / 이학석사 / 데이터사이언스학석사), 학위수여년월, 최종심사 연월일, 심사위원 확인
-- [ ] 9.4 절제 결과 표 / 9.5 SHAP 표 / 9.6 검출기 검증 표: 최종 실행 결과로 채우기 (`\todo{}` 표시, `docs/OUTLINE.md` 상태 열)
-- [ ] 그림: 파이프라인 개요, 국소화 개념도, forest plot, 신뢰도 다이어그램 (`latex/figures/src/`)
-- [ ] 감사 후 코드로 전체 재실행 여부 결정 (10.3 절 참고) 및 `numbers.tex` 갱신
-- [ ] 참고문헌 추가 시 DOI 로 실재 확인 (현재 65건은 확인된 문헌만 수록)
-- [ ] 지도교수 검토 후 본문 글꼴·줄간격 조정 (`pnuthesis.cls` 의 `\pnu@bodystretch`)
+- [x] 클래스·앞부속(표지, 인준지, 차례, 국·영문 초록), 소속 = 데이터사이언스전문대학원 데이터사이언스학과
+- [x] 8장 + 부록 A–E 초안: 모든 수치는 원장 매크로, 참고문헌은 저장소 검증 풀
+- [ ] 저자 결정 5건 (`docs/TASKS.md` A1–A5): pick 제외 문장, EXT T/S 병기, 학위명·일자·심사위원, 릴리스 DOI, 실행할 이연 항목
+- [ ] 그림: 코호트·역할 표본 흐름, ΔBrier by p_pre 점도표 (저널 SVG의 값), 신뢰도 다이어그램(T014)
+- [ ] 사례 추적 절, 문체 통일, 금지 문구 grep, 제출 체크리스트

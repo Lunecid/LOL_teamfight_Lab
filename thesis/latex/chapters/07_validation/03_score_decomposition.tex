@@ -1,0 +1,7 @@
+%!TEX root = ../../main.tex
+\section{확률 품질: 점수 분해}
+\label{sec:val-corp}
+
+같은 15.16 행에서 식 \eqref{eq:corp}의 CORP 분해(점값, 구간 없음)는 표 \ref{tab:corp}와 같다. T에서 $\dBrier \approx \Delta\MCB - \Delta\DSC$이고 $\Delta\MCB \approx \dMCBT$, $\Delta\DSC \approx \dDSCT$이므로, 이 표본에서 $q$의 순 Brier 개선은 \emph{더 높은 판별과 다소 더 큰 오보정 성분}이 함께 나타난 결과이다. S에서는 $\Delta\MCB \approx \dMCBS$, $\Delta\DSC \approx \dDSCS$로 Brier 격차가 거의 전적으로 판별 차이이다. 두 분해는 따로 읽으며 코호트가 왜 다른지에 관한 증거가 아니다. 이는 평가 표본 위에서 점수 격차가 어떻게 나뉘는지의 기술이지, 게임의 인과 기전도 ``보정은 괜찮다''는 증거도 아니다. 절대 $\MCB$는 $\UNC \approx \uncApprox$에 비해 작아 보이지만 본 논문의 $\dBrier$ 규모($10^{-3}$)에서는 여전히 중요하다.
+
+\input{tables/tab_corp}

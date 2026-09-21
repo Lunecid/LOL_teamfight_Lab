@@ -1,0 +1,10 @@
+%!TEX root = ../../main.tex
+\section{방향 예측기 $q$}
+\label{sec:pred-q}
+
+\begin{equation}
+  q(\xpre) = \widehat{\Pr}\bigl(\Ysvi = 1 \mid \xpre\bigr)
+\end{equation}
+는 out-of-fold $\SVI$ 라벨로 학습된 잠긴 로지스틱 모델(\texttt{logit\_state})이다. 입력은 \dimNumeric{}개의 수치 교전 전 특징에 $\ppre = \Vhat(\xpre)$를 더한 \dimInputQ{}개이며, 표준화 후 $L_2$ 정규화 로지스틱 회귀로 적합한다. 챔피언 ID 슬롯 10개는 제외한다. 특징 순서는 sha16으로 봉인되어 외부 점수 전용 적용에서 검사된다. 보고된 T의 대비에서 Q\_SELECT에서 선정된 확률 사상은 항등이며, $q$ 위에 추가 보정기를 두지 않는다.
+
+코호트별 $q$는 다음과 같다. S에 대해 $\qS$는 동일한 사양(같은 \dimInputQ{}개 입력, 사전에 고정한 같은 $L_2$ 로지스틱 학습기, 학습기 재선정 없음)으로 S TRAIN의 out-of-fold 라벨에 적합한다. 제 \ref{sec:pred-transfer} 절을 위한 두 이차 arm이 있다. 동결된 T 모델을 그대로 S 행에 적용한 $\qTtoS$와, T$\cup$S TRAIN에 합집합 안에서 다시 계산한 경기 가중치로 적합한 $\qTS$이다.

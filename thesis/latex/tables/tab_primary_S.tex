@@ -1,0 +1,20 @@
+%% table 객체: tab:primary-S — 출처 SCALE_SPLIT_TvsS_RESULTS json table1_S_TEST_identity, table2a_identity, table2b_sensitivity; RR12_S_qS_id json
+\begin{table}[htbp]
+  \centering
+  \caption{S 블록 (15.16 TEST, $n = \numSTest{}$, \numSTestMatches{} 경기; 경기 가중; 항등 보정기). 주 대비는 굵게. T 블록과 나란히 비교하지 않는다.}
+  \label{tab:primary-S}
+  \small
+  \begin{tabular}{@{}lrrr@{}}
+    \toprule
+    모델 & Brier $\downarrow$ & 로그 손실 $\downarrow$ & AUC $\uparrow$ \\
+    \midrule
+    $\qS$ (항등) & \qSBrier{} & \qSLogloss{} & \qSAUC{} \\
+    $\PTflexS$ & \ptflexSBrier{} & \ptflexSLogloss{} & \ptflexSAUC{} \\
+    $\PTlinS$ & \ptlinSBrier{} & \ptlinSLogloss{} & \ptlinSAUC{} \\
+    \midrule
+    \multicolumn{4}{@{}l}{\textbf{주 대비} $\dBrier(\qS - \PTflexS)$ = \textbf{\dBrierS{}}, 95\% CI \ci{\dBrierSLo}{\dBrierSHi}} \\
+    \multicolumn{4}{@{}l}{민감도 (RR12 보정기 선택, 시그모이드): \dBrierSsens{}, 95\% CI \ci{\dBrierSsensLo}{\dBrierSsensHi}} \\
+    \multicolumn{4}{@{}l}{연속성 $\dBrier(\qS - \PTlinS)$ = \dBrierSlin{}, 95\% CI \ci{\dBrierSlinLo}{\dBrierSlinHi}} \\
+    \bottomrule
+  \end{tabular}
+\end{table}

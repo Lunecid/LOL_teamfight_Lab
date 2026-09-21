@@ -1,0 +1,32 @@
+%!TEX root = ../../main.tex
+\section{적정 점수, 보정, 짝 비교}
+\label{sec:rel-scores}
+
+\begin{definition}[Brier 점수와 로그 손실]
+확률 예측 $p_i$와 이진 결과 $y_i \in \{0,1\}$, 가중치 $w_i$에 대해 가중 Brier 점수는 $\Brier = \sum_i w_i (p_i - y_i)^2 / \sum_i w_i$, 로그 손실은 $-\sum_i w_i[y_i\log p_i + (1-y_i)\log(1-p_i)]/\sum_i w_i$이다. Brier 점수는 1950년 Brier가 기상 예보의 검증을 위해 제안하였다 \cite{brier1950verification}. 두 점수 모두 \emph{엄격한 적정 채점 규칙}(strictly proper scoring rule), 즉 예보자가 자신의 참 확률을 보고할 때에만 기대 점수가 최소가 되는 규칙이며, 그 일반 이론은 Gneiting과 Raftery \cite{GneitingRaftery2007}가 정립하였다.
+\end{definition}
+
+\begin{definition}[Brier 점수의 분해와 CORP]
+Brier 점수는 신뢰도(miscalibration), 해상도(discrimination), 불확실성(uncertainty)의 세 성분으로 나뉜다. 이 분해는 Murphy \cite{murphy1973vector}가 제안하였고, 구간 나누기에 의존하지 않는 안정적 계산법으로 Dimitriadis, Gneiting, Jordan \cite{DimitriadisGneitingJordan2021}이 CORP(consistent, optimally binned, reproducible, PAV-based) 분해를 제안하였다. 평가 표본에서 등장 회귀(isotonic regression)로 재보정한 예측 $p^{*}$에 대해
+\begin{equation}
+  \MCB = \Brier - \Brier_{\mathrm{iso}}, \qquad \DSC = \UNC - \Brier_{\mathrm{iso}}, \qquad \Brier = \MCB - \DSC + \UNC
+  \label{eq:corp}
+\end{equation}
+이며, $\UNC$는 결과의 양성 비율 $\bar y$에 대한 $\bar y(1-\bar y)$이다.
+\end{definition}
+
+본 논문에서 CORP는 평가 표본 위의 \emph{점수 분해}, 곧 진단으로만 쓰인다. 평가 표본에 적합한 등장 회귀를 동결 모델의 업그레이드로 제시하지 않으며, 15.16의 분해로부터 16.x 외부 코호트의 실패 원인을 추론하지 않는다.
+
+\begin{definition}[AUC]
+점수 함수 $f$에 대해 AUC는 무작위로 뽑은 양성 표본의 점수가 음성 표본의 점수보다 클 확률이며, Mann--Whitney 통계량과 동치임을 Hanley와 McNeil \cite{hanley1982meaning}이 보였다. 본 논문은 AUC를 순위 품질의 보조 지표로 보고하되 성공 기준으로 쓰지 않는다. AUC $0.64$는 ``교전의 64\%를 맞힌다''는 뜻이 아니다.
+\end{definition}
+
+\begin{definition}[사후 보정]
+Platt 척도 \cite{platt2000probabilities}, 온도 척도 \cite{guo2017calibration}, 구간 기반 보정 측도 \cite{naeini2015obtaining}는 표준적인 사후 보정 도구이다. 본 논문은 별도의 보정 패치(15.15)에서 양의 기울기 시그모이드를 적합하고 선정 패치에서 개선될 때에만 유지하는데, 보고된 모델에서는 항등 사상이 유지되었다.
+\end{definition}
+
+\begin{definition}[짝 비교와 군집 부트스트랩]
+같은 표본에 대한 두 예측의 점수 차이를 검정하는 계량경제학의 전통은 Diebold--Mariano \cite{DieboldMariano1995}와 Giacomini--White \cite{GiacominiWhite2006}로 대표된다. 교전 행은 경기 안에서 군집을 이루므로 본 논문은 경기를 복원 추출하는 짝 군집 부트스트랩 \cite{efron1993bootstrap,CameronMiller2015}으로 $\dBrier$의 95\% 백분위 구간을 구하며, 그 구간을 Diebold--Mariano나 Giacomini--White 검정으로 부르지 않는다. 앞의 두 검정은 짝지어진 조건부 비교의 동기로만 인용한다.
+\end{definition}
+
+테이블 학습기에 관해서는 트리 앙상블과 심층 테이블 모델이 벤치마크마다 자리를 바꾼다는 것만 적어 둔다 \cite{grinsztajn2022tree,gorishniy2021revisiting,shwartzziv2022tabular,ke2017lightgbm}. 본 논문은 로지스틱 사양을 사전에 고정하였고 아키텍처 탐색을 하지 않았으므로 학습기에 관한 주장을 하지 않는다.

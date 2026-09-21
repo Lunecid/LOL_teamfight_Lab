@@ -1,0 +1,7 @@
+%!TEX root = ../../main.tex
+\section{MOBA 경기의 승률 모형}
+\label{sec:rel-winprob}
+
+리그 오브 레전드와 Dota~2의 경기 결과 예측은 픽과 플레이어 이력 같은 경기 전 입력 \cite{costa2021,hitar2023}, 분 단위로 요약한 경기 중 상태 \cite{silva2018continuous}, 프로 경기의 실시간 예측 \cite{hodge2021win}, 리그 시즌 전체의 그래프 모형 \cite{bisberg2022}에 걸쳐 있다. 이런 예측기의 보정(calibration)은 직접 연구되었고 \cite{kim2020confidence}, 학습된 평가기는 아이템이 더하는 승률로 아이템의 가치를 매기는 데 쓰였다 \cite{jalovaara2024win}.
+
+이들 연구에서 평가기는 \emph{산출물}이다. 본 논문은 평가기를 \emph{도구}로 쓴다. 평가기는 경기 승패로 학습된 뒤 동결되고, 그 뒤로는 오직 한 교전이 추정 승률을 어느 방향으로 움직였는지를 정의하는 데만 쓰인다. 경기 단위 승률 모형 가운데 교전 단위의 목표를 정의한 것은 없고, 상태 평가기를 고정된 측정 도구로 쓴 것도 없다.

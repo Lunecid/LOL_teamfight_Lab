@@ -1,0 +1,12 @@
+%!TEX root = ../../main.tex
+\section{결과 시점 규칙}
+\label{sec:eng-endpoint}
+
+$K$를 첫 킬, $s = K - 15$초, $q_{\mathrm{pre}} = s - 1$ ms, $L$을 교전의 마지막 킬, $K_{\mathrm{next}}$를 $L$ 이후 지도 어디서든 일어난 첫 챔피언 킬, $S_{\mathrm{next}}$를 다음 유효 교전의 시작(그 첫 킬의 15초 전), $T_{\mathrm{end}}$를 경기 종료라 하고 없는 사건은 $+\infty$로 둔다. 지평 $h$에서의 결과 시점은
+\begin{equation}
+  \eh = \min\bigl(L + 1000h,\ K_{\mathrm{next}} - 1,\ S_{\mathrm{next}} - 1,\ T_{\mathrm{end}} - 1\bigr)\ \text{[ms]}, \qquad h = 90\ (\text{주}),\ 60,\ 120\ (\text{민감도})
+  \label{eq:endpoint}
+\end{equation}
+이며, $\dV = \Vhat(S(\eh)) - \Vhat(S(q_{\mathrm{pre}}))$이다. 오브젝트 획득과 에이스는 이 규칙에서 종료 사건이 아니다. 행은 $\eh \ge L$, $\eh > q_{\mathrm{pre}}$, $\eh \le$ 마지막 프레임, $q_{\mathrm{pre}}$가 관측 프레임 안에 있음, $S_{\mathrm{next}} > L$, 두 질의에서 상태 구성이 성공함(\texttt{valid\_h90 == 1})일 때에만 라벨링된다. 실패는 사유와 함께 기록되어 제외되고, 조기 경기 종료는 $\eh$를 잘라낼 뿐 행을 무효화하거나 $\Vhat$를 최종 결과로 대체하지 않는다.
+
+검출된 \numEngDetected{} 교전 가운데 \numEngValid{}가 h60, h90, h120에서 똑같이 유효하며, 무효 \numEngInvalid{} 행은 모두 중첩 사례($S_{\mathrm{next}} \le L$)이고 한타는 없다. 상한이 마지막 킬에 앵커되므로 ``h90''은 90초 창이 아니다. 15.16 timeline에서 $L$ 이후의 실현된 추적 시간은 평균 \followupMean{}초(중앙값 \followupMedian{}초)이고, \shareCapReached{}\%의 행이 상한에 도달하며, 약 \shareNextKillStop{}\%가 다음 킬에서 멈춘다. $L$ 이후 새 관측 프레임이 없는 행이 \shareNoNewFrame{}\%이다. 이 통계는 2026-09-15 계보의 로지스틱 $\Vhat$ 아래에서 계산되었으나 결과 시점 자체는 $\Vhat$에 의존하지 않는다.

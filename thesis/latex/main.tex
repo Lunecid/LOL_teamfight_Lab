@@ -1,52 +1,49 @@
 %!TEX program = xelatex
 %% ===============================================================
-%% 부산대학교 데이터사이언스전문대학원 석사 학위논문 — 조립 루트 (composition root)
-%% 이 파일은 "무엇을 어떤 순서로 붙이는가"만 정한다. 내용은 chapters/, 객체는 tables/·figures/·algorithms/,
-%% 설정은 config/ 에 있다. Overleaf: 이 폴더(latex/)를 프로젝트 루트로, 컴파일러를 XeLaTeX 로 설정.
-%% 빌드: ./build.sh  |  latexmk -xelatex main.tex
+%% 부산대학교 데이터사이언스전문대학원 석사 학위논문 — 조립 루트
+%% 구성 근거: docs/master_thesis_v1/README.md (부산대 제본 순서 + 8장 골격),
+%%           docs/MASTER_THESIS_RESEARCH_PLAN_20260919.md §7 (목차안), docs/master_thesis_v1/01_MRQ_CLAIM_MAP.md
+%% 집필 규칙: AGENTS.md (새 수치 금지, 수치는 docs/ 원장에서 전사), JOURNAL_FINISH_LOCK Forbidden F1–F8,
+%%           SCALE_SPLIT_EXPERIMENT_CONTRACT §6 (T/S 코호트별 보고, 비교 금지)
 %% ===============================================================
 \documentclass[master,korean]{pnuthesis}
-\input{config/meta}        % 제목·저자·소속·일자
-\input{config/notation}    % 기호 매크로
-\input{config/numbers}     % 실험 수치 (단일 진실 공급원)
+\input{config/meta}
+\input{config/notation}
+\input{config/numbers}
 
 \begin{document}
 
-%% ---- 1구역: 표지 → 면지 → 속표지 및 인준지
+%% ---- 1구역
 \makecover
-% \makespine                 % 등표지 (제본소에서 만들면 생략)
 \makeblankpage
 \makeapproval
 
-%% ---- 2구역: 차례 → 표 차례 → 그림 차례 → 국문 초록
+%% ---- 2구역
 \makefrontmatter
 \input{frontmatter/abstract_ko}
 
-%% ---- 3구역: 본문
+%% ---- 3구역: 본문 (M-RQ1: 3–4장, M-RQ2: 5장, M-RQ3: 6장, M-RQ4: 7장)
 \startmainmatter
 \input{chapters/01_introduction/chapter}
-\input{chapters/02_background/chapter}
-\input{chapters/03_problem/chapter}
-\input{chapters/04_localization/chapter}
-\input{chapters/05_label/chapter}
-\input{chapters/06_features/chapter}
-\input{chapters/07_models/chapter}
-\input{chapters/08_experimental_setup/chapter}
-\input{chapters/09_results/chapter}
-\input{chapters/10_discussion/chapter}
-\input{chapters/11_conclusion/chapter}
+\input{chapters/02_related_work/chapter}
+\input{chapters/03_data/chapter}
+\input{chapters/04_engagement/chapter}
+\input{chapters/05_value/chapter}
+\input{chapters/06_prediction/chapter}
+\input{chapters/07_validation/chapter}
+\input{chapters/08_discussion/chapter}
 
-%% ---- 참고문헌
+%% ---- 참고문헌 (저장소의 검증된 풀 2개 + 학위논문 추가 4건)
 \clearpage
 \phantomsection
 \addcontentsline{toc}{chapter}{참고 문헌}
-{\setstretch{1.2}\bibliographystyle{IEEEtranN}\bibliography{bib/references}}
+{\setstretch{1.2}\bibliographystyle{IEEEtranN}\bibliography{bib/definition_refs,bib/econometrics_for_lol,bib/thesis_extra}}
 
 %% ---- 부록
 \appendix
 \input{chapters/appendix/chapter}
 
-%% ---- 영문 초록 (맨 끝)
+%% ---- 영문 초록
 \input{frontmatter/abstract_en}
 
 \end{document}

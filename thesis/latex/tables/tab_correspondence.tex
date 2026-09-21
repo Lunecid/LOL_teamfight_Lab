@@ -1,0 +1,18 @@
+%% table 객체: tab:correspondence — 출처 RR5_RR6B (RR5a crosstab; RR5b L35–38)
+\begin{table}[htbp]
+  \centering
+  \caption{$\SVI$와 관측 결과의 대응 (T, 15.16). RR5a는 경기 가중 일치율, RR5b는 비가중 건수. 대응은 $q$의 정확도가 아니다.}
+  \label{tab:correspondence}
+  \small
+  \begin{tabular}{@{}llr@{}}
+    \toprule
+    검사 & 셀 & 값 \\
+    \midrule
+    킬 축 부호 일치 (결정된 경우) & 전체 T & \killAgreeAll{} \\
+    킬 축 부호 일치 (결정된 경우) & $\Bforty$ & \killAgreeBforty{} \\
+    180 s 내 첫 엘리트 오브젝트의 블루 귀속 비율 & $\SVI+$ 뒤 & \objBluePos{} (\objBluePosNum{} / \objBluePosDen{}) \\
+    180 s 내 첫 엘리트 오브젝트의 블루 귀속 비율 & $\SVI-$ 뒤 & \objBlueNeg{} (\objBlueNegNum{} / \objBlueNegDen{}) \\
+    창 안 경기 종료 (오브젝트 없음) & 전체 T & \objGameEnded{} / \numTTest{} \\
+    \bottomrule
+  \end{tabular}
+\end{table}

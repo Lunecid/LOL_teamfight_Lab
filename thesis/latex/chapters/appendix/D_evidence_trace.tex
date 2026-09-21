@@ -1,0 +1,31 @@
+%!TEX root = ../../main.tex
+\chapter{수치의 증거 추적}
+\label{app:trace}
+
+본 논문의 모든 수치는 \path{thesis/latex/config/numbers.tex}의 매크로로 쓰이며, 각 매크로의 출처 파일과 필드는 \path{thesis/docs/NUMBERS.md}에 기록되어 있다. 표 \ref{tab:app-trace}는 주 결과에 해당하는 항목을 발췌한 것이다. 세 계보(fit85/$\SVI$ 저널 스파인; 2026-09-15 구 로지스틱 $V$; \path{market_event} 선행 연구 확장)의 수치는 결코 한 표에 함께 놓지 않는다.
+
+\begin{table}[H]
+  \centering
+  \caption{주 수치의 출처 (발췌).}
+  \label{tab:app-trace}
+  \small
+  \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{4.9cm}>{\raggedright\arraybackslash}p{5.0cm}X@{}}
+    \toprule
+    수치 & 출처 파일 & 필드 / 행 \\
+    \midrule
+    $V \to W$ TEST Brier \vwBrier, AUC \vwAUC, $n$ \numVTest{} & \path{TEST_BAND_LEDGER_MLP_FIT85_20260920.md} & L5 ``Overall'' \\
+    CORP $V \to W$ $\MCB$ \vwMCB, $\DSC$ \vwDSC & \path{REVIEW_RESPONSE_RR6A_CORP_20260920.md} & row \path{V_to_W_timeline|overall} \\
+    $q$ TEST Brier \qBrier, AUC \qAUC & \path{REVIEW_RESPONSE_RR12_RESULTS_20260920.json} & \path{TEST_all.q_base} \\
+    $\dBrier(q - \PTflex)$ \dBrierT{} \ci{\dBrierTLo}{\dBrierTHi} & 동일 & \path{bootstrap.all_q_minus_PT_flex} \\
+    $\Bforty$ $\dBrier$ \dBrierTBforty; $H$ \hetT & 동일 & \path{bootstrap.B40_q_minus_PT_flex}; \path{H_B40_minus_outside} \\
+    비교전 대조 \quietDiff{} \ci{\quietCiLo}{\quietCiHi} & \path{REVIEW_RESPONSE_RR3_CLOSEOUT_20260920.md} & TEST 주 대비 \\
+    킬 축 일치 \killAgreeAll; 오브젝트 \objBluePos{} / \objBlueNeg & \path{REVIEW_RESPONSE_RR5_RR6B_20260920.md} & RR5a 교차표; L35--38 \\
+    $\qS$ TEST Brier \qSBrier, AUC \qSAUC; $\dBrier$ \dBrierS{} \ci{\dBrierSLo}{\dBrierSHi} & \path{SCALE_SPLIT_TvsS_RESULTS_20260920.json} & \path{table1_S_TEST_identity}; \path{table2a_identity} \\
+    전이·합동 대비 (표 \ref{tab:transfer-pooling}) & 동일 & \path{table2a_identity.*} \\
+    외부 T (표 \ref{tab:ext-T}) & \path{REVIEW_RESPONSE_RRX_EXTERNAL_20260920.md} & 요약표 \\
+    외부 S (표 \ref{tab:ext-S}) & \path{SCALE_SPLIT_TvsS_RESULTS_20260920.json} & \path{table4_EXT_S} \\
+    정의 상수 (부록 \ref{app:constants}) & \path{docs/tog_manuscript/sec_definition.tex} & \path{tab:constants} \\
+    코퍼스 census (표 \ref{tab:corpus-census}) & \path{docs/lineage_20260915/README.md} & L82--86 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
