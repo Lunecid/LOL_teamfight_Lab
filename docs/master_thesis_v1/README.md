@@ -48,11 +48,11 @@
 
 ## 다음 단계 (이 패키지 밖)
 
-1. 저자: DOSSIER pending·RQ 결정.
-2. 장별 국문 산문 확장 (골격 → 초고).
-3. Onestop HWP에 이식 / 필요 시 LaTeX.
-4. 미실행 심화(M-F*, 어댑터)는 별도 작업서.
+1. 저자: DOSSIER pending·RQ 결정 (`thesis/docs/TASKS.md` A1–A5).
+2. 장별 국문 산문 확장: Markdown 골격 → [`thesis/latex/`](../../thesis/latex/) 절 초고.
+3. 보완 실험: [`../SUPPLEMENTARY_EXPERIMENT_DESIGN_20260921.md`](../SUPPLEMENTARY_EXPERIMENT_DESIGN_20260921.md) — 석사는 G0→E1… 순서; **작업서 없이 실행하지 않음**.
+4. Onestop HWP / Overleaf (`thesis/docs/OVERLEAF.md`).
 
 ## LaTeX 구현 (2026-09-21 추가)
 
-부산대 규격 LaTeX 프로젝트는 [`thesis/latex/`](../../thesis/latex/) 에 있다 (8장·부록 A–E, 수치 매크로 `config/numbers.tex`, 출처 `thesis/docs/NUMBERS.md`, 주장 지도 `thesis/docs/CLAIMS.md`). 이 패키지의 규칙(새 수치 금지, Forbidden, 코호트별 보고)을 그대로 따른다.
+부산대 규격 LaTeX 프로젝트는 [`thesis/`](../../thesis/README.md) 에 있다 (8장·부록 A–E, 수치 매크로 `config/numbers.tex`, 출처 `thesis/docs/NUMBERS.md`, 주장 지도 `thesis/docs/CLAIMS.md`). 이 패키지의 규칙(새 수치 금지, Forbidden, 코호트별 보고)을 그대로 따른다.

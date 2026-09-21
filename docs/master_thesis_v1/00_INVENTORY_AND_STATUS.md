@@ -62,17 +62,25 @@
 
 ## 4. 계획만 · 미실행 (석사 심화 / v2)
 
+통합 설계안(실행 전 제안, 2026-09-21): [`../SUPPLEMENTARY_EXPERIMENT_DESIGN_20260921.md`](../SUPPLEMENTARY_EXPERIMENT_DESIGN_20260921.md) — G0·E1–E6. 저널 freeze 유지; 결과는 supplementary/thesis 경로만.
+
 | ID | 내용 | 문서 | 상태 |
 |---|---|---|---|
-| M-F0–F3 | 정보군 C / C+F / C+E / 전체 X 단계 비교 | `MASTER_THESIS_RESEARCH_PLAN` §5 | 미실행 |
-| 사례 추적 | 원자료→경계→V̂→SVI→q 연결 서사 | 계획서 §6.1 | 미본문화 |
+| **G0** | 실행 무결성·미래정보 불변성·reload parity | 보완설계 §3; `cursor/q-provenance-repro-fixes` 일부 코드 착수 | **부분** (해시·S reuse·join 가드·회귀 테스트 병합됨; 전수 G0 미완) |
+| E1 / M-F0–F3 | 프레임×사건 2×2 (LGBM 4 arm + Q0) | 보완설계 §4; 계획서 §5 | 미실행 |
+| E2 | 시간경과·프레임 갱신 진단 | 보완설계 §5 | 미실행 |
+| E3 | 외부 paired match-bootstrap (T/S×KR/NA1) | 보완설계 §6; ≈F4 일부 | 미실행 |
+| E4 | peer/endpoint/정의 OAT 민감도 | 보완설계 §7; ≈F5 | 미실행 |
+| E5 | 동일 사례 기존 지표 비교·사례 추적 | 보완설계 §8; 계획서 §6.1 | 미본문화·조건부 |
+| E6 | 진짜 미사용 평가 | 보완설계 §9 | 조건부 deferred |
 | F1 | 외부 확률 어댑터 | `THESIS_V2_FOLLOWUPS.md` | deferred |
 | F2 | n_min 셀(2/3/4/5+) 재점수 | 동일 | deferred |
 | F3 | PT_flex_S 단일 객체 재사용 | 동일 | deferred (위생) |
-| F4 | T–S 외부 ΔBrier 대비 검정 | 동일 | deferred |
-| F5 | v3.3 정의 상수 민감도 재실행 | 동일 | deferred (파일럿/계보만) |
 
 이 항목들을 “본 연구에서 보였다”고 쓰지 않는다.
+
+석사 최소 실행 조합(보완설계 §12): **G0 + E1 + E2 + E3 + E4(소) + E5(최소)**.  
+좁은 저널 보강: **G0 → E3 → E2(+E4 일부)**; 정보군 RQ를 유지할 때만 E1.
 
 ---
 
@@ -95,10 +103,12 @@
 
 1. 이 인벤토리 → [`01_MRQ_CLAIM_MAP.md`](01_MRQ_CLAIM_MAP.md)
 2. 석사 계획서 [`../MASTER_THESIS_RESEARCH_PLAN_20260919.md`](../MASTER_THESIS_RESEARCH_PLAN_20260919.md)
-3. 저널 Methods/Results/Discussion `02`–`04`
-4. 수치: `.ai/CONTEXT.md` 원장, `REVIEW_RESPONSE_*`, `SCALE_SPLIT_TvsS_RESULTS_*`
-5. 정의·코호트: `COMMON_RESEARCH_SPINE`, `PAPER_COHORT_CONTRACT`, `V_*` / `Q_*` LOCK·CONTRACT
-6. CoG 정의 계보(읽기 전용): `tog_manuscript/sec_definition.tex`
+3. 보완 실험 설계 [`../SUPPLEMENTARY_EXPERIMENT_DESIGN_20260921.md`](../SUPPLEMENTARY_EXPERIMENT_DESIGN_20260921.md)
+4. LaTeX 구현 [`../../thesis/README.md`](../../thesis/README.md)
+5. 저널 Methods/Results/Discussion `02`–`04`
+6. 수치: `.ai/CONTEXT.md` 원장, `REVIEW_RESPONSE_*`, `SCALE_SPLIT_TvsS_RESULTS_*`
+7. 정의·코호트: `COMMON_RESEARCH_SPINE`, `PAPER_COHORT_CONTRACT`, `V_*` / `Q_*` LOCK·CONTRACT
+8. CoG 정의 계보(읽기 전용): `tog_manuscript/sec_definition.tex`
 
 열지 않음: `outputs/`, `data/raw/`, 체크포인트, 대형 NPZ/joblib (`AGENTS.md`).
 
