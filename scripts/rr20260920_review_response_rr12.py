@@ -39,11 +39,27 @@ def _paths_for_tag(tag: str):
     raise SystemExit(f"unsupported --cohort-tag {tag!r}")
 
 
-def _data_root() -> Path:
+def resolve_data_root(cli_value: Optional[str] = None) -> Path:
+    """Resolve the external data root explicitly.
+
+    Precedence: explicit ``--data-root`` value, then ``$LOL_TEAMFIGHT_DATA_ROOT``,
+    then the legacy local search under the user's home directory. Making the root
+    an explicit input keeps a third-party checkout from silently depending on a
+    private working tree under ``~/Documents``.
+    """
+    if cli_value:
+        return Path(cli_value).expanduser()
+    env = os.environ.get("LOL_TEAMFIGHT_DATA_ROOT", "").strip()
+    if env:
+        return Path(env).expanduser()
     for p in (Path.home() / "Documents" / "LOL_Teamfight", Path.home() / "문서" / "LOL_Teamfight"):
         if (p / "outputs" / "full_corpus_training_20260915").is_dir():
             return p
     return Path.home() / "문서" / "LOL_Teamfight"
+
+
+def _data_root(cli_value: Optional[str] = None) -> Path:
+    return resolve_data_root(cli_value)
 
 
 def _setup(data_root: Path) -> None:
@@ -155,26 +171,93 @@ def expanded_pre(X, names):
     return X[:, keep].astype(np.float64, copy=False), cols
 
 
-def load_role_pack(lab_path: Path, D, L, roles):
+def join_label_engagement_indices(
+    lab_match,
+    lab_s,
+    eng_match,
+    eng_s,
+    *,
+    allow_missing: bool = False,
+) -> Tuple[np.ndarray, np.ndarray, Dict[str, Any]]:
+    """Align label rows to engagement rows by ``(match, s)`` with integrity checks.
+
+    Returns ``(idx_l, idx_e, report)`` where ``idx_l``/``idx_e`` index the label
+    and engagement arrays for matched rows (label order preserved). The report
+    separates the exclusion reasons the previous silent join conflated:
+
+    - ``n_missing``: label keys not present in the engagements. Every label row
+      is derived from an engagement of the same role, so a missing key signals a
+      role/file mismatch. Raises ``SystemExit`` unless ``allow_missing``.
+    - ``n_duplicate_eng_keys``: duplicate ``(match, s)`` in the engagements would
+      make the join order-dependent; this always raises.
+
+    Valid-score exclusions (``Y_SVI < 0``/``missing_score``) are handled by the
+    caller *after* the join so they are recorded separately.
+    """
+    eng_match = [str(a) for a in np.asarray(eng_match).tolist()]
+    eng_s = [int(b) for b in np.asarray(eng_s).tolist()]
+    e_key: Dict[Tuple[str, int], int] = {}
+    n_dup = 0
+    for i, key in enumerate(zip(eng_match, eng_s)):
+        if key in e_key:
+            n_dup += 1
+        e_key[key] = i
+    if n_dup:
+        raise SystemExit(
+            f"engagements contain {n_dup} duplicate (match, s) keys; join would be "
+            "order-dependent"
+        )
+
+    lab_match = [str(a) for a in np.asarray(lab_match).tolist()]
+    lab_s = [int(b) for b in np.asarray(lab_s).tolist()]
+    idx_l: List[int] = []
+    idx_e: List[int] = []
+    missing: List[Tuple[str, int]] = []
+    for i, key in enumerate(zip(lab_match, lab_s)):
+        j = e_key.get(key)
+        if j is None:
+            missing.append(key)
+            continue
+        idx_l.append(i)
+        idx_e.append(j)
+
+    report = dict(
+        n_labels=len(lab_s),
+        n_joined=len(idx_l),
+        n_missing=len(missing),
+        n_duplicate_eng_keys=n_dup,
+        missing_examples=[list(m) for m in missing[:5]],
+    )
+    if missing and not allow_missing:
+        raise SystemExit(
+            f"{len(missing)} label keys missing from engagements (e.g. {missing[0]}); "
+            "pass allow_missing=True only if this exclusion is expected"
+        )
+    return np.asarray(idx_l, int), np.asarray(idx_e, int), report
+
+
+def load_role_pack(lab_path: Path, D, L, roles, allow_missing: bool = False):
     lab = np.load(lab_path, allow_pickle=False)
     E = D.load_engagements(L, "MAIN", roles, states=True, counts=False)
     names = list(E["names"])
-    e_key = {
-        (a, int(b)): i
-        for i, (a, b) in enumerate(zip(E["match"].astype(str).tolist(), E["s"].astype(np.int64).tolist()))
-    }
-    idx_e, idx_l = [], []
-    for i, (a, b) in enumerate(zip(lab["match"].astype(str).tolist(), lab["s"].astype(np.int64).tolist())):
-        j = e_key.get((a, int(b)))
-        if j is not None:
-            idx_l.append(i)
-            idx_e.append(j)
-    idx_l = np.asarray(idx_l, int)
-    idx_e = np.asarray(idx_e, int)
+    idx_l, idx_e, join_report = join_label_engagement_indices(
+        lab["match"],
+        lab["s"],
+        E["match"],
+        E["s"],
+        allow_missing=allow_missing,
+    )
     ok = lab["Y_SVI"][idx_l] >= 0
     if "missing_score" in lab.files:
         ok &= lab["missing_score"][idx_l] == 0
+    n_invalid_score = int((~ok).sum())
     idx_l, idx_e = idx_l[ok], idx_e[ok]
+    join_report = dict(join_report, n_invalid_score=n_invalid_score, n_final=int(len(idx_l)))
+    print(
+        f"  join {lab_path.name}: labels={join_report['n_labels']} joined={join_report['n_joined']} "
+        f"missing={join_report['n_missing']} invalid_score={n_invalid_score} final={join_report['n_final']}",
+        flush=True,
+    )
     X, cols = expanded_pre(E["X_pre"][idx_e], names)
     return dict(
         X=X,
@@ -186,6 +269,7 @@ def load_role_pack(lab_path: Path, D, L, roles):
         s=lab["s"][idx_l].astype(np.int64),
         tmin=lab["s"][idx_l].astype(float) / 60000.0,
         B40=lab["B40"][idx_l].astype(bool) if "B40" in lab.files else None,
+        join_report=join_report,
     )
 
 
@@ -368,6 +452,18 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         default="select",
         help="select=RR12 two-stage (default); identity=force identity for all models (contract §4 literal)",
     )
+    ap.add_argument(
+        "--data-root",
+        type=str,
+        default=None,
+        help="external corpus root (else $LOL_TEAMFIGHT_DATA_ROOT, else local ~/…/LOL_Teamfight)",
+    )
+    ap.add_argument(
+        "--allow-missing-join-keys",
+        action="store_true",
+        default=False,
+        help="do not fail when label keys are absent from engagements (default: fail)",
+    )
     args = ap.parse_args(argv)
 
     LAB, QDIR, OUT_BASE = _paths_for_tag(args.cohort_tag)
@@ -391,7 +487,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         if not need.is_file():
             raise SystemExit(f"missing {need}")
 
-    data_root = _data_root()
+    data_root = _data_root(args.data_root)
     _setup(data_root)
     import fc20260915_common as C
     import fc20260915_data as D
@@ -399,10 +495,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     L = D.Layout(False)
     train_roles = [f"fold{k}" for k in range(C.N_FOLDS)]
     print(f"load packs… cohort-tag={args.cohort_tag}", flush=True)
-    TR = load_role_pack(LAB / "TRAIN_oof_h90.npz", D, L, train_roles)
-    CA = load_role_pack(LAB / "Q_CAL_h90.npz", D, L, ["Q_CAL"])
-    SE = load_role_pack(LAB / "Q_SELECT_h90.npz", D, L, ["Q_SELECT"])
-    TE = load_role_pack(LAB / "TEST_h90.npz", D, L, ["TEST"])
+    _amk = args.allow_missing_join_keys
+    TR = load_role_pack(LAB / "TRAIN_oof_h90.npz", D, L, train_roles, allow_missing=_amk)
+    CA = load_role_pack(LAB / "Q_CAL_h90.npz", D, L, ["Q_CAL"], allow_missing=_amk)
+    SE = load_role_pack(LAB / "Q_SELECT_h90.npz", D, L, ["Q_SELECT"], allow_missing=_amk)
+    TE = load_role_pack(LAB / "TEST_h90.npz", D, L, ["TEST"], allow_missing=_amk)
     assert TR["cols"] == CA["cols"] == SE["cols"] == TE["cols"]
 
     w_tr = match_weights(TR["g"])
