@@ -1,0 +1,18 @@
+%!TEX root = ../../main.tex
+%% ===============================================================
+%% 8.1 데이터
+%% 파일: chapters/08_experimental_setup/01_data.tex
+%% 상위: chapters/08_experimental_setup/chapter.tex
+%% 정의 라벨: sec:setup-data
+%% 참조 라벨: alg:localization, sec:disc-audit
+%% 포함 객체: tables/tab_data
+%% 인용: baek2026killconditioned
+%% 상태: 초안 (docs/OUTLINE.md 참고)
+%% ===============================================================
+
+\section{데이터}
+\label{sec:setup-data}
+
+한국(KR) 서버의 상위 티어 랭크 경기(솔로 랭크, 큐 420, 소환사의 협곡)를 Riot Match-V5 API로 수집하였다. 경기는 연속한 세 패치 15.14, 15.15, 15.16에 걸쳐 있으며 패치별 경기 수는 \numMatchesPatchA{} / \numMatchesPatchB{} / \numMatchesPatchC{}, 합계 \numMatches{} 경기이다. 알고리즘 \ref{alg:localization}은 이로부터 약 100 만 건의 유효 교전을 산출하였다(경기당 약 5 건).\footnote{논문 \cite{baek2026killconditioned}의 실험은 \numEngagementsPaper{} 건(경기당 \engPerMatchPaper{} 건)으로 수행되었고, 제 \ref{sec:disc-audit} 절의 국소화 수정을 반영한 공개 코드는 \numEngagementsCorrected{} 건(경기당 \engPerMatchCorrected{} 건)을 산출한다. 두 값 모두 ``약 100 만 건''에 해당한다.} 원시 경기 데이터는 Riot API 이용약관에 따라 재배포하지 않으며, 파이프라인은 동일한 Match-V5 기록으로부터 말뭉치를 결정론적으로 재구축한다.
+
+\input{tables/tab_data}

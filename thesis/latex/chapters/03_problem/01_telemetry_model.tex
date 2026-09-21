@@ -1,0 +1,23 @@
+%!TEX root = ../../main.tex
+%% ===============================================================
+%% 3.1 텔레메트리의 형식적 모델
+%% 파일: chapters/03_problem/01_telemetry_model.tex
+%% 상위: chapters/03_problem/chapter.tex
+%% 정의 라벨: sec:problem-telemetry
+%% 참조 라벨: -
+%% 포함 객체: -
+%% 인용: -
+%% 상태: 초안 (docs/OUTLINE.md 참고)
+%% ===============================================================
+
+\section{텔레메트리의 형식적 모델}
+\label{sec:problem-telemetry}
+
+한 경기 $m$의 timeline을 다음 두 열로 모형화한다.
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{프레임 열} $\mathcal{F}_m = \{F_0, F_1, \dots, F_{T}\}$. 프레임 $F_k$는 시각 $t_k = 60{,}000\,k$ ms에서의 관측이며, 참가자 $i \in \{1,\dots,10\}$에 대한 상태 벡터 $s_i(t_k)$(위치 $\mathrm{pos}_i(t_k) \in [0,16000]^2$ 포함)와 팀 단위 집계를 담는다.
+  \item \textbf{사건 열} $\mathcal{E}_m = \{u_1, u_2, \dots\}$. 사건 $u$는 종류 $\mathrm{type}(u)$, 타임스탬프 $t(u) \in \mathbb{N}$ (ms), 팀 $\mathrm{team}(u) \in \{100, 200\}$, 그리고 종류에 따라 위치 $\mathrm{pos}(u)$와 참가자 집합 $\mathrm{part}(u)$를 갖는다.
+\end{itemize}
+
+킬 사건 집합을 $\mathcal{K}_m = \{u \in \mathcal{E}_m : \mathrm{type}(u) = \texttt{CHAMPION\_KILL}\}$이라 하고 시각 순으로 정렬한다.

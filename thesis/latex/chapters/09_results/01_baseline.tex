@@ -1,0 +1,18 @@
+%!TEX root = ../../main.tex
+%% ===============================================================
+%% 9.1 기준 성능
+%% 파일: chapters/09_results/01_baseline.tex
+%% 상위: chapters/09_results/chapter.tex
+%% 정의 라벨: sec:results-baseline
+%% 참조 라벨: tab:baseline
+%% 포함 객체: tables/tab_baseline
+%% 인용: -
+%% 상태: 초안 (docs/OUTLINE.md 참고)
+%% ===============================================================
+
+\section{기준 성능}
+\label{sec:results-baseline}
+
+\input{tables/tab_baseline}
+
+표 \ref{tab:baseline}에서 두 가지 구조적 사실이 드러난다. 첫째, 공학적 테이블 요약 위의 LightGBM이 $\aucLGBM{}$로 가장 높고, 정합 입력 MLP가 $\aucMLP{}$으로 그 다음이다. 둘째, 신경망 기반의 시퀀스·그래프·사건 표현은 $.569$--$\aucBiGRU{}$의 좁은 띠에 모여 있으며, 세 스트림을 모두 결합한 계층적 융합도 단일 BiGRU와 같은 $\aucBiGRU{}$에 머문다. 즉 표현을 늘리는 것이 신호를 더 드러내지 못했다.

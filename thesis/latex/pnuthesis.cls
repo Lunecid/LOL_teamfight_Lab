@@ -337,14 +337,4 @@
   \clearpage
 }
 
-%% 편의 매크로
-\newcommand{\ind}{\mathbb{I}}
-\newcommand{\R}{\mathbb{R}}
-\newcommand{\E}{\mathbb{E}}
-\DeclareMathOperator*{\argmin}{arg\,min}
-\DeclareMathOperator*{\argmax}{arg\,max}
-\DeclareMathOperator{\softmax}{softmax}
-\DeclareMathOperator{\softplus}{softplus}
-\DeclareMathOperator{\AUC}{AUC}
-\newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
 \endinput

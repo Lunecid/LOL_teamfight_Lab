@@ -1,0 +1,20 @@
+%!TEX root = ../../main.tex
+%% ===============================================================
+%% 10.3 코드--논문 감사
+%% 파일: chapters/10_discussion/03_audit.tex
+%% 상위: chapters/10_discussion/chapter.tex
+%% 정의 라벨: sec:disc-audit
+%% 참조 라벨: tab:audit, tab:baseline, tab:conditional
+%% 포함 객체: tables/tab_audit
+%% 인용: -
+%% 상태: 초안 (docs/OUTLINE.md 참고)
+%% ===============================================================
+
+\section{코드--논문 감사}
+\label{sec:disc-audit}
+
+학술 논문의 방법 기술과 실제 코드 사이의 불일치는 재현성의 주요 위협이다. 본 연구는 최종본 제출 전에 코드와 논문을 항목별로 대조하는 감사를 수행하였고, 발견된 모든 불일치를 논문의 기술에 맞게 코드를 고치는 방향으로 해소하였다. 표 \ref{tab:audit}에 그 내역을 요약한다.
+
+\input{tables/tab_audit}
+
+수정의 순효과는 말뭉치가 \numEngagementsPaper{} 건에서 \numEngagementsCorrected{} 건으로 \corpusReductionPct{}\% 줄어든 것(일방적 정리와 중복 재교전이 제거됨)과 LightGBM 시험 AUC가 $\aucLGBM{}$에서 약 $\aucLGBMCorrected{}$로 $\aucDropTotal{}$ 낮아진 것이다(국소화 $\aucDropLoc{}$, 라벨 $\aucDropLabel{}$). 계열 간 순서(테이블 $\gg$ 신경망 표현)와 조건부 예측 가능성의 결론은 바뀌지 않았다. 본 논문은 심사를 거친 수치를 본문에 유지하고 이 절에서 수정 후 수치를 명시한다. \todo{학위논문 최종본에서는 수정된 코드로 전체 실험(3 시드 $\times$ 2 단계)을 재실행하여 표 \ref{tab:baseline}--\ref{tab:conditional}을 갱신하는 것을 권장한다.}

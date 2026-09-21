@@ -1,0 +1,27 @@
+%!TEX root = ../../main.tex
+%% ===============================================================
+%% 4.1 5 초 위치 격자
+%% 파일: chapters/04_localization/01_position_grid.tex
+%% 상위: chapters/04_localization/chapter.tex
+%% 정의 라벨: sec:loc-grid, eq:interp
+%% 참조 라벨: asm:nokillpos, sec:loc-validate
+%% 포함 객체: -
+%% 인용: -
+%% 상태: 초안 (docs/OUTLINE.md 참고)
+%% ===============================================================
+
+\section{5 초 위치 격자}
+\label{sec:loc-grid}
+
+온셋 검증(제 \ref{sec:loc-validate} 절)은 온셋 시각 $t_e$에서 열 명의 위치를 요구하지만 프레임은 60 초 간격이다. 따라서 검출 전용의 5 초 격자를 만든다. 프레임 $F_k$와 $F_{k+1}$ 사이의 격자점 $t$에 대해
+\begin{equation}
+  \alpha_{\mathrm{raw}} = \frac{t - t_k}{t_{k+1} - t_k}, \qquad
+  \tilde{\alpha} = 1 - e^{-\kappa\,\alpha_{\mathrm{raw}}}, \qquad
+  \widehat{\mathrm{pos}}_i(t) = (1-\tilde\alpha)\,\mathrm{pos}_i(t_k) + \tilde\alpha\,\mathrm{pos}_i(t_{k+1})
+  \label{eq:interp}
+\end{equation}
+로 위치를 보간한다($\kappa = 3$). 지수 곡선은 플레이어가 프레임 직후에 빠르게 다음 위치로 이동하는 경향을 반영한 경험적 선택이다. 여기에 \emph{킬 전 덮어쓰기}(pre-kill override)를 적용한다. 킬 $u$의 참가자 $i \in \mathrm{part}(u)$에 대해 직전 프레임 시각 $t_k$부터 $t(u)$까지의 구간에서
+\begin{equation}
+  \widehat{\mathrm{pos}}_i(t) = (1-\alpha_u)\,\mathrm{pos}_i(t_k) + \alpha_u\,\mathrm{pos}(u), \qquad \alpha_u = \frac{t - t_k}{t(u) - t_k}
+\end{equation}
+로 대체하여, 킬이 일어난 지점으로 참가자가 수렴하도록 만든다. 이 격자는 가정 \ref{asm:nokillpos}에 따라 \textbf{검출에만} 쓰이며 모델 입력이 되지 않는다.

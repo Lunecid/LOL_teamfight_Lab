@@ -1,0 +1,26 @@
+%!TEX root = ../../main.tex
+%% ===============================================================
+%% 2.6 학습 모델의 계보
+%% 파일: chapters/02_background/06_model_lineage.tex
+%% 상위: chapters/02_background/chapter.tex
+%% 정의 라벨: sec:bg-models
+%% 참조 라벨: -
+%% 포함 객체: -
+%% 인용: bahdanau2015neural, bai2018empirical, brody2022how, chen2016xgboost, cho2014learning, friedman2001greedy, gilmer2017neural, gu2023mamba, hamilton2017inductive, hochreiter1997long, ke2017lightgbm, kipf2017semi, li2018diffusion, ma2018modeling, pareja2020evolvegcn, schuster1997bidirectional, shazeer2017outrageously, vaswani2017attention, velickovic2018graph, wolpert1992stacked, yan2018spatial, yu2018spatio
+%% 상태: 초안 (docs/OUTLINE.md 참고)
+%% ===============================================================
+
+\section{학습 모델의 계보}
+\label{sec:bg-models}
+
+\paragraph{그래디언트 부스팅 결정 트리.} Friedman \cite{friedman2001greedy}은 손실의 음의 기울기를 결정 트리로 순차 근사하는 그래디언트 부스팅을 제안하였다. XGBoost \cite{chen2016xgboost}는 2차 근사와 정규화를, LightGBM \cite{ke2017lightgbm}은 히스토그램 기반 분할, 기울기 기반 단측 표본화(GOSS), 배타적 특징 묶음(EFB)으로 대규모 테이블 데이터에 대한 효율을 크게 높였다. 본 논문의 테이블 기준선은 LightGBM이다.
+
+\paragraph{순환 신경망.} LSTM \cite{hochreiter1997long}은 게이트 구조로 장기 의존성의 기울기 소실을 완화하였고, GRU \cite{cho2014learning}는 이를 두 개의 게이트로 단순화하였다. 양방향 순환망 \cite{schuster1997bidirectional}은 순방향·역방향 은닉 상태를 결합한다. 본 논문의 관측 창은 길이 $L=6$의 짧은 시퀀스이므로 양방향 처리는 온셋 직전 상태와 창의 시작 상태를 동시에 요약하는 역할을 한다.
+
+\paragraph{주의 기반 모델.} 가산 주의(additive attention)는 Bahdanau 등 \cite{bahdanau2015neural}이 기계 번역에서 제안하였고, Transformer \cite{vaswani2017attention}는 순환 없이 스케일된 내적 자기 주의(self-attention)만으로 시퀀스를 처리한다. 본 논문의 시간 주의 풀링(T3)과 사건 교차 주의(cross-attention)는 각각 이 두 계보에 속한다.
+
+\paragraph{시간 합성곱과 상태공간 모델.} TCN \cite{bai2018empirical}은 인과적(causal) 팽창 합성곱을 쌓아 순환 없이 긴 수용 영역을 얻는다. Mamba \cite{gu2023mamba}는 입력에 따라 매개변수가 바뀌는 선택적 상태공간 모델(selective SSM)로, 선형 시간 복잡도로 시퀀스를 처리한다.
+
+\paragraph{그래프 신경망.} 스펙트럼 그래프 합성곱의 1차 근사인 GCN \cite{kipf2017semi}, 이웃 표본화·평균 집계의 GraphSAGE \cite{hamilton2017inductive}, 주의 가중 집계의 GAT \cite{velickovic2018graph}와 그 표현력을 높인 GATv2 \cite{brody2022how}, 그리고 이들을 포괄하는 메시지 전달 신경망(MPNN) \cite{gilmer2017neural}의 틀을 사용한다. 시공간 그래프 신경망은 교통 예측(DCRNN \cite{li2018diffusion}, STGCN \cite{yu2018spatio})과 골격 기반 행동 인식(ST-GCN \cite{yan2018spatial})에서 발전하였으며, 그래프 구조가 시간에 따라 변하는 동적 그래프는 EvolveGCN \cite{pareja2020evolvegcn}과 같은 연구에서 다루어졌다.
+
+\paragraph{앙상블과 게이트 융합.} 스태킹(stacked generalization)은 Wolpert \cite{wolpert1992stacked}가 제안한 것으로, 기저 모델의 출력을 메타 학습기의 입력으로 삼는다. 게이트에 의한 전문가 혼합은 Shazeer 등 \cite{shazeer2017outrageously}과 다중 게이트 전문가 혼합 \cite{ma2018modeling}으로 이어진다. 본 논문의 계층적 융합(layered fusion)은 세 인코더의 출력을 시그모이드 게이트로 가중하는 형태이다.

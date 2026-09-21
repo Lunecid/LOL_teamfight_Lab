@@ -1,0 +1,33 @@
+%!TEX root = ../../main.tex
+%% ===============================================================
+%% 3.4 무누출 계약
+%% 파일: chapters/03_problem/04_no_leakage_contract.tex
+%% 상위: chapters/03_problem/chapter.tex
+%% 정의 라벨: sec:problem-contract, asm:stephold, asm:onsetcap, asm:nokillpos
+%% 참조 라벨: asm:onsetcap, asm:stephold, sec:loc-grid
+%% 포함 객체: -
+%% 인용: -
+%% 상태: 초안 (docs/OUTLINE.md 참고)
+%% ===============================================================
+
+\section{무누출 계약}
+\label{sec:problem-contract}
+
+시간 해상도 불일치(60 초 프레임 대 밀리초 사건) 때문에 관측 창의 상태 값을 어떤 프레임에서 가져올지가 곧 누출 여부를 결정한다. 본 논문은 다음 세 계약을 모든 모델 입력에 강제하며, 각 계약은 단위 시험으로 검증된다.
+
+\begin{assumption}[계단 유지 계약]
+\label{asm:stephold}
+구간 $\ell$의 중점 $q_\ell = t_e - c_{\mathrm{ctx}} + (\ell + \tfrac12) b$에서의 노드·전역 상태는 $q_\ell$ \emph{이전}의 마지막 프레임 $F_{k^*}$, $k^* = \max\{k : t_k < q_\ell\}$의 값을 그대로 사용한다(piecewise-constant / forward-fill). 프레임 사이를 보간하지 않는다.
+\end{assumption}
+
+\begin{assumption}[온셋 상한 계약]
+\label{asm:onsetcap}
+어떤 구간에서도 $t_k \ge t_e$인 프레임은 사용하지 않는다. 즉 $k^* \le \max\{k : t_k < t_e\}$이다.
+\end{assumption}
+
+\begin{assumption}[킬 좌표 배제 계약]
+\label{asm:nokillpos}
+교전 국소화 단계에서만 사용되는 5 초 위치 격자(제 \ref{sec:loc-grid} 절)와 킬 좌표는 모델 입력에 포함되지 않는다. 사건 특징은 관측 창 $[b_0, b_1)$ 안에서 발생한 사건의 계수만을 사용한다.
+\end{assumption}
+
+가정 \ref{asm:stephold}는 아이템 구매·버프 만료처럼 상태 전이가 이산적인 게임 상태에 대해 선형 보간이 존재하지 않는 매끄러움을 만들어내는 것을 막고, 가정 \ref{asm:onsetcap}은 교전이 이미 진행 중인 프레임의 체력·생존 정보가 입력으로 새는 것을 막는다. 관측 창의 길이가 30 초이고 프레임 간격이 60 초이므로, 대부분의 교전에서 여섯 구간은 동일한 프레임 하나(또는 둘)를 참조한다. 이것이 본 논문이 ``분 단위'' 제약을 강조하는 이유이며, 관측 창 안의 시간 변화는 사실상 사건 계수와 (드물게) 프레임 경계에서만 발생한다.

@@ -1,0 +1,25 @@
+%% ---------------------------------------------------------------
+%% table 객체: tab:app-treatments
+%% 파일: tables/tab_app_treatments.tex
+%% 사용처: chapters/appendix/D_treatments.tex  (\input{tables/tab_app_treatments})
+%% 규칙: 캡션·라벨·내용을 이 파일 안에서만 관리한다. 수치는 config/numbers.tex 매크로를 쓴다.
+%% ---------------------------------------------------------------
+\begin{table}[htbp]
+  \centering
+  \caption{처치 T1--T7의 기본값과 격자}
+  \label{tab:app-treatments}
+  \small
+  \begin{tabular}{@{}llll@{}}
+    \toprule
+    ID & 처치 & 기본값 & 격자 \\
+    \midrule
+    T1 & 초점 손실 & $\gamma = 2.0$, $\alpha = 0.25$ & $\gamma \in \{1, 2, 3\}$ \\
+    T2 & 게임 국면 & $\tau = 3.0$ & $\tau \in \{2, 3, 4\}$ \\
+    T3 & 시간 주의 풀링 & $d_{\mathrm{attn}} = 64$ & -- \\
+    T4 & 모멘텀 & $k = 3$ & $k \in \{3, 5\}$ \\
+    T5 & 역할 인접행렬 & $R$ 초기값 0 & -- \\
+    T6 & 다중 과제 & $(0.1, 0.05, 0.05)$ & $\lambda_g \in \{0.05, 0.1, 0.2\}$ \\
+    T7 & 라벨 평활화 & $\epsilon = 0.05$ & $\epsilon \in \{0.03, 0.05, 0.10\}$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}

@@ -1,0 +1,27 @@
+%!TEX root = ../../main.tex
+%% ===============================================================
+%% 1.4 기여
+%% 파일: chapters/01_introduction/04_contributions.tex
+%% 상위: chapters/01_introduction/chapter.tex
+%% 정의 라벨: sec:intro-contrib
+%% 참조 라벨: ch:discussion, ch:features, ch:label, ch:localization, ch:models, ch:results, ch:setup
+%% 포함 객체: -
+%% 인용: baek2026killconditioned
+%% 상태: 초안 (docs/OUTLINE.md 참고)
+%% ===============================================================
+
+\section{기여}
+\label{sec:intro-contrib}
+
+본 논문의 기여는 다음과 같다.
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{킬 조건부 교전 국소화 알고리즘.} 시간 군집화(18 초) $\to$ 공간 지름 분할(4{,}000 단위, 완전 연결) $\to$ 온셋 검증(팀당 생존 2 명 이상, 1{,}800 단위) $\to$ 인접 후보 병합(15 초 / 2{,}000 단위)의 네 단계로 이루어진 결정론적 알고리즘을 제안하고, \numMatches{} 경기로부터 약 100 만 건의 교전 말뭉치를 사람의 주석 없이 구축한다(제 \ref{ch:localization} 장).
+  \item \textbf{교환가치 라벨.} 킬 수 차이 대신, 사건별 도메인 가치를 softmax 주의로 가중한 \emph{교환가치}(exchange value) 라벨을 정의하여 교전 결과를 이진화한다(제 \ref{ch:label} 장).
+  \item \textbf{무누출 다중 모달 표현.} 플레이어 노드 76 차원, 전역 26 차원, 사건 44 차원의 특징을 6 개의 5 초 구간으로 구성하되, 60 초 프레임을 계단 유지(step-hold)하고 온셋 이후 프레임을 결코 사용하지 않는 무누출 계약을 명시한다(제 \ref{ch:features} 장).
+  \item \textbf{25 종 이상의 모델을 단일 하네스에서 비교.} LightGBM, 다층 퍼셉트론, 순환·주의·합성곱·상태공간 시퀀스 모델, 그래프 신경망, 시공간 그래프 신경망, 계층적 융합 모델을 동일한 분할·시드·평가 절차로 비교한다(제 \ref{ch:models} 장).
+  \item \textbf{통계적으로 통제된 절제 실험.} 세 시드 반복, 부트스트랩 신뢰구간, DeLong 검정, Holm--Bonferroni 보정을 갖춘 5 단계 절제 프로토콜로 일곱 가지 도메인 지식 처치를 평가한다(제 \ref{ch:setup} 장).
+  \item \textbf{경험적 발견.} 공학적 테이블 표현과 그래디언트 부스팅의 조합이 시험 AUC $\aucLGBM{}$로 가장 우수하며, 신경망 기반 시퀀스·그래프·사건 표현은 $.569$--$\aucBiGRU{}$에 머문다. 예측 가능성은 후반 국면($\aucLate{}$)과 일방적 골드 격차($\aucOneSided{}$)에서 크게 높아지고, 골드가 대등한 교전에서는 우연 수준에 근접한다. 이는 분 단위 공개 텔레메트리의 정보 입도 한계를 시사한다(제 \ref{ch:results}, \ref{ch:discussion} 장).
+\end{itemize}
+
+본 논문의 핵심 결과는 IEEE Conference on Games 2026에 발표된 논문 \cite{baek2026killconditioned}을 확장한 것이다. 코드는 MIT 라이선스로 공개되어 있으며\footnote{\url{https://github.com/Lunecid/LOL_teamfight_Lab}}, 논문에 대응하는 코드 상태는 태그 \texttt{v1.0-cog2026}으로 고정되어 있다.

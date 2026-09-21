@@ -1,0 +1,26 @@
+%!TEX root = ../main.tex
+%% ===============================================================
+%% 기호·연산자 매크로 (내용 계층). 레이아웃은 pnuthesis.cls, 수치는 config/numbers.tex.
+%% 새 기호는 여기서 정의하고 본문에서는 매크로만 쓴다.
+%% ===============================================================
+\newcommand{\ind}{\mathbb{I}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator{\softmax}{softmax}
+\DeclareMathOperator{\softplus}{softplus}
+\DeclareMathOperator{\AUC}{AUC}
+\newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
+
+%% --- 논문 고유 기호
+\newcommand{\tengage}{t_e}                       % 온셋 시각
+\newcommand{\Wobs}{W_{\mathrm{obs}}}             % 관측 창
+\newcommand{\Wlab}{W_{\mathrm{lab}}}             % 라벨 창
+\newcommand{\Xnode}{X^{\mathrm{node}}}
+\newcommand{\Xglob}{X^{\mathrm{glob}}}
+\newcommand{\Xev}{X^{\mathrm{ev}}}
+\newcommand{\Fnode}{F_{\mathrm{node}}}
+\newcommand{\Fglob}{F_{\mathrm{glob}}}
+\newcommand{\Fev}{F_{\mathrm{ev}}}
+\newcommand{\phitab}{\phi_{\mathrm{tab}}}

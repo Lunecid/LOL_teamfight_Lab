@@ -1,0 +1,16 @@
+%!TEX root = ../../main.tex
+%% ===============================================================
+%% 2.9 설명 가능성
+%% 파일: chapters/02_background/09_explainability.tex
+%% 상위: chapters/02_background/chapter.tex
+%% 정의 라벨: sec:bg-shap
+%% 참조 라벨: -
+%% 포함 객체: -
+%% 인용: lundberg2017unified, lundberg2020local
+%% 상태: 초안 (docs/OUTLINE.md 참고)
+%% ===============================================================
+
+\section{설명 가능성}
+\label{sec:bg-shap}
+
+SHAP(SHapley Additive exPlanations) \cite{lundberg2017unified}은 협력 게임 이론의 Shapley 값을 특징 기여도로 해석하며, 트리 앙상블에 대한 다항 시간 계산법(TreeSHAP)은 Lundberg 등 \cite{lundberg2020local}이 제안하였다. 본 논문은 LightGBM의 TreeSHAP 기여도를 역할(role)과 신호 유형별로 합산하여 해석한다.

@@ -1,0 +1,22 @@
+%!TEX root = ../../main.tex
+%% ===============================================================
+%% 1.1 연구 배경
+%% 파일: chapters/01_introduction/01_background.tex
+%% 상위: chapters/01_introduction/chapter.tex
+%% 정의 라벨: sec:intro-background
+%% 참조 라벨: -
+%% 포함 객체: -
+%% 인용: hitar2023machine, hodge2021win, katona2019time, schubert2016esports, semenov2016performance, silva2018continuous, yang2014identifying, yang2016realtime
+%% 상태: 초안 (docs/OUTLINE.md 참고)
+%% ===============================================================
+
+\section{연구 배경}
+\label{sec:intro-background}
+
+리그 오브 레전드(League of Legends, LoL)는 Riot Games가 개발한 5 대 5 멀티플레이어 온라인 배틀 아레나(multiplayer online battle arena, MOBA) 게임으로, 두 팀이 $16{,}000 \times 16{,}000$ 게임 단위 크기의 대칭 지도 위에서 상대 본진의 넥서스를 파괴하는 것을 목표로 경쟁한다. 경기의 흐름을 결정하는 핵심 사건은 \emph{교전}(engagement)이다. 여기서 교전이란 양 팀의 다수 챔피언이 동일한 시공간 영역에서 서로 피해를 주고받으며 킬(kill)이 발생하는 국면을 말하며, 그 결과에 따라 골드·경험치 격차, 오브젝트(용, 바론, 포탑) 통제권, 그리고 최종 승패가 갈린다. 프로 코칭과 방송 해설은 교전을 ``한타''라고 부르며 경기 분석의 기본 단위로 삼는다.
+
+이스포츠 분석(esports analytics) 분야에서 승패 예측은 가장 오래된 과제이다. 초기 연구는 챔피언 선택(draft)만으로 경기 승패를 예측하였고 \cite{semenov2016performance}, 이후 경기 중 골드·경험치·오브젝트 스냅숏을 시간 축으로 입력하는 실시간(in-game) 예측으로 확장되었다 \cite{yang2016realtime,silva2018continuous,hodge2021win,hitar2023machine}. 그러나 이들 연구는 예측의 단위를 \emph{경기 전체}로 두었다. 경기 승패는 수십 번의 교전이 누적된 결과이므로, 경기 단위 예측기는 개별 교전의 미시 동학(positioning, 스킬 쿨다운, 아이템 파워 스파이크, 조합 시너지)을 직접 설명하지 못한다.
+
+교전 단위 분석의 뿌리는 Dota~2 연구에서 찾을 수 있다. Yang 등 \cite{yang2014identifying}은 전투를 그래프로 표현하여 승리와 연관된 패턴을 탐색하였고, Schubert 등 \cite{schubert2016esports}은 리플레이로부터 ``encounter''를 자동 검출하는 절차를 제안하였다. Katona 등 \cite{katona2019time}은 5 초 이내의 챔피언 사망을 심층 신경망으로 예측하였다. 그러나 이들 연구는 \emph{리플레이 파일}로부터 얻은 고해상도(초 단위 또는 그 이하) 관측을 전제한다. 리플레이는 게임 클라이언트를 통해서만 접근할 수 있고, 보존 기간이 짧으며, 대규모 수집이 사실상 불가능하다.
+
+반면 Riot Games가 공개하는 Match-V5 API\footnote{\url{https://developer.riotgames.com/apis}}는 누구나 접근 가능한 \emph{공개 텔레메트리}(public telemetry)이지만, 플레이어 상태(위치, 골드, 체력, 스탯)는 \textbf{60 초 간격} 프레임으로만 제공되고 사건(킬, 오브젝트, 와드 등)만 밀리초 해상도로 제공된다. 즉 교전은 수 초에서 수십 초 사이에 벌어지는데, 관측 가능한 상태 해상도는 그보다 한 자릿수 이상 거칠다. 본 논문은 바로 이 \emph{분 단위 공개 텔레메트리}라는 제약 아래에서 교전 결과 예측이 어디까지 가능한지를 체계적으로 규명한다.

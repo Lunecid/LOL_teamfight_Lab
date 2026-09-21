@@ -1,0 +1,18 @@
+%!TEX root = ../../main.tex
+%% ===============================================================
+%% 2.2 MOBA 승패 예측 연구
+%% 파일: chapters/02_background/02_related_work.tex
+%% 상위: chapters/02_background/chapter.tex
+%% 정의 라벨: sec:bg-related
+%% 참조 라벨: -
+%% 포함 객체: -
+%% 인용: do2021using, drachen2014skill, hitar2023machine, hodge2021win, katona2019time, schubert2016esports, semenov2016performance, silva2018continuous, yang2014identifying, yang2016realtime
+%% 상태: 초안 (docs/OUTLINE.md 참고)
+%% ===============================================================
+
+\section{MOBA 승패 예측 연구}
+\label{sec:bg-related}
+
+\paragraph{경기 단위 예측.} Semenov 등 \cite{semenov2016performance}은 Dota~2 드래프트만으로 로지스틱 회귀·그래디언트 부스팅 등을 비교하여 약 $0.7$ 수준의 정확도를 보고하였다. Yang 등 \cite{yang2016realtime}은 경기 중 스냅숏을 사용하는 실시간 예측을 제안하였고, Silva 등 \cite{silva2018continuous}은 LoL 프로 경기의 연속 예측에 순환 신경망을 적용하였다. Hodge 등 \cite{hodge2021win}은 프로 Dota~2 경기의 실시간 승률 예측 시스템을 실제 방송 환경에서 검증하였다. Do 등 \cite{do2021using}은 플레이어--챔피언 숙련도를 사전 특징으로 사용하였고, Hitar-García 등 \cite{hitar2023machine}은 LoL 경기 승패 예측에 대한 기계학습 방법을 폭넓게 비교하였다. 이들은 모두 \emph{경기}의 승패를 목표로 하며, 교전 단위 라벨은 다루지 않는다.
+
+\paragraph{전투·교전 단위 분석.} Drachen 등 \cite{drachen2014skill}은 Dota~2 팀의 시공간 행동이 실력에 따라 다름을 보였고, Yang 등 \cite{yang2014identifying}은 전투를 그래프로 표현하여 승리에 예측적인 패턴을 추출하였다. Schubert 등 \cite{schubert2016esports}은 리플레이에서 encounter를 자동 검출하고 그 결과를 경기 승패 예측에 사용하였다. Katona 등 \cite{katona2019time}은 향후 5 초 내 사망을 예측하였다. 이 계열은 초 단위 리플레이 관측을 전제한다는 점에서 본 논문과 다르며, 본 논문은 이 문제를 분 단위 공개 텔레메트리로 옮긴 최초의 대규모 연구에 해당한다.

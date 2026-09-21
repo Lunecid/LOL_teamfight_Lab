@@ -1,0 +1,25 @@
+%% ---------------------------------------------------------------
+%% table 객체: tab:baseline — 입력 표현별 시험 AUC
+%% 파일: tables/tab_baseline.tex   사용처: chapters/09_results/01_baseline.tex
+%% 수치는 config/numbers.tex 매크로만 사용 (재실행 시 numbers.tex 만 갱신)
+%% ---------------------------------------------------------------
+\begin{table}[htbp]
+  \centering
+  \caption{입력 표현별 시험 AUC (패치 15.16, 세 시드 평균)}
+  \label{tab:baseline}
+  \small
+  \begin{tabular}{@{}llc@{}}
+    \toprule
+    모델 & 입력 표현 & 시험 AUC \\
+    \midrule
+    \textbf{LightGBM} & 공학적 테이블 요약 (약 2{,}980 차원) & \textbf{\aucLGBM{}} \\
+    MLP & 동일 테이블 요약 (정합 입력) & \aucMLP{} \\
+    BiGRU & 거시 시퀀스 (95 차원 $\times$ 6) & \aucBiGRU{} \\
+    계층적 융합 & 전역 + 그래프 + 사건 & \aucLayered{} \\
+    Transformer & 거시 시퀀스 & \aucTransformer{} \\
+    Cross-Attn & 사건 토큰 $\times$ 플레이어 그래프 & \aucXAttn{} \\
+    ST-GNN & 시공간 플레이어 그래프 & \aucSTGNN{} \\
+    GraphSAGE & 플레이어 그래프 & \aucGraphSAGE{} \\
+    \bottomrule
+  \end{tabular}
+\end{table}

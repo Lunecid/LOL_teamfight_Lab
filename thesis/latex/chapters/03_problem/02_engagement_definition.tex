@@ -1,0 +1,21 @@
+%!TEX root = ../../main.tex
+%% ===============================================================
+%% 3.2 교전의 정의
+%% 파일: chapters/03_problem/02_engagement_definition.tex
+%% 상위: chapters/03_problem/chapter.tex
+%% 정의 라벨: sec:problem-engagement, def:engagement
+%% 참조 라벨: -
+%% 포함 객체: -
+%% 인용: schubert2016esports
+%% 상태: 초안 (docs/OUTLINE.md 참고)
+%% ===============================================================
+
+\section{교전의 정의}
+\label{sec:problem-engagement}
+
+\begin{definition}[킬 조건부 교전]
+\label{def:engagement}
+경기 $m$의 교전은 튜플 $g = (t_e, t_{k_1}, t_{k_L}, c, \mathcal{K}_g)$이다. 여기서 $\mathcal{K}_g \subseteq \mathcal{K}_m$은 서로 시간적으로 연속(간격 $\le \delta_{\mathrm{gap}}$)이고 공간 지름이 $D_{\max}$ 이하인 킬의 집합, $t_{k_1}, t_{k_L}$은 그 첫·마지막 킬 시각, $c = \mathrm{pos}(k_1)$은 첫 킬 위치(교전 중심), $t_e = t_{k_1} - \delta_{\mathrm{pre}}$는 \emph{온셋}(engage time)이다. 교전은 온셋 시각에 양 팀 각각 생존 챔피언 두 명 이상이 중심 $c$로부터 반경 $r_{\mathrm{val}}$ 안에 있을 때에만 유효하다.
+\end{definition}
+
+이 정의는 Schubert 등 \cite{schubert2016esports}의 encounter 개념(공간적 근접과 전투 사건에 의한 집단 상호작용)을 분 단위 텔레메트리에 맞게 재구성한 것이다. 리플레이 기반 정의가 피해 교환을 직접 관측하는 것과 달리, 본 정의는 관측 가능한 유일한 전투 신호인 \emph{킬}을 씨앗으로 삼는다. 따라서 킬이 발생하지 않은 대치(standoff)는 정의상 교전에 포함되지 않으며, 이는 본 논문의 명시적 범위 제한이다.

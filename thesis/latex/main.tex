@@ -1,45 +1,52 @@
-%% 부산대학교 대학원 석사 학위논문 — 본문 진입점
-%% 빌드:  ./build.sh   (tectonic)   또는   latexmk -xelatex main.tex
+%!TEX program = xelatex
+%% ===============================================================
+%% 부산대학교 데이터사이언스전문대학원 석사 학위논문 — 조립 루트 (composition root)
+%% 이 파일은 "무엇을 어떤 순서로 붙이는가"만 정한다. 내용은 chapters/, 객체는 tables/·figures/·algorithms/,
+%% 설정은 config/ 에 있다. Overleaf: 이 폴더(latex/)를 프로젝트 루트로, 컴파일러를 XeLaTeX 로 설정.
+%% 빌드: ./build.sh  |  latexmk -xelatex main.tex
+%% ===============================================================
 \documentclass[master,korean]{pnuthesis}
-\input{meta.tex}
+\input{config/meta}        % 제목·저자·소속·일자
+\input{config/notation}    % 기호 매크로
+\input{config/numbers}     % 실험 수치 (단일 진실 공급원)
 
 \begin{document}
 
 %% ---- 1구역: 표지 → 면지 → 속표지 및 인준지
 \makecover
-% \makespine          % 등표지 (제본소에서 만들면 생략)
+% \makespine                 % 등표지 (제본소에서 만들면 생략)
 \makeblankpage
 \makeapproval
 
 %% ---- 2구역: 차례 → 표 차례 → 그림 차례 → 국문 초록
 \makefrontmatter
-\input{frontmatter/abstract_ko.tex}
+\input{frontmatter/abstract_ko}
 
 %% ---- 3구역: 본문
 \startmainmatter
-\input{chapters/01_introduction.tex}
-\input{chapters/02_background.tex}
-\input{chapters/03_problem.tex}
-\input{chapters/04_localization.tex}
-\input{chapters/05_label.tex}
-\input{chapters/06_features.tex}
-\input{chapters/07_models.tex}
-\input{chapters/08_experimental_setup.tex}
-\input{chapters/09_results.tex}
-\input{chapters/10_discussion.tex}
-\input{chapters/11_conclusion.tex}
+\input{chapters/01_introduction/chapter}
+\input{chapters/02_background/chapter}
+\input{chapters/03_problem/chapter}
+\input{chapters/04_localization/chapter}
+\input{chapters/05_label/chapter}
+\input{chapters/06_features/chapter}
+\input{chapters/07_models/chapter}
+\input{chapters/08_experimental_setup/chapter}
+\input{chapters/09_results/chapter}
+\input{chapters/10_discussion/chapter}
+\input{chapters/11_conclusion/chapter}
 
 %% ---- 참고문헌
 \clearpage
 \phantomsection
 \addcontentsline{toc}{chapter}{참고 문헌}
-{\setstretch{1.2}\bibliographystyle{IEEEtranN}\bibliography{references}}
+{\setstretch{1.2}\bibliographystyle{IEEEtranN}\bibliography{bib/references}}
 
 %% ---- 부록
 \appendix
-\input{chapters/appendix.tex}
+\input{chapters/appendix/chapter}
 
 %% ---- 영문 초록 (맨 끝)
-\input{frontmatter/abstract_en.tex}
+\input{frontmatter/abstract_en}
 
 \end{document}

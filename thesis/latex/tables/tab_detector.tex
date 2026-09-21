@@ -1,0 +1,20 @@
+%% ---------------------------------------------------------------
+%% table 객체: tab:detector
+%% 파일: tables/tab_detector.tex
+%% 사용처: chapters/09_results/06_detector.tex  (\input{tables/tab_detector})
+%% 규칙: 캡션·라벨·내용을 이 파일 안에서만 관리한다. 수치는 config/numbers.tex 매크로를 쓴다.
+%% ---------------------------------------------------------------
+\begin{table}[htbp]
+  \centering
+  \caption{검출기 대 사람 주석 일치도 (\todo{주석 완료 후 채울 것})}
+  \label{tab:detector}
+  \small
+  \begin{tabular}{@{}lcccccc@{}}
+    \toprule
+    데이터 & 정밀도 & 재현율 & $F_1$ & 평균 IoU & 온셋 오차 (s) & 주석자 간 $\kappa$ \\
+    \midrule
+    2026 골드셋 (\goldPatchPublic{}, \numGoldMatches{} 경기) & -- & -- & -- & -- & -- & -- \\
+    2025 (15.14--15.16) & -- & -- & -- & -- & -- & -- \\
+    \bottomrule
+  \end{tabular}
+\end{table}

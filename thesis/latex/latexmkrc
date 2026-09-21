@@ -1,0 +1,6 @@
+# Overleaf / latexmk 설정 — XeLaTeX + bibtex
+# Overleaf: 메뉴(Menu) > Compiler 를 XeLaTeX 로 두면 이 파일의 옵션이 함께 적용된다.
+$pdf_mode = 5;                       # xelatex -> xdv -> pdf
+$xelatex  = 'xelatex -interaction=nonstopmode -synctex=1 -file-line-error %O %S';
+$bibtex_use = 2;
+$clean_ext = 'synctex.gz xdv bbl blg run.xml';

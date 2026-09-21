@@ -1,0 +1,63 @@
+%!TEX root = ../main.tex
+%% ===============================================================
+%% 실험 산출 수치의 단일 진실 공급원 (single source of truth)
+%% 규칙:
+%%   * 실험·데이터에서 나온 수치는 본문·표·초록에서 반드시 이 매크로로 쓴다 (\macro{} 형태).
+%%   * 값의 출처(실행, 로그, 커밋)는 docs/NUMBERS.md 에 기록한다.
+%%   * 알고리즘 설계 상수(18 s, 4,000 u 등)는 core/config.py 가 진실 공급원이며 부록 C 표에만 나열한다.
+%% ===============================================================
+
+%% --- 데이터 규모
+\newcommand{\numMatches}{206{,}442}
+\newcommand{\numMatchesPatchA}{73{,}331}    % 15.14 (학습)
+\newcommand{\numMatchesPatchB}{73{,}484}    % 15.15 (검증)
+\newcommand{\numMatchesPatchC}{59{,}627}    % 15.16 (시험)
+\newcommand{\numEngagementsPaper}{1{,}115{,}123}     % 논문 실험 시점 (수정 전 국소화)
+\newcommand{\numEngagementsCorrected}{994{,}365}     % 감사 후 공개 코드
+\newcommand{\engPerMatchPaper}{5.4}
+\newcommand{\engPerMatchCorrected}{4.8}
+\newcommand{\corpusReductionPct}{11}
+\newcommand{\numSubsample}{100{,}000}       % 분할·시드당 균등 부표본
+\newcommand{\numTests}{376}                 % 단위 시험 수
+\newcommand{\overlapPct}{3.67}              % 시간적으로 겹치는 교전 비율 (%)
+
+%% --- 주 결과: 시험 AUC (패치 15.16, 3 시드 평균, 논문 보고치)
+\newcommand{\aucLGBM}{.675}
+\newcommand{\aucLGBMCorrected}{.669}        % 감사 후 코드, 시드 7
+\newcommand{\aucMLP}{.626}
+\newcommand{\aucBiGRU}{.581}
+\newcommand{\aucLayered}{.581}
+\newcommand{\aucTransformer}{.576}
+\newcommand{\aucXAttn}{.571}
+\newcommand{\aucSTGNN}{.569}
+\newcommand{\aucGraphSAGE}{.569}
+\newcommand{\aucNeuralLow}{.569}
+\newcommand{\aucNeuralHigh}{.581}
+\newcommand{\gapRepresentation}{0.045}      % MLP(테이블) - 최선 비테이블 신경망
+\newcommand{\gapLearner}{0.049}             % LightGBM - MLP (정합 입력)
+\newcommand{\aucDropTotal}{0.006}           % 감사 수정에 따른 LightGBM AUC 감소
+\newcommand{\aucDropLoc}{-0.0017}
+\newcommand{\aucDropLabel}{-0.0038}
+
+%% --- 조건부 예측 가능성 (LightGBM)
+\newcommand{\aucEarly}{.616}
+\newcommand{\aucMid}{.712}
+\newcommand{\aucLate}{.807}
+\newcommand{\aucClose}{.621}
+\newcommand{\aucModerate}{.680}
+\newcommand{\aucOneSided}{.796}
+
+%% --- 해석
+\newcommand{\shapSupportPaper}{17.6}        % 서포터 역할 SHAP 기여 비율 (%)
+\newcommand{\shapSupportRerun}{17.0}        % 재실행 시드 7
+
+%% --- 검출기 검증 (트랙 B, 2026 리플레이 골드셋)
+\newcommand{\numReplays}{500}
+\newcommand{\numReplaysExcluded}{12}
+\newcommand{\numGoldMatches}{100}
+\newcommand{\numGoldBins}{10}
+\newcommand{\goldSeed}{20260715}
+\newcommand{\goldPatchPublic}{26.13}
+\newcommand{\goldPatchApi}{16.13}
+\newcommand{\numGoldCandidates}{480}
+\newcommand{\goldCandidatesPerMatch}{4.8}

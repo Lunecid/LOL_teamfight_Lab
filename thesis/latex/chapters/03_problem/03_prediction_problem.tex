@@ -1,0 +1,26 @@
+%!TEX root = ../../main.tex
+%% ===============================================================
+%% 3.3 예측 문제
+%% 파일: chapters/03_problem/03_prediction_problem.tex
+%% 상위: chapters/03_problem/chapter.tex
+%% 정의 라벨: sec:problem-prediction
+%% 참조 라벨: ch:label
+%% 포함 객체: -
+%% 인용: -
+%% 상태: 초안 (docs/OUTLINE.md 참고)
+%% ===============================================================
+
+\section{예측 문제}
+\label{sec:problem-prediction}
+
+교전 $g$가 주어졌을 때, \textbf{관측 창} $W_{\mathrm{obs}} = [t_e - c_{\mathrm{ctx}},\, t_e)$와 \textbf{라벨 창} $W_{\mathrm{lab}} = [t_e,\, t_e + h)$를 정의한다. 본 논문은 $c_{\mathrm{ctx}} = h = 30{,}000$ ms를 사용하며, 관측 창을 길이 $b = 5{,}000$ ms의 $L = 6$개 구간으로 나눈다.
+
+\begin{definition}[교전 결과 예측 문제]
+관측 창에서 얻은 다중 모달 표현
+\begin{equation}
+  X_g = \big(X^{\mathrm{node}} \in \R^{L\times N\times F_{\mathrm{node}}},\; X^{\mathrm{glob}} \in \R^{L\times F_{\mathrm{glob}}},\; X^{\mathrm{ev}} \in \R^{L\times F_{\mathrm{ev}}},\; E \in \R^{K\times D_e}\big)
+\end{equation}
+로부터, 라벨 창의 사건만으로 결정되는 이진 라벨 $y_g = \Lambda(\mathcal{E}_m \cap W_{\mathrm{lab}}) \in \{0,1\}$ ($1$: 블루 팀 승)을 예측하는 점수 함수 $f(X_g) \approx P(y_g = 1 \mid X_g)$를 학습한다.
+\end{definition}
+
+$\Lambda$는 제 \ref{ch:label} 장의 교환가치 라벨 함수이고, $F_{\mathrm{node}} = 76$, $F_{\mathrm{glob}} = 26$, $F_{\mathrm{ev}} = 44$, $K = 64$, $D_e = 12$이다.

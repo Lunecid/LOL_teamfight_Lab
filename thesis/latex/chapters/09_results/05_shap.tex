@@ -1,0 +1,18 @@
+%!TEX root = ../../main.tex
+%% ===============================================================
+%% 9.5 특징 기여도 해석
+%% 파일: chapters/09_results/05_shap.tex
+%% 상위: chapters/09_results/chapter.tex
+%% 정의 라벨: sec:results-shap
+%% 참조 라벨: tab:shap
+%% 포함 객체: tables/tab_shap
+%% 인용: -
+%% 상태: 초안 (docs/OUTLINE.md 참고)
+%% ===============================================================
+
+\section{특징 기여도 해석}
+\label{sec:results-shap}
+
+LightGBM의 TreeSHAP 기여도를 게임 국면별로 층화한 뒤, 특징 이름의 역할(탑·정글·미드·원거리·서포터·팀)과 신호 유형(자원, 스탯, 피해, 사건, 오브젝트)으로 합산하였다. 서포터 역할의 기여 비율은 논문 기준 \shapSupportPaper{}\%(재실행 시드 7 기준 \shapSupportRerun{}\%)로, 역할별 비율은 실행에 따라 수 퍼센트포인트 변동한다. \todo{역할 $\times$ 신호 합산 표(\texttt{analysis/shap\_role\_rollup.py} 출력)를 표 \ref{tab:shap}으로 수록.}
+
+\input{tables/tab_shap}

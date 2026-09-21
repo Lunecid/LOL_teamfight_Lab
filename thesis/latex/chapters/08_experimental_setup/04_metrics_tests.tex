@@ -1,0 +1,18 @@
+%!TEX root = ../../main.tex
+%% ===============================================================
+%% 8.4 평가 지표와 통계 검정
+%% 파일: chapters/08_experimental_setup/04_metrics_tests.tex
+%% 상위: chapters/08_experimental_setup/chapter.tex
+%% 정의 라벨: sec:setup-metrics
+%% 참조 라벨: sec:bg-metrics
+%% 포함 객체: -
+%% 인용: -
+%% 상태: 초안 (docs/OUTLINE.md 참고)
+%% ===============================================================
+
+\section{평가 지표와 통계 검정}
+\label{sec:setup-metrics}
+
+1차 지표는 AUC이며, AP, 정확도(임계값 0.5), 정밀도·재현율·$F_1$, Brier 점수, ECE를 함께 보고한다(정의는 제 \ref{sec:bg-metrics} 절). 하위 집단은 (i) 경기 시각(초반 $<15$ 분, 중반 15--25 분, 후반 $>25$ 분), (ii) 온셋 시점 골드 격차(대등 $|\Delta| < 2{,}000$, 보통, 일방 $|\Delta| > 5{,}000$), (iii) 교전 유형, (iv) 패치로 나눈다.
+
+신뢰구간은 세 시드 각각에서 1{,}000 회 재표본화한 부트스트랩 백분위법으로 얻고, 모델 간 AUC 차이는 DeLong 검정, 분류 불일치는 McNemar 검정으로 검정한다. 처치 $m$개를 동시에 검정할 때는 Holm--Bonferroni로 $\alpha = 0.05$의 가족 오류율을 통제한다.

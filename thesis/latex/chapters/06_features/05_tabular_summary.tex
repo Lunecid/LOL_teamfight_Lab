@@ -1,0 +1,21 @@
+%!TEX root = ../../main.tex
+%% ===============================================================
+%% 6.5 테이블 요약 표현
+%% 파일: chapters/06_features/05_tabular_summary.tex
+%% 상위: chapters/06_features/chapter.tex
+%% 정의 라벨: sec:feat-tabular, eq:phitab
+%% 참조 라벨: -
+%% 포함 객체: -
+%% 인용: -
+%% 상태: 초안 (docs/OUTLINE.md 참고)
+%% ===============================================================
+
+\section{테이블 요약 표현}
+\label{sec:feat-tabular}
+
+LightGBM과 정합 입력 MLP를 위해 각 시계열 특징 $x_{1:L}$을 일곱 통계량
+\begin{equation}
+  \phi_{\mathrm{tab}}(x) = \big[x_L,\ \mathrm{mean},\ \mathrm{std},\ \min,\ \max,\ x_L - x_1,\ \mathrm{slope}\big]
+  \label{eq:phitab}
+\end{equation}
+로 요약한다(slope는 최소제곱 선형 추세). 1{,}015 차원의 원시 특징이 7{,}105 차원으로 확장되고, 상수·준상수 열(예: 관측 창 안에서 변하지 않는 룬 ID의 std)을 제거하면 약 2{,}980 차원이 된다. 이 벡터가 두 테이블 학습기의 \emph{동일한} 입력이며, RQ3의 학습기 비교는 이 정합성에 근거한다.

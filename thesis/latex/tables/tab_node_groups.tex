@@ -1,0 +1,25 @@
+%% ---------------------------------------------------------------
+%% table 객체: tab:node-groups
+%% 파일: tables/tab_node_groups.tex
+%% 사용처: chapters/06_features/01_node_features.tex  (\input{tables/tab_node_groups})
+%% 규칙: 캡션·라벨·내용을 이 파일 안에서만 관리한다. 수치는 config/numbers.tex 매크로를 쓴다.
+%% ---------------------------------------------------------------
+\begin{table}[htbp]
+  \centering
+  \caption{노드 특징 그룹}
+  \label{tab:node-groups}
+  \small
+  \begin{tabularx}{\linewidth}{@{}lXr@{}}
+    \toprule
+    그룹 & 내용 & 차원 \\
+    \midrule
+    스냅숏 & 챔피언·소환사 주문 ID(4, 범주형), 위치(2), 레벨·경험치·골드(3종)·GPS(5), CS(2), CC 시간(1), 체력·자원 비율(2), 생존(1) & 17 \\
+    상태 & 바론·장로 버프 보유 및 잔여 시간(4), 드래곤 영혼 원-핫(6), 궁극기 레벨(1) & 11 \\
+    룬 & 주·부 특성 트리, 룬 6 개, 스탯 파편 3 개(범주형) & 11 \\
+    챔피언 스탯 & 공격력, 주문력, 방어력, 마법 저항, 공격 속도, 관통, 흡혈, 체력·자원 최대/재생 등 & 25 \\
+    피해 통계 & 물리·마법·고정·총 피해량(가함/챔피언 대상/받음) & 12 \\
+    \midrule
+    합계 & & 76 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}

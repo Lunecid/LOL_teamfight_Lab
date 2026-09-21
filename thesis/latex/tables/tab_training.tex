@@ -1,0 +1,26 @@
+%% ---------------------------------------------------------------
+%% table 객체: tab:training
+%% 파일: tables/tab_training.tex
+%% 사용처: chapters/08_experimental_setup/03_training.tex  (\input{tables/tab_training})
+%% 규칙: 캡션·라벨·내용을 이 파일 안에서만 관리한다. 수치는 config/numbers.tex 매크로를 쓴다.
+%% ---------------------------------------------------------------
+\begin{table}[htbp]
+  \centering
+  \caption{심층 모델 학습 설정}
+  \label{tab:training}
+  \small
+  \begin{tabular}{@{}ll@{}}
+    \toprule
+    항목 & 값 \\
+    \midrule
+    최적화기 & AdamW \cite{loshchilov2019decoupled} \\
+    학습률 / 가중치 감쇠 & $5\times 10^{-4}$ / $2\times 10^{-4}$ \\
+    배치 크기 & 64 \\
+    최대 에폭 / 조기 종료 & 15 / 검증 AUC 기준 3 에폭 인내 \\
+    워밍업 & 1 에폭 선형 \\
+    기울기 클리핑 & 최대 노름 5.0 \\
+    혼합 정밀도 & AMP (bf16 / fp16 자동) \\
+    시드 & \{7, 42, 123\} \\
+    \bottomrule
+  \end{tabular}
+\end{table}

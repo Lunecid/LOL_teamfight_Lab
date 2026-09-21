@@ -1,0 +1,20 @@
+%!TEX root = ../../main.tex
+%% ===============================================================
+%% 4.2 시간적 킬 군집화
+%% 파일: chapters/04_localization/02_temporal_clustering.tex
+%% 상위: chapters/04_localization/chapter.tex
+%% 정의 라벨: sec:loc-temporal
+%% 참조 라벨: -
+%% 포함 객체: -
+%% 인용: -
+%% 상태: 초안 (docs/OUTLINE.md 참고)
+%% ===============================================================
+
+\section{시간적 킬 군집화}
+\label{sec:loc-temporal}
+
+시각 순으로 정렬된 킬 열 $k_1, \dots, k_M$을 연속한 킬 사이의 간격이 $\delta_{\mathrm{gap}} = 18{,}000$ ms 이하이면 같은 군집으로 묶는다:
+\begin{equation}
+  k_j, k_{j+1} \in \text{같은 군집} \iff t(k_{j+1}) - t(k_j) \le \delta_{\mathrm{gap}}.
+\end{equation}
+이는 1차원 시간 축에서의 단일 연결(single-linkage) 군집화와 같으며, 한 번의 선형 순회로 계산된다. 18 초라는 값은 경쟁 LoL에서 전형적인 교전의 지속 시간과 부활 대기시간을 고려하여 정하였다.

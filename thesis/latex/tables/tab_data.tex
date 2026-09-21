@@ -1,0 +1,25 @@
+%% ---------------------------------------------------------------
+%% table 객체: tab:data
+%% 파일: tables/tab_data.tex
+%% 사용처: chapters/08_experimental_setup/01_data.tex  (\input{tables/tab_data})
+%% 규칙: 캡션·라벨·내용을 이 파일 안에서만 관리한다. 수치는 config/numbers.tex 매크로를 쓴다.
+%% ---------------------------------------------------------------
+\begin{table}[htbp]
+  \centering
+  \caption{데이터 통계}
+  \label{tab:data}
+  \small
+  \begin{tabular}{@{}ll@{}}
+    \toprule
+    항목 & 값 \\
+    \midrule
+    경기 수 (15.14 / 15.15 / 16.16) & \numMatches{} (\numMatchesPatchA{} / \numMatchesPatchB{} / \numMatchesPatchC{}) \\
+    유효 교전 수 & 약 100 만 건 (\numEngagementsCorrected{}, 공개 코드 기준) \\
+    모델당 표본 & 분할·시드당 \numSubsample{} 건 균등 부표본 \\
+    특징 차원 & 76 (노드) + 26 (전역) + 44 (사건) \\
+    관측 창 & 30 초 (5 초 구간 6 개) \\
+    라벨 창 & 30 초 \\
+    라벨 균형 & 약 50 / 50 \\
+    \bottomrule
+  \end{tabular}
+\end{table}

@@ -1,0 +1,23 @@
+%% ---------------------------------------------------------------
+%% table 객체: tab:protocol
+%% 파일: tables/tab_protocol.tex
+%% 사용처: chapters/08_experimental_setup/05_ablation_protocol.tex  (\input{tables/tab_protocol})
+%% 규칙: 캡션·라벨·내용을 이 파일 안에서만 관리한다. 수치는 config/numbers.tex 매크로를 쓴다.
+%% ---------------------------------------------------------------
+\begin{table}[htbp]
+  \centering
+  \caption{5 단계 절제 프로토콜}
+  \label{tab:protocol}
+  \small
+  \begin{tabular}{@{}lll@{}}
+    \toprule
+    단계 & 내용 & 산출 \\
+    \midrule
+    1. 기준선 & 기본 구성을 세 시드로 재현 & $\mathrm{AUC}_{\mathrm{base}} \pm$ CI \\
+    2. 단일 인자 & 처치 $T_i$ 하나씩 추가 & $\Delta_i = \mathrm{AUC}(\mathrm{base} + T_i) - \mathrm{AUC}_{\mathrm{base}}$ \\
+    3. 상호작용 & 유의한 처치 쌍 & $\Delta_{ij} - (\Delta_i + \Delta_j)$ \\
+    4. 민감도 & 유의한 처치의 하이퍼파라미터 격자 & 처치별 최적값 \\
+    5. 최종 시험 & 최적 구성을 시험 분할에 1 회 평가 & AUC, AP, Brier, ECE \\
+    \bottomrule
+  \end{tabular}
+\end{table}
