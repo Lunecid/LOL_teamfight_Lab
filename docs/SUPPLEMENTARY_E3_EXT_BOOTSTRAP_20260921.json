@@ -1,0 +1,250 @@
+{
+  "schema": "SUPPLEMENTARY_E3_EXT_BOOTSTRAP_v1",
+  "generated_at_utc": "2026-09-21T07:31:43.353519+00:00",
+  "contract": "docs/SUPPLEMENTARY_EXPERIMENT_DESIGN_20260921.md#6",
+  "task": ".ai/tasks/T017.md",
+  "epistemic": "SUPPLEMENTARY_SCORE_ONLY_NO_REFIT",
+  "n_boot": 10000,
+  "seed": 7,
+  "primary_family": [
+    "KR_16.13|T",
+    "KR_16.13|S",
+    "NA1_16.13|T",
+    "NA1_16.13|S"
+  ],
+  "note_ci": "ci95 = 95% percentile; ci9875 = Bonferroni 0.05/4 family. Conditional on frozen models; not model-fit uncertainty. frac_boot_gt0 is not a classical p-value.",
+  "forbidden_readings": [
+    "T/S mechanism",
+    "recalibration will fix transfer",
+    "replace frozen RRX headlines"
+  ],
+  "primary": {
+    "T|KR_16.13": {
+      "ok": true,
+      "label": "KR 16.13",
+      "pilot": false,
+      "cohort": "T",
+      "set_id": "KR_16.13",
+      "n_rows": 5202,
+      "n_matches": 3859,
+      "brier_q": 0.24832537949882408,
+      "brier_pt": 0.2457152525535688,
+      "delta_brier_row_weighted": 0.002610126945255281,
+      "delta_brier_match_mean": 0.002610126945255319,
+      "bootstrap": {
+        "n_matches": 3859,
+        "estimate": 0.002610126945255319,
+        "ci95": [
+          -0.0004142469495821694,
+          0.005722960169128505
+        ],
+        "ci9875": [
+          -0.001148409280580981,
+          0.006678701104424154
+        ],
+        "frac_boot_gt0": 0.9551,
+        "n_boot": 10000,
+        "seed": 7
+      },
+      "q_model": "C:/Users/todtj/PycharmProjects/LOL_teamfight/outputs/q_newv_fit85_20260920/models/logit_state.joblib",
+      "pt_model": "C:/Users/todtj/PycharmProjects/LOL_teamfight/outputs/review_response_rr12_20260920/models/PT_flex.joblib"
+    },
+    "T|NA1_16.13": {
+      "ok": true,
+      "label": "NA1 16.13",
+      "pilot": false,
+      "cohort": "T",
+      "set_id": "NA1_16.13",
+      "n_rows": 5312,
+      "n_matches": 3955,
+      "brier_q": 0.2533823755758445,
+      "brier_pt": 0.24940178451955072,
+      "delta_brier_row_weighted": 0.003980591056293753,
+      "delta_brier_match_mean": 0.003980591056293761,
+      "bootstrap": {
+        "n_matches": 3955,
+        "estimate": 0.003980591056293761,
+        "ci95": [
+          0.0008557490862839356,
+          0.0070484224031085296
+        ],
+        "ci9875": [
+          9.305352102389778e-05,
+          0.007844070007142304
+        ],
+        "frac_boot_gt0": 0.9949,
+        "n_boot": 10000,
+        "seed": 7
+      },
+      "q_model": "C:/Users/todtj/PycharmProjects/LOL_teamfight/outputs/q_newv_fit85_20260920/models/logit_state.joblib",
+      "pt_model": "C:/Users/todtj/PycharmProjects/LOL_teamfight/outputs/review_response_rr12_20260920/models/PT_flex.joblib"
+    },
+    "S|KR_16.13": {
+      "ok": true,
+      "label": "KR 16.13",
+      "pilot": false,
+      "cohort": "S",
+      "set_id": "KR_16.13",
+      "n_rows": 15641,
+      "n_matches": 7874,
+      "brier_q": 0.2493571430545462,
+      "brier_pt": 0.2511592434688586,
+      "delta_brier_row_weighted": -0.0018021004143123909,
+      "delta_brier_match_mean": -0.001802100414312404,
+      "bootstrap": {
+        "n_matches": 7874,
+        "estimate": -0.001802100414312404,
+        "ci95": [
+          -0.003283887927548567,
+          -0.00029190207097317425
+        ],
+        "ci9875": [
+          -0.003729739637788023,
+          0.0001060227890083776
+        ],
+        "frac_boot_gt0": 0.0084,
+        "n_boot": 10000,
+        "seed": 7
+      },
+      "q_model": "C:/Users/todtj/PycharmProjects/LOL_teamfight/outputs/q_newv_fit85_20260920_S/models/logit_state.joblib",
+      "pt_model": "C:/Users/todtj/PycharmProjects/LOL_teamfight/outputs/review_response_rr12_20260920_S_qS_id/models/PT_flex.joblib"
+    },
+    "S|NA1_16.13": {
+      "ok": true,
+      "label": "NA1 16.13",
+      "pilot": false,
+      "cohort": "S",
+      "set_id": "NA1_16.13",
+      "n_rows": 16100,
+      "n_matches": 7952,
+      "brier_q": 0.25028113844874644,
+      "brier_pt": 0.2523171311280279,
+      "delta_brier_row_weighted": -0.002035992679281451,
+      "delta_brier_match_mean": -0.0020359926792814023,
+      "bootstrap": {
+        "n_matches": 7952,
+        "estimate": -0.0020359926792814023,
+        "ci95": [
+          -0.003625926757015097,
+          -0.00044382778510615944
+        ],
+        "ci9875": [
+          -0.004027387841608471,
+          9.576989425654386e-06
+        ],
+        "frac_boot_gt0": 0.0065,
+        "n_boot": 10000,
+        "seed": 7
+      },
+      "q_model": "C:/Users/todtj/PycharmProjects/LOL_teamfight/outputs/q_newv_fit85_20260920_S/models/logit_state.joblib",
+      "pt_model": "C:/Users/todtj/PycharmProjects/LOL_teamfight/outputs/review_response_rr12_20260920_S_qS_id/models/PT_flex.joblib"
+    }
+  },
+  "pilots": {
+    "T|KR_16.15": {
+      "ok": true,
+      "label": "KR 16.15",
+      "pilot": false,
+      "cohort": "T",
+      "set_id": "KR_16.15",
+      "n_rows": 507,
+      "n_matches": 377,
+      "brier_q": 0.24772056181323626,
+      "brier_pt": 0.24715159096420078,
+      "delta_brier_row_weighted": 0.0005689708490354828,
+      "delta_brier_match_mean": 0.0005689708490355298,
+      "q_model": "C:/Users/todtj/PycharmProjects/LOL_teamfight/outputs/q_newv_fit85_20260920/models/logit_state.joblib",
+      "pt_model": "C:/Users/todtj/PycharmProjects/LOL_teamfight/outputs/review_response_rr12_20260920/models/PT_flex.joblib",
+      "bootstrap": "omitted_for_pilot"
+    },
+    "T|KR_16.14_pilot": {
+      "ok": true,
+      "label": "KR 16.14 pilot",
+      "pilot": true,
+      "cohort": "T",
+      "set_id": "KR_16.14_pilot",
+      "n_rows": 101,
+      "n_matches": 80,
+      "brier_q": 0.24257961599077155,
+      "brier_pt": 0.25107131820492357,
+      "delta_brier_row_weighted": -0.00849170221415202,
+      "delta_brier_match_mean": -0.008491702214152042,
+      "q_model": "C:/Users/todtj/PycharmProjects/LOL_teamfight/outputs/q_newv_fit85_20260920/models/logit_state.joblib",
+      "pt_model": "C:/Users/todtj/PycharmProjects/LOL_teamfight/outputs/review_response_rr12_20260920/models/PT_flex.joblib",
+      "bootstrap": "omitted_for_pilot"
+    },
+    "S|KR_16.15": {
+      "ok": true,
+      "label": "KR 16.15",
+      "pilot": false,
+      "cohort": "S",
+      "set_id": "KR_16.15",
+      "n_rows": 1307,
+      "n_matches": 694,
+      "brier_q": 0.25085188152372145,
+      "brier_pt": 0.25410429660096473,
+      "delta_brier_row_weighted": -0.003252415077243276,
+      "delta_brier_match_mean": -0.00325241507724327,
+      "q_model": "C:/Users/todtj/PycharmProjects/LOL_teamfight/outputs/q_newv_fit85_20260920_S/models/logit_state.joblib",
+      "pt_model": "C:/Users/todtj/PycharmProjects/LOL_teamfight/outputs/review_response_rr12_20260920_S_qS_id/models/PT_flex.joblib",
+      "bootstrap": "omitted_for_pilot"
+    },
+    "S|KR_16.14_pilot": {
+      "ok": true,
+      "label": "KR 16.14 pilot",
+      "pilot": true,
+      "cohort": "S",
+      "set_id": "KR_16.14_pilot",
+      "n_rows": 285,
+      "n_matches": 150,
+      "brier_q": 0.25505979772101905,
+      "brier_pt": 0.2515578065954465,
+      "delta_brier_row_weighted": 0.0035019911255725344,
+      "delta_brier_match_mean": 0.0035019911255724998,
+      "q_model": "C:/Users/todtj/PycharmProjects/LOL_teamfight/outputs/q_newv_fit85_20260920_S/models/logit_state.joblib",
+      "pt_model": "C:/Users/todtj/PycharmProjects/LOL_teamfight/outputs/review_response_rr12_20260920_S_qS_id/models/PT_flex.joblib",
+      "bootstrap": "omitted_for_pilot"
+    }
+  },
+  "common_match_H": {
+    "KR_16.13": {
+      "ok": true,
+      "estimand": "mean_m(d_mT - d_mS) on matches with both T and S rows",
+      "n_common_matches": 3181,
+      "n_matches": 3181,
+      "estimate": 0.0036366018962533824,
+      "ci95": [
+        -0.0006309552549597759,
+        0.007899648704650248
+      ],
+      "ci9875": [
+        -0.0018353283483050287,
+        0.008945341147945702
+      ],
+      "frac_boot_gt0": 0.9545,
+      "n_boot": 10000,
+      "seed": 8,
+      "reading": "Not a mechanism for T/S difference (X-31 withdrawn)."
+    },
+    "NA1_16.13": {
+      "ok": true,
+      "estimand": "mean_m(d_mT - d_mS) on matches with both T and S rows",
+      "n_common_matches": 3290,
+      "n_matches": 3290,
+      "estimate": 0.00524538183221421,
+      "ci95": [
+        0.0009369116448284207,
+        0.009596677776073443
+      ],
+      "ci9875": [
+        -0.0002443186596670388,
+        0.010780013321507423
+      ],
+      "frac_boot_gt0": 0.9915,
+      "n_boot": 10000,
+      "seed": 8,
+      "reading": "Not a mechanism for T/S difference (X-31 withdrawn)."
+    }
+  },
+  "git_head": "c7daad04456050ab3c5fd513671627c5d763b03e"
+}

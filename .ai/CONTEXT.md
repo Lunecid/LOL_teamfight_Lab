@@ -4,9 +4,9 @@
 
 ## 현재 목표
 저널 freeze는 유지한다. 보완 실험은 [`docs/SUPPLEMENTARY_EXPERIMENT_DESIGN_20260921.md`](../docs/SUPPLEMENTARY_EXPERIMENT_DESIGN_20260921.md) 경로만.  
-**T015 (2026-09-21):** G0 Phase A → `PARTIAL_PHASE_A`.  
-**T016 (2026-09-21):** G0 Phase B → `PARTIAL_PHASE_B` (RR0 digests·T/S ΔBrier 재집계·OOF reload PASS; G0.5/F 남음).  
-다음 보완: E3(외부 bootstrap, 행 dump 필요) 또는 E1.  
+**T017 (2026-09-21):** E3 외부 paired bootstrap → `docs/SUPPLEMENTARY_E3_EXT_BOOTSTRAP_20260921.md`.  
+**T018 (2026-09-21):** E1 정보군 LGBM → `docs/SUPPLEMENTARY_E1_INFOGROUPS_20260921.md`.  
+다음 보완 후보: E2 시간경과 진단.  
 석사 Markdown 골격: `docs/master_thesis_v1/`; LaTeX: `thesis/`.
 
 ## 브랜치와 인계

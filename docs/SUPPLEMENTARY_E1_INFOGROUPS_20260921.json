@@ -1,0 +1,253 @@
+{
+  "schema": "SUPPLEMENTARY_E1_INFOGROUPS_v1",
+  "generated_at_utc": "2026-09-21T07:40:20.187505+00:00",
+  "contract": "docs/SUPPLEMENTARY_EXPERIMENT_DESIGN_20260921.md#4",
+  "task": ".ai/tasks/T018.md",
+  "primary_family": [
+    "T:D_E_given_F",
+    "T:D_F_given_E",
+    "S:D_E_given_F",
+    "S:D_F_given_E"
+  ],
+  "reading": "Negative D means the fuller arm has lower Brier. Absence of gain \u2260 information absence. Not a game mechanism. Not comparable to frozen logit_state vs PT_flex headlines.",
+  "cohorts": {
+    "T": {
+      "cohort": "T",
+      "arm_brier": {
+        "M-F0": 0.23912266616240901,
+        "M-F1": 0.2384067903405636,
+        "M-F2": 0.23533921498367144,
+        "M-F3": 0.2354973905683132
+      },
+      "selected": {
+        "M-F0": {
+          "cand_id": "nl15_mcs100",
+          "hp": {
+            "num_leaves": 15,
+            "min_child_samples": 100
+          },
+          "best_iteration": 106,
+          "select_brier": 0.23793606496902503,
+          "select_logloss": 0.668601596903687,
+          "test_brier": 0.23912266616240901,
+          "test_logloss": 0.6710614754499105,
+          "n_features": 4,
+          "model_path": "outputs/supplementary_e1_infogroups_20260921/T/M-F0_nl15_mcs100.joblib"
+        },
+        "M-F1": {
+          "cand_id": "nl15_mcs300",
+          "hp": {
+            "num_leaves": 15,
+            "min_child_samples": 300
+          },
+          "best_iteration": 200,
+          "select_brier": 0.23681689672915363,
+          "select_logloss": 0.6662455987117484,
+          "test_brier": 0.2384067903405636,
+          "test_logloss": 0.6695566597161275,
+          "n_features": 94,
+          "model_path": "outputs/supplementary_e1_infogroups_20260921/T/M-F1_nl15_mcs300.joblib"
+        },
+        "M-F2": {
+          "cand_id": "nl15_mcs300",
+          "hp": {
+            "num_leaves": 15,
+            "min_child_samples": 300
+          },
+          "best_iteration": 205,
+          "select_brier": 0.23467354238588764,
+          "select_logloss": 0.6617431686639417,
+          "test_brier": 0.23533921498367144,
+          "test_logloss": 0.6631349150596473,
+          "n_features": 262,
+          "model_path": "outputs/supplementary_e1_infogroups_20260921/T/M-F2_nl15_mcs300.joblib"
+        },
+        "M-F3": {
+          "cand_id": "nl15_mcs300",
+          "hp": {
+            "num_leaves": 15,
+            "min_child_samples": 300
+          },
+          "best_iteration": 283,
+          "select_brier": 0.23423748065755892,
+          "select_logloss": 0.660808035312524,
+          "test_brier": 0.2354973905683132,
+          "test_logloss": 0.6634388260252909,
+          "n_features": 352,
+          "model_path": "outputs/supplementary_e1_infogroups_20260921/T/M-F3_nl15_mcs300.joblib"
+        }
+      },
+      "contrasts": {
+        "D_E_given_F": {
+          "delta_row_weighted": -0.0029093997722504303,
+          "delta_match_mean": -0.0029093997722504307,
+          "ci95": [
+            -0.00340709071204055,
+            -0.0023884217565710818
+          ],
+          "n_matches": 24020,
+          "n_rows": 32981
+        },
+        "D_F_given_E": {
+          "delta_row_weighted": 0.00015817558464179224,
+          "delta_match_mean": 0.0001581755846417922,
+          "ci95": [
+            -0.00023168323480015138,
+            0.0005601695947845883
+          ],
+          "n_matches": 24020,
+          "n_rows": 32981
+        },
+        "M-F1_minus_M-F0": {
+          "delta_row_weighted": -0.0007158758218453452,
+          "delta_match_mean": -0.0007158758218453453,
+          "ci95": [
+            -0.0011803510869270249,
+            -0.00024144816093556466
+          ],
+          "n_matches": 24020,
+          "n_rows": 32981
+        },
+        "M-F2_minus_M-F0": {
+          "delta_row_weighted": -0.0037834511787375675,
+          "delta_match_mean": -0.003783451178737568,
+          "ci95": [
+            -0.004344813671054423,
+            -0.003203398586730808
+          ],
+          "n_matches": 24020,
+          "n_rows": 32981
+        },
+        "M-F3_minus_M-F0": {
+          "delta_row_weighted": -0.003625275594095776,
+          "delta_match_mean": -0.003625275594095776,
+          "ci95": [
+            -0.004274432545674078,
+            -0.002963548553263495
+          ],
+          "n_matches": 24020,
+          "n_rows": 32981
+        }
+      }
+    },
+    "S": {
+      "cohort": "S",
+      "arm_brier": {
+        "M-F0": 0.2489164558687894,
+        "M-F1": 0.24697122586658501,
+        "M-F2": 0.24513165671881704,
+        "M-F3": 0.24395108372633575
+      },
+      "selected": {
+        "M-F0": {
+          "cand_id": "nl31_mcs300",
+          "hp": {
+            "num_leaves": 31,
+            "min_child_samples": 300
+          },
+          "best_iteration": 81,
+          "select_brier": 0.2485632987854364,
+          "select_logloss": 0.6902587777722426,
+          "test_brier": 0.2489164558687894,
+          "test_logloss": 0.6909751134931846,
+          "n_features": 4,
+          "model_path": "outputs/supplementary_e1_infogroups_20260921/S/M-F0_nl31_mcs300.joblib"
+        },
+        "M-F1": {
+          "cand_id": "nl31_mcs300",
+          "hp": {
+            "num_leaves": 31,
+            "min_child_samples": 300
+          },
+          "best_iteration": 252,
+          "select_brier": 0.24714139320745754,
+          "select_logloss": 0.6873975228220326,
+          "test_brier": 0.24697122586658501,
+          "test_logloss": 0.6870609039424331,
+          "n_features": 94,
+          "model_path": "outputs/supplementary_e1_infogroups_20260921/S/M-F1_nl31_mcs300.joblib"
+        },
+        "M-F2": {
+          "cand_id": "nl15_mcs300",
+          "hp": {
+            "num_leaves": 15,
+            "min_child_samples": 300
+          },
+          "best_iteration": 620,
+          "select_brier": 0.24508192096757211,
+          "select_logloss": 0.6831871515486446,
+          "test_brier": 0.24513165671881704,
+          "test_logloss": 0.6832834774519163,
+          "n_features": 262,
+          "model_path": "outputs/supplementary_e1_infogroups_20260921/S/M-F2_nl15_mcs300.joblib"
+        },
+        "M-F3": {
+          "cand_id": "nl31_mcs300",
+          "hp": {
+            "num_leaves": 31,
+            "min_child_samples": 300
+          },
+          "best_iteration": 545,
+          "select_brier": 0.24449769875841254,
+          "select_logloss": 0.6819832266143248,
+          "test_brier": 0.24395108372633575,
+          "test_logloss": 0.6808821336915746,
+          "n_features": 352,
+          "model_path": "outputs/supplementary_e1_infogroups_20260921/S/M-F3_nl31_mcs300.joblib"
+        }
+      },
+      "contrasts": {
+        "D_E_given_F": {
+          "delta_row_weighted": -0.0030201421402492575,
+          "delta_match_mean": -0.003020142140249257,
+          "ci95": [
+            -0.0033339901683326163,
+            -0.0026881355378586217
+          ],
+          "n_matches": 49730,
+          "n_rows": 101205
+        },
+        "D_F_given_E": {
+          "delta_row_weighted": -0.0011805729924812824,
+          "delta_match_mean": -0.0011805729924812827,
+          "ci95": [
+            -0.0015225102538895929,
+            -0.0008370228689066967
+          ],
+          "n_matches": 49730,
+          "n_rows": 101205
+        },
+        "M-F1_minus_M-F0": {
+          "delta_row_weighted": -0.0019452300022044203,
+          "delta_match_mean": -0.0019452300022044203,
+          "ci95": [
+            -0.00227037603057442,
+            -0.0016297994506447818
+          ],
+          "n_matches": 49730,
+          "n_rows": 101205
+        },
+        "M-F2_minus_M-F0": {
+          "delta_row_weighted": -0.003784799149972395,
+          "delta_match_mean": -0.003784799149972395,
+          "ci95": [
+            -0.00416556852693202,
+            -0.0034059675877194497
+          ],
+          "n_matches": 49730,
+          "n_rows": 101205
+        },
+        "M-F3_minus_M-F0": {
+          "delta_row_weighted": -0.004965372142453678,
+          "delta_match_mean": -0.004965372142453678,
+          "ci95": [
+            -0.0053959843215430426,
+            -0.00451537431407677
+          ],
+          "n_matches": 49730,
+          "n_rows": 101205
+        }
+      }
+    }
+  }
+}

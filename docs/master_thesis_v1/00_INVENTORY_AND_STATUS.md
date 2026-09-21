@@ -67,9 +67,9 @@
 | ID | 내용 | 문서 | 상태 |
 |---|---|---|---|
 | **G0** | 실행 무결성·미래정보 불변성·reload parity | 보완설계 §3; [`../G0_INTEGRITY_STATUS_20260921.md`](../G0_INTEGRITY_STATUS_20260921.md) | **PARTIAL_PHASE_B** (digest·T/S 헤드라인 재집계·OOF load PASS; G0.5/F INCOMPLETE; G0.6 PARTIAL) |
-| E1 / M-F0–F3 | 프레임×사건 2×2 (LGBM 4 arm + Q0) | 보완설계 §4; 계획서 §5 | 미실행 |
+| E1 / M-F0–F3 | 프레임×사건 2×2 (LGBM 4 arm + Q0) | [`../SUPPLEMENTARY_E1_INFOGROUPS_20260921.md`](../SUPPLEMENTARY_E1_INFOGROUPS_20260921.md) | **DONE** (T018; supplementary) |
 | E2 | 시간경과·프레임 갱신 진단 | 보완설계 §5 | 미실행 |
-| E3 | 외부 paired match-bootstrap (T/S×KR/NA1) | 보완설계 §6; ≈F4 일부 | 미실행 |
+| E3 | 외부 paired match-bootstrap (T/S×KR/NA1) | [`../SUPPLEMENTARY_E3_EXT_BOOTSTRAP_20260921.md`](../SUPPLEMENTARY_E3_EXT_BOOTSTRAP_20260921.md) | **DONE** (T017; CI 추가) |
 | E4 | peer/endpoint/정의 OAT 민감도 | 보완설계 §7; ≈F5 | 미실행 |
 | E5 | 동일 사례 기존 지표 비교·사례 추적 | 보완설계 §8; 계획서 §6.1 | 미본문화·조건부 |
 | E6 | 진짜 미사용 평가 | 보완설계 §9 | 조건부 deferred |

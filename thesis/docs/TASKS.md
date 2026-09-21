@@ -31,9 +31,8 @@
 |---|---|---|---|
 | C0 | G0 무결성 전수 (해시 재계산, 미래정보 불변성, reload parity, 헤드라인 재집계) | 보완설계 §3; 일부는 `tests/test_q_provenance_fixes.py` | `integrity.json` |
 | C1 | E4/F5 정의·endpoint·peer 민감도 (Frozen-score 우선; Refit은 선택) | 보완설계 §7; `THESIS_V2` F5 | 4.8 표 |
-| C2 | E1 / M-F0–M-F3 정보군 (LGBM 4 arm + Q0; identity) | 보완설계 §4; 계획서 §5 | 6.8 표 |
-| C3 | E2 시간경과·프레임 갱신 진단 (V 재선정 없음) | 보완설계 §5 | 5장 진단 |
-| C4 | E3 외부 paired bootstrap (KR/NA1 × T/S; 재학습 없음) | 보완설계 §6; ≈F4 | 7.4 CI |
+| C4 | E3 외부 paired bootstrap (KR/NA1 × T/S; 재학습 없음) | 보완설계 §6; T017 **DONE** | `docs/SUPPLEMENTARY_E3_*` |
+| C2 | E1 / M-F0–M-F3 정보군 (LGBM 4 arm + Q0; identity) | 보완설계 §4; T018 **DONE** | `docs/SUPPLEMENTARY_E1_*` |
 | C5 | F2 참여 인원 셀 재점수 (재적합 없음) | F2 | 7장 보조 표 |
 | C6 | F1 외부 확률 어댑터 | F1 | 7.4 보조 |
 | C7 | E5 최소 사례 추적·동일 사례 지표 비교 (강한 주장 시) | 보완설계 §8 | 5–6장 / B2 |
