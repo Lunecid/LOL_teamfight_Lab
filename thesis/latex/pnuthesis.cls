@@ -165,6 +165,8 @@
 \newcommand{\pnuadvisoren}[1]{\gdef\@pnuadvisoren{#1}}    \def\@pnuadvisoren{}
 \newcommand{\pnudept}[1]{\gdef\@pnudept{#1}}              \def\@pnudept{\pnu@undefined{\string\pnudept}}
 \newcommand{\pnudepten}[1]{\gdef\@pnudepten{#1}}          \def\@pnudepten{\pnu@undefined{\string\pnudepten}}
+\newcommand{\pnugradschool}[1]{\gdef\@pnugradschool{#1}}  \def\@pnugradschool{대학원}   % 예: 데이터사이언스전문대학원
+\newcommand{\pnugradschoolen}[1]{\gdef\@pnugradschoolen{#1}} \def\@pnugradschoolen{The Graduate School}
 \newcommand{\pnudegree}[1]{\gdef\@pnudegree{#1}}          \def\@pnudegree{공학}
 \newcommand{\pnugraddate}[1]{\gdef\@pnugraddate{#1}}      \def\@pnugraddate{\pnu@undefined{\string\pnugraddate}}
 \newcommand{\pnuapprovaldate}[1]{\gdef\@pnuapprovaldate{#1}} \def\@pnuapprovaldate{\pnu@undefined{\string\pnuapprovaldate}}
@@ -193,7 +195,7 @@
     \vfill
     {\fontsize{16pt}{20pt}\selectfont \@pnuauthorspaced\par}
     \vfill
-    {\fontsize{16pt}{20pt}\selectfont 부산대학교\ 대학원\par}
+    {\fontsize{16pt}{20pt}\selectfont 부산대학교\ \@pnugradschool\par}
     \vspace{0.6em}
     {\fontsize{16pt}{20pt}\selectfont \@pnudept\par}
     \vspace{2.2cm}
@@ -229,7 +231,7 @@
     \vspace{1.3cm}
     {\setstretch{1.5}\fontsize{14pt}{18pt}\selectfont
       \@pnuauthorspaced\\
-      부산대학교\ 대학원\\
+      부산대학교\ \@pnugradschool\\
       \@pnudept\\[0.4em]
       지\ 도\ 교\ 수\quad \@pnuadvisor\par}
     \vfill
@@ -269,7 +271,7 @@
     \vspace{1.0cm}
     {\fontsize{12pt}{15pt}\selectfont \@pnuauthorspaced\par}
     \vspace{0.5cm}
-    {\fontsize{11pt}{14pt}\selectfont 부산대학교\ 대학원\ \@pnudept\par}
+    {\fontsize{11pt}{14pt}\selectfont 부산대학교\ \@pnugradschool\ \@pnudept\par}
     \vspace{1.2cm}
     {\sffamily\bfseries\fontsize{12pt}{15pt}\selectfont 요\quad 약\par}
     \vspace{0.6cm}
@@ -291,7 +293,7 @@
     \vspace{1.0cm}
     {\fontsize{12pt}{15pt}\selectfont \@pnuauthoren\par}
     \vspace{0.5cm}
-    {\fontsize{11pt}{14pt}\selectfont Department of \@pnudepten\\ The Graduate School\\ Pusan National University\par}
+    {\fontsize{11pt}{14pt}\selectfont Department of \@pnudepten\\ \@pnugradschoolen\\ Pusan National University\par}
     \vspace{1.2cm}
     {\sffamily\bfseries\fontsize{12pt}{15pt}\selectfont Abstract\par}
     \vspace{0.6cm}
