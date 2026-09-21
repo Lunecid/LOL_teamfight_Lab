@@ -1,0 +1,93 @@
+\chapter{실험 설계}
+\label{ch:setup}
+
+\section{데이터}
+\label{sec:setup-data}
+
+한국(KR) 서버의 상위 티어 랭크 경기(솔로 랭크, 큐 420, 소환사의 협곡)를 Riot Match-V5 API로 수집하였다. 경기는 연속한 세 패치 15.14, 15.15, 15.16에 걸쳐 있으며 패치별 경기 수는 73{,}331 / 73{,}484 / 59{,}627, 합계 206{,}442 경기이다. 알고리즘 \ref{alg:localization}은 이로부터 약 100 만 건의 유효 교전을 산출하였다(경기당 약 5 건).\footnote{논문 \cite{baek2026killconditioned}의 실험은 1{,}115{,}123 건(경기당 5.4 건)으로 수행되었고, 제 \ref{sec:disc-audit} 절의 국소화 수정을 반영한 공개 코드는 994{,}365 건(경기당 4.8 건)을 산출한다. 두 값 모두 ``약 100 만 건''에 해당한다.} 원시 경기 데이터는 Riot API 이용약관에 따라 재배포하지 않으며, 파이프라인은 동일한 Match-V5 기록으로부터 말뭉치를 결정론적으로 재구축한다.
+
+\begin{table}[htbp]
+  \centering
+  \caption{데이터 통계}
+  \label{tab:data}
+  \small
+  \begin{tabular}{@{}ll@{}}
+    \toprule
+    항목 & 값 \\
+    \midrule
+    경기 수 (15.14 / 15.15 / 16.16) & 206{,}442 (73{,}331 / 73{,}484 / 59{,}627) \\
+    유효 교전 수 & 약 100 만 건 (994{,}365, 공개 코드 기준) \\
+    모델당 표본 & 분할·시드당 100{,}000 건 균등 부표본 \\
+    특징 차원 & 76 (노드) + 26 (전역) + 44 (사건) \\
+    관측 창 & 30 초 (5 초 구간 6 개) \\
+    라벨 창 & 30 초 \\
+    라벨 균형 & 약 50 / 50 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{분할}
+\label{sec:setup-split}
+
+분할은 \emph{경기 단위}로 묶는다. 한 경기의 모든 교전은 같은 분할에 속하므로, 같은 경기의 다른 교전이 학습과 시험에 나뉘어 들어가는 누출이 없다. 본 논문의 주 실험은 \emph{시간순 패치 홀드아웃}이다. 패치 15.14를 학습, 15.15를 검증, 15.16을 시험으로 사용하여 미래 패치에 대한 일반화를 직접 측정한다. 패치 층화 무작위 분할(70 / 20 / 10)도 지원하지만 보조 실험에만 쓴다. 계산량을 통제하기 위해 각 분할은 시드마다 100{,}000 건으로 균등 부표본화하며, 이 상한은 모든 모델에 동일하게 적용된다.
+
+\section{학습 설정}
+\label{sec:setup-training}
+
+\begin{table}[htbp]
+  \centering
+  \caption{심층 모델 학습 설정}
+  \label{tab:training}
+  \small
+  \begin{tabular}{@{}ll@{}}
+    \toprule
+    항목 & 값 \\
+    \midrule
+    최적화기 & AdamW \cite{loshchilov2019decoupled} \\
+    학습률 / 가중치 감쇠 & $5\times 10^{-4}$ / $2\times 10^{-4}$ \\
+    배치 크기 & 64 \\
+    최대 에폭 / 조기 종료 & 15 / 검증 AUC 기준 3 에폭 인내 \\
+    워밍업 & 1 에폭 선형 \\
+    기울기 클리핑 & 최대 노름 5.0 \\
+    혼합 정밀도 & AMP (bf16 / fp16 자동) \\
+    시드 & \{7, 42, 123\} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+모든 심층 모델은 표 \ref{tab:training}의 설정을 공유한다. 조기 종료는 검증 분할에서만 이루어지며 시험 분할은 최종 평가에만 사용한다. 예측은 배치 위치가 아니라 교전 키(\texttt{match\_id|t\_start})로 정렬하여 셔플에 따른 불일치를 배제한다.
+
+\section{평가 지표와 통계 검정}
+\label{sec:setup-metrics}
+
+1차 지표는 AUC이며, AP, 정확도(임계값 0.5), 정밀도·재현율·$F_1$, Brier 점수, ECE를 함께 보고한다(정의는 제 \ref{sec:bg-metrics} 절). 하위 집단은 (i) 경기 시각(초반 $<15$ 분, 중반 15--25 분, 후반 $>25$ 분), (ii) 온셋 시점 골드 격차(대등 $|\Delta| < 2{,}000$, 보통, 일방 $|\Delta| > 5{,}000$), (iii) 교전 유형, (iv) 패치로 나눈다.
+
+신뢰구간은 세 시드 각각에서 1{,}000 회 재표본화한 부트스트랩 백분위법으로 얻고, 모델 간 AUC 차이는 DeLong 검정, 분류 불일치는 McNemar 검정으로 검정한다. 처치 $m$개를 동시에 검정할 때는 Holm--Bonferroni로 $\alpha = 0.05$의 가족 오류율을 통제한다.
+
+\section{절제 프로토콜}
+\label{sec:setup-ablation}
+
+\begin{table}[htbp]
+  \centering
+  \caption{5 단계 절제 프로토콜}
+  \label{tab:protocol}
+  \small
+  \begin{tabular}{@{}lll@{}}
+    \toprule
+    단계 & 내용 & 산출 \\
+    \midrule
+    1. 기준선 & 기본 구성을 세 시드로 재현 & $\mathrm{AUC}_{\mathrm{base}} \pm$ CI \\
+    2. 단일 인자 & 처치 $T_i$ 하나씩 추가 & $\Delta_i = \mathrm{AUC}(\mathrm{base} + T_i) - \mathrm{AUC}_{\mathrm{base}}$ \\
+    3. 상호작용 & 유의한 처치 쌍 & $\Delta_{ij} - (\Delta_i + \Delta_j)$ \\
+    4. 민감도 & 유의한 처치의 하이퍼파라미터 격자 & 처치별 최적값 \\
+    5. 최종 시험 & 최적 구성을 시험 분할에 1 회 평가 & AUC, AP, Brier, ECE \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+표 \ref{tab:protocol}의 절차는 처치를 하나씩 더하는 단일 인자 설계이므로 각 $\Delta_i$가 그 처치의 한계 효과로 해석된다. 하이퍼파라미터 격자는 부록 \ref{app:treatments}에 있다.
+
+\section{재현성}
+\label{sec:setup-repro}
+
+난수 시드는 NumPy·PyTorch·CUDA에 걸쳐 고정하며, 분할·캐시는 버전 태그로 무효화된다. 모든 설정은 단일 데이터클래스에 모여 있고 실험 결과와 함께 직렬화된다. 파이프라인의 계약(무누출 보간, 국소화 상수, 특징 차원, 라벨 가중치)은 376 개의 단위 시험으로 고정되어 있다. 논문에 대응하는 코드 상태는 태그 \texttt{v1.0-cog2026}으로 공개되어 있으며, 완전한 실험은 \texttt{run\_paper\_full.py}(3 시드 $\times$ 2 단계)로 재실행할 수 있다. GPU 연산의 일부(예: 산란 연산)는 결정론이 강제되지 않으므로 시드 간 편차가 신뢰구간에 반영된다.

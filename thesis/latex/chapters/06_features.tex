@@ -1,0 +1,66 @@
+\chapter{다중 모달 특징 표현}
+\label{ch:features}
+
+관측 창의 여섯 구간 각각에서 세 종류의 텐서와 하나의 토큰 열을 구성한다. 특징의 정확한 목록은 부록 \ref{app:features}에 있으며, 여기서는 구성 원리와 차원을 기술한다. 각 차원은 코드의 정본 이름 목록으로부터 계산되므로 표의 수치는 구현과 일치한다.
+
+\section{노드 특징 ($F_{\mathrm{node}} = 76$)}
+\label{sec:feat-node}
+
+참가자 $i$의 구간 $\ell$에서의 특징 벡터 $x^{\mathrm{node}}_{\ell,i} \in \R^{76}$은 표 \ref{tab:node-groups}의 다섯 그룹으로 구성된다. 범주형 열(챔피언, 소환사 주문, 룬 11 개)은 학습 가능한 임베딩으로 변환되고, 연속 열은 정규화된다. 위치 $(x_{\mathrm{norm}}, y_{\mathrm{norm}})$는 그래프·공간 모델을 위해 $X^{\mathrm{node}}$에 보존되지만, 순차 모델용 거시 시퀀스에서는 0으로 마스킹된다(제 \ref{sec:feat-window} 절).
+
+\begin{table}[htbp]
+  \centering
+  \caption{노드 특징 그룹}
+  \label{tab:node-groups}
+  \small
+  \begin{tabularx}{\linewidth}{@{}lXr@{}}
+    \toprule
+    그룹 & 내용 & 차원 \\
+    \midrule
+    스냅숏 & 챔피언·소환사 주문 ID(4, 범주형), 위치(2), 레벨·경험치·골드(3종)·GPS(5), CS(2), CC 시간(1), 체력·자원 비율(2), 생존(1) & 17 \\
+    상태 & 바론·장로 버프 보유 및 잔여 시간(4), 드래곤 영혼 원-핫(6), 궁극기 레벨(1) & 11 \\
+    룬 & 주·부 특성 트리, 룬 6 개, 스탯 파편 3 개(범주형) & 11 \\
+    챔피언 스탯 & 공격력, 주문력, 방어력, 마법 저항, 공격 속도, 관통, 흡혈, 체력·자원 최대/재생 등 & 25 \\
+    피해 통계 & 물리·마법·고정·총 피해량(가함/챔피언 대상/받음) & 12 \\
+    \midrule
+    합계 & & 76 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\section{전역 특징 ($F_{\mathrm{glob}} = 26$)}
+\label{sec:feat-global}
+
+팀 단위 상태 $x^{\mathrm{glob}}_\ell \in \R^{26}$은 정규화된 경기 시각(1), 양 팀의 밴 챔피언 ID(10, 범주형), 골드·경험치·평균 레벨·CS·정글 CS·생존 인원 차이(6), 그리고 킬·포탑·억제기·용·바론·전령·아타칸·포탑 방패·공허 유충의 누적 차이(9)로 구성된다. 모든 차이는 블루 $-$ 레드이다.
+
+\section{사건 특징 ($F_{\mathrm{ev}} = 44$)와 사건 토큰}
+\label{sec:feat-event}
+
+구간 $[b_0, b_1)$ 안에서 발생한 사건을 종류별·팀별로 계수하여 $x^{\mathrm{ev}}_\ell \in \R^{44}$를 만든다. 22 종의 사건(킬, 현상금, 셧다운, 연속 킬, 다중 킬, 에이스, 용, 바론, 전령, 아타칸, 유충, 포탑, 억제기, 방패, 오브젝트 현상금, 와드 설치·제거, 제어 와드 설치·제거, 아이템 구매·판매·취소)에 두 팀을 곱한 것이다. 교차 주의 모델을 위해서는 집계 대신 최대 $K = 64$개의 이산 토큰 $E \in \R^{K \times D_e}$를 별도로 구성한다. 각 토큰은 종류 해시, 행위자 ID, 팀과 함께 상대 시각, 온셋까지의 시간, 위치, 값, 중요도 사전값 등 $D_e = 12$개의 연속 특징을 갖는다.
+
+\section{관측 창 구성과 정규화}
+\label{sec:feat-window}
+
+구간 $\ell \in \{0, \dots, 5\}$의 경계는 $b_0 = t_e - 30{,}000 + 5{,}000\,\ell$, $b_1 = b_0 + 5{,}000$이고 중점은 $q_\ell = b_0 + 2{,}500$이다. 노드·전역 특징은 가정 \ref{asm:stephold}--\ref{asm:onsetcap}에 따라 $q_\ell$ 이전의 마지막 프레임을 계단 유지하고, 사건 특징은 $[b_0, b_1)$의 계수를 취한다. 결과 텐서는 $X^{\mathrm{node}} \in \R^{6\times 10\times 76}$, $X^{\mathrm{glob}} \in \R^{6\times 26}$, $X^{\mathrm{ev}} \in \R^{6\times 44}$이다.
+
+연속 노드 특징은 학습 분할에서 추정한 통계로 표준화하되, 범주형 열과 이진 열은 정규화에서 제외한다. 챔피언 스탯과 피해 통계는 꼬리가 긴 분포이므로 $\log(1 + x)$ 변환 후 표준화한다. 위치는 지도 크기로 나눈 $[0,1]^2$ 값을 쓰며, 그래프 모델에서는 교전 중심에 대한 상대 좌표 옵션을 지원한다. 순차 모델이 사용하는 \emph{거시 시퀀스} $S \in \R^{6 \times 95}$는 전역 특징, 노드 특징의 팀별 요약, 사건 특징, 공간 요약(25)을 이어 붙인 것이며, 지도 위치에 대한 편향 학습을 막기 위해 여기서는 위치 열을 0으로 둔다.
+
+\section{테이블 요약 표현}
+\label{sec:feat-tabular}
+
+LightGBM과 정합 입력 MLP를 위해 각 시계열 특징 $x_{1:L}$을 일곱 통계량
+\begin{equation}
+  \phi_{\mathrm{tab}}(x) = \big[x_L,\ \mathrm{mean},\ \mathrm{std},\ \min,\ \max,\ x_L - x_1,\ \mathrm{slope}\big]
+  \label{eq:phitab}
+\end{equation}
+로 요약한다(slope는 최소제곱 선형 추세). 1{,}015 차원의 원시 특징이 7{,}105 차원으로 확장되고, 상수·준상수 열(예: 관측 창 안에서 변하지 않는 룬 ID의 std)을 제거하면 약 2{,}980 차원이 된다. 이 벡터가 두 테이블 학습기의 \emph{동일한} 입력이며, RQ3의 학습기 비교는 이 정합성에 근거한다.
+
+\section{플레이어 상호작용 그래프}
+\label{sec:feat-graph}
+
+구간 $\ell$마다 열 명의 참가자를 정점으로 하는 완전 가중 그래프 $G_\ell = (V, A_\ell)$을 만든다. 인접 가중치는 가우스 커널
+\begin{equation}
+  A_{ij}(\ell) = \exp\!\left(-\frac{\|\mathrm{pos}_i(\ell) - \mathrm{pos}_j(\ell)\|_2^2}{2\sigma^2}\right)
+  \label{eq:adjacency}
+\end{equation}
+로 정의하며, $\sigma$는 고정값 또는 구간 내 평균 거리 $\bar d$에 비례하는 적응값($\sigma = 0.5\,\bar d$, GraphSAGE 실험)을 쓴다. 사망한 참가자에 연결된 변은 0으로 마스킹하고 자기 루프는 유지한다. MPNN을 위한 변 특징은 $e_{ij} = [\Delta x, \Delta y, d, \log(1+A_{ij})] \in \R^4$이다. 역할 인식 처치(T5)는 $A'_{ij} = A_{ij}\cdot\softplus(R_{\mathrm{role}(i),\mathrm{role}(j)})$로 학습 가능한 $5\times 5$ 역할 상호작용 행렬 $R$을 곱하며, 다중 스케일 변형은 여러 $\sigma_k$의 커널을 학습 가중치로 합한다.

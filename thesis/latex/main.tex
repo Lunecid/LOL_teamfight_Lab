@@ -1,0 +1,45 @@
+%% 부산대학교 대학원 석사 학위논문 — 본문 진입점
+%% 빌드:  ./build.sh   (tectonic)   또는   latexmk -xelatex main.tex
+\documentclass[master,korean]{pnuthesis}
+\input{meta.tex}
+
+\begin{document}
+
+%% ---- 1구역: 표지 → 면지 → 속표지 및 인준지
+\makecover
+% \makespine          % 등표지 (제본소에서 만들면 생략)
+\makeblankpage
+\makeapproval
+
+%% ---- 2구역: 차례 → 표 차례 → 그림 차례 → 국문 초록
+\makefrontmatter
+\input{frontmatter/abstract_ko.tex}
+
+%% ---- 3구역: 본문
+\startmainmatter
+\input{chapters/01_introduction.tex}
+\input{chapters/02_background.tex}
+\input{chapters/03_problem.tex}
+\input{chapters/04_localization.tex}
+\input{chapters/05_label.tex}
+\input{chapters/06_features.tex}
+\input{chapters/07_models.tex}
+\input{chapters/08_experimental_setup.tex}
+\input{chapters/09_results.tex}
+\input{chapters/10_discussion.tex}
+\input{chapters/11_conclusion.tex}
+
+%% ---- 참고문헌
+\clearpage
+\phantomsection
+\addcontentsline{toc}{chapter}{참고 문헌}
+{\setstretch{1.2}\bibliographystyle{IEEEtranN}\bibliography{references}}
+
+%% ---- 부록
+\appendix
+\input{chapters/appendix.tex}
+
+%% ---- 영문 초록 (맨 끝)
+\input{frontmatter/abstract_en.tex}
+
+\end{document}

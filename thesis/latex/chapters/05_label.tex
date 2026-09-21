@@ -1,0 +1,54 @@
+\chapter{교환가치 라벨}
+\label{ch:label}
+
+\section{동기}
+\label{sec:label-motivation}
+
+가장 단순한 교전 결과 라벨은 라벨 창 안의 킬 수 차이 $\Delta_{\mathrm{kill}} = \mathrm{kills}_{\mathrm{blue}} - \mathrm{kills}_{\mathrm{red}}$의 부호이다. 그러나 킬 수는 교전의 \emph{가치}를 제대로 반영하지 못한다. 예를 들어 (i) 한 팀이 1 킬을 내주고 바론을 획득한 교전, (ii) 연승 중인 상대의 셧다운(shutdown) 킬 하나와 일반 킬 둘의 교환, (iii) 에이스(ace)로 끝난 교전은 킬 수만으로는 같은 값이거나 반대 부호가 된다. 프로 해설이 교전을 평가할 때 사용하는 ``이득'' 개념은 킬·오브젝트·골드가 혼합된 교환의 순가치이다. 본 논문은 이를 \emph{교환가치}(exchange value)로 형식화한다.
+
+\section{정의}
+\label{sec:label-definition}
+
+\begin{definition}[교환가치 라벨]
+\label{def:label}
+라벨 창 $W_{\mathrm{lab}}$ 안의 사건 집합을 $U$라 하자. 각 사건 $u \in U$는 부호 $\sigma_u \in \{+1, -1\}$(블루 팀에 유리하면 $+1$), 가치 $v_u \ge 0$, 우선순위 $p_u \ge 0$을 갖는다. 주의 가중치 $\alpha_u = \softmax_u(\beta p_u) = e^{\beta p_u}/\sum_{u'\in U} e^{\beta p_{u'}}$로 정의하고 교환가치 점수를
+\begin{equation}
+  S(U) = \sum_{u \in U} \alpha_u\, \sigma_u\, v_u
+  \label{eq:exchange}
+\end{equation}
+라 하면, 라벨은 $y = \ind[S(U) > 0]$이다. $\beta = 2.0$이다.
+\end{definition}
+
+식 \eqref{eq:exchange}의 softmax 가중은 Bahdanau 등 \cite{bahdanau2015neural}의 주의 메커니즘과 같은 형태로, 우선순위가 높은 사건(셧다운, 오브젝트)이 점수를 지배하도록 한다. $\beta \to 0$이면 균등 가중(단순 가치 합)에, $\beta \to \infty$이면 최고 우선순위 사건 하나가 결과를 결정하는 극한에 수렴한다. 사건의 가치 $v_u$는 표 \ref{tab:label-weights}의 도메인 가중치를 사건의 속성(킬 여부, 셧다운 여부, 연속 킬, 어시스트 수, 현상금, 오브젝트 등급, 라인 우선권, 특수 보너스)에 곱해 합산한 복합값이다.
+
+\begin{table}[htbp]
+  \centering
+  \caption{교환가치 라벨의 사건 가중치}
+  \label{tab:label-weights}
+  \small
+  \begin{tabular}{@{}llr@{}}
+    \toprule
+    속성 & 설명 & 가중치 \\
+    \midrule
+    kill & 챔피언 킬 & 1.00 \\
+    shutdown & 셧다운 킬(연승 중인 상대 처치) & 1.60 \\
+    streak & 연속 킬 & 0.35 \\
+    assist & 어시스트(1 건당) & 0.20 \\
+    bounty & 현상금 골드 & 0.30 \\
+    objective & 오브젝트(용·바론·전령·포탑 등, 등급별) & 1.10 \\
+    lane & 라인 관련 사건(포탑 방패 등) & 0.25 \\
+    \midrule
+    $\beta$ & 주의 온도 & 2.0 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{특수 킬 마커와 동점 처리}
+\label{sec:label-special}
+
+Riot API는 하나의 사망에 대해 \texttt{CHAMPION\_KILL}과, 조건에 따라 \texttt{CHAMPION\_SPECIAL\_KILL} (첫 킬, 다중 킬, 에이스)을 \emph{함께} 발행한다. 후자는 별도의 킬이 아니라 같은 킬에 대한 표식이므로, 본 논문은 특수 마커에 대해서는 보너스 $s(u)$만 더하고 킬 가치 $1.0$은 짝이 되는 \texttt{CHAMPION\_KILL}에만 부여한다.\footnote{초기 구현은 특수 마커를 두 번째 킬로 계수하였고 사전 감사에서 수정되었다(제 \ref{sec:disc-audit} 절).} $S(U) = 0$인 동점은 시드 고정 무작위 배정(\texttt{random})을 기본으로 하며, 제외(\texttt{drop})나 한쪽 배정 옵션을 둔다. 동점은 전체의 극히 일부이며 라벨 균형은 약 50/50이다.
+
+\section{보조 타깃}
+\label{sec:label-aux}
+
+다중 과제 처치(T6)를 위해 같은 창에서 정규화된 킬 차이 $y_{\mathrm{kill}} = \Delta_{\mathrm{kill}}/5$, 골드 변동 $y_{\mathrm{gold}} = \Delta_{\mathrm{gold}}/500$, 오브젝트 차이 $y_{\mathrm{obj}} = \Delta_{\mathrm{obj}}/5$를 회귀 타깃으로 함께 계산한다. 이들은 라벨 \eqref{eq:exchange}와 같은 정보원(라벨 창의 사건)에서 나오므로 입력에는 절대 포함되지 않는다.

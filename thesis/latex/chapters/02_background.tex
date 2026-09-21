@@ -1,0 +1,133 @@
+\chapter{배경 이론 및 관련 연구}
+\label{ch:background}
+
+이 장은 본 논문이 사용하는 개념을 \emph{정의}, \emph{기원}, \emph{본 논문에서의 쓰임}의 순서로 정리한다. 모든 정의에는 그 개념이 처음 제안된 문헌을 함께 적는다.
+
+\section{리그 오브 레전드와 Match-V5 텔레메트리}
+\label{sec:bg-telemetry}
+
+LoL의 한 경기는 블루 팀(team 100)과 레드 팀(team 200) 각 5 명, 총 $N=10$ 명의 참가자로 구성된다. 각 참가자는 경기 시작 전 챔피언 하나, 소환사 주문 둘, 룬 세트를 선택하며 경기 중 골드로 아이템을 구매한다. 지도 좌표계는 좌하단을 원점으로 하는 $[0, 16{,}000]^2$ 정수 격자이다.
+
+Riot Match-V5 API는 경기당 두 개의 JSON 문서를 제공한다. \textbf{detail}은 경기 메타데이터(패치 버전, 참가자·챔피언·룬·최종 통계)를, \textbf{timeline}은 시계열을 담는다. timeline은 (i) 60{,}000 ms 간격의 \emph{프레임}(frame) 열과 (ii) 밀리초 타임스탬프를 갖는 \emph{사건}(event) 열로 구성된다. 프레임에는 참가자별 위치 $(x, y)$, 레벨, 경험치, 현재·누적 골드, 미니언 처치 수, 체력·자원, 챔피언 스탯(공격력, 방어력 등 25 종), 피해 통계(12 종)가 들어 있다. 사건에는 \texttt{CHAMPION\_KILL}, \texttt{CHAMPION\_SPECIAL\_KILL} (에이스, 다중 킬, 첫 킬), \texttt{ELITE\_MONSTER\_KILL}, \texttt{BUILDING\_KILL}, \texttt{TURRET\_PLATE\_DESTROYED}, \texttt{WARD\_PLACED}, \texttt{WARD\_KILL}, \texttt{ITEM\_PURCHASED} 등이 있으며, 킬 사건은 위치 좌표와 가해자·피해자·어시스트 참가자 ID를 포함한다.
+
+이 구조가 본 논문의 모든 설계를 규정한다. 위치와 상태는 분 단위로만 알 수 있으므로 교전의 시공간 경계는 사건(특히 킬)으로부터 추론해야 하고, 모델의 입력은 60 초 프레임을 어떤 방식으로든 재표본화한 것일 수밖에 없다.
+
+\section{MOBA 승패 예측 연구}
+\label{sec:bg-related}
+
+\paragraph{경기 단위 예측.} Semenov 등 \cite{semenov2016performance}은 Dota~2 드래프트만으로 로지스틱 회귀·그래디언트 부스팅 등을 비교하여 약 $0.7$ 수준의 정확도를 보고하였다. Yang 등 \cite{yang2016realtime}은 경기 중 스냅숏을 사용하는 실시간 예측을 제안하였고, Silva 등 \cite{silva2018continuous}은 LoL 프로 경기의 연속 예측에 순환 신경망을 적용하였다. Hodge 등 \cite{hodge2021win}은 프로 Dota~2 경기의 실시간 승률 예측 시스템을 실제 방송 환경에서 검증하였다. Do 등 \cite{do2021using}은 플레이어--챔피언 숙련도를 사전 특징으로 사용하였고, Hitar-García 등 \cite{hitar2023machine}은 LoL 경기 승패 예측에 대한 기계학습 방법을 폭넓게 비교하였다. 이들은 모두 \emph{경기}의 승패를 목표로 하며, 교전 단위 라벨은 다루지 않는다.
+
+\paragraph{전투·교전 단위 분석.} Drachen 등 \cite{drachen2014skill}은 Dota~2 팀의 시공간 행동이 실력에 따라 다름을 보였고, Yang 등 \cite{yang2014identifying}은 전투를 그래프로 표현하여 승리에 예측적인 패턴을 추출하였다. Schubert 등 \cite{schubert2016esports}은 리플레이에서 encounter를 자동 검출하고 그 결과를 경기 승패 예측에 사용하였다. Katona 등 \cite{katona2019time}은 향후 5 초 내 사망을 예측하였다. 이 계열은 초 단위 리플레이 관측을 전제한다는 점에서 본 논문과 다르며, 본 논문은 이 문제를 분 단위 공개 텔레메트리로 옮긴 최초의 대규모 연구에 해당한다.
+
+\section{이진 분류의 확률적 정식화}
+\label{sec:bg-classification}
+
+\begin{definition}[이진 분류 문제]
+입력 공간 $\mathcal{X}$와 라벨 $y \in \{0,1\}$에 대한 결합 분포 $P(X, Y)$가 있을 때, 점수 함수 $f: \mathcal{X} \to \R$를 학습하여 $P(Y=1 \mid X=x)$를 근사하는 문제. 확률 출력은 $p(x) = \sigma(f(x))$, $\sigma(z) = 1/(1+e^{-z})$로 얻는다.
+\end{definition}
+
+학습은 경험적 위험 최소화(empirical risk minimization) \cite{vapnik1998statistical}의 틀에서 이루어지며, 본 논문은 로그 손실(이진 교차 엔트로피)을 기본 목적함수로 사용한다:
+\begin{equation}
+  \mathcal{L}_{\mathrm{BCE}}(p, y) = -\big[y \log p + (1-y)\log(1-p)\big].
+  \label{eq:bce}
+\end{equation}
+
+\section{평가 지표의 정의와 기원}
+\label{sec:bg-metrics}
+
+\begin{definition}[ROC 곡선과 AUC]
+임계값 $\tau$에 대해 참양성률 $\mathrm{TPR}(\tau)=P(f(X)\ge\tau \mid Y=1)$과 거짓양성률 $\mathrm{FPR}(\tau)=P(f(X)\ge\tau \mid Y=0)$을 정의하면, ROC(receiver operating characteristic) 곡선은 $\tau$를 변화시키며 얻는 점 $(\mathrm{FPR}(\tau), \mathrm{TPR}(\tau))$의 궤적이다. AUC는 그 아래 면적으로,
+\begin{equation}
+  \AUC = P\big(f(X^{+}) > f(X^{-})\big) + \tfrac12 P\big(f(X^{+}) = f(X^{-})\big)
+  \label{eq:auc}
+\end{equation}
+와 같이 무작위로 뽑은 양성 표본의 점수가 음성 표본의 점수보다 클 확률과 같다.
+\end{definition}
+
+ROC는 제2차 세계대전기의 레이더 신호 검출 이론에서 유래하였고 심리물리학으로 확장되었다 \cite{green1966signal}. 식 \eqref{eq:auc}의 확률 해석은 Hanley와 McNeil \cite{hanley1982meaning}이 AUC가 Mann--Whitney $U$ 통계량 \cite{mann1947test}과 동치임을 보이며 정립하였다. 기계학습에서의 표준적 소개는 Fawcett \cite{fawcett2006introduction}을 따른다. 본 논문은 교전 라벨이 거의 균형($\approx 50/50$)이고, 예측기의 순위 품질이 관심사이므로 AUC를 1차 지표로 사용한다.
+
+\begin{definition}[평균 정밀도]
+정밀도 $\mathrm{Prec}(\tau)$와 재현율 $\mathrm{Rec}(\tau)$의 곡선 아래 면적으로, 임계값 순서대로 $\mathrm{AP} = \sum_k \big(\mathrm{Rec}_k - \mathrm{Rec}_{k-1}\big)\mathrm{Prec}_k$로 계산한다. 정밀도--재현율 곡선은 불균형 상황에서 ROC보다 정보량이 크다 \cite{davis2006relationship}.
+\end{definition}
+
+\begin{definition}[Brier 점수]
+$N$개의 예측 확률 $p_i$와 결과 $y_i$에 대해 $\mathrm{BS} = \frac{1}{N}\sum_{i=1}^{N}(p_i - y_i)^2$. 1950년 Brier가 기상 예보의 검증을 위해 제안하였으며 \cite{brier1950verification}, 엄격한 적정 채점 규칙(strictly proper scoring rule)이다.
+\end{definition}
+
+\begin{definition}[보정과 기대 보정 오차]
+예측 확률이 \emph{보정}(calibrated)되었다는 것은 $P(Y=1 \mid p(X)=p) = p$가 모든 $p$에 대해 성립함을 뜻한다. 예측을 $M$개의 구간 $B_m$으로 나누었을 때 기대 보정 오차는
+\begin{equation}
+  \mathrm{ECE} = \sum_{m=1}^{M} \frac{|B_m|}{N}\,\Big|\,\mathrm{acc}(B_m) - \mathrm{conf}(B_m)\Big|
+\end{equation}
+이다. 구간 기반 ECE는 Naeini 등 \cite{naeini2015obtaining}이 제안하였고, 심층 신경망의 과신(overconfidence)과 온도 조정(temperature scaling)에 의한 사후 보정은 Guo 등 \cite{guo2017calibration}이 체계화하였다.
+\end{definition}
+
+\section{예측기 비교를 위한 통계 검정}
+\label{sec:bg-stats}
+
+\begin{definition}[DeLong 검정]
+동일한 시험 집합에서 얻은 두 AUC $\hat{A}_1, \hat{A}_2$의 차이를 검정한다. AUC를 $U$ 통계량으로 보고 그 점근 분산·공분산을 구조적 성분(structural component)으로 추정하면, 귀무가설 $A_1 = A_2$ 아래에서
+\begin{equation}
+  Z = \frac{\hat{A}_1 - \hat{A}_2}{\sqrt{\widehat{\mathrm{Var}}(\hat A_1) + \widehat{\mathrm{Var}}(\hat A_2) - 2\,\widehat{\mathrm{Cov}}(\hat A_1, \hat A_2)}} \;\sim\; \mathcal{N}(0,1)
+\end{equation}
+이다. DeLong 등 \cite{delong1988comparing}이 제안한 비모수 검정으로, 상관된(같은 표본에 대한) AUC 비교에 적합하다.
+\end{definition}
+
+\begin{definition}[McNemar 검정]
+두 분류기의 정오표에서 $b$ = A만 맞힌 수, $c$ = B만 맞힌 수라 할 때 연속성 보정된 통계량 $\chi^2 = (|b-c|-1)^2/(b+c)$는 귀무가설 아래 자유도 1의 $\chi^2$ 분포를 따른다 \cite{mcnemar1947note}.
+\end{definition}
+
+\begin{definition}[Holm--Bonferroni 보정]
+$m$개의 가설에 대한 $p$값을 오름차순 $p_{(1)} \le \dots \le p_{(m)}$으로 정렬하고, $p_{(i)} \le \alpha/(m-i+1)$이 처음으로 실패하는 $i$ 이전까지만 기각한다. 가족 오류율(family-wise error rate)을 $\alpha$로 통제하면서 Bonferroni보다 균일하게 더 검정력이 높다 \cite{holm1979simple}.
+\end{definition}
+
+\begin{definition}[부트스트랩 백분위 신뢰구간]
+관측 표본으로부터 복원 추출한 $B$개의 재표본 각각에서 통계량을 계산하고, 그 경험 분포의 $2.5$ 및 $97.5$ 백분위를 95\% 신뢰구간으로 취한다. Efron \cite{efron1979bootstrap}이 제안하였다.
+\end{definition}
+
+\section{학습 모델의 계보}
+\label{sec:bg-models}
+
+\paragraph{그래디언트 부스팅 결정 트리.} Friedman \cite{friedman2001greedy}은 손실의 음의 기울기를 결정 트리로 순차 근사하는 그래디언트 부스팅을 제안하였다. XGBoost \cite{chen2016xgboost}는 2차 근사와 정규화를, LightGBM \cite{ke2017lightgbm}은 히스토그램 기반 분할, 기울기 기반 단측 표본화(GOSS), 배타적 특징 묶음(EFB)으로 대규모 테이블 데이터에 대한 효율을 크게 높였다. 본 논문의 테이블 기준선은 LightGBM이다.
+
+\paragraph{순환 신경망.} LSTM \cite{hochreiter1997long}은 게이트 구조로 장기 의존성의 기울기 소실을 완화하였고, GRU \cite{cho2014learning}는 이를 두 개의 게이트로 단순화하였다. 양방향 순환망 \cite{schuster1997bidirectional}은 순방향·역방향 은닉 상태를 결합한다. 본 논문의 관측 창은 길이 $L=6$의 짧은 시퀀스이므로 양방향 처리는 온셋 직전 상태와 창의 시작 상태를 동시에 요약하는 역할을 한다.
+
+\paragraph{주의 기반 모델.} 가산 주의(additive attention)는 Bahdanau 등 \cite{bahdanau2015neural}이 기계 번역에서 제안하였고, Transformer \cite{vaswani2017attention}는 순환 없이 스케일된 내적 자기 주의(self-attention)만으로 시퀀스를 처리한다. 본 논문의 시간 주의 풀링(T3)과 사건 교차 주의(cross-attention)는 각각 이 두 계보에 속한다.
+
+\paragraph{시간 합성곱과 상태공간 모델.} TCN \cite{bai2018empirical}은 인과적(causal) 팽창 합성곱을 쌓아 순환 없이 긴 수용 영역을 얻는다. Mamba \cite{gu2023mamba}는 입력에 따라 매개변수가 바뀌는 선택적 상태공간 모델(selective SSM)로, 선형 시간 복잡도로 시퀀스를 처리한다.
+
+\paragraph{그래프 신경망.} 스펙트럼 그래프 합성곱의 1차 근사인 GCN \cite{kipf2017semi}, 이웃 표본화·평균 집계의 GraphSAGE \cite{hamilton2017inductive}, 주의 가중 집계의 GAT \cite{velickovic2018graph}와 그 표현력을 높인 GATv2 \cite{brody2022how}, 그리고 이들을 포괄하는 메시지 전달 신경망(MPNN) \cite{gilmer2017neural}의 틀을 사용한다. 시공간 그래프 신경망은 교통 예측(DCRNN \cite{li2018diffusion}, STGCN \cite{yu2018spatio})과 골격 기반 행동 인식(ST-GCN \cite{yan2018spatial})에서 발전하였으며, 그래프 구조가 시간에 따라 변하는 동적 그래프는 EvolveGCN \cite{pareja2020evolvegcn}과 같은 연구에서 다루어졌다.
+
+\paragraph{앙상블과 게이트 융합.} 스태킹(stacked generalization)은 Wolpert \cite{wolpert1992stacked}가 제안한 것으로, 기저 모델의 출력을 메타 학습기의 입력으로 삼는다. 게이트에 의한 전문가 혼합은 Shazeer 등 \cite{shazeer2017outrageously}과 다중 게이트 전문가 혼합 \cite{ma2018modeling}으로 이어진다. 본 논문의 계층적 융합(layered fusion)은 세 인코더의 출력을 시그모이드 게이트로 가중하는 형태이다.
+
+\section{학습 목적함수의 변형과 정규화}
+\label{sec:bg-objectives}
+
+초점 손실(focal loss) \cite{lin2017focal}은 쉬운 표본의 손실 기여를 $(1-p_t)^\gamma$로 줄여 어려운 표본에 학습을 집중시킨다. 라벨 평활화 \cite{szegedy2016rethinking}는 경성 라벨을 균등 분포 쪽으로 $\epsilon$만큼 이동시키며, 그 정규화 효과는 Müller 등 \cite{muller2019when}이 분석하였다. 다중 과제 학습은 Caruana \cite{caruana1997multitask}가 정립하였고 심층 신경망에서의 개관은 Ruder \cite{ruder2017overview}를 따른다. 최적화기는 가중치 감쇠를 기울기 갱신과 분리한 AdamW \cite{loshchilov2019decoupled}를 사용하고, 혼합 정밀도 학습 \cite{micikevicius2018mixed}을 적용한다.
+
+\section{데이터 누출, 공변량 이동, 선택 편향}
+\label{sec:bg-leakage}
+
+\begin{definition}[데이터 누출]
+학습 시점에 정당하게 사용할 수 없는 정보(예: 예측 대상 사건 이후의 상태)가 입력에 포함되어 모델 성능이 과대평가되는 현상 \cite{kaufman2012leakage}.
+\end{definition}
+
+\begin{definition}[공변량 이동]
+입력 분포 $P(X)$는 학습과 시험 사이에서 달라지지만 조건부 분포 $P(Y \mid X)$는 유지되는 분포 이동 \cite{shimodaira2000improving,quinonero2009dataset}. 본 논문에서는 패치가 이동의 원인이며, LightGBM에 최근성 가중치를 부여하여 완화한다.
+\end{definition}
+
+\begin{definition}[Berkson의 역설]
+두 변수가 모집단에서는 독립이더라도, 둘 중 하나 이상에 조건화된 부분 집단만 관측하면 가짜 상관이 생기는 현상 \cite{berkson1946limitations}. 교전 검출 규칙이 예측 지평의 관측 가능한 신호(예: 킬)를 조건으로 하면 $P(Y\mid X, \text{signal}) \ne P(Y \mid X)$가 되어 라벨 분포가 왜곡된다.
+\end{definition}
+
+본 논문은 교전의 \emph{존재}를 킬로 조건화하되(킬 조건부 정의), 라벨 창 안의 \emph{결과}에는 조건화하지 않으며, 관측 창의 모든 입력이 온셋 이전 정보만을 사용하도록 계약을 명시한다(제 \ref{sec:problem-contract} 절).
+
+\section{설명 가능성}
+\label{sec:bg-shap}
+
+SHAP(SHapley Additive exPlanations) \cite{lundberg2017unified}은 협력 게임 이론의 Shapley 값을 특징 기여도로 해석하며, 트리 앙상블에 대한 다항 시간 계산법(TreeSHAP)은 Lundberg 등 \cite{lundberg2020local}이 제안하였다. 본 논문은 LightGBM의 TreeSHAP 기여도를 역할(role)과 신호 유형별로 합산하여 해석한다.
+
+\section{검출기 검증을 위한 일치도 지표}
+\label{sec:bg-agreement}
+
+두 구간 집합의 일치는 시간 IoU(intersection over union) $\mathrm{IoU}(a,b) = |a\cap b|/|a\cup b|$로 짝을 지은 뒤 정밀도·재현율·$F_1$로 요약한다. 주석자 간 일치도는 Cohen의 $\kappa$ \cite{cohen1960coefficient}로 보고한다. $\kappa = (p_o - p_e)/(1 - p_e)$로, $p_o$는 관측 일치율, $p_e$는 우연 일치율이다.

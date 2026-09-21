@@ -1,0 +1,60 @@
+\chapter{서론}
+\label{ch:intro}
+
+\section{연구 배경}
+\label{sec:intro-background}
+
+리그 오브 레전드(League of Legends, LoL)는 Riot Games가 개발한 5 대 5 멀티플레이어 온라인 배틀 아레나(multiplayer online battle arena, MOBA) 게임으로, 두 팀이 $16{,}000 \times 16{,}000$ 게임 단위 크기의 대칭 지도 위에서 상대 본진의 넥서스를 파괴하는 것을 목표로 경쟁한다. 경기의 흐름을 결정하는 핵심 사건은 \emph{교전}(engagement)이다. 여기서 교전이란 양 팀의 다수 챔피언이 동일한 시공간 영역에서 서로 피해를 주고받으며 킬(kill)이 발생하는 국면을 말하며, 그 결과에 따라 골드·경험치 격차, 오브젝트(용, 바론, 포탑) 통제권, 그리고 최종 승패가 갈린다. 프로 코칭과 방송 해설은 교전을 ``한타''라고 부르며 경기 분석의 기본 단위로 삼는다.
+
+이스포츠 분석(esports analytics) 분야에서 승패 예측은 가장 오래된 과제이다. 초기 연구는 챔피언 선택(draft)만으로 경기 승패를 예측하였고 \cite{semenov2016performance}, 이후 경기 중 골드·경험치·오브젝트 스냅숏을 시간 축으로 입력하는 실시간(in-game) 예측으로 확장되었다 \cite{yang2016realtime,silva2018continuous,hodge2021win,hitar2023machine}. 그러나 이들 연구는 예측의 단위를 \emph{경기 전체}로 두었다. 경기 승패는 수십 번의 교전이 누적된 결과이므로, 경기 단위 예측기는 개별 교전의 미시 동학(positioning, 스킬 쿨다운, 아이템 파워 스파이크, 조합 시너지)을 직접 설명하지 못한다.
+
+교전 단위 분석의 뿌리는 Dota~2 연구에서 찾을 수 있다. Yang 등 \cite{yang2014identifying}은 전투를 그래프로 표현하여 승리와 연관된 패턴을 탐색하였고, Schubert 등 \cite{schubert2016esports}은 리플레이로부터 ``encounter''를 자동 검출하는 절차를 제안하였다. Katona 등 \cite{katona2019time}은 5 초 이내의 챔피언 사망을 심층 신경망으로 예측하였다. 그러나 이들 연구는 \emph{리플레이 파일}로부터 얻은 고해상도(초 단위 또는 그 이하) 관측을 전제한다. 리플레이는 게임 클라이언트를 통해서만 접근할 수 있고, 보존 기간이 짧으며, 대규모 수집이 사실상 불가능하다.
+
+반면 Riot Games가 공개하는 Match-V5 API\footnote{\url{https://developer.riotgames.com/apis}}는 누구나 접근 가능한 \emph{공개 텔레메트리}(public telemetry)이지만, 플레이어 상태(위치, 골드, 체력, 스탯)는 \textbf{60 초 간격} 프레임으로만 제공되고 사건(킬, 오브젝트, 와드 등)만 밀리초 해상도로 제공된다. 즉 교전은 수 초에서 수십 초 사이에 벌어지는데, 관측 가능한 상태 해상도는 그보다 한 자릿수 이상 거칠다. 본 논문은 바로 이 \emph{분 단위 공개 텔레메트리}라는 제약 아래에서 교전 결과 예측이 어디까지 가능한지를 체계적으로 규명한다.
+
+\section{문제 정의와 도전 과제}
+\label{sec:intro-challenges}
+
+본 논문이 다루는 문제는 다음과 같이 요약된다. \emph{공개 텔레메트리만으로} (i) 경기 안에서 교전이 언제 어디서 일어났는지를 사람의 주석 없이 재현 가능하게 찾아내고(교전 국소화, localization), (ii) 교전이 시작되기 직전 30 초의 관측만으로 어느 팀이 교전에서 이길지를 예측한다(교전 결과 예측). 이 문제는 다음 다섯 가지 이유로 어렵다.
+
+\begin{enumerate}[leftmargin=2em]
+  \item \textbf{시공간 복잡성.} 열 명의 플레이어가 동시에 이동하며, 누가 누구와 가까운지(상호작용 그래프)가 연속적으로 바뀐다. 교전의 발생과 결과 모두 이 동적 그래프의 함수이다.
+  \item \textbf{이질적 모달리티.} 예측 신호는 플레이어별 수치 상태(골드, 레벨, 스탯), 팀 단위 집계(오브젝트 차이), 이산 사건(킬, 와드), 범주형 메타데이터(챔피언, 룬, 소환사 주문)에 흩어져 있다.
+  \item \textbf{시간 해상도 불일치.} 상태는 60 초, 사건은 밀리초 단위이다. 두 시간 축을 정렬할 때 \emph{미래 정보}가 관측 창에 새어 들어가지 않도록 하는 계약(contract)이 필요하다.
+  \item \textbf{패치에 따른 공변량 이동.} LoL은 약 2 주마다 밸런스 패치를 받는다. 학습 분포와 시험 분포가 달라지는 공변량 이동(covariate shift) \cite{shimodaira2000improving,quinonero2009dataset}이 구조적으로 존재한다.
+  \item \textbf{선택 편향.} 교전을 ``예측 지평 안에 사건이 있는 창''으로 정의하면, 결과에 조건화된 표본 선택이 일어나 Berkson의 역설 \cite{berkson1946limitations}과 같은 편향이 학습 분포에 유입된다.
+\end{enumerate}
+
+\section{연구 질문}
+\label{sec:intro-rq}
+
+위 문제를 다음 연구 질문(research question, RQ)으로 구체화한다.
+
+\begin{description}[leftmargin=3.2em,style=nextline]
+  \item[RQ1 (국소화)] 킬 사건만을 씨앗으로 하는 결정론적 규칙으로, 분 단위 텔레메트리에서 교전을 재현 가능하게 국소화할 수 있는가? 검출된 교전은 사람의 판단과 얼마나 일치하는가?
+  \item[RQ2 (표현)] 동일한 관측 창에서 공학적 테이블 요약, 시퀀스, 플레이어 그래프, 사건 토큰 가운데 어떤 입력 표현(view)이 가장 많은 예측 신호를 드러내는가?
+  \item[RQ3 (학습기)] 입력 표현을 고정했을 때 학습기 계열(그래디언트 부스팅 대 다층 퍼셉트론)의 차이는 얼마나 되는가?
+  \item[RQ4 (조건부 예측 가능성)] 예측 가능성은 게임 국면(초반·중반·후반)과 교전 직전 골드 격차에 따라 어떻게 달라지며, 그 한계는 공개 텔레메트리의 정보 입도(information granularity)로 설명되는가?
+  \item[RQ5 (도메인 지식 처치)] 초점 손실, 게임 국면 부호화, 시간 주의 풀링, 모멘텀 특징, 역할 인식 인접행렬, 다중 과제 손실, 라벨 평활화의 일곱 가지 처치는 통계적으로 유의한 개선을 주는가?
+\end{description}
+
+\section{기여}
+\label{sec:intro-contrib}
+
+본 논문의 기여는 다음과 같다.
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{킬 조건부 교전 국소화 알고리즘.} 시간 군집화(18 초) $\to$ 공간 지름 분할(4{,}000 단위, 완전 연결) $\to$ 온셋 검증(팀당 생존 2 명 이상, 1{,}800 단위) $\to$ 인접 후보 병합(15 초 / 2{,}000 단위)의 네 단계로 이루어진 결정론적 알고리즘을 제안하고, 206{,}442 경기로부터 약 100 만 건의 교전 말뭉치를 사람의 주석 없이 구축한다(제 \ref{ch:localization} 장).
+  \item \textbf{교환가치 라벨.} 킬 수 차이 대신, 사건별 도메인 가치를 softmax 주의로 가중한 \emph{교환가치}(exchange value) 라벨을 정의하여 교전 결과를 이진화한다(제 \ref{ch:label} 장).
+  \item \textbf{무누출 다중 모달 표현.} 플레이어 노드 76 차원, 전역 26 차원, 사건 44 차원의 특징을 6 개의 5 초 구간으로 구성하되, 60 초 프레임을 계단 유지(step-hold)하고 온셋 이후 프레임을 결코 사용하지 않는 무누출 계약을 명시한다(제 \ref{ch:features} 장).
+  \item \textbf{25 종 이상의 모델을 단일 하네스에서 비교.} LightGBM, 다층 퍼셉트론, 순환·주의·합성곱·상태공간 시퀀스 모델, 그래프 신경망, 시공간 그래프 신경망, 계층적 융합 모델을 동일한 분할·시드·평가 절차로 비교한다(제 \ref{ch:models} 장).
+  \item \textbf{통계적으로 통제된 절제 실험.} 세 시드 반복, 부트스트랩 신뢰구간, DeLong 검정, Holm--Bonferroni 보정을 갖춘 5 단계 절제 프로토콜로 일곱 가지 도메인 지식 처치를 평가한다(제 \ref{ch:setup} 장).
+  \item \textbf{경험적 발견.} 공학적 테이블 표현과 그래디언트 부스팅의 조합이 시험 AUC $.675$로 가장 우수하며, 신경망 기반 시퀀스·그래프·사건 표현은 $.569$--$.581$에 머문다. 예측 가능성은 후반 국면($.807$)과 일방적 골드 격차($.796$)에서 크게 높아지고, 골드가 대등한 교전에서는 우연 수준에 근접한다. 이는 분 단위 공개 텔레메트리의 정보 입도 한계를 시사한다(제 \ref{ch:results}, \ref{ch:discussion} 장).
+\end{itemize}
+
+본 논문의 핵심 결과는 IEEE Conference on Games 2026에 발표된 논문 \cite{baek2026killconditioned}을 확장한 것이다. 코드는 MIT 라이선스로 공개되어 있으며\footnote{\url{https://github.com/Lunecid/LOL_teamfight_Lab}}, 논문에 대응하는 코드 상태는 태그 \texttt{v1.0-cog2026}으로 고정되어 있다.
+
+\section{논문의 구성}
+\label{sec:intro-outline}
+
+제 \ref{ch:background} 장은 관련 연구와 본 논문이 사용하는 개념들의 정의·기원을 정리한다. 제 \ref{ch:problem} 장은 텔레메트리와 교전, 예측 문제를 형식적으로 정의한다. 제 \ref{ch:localization} 장은 교전 국소화 알고리즘과 그 타당성 검증 설계를, 제 \ref{ch:label} 장은 교환가치 라벨을, 제 \ref{ch:features} 장은 특징 표현을 다룬다. 제 \ref{ch:models} 장은 비교 대상 모델과 일곱 가지 처치를 정의하고, 제 \ref{ch:setup} 장은 데이터·분할·학습·평가 절차를, 제 \ref{ch:results} 장은 결과를 제시한다. 제 \ref{ch:discussion} 장에서 설계 결정, 코드--논문 감사, 타당성 위협을 논의하고, 제 \ref{ch:conclusion} 장에서 결론과 향후 연구를 제시한다.
