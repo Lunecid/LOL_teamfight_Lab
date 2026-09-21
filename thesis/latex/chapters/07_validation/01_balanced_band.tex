@@ -6,6 +6,6 @@ M-RQ4의 첫 절은 예측이 초기 경기 우세에 얼마나 의존하는가�
 
 \input{tables/tab_b40}
 
-\paragraph{T.} $\Bforty$(\numTBforty{} 교전)에서 $\dBrier(q - \PTflex) = \dBrierTBforty$ \ci{\dBrierTBfortyLo}{\dBrierTBfortyHi}이다. 구간의 상단이 0 근처에 있으므로 이는 \emph{작은 탐색적} 개선이며, 크기 $\ge \tauMeaningful$의 명확한 이득을 주장하지 않는다. 이질성 $H = D_{\Bforty} - D_{\text{outside}}$($D$는 $q$와 $\PTflex$의 행별 제곱오차 차이의 평균)는 \hetT{} \ci{\hetTLo}{\hetTHi}로 구간이 0을 포함하며, 균형 상태가 불균형 상태보다 유의하게 어렵다고 결론짓지 않는다. RR4가 다른 시드로 같은 대비를 다시 추출하면 상단이 $-0.0001$로 인쇄되고 점추정은 같다.
+\paragraph{T.} $\Bforty$(\numTBforty{} 교전)에서 $\dBrier(q - \PTflex) = \dBrierTBforty$ \ci{\dBrierTBfortyLo}{\dBrierTBfortyHi}이다. 구간의 상단이 0 근처에 있으므로 이는 해석 눈금 $\tauMeaningful$보다 작은 \emph{작은 탐색적} 개선이다. 이질성 $H = D_{\Bforty} - D_{\text{outside}}$($D$는 $q$와 $\PTflex$의 행별 제곱오차 차이의 평균)는 \hetT{} \ci{\hetTLo}{\hetTHi}로 구간이 0을 포함하며, 균형 구간 안팎의 이득 차이는 이 표본에서 불확실하다. RR4가 다른 시드로 같은 대비를 다시 추출하면 상단이 $-0.0001$로 인쇄되고 점추정은 같다.
 
-\paragraph{S.} $\Bforty$(\numSBforty{} 교전)에서 $\dBrier(\qS - \PTflexS) = \dBrierSBforty$ \ci{\dBrierSBfortyLo}{\dBrierSBfortyHi}이고 $H_S = \hetS$ \ci{\hetSLo}{\hetSHi}이다. S 안에서 이득은 $\Bforty$ 안에서 바깥보다 작지만 $\Bforty$의 이득 자체는 명확히 0이 아니다. 두 $\Bforty$ 셀은 코호트에서 차지하는 비율(\shareTBforty\% 대 \shareSBforty\%)과 크기(\numTBforty{} 대 \numSBforty{} 행)가 다르므로 서로 비교하지 않으며, 모든 진술은 코호트 안에서만 성립한다. 어느 쪽이든 $\Bforty$의 약한 이득을 관측되지 않은 전투 숙련의 증거로 읽지 않는다.
+\paragraph{S.} $\Bforty$(\numSBforty{} 교전)에서 $\dBrier(\qS - \PTflexS) = \dBrierSBforty$ \ci{\dBrierSBfortyLo}{\dBrierSBfortyHi}이고 $H_S = \hetS$ \ci{\hetSLo}{\hetSHi}이다. S 안에서 이득은 $\Bforty$ 안에서 바깥보다 작고, $\Bforty$의 이득 자체는 구간이 0을 제외한다. 두 $\Bforty$ 셀은 코호트에서 차지하는 비율(\shareTBforty\% 대 \shareSBforty\%)과 크기(\numTBforty{} 대 \numSBforty{} 행)가 다르며, 각 셀의 결과는 그 코호트 안에서 읽는다.

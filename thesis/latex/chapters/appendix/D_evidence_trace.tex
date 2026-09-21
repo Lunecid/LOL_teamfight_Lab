@@ -2,11 +2,11 @@
 \chapter{수치의 증거 추적}
 \label{app:trace}
 
-본 논문의 모든 수치는 \path{thesis/latex/config/numbers.tex}의 매크로로 쓰이며, 각 매크로의 출처 파일과 필드는 \path{thesis/docs/NUMBERS.md}에 기록되어 있다. 표 \ref{tab:app-trace}는 주 결과에 해당하는 항목을 발췌한 것이다. 세 계보(fit85/$\SVI$ 저널 스파인; 2026-09-15 구 로지스틱 $V$; \path{market_event} 선행 연구 확장)의 수치는 결코 한 표에 함께 놓지 않는다.
+본 논문의 모든 수치는 매크로로 쓰인다. 주 결과의 매크로는 \path{thesis/latex/config/numbers.tex}에 있고 출처 파일과 필드는 \path{thesis/docs/NUMBERS.md}에 기록되어 있다. 보완 실험의 매크로와 표는 생성기 \path{thesis/tools/gen_supp.py}가 \path{docs/SUPPLEMENTARY_*_20260921.json}에서 만들며, 매크로마다 통계량·분자·분모·조건·가중·출처 필드를 \path{thesis/docs/NUMBERS_SUPP.md}에 기록한다. 표 \ref{tab:app-trace}는 주 결과에 해당하는 항목을 발췌한 것이다. 네 계열(fit85/$\SVI$ 주 결과; 2026-09-15 로지스틱 $V$; \path{market_event} 교환가치 라벨; 보완 실험)의 수치는 한 표에 함께 놓지 않는다.
 
 \begin{table}[H]
   \centering
-  \caption{주 수치의 출처 (발췌).}
+  \caption{주 수치의 출처 (발췌)}
   \label{tab:app-trace}
   \small
   \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{4.9cm}>{\raggedright\arraybackslash}p{5.0cm}X@{}}

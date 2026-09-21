@@ -1,7 +1,7 @@
 %% table 객체: tab:roles-evaluator — 출처 A_MLP_expanded_evaluator_meta_20260919.json meta.census; TEST_BAND_LEDGER
-\begin{table}[htbp]
+\begin{table}[!t]
   \centering
-  \caption{승률 평가기 $\Vhat$의 시간상태 역할. 학습 합계 \numVTrain{}는 적합 \numVFit{}와 조기 종료용 \numVStop{}의 합이다. census에 기록되지 않은 경기 수는 ``---''로 둔다.}
+  \caption{승률 평가기 $\Vhat$의 데이터 역할 (시간상태 단위)}
   \label{tab:roles-evaluator}
   \small
   \begin{tabular}{@{}llrrl@{}}
@@ -15,4 +15,5 @@
     TEST & 15.16 & \numVTest{} & \numVTestMatches{} & 봉인 원장 \\
     \bottomrule
   \end{tabular}
+  \tabnote{학습 합계 \numVTrain{} = 적합 \numVFit{} + 조기 종료용 \numVStop{}. ``---'' = census에 경기 수가 기록되지 않음.}
 \end{table}

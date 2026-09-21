@@ -7,6 +7,6 @@
 \input{tables/tab_roles_evaluator}
 \input{tables/tab_roles_engagement}
 
-라벨을 만드는 평가기는 두 경로로 나뉜다. 15.14 TRAIN의 교전은 다섯 개의 경기 fold 평가기 $\Vfold{k}$로 라벨링된다. 각 $\Vfold{k}$는 fold $k$의 경기를 제외하고 같은 구조, 전처리, 조기 종료 규칙, V\_CAL 보정 단계를 거쳐 다시 적합되며, 한 TRAIN 교전의 $\ppre$, $\dV$, $\Ysvi$, $\Bforty$ 소속은 모두 같은 $\Vfold{k}$에서 나온다. 15.15의 Q\_CAL·Q\_SELECT, 15.16 TEST, 외부 코호트는 동결된 fit85 번들로 라벨링된다. 동결 번들은 자신의 학습 경기를 결코 라벨링하지 않는다. 15.15의 V\_CAL·V\_SELECT에 속한 교전 행(\numTVcal{} / \numTVsel{})은 평가기의 보정·선정에만 쓰이고 $q$에는 쓰이지 않는다. 15.15 T 행 전체 \numTVal{}에서 Q\_CAL·Q\_SELECT를 제외한 나머지가 바로 이 행들이다.
+라벨을 만드는 평가기는 두 경로로 나뉜다. 15.14 TRAIN의 교전은 다섯 개의 경기 fold 평가기 $\Vfold{k}$로 라벨링된다. 각 $\Vfold{k}$는 fold $k$의 경기를 제외하고 같은 구조, 전처리, 조기 종료 규칙, V\_CAL 보정 단계를 거쳐 다시 적합되며, 한 TRAIN 교전의 $\ppre$, $\dV$, $\Ysvi$, $\Bforty$ 소속은 모두 같은 $\Vfold{k}$에서 나온다. 15.15의 Q\_CAL·Q\_SELECT, 15.16 TEST, 외부 코호트는 동결된 fit85 번들로 라벨링된다. 동결 번들의 학습 경기는 15.14에 있으므로 동결 번들이 라벨링하는 경기와 겹치지 않는다. 15.15의 V\_CAL·V\_SELECT에 속한 교전 행(\numTVcal{} / \numTVsel{})은 평가기의 보정·선정에만 쓰이고 $q$에는 쓰이지 않는다. 15.15 T 행 전체 \numTVal{}에서 Q\_CAL·Q\_SELECT를 제외한 나머지가 바로 이 행들이다.
 
-S 코호트의 행은 T와 같은 흐름을 따르되 규모 계급만 다르며, 같은 두 평가기 경로로 라벨링된다. 실행 manifest는 S와 T의 사례 키 교집합이 0이고, 모든 S·T TRAIN 경기가 자기 fold의 보류 경기 집합(fold당 \foldHeldMin{}--\foldHeldMax{} 경기) 안에 있음을 확인하였다. 합동 모델 $\qTS$를 위해서는 T와 S의 라벨 집합을 이어 붙이고(TRAIN \numUnionTrain{} 행, \numUnionTrainMatches{} 경기, 키 중복 0) 가중치를 합집합 안에서 다시 계산한다. 합집합의 TEST는 평가 셀이 아니다.
+S 코호트의 행은 T와 같은 흐름을 따르되 규모 계급만 다르며, 같은 두 평가기 경로로 라벨링된다. 실행 manifest는 S와 T의 사례 키 교집합이 0이고, 모든 S·T TRAIN 경기가 자기 fold의 보류 경기 집합(fold당 \foldHeldMin{}--\foldHeldMax{} 경기) 안에 있음을 확인하였다. 합동 모델 $\qTS$를 위해서는 T와 S의 라벨 집합을 이어 붙이고(TRAIN \numUnionTrain{} 행, \numUnionTrainMatches{} 경기, 키 중복 0) 가중치를 합집합 안에서 다시 계산한다. 평가 셀은 코호트별이며 합집합에 대한 TEST 셀은 두지 않는다.

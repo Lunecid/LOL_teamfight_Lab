@@ -1,11 +1,11 @@
 %!TEX root = ../../main.tex
 \section{동결 승률 평가기 $\Vhat$}
-\label{sec:val-evaluator}
+\label{sec:value-evaluator}
 
-평가기 $\Vhat(x_t) = \widehat{\Pr}(W = 1 \mid x_t)$는 확장된 테이블 상태 표현 위의 다층 퍼셉트론으로, 잠긴 fit85 경기 홀드아웃 프로토콜로 적합되었다(후보명 \texttt{A\_MLP\_expanded}, 번들 sha16 \texttt{\bundleSha}). 이 번들의 가중치는 본 논문의 모든 평가 역할 계산(Q\_CAL, Q\_SELECT, 15.16 TEST, 외부 코호트)에서 \emph{동결}된다. 15.14 TRAIN 행의 라벨만 제 \ref{sec:data-roles} 절의 fold 평가기가 만든다. $\Vhat$를 바꾸면 $\ppre$, $\dV$, $\Ysvi$, 균형 구간이 모두 다시 정의되므로, 방향 AUC를 높이기 위해 $\Vhat$를 재조정하지 않는다.
+평가기 $\Vhat(x_t) = \widehat{\Pr}(W = 1 \mid x_t)$는 확장된 테이블 상태 표현 위의 다층 퍼셉트론으로, 잠긴 fit85 경기 홀드아웃 프로토콜로 적합되었다(후보명 \texttt{A\_MLP\_expanded}, 번들 sha16 \texttt{\bundleSha}). 이 번들의 가중치는 본 논문의 모든 평가 역할 계산(Q\_CAL, Q\_SELECT, 15.16 TEST, 외부 코호트)에서 \emph{동결}된다. 15.14 TRAIN 행의 라벨만 제 \ref{sec:data-roles} 절의 fold 평가기가 만든다. $\Vhat$를 바꾸면 $\ppre$, $\dV$, $\Ysvi$, 균형 구간이 모두 다시 정의되므로 $\Vhat$는 방향 예측 단계 전체에서 고정된다.
 
 \paragraph{입력과 구조.} 상태 표현 Expanded\dimExpanded{}은 \dimNumeric{}개 수치 특징과 \dimChampSlots{}개 챔피언 ID 슬롯이다. 각 챔피언 ID는 \dimEmbed{}차원 임베딩(어휘 \vocabChamp{}, 인덱스 0 = 미지)으로 사상되어 표준화된 수치 블록과 이어 붙여지며, 입력 차원은 $\dimNumeric + \dimChampSlots \times \dimEmbed = \dimInputV$이다. 망은 Linear $\to$ LayerNorm $\to$ GELU $\to$ Dropout(0.1)을 은닉 폭 (\hiddenA, \hiddenB)에 대해 거친 뒤 Linear(1)로 끝난다.
 
 \paragraph{적합(fit85).} AdamW(학습률 $\lrV$, 가중치 감쇠 $\wdV$)로 경기 가중 이진 교차 엔트로피를 최소화하며, 배치 \batchV, 시드 \bootSeed, 최대 \maxEpochsV{} 에폭, 15.14 TRAIN 안에서 경기 단위로 떼어 둔 \holdoutV\% 보류 집합의 Brier 점수에 대한 조기 종료(인내 \patienceV)를 쓰고 최선 에폭의 상태를 복원한다. 전체 TRAIN 재적합은 수행하지 않았다. 전처리 번들은 같은 TRAIN 부분에 적합된다.
 
-\paragraph{보정과 선정.} 양의 기울기 시그모이드 $g$를 15.15 V\_CAL에서 적합하여(계수 \calibCoef, 절편 \calibIntercept) 망의 로짓에 적용하므로 $\Vhat = g \circ f \circ T$이다. 후보는 15.15 V\_SELECT에서 예비 선언된 시간 균형 손실 $L_{\mathrm{time}} = \sum_b \alpha_b \Brier_b$, $\alpha_b = 1/4$로 선정하였으며, 밴드는 $[2,10)$, $[10,20)$, $[20,30)$, $[30,\infty)$분이고 2분 이전 행은 제외한다. 선정된 MLP의 $L_{\mathrm{time}}$은 \LtimeMLP{}이고 경쟁 후보인 GRU 이력 모델은 \LtimeGRU{}로 약 \gruGap{} 안에 있다. 이들은 단일 시드 점추정이므로 아키텍처의 우월성을 주장하지 않는다.
+\paragraph{보정과 선정.} 양의 기울기 시그모이드 $g$를 15.15 V\_CAL에서 적합하여(계수 \calibCoef, 절편 \calibIntercept) 망의 로짓에 적용하므로 $\Vhat = g \circ f \circ T$이다. 후보는 15.15 V\_SELECT에서 예비 선언된 시간 균형 손실 $L_{\mathrm{time}} = \sum_b \alpha_b \Brier_b$, $\alpha_b = 1/4$로 선정하였으며, 밴드는 $[2,10)$, $[10,20)$, $[20,30)$, $[30,\infty)$분이고 2분 이전 행은 제외한다. 선정된 MLP의 $L_{\mathrm{time}}$은 \LtimeMLP{}이고 경쟁 후보인 GRU 이력 모델은 \LtimeGRU{}로 약 \gruGap{} 안에 있다. 두 값은 단일 시드 점추정이며 후보 선정의 기록이다.

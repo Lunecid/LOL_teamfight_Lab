@@ -1,27 +1,9 @@
 %!TEX root = ../../main.tex
-\chapter{이연된 계획}
+\chapter{실행 상태와 이연된 계획}
 \label{app:deferred}
 
-다음은 모두 미실행 항목이며 증거가 아니다. 각 항목은 관찰, 질문, 경쟁 가설, 구별 예측, 분석 계획, 금지 주장의 순서로 사전 등록 형식을 갖추어 저장소 문서에 기록되어 있다(\texttt{docs/journal\_manuscript\_v1/THESIS\_V2\_FOLLOWUPS.md}; 정보군 모듈은 \texttt{docs/MASTER\_THESIS\_RESEARCH\_PLAN\_20260919.md} §5).
+표 \ref{tab:status}는 본 논문이 인용하는 보완 분석과 이연 항목의 실행 상태를 하위 분석 단위로 적은 것이다. 상태 어휘는 실행(DONE)·통과(PASS)·부분(PARTIAL)·미완료(INCOMPLETE)·미실행(NOT\_RUN)·차단(BLOCKED)·이연(DEFERRED)이며, 본문의 ``실행하였다''는 실행·통과 항목에만, ``미실행''과 ``이연''은 나머지에만 쓴다. 표는 저장소의 상태 원장(\path{thesis/docs/STATUS.md})에서 생성된다.
 
-\begin{table}[H]
-  \centering
-  \caption{이연 항목과 상태.}
-  \label{tab:app-deferred}
-  \small
-  \begin{tabularx}{\linewidth}{@{}lXl@{}}
-    \toprule
-    ID & 내용 & 상태 \\
-    \midrule
-    F1 & 외부 확률 어댑터 (적응/평가 경기 분리; 어댑터 가족 사전 고정; $\Vhat$·$q$·$\PTflex$ 동결; 무작위 라벨 음성 대조) & 이연 \\
-    F2 & 참여 인원 셀 2/3/4/5+ 재점수 (재적합 없음; 기울기 문구 금지) & 이연 \\
-    F3 & S arm 사이 단일 동결 $\PTflexS$ 재사용 (위생) & 이연 \\
-    F4 & 예비 선언된 T 대 S 외부 전이 대비 (같은 외부 경기에서 짝 부트스트랩) & 이연 \\
-    F5 & 정의 상수 민감도 재실행 ($G$, $D$ 구간 내 이동; $B$ 10/20 s; 2만 경기 부표본) & 이연 (계보·파일럿만 인용) \\
-    F6 / M-F0--M-F3 & 정보군 모듈: $C$ / $C+F$ / $C+E$ / 전체 $X$의 중첩 비교 (동일 행·학습기; M-F0 $\ne$ PT) & 미실행 \\
-    사례 추적 & 원자료 $\to$ 경계 $\to$ $\Vhat$ $\to$ $\SVI$ $\to$ $q$ 연결 서사 & 미본문화 \\
-    \bottomrule
-  \end{tabularx}
-\end{table}
+\input{tables/gen/tab_status}
 
-이 항목들이 실행되면 계획으로부터의 이탈을 날짜, 항목, 이탈 내용, 이유, 결정자와 함께 이탈 장부에 기록한다.
+미실행·이연 항목의 설계는 관찰, 질문, 경쟁 가설, 구별 예측, 분석 계획, 금지 주장의 순서로 저장소의 사전 등록 문서(\path{docs/SUPPLEMENTARY_EXPERIMENT_DESIGN_20260921.md}; 외부 어댑터와 참여 인원 셀은 \path{docs/journal_manuscript_v1/THESIS_V2_FOLLOWUPS.md})에 기록되어 있다. 이 가운데 본 논문의 답에 직접 닿는 항목은 넷이다. 동일 352열 입력에서의 로지스틱 대 LightGBM 정합 비교(M-RQ3의 학습기 절), 변경된 정의에서 동결 $q$·PT의 점수 민감도와 재학습 모드(M-RQ1), 질의에서 사건 접두·$\Vhat$·$\SVI$·$q$로 이어지는 사례별 추적 덤프(M-RQ2), 그리고 규칙을 잠근 뒤 수집이 막힌 미노출 표본의 점수 전용 평가(M-RQ4)이다. 이 항목들이 실행되면 계획으로부터의 이탈을 날짜, 항목, 이탈 내용, 이유, 결정자와 함께 기록한다.

@@ -1,9 +1,14 @@
 %!TEX root = ../../main.tex
 \section{물질적 결과와 다음 오브젝트와의 대응}
-\label{sec:val-correspondence}
+\label{sec:value-correspondence}
 
-킬 차이가 결정된 교전에서 킬 축의 부호와 $\SVI$의 경기 가중 일치율은 전체 T에서 \killAgreeAll, $\Bforty$에서 \killAgreeBforty{}이다. 다른 축(엘리트 몬스터, 구조물, 오브젝트, 생존)은 일치율이 낮고 동점 비율이 높다. 물질적 특징은 $\Vhat$의 입력과 겹치므로 이 표는 \emph{대응}(correspondence)이지 독립적인 교전 승자 정확도도 $q$의 정확도도 아니다.
+$\SVI$가 같은 사례의 물질적 결과와 어떻게 대응하는지를 결과 시점(h90) 상태에서 계산한 다섯 축(킬 차이, 엘리트 몬스터 순차, 구조물 순차, 둘을 합한 오브젝트 순차, 종점 생존 차이)에 대해 본다(표 \ref{tab:material-axes}; 보완 실험, 15.16 노출 이후의 진단). 킬 차이가 결정된 교전에서 킬 축 부호와 $\SVI$의 경기 가중 일치율은 T 전체에서 \maTKillAllAgree{}, $\Bforty$에서 \maTKillBfortyAgree{}이며 S에서는 \maSKillAllAgree{}과 \maSKillBfortyAgree{}이다. 나머지 축은 동률 비율이 높고(예: T의 엘리트 몬스터 순차 \maTEpicAllTie{}) 일치율은 킬 축보다 낮다. 물질 특징은 $\Vhat$의 입력과 겹치므로 이 표는 같은 사례 안의 대응이다.
 
-결과 시점 이후 180초 창에서 첫 엘리트 오브젝트(바론, 용, 전령, 유충, 아타칸)가 한 팀에 귀속된 경우 가운데, 블루에 귀속된 비율은 $\SVI+$ 뒤에서 \objBluePos{}(\objBluePosNum{} / \objBluePosDen{}), $\SVI-$ 뒤에서 \objBlueNeg{}(\objBlueNegNum{} / \objBlueNegDen{})이다. 이들은 비가중 건수이며 경기 승률도 $q$의 정확도도 아니다. 불완전한 추적은 대부분 창 안에서 경기가 끝나 오브젝트가 없는 경우(\objGameEnded{} / \numTTest{})이고 관측 중단(censoring)은 0이다.
+\input{tables/gen/tab_material_axes}
+
+킬 축과 $\SVI$가 다른 사례에서 오브젝트 순차가 어느 쪽과 일치하는지도 세었다. T에서 킬 결정 행 가운데 두 부호가 다른 \kdTN{}건 중 오브젝트 순차는 $\SVI$ 쪽과 \kdTSvi{}건, 킬 쪽과 \kdTKill{}건 일치하고 \kdTTie{}건은 동률이다. S에서는 \kdSN{}건 중 \kdSSvi{} / \kdSKill{} / \kdSTie{}건이다. 두 라벨이 갈리는 사례는 물질 순차로도 한쪽으로 기울지 않으며, 이 분포는 두 결과 정의가 서로 다른 사례를 다르게 평가한다는 사실의 기술이다.
+
+결과 시점 이후 180초 창에서 첫 엘리트 오브젝트(바론, 용, 전령, 유충, 아타칸)가 한 팀에 귀속된 경우 가운데, 블루에 귀속된 비율은 $\SVI+$ 뒤에서 \objBluePos{}(\objBluePosNum{} / \objBluePosDen{}), $\SVI-$ 뒤에서 \objBlueNeg{}(\objBlueNegNum{} / \objBlueNegDen{})이다(표 \ref{tab:correspondence}; 비가중 건수). 창 안에서 경기가 끝나 오브젝트가 없는 경우가 \objGameEnded{} / \numTTest{}이고 관측 중단은 0이다. 같은 라벨을 다른 분모로 읽으면(표 \ref{tab:nextobj}) 귀속 팀이 Blue 또는 Red인 \noAllNBR{}행에서 $\SVI$ 방향과 귀속 팀이 일치한 비율 $P(\Ysvi = \ind[O = \mathrm{Blue}] \mid O \in \{\mathrm{Blue}, \mathrm{Red}\})$은 \noAllSviAgree{}이다. 이 값은 위의 조건부 귀속 비율 \objBluePos{}와 분자·분모가 다른 통계량이며 반올림한 값이 같을 뿐이다. 같은 행 가운데 킬 차이가 0이 아닌 \noAllNKill{}행에서 킬 부호와 귀속 팀의 일치율은 \noAllKillAgree{}이고, 두 일치율은 분모가 다르므로 같은 척도 위에 있지 않다.
 
 \input{tables/tab_correspondence}
+\input{tables/gen/tab_nextobj}

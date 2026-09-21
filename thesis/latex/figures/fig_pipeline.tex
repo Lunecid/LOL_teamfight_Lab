@@ -1,5 +1,5 @@
 %% figure 객체: fig:pipeline — 측정·예측·검증 사슬 (TikZ; 값은 본문 매크로). 저널 fig1_pipeline.svg 와 같은 기전.
-\begin{figure}[htbp]
+\begin{figure}[!t]
   \centering
   \begin{tikzpicture}[
     node distance=5mm and 6mm,
@@ -29,6 +29,6 @@
     \draw[arr] (pt) -- (contrast);
     \draw[arr] (contrast) -- (verify);
   \end{tikzpicture}
-  \caption{측정·예측·검증 사슬. 검출기가 공개 timeline에서 교전을 찾고, 동결 평가기 $\Vhat$가 첫 킬 15초 전의 상태와 마지막 킬에 앵커된 결과 시점의 상태를 점수화하며, 그 차이의 부호가 라벨이다. 교전 전 상태의 로지스틱 모델을 승률·시간 스플라인 기준선과 코호트별로 대비한다. TRAIN 행은 fold 평가기가, 나머지는 동결 번들이 라벨링한다. 검증은 라벨이 재는 것을 한정할 뿐 추정 대상을 바꾸지 않는다.}
+  \caption{측정·예측·검증 사슬}
   \label{fig:pipeline}
 \end{figure}

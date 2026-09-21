@@ -1,7 +1,16 @@
 %!TEX root = ../../main.tex
 \section{지평과 동료 평가기에 대한 안정성}
-\label{sec:val-horizon}
+\label{sec:value-horizon}
 
-지평 60 / 90 / 120초의 $\SVI$를 비교하면 뒤집힘 비율은 낮고(h60--h90 \flipSixtyNinety, h90--h120 \flipNinetyOneTwenty, h60--h120 \flipSixtyOneTwenty) 부호 일치는 높지만, \emph{같은 결과 시점을 공유하는 비율}이 쌍에 따라 \sameEpSixtyNinety{}--\sameEpNinetyOneTwenty{}이고 뒤집힘은 결과 시점이 다른 경우에 집중된다(표 \ref{tab:horizon}). 따라서 지평 간 일치를 완전히 독립적인 다중 지평 합리성으로 해석하지 않는다. 동료 평가기들은 재사용된 검증 표에서 fit85의 $\SVI$ 부호와 약 \peerAgreeApprox{}(\peerAgreeA{} / \peerAgreeB) 일치한다. 이는 인접한 $V$ 사양들 사이의 안정성이지 유일한 참 교전 가치의 증명이 아니며, 남는 약 9\%의 부호 불일치는 측정의 한계로 남는다.
+결과 시점 규칙의 지평과 평가기를 바꾸었을 때 무엇이 유지되는지는 두 질문으로 나뉜다. 라벨이 유지되는가, 그리고 라벨이 바뀌어도 동결 예측의 상대적 순서가 유지되는가. 두 질문의 답은 조건별로 다르므로 따로 보고한다(표 \ref{tab:horizon-strata-T}, \ref{tab:horizon-strata-S}; 보완 실험, 15.16 노출 이후의 진단).
 
-\input{tables/tab_horizon}
+\paragraph{지평.} 지평 60 / 90 / 120초의 $\SVI$를 비교하면 뒤집힘 비율은 T 전체에서 h60--h90 \hzTAllFlipSixty{}, h90--h120 \hzTAllFlipHundredTwenty{}이고 S에서 \hzSAllFlipSixty{}과 \hzSAllFlipHundredTwenty{}이다. 두 지평이 같은 결과 시점을 공유하는 비율은 h60--h90에서 T \hzTAllSameEp{}, S \hzSAllSameEp{}이고 h90--h120에서 T \hzTSameEpNinety{}이며, 같은 결과 시점을 공유하는 행에서 뒤집힘은 0이다. 뒤집힘은 결과 시점이 다른 행(T \hzTAllFlipDiffEp{}, S \hzSAllFlipDiffEp{})과 작은 변화량($|\dV| < 0.05$; T \hzTSmallFlipSixty{}, S \hzSSmallFlipSixty{})에 집중된다. 지평 간 일치의 상당 부분은 같은 다음 킬에서 잘리는 구간의 동일성에서 오므로, 이 수치는 독립적인 세 지평의 합리성이 아니라 결과 시점 규칙의 안정성을 기술한다.
+
+\paragraph{라벨 이식.} 동결 $q$와 $\PTflex$의 예측을 고정한 채 라벨만 $Y_{h60}$으로 바꾸면 경기 가중 $\dBrier$는 T 전체에서 \hzTAllDbAlt{}(주 라벨 \hzTAllDbMain{}), S 전체에서 \hzSAllDbAlt{}(\hzSAllDbMain{})이다. 범위별 값은 표에 있으며, 작은 변화량 범위에서 $\dBrier$의 절댓값이 가장 작다.
+
+\input{tables/gen/tab_horizon_strata_T}
+\input{tables/gen/tab_horizon_strata_S}
+
+\paragraph{동료 평가기.} 같은 입력의 로지스틱 회귀 평가기(\texttt{\peerName{}}; 기존 선정 이력이 있는 후보이며 TEST에서 새로 고르지 않았다)로 같은 예측·결과 시점을 점수화하면 $\dV$의 부호는 T \peerN{} 행 가운데 \peerSignAgree{}에서 fit85와 일치하고, 라벨은 \peerFlipAll{}의 행에서 뒤집힌다(표 \ref{tab:peer-transfer}). 동결 예측을 고정하고 라벨만 동료 평가기의 $\SVI$로 바꾸면($q$ 입력의 $\ppre$는 교체하지 않음) $\dBrier$는 전체에서 \peerAllDbAlt{}(주 라벨 \peerAllDbMain{}), $\Bforty$에서 \peerBfortyDbAlt{}이고, 작은 변화량 범위에서는 \peerSmallDbAlt{}로 부호가 바뀐다. 즉 라벨의 일치성은 인접한 평가기 사이에서 높지만, 예측 비교의 안정성은 변화량의 크기에 따라 다르다. 이 결과는 동료 평가기로 처음부터 학습한 파이프라인의 성능이 아니라 고정 예측의 라벨 이식 진단이며, 그 의존성은 제 \ref{sec:disc-evaluator} 절에서 다룬다.
+
+\input{tables/gen/tab_peer_transfer}

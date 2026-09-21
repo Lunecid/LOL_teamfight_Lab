@@ -8,4 +8,4 @@
 
 KDE는 고정 격자(로그 간격 0.0025, 13.7초에서 79 ms) 위에서 계산되므로 골은 언제나 격자점이다. 이것이 합동 추정치와 패치 15.16의 추정치가 모든 자릿수에서 일치하는 이유이며, 따라서 $G$는 소수 첫째 자리까지만 보고한다. 검출기는 $G = \constGrun$ ms로 실행되었다.
 
-조정 랜드 지수(adjusted Rand index, ARI)는 두 분할이 같은 항목을 얼마나 비슷하게 묶는지 재는 지표로, 동일하면 1이고 우연 수준이면 0에 가깝다 \cite{hubert1985comparing}. 분할은 골 근처의 $G$에 둔감하다. $\hat G$에서의 에피소드와 다른 간격에서의 에피소드 사이의 ARI는 \ariPlateauLo{}--\ariPlateauHi{}초의 모든 시험 간격에서 0.9 이상이며, 이를 안정성 기반 군집 선택 \cite{campello2013hdbscan}의 정신에서 \emph{plateau}로 보고한다. 선행 연구의 18초는 자료에서 얻은 값과 거의 같은 에피소드를 만든다(ARI \ariVsEighteen{}). 이 단계에서 추정된 상수는 선행 연구의 분할을 뒤집는 것이 아니라 정당화한다.
+조정 랜드 지수(adjusted Rand index, ARI)는 두 분할이 같은 항목을 얼마나 비슷하게 묶는지 재는 지표로, 동일하면 1이고 우연 수준이면 0에 가깝다 \cite{hubert1985comparing}. 분할은 골 근처의 $G$에 둔감하다. $\hat G$에서의 에피소드와 다른 간격에서의 에피소드 사이의 ARI는 \ariPlateauLo{}--\ariPlateauHi{}초의 모든 시험 간격에서 0.9 이상이며, 이를 안정성 기반 군집 선택 \cite{campello2013hdbscan}의 정신에서 \emph{plateau}로 보고한다. Baek과 Kwon \cite{baek2026killconditioned}의 \cogGap{}초는 자료에서 얻은 값과 거의 같은 에피소드를 만든다(ARI \ariVsEighteen{}). 추정된 상수는 그 분할을 뒷받침하며, 이 단계에서 달라지는 것은 상수의 근거이다.
