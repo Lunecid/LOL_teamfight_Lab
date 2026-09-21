@@ -1,0 +1,207 @@
+%!TEX root = ../main.tex
+%% ===============================================================
+%% 실험 산출 수치의 단일 진실 공급원. 모든 값은 docs/ 의 잠금·원장 문서에서 옮긴 것이며
+%% 출처 파일·필드는 thesis/docs/NUMBERS.md 에 있다. 새 실험·재집계로 값을 만들지 않는다 (AGENTS.md).
+%% 사용: \macro{}  (텍스트·표·초록 공통)
+%% ===============================================================
+
+%% --- 원천 코퍼스 (docs/lineage_20260915/README.md L82–86)
+\newcommand{\numMatchesTotal}{210{,}000}
+\newcommand{\numMatchesTrain}{74{,}673}
+\newcommand{\numMatchesVal}{74{,}748}
+\newcommand{\numMatchesTest}{60{,}579}
+\newcommand{\numEngDetected}{566{,}452}
+\newcommand{\numEngValid}{566{,}104}
+\newcommand{\numEngInvalid}{348}
+\newcommand{\numEngTrainDet}{199{,}480}
+\newcommand{\numEngValDet}{203{,}292}
+\newcommand{\numEngTestDet}{163{,}680}
+\newcommand{\numEngTrainValid}{199{,}358}
+\newcommand{\numEngValValid}{203{,}170}
+\newcommand{\numEngTestValid}{163{,}576}
+\newcommand{\numTTrain}{39{,}605}
+\newcommand{\numTVal}{41{,}315}
+\newcommand{\numTTest}{32{,}981}
+\newcommand{\numTPooled}{113{,}901}
+\newcommand{\numNTrain}{159{,}753}
+\newcommand{\numNVal}{161{,}855}
+\newcommand{\numNTest}{130{,}595}
+\newcommand{\numNPooled}{452{,}203}
+
+%% --- 교전 역할 (T): PAPER_COHORT_CONTRACT §2, cohort_manifest.json, RR12 census
+\newcommand{\numTTrainMatches}{28{,}989}
+\newcommand{\numTQcal}{10{,}390}      \newcommand{\numTQcalMatches}{7{,}550}
+\newcommand{\numTQsel}{10{,}195}      \newcommand{\numTQselMatches}{7{,}469}
+\newcommand{\numTVcal}{10{,}191}      \newcommand{\numTVcalMatches}{7{,}448}
+\newcommand{\numTVsel}{10{,}539}      \newcommand{\numTVselMatches}{7{,}632}
+\newcommand{\numTTestMatches}{24{,}020}
+\newcommand{\numTBforty}{5{,}423}     \newcommand{\numTBfortyMatches}{4{,}945}
+\newcommand{\shareTBforty}{16.4}
+\newcommand{\posRateT}{0.498}
+\newcommand{\numTExtKR}{5{,}202}      \newcommand{\numTExtKRMatches}{3{,}859}   \newcommand{\numExtKRCollected}{10{,}064}
+\newcommand{\numTExtNA}{5{,}312}      \newcommand{\numTExtNAMatches}{3{,}955}   \newcommand{\numExtNACollected}{10{,}000}
+\newcommand{\numTExtKRb}{507}         \newcommand{\numTExtKRbMatches}{377}      \newcommand{\numExtKRbCollected}{926}
+\newcommand{\numTExtPilot}{101}       \newcommand{\numTExtPilotMatches}{80}     \newcommand{\numExtPilotCollected}{200}
+
+%% --- 교전 역할 (S): SCALE_SPLIT_RR0_MANIFEST, cohort_manifest.json, T009_union.txt
+\newcommand{\numSTrain}{123{,}049}    \newcommand{\numSTrainMatches}{60{,}820}
+\newcommand{\numSQcal}{31{,}302}      \newcommand{\numSQcalMatches}{15{,}254}
+\newcommand{\numSQsel}{31{,}059}      \newcommand{\numSQselMatches}{15{,}282}
+\newcommand{\numSTest}{101{,}205}     \newcommand{\numSTestMatches}{49{,}730}
+\newcommand{\numSTestDetected}{101{,}242}
+\newcommand{\numSBforty}{31{,}675}    \newcommand{\numSBfortyMatches}{25{,}039}
+\newcommand{\shareSBforty}{31.3}
+\newcommand{\posRateS}{0.511}
+\newcommand{\numSExtKR}{15{,}641}     \newcommand{\numSExtNA}{16{,}100}
+\newcommand{\numSExtKRb}{1{,}307}     \newcommand{\numSExtPilot}{285}
+\newcommand{\numUnionTrain}{162{,}654} \newcommand{\numUnionTrainMatches}{65{,}465}
+\newcommand{\foldHeldMin}{14{,}628}   \newcommand{\foldHeldMax}{15{,}017}
+
+%% --- 평가기 시간상태 역할 (A_MLP_expanded_evaluator_meta_20260919.json meta.census)
+\newcommand{\numVTrain}{424{,}160}
+\newcommand{\numVFit}{360{,}479}
+\newcommand{\numVStop}{63{,}681}
+\newcommand{\numVCal}{106{,}580}
+\newcommand{\numVSel}{108{,}558}
+\newcommand{\numVTest}{347{,}234}     \newcommand{\numVTestMatches}{60{,}190}
+\newcommand{\numVEarly}{120{,}186}
+
+%% --- 교전 정의 v3.3 (docs/tog_manuscript/sec_definition.tex; Methods §1)
+\newcommand{\constG}{13.7}            \newcommand{\constGest}{13.7246}   \newcommand{\constGrun}{13{,}700}
+\newcommand{\constGciLo}{12.2}        \newcommand{\constGciHi}{15.7}
+\newcommand{\constGmodeIn}{5.7}       \newcommand{\constGmodeOut}{62.7}
+\newcommand{\constGdepth}{0.87}
+\newcommand{\ariPlateauLo}{10}        \newcommand{\ariPlateauHi}{18}    \newcommand{\ariVsEighteen}{0.9225}
+\newcommand{\numMatchesDef}{208{,}141} \newcommand{\numIntervalsDef}{10{,}417{,}458}
+\newcommand{\constD}{4{,}264}         \newcommand{\constDest}{4{,}263.87}
+\newcommand{\constDciLo}{4{,}256}     \newcommand{\constDciHi}{4{,}274}
+\newcommand{\numPairsDef}{5{,}460{,}008}
+\newcommand{\shareLinkedPairs}{93.8}  \newcommand{\shareSeparatedPairs}{5.5}
+\newcommand{\constR}{1{,}600}         \newcommand{\constB}{15}          \newcommand{\constM}{2}
+\newcommand{\constGpatchA}{14.0}      \newcommand{\constGpatchB}{13.5}  \newcommand{\constGpatchC}{13.7}
+\newcommand{\constDpatchA}{4{,}285}   \newcommand{\constDpatchB}{4{,}265} \newcommand{\constDpatchC}{4{,}241}
+\newcommand{\gateShareAdopted}{10.3}  \newcommand{\gateShareCog}{19.1}
+\newcommand{\numEngGateCog}{1{,}022{,}489} \newcommand{\numEngMthree}{76{,}290}
+\newcommand{\constH}{35}
+\newcommand{\numDrawsDropped}{33{,}905}
+\newcommand{\numEngLineage}{532{,}547} \newcommand{\numMatchesLineage}{191{,}940}
+\newcommand{\aucLineageOOF}{0.670}
+
+%% --- 규모 계급 (sec_definition §Scale classes; 계보 코퍼스 532,547 기준)
+\newcommand{\shareNminOne}{19.1}  \newcommand{\shareNminTwo}{40.2} \newcommand{\shareNminThree}{20.0}
+\newcommand{\shareNminFour}{13.4} \newcommand{\shareNminFive}{7.2}
+\newcommand{\numPickLineage}{101{,}798}     \newcommand{\sharePick}{19.1}
+\newcommand{\numSkirmishLineage}{320{,}878} \newcommand{\shareSkirmish}{60.3}
+\newcommand{\numTeamfightLineage}{109{,}829} \newcommand{\shareTeamfight}{20.6}
+\newcommand{\cutDiffThree}{+0.0108} \newcommand{\cutDiffFour}{-0.0019} \newcommand{\cutDiffFive}{-0.0105}
+\newcommand{\sharePickTest}{18}     % 15.16 교전 중 pick 비율 (약, Discussion §6)
+
+%% --- 킬 없는 교전 (sec_definition §killless)
+\newcommand{\killlessFourLo}{3.1} \newcommand{\killlessFourHi}{4.5}
+\newcommand{\killlessTwoLo}{8.0}  \newcommand{\killlessTwoHi}{12.5}
+\newcommand{\killlessSchubert}{81.1}
+
+%% --- 결과 시점 규칙 실현 통계 (lineage README; 15.16 TEST h90)
+\newcommand{\followupMean}{45.493}  \newcommand{\followupMedian}{39.440}
+\newcommand{\shareCapReached}{14.286} \newcommand{\shareNextKillStop}{78.9} \newcommand{\shareNoNewFrame}{35.145}
+\newcommand{\shareSmallDvA}{7.504} \newcommand{\shareSmallDvB}{12.696} \newcommand{\shareSmallDvC}{20.905}
+\newcommand{\signDisSixtyNinety}{1.545} \newcommand{\signDisNinetyOneTwenty}{0.608} \newcommand{\signDisSixtyOneTwenty}{1.909}
+
+%% --- 동결 평가기 V̂ (A_MLP_expanded_evaluator_meta; BAND_LEDGER_WAVE4_CORRECTED)
+\newcommand{\dimNumeric}{351}       \newcommand{\dimChampSlots}{10}   \newcommand{\dimExpanded}{361}
+\newcommand{\dimEmbed}{8}           \newcommand{\vocabChamp}{172}     \newcommand{\dimInputV}{431}
+\newcommand{\hiddenA}{256}          \newcommand{\hiddenB}{128}
+\newcommand{\lrV}{10^{-3}}          \newcommand{\wdV}{10^{-4}}        \newcommand{\batchV}{1{,}024}
+\newcommand{\maxEpochsV}{100}       \newcommand{\patienceV}{10}       \newcommand{\holdoutV}{15}
+\newcommand{\calibCoef}{0.9076}     \newcommand{\calibIntercept}{0.0640}
+\newcommand{\bundleSha}{ac459cc4397630a9}
+\newcommand{\LtimeMLP}{0.1383}      \newcommand{\LtimeGRU}{0.1385}    \newcommand{\gruGap}{0.0002}
+
+%% --- V→W 품질 (TEST_BAND_LEDGER_MLP_FIT85; RR6A_CORP)
+\newcommand{\vwBrier}{0.1552}       \newcommand{\vwAUC}{0.8542}
+\newcommand{\vwMCB}{0.0002}         \newcommand{\vwDSC}{0.0948}
+\newcommand{\vwEarlyBrier}{0.2283}  \newcommand{\vwEarlyAUC}{0.6642}
+\newcommand{\vwMidBrier}{0.1544}    \newcommand{\vwMidAUC}{0.8580}
+\newcommand{\vwLateBrier}{0.0891}   \newcommand{\vwLateAUC}{0.9496}
+\newcommand{\vwVeryLateBrier}{0.0856} \newcommand{\vwVeryLateAUC}{0.9544}
+\newcommand{\vpreBrier}{0.1442}     \newcommand{\vpreAUC}{0.8750}
+\newcommand{\vpostBrier}{0.1181}    \newcommand{\vpostAUC}{0.9149}
+\newcommand{\uncApprox}{0.25}
+
+%% --- ΔV / SVI 검증 (RR3, RR4, RR5, RR6b)
+\newcommand{\triadHighP}{0.63}
+\newcommand{\quietDiff}{0.0633}     \newcommand{\quietCiLo}{0.0612}   \newcommand{\quietCiHi}{0.0654}
+\newcommand{\numQuietMatched}{9{,}140} \newcommand{\numQuietMatches}{8{,}438} \newcommand{\quietCoverage}{27.7}
+\newcommand{\shareLongEng}{9.2}
+\newcommand{\killAgreeAll}{0.904}   \newcommand{\killAgreeBforty}{0.928}
+\newcommand{\objBluePos}{0.604}     \newcommand{\objBluePosNum}{6{,}004}  \newcommand{\objBluePosDen}{9{,}934}
+\newcommand{\objBlueNeg}{0.396}     \newcommand{\objBlueNegNum}{4{,}072}  \newcommand{\objBlueNegDen}{10{,}277}
+\newcommand{\objGameEnded}{8{,}112}
+\newcommand{\flipSixtyNinety}{0.015} \newcommand{\flipNinetyOneTwenty}{0.007} \newcommand{\flipSixtyOneTwenty}{0.019}
+\newcommand{\sameEpSixtyNinety}{0.594} \newcommand{\sameEpNinetyOneTwenty}{0.810} \newcommand{\sameEpSixtyOneTwenty}{0.594}
+\newcommand{\peerAgreeA}{0.9151}    \newcommand{\peerAgreeB}{0.9136}   \newcommand{\peerAgreeApprox}{0.91}
+
+%% --- 예측기 q, 기준선 (Methods §4; RR12)
+\newcommand{\dimInputQ}{352}        \newcommand{\dimInputLgbm}{362}
+\newcommand{\knotsP}{4}             \newcommand{\knotsT}{4}           \newcommand{\ridgeC}{0.01}   \newcommand{\splineDeg}{3}
+\newcommand{\knotsPonly}{6}
+\newcommand{\numBootDraws}{2{,}000} \newcommand{\bootSeed}{7}         \newcommand{\numBootDrawsPrimary}{800}
+\newcommand{\tauMeaningful}{0.001}
+
+%% T 블록 (RR12 json TEST_all)
+\newcommand{\qBrier}{0.2355}        \newcommand{\qLogloss}{0.6637}    \newcommand{\qAUC}{0.6403}
+\newcommand{\ptflexBrier}{0.2392}   \newcommand{\ptflexLogloss}{0.6713} \newcommand{\ptflexAUC}{0.6200}
+\newcommand{\ptlinBrier}{0.2397}    \newcommand{\ptlinLogloss}{0.6723}  \newcommand{\ptlinAUC}{0.6164}
+\newcommand{\dBrierT}{-0.00373}     \newcommand{\dBrierTLo}{-0.00461} \newcommand{\dBrierTHi}{-0.00279}
+\newcommand{\dBrierTlin}{-0.00422}  \newcommand{\dBrierTlinLo}{-0.00515} \newcommand{\dBrierTlinHi}{-0.00323}
+\newcommand{\qBfortyBrier}{0.2474}  \newcommand{\qBfortyAUC}{0.5669}
+\newcommand{\ptflexBfortyBrier}{0.2495} \newcommand{\ptflexBfortyAUC}{0.5248}
+\newcommand{\dBrierTBforty}{-0.00214} \newcommand{\dBrierTBfortyLo}{-0.00422} \newcommand{\dBrierTBfortyHi}{-0.00003}
+\newcommand{\hetT}{0.00181}         \newcommand{\hetTLo}{-0.00060}    \newcommand{\hetTHi}{0.00422}
+\newcommand{\qMCB}{0.00086}         \newcommand{\qDSC}{0.0154}
+\newcommand{\ptflexMCB}{0.00053}    \newcommand{\ptflexDSC}{0.0113}
+\newcommand{\dMCBT}{+0.00033}       \newcommand{\dDSCT}{+0.00406}
+
+%% S 블록 (SCALE_SPLIT_TvsS_RESULTS json, identity)
+\newcommand{\qSBrier}{0.2458}       \newcommand{\qSLogloss}{0.6849}   \newcommand{\qSAUC}{0.5767}
+\newcommand{\ptflexSBrier}{0.2492}  \newcommand{\ptflexSLogloss}{0.6915} \newcommand{\ptflexSAUC}{0.5360}
+\newcommand{\ptlinSBrier}{0.2495}   \newcommand{\ptlinSLogloss}{0.6921}  \newcommand{\ptlinSAUC}{0.5301}
+\newcommand{\dBrierS}{-0.00335}     \newcommand{\dBrierSLo}{-0.00379} \newcommand{\dBrierSHi}{-0.00288}
+\newcommand{\dBrierSsens}{-0.00346} \newcommand{\dBrierSsensLo}{-0.00382} \newcommand{\dBrierSsensHi}{-0.00307}
+\newcommand{\dBrierSlin}{-0.00368}  \newcommand{\dBrierSlinLo}{-0.00412} \newcommand{\dBrierSlinHi}{-0.00321}
+\newcommand{\dBrierTtoS}{-0.00141}  \newcommand{\dBrierTtoSLo}{-0.00186} \newcommand{\dBrierTtoSHi}{-0.00094}
+\newcommand{\dBrierSvsTtoS}{-0.00194} \newcommand{\dBrierSvsTtoSLo}{-0.00236} \newcommand{\dBrierSvsTtoSHi}{-0.00153}
+\newcommand{\dBrierSvsTS}{-0.00024} \newcommand{\dBrierSvsTSLo}{-0.00039} \newcommand{\dBrierSvsTSHi}{-0.00009}
+\newcommand{\dBrierTSvsT}{+0.00071} \newcommand{\dBrierTSvsTLo}{+0.00018} \newcommand{\dBrierTSvsTHi}{+0.00126}
+\newcommand{\qSBfortyBrier}{0.2481} \newcommand{\qSBfortyAUC}{0.5530}
+\newcommand{\ptflexSBfortyBrier}{0.2502} \newcommand{\ptflexSBfortyAUC}{0.4999}
+\newcommand{\dBrierSBforty}{-0.00210} \newcommand{\dBrierSBfortyLo}{-0.00266} \newcommand{\dBrierSBfortyHi}{-0.00149}
+\newcommand{\hetS}{+0.00178}        \newcommand{\hetSLo}{+0.00096}    \newcommand{\hetSHi}{+0.00259}
+\newcommand{\qSMCB}{0.0008}         \newcommand{\qSDSC}{0.0048}
+\newcommand{\ptflexSMCB}{0.0007}    \newcommand{\ptflexSDSC}{0.0014}
+\newcommand{\dMCBS}{+0.0001}        \newcommand{\dDSCS}{+0.0034}
+
+%% --- λ·s_Q 민감도 (RR4)
+\newcommand{\lambdaDeltaApprox}{-0.004}
+\newcommand{\numRowsLambdaOne}{26{,}297}
+\newcommand{\sharePonlyFallback}{64.9}
+
+%% --- 외부 평가 T (RRX_EXTERNAL; Q_NEWV_FIT85_TRANSFER_16X)
+\newcommand{\extTKRVpre}{0.1511}    \newcommand{\extTKRdBrier}{+0.0026} \newcommand{\extTKRdMCB}{0.0045} \newcommand{\extTKRdDSC}{0.0019} \newcommand{\extTKRqMCB}{0.0065} \newcommand{\extTKRqDSC}{0.0082}
+\newcommand{\extTNAVpre}{0.1514}    \newcommand{\extTNAdBrier}{+0.0040} \newcommand{\extTNAdMCB}{0.0063} \newcommand{\extTNAdDSC}{0.0023} \newcommand{\extTNAqMCB}{0.0100} \newcommand{\extTNAqDSC}{0.0064}
+\newcommand{\extTKRbVpre}{0.1533}   \newcommand{\extTKRbdBrier}{+0.0006}
+\newcommand{\extTPilotVpre}{0.1560} \newcommand{\extTPilotdBrier}{-0.0085}
+\newcommand{\extTKRdBrierLin}{+0.00274} \newcommand{\extTNAdBrierLin}{+0.00342}
+
+%% --- 외부 평가 S (SCALE_SPLIT_TvsS_RESULTS table4_EXT_S)
+\newcommand{\extSKRVpre}{0.1872}    \newcommand{\extSKRdBrier}{-0.0018} \newcommand{\extSKRdMCB}{0.0011} \newcommand{\extSKRdDSC}{0.0029} \newcommand{\extSKRqMCB}{0.0028} \newcommand{\extSKRqDSC}{0.0034}
+\newcommand{\extSNAVpre}{0.1871}    \newcommand{\extSNAdBrier}{-0.0020} \newcommand{\extSNAdMCB}{0.0013} \newcommand{\extSNAdDSC}{0.0033} \newcommand{\extSNAqMCB}{0.0038} \newcommand{\extSNAqDSC}{0.0035}
+\newcommand{\extSKRbVpre}{0.1829}   \newcommand{\extSKRbdBrier}{-0.0033} \newcommand{\extSKRbdMCB}{0.0014} \newcommand{\extSKRbdDSC}{0.0046} \newcommand{\extSKRbqMCB}{0.0059} \newcommand{\extSKRbqDSC}{0.0050}
+\newcommand{\extSPilotVpre}{0.1787} \newcommand{\extSPilotdBrier}{+0.0035} \newcommand{\extSPilotdMCB}{0.0091} \newcommand{\extSPilotdDSC}{0.0056} \newcommand{\extSPilotqMCB}{0.0171} \newcommand{\extSPilotqDSC}{0.0104}
+
+%% --- 구 계보 (인용 전용; 구 로지스틱 V̂, 2026-09-15; 헤드라인으로 쓰지 않음)
+\newcommand{\oldTspec}{-0.00166}    \newcommand{\oldTspecLo}{-0.00235} \newcommand{\oldTspecHi}{-0.00104}
+\newcommand{\oldNspec}{-0.00042}    \newcommand{\oldNspecLo}{-0.00057} \newcommand{\oldNspecHi}{-0.00024}
+\newcommand{\oldSkirmSpec}{-0.00023} \newcommand{\oldSkirmSpecLo}{-0.00043} \newcommand{\oldSkirmSpecHi}{-0.00004}
+\newcommand{\oldPickSpec}{-0.00083}
+\newcommand{\meSkirmAUC}{0.6633}    \newcommand{\meTeamfightAUC}{0.6809}

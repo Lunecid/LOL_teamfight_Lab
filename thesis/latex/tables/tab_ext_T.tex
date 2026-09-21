@@ -1,0 +1,17 @@
+%% table 객체: tab:ext-T — 출처 RRX_EXTERNAL 요약표; Q_NEWV_FIT85_TRANSFER_16X
+\begin{table}[htbp]
+  \centering
+  \caption{외부 점수 전용 평가, T 행 (공통 유효 행; 동결 $\Vhat$, $q$, $\PTflex$; 구간 없음).}
+  \label{tab:ext-T}
+  \small
+  \begin{tabular}{@{}lrrrrrrr@{}}
+    \toprule
+    코호트 & $n$ & $V_{\mathrm{pre}}$ Brier & $\dBrier(q - \PTflex)$ & $\Delta\MCB$ & $\Delta\DSC$ & $q$ $\MCB$ & $q$ $\DSC$ \\
+    \midrule
+    KR 16.13 & \numTExtKR{} & \extTKRVpre{} & \textbf{\extTKRdBrier{}} & \extTKRdMCB{} & \extTKRdDSC{} & \extTKRqMCB{} & \extTKRqDSC{} \\
+    NA1 16.13 & \numTExtNA{} & \extTNAVpre{} & \textbf{\extTNAdBrier{}} & \extTNAdMCB{} & \extTNAdDSC{} & \extTNAqMCB{} & \extTNAqDSC{} \\
+    KR 16.15 & \numTExtKRb{} & \extTKRbVpre{} & \extTKRbdBrier{} & --- & --- & --- & --- \\
+    KR 16.14 파일럿 & \numTExtPilot{} & \extTPilotVpre{} & \extTPilotdBrier{} & --- & --- & --- & --- \\
+    \bottomrule
+  \end{tabular}
+\end{table}

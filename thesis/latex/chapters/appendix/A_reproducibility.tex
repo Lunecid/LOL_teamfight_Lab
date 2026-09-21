@@ -1,0 +1,35 @@
+%!TEX root = ../../main.tex
+\chapter{재현 자료}
+\label{app:repro}
+
+\section{동결 아티팩트}
+
+\begin{table}[H]
+  \centering
+  \caption{본 논문의 수치를 생산한 동결 아티팩트와 식별자.}
+  \label{tab:artifacts}
+  \small
+  \begin{tabularx}{\linewidth}{@{}lX@{}}
+    \toprule
+    아티팩트 & 내용 · 식별자 \\
+    \midrule
+    승률 평가기 번들 & \path{A_MLP_expanded}, fit85, sha16 \texttt{\bundleSha}; 메타 \path{docs/A_MLP_expanded_evaluator_meta_20260919.json} \\
+    fold 평가기 (TRAIN 라벨) & \path{outputs/q_newv_fit85_20260920/oof_evaluators/V_oof_fold}$k$\path{_mlp_expanded.joblib}, $k = 0, \ldots, 4$ \\
+    방향 예측기 $q$ & \path{logit_state}, 다이제스트 \texttt{d6e8fc31310a5a58}; 특징 순서 sha16 \texttt{103f0b92094847bc} \\
+    T 라벨 (15.16) & \path{TEST_h90}, 다이제스트 \texttt{0a2e977b231acf85} \\
+    manifest (T) & \path{docs/REVIEW_RESPONSE_RR0_MANIFEST_20260920.json} (키, 가중치, 12개 다이제스트) \\
+    manifest (S) & \path{docs/SCALE_SPLIT_RR0_MANIFEST_20260920.json} (행 수, 다이제스트, 평가기 경로, 부트스트랩 설정) \\
+    결과 원장 & \path{docs/REVIEW_RESPONSE_RR12_RESULTS_20260920.json} (및 \path{.md}), \path{docs/SCALE_SPLIT_TvsS_RESULTS_20260920.json} (및 \path{.md}), RR3 / RR4 / RR5 / RR6a / RR6b / RRX 문서 \\
+    교전 정의 계보 & \path{docs/tog_manuscript/sec_definition.tex}; \path{config/fight_boundary/}; \path{core/presets.py} (프리셋 \path{v3.3}) \\
+    라벨·코호트 규칙 & \path{docs/lineage_20260915/engagement_labels_v3_rules.py}, \path{cr20260915_common.py}, \path{cohort_manifest.json} \\
+  \bottomrule
+  \end{tabularx}
+\end{table}
+
+\section{절차 코드}
+
+정의 상수 추정(\path{analysis/temporal_boundary.py}), 평가기 적합(\path{scripts/rr20260919_v_redesign_fit_wave4_corrected.py}), out-of-fold 라벨(\path{scripts/rr20260920_q_build_newv_labels.py}, \path{rr20260920_q_train_oof_mlp_folds.py}), 예측기 적합(\path{scripts/rr20260920_q_newv_primary_fit.py}), 주 대비와 부트스트랩(\path{scripts/rr20260920_review_response_rr12.py}), 비교전 대조·작은 변화 필터·대응·지평(\path{.._rr3_*.py}, \path{.._rr4_margin.py}, \path{.._rr5_rr6b.py}), CORP(\path{.._rr6a_corp.py}, \path{scripts/forecast_diagnostics.py}), 외부 점수 전용(\path{.._rrx_external.py}), 합동 라벨(\path{scripts/ss20260920_union_labels.py}).
+
+\section{자료 가용성}
+
+교전 검출기, 상수 추정, 라벨 구성, 특징 추출, 평가기·예측기 학습 스크립트, 모든 평가·감사 스크립트는 정의 명세, 지도 앵커, 모든 상수를 한 번에 설정하는 프리셋과 함께 MIT 라이선스로 공개된다. 보고된 모든 수치의 근거가 되는 교전 단위 파생 자료도 공개된다. 원시 경기 기록은 Riot Games API의 이용약관과 정책 아래 얻은 것으로 재배포하지 않으며, 논문은 파생 수량만 보고한다. 공개 저장소의 릴리스 태그와 보존 DOI, 파생 자료의 라이선스는 심사 후 확정한다. \pendingauthor{릴리스 태그·DOI·파생 자료 라이선스}

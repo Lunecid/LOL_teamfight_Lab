@@ -1,0 +1,41 @@
+%!TEX root = ../main.tex
+%% ===============================================================
+%% 기호·연산자 매크로 (내용 계층). 레이아웃은 pnuthesis.cls, 수치는 config/numbers.tex.
+%% 용어 고정 (docs/STYLE.md): 교전 / 한타 T / 소규모 교전 S / 변화 방향 / 교전 전 상태 / 승률·시간 스플라인 기준선.
+%% ===============================================================
+\newcommand{\ind}{\mathbf{1}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator{\Brier}{Brier}
+\DeclareMathOperator{\MCB}{MCB}
+\DeclareMathOperator{\DSC}{DSC}
+\DeclareMathOperator{\UNC}{UNC}
+\DeclareMathOperator{\AUC}{AUC}
+\newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
+\newcommand{\pendingauthor}[1]{\textcolor{blue}{[저자 확인: #1]}}
+
+%% --- 연구 대상
+\newcommand{\Vhat}{\widehat V}                       % 동결 승률 평가기
+\newcommand{\Vfold}[1]{\widehat V^{(-#1)}}          % fold 제외 평가기
+\newcommand{\dV}{\Delta\widehat V}                   % 구간 변화
+\newcommand{\SVI}{\mathrm{SVI}}
+\newcommand{\Ysvi}{Y_{\mathrm{SVI}}}
+\newcommand{\ppre}{p_{\mathrm{pre}}}
+\newcommand{\Spre}{S_{\mathrm{pre}}}
+\newcommand{\xpre}{x_{\mathrm{pre}}}
+\newcommand{\xpost}{x_{\mathrm{post}}}
+\newcommand{\tcut}{\tau}                             % 예측 시점 (첫 킬 − 15 s)
+\newcommand{\eh}{e_{h}}                              % 결과 시점
+\newcommand{\PTflex}{\mathrm{PT}_{\mathrm{flex}}}
+\newcommand{\PTlin}{\mathrm{PT}_{\mathrm{linear}}}
+\newcommand{\PTflexS}{\mathrm{PT}_{\mathrm{flex},S}}
+\newcommand{\PTlinS}{\mathrm{PT}_{\mathrm{linear},S}}
+\newcommand{\qS}{q_{S}}
+\newcommand{\qTS}{q_{TS}}
+\newcommand{\qTtoS}{q_{T\to S}}
+\newcommand{\Bforty}{\mathrm{B40}}
+\newcommand{\nmin}{n_{\min}}
+\newcommand{\dBrier}{\Delta\mathrm{Brier}}
+\newcommand{\ci}[2]{[#1,\ #2]}                       % 95% 구간 표기

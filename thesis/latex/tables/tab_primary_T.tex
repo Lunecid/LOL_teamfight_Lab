@@ -1,0 +1,19 @@
+%% table 객체: tab:primary-T — 출처 RR12 json TEST_all.{q_base,PT_flex,PT_linear}; bootstrap.all_q_minus_PT_flex / PT_linear
+\begin{table}[htbp]
+  \centering
+  \caption{T 블록 (15.16 TEST, $n = \numTTest{}$, \numTTestMatches{} 경기; 경기 가중; 항등 보정기). 주 대비는 굵게.}
+  \label{tab:primary-T}
+  \small
+  \begin{tabular}{@{}lrrr@{}}
+    \toprule
+    모델 & Brier $\downarrow$ & 로그 손실 $\downarrow$ & AUC $\uparrow$ \\
+    \midrule
+    $q$ (항등) & \qBrier{} & \qLogloss{} & \qAUC{} \\
+    $\PTflex$ & \ptflexBrier{} & \ptflexLogloss{} & \ptflexAUC{} \\
+    $\PTlin$ & \ptlinBrier{} & \ptlinLogloss{} & \ptlinAUC{} \\
+    \midrule
+    \multicolumn{4}{@{}l}{\textbf{주 대비} $\dBrier(q - \PTflex)$ = \textbf{\dBrierT{}}, 95\% CI \ci{\dBrierTLo}{\dBrierTHi} (\numBootDraws{}회, 시드 \bootSeed)} \\
+    \multicolumn{4}{@{}l}{연속성 $\dBrier(q - \PTlin)$ = \dBrierTlin{}, 95\% CI \ci{\dBrierTlinLo}{\dBrierTlinHi}} \\
+    \bottomrule
+  \end{tabular}
+\end{table}

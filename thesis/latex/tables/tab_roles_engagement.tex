@@ -1,0 +1,31 @@
+%% table 객체: tab:roles-engagement — 출처 Methods §5 Table 5b (PAPER_COHORT_CONTRACT §2, §4; SCALE_SPLIT_RR0_MANIFEST; RRX)
+\begin{table}[htbp]
+  \centering
+  \caption{방향 예측기의 교전 역할. 외부 코호트의 경기 수는 (유효 경기 / 수집 경기)이며, S의 외부 경기 수는 기록되어 있지 않다.}
+  \label{tab:roles-engagement}
+  \footnotesize
+  \begin{tabularx}{\linewidth}{@{}lll>{\raggedleft\arraybackslash}p{1.5cm}>{\raggedleft\arraybackslash}p{2.1cm}X@{}}
+    \toprule
+    코호트 & 역할 & 패치·지역 & 교전 & 경기 & 라벨 출처 · 용도 \\
+    \midrule
+    T & TRAIN & 15.14 & \numTTrain{} & \numTTrainMatches{} & $\Vfold{k}$ · $q$, $\PTflex$ 적합 \\
+    T & Q\_CAL & 15.15 & \numTQcal{} & \numTQcalMatches{} & fit85 · 보정기 후보 \\
+    T & Q\_SELECT & 15.15 & \numTQsel{} & \numTQselMatches{} & fit85 · 매듭·$C$·보정기 선정 \\
+    T & V\_CAL / V\_SELECT & 15.15 & \numTVcal{} / \numTVsel{} & \numTVcalMatches{} / \numTVselMatches{} & 평가기 전용, $q$에 미사용 \\
+    T & TEST & 15.16 & \numTTest{} & \numTTestMatches{} & fit85 · 주 결과 \\
+    T & $\Bforty \subset$ TEST & 15.16 & \numTBforty{} & \numTBfortyMatches{} & fit85 · 조건부 \\
+    T & EXT KR 16.13 & KR & \numTExtKR{} & \numTExtKRMatches{} / \numExtKRCollected{} & fit85 · 점수 전용 \\
+    T & EXT NA1 16.13 & NA1 & \numTExtNA{} & \numTExtNAMatches{} / \numExtNACollected{} & fit85 · 점수 전용 \\
+    T & EXT KR 16.15 & KR & \numTExtKRb{} & \numTExtKRbMatches{} / \numExtKRbCollected{} & 보고만, 합산 안 함 \\
+    T & EXT KR 16.14 파일럿 & KR & \numTExtPilot{} & \numTExtPilotMatches{} / \numExtPilotCollected{} & 보고만, 합산 안 함 \\
+    \midrule
+    S & TRAIN & 15.14 & \numSTrain{} & \numSTrainMatches{} & $\Vfold{k}$ (T와 같은 fold 평가기) \\
+    S & Q\_CAL & 15.15 & \numSQcal{} & \numSQcalMatches{} & fit85 · 진단용 \\
+    S & Q\_SELECT & 15.15 & \numSQsel{} & \numSQselMatches{} & fit85 · 매듭·$C$ 선정 \\
+    S & TEST & 15.16 & \numSTest{} & \numSTestMatches{} & fit85 · 주 결과 (S 블록) \\
+    S & $\Bforty \subset$ TEST & 15.16 & \numSBforty{} & \numSBfortyMatches{} & fit85 · 조건부 (S 내부) \\
+    S & EXT KR / NA1 16.13 & KR / NA1 & \numSExtKR{} / \numSExtNA{} & --- & 점수 전용 \\
+    S & EXT KR 16.15 / 파일럿 & KR & \numSExtKRb{} / \numSExtPilot{} & --- & 보고만 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}

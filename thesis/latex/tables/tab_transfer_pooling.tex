@@ -1,0 +1,17 @@
+%% table 객체: tab:transfer-pooling — 출처 SCALE_SPLIT_TvsS_RESULTS json table2a_identity; RR12_S_qT_id json
+\begin{table}[htbp]
+  \centering
+  \caption{코호트 사이의 전이·합동 대비 (이차; 동일 행; 항등 보정기; 95\% 경기 군집 부트스트랩 구간).}
+  \label{tab:transfer-pooling}
+  \small
+  \begin{tabular}{@{}llrl@{}}
+    \toprule
+    대비 & 행 & $\dBrier$ & 95\% CI \\
+    \midrule
+    $\qTtoS$ (동결 T 모델) $-$ $\PTflexS$ & S TEST, \numSTest{} & \dBrierTtoS{} & \ci{\dBrierTtoSLo}{\dBrierTtoSHi} \\
+    $\qS - \qTtoS$ & S TEST & \dBrierSvsTtoS{} & \ci{\dBrierSvsTtoSLo}{\dBrierSvsTtoSHi} \\
+    $\qS - \qTS$ (합동 T$\cup$S 적합) & S TEST & \dBrierSvsTS{} & \ci{\dBrierSvsTSLo}{\dBrierSvsTSHi} \\
+    $\qTS - q$ (동결 T) & T TEST, \numTTest{} & \dBrierTSvsT{} & \ci{\dBrierTSvsTLo}{\dBrierTSvsTHi} \\
+    \bottomrule
+  \end{tabular}
+\end{table}

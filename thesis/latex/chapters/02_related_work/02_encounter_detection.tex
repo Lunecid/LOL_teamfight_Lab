@@ -1,0 +1,7 @@
+%!TEX root = ../../main.tex
+\section{교전 검출과 교전 단위 예측}
+\label{sec:rel-encounter}
+
+Dota~2의 \emph{encounter}는 리플레이 자료에서 유닛의 근접과 피해로 처음 검출되었고, 검출된 encounter의 대부분(\killlessSchubert{}\%)에는 킬이 없었다 \cite{schubert2016encounter}. 공개 처리기 OpenDota는 영웅 사망 15초 전에 전투 창을 열고 사망 없이 15초가 지나면 닫는다 \cite{opendota2018processteamfights}. 이후 연구는 카메라·상태 특징으로 사망이나 한타를 몇 초 앞서 예측하거나 \cite{katona2019time,tot2021camera}, 검출한 전투를 경기 예측의 입력으로 썼다 \cite{ke2022}. 전투를 \emph{언제} 검출할지의 문제로는 웹 세션 식별 \cite{halfaker2015session,mehrzadi2012session}과 지진 군집의 최근접 시공간 거리 \cite{zaliapin2013clusters,zaliapin2022perspectives}가 같은 구조, 즉 활동 간격 분포의 두 봉우리 사이 골(antimode)에 경계를 두는 구조를 갖는다.
+
+이들 목표는 전투가 일어나는지, 언제 일어나는지, 누가 죽는지를 묻는다. 본 논문의 검출기는 같은 계보에 서되 킬 간격과 군집 지름의 상수를 손이 아니라 자료에서 추정하고, 검출된 교전을 \emph{결과를 측정할 단위}로 삼는다. 교전의 발생을 예측하지 않는다.

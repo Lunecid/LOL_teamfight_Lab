@@ -52,3 +52,7 @@
 2. 장별 국문 산문 확장 (골격 → 초고).
 3. Onestop HWP에 이식 / 필요 시 LaTeX.
 4. 미실행 심화(M-F*, 어댑터)는 별도 작업서.
+
+## LaTeX 구현 (2026-09-21 추가)
+
+부산대 규격 LaTeX 프로젝트는 [`thesis/latex/`](../../thesis/latex/) 에 있다 (8장·부록 A–E, 수치 매크로 `config/numbers.tex`, 출처 `thesis/docs/NUMBERS.md`, 주장 지도 `thesis/docs/CLAIMS.md`). 이 패키지의 규칙(새 수치 금지, Forbidden, 코호트별 보고)을 그대로 따른다.

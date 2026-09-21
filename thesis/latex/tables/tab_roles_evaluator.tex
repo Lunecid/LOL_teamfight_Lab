@@ -1,0 +1,18 @@
+%% table 객체: tab:roles-evaluator — 출처 A_MLP_expanded_evaluator_meta_20260919.json meta.census; TEST_BAND_LEDGER
+\begin{table}[htbp]
+  \centering
+  \caption{승률 평가기 $\Vhat$의 시간상태 역할. 학습 합계 \numVTrain{}는 적합 \numVFit{}와 조기 종료용 \numVStop{}의 합이다. census에 기록되지 않은 경기 수는 ``---''로 둔다.}
+  \label{tab:roles-evaluator}
+  \small
+  \begin{tabular}{@{}llrrl@{}}
+    \toprule
+    역할 & 패치 & 시간상태 행 & 경기 & 용도 \\
+    \midrule
+    TRAIN 적합 & 15.14 & \numVFit{} & --- & 가중치 \\
+    TRAIN 정지 & 15.14 & \numVStop{} & --- & 조기 종료 (경기 단위 \holdoutV{}\% 보류, 시드 \bootSeed{}) \\
+    V\_CAL & 15.15 & \numVCal{} & --- & 양의 기울기 시그모이드 $g$ \\
+    V\_SELECT & 15.15 & \numVSel{} & --- & 시간 균형 손실 $L_{\mathrm{time}}$에 의한 선정 \\
+    TEST & 15.16 & \numVTest{} & \numVTestMatches{} & 봉인 원장 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
