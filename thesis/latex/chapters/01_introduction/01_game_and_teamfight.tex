@@ -1,0 +1,11 @@
+%!TEX root = ../../main.tex
+\section{리그 오브 레전드와 한타}
+\label{sec:intro-game}
+
+리그 오브 레전드(League of Legends, LoL)는 다섯 명씩 두 팀이 소환사의 협곡이라는 대칭 지도에서 겨루어 상대의 넥서스를 파괴하면 이기는 게임이다 \cite{riotapi2024matchv5,lolwiki2025summonersrift,lolwiki2026nexus}. 각 플레이어는 챔피언 하나를 조종하며, 챔피언은 미니언과 몬스터를 처치하고 상대 챔피언을 킬하여 얻는 골드와 경험치로 강해진다 \cite{lolwiki2026champion,lolwiki2026gold,lolwiki2026experience}. 챔피언 킬은 킬러와 어시스트에게 골드를 주고 희생자를 사망 시간 동안 경기에서 제외하며 \cite{lolwiki2026kill,lolwiki2026assist,lolwiki2026death}, 포탑·억제기 같은 구조물과 드래곤·전령·바론 같은 엘리트 몬스터는 이를 가져간 팀에 자원과 지도 통제권을 준다 \cite{lolwiki2026turret,lolwiki2026inhibitor,lolwiki2026dragonpit,lolwiki2026riftherald,lolwiki2026baron}. 넥서스는 두 넥서스 포탑과 억제기 하나 이상이 파괴된 뒤에만 공격할 수 있으므로, 경기는 골드·경험치의 우위가 구조물과 오브젝트의 우위로, 다시 넥서스의 파괴로 이어지는 긴 과정이다.
+
+한타(teamfight)는 여러 챔피언이 한 곳에서 싸우는 국면을 가리키는 플레이어의 용어이며 공식 정의는 없다 \cite{lolwiki2026terminology}. 교전에서 챔피언이 죽고 살아남은 쪽이 구조물이나 엘리트 몬스터를 가져가므로, 경기의 흐름은 대체로 교전에서 바뀐다. 교전의 결과는 킬 수만으로 정해지는 양이 아니다. 킬에서 이긴 쪽이 지도 통제권을 잃을 수 있고, 대등하게 교환한 교전이 그 뒤에 가능해진 오브젝트 때문에 경기를 바꿀 수도 있다. 교전의 결과를 어떤 양으로 정의할 것인가가 이 논문의 첫 번째 문제이다(제 \ref{sec:intro-problem} 절).
+
+Riot Games는 모든 경기의 기록을 Match-V5 API로 공개한다 \cite{riotapi2024matchv5}. 경기의 timeline은 서로 다른 해상도의 두 열로 이루어진다 \cite{riotapi2024timeline}. 참가자 프레임은 약 60초마다 열 명의 위치, 레벨, 골드, 체력을 기록하고, 사건은 밀리초 단위의 시각으로 챔피언 킬, 구조물 파괴, 엘리트 몬스터 처치 등을 기록한다. 챔피언 사이에 오간 피해는 사건으로 기록되지 않으며, 챔피언 대 챔피언 전투 가운데 시각과 지도 위치가 모두 기록되는 사건은 챔피언 킬뿐이다. 따라서 공개 자료에서 교전은 킬로부터 구성해야 하고, 어느 시각의 상태는 마지막 프레임과 그때까지의 사건을 합쳐 재구성해야 한다. 표 \ref{tab:terms}는 본 논문이 쓰는 게임·자료 용어를 모은 것이다. Riot은 규칙을 패치로 바꾸며, 본 논문의 코퍼스는 Match-V5 표기 15.14--15.16(공개 번호 25.14--25.16)의 세 패치에 있고 \cite{lolwiki2026v2514,lolwiki2026v2516}, 이후 패치 26.1에서는 일부 오브젝트의 규칙이 바뀌었다 \cite{riot2026patch261}.
+
+\input{tables/tab_terms}
