@@ -13,6 +13,7 @@ thesis/
 │   ├── NUMBERS.md         #   수치 매크로 레지스트리와 출처
 │   ├── OVERLEAF.md        #   Overleaf 설정과 git 동기화
 │   ├── CHECKLIST.md       #   부산대 제출 체크리스트
+│   ├── TASKS.md           #   전체 작업 목록·우선순위·의존·결정 사항
 │   └── revision/          #   수정 작업 명세 (Cursor 인계용); TEMPLATE.md 참고
 ├── forms/                 # 부산대 공식 서식 원본 (HWP 가이드, Word 서식, 여백 그림)
 └── latex/                 # ★ Overleaf 프로젝트 루트
