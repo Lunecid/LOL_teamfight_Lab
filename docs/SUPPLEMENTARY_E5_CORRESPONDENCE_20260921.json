@@ -1,0 +1,505 @@
+{
+  "schema": "SUPPLEMENTARY_E5_CORRESPONDENCE_v1",
+  "generated_at_utc": "2026-09-21T07:56:40.969965+00:00",
+  "contract": "docs/SUPPLEMENTARY_EXPERIMENT_DESIGN_20260921.md#8",
+  "task": ".ai/tasks/T021.md",
+  "cohorts": {
+    "T": {
+      "ok": true,
+      "cohort": "T",
+      "n": 32981,
+      "n_matches": 24020,
+      "same_frame_share": 0.06743276431885024,
+      "material_axes": {
+        "kill_diff": {
+          "all_T": {
+            "n": 32981,
+            "n_decided": 28711,
+            "n_tie": 4270,
+            "tie_share": 0.1294684818531882,
+            "cells": {
+              "SVI0_mat-1": 12959,
+              "SVI0_mat0": 2157,
+              "SVI0_mat1": 1507,
+              "SVI1_mat-1": 1273,
+              "SVI1_mat0": 2113,
+              "SVI1_mat1": 12972
+            },
+            "agreement_rate_match_weighted_decided": 0.9038282472100605,
+            "disagreement_rate_unweighted_decided": 0.09682700010448957
+          },
+          "B40": {
+            "n": 5423,
+            "n_decided": 4653,
+            "n_tie": 770,
+            "tie_share": 0.14198782961460446,
+            "cells": {
+              "SVI0_mat-1": 2133,
+              "SVI0_mat0": 382,
+              "SVI0_mat1": 183,
+              "SVI1_mat-1": 159,
+              "SVI1_mat0": 388,
+              "SVI1_mat1": 2178
+            },
+            "agreement_rate_match_weighted_decided": 0.9284665894167633,
+            "disagreement_rate_unweighted_decided": 0.0735009671179884
+          }
+        },
+        "epic_net": {
+          "all_T": {
+            "n": 32981,
+            "n_decided": 12507,
+            "n_tie": 20474,
+            "tie_share": 0.6207816621691277,
+            "cells": {
+              "SVI0_mat-1": 5201,
+              "SVI0_mat0": 10260,
+              "SVI0_mat1": 1162,
+              "SVI1_mat-1": 1113,
+              "SVI1_mat0": 10214,
+              "SVI1_mat1": 5031
+            },
+            "agreement_rate_match_weighted_decided": 0.8181110707364341,
+            "disagreement_rate_unweighted_decided": 0.18189813704325578
+          },
+          "B40": {
+            "n": 5423,
+            "n_decided": 2221,
+            "n_tie": 3202,
+            "tie_share": 0.5904480914622903,
+            "cells": {
+              "SVI0_mat-1": 928,
+              "SVI0_mat0": 1606,
+              "SVI0_mat1": 164,
+              "SVI1_mat-1": 187,
+              "SVI1_mat0": 1596,
+              "SVI1_mat1": 942
+            },
+            "agreement_rate_match_weighted_decided": 0.8418145035792094,
+            "disagreement_rate_unweighted_decided": 0.1580369203061684
+          }
+        },
+        "structure_net": {
+          "all_T": {
+            "n": 32981,
+            "n_decided": 16106,
+            "n_tie": 16875,
+            "tie_share": 0.5116582274642977,
+            "cells": {
+              "SVI0_mat-1": 6133,
+              "SVI0_mat0": 8499,
+              "SVI0_mat1": 1991,
+              "SVI1_mat-1": 1683,
+              "SVI1_mat0": 8376,
+              "SVI1_mat1": 6299
+            },
+            "agreement_rate_match_weighted_decided": 0.7743985883030827,
+            "disagreement_rate_unweighted_decided": 0.2281137464299019
+          },
+          "B40": {
+            "n": 5423,
+            "n_decided": 2014,
+            "n_tie": 3409,
+            "tie_share": 0.6286188456573852,
+            "cells": {
+              "SVI0_mat-1": 777,
+              "SVI0_mat0": 1704,
+              "SVI0_mat1": 217,
+              "SVI1_mat-1": 166,
+              "SVI1_mat0": 1705,
+              "SVI1_mat1": 854
+            },
+            "agreement_rate_match_weighted_decided": 0.8122969043954164,
+            "disagreement_rate_unweighted_decided": 0.19016881827209534
+          }
+        },
+        "objective_net": {
+          "all_T": {
+            "n": 32981,
+            "n_decided": 21779,
+            "n_tie": 11202,
+            "tie_share": 0.3396501015736333,
+            "cells": {
+              "SVI0_mat-1": 8811,
+              "SVI0_mat0": 5617,
+              "SVI0_mat1": 2195,
+              "SVI1_mat-1": 1955,
+              "SVI1_mat0": 5585,
+              "SVI1_mat1": 8818
+            },
+            "agreement_rate_match_weighted_decided": 0.8102558406307557,
+            "disagreement_rate_unweighted_decided": 0.1905505303273796
+          },
+          "B40": {
+            "n": 5423,
+            "n_decided": 3099,
+            "n_tie": 2324,
+            "tie_share": 0.4285450857458971,
+            "cells": {
+              "SVI0_mat-1": 1299,
+              "SVI0_mat0": 1169,
+              "SVI0_mat1": 230,
+              "SVI1_mat-1": 206,
+              "SVI1_mat0": 1155,
+              "SVI1_mat1": 1364
+            },
+            "agreement_rate_match_weighted_decided": 0.8599037917374079,
+            "disagreement_rate_unweighted_decided": 0.14069054533720554
+          }
+        },
+        "alive_diff_post": {
+          "all_T": {
+            "n": 32981,
+            "n_decided": 14584,
+            "n_tie": 18397,
+            "tie_share": 0.5578060095206331,
+            "cells": {
+              "SVI0_mat-1": 5823,
+              "SVI0_mat0": 9238,
+              "SVI0_mat1": 1562,
+              "SVI1_mat-1": 1467,
+              "SVI1_mat0": 9159,
+              "SVI1_mat1": 5732
+            },
+            "agreement_rate_match_weighted_decided": 0.7939071233675065,
+            "disagreement_rate_unweighted_decided": 0.20769336258913879
+          },
+          "B40": {
+            "n": 5423,
+            "n_decided": 2142,
+            "n_tie": 3281,
+            "tie_share": 0.6050156739811913,
+            "cells": {
+              "SVI0_mat-1": 832,
+              "SVI0_mat0": 1646,
+              "SVI0_mat1": 220,
+              "SVI1_mat-1": 235,
+              "SVI1_mat0": 1635,
+              "SVI1_mat1": 855
+            },
+            "agreement_rate_match_weighted_decided": 0.7883455582722085,
+            "disagreement_rate_unweighted_decided": 0.21241830065359477
+          }
+        }
+      },
+      "kill_disagree_obj": {
+        "n_kill_decided": 28711,
+        "n_kill_svi_disagree": 2780,
+        "among_disagree_obj_agrees_SVI": 691,
+        "among_disagree_obj_agrees_kill": 1079,
+        "among_disagree_obj_tie": 1010,
+        "SVI_blue_kill_red": 1273,
+        "SVI_red_kill_blue": 1507,
+        "note": "Denominator = kill-decided SVI\u2260kill cases; not causal attribution."
+      },
+      "nextobj": {
+        "ok": true,
+        "source": "outputs/review_response_rr5_rr6b_20260920/next_objective_labels.npz",
+        "n_joined": 32981,
+        "all_T": {
+          "scope": "all_T",
+          "n": 32981,
+          "counts": {
+            "Blue": 10076,
+            "Red": 10135,
+            "game_ended_in_window_no_objective": 8112,
+            "none": 4649,
+            "tie_ambiguous": 9
+          },
+          "n_decided_BlueRed": 20211,
+          "selected_denominator": "Blue|Red only; none/end/tie excluded",
+          "SVI_agree_rate": 0.6040769877789323,
+          "kill_agree_rate_among_kill_decided": 0.6700873746554858,
+          "n_kill_decided_in_selected": 17053,
+          "SVI_Blue_rate_among_selected": 0.49854039879273665
+        },
+        "B40": {
+          "scope": "B40",
+          "n": 5423,
+          "counts": {
+            "Blue": 1894,
+            "Red": 1869,
+            "game_ended_in_window_no_objective": 597,
+            "none": 1061,
+            "tie_ambiguous": 2
+          },
+          "n_decided_BlueRed": 3763,
+          "selected_denominator": "Blue|Red only; none/end/tie excluded",
+          "SVI_agree_rate": 0.6101514748870582,
+          "kill_agree_rate_among_kill_decided": 0.6383787207093097,
+          "n_kill_decided_in_selected": 3158,
+          "SVI_Blue_rate_among_selected": 0.5033218176986447
+        },
+        "SVI_pos": {
+          "scope": "SVI_pos",
+          "n": 16358,
+          "counts": {
+            "Blue": 6004,
+            "Red": 3930,
+            "game_ended_in_window_no_objective": 4051,
+            "none": 2370,
+            "tie_ambiguous": 3
+          },
+          "n_decided_BlueRed": 9934,
+          "selected_denominator": "Blue|Red only; none/end/tie excluded",
+          "SVI_agree_rate": 0.6043889671834105,
+          "kill_agree_rate_among_kill_decided": 0.6640009548818334,
+          "n_kill_decided_in_selected": 8378,
+          "SVI_Blue_rate_among_selected": 0.6043889671834105
+        },
+        "SVI_neg": {
+          "scope": "SVI_neg",
+          "n": 16623,
+          "counts": {
+            "Blue": 4072,
+            "Red": 6205,
+            "game_ended_in_window_no_objective": 4061,
+            "none": 2279,
+            "tie_ambiguous": 6
+          },
+          "n_decided_BlueRed": 10277,
+          "selected_denominator": "Blue|Red only; none/end/tie excluded",
+          "SVI_agree_rate": 0.6037754208426583,
+          "kill_agree_rate_among_kill_decided": 0.6759654178674351,
+          "n_kill_decided_in_selected": 8675,
+          "SVI_Blue_rate_among_selected": 0.39622457915734166
+        },
+        "reading": "Association of frozen SVI/kill-net with first elite in (endpoint,+180s]. Not q accuracy; not causal ATT. Reuses RR5b labels \u2014 no new cache scan."
+      },
+      "label_functions": {
+        "SVI": "1[delta_V>0] from frozen fit85 A_MLP_expanded; delta_V==0 \u2192 Y=0; missing excluded upstream",
+        "kill_diff": "sum(kills)_blue\u2212sum(kills)_red at post_h90 minus same at pre (state slots)",
+        "alive_diff_post": "sum(alive)_blue\u2212sum(alive)_red at post_h90",
+        "objective_net": "during+after_h90 elite+structure count nets (blue\u2212red)",
+        "CoG_market_event": "INCOMPLETE \u2014 requires match event packs; not approximated"
+      },
+      "reading": "Same-engagement correspondence only. Material features overlap V inputs. Do not call this independent fight-winner accuracy or causal effect.",
+      "hash_samples_n": 32,
+      "hash_samples_path": "docs/SUPPLEMENTARY_E5_DISAGREE_SAMPLES_20260921.csv"
+    },
+    "S": {
+      "ok": true,
+      "cohort": "S",
+      "n": 101205,
+      "n_matches": 49730,
+      "same_frame_share": 0.138589990613112,
+      "material_axes": {
+        "kill_diff": {
+          "all_T": {
+            "n": 101205,
+            "n_decided": 83667,
+            "n_tie": 17538,
+            "tie_share": 0.17329183340744034,
+            "cells": {
+              "SVI0_mat-1": 36848,
+              "SVI0_mat0": 8219,
+              "SVI0_mat1": 4616,
+              "SVI1_mat-1": 4411,
+              "SVI1_mat0": 9319,
+              "SVI1_mat1": 37792
+            },
+            "agreement_rate_match_weighted_decided": 0.894296930708014,
+            "disagreement_rate_unweighted_decided": 0.10789200043027718
+          },
+          "B40": {
+            "n": 31675,
+            "n_decided": 25574,
+            "n_tie": 6101,
+            "tie_share": 0.19261247040252566,
+            "cells": {
+              "SVI0_mat-1": 11433,
+              "SVI0_mat0": 2793,
+              "SVI0_mat1": 997,
+              "SVI1_mat-1": 1055,
+              "SVI1_mat0": 3308,
+              "SVI1_mat1": 12089
+            },
+            "agreement_rate_match_weighted_decided": 0.9232319660537482,
+            "disagreement_rate_unweighted_decided": 0.08023774145616643
+          }
+        },
+        "epic_net": {
+          "all_T": {
+            "n": 101205,
+            "n_decided": 23599,
+            "n_tie": 77606,
+            "tie_share": 0.7668198211550813,
+            "cells": {
+              "SVI0_mat-1": 8591,
+              "SVI0_mat0": 37541,
+              "SVI0_mat1": 3551,
+              "SVI1_mat-1": 3150,
+              "SVI1_mat0": 40065,
+              "SVI1_mat1": 8307
+            },
+            "agreement_rate_match_weighted_decided": 0.714628003539582,
+            "disagreement_rate_unweighted_decided": 0.2839527098605873
+          },
+          "B40": {
+            "n": 31675,
+            "n_decided": 4761,
+            "n_tie": 26914,
+            "tie_share": 0.8496921862667719,
+            "cells": {
+              "SVI0_mat-1": 1722,
+              "SVI0_mat0": 12794,
+              "SVI0_mat1": 707,
+              "SVI1_mat-1": 651,
+              "SVI1_mat0": 14120,
+              "SVI1_mat1": 1681
+            },
+            "agreement_rate_match_weighted_decided": 0.7136286074634617,
+            "disagreement_rate_unweighted_decided": 0.2852341944969544
+          }
+        },
+        "structure_net": {
+          "all_T": {
+            "n": 101205,
+            "n_decided": 20502,
+            "n_tie": 80703,
+            "tie_share": 0.7974210760337928,
+            "cells": {
+              "SVI0_mat-1": 6862,
+              "SVI0_mat0": 39260,
+              "SVI0_mat1": 3561,
+              "SVI1_mat-1": 2938,
+              "SVI1_mat0": 41443,
+              "SVI1_mat1": 7141
+            },
+            "agreement_rate_match_weighted_decided": 0.68428971980565,
+            "disagreement_rate_unweighted_decided": 0.31699346405228757
+          },
+          "B40": {
+            "n": 31675,
+            "n_decided": 2508,
+            "n_tie": 29167,
+            "tie_share": 0.9208208366219416,
+            "cells": {
+              "SVI0_mat-1": 866,
+              "SVI0_mat0": 13977,
+              "SVI0_mat1": 380,
+              "SVI1_mat-1": 326,
+              "SVI1_mat0": 15190,
+              "SVI1_mat1": 936
+            },
+            "agreement_rate_match_weighted_decided": 0.7193274975684312,
+            "disagreement_rate_unweighted_decided": 0.28149920255183414
+          }
+        },
+        "objective_net": {
+          "all_T": {
+            "n": 101205,
+            "n_decided": 35907,
+            "n_tie": 65298,
+            "tie_share": 0.6452052764191493,
+            "cells": {
+              "SVI0_mat-1": 12646,
+              "SVI0_mat0": 31405,
+              "SVI0_mat1": 5632,
+              "SVI1_mat-1": 4855,
+              "SVI1_mat0": 33893,
+              "SVI1_mat1": 12774
+            },
+            "agreement_rate_match_weighted_decided": 0.7091070211315611,
+            "disagreement_rate_unweighted_decided": 0.2920600440025622
+          },
+          "B40": {
+            "n": 31675,
+            "n_decided": 6060,
+            "n_tie": 25615,
+            "tie_share": 0.8086819258089977,
+            "cells": {
+              "SVI0_mat-1": 2203,
+              "SVI0_mat0": 12143,
+              "SVI0_mat1": 877,
+              "SVI1_mat-1": 778,
+              "SVI1_mat0": 13472,
+              "SVI1_mat1": 2202
+            },
+            "agreement_rate_match_weighted_decided": 0.7264930493407314,
+            "disagreement_rate_unweighted_decided": 0.2731023102310231
+          }
+        },
+        "alive_diff_post": {
+          "all_T": {
+            "n": 101205,
+            "n_decided": 34992,
+            "n_tie": 66213,
+            "tie_share": 0.6542463317029791,
+            "cells": {
+              "SVI0_mat-1": 12848,
+              "SVI0_mat0": 32695,
+              "SVI0_mat1": 4140,
+              "SVI1_mat-1": 4363,
+              "SVI1_mat0": 33518,
+              "SVI1_mat1": 13641
+            },
+            "agreement_rate_match_weighted_decided": 0.7585777440949855,
+            "disagreement_rate_unweighted_decided": 0.2429983996342021
+          },
+          "B40": {
+            "n": 31675,
+            "n_decided": 8345,
+            "n_tie": 23330,
+            "tie_share": 0.7365430149960537,
+            "cells": {
+              "SVI0_mat-1": 3113,
+              "SVI0_mat0": 11309,
+              "SVI0_mat1": 801,
+              "SVI1_mat-1": 1026,
+              "SVI1_mat0": 12021,
+              "SVI1_mat1": 3405
+            },
+            "agreement_rate_match_weighted_decided": 0.7822372662798195,
+            "disagreement_rate_unweighted_decided": 0.2189334931096465
+          }
+        }
+      },
+      "kill_disagree_obj": {
+        "n_kill_decided": 83667,
+        "n_kill_svi_disagree": 9027,
+        "among_disagree_obj_agrees_SVI": 2200,
+        "among_disagree_obj_agrees_kill": 1912,
+        "among_disagree_obj_tie": 4915,
+        "SVI_blue_kill_red": 4411,
+        "SVI_red_kill_blue": 4616,
+        "note": "Denominator = kill-decided SVI\u2260kill cases; not causal attribution."
+      },
+      "nextobj": {
+        "ok": false,
+        "reason": "T_only"
+      },
+      "label_functions": {
+        "SVI": "1[delta_V>0] from frozen fit85 A_MLP_expanded; delta_V==0 \u2192 Y=0; missing excluded upstream",
+        "kill_diff": "sum(kills)_blue\u2212sum(kills)_red at post_h90 minus same at pre (state slots)",
+        "alive_diff_post": "sum(alive)_blue\u2212sum(alive)_red at post_h90",
+        "objective_net": "during+after_h90 elite+structure count nets (blue\u2212red)",
+        "CoG_market_event": "INCOMPLETE \u2014 requires match event packs; not approximated"
+      },
+      "reading": "Same-engagement correspondence only. Material features overlap V inputs. Do not call this independent fight-winner accuracy or causal effect.",
+      "hash_samples_n": 32
+    }
+  },
+  "incomplete": {
+    "CoG_market_event": {
+      "status": "INCOMPLETE",
+      "reason": "market_event needs event packs (CACHE_DIR files=0)."
+    },
+    "R0_R1_outcome_model": {
+      "status": "INCOMPLETE",
+      "reason": "Multinomial R0/R1 requires TRAIN nextobj labels with OOF \u0394V; only TEST nextobj npz exists. Association tables use TEST labels only."
+    },
+    "event_prefix_trace": {
+      "status": "INCOMPLETE",
+      "reason": "Match packs unavailable for query\u2192event-prefix dumps in hash samples."
+    }
+  },
+  "forbidden": [
+    "SVI is a better value metric than CoG",
+    "independent fight-winner accuracy",
+    "causal ATT from nextobj association",
+    "fabricate market_event without packs",
+    "train R0/R1 on TEST-only as confirmatory",
+    "new journal headlines"
+  ]
+}

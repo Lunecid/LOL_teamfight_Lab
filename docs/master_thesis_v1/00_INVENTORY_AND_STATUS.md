@@ -71,7 +71,7 @@
 | E2 | 시간경과·프레임 갱신 진단 | [`../SUPPLEMENTARY_E2_FRAME_STRATA_20260921.md`](../SUPPLEMENTARY_E2_FRAME_STRATA_20260921.md) | **PARTIAL** (T019: §5.4 DONE; §5.2 S_hold INCOMPLETE) |
 | E3 | 외부 paired match-bootstrap (T/S×KR/NA1) | [`../SUPPLEMENTARY_E3_EXT_BOOTSTRAP_20260921.md`](../SUPPLEMENTARY_E3_EXT_BOOTSTRAP_20260921.md) | **DONE** (T017; CI 추가) |
 | E4 | peer/endpoint/정의 OAT 민감도 | [`../SUPPLEMENTARY_E4_SENSITIVITY_20260921.md`](../SUPPLEMENTARY_E4_SENSITIVITY_20260921.md) | **PARTIAL** (T020: §7.1/7.2 DONE; e_fixed/OAT INCOMPLETE) |
-| E5 | 동일 사례 기존 지표 비교·사례 추적 | 보완설계 §8; 계획서 §6.1 | 미본문화·조건부 |
+| E5 | 동일 사례 기존 지표 비교·사례 추적 | [`../SUPPLEMENTARY_E5_CORRESPONDENCE_20260921.md`](../SUPPLEMENTARY_E5_CORRESPONDENCE_20260921.md) | **PARTIAL** (T021: §8.1+nextobj DONE; market_event/R0–R1 INCOMPLETE) |
 | E6 | 진짜 미사용 평가 | 보완설계 §9 | 조건부 deferred |
 | F1 | 외부 확률 어댑터 | `THESIS_V2_FOLLOWUPS.md` | deferred |
 | F2 | n_min 셀(2/3/4/5+) 재점수 | 동일 | deferred |
