@@ -8,8 +8,9 @@
 **T020 (2026-09-21):** E4 §7.1/7.2 horizon strata + peer LR label-transfer DONE; §7.3 e_fixed / §7.4 OAT 미실행.  
 **T021 (2026-09-21):** E5 §8.1 동일사례 대응 + nextobj 연관 DONE; market_event/R0–R1 INCOMPLETE.  
 **T022 (2026-09-21):** CACHE_MAIN 복구 + E2 S_hold DONE → `docs/SUPPLEMENTARY_E2_S_HOLD_20260921.md`.  
-**T023 (2026-09-21):** e_fixed + definition OAT(5k) + market_event + R0/R1 DONE; E6 INCOMPLETE → `docs/SUPPLEMENTARY_E4_E_FIXED_*`, `*_DEFINITION_OAT_*`, `*_E5_MARKET_R0R1_*`.  
-다음: 원고 주장 정리; E6는 새 평가 집합 사전 고정 후에만.  
+**T023 (2026-09-21):** e_fixed + definition OAT(5k) + market_event + R0/R1 DONE; E6는 T024.  
+**T024 (2026-09-21):** E6 수집 규칙 LOCK (`docs/SUPPLEMENTARY_E6_LOCK_20260921.md`); Riot API **401**으로 수집 BLOCKED — 키 갱신 후 `min_api_patch>=16.16` 수집·score-only.  
+다음: API 키 갱신 → E6 수집/채점; 또는 원고 주장 정리.  
 석사 Markdown 골격: `docs/master_thesis_v1/`; LaTeX: `thesis/`.
 
 ## 브랜치와 인계

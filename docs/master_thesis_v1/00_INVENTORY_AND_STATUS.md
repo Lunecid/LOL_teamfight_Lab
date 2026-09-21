@@ -72,7 +72,7 @@
 | E3 | 외부 paired match-bootstrap (T/S×KR/NA1) | [`../SUPPLEMENTARY_E3_EXT_BOOTSTRAP_20260921.md`](../SUPPLEMENTARY_E3_EXT_BOOTSTRAP_20260921.md) | **DONE** (T017; CI 추가) |
 | E4 | peer/endpoint/정의 OAT 민감도 | [`../SUPPLEMENTARY_E4_SENSITIVITY_20260921.md`](../SUPPLEMENTARY_E4_SENSITIVITY_20260921.md), [`../SUPPLEMENTARY_E4_E_FIXED_20260921.md`](../SUPPLEMENTARY_E4_E_FIXED_20260921.md), [`../SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.md`](../SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.md) | **DONE** (T020+T023; OAT n=5k budget) |
 | E5 | 동일 사례 기존 지표 비교·사례 추적 | [`../SUPPLEMENTARY_E5_CORRESPONDENCE_20260921.md`](../SUPPLEMENTARY_E5_CORRESPONDENCE_20260921.md), [`../SUPPLEMENTARY_E5_MARKET_R0R1_20260921.md`](../SUPPLEMENTARY_E5_MARKET_R0R1_20260921.md) | **DONE** (T021+T023; E6 별도) |
-| E6 | 진짜 미사용 평가 | 보완설계 §9 | 조건부 deferred |
+| E6 | 진짜 미사용 평가 | [`../SUPPLEMENTARY_E6_LOCK_20260921.md`](../SUPPLEMENTARY_E6_LOCK_20260921.md) | **BLOCKED** (T024: rules locked; Riot API 401 — need key refresh + collect ≥16.16) |
 | F1 | 외부 확률 어댑터 | `THESIS_V2_FOLLOWUPS.md` | deferred |
 | F2 | n_min 셀(2/3/4/5+) 재점수 | 동일 | deferred |
 | F3 | PT_flex_S 단일 객체 재사용 | 동일 | deferred (위생) |

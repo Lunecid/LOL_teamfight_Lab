@@ -1,0 +1,67 @@
+{
+  "schema": "SUPPLEMENTARY_E6_LOCK_v1",
+  "locked_at_utc": "2026-09-21T12:16:40.632455+00:00",
+  "task": ".ai/tasks/T024.md",
+  "contract": "docs/SUPPLEMENTARY_EXPERIMENT_DESIGN_20260921.md#9",
+  "rules_sha256": "04cfa692ec8bd2ff1365a464e6553af8248252fef1737a00dbbec09305126931",
+  "rules": {
+    "epistemic_if_collected": "CONFIRMATORY_CANDIDATE_SCORE_ONLY_NEVER_SEEN_PATCH",
+    "epistemic_forbidden": [
+      "re-split MAIN 15.16 after TEST exposure",
+      "re-split EXT 16.13/16.14/16.15 after RRX exposure",
+      "score then choose which matches to keep",
+      "stop collecting based on interim \u0394Brier"
+    ],
+    "collection": {
+      "platform": "kr",
+      "tiers": [
+        "CHALLENGER",
+        "GRANDMASTER",
+        "MASTER"
+      ],
+      "min_api_patch": "16.16",
+      "excluded_api_patches": [
+        "15.14",
+        "15.15",
+        "15.16",
+        "16.13",
+        "16.14",
+        "16.15"
+      ],
+      "output_root": "D:\\LOL_Project\\data\\raw\\e6_holdout_20260921",
+      "key_file": "C:\\Users\\todtj\\.secrets\\riot.env",
+      "target_n_complete_matches": 500,
+      "seed": 20260921,
+      "ranking_rule": "After collection, retain matches with api_patch >= min_api_patch, exclude EXPOSED_API_PATCHES, then keep first TARGET_N by sha256(match_id|seed) ascending. Do not peek at scores before lock finalize."
+    },
+    "scoring": {
+      "mode": "score_only",
+      "V": "frozen fit85 A_MLP_expanded ac459cc4397630a9",
+      "q": "frozen logit_state from q_newv_fit85_20260920",
+      "PT": "frozen PT_flex from review_response_rr12_20260920",
+      "no_refit": true,
+      "primary_contrast": "match-weighted \u0394Brier(q \u2212 PT_flex) with match-cluster bootstrap"
+    },
+    "sample_size_note": "TARGET_N=500 is a compute budget for a confirmatory-candidate pilot; see design \u00a79 for n\u2248(z s_d / h)^2 planning once s_d is measured on a pilot slice.",
+    "prior_audit": {
+      "EXT_CSV_remainder_not_usable": "Unused IDs in EXT CSVs have packs but detect_fights\u21920; cannot form T/S engagements.",
+      "MAIN_cache_patches_only": [
+        "15.14",
+        "15.15",
+        "15.16"
+      ]
+    }
+  },
+  "probe": {
+    "ok": false,
+    "returncode": 1,
+    "stdout_tail": "",
+    "stderr_tail": "ollect_current_season.py\", line 189, in run\n    await client.probe()\n  File \"C:\\Users\\todtj\\PycharmProjects\\LOL_teamfight\\acquisition\\client.py\", line 199, in probe\n    result = await self._request_json(url)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\todtj\\PycharmProjects\\LOL_teamfight\\acquisition\\client.py\", line 166, in _request_json\n    raise AuthenticationRejected(status, key_fingerprint)\nacquisition.client.AuthenticationRejected: Riot API authentication rejected (HTTP 401)\n"
+  },
+  "status": "LOCKED_AWAITING_KEY",
+  "blocked": {
+    "reason": "Riot API probe failed (see probe.stderr_tail). Refresh RIOT_API_KEY then re-run.",
+    "key_file": "C:\\Users\\todtj\\.secrets\\riot.env",
+    "next_step": "python scripts/collect_current_season.py --key-file C:\\Users\\todtj\\.secrets\\riot.env --output-root D:\\LOL_Project\\data\\raw\\e6_holdout_20260921 --platform kr --min-api-patch 16.16 --max-complete-matches 500 --once"
+  }
+}
