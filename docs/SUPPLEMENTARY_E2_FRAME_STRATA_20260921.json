@@ -166,10 +166,13 @@
     }
   },
   "section_5_2_S_hold": {
-    "status": "INCOMPLETE",
-    "reason": "S_hold requires rebuilding StateV2 at endpoint_h90 from events/frames with timestamp \u2264 q_pre (state_value_v2.StateBuilder.at), then scoring frozen V. A verified batch rebuild path over TEST was not executed in T019; mutating only time_minutes/time_minutes_sq on X_pre is forbidden by the contract. Leave probe incomplete rather than a partial clock hack.",
-    "cache_dir_exists": true,
-    "next_step": "T020+: scripted StateBuilder hold rebuild on a fixed match subsample, assert d_clock+d_update\u2248\u0394V, then full TEST."
+    "status": "DONE",
+    "report": "docs/SUPPLEMENTARY_E2_S_HOLD_20260921.md",
+    "n_ok": 32981,
+    "arith_identity_rate": 1.0,
+    "E_abs_d_clock": 0.013175315166579053,
+    "E_abs_d_update": 0.1150003739088291,
+    "cache": "CACHE_MAIN on D:"
   },
   "forbidden": [
     "causal frame-refresh effect",

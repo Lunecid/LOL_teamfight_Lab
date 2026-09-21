@@ -5,11 +5,10 @@
 
 ## §5.2 Mechanical S_hold probe
 
-**status:** `INCOMPLETE`  
+**status:** `DONE` (T022; CACHE_MAIN).  
 
-S_hold requires rebuilding StateV2 at endpoint_h90 from events/frames with timestamp ≤ q_pre (state_value_v2.StateBuilder.at), then scoring frozen V. A verified batch rebuild path over TEST was not executed in T019; mutating only time_minutes/time_minutes_sq on X_pre is forbidden by the contract. Leave probe incomplete rather than a partial clock hack.
+See [`SUPPLEMENTARY_E2_S_HOLD_20260921.md`](SUPPLEMENTARY_E2_S_HOLD_20260921.md): n_ok=32981, arith=1.0, E|d_clock|=0.013175315166579053, E|d_update|=0.1150003739088291.
 
-Next: T020+: scripted StateBuilder hold rebuild on a fixed match subsample, assert d_clock+d_update≈ΔV, then full TEST.
 
 ## §5.4 Observation-refresh strata (TEST, frozen scores)
 

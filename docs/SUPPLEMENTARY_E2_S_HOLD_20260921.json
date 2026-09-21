@@ -1,0 +1,176 @@
+{
+  "schema": "SUPPLEMENTARY_E2_S_HOLD_v1",
+  "generated_at_utc": "2026-09-21T08:18:06.332987+00:00",
+  "contract": "docs/SUPPLEMENTARY_EXPERIMENT_DESIGN_20260921.md#5.2",
+  "task": ".ai/tasks/T022.md",
+  "cache": {
+    "CACHE_MAIN": "D:\\LOL_Project\\cache\\match_cache_fresh_v3_engage_status13",
+    "n_npz": 210000,
+    "note": "T019 checked empty runtime/cache; packs live on D: CACHE_MAIN."
+  },
+  "subsample": {
+    "status": "OK",
+    "phase": "subsample",
+    "wall_s": 50.4703950881958,
+    "n_matches_attempted": 2000,
+    "n_ok": 2709,
+    "n_cache_miss": 0,
+    "n_fail": 0,
+    "arith_identity_rate": 1.0,
+    "arith_atol": 1e-06,
+    "rebuild_vs_stored": {
+      "max_pre_err_p99": 0.0,
+      "max_post_err_p99": 0.0,
+      "mean_pre_err": 0.0,
+      "mean_post_err": 0.0
+    },
+    "A": {
+      "n": 2709,
+      "mean": 0.5069016515338864,
+      "mean_abs": 0.5069016515338864,
+      "median_abs": 0.5202525854110718,
+      "p_pos": 1.0,
+      "p_neg": 0.0,
+      "p_zero": 0.0
+    },
+    "H": {
+      "n": 2709,
+      "mean": 0.5079594126076741,
+      "mean_abs": 0.5079594126076741,
+      "median_abs": 0.5224776864051819,
+      "p_pos": 1.0,
+      "p_neg": 0.0,
+      "p_zero": 0.0
+    },
+    "P": {
+      "n": 2709,
+      "mean": 0.5053505634425923,
+      "mean_abs": 0.5053505634425923,
+      "median_abs": 0.5096423625946045,
+      "p_pos": 1.0,
+      "p_neg": 0.0,
+      "p_zero": 0.0
+    },
+    "delta_V": {
+      "n": 2709,
+      "mean": -0.0015510880912940478,
+      "mean_abs": 0.1133392370782446,
+      "median_abs": 0.0727720856666565,
+      "p_pos": 0.4968623108157992,
+      "p_neg": 0.5031376891842008,
+      "p_zero": 0.0
+    },
+    "d_clock": {
+      "n": 2709,
+      "mean": 0.0010577610737876881,
+      "mean_abs": 0.01267620180735221,
+      "median_abs": 0.006582587957382202,
+      "p_pos": 0.5758582502768549,
+      "p_neg": 0.42414174972314506,
+      "p_zero": 0.0
+    },
+    "d_update": {
+      "n": 2709,
+      "mean": -0.002608849165081736,
+      "mean_abs": 0.11303985102432886,
+      "median_abs": 0.07289319485425949,
+      "p_pos": 0.49760059062384643,
+      "p_neg": 0.5023994093761536,
+      "p_zero": 0.0
+    },
+    "Y_vs_d_update_pos_flip": 0.035437430786267994,
+    "opposite_sign_clock_update_rate": 0.5138427464008859,
+    "mean_hold_snapshot_age_s": 112.1804761904762,
+    "mean_followup_s": 78.54589331856774,
+    "same_frame_share": 0.06755260243632337,
+    "reading": "Arithmetic decomposition under chosen update order only. S_hold is not a no-fight potential outcome; held frames may be OOD.",
+    "cache_dir": "D:\\LOL_Project\\cache\\match_cache_fresh_v3_engage_status13",
+    "bundle_sha16": "ac459cc4397630a9"
+  },
+  "full": {
+    "status": "OK",
+    "phase": "full",
+    "wall_s": 610.8822336196899,
+    "n_matches_attempted": 24020,
+    "n_ok": 32981,
+    "n_cache_miss": 0,
+    "n_fail": 0,
+    "arith_identity_rate": 1.0,
+    "arith_atol": 1e-06,
+    "rebuild_vs_stored": {
+      "max_pre_err_p99": 0.0,
+      "max_post_err_p99": 0.0,
+      "mean_pre_err": 0.0,
+      "mean_post_err": 0.0
+    },
+    "A": {
+      "n": 32981,
+      "mean": 0.5047051092316481,
+      "mean_abs": 0.5047051092316481,
+      "median_abs": 0.5069310069084167,
+      "p_pos": 1.0,
+      "p_neg": 0.0,
+      "p_zero": 0.0
+    },
+    "H": {
+      "n": 32981,
+      "mean": 0.5055442055605446,
+      "mean_abs": 0.5055442055605446,
+      "median_abs": 0.5069986581802368,
+      "p_pos": 1.0,
+      "p_neg": 0.0,
+      "p_zero": 0.0
+    },
+    "P": {
+      "n": 32981,
+      "mean": 0.5029598506416196,
+      "mean_abs": 0.5029598506416196,
+      "median_abs": 0.503688633441925,
+      "p_pos": 1.0,
+      "p_neg": 0.0,
+      "p_zero": 0.0
+    },
+    "delta_V": {
+      "n": 32981,
+      "mean": -0.001745258590028547,
+      "mean_abs": 0.1153664668422581,
+      "median_abs": 0.07523655891418457,
+      "p_pos": 0.4959825353991692,
+      "p_neg": 0.5040174646008307,
+      "p_zero": 0.0
+    },
+    "d_clock": {
+      "n": 32981,
+      "mean": 0.0008390963288964229,
+      "mean_abs": 0.013175315166579053,
+      "median_abs": 0.006748497486114502,
+      "p_pos": 0.5535308207755981,
+      "p_neg": 0.44646917922440194,
+      "p_zero": 0.0
+    },
+    "d_update": {
+      "n": 32981,
+      "mean": -0.00258435491892497,
+      "mean_abs": 0.1150003739088291,
+      "median_abs": 0.07528752088546753,
+      "p_pos": 0.4942239471210697,
+      "p_neg": 0.5057760528789302,
+      "p_zero": 0.0
+    },
+    "Y_vs_d_update_pos_flip": 0.03602073921348655,
+    "opposite_sign_clock_update_rate": 0.5072617567690488,
+    "mean_hold_snapshot_age_s": 111.80034619932688,
+    "mean_followup_s": 77.94923389224098,
+    "same_frame_share": 0.06743276431885024,
+    "reading": "Arithmetic decomposition under chosen update order only. S_hold is not a no-fight potential outcome; held frames may be OOD.",
+    "cache_dir": "D:\\LOL_Project\\cache\\match_cache_fresh_v3_engage_status13",
+    "bundle_sha16": "ac459cc4397630a9"
+  },
+  "construction": {
+    "events": "timestamp \u2264 q_pre",
+    "frames": "minute_ts \u2264 q_pre",
+    "query": "endpoint_h90",
+    "snapshot": "last held frame (\u2264 q_pre)",
+    "forbidden": "mutating only time_minutes on X_pre"
+  }
+}
