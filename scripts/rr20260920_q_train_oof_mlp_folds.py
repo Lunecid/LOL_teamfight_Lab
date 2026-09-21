@@ -56,11 +56,43 @@ def _load_wave4():
     return mod
 
 
-def _data_root() -> Path:
+def resolve_data_root(cli_value: Optional[str] = None) -> Path:
+    """Resolve the external data root explicitly.
+
+    Precedence: explicit ``--data-root`` value, then ``$LOL_TEAMFIGHT_DATA_ROOT``,
+    then the legacy local search under the user's home directory. Making the root
+    an explicit input keeps a third-party checkout from silently depending on a
+    private working tree under ``~/Documents``.
+    """
+    if cli_value:
+        return Path(cli_value).expanduser()
+    env = os.environ.get("LOL_TEAMFIGHT_DATA_ROOT", "").strip()
+    if env:
+        return Path(env).expanduser()
     for p in (Path.home() / "Documents" / "LOL_Teamfight", Path.home() / "문서" / "LOL_Teamfight"):
         if (p / "outputs" / "full_corpus_training_20260915").is_dir():
             return p
     return Path.home() / "문서" / "LOL_Teamfight"
+
+
+def _data_root(cli_value: Optional[str] = None) -> Path:
+    return resolve_data_root(cli_value)
+
+
+def validate_cohort_reuse(cohort: str, reuse_evaluators: bool) -> None:
+    """Contract guard: cohort S must reuse the frozen T-lineage evaluators.
+
+    The OOF evaluator directory is shared with the T cohort (``OOF_DIR_T``), so a
+    new-training run for S (``reuse_evaluators=False``) would overwrite the frozen
+    T fold evaluators. Fail fast instead of silently corrupting the shared files.
+    """
+    if cohort == "S" and not reuse_evaluators:
+        raise SystemExit(
+            "cohort S requires --reuse-evaluators: OOF evaluators live in the "
+            "shared T lineage directory (OOF_DIR_T), and fitting new evaluators "
+            "for S would overwrite the frozen T fold evaluators. Re-run with "
+            "--reuse-evaluators."
+        )
 
 
 def _setup(data_root: Path) -> None:
@@ -80,6 +112,22 @@ def sha256_bytes(b: bytes) -> str:
 
 def sha256_file(path: Path) -> str:
     return sha256_bytes(path.read_bytes())
+
+
+def finalize_fold_evaluator(fold_path: Path, n_eng_labeled: int) -> str:
+    """Set ``n_eng_labeled`` on a saved OOF evaluator, re-dump, then hash.
+
+    The hash is computed on the *final* file bytes so the provenance recorded in
+    metadata matches what is actually on disk. (Previously the hash was taken
+    before this ``n_eng_labeled`` rewrite, so the recorded SHA did not match the
+    final evaluator file.)
+    """
+    import joblib
+
+    obj = joblib.load(fold_path)
+    obj["n_eng_labeled"] = int(n_eng_labeled)
+    joblib.dump(obj, fold_path)
+    return sha256_file(fold_path)
 
 
 def labels_dir(cohort: str) -> Path:
@@ -142,9 +190,17 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         default=False,
         help="score cohort engagements with saved T fold V^(-k); skip fit (required for S)",
     )
+    ap.add_argument(
+        "--data-root",
+        type=str,
+        default=None,
+        help="external corpus root (else $LOL_TEAMFIGHT_DATA_ROOT, else local ~/…/LOL_Teamfight)",
+    )
     args = ap.parse_args(argv)
 
-    data_root = _data_root()
+    validate_cohort_reuse(args.cohort, args.reuse_evaluators)
+
+    data_root = _data_root(args.data_root)
     _setup(data_root)
     import joblib
     import fc20260915_common as C
@@ -339,15 +395,18 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 ),
                 fold_path,
             )
+            bun_path = OOF_DIR / f"bundle_oof_fold{k}.joblib"
             try:
-                joblib.dump({"profile": "expanded", "bundle": bun}, OOF_DIR / f"bundle_oof_fold{k}.joblib")
+                joblib.dump({"profile": "expanded", "bundle": bun}, bun_path)
+                evaluator_sha[f"bundle_oof_fold{k}"] = sha256_file(bun_path)[:16]
             except Exception as e:
                 print(f"  warn: could not dump ProfileBundle ({e})", flush=True)
             fit_m_sum = int(fit_m.sum())
             stop_sum = int(stop.sum())
             best_epoch = int(pack["best_epoch"])
             best_val_brier = float(pack["best_val_brier"])
-            evaluator_sha[f"V_oof_fold{k}"] = sha256_file(fold_path)[:16]
+            # NOTE: V_oof hash is recorded *after* n_eng_labeled is written below
+            # (finalize_fold_evaluator), so evaluator_sha matches the final file.
 
         # score engagements in fold k
         E = D.load_engagements(L, "MAIN", [f"fold{k}"], states=True, counts=False)
@@ -369,11 +428,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         print(f"  labeled eng={n_k} P(SVI=1)={float(np.mean(y[~miss]==1)):.3f}", flush=True)
 
         if not args.reuse_evaluators:
-            # update n_eng_labeled on dump already written — rewrite lightly
+            # Finalize n_eng_labeled on the already-written dump, then hash the
+            # *final* file so recorded provenance matches bytes on disk.
             fold_path = OOF_DIR / f"V_oof_fold{k}_mlp_expanded.joblib"
-            obj = joblib.load(fold_path)
-            obj["n_eng_labeled"] = n_k
-            joblib.dump(obj, fold_path)
+            evaluator_sha[f"V_oof_fold{k}"] = finalize_fold_evaluator(fold_path, n_k)[:16]
 
         parts.append(
             dict(
@@ -416,6 +474,20 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         (LAB / "TRAIN_oof_STATUS.json").write_text(json.dumps(status, indent=2) + "\n", encoding="utf-8")
         print("partial fold run — not writing final TRAIN_oof_h90.npz", flush=True)
         return 0
+
+    # Provenance self-check: every recorded SHA must match the final file bytes.
+    for tag, recorded in evaluator_sha.items():
+        if tag.startswith("V_oof_fold"):
+            fpath = OOF_DIR / f"{tag}_mlp_expanded.joblib"
+        else:  # bundle_oof_fold{k}
+            fpath = OOF_DIR / f"{tag}.joblib"
+        if fpath.is_file():
+            actual = sha256_file(fpath)[:16]
+            if actual != recorded:
+                raise SystemExit(
+                    f"evaluator hash mismatch for {tag}: recorded={recorded} actual={actual} "
+                    f"(file {fpath} changed after hashing)"
+                )
 
     keys = parts[0].keys()
     pack = {k: np.concatenate([p[k] for p in parts], axis=0) for k in keys}
