@@ -1,0 +1,180 @@
+{
+  "schema": "SUPPLEMENTARY_E2_FRAME_STRATA_v1",
+  "generated_at_utc": "2026-09-21T07:43:55.029958+00:00",
+  "contract": "docs/SUPPLEMENTARY_EXPERIMENT_DESIGN_20260921.md#5",
+  "task": ".ai/tasks/T019.md",
+  "section_5_4": {
+    "T": {
+      "ok": true,
+      "cohort": "T",
+      "n_engagements": 32981,
+      "n_joined": 32981,
+      "join_rate": 1.0,
+      "same_frame_rate": 0.06743276431885024,
+      "pre_age_lt30_rate": 0.3701221915648404,
+      "pre_age_median_s": 36.973,
+      "followup_median_s": 73.957,
+      "age_cut_s": 30.0,
+      "cells": {
+        "same_young": {
+          "n": 2204,
+          "n_matches": 2164,
+          "P_SVI": 0.5303992740471869,
+          "E_abs_dV": 0.09419693902537173,
+          "median_abs_dV": 0.055743008852005005,
+          "brier_q": 0.21207754209124235,
+          "brier_pt": 0.21297632974336536,
+          "delta_brier_q_minus_pt": -0.0008987876521230065,
+          "mean_p_pre": 0.49703309367923826,
+          "mean_tmin": 22.944651588021777,
+          "mean_followup_s": 40.36805807622505
+        },
+        "same_old": {
+          "n": 20,
+          "n_matches": 20,
+          "P_SVI": 0.45,
+          "E_abs_dV": 0.056635053176432845,
+          "median_abs_dV": 0.0433860719203949,
+          "brier_q": 0.21157236542286734,
+          "brier_pt": 0.20730401881026622,
+          "delta_brier_q_minus_pt": 0.004268346612601115,
+          "mean_p_pre": 0.49805961474776267,
+          "mean_tmin": 16.632878333333334,
+          "mean_followup_s": 22.441
+        },
+        "new_young": {
+          "n": 10003,
+          "n_matches": 8979,
+          "P_SVI": 0.48645406378086575,
+          "E_abs_dV": 0.11861521582430415,
+          "median_abs_dV": 0.08021247386932373,
+          "brier_q": 0.2409131605316996,
+          "brier_pt": 0.2443791765849062,
+          "delta_brier_q_minus_pt": -0.003466016053206622,
+          "mean_p_pre": 0.5036586670701336,
+          "mean_tmin": 21.184440369555798,
+          "mean_followup_s": 86.11674397680694
+        },
+        "new_old": {
+          "n": 20754,
+          "n_matches": 16923,
+          "P_SVI": 0.49696444058976585,
+          "E_abs_dV": 0.1161053610097829,
+          "median_abs_dV": 0.07509568333625793,
+          "brier_q": 0.23802393229976568,
+          "brier_pt": 0.24200383452854216,
+          "delta_brier_q_minus_pt": -0.003979902228776477,
+          "mean_p_pre": 0.5060306180595346,
+          "mean_tmin": 21.12776834505798,
+          "mean_followup_s": 78.05713949118241
+        },
+        "all": {
+          "n": 32981,
+          "n_matches": 24020,
+          "P_SVI": 0.4959825353991692,
+          "E_abs_dV": 0.11536646617637418,
+          "median_abs_dV": 0.07523655891418457,
+          "brier_q": 0.2354775935372373,
+          "brier_pt": 0.2392099329311177,
+          "delta_brier_q_minus_pt": -0.0037323393938804017,
+          "mean_p_pre": 0.5047051097502843,
+          "mean_tmin": 21.263646672831836,
+          "mean_followup_s": 77.94923389224098
+        }
+      },
+      "reading": "Cell differences are diagnostic of composition under frozen scores; not causal claims that frame refresh caused performance."
+    },
+    "S": {
+      "ok": true,
+      "cohort": "S",
+      "n_engagements": 101205,
+      "n_joined": 101205,
+      "join_rate": 1.0,
+      "same_frame_rate": 0.138589990613112,
+      "pre_age_lt30_rate": 0.4369942196531792,
+      "pre_age_median_s": 33.309,
+      "followup_median_s": 60.101,
+      "age_cut_s": 30.0,
+      "cells": {
+        "same_young": {
+          "n": 12912,
+          "n_matches": 11712,
+          "P_SVI": 0.5692379182156134,
+          "E_abs_dV": 0.07832845566020194,
+          "median_abs_dV": 0.06189724802970886,
+          "brier_q": 0.24497565766279483,
+          "brier_pt": 0.24638488287990587,
+          "delta_brier_q_minus_pt": -0.0014092252171110375,
+          "mean_p_pre": 0.49831153229029,
+          "mean_tmin": 10.717755179935978,
+          "mean_followup_s": 34.88847521685254
+        },
+        "same_old": {
+          "n": 1114,
+          "n_matches": 1101,
+          "P_SVI": 0.5897666068222621,
+          "E_abs_dV": 0.07724020664230712,
+          "median_abs_dV": 0.06391458958387375,
+          "brier_q": 0.2485237524593441,
+          "brier_pt": 0.24845438371912876,
+          "delta_brier_q_minus_pt": 6.936874021534756e-05,
+          "mean_p_pre": 0.5040056058548431,
+          "mean_tmin": 9.23547434171155,
+          "mean_followup_s": 20.936847396768403
+        },
+        "new_young": {
+          "n": 31314,
+          "n_matches": 24695,
+          "P_SVI": 0.4929743884524494,
+          "E_abs_dV": 0.09062691471145543,
+          "median_abs_dV": 0.06929022073745728,
+          "brier_q": 0.245871921956061,
+          "brier_pt": 0.24983289089555483,
+          "delta_brier_q_minus_pt": -0.003960968939493825,
+          "mean_p_pre": 0.5008128695001393,
+          "mean_tmin": 11.088017336228736,
+          "mean_followup_s": 78.52200421536693
+        },
+        "new_old": {
+          "n": 55865,
+          "n_matches": 36561,
+          "P_SVI": 0.5026044929741341,
+          "E_abs_dV": 0.09118548901814154,
+          "median_abs_dV": 0.0688755139708519,
+          "brier_q": 0.24653323150267703,
+          "brier_pt": 0.24962874780059804,
+          "delta_brier_q_minus_pt": -0.003095516297921014,
+          "mean_p_pre": 0.506445205879311,
+          "mean_tmin": 12.531844516542858,
+          "mean_followup_s": 66.13063578269042
+        },
+        "all": {
+          "n": 101205,
+          "n_matches": 49730,
+          "P_SVI": 0.5090855194901438,
+          "E_abs_dV": 0.089218824771079,
+          "median_abs_dV": 0.06783026456832886,
+          "brier_q": 0.24580968702464062,
+          "brier_pt": 0.24916230324533656,
+          "delta_brier_q_minus_pt": -0.0033526162206959365,
+          "mean_p_pre": 0.5036379267015423,
+          "mean_tmin": 11.81737702765015,
+          "mean_followup_s": 65.48124744824861
+        }
+      },
+      "reading": "Cell differences are diagnostic of composition under frozen scores; not causal claims that frame refresh caused performance."
+    }
+  },
+  "section_5_2_S_hold": {
+    "status": "INCOMPLETE",
+    "reason": "S_hold requires rebuilding StateV2 at endpoint_h90 from events/frames with timestamp \u2264 q_pre (state_value_v2.StateBuilder.at), then scoring frozen V. A verified batch rebuild path over TEST was not executed in T019; mutating only time_minutes/time_minutes_sq on X_pre is forbidden by the contract. Leave probe incomplete rather than a partial clock hack.",
+    "cache_dir_exists": true,
+    "next_step": "T020+: scripted StateBuilder hold rebuild on a fixed match subsample, assert d_clock+d_update\u2248\u0394V, then full TEST."
+  },
+  "forbidden": [
+    "causal frame-refresh effect",
+    "put endpoint/frame-refresh into q inputs",
+    "time-only X_pre mutation as S_hold",
+    "replace journal headlines"
+  ]
+}

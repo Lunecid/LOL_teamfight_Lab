@@ -4,9 +4,8 @@
 
 ## 현재 목표
 저널 freeze는 유지한다. 보완 실험은 [`docs/SUPPLEMENTARY_EXPERIMENT_DESIGN_20260921.md`](../docs/SUPPLEMENTARY_EXPERIMENT_DESIGN_20260921.md) 경로만.  
-**T017 (2026-09-21):** E3 외부 paired bootstrap → `docs/SUPPLEMENTARY_E3_EXT_BOOTSTRAP_20260921.md`.  
-**T018 (2026-09-21):** E1 정보군 LGBM → `docs/SUPPLEMENTARY_E1_INFOGROUPS_20260921.md`.  
-다음 보완 후보: E2 시간경과 진단.  
+**T019 (2026-09-21):** E2 §5.4 프레임 층화 DONE; §5.2 S_hold INCOMPLETE → `docs/SUPPLEMENTARY_E2_FRAME_STRATA_20260921.md`.  
+다음 보완 후보: E2 S_hold 재구성(T020) 또는 E4 민감도.  
 석사 Markdown 골격: `docs/master_thesis_v1/`; LaTeX: `thesis/`.
 
 ## 브랜치와 인계
