@@ -1,7 +1,7 @@
 # 수치 레지스트리 (NUMBERS)
 
 `latex/config/numbers.tex` 의 매크로 값과 출처. 규칙(`AGENTS.md`): 새 실험·재집계·재학습으로 수치를 만들지 않는다. 모든 값은 아래 출처 문서의 필드·행에서 옮긴 것이며, 값을 바꿀 때는 출처를 함께 갱신한다.
-계보 태그: **F** = fit85/SVI 저널 스파인 (주 결과), **L** = 정의 계보 (`docs/tog_manuscript/`, `market_event` 라벨, 인용 전용), **O** = 2026-09-15 구 로지스틱 V (인용 전용). 세 계보의 수치는 한 표에 함께 놓지 않는다.
+계보 태그: **F** = fit85/SVI 주 결과(동결), **L** = 정의 계보 (`docs/tog_manuscript/`, `market_event` 라벨, 인용 전용), **O** = 2026-09-15 구 로지스틱 V (인용 전용), **S** = 보완 실험(15.16 노출 이후의 진단; 헤드라인 대체 금지). 네 계보의 수치는 한 표에 함께 놓지 않는다. 실행 상태는 [`STATUS.md`](STATUS.md).
 
 | 매크로 군 | 출처 파일 → 필드/행 | 계보 |
 |---|---|---|
@@ -31,6 +31,8 @@
 | `\extS*` | `SCALE_SPLIT_TvsS_RESULTS_20260920.json` `table4_EXT_S`; `REVIEW_RESPONSE_RRX_EXTERNAL_20260920_S.md` | F |
 | `\old*` | `e0ec3d0:outputs/cohort_role_training_20260915/REPORT.md` (SCALE_SPLIT 계약 §1에 인용) | O |
 | `\meSkirmAUC`, `\meTeamfightAUC` | `docs/tog_manuscript/sec_prediction.tex` (SCALE_SPLIT 계약 §1에 인용) | L |
+| `\cog*`, `\aucCog` (Baek & Kwon 2026 정의 상수; 2장 인용 문장 전용) | `docs/CoG2026_Paper.md` §3.1–3.2·상수표; `docs/tog_manuscript/sec_label.tex` L56–60 (fourteen weights); `sec_intro.tex` L111–120 (AUC 0.675) | L |
+| 보완 실험 E1–E5·G0 (`config/numbers_supp.tex`, `tables/gen/*.tex`; 생성물) | `docs/SUPPLEMENTARY_E*_20260921.json`, `docs/G0_INTEGRITY_STATUS_20260921.json` → 매크로별 통계량·분자·분모·필드는 [`NUMBERS_SUPP.md`](NUMBERS_SUPP.md) (`tools/gen_supp.py`) | **S** (보완, 진단) |
 
 ## 알려진 문서 간 불일치와 채택 값 (`.ai/CONTEXT.md` 기준)
 
