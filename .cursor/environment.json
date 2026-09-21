@@ -1,0 +1,4 @@
+{
+  "name": "LOL Teamfight Lab",
+  "install": "pip install --break-system-packages torch --index-url https://download.pytorch.org/whl/cpu && pip install --break-system-packages -e \".[all]\""
+}
