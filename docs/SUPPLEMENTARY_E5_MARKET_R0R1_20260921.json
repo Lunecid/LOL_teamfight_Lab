@@ -1,0 +1,58 @@
+{
+  "schema": "SUPPLEMENTARY_E5_MARKET_R0R1_v1",
+  "generated_at_utc": "2026-09-21T10:37:17.499306+00:00",
+  "task": ".ai/tasks/T023.md",
+  "market_event": {
+    "n_ok": 32981,
+    "n_tie_or_drop": 0,
+    "n_miss": 0,
+    "n_fail": 0,
+    "wall_s": 1739.5081264972687,
+    "label_flip_vs_SVI": 0.13398623449865074,
+    "agree_rate": 0.8660137655013492,
+    "delta_brier_q_minus_pt_on_SVI": -0.0037323393938804017,
+    "delta_brier_q_minus_pt_on_market": 0.0014860359941252232,
+    "note": "Same (engage,s)\u2192endpoint_h90+1 window; v3.3 market_event. Not original CoG corpus numbers."
+  },
+  "r0_r1": {
+    "classes": [
+      "Blue",
+      "Red",
+      "none",
+      "game_ended_before_objective",
+      "game_ended_in_window_no_objective",
+      "tie_ambiguous",
+      "observation_censored"
+    ],
+    "train_n": 39605,
+    "qcal_n": 10390,
+    "qsel_n": 10195,
+    "test_n": 32981,
+    "R0": {
+      "name": "R0",
+      "C": 10.0,
+      "brier_Q_SELECT": 0.630254090004526,
+      "brier_TEST": 0.6326473787858895,
+      "brier_TEST_BlueRed_selected": 0.4733183653582429,
+      "n_train": 39605,
+      "n_select": 10195,
+      "n_test": 32981
+    },
+    "R1": {
+      "name": "R1",
+      "C": 10.0,
+      "brier_Q_SELECT": 0.6207935824682523,
+      "brier_TEST": 0.6254073732413615,
+      "brier_TEST_BlueRed_selected": 0.46708864301748093,
+      "n_train": 39605,
+      "n_select": 10195,
+      "n_test": 32981
+    },
+    "delta_brier_R1_minus_R0_TEST": -0.007240005544527972,
+    "reading": "R1 adds \u0394V to R0 at endpoint; p_post=p_pre+\u0394V reparameterization caveat applies. Not causal proof that SVI is the true fight value. Selected Blue|Red is a restricted denominator."
+  },
+  "E6": {
+    "status": "INCOMPLETE",
+    "reason": "No pre-registered unseen match list / new scrape for confirmatory eval."
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "schema": "SUPPLEMENTARY_E4_E_FIXED_v1",
+  "generated_at_utc": "2026-09-21T09:12:59.789473+00:00",
+  "task": ".ai/tasks/T023.md",
+  "bundle_sha16": "ac459cc4397630a9",
+  "cache_dir": "D:\\LOL_Project\\cache\\match_cache_fresh_v3_engage_status13",
+  "definition": "e_fixed=min(L+30000, match_end-1); no next-kill early stop",
+  "n_ok": 32981,
+  "n_cache_miss": 0,
+  "n_fail": 0,
+  "n_invalid": 0,
+  "wall_s": 1672.293514251709,
+  "share_same_endpoint_as_h90": 0.069070070646736,
+  "mean_followup_s_fixed": 57.48838237166853,
+  "mean_followup_s_h90": 77.94923389224098,
+  "svi_flip_vs_h90": 0.09557017676844244,
+  "frozen_q_pt": {
+    "delta_brier_q_minus_pt_on_Y_h90": -0.0037323393938804017,
+    "delta_brier_q_minus_pt_on_Y_fixed": -0.003967454056350822,
+    "label_flip": 0.09557017676844244
+  },
+  "reading": "Alternative stopping rule diagnostic. Extra engagements may enter the window; attribution is broader than h90. Not a claim that e_fixed is better."
+}

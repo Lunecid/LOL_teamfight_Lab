@@ -1,0 +1,256 @@
+{
+  "schema": "SUPPLEMENTARY_E4_DEFINITION_OAT_v1",
+  "generated_at_utc": "2026-09-21T09:17:51.554826+00:00",
+  "task": ".ai/tasks/T023.md",
+  "n_matches_design": 20000,
+  "n_matches_run": 5000,
+  "n_miss": 0,
+  "budget_note": "Design budget 20k; ran hash-first N_MATCHES for wall-clock. Not a power guarantee.",
+  "reference": {
+    "G": 13700,
+    "D": 4264.0,
+    "R": 1600.0,
+    "B": 15000
+  },
+  "settings": {
+    "ref": {
+      "params": {
+        "G": 13700,
+        "D": 4264.0,
+        "R": 1600.0,
+        "B": 15000
+      },
+      "n_matches": 5000,
+      "n_engagements": 18192,
+      "cohort_counts": {
+        "S": 8865,
+        "T": 6801,
+        "P": 2526
+      }
+    },
+    "G_12200": {
+      "params": {
+        "G": 12200,
+        "D": 4264.0,
+        "R": 1600.0,
+        "B": 15000
+      },
+      "n_matches": 5000,
+      "n_engagements": 18748,
+      "cohort_counts": {
+        "S": 9363,
+        "T": 6613,
+        "P": 2772
+      }
+    },
+    "G_15700": {
+      "params": {
+        "G": 15700,
+        "D": 4264.0,
+        "R": 1600.0,
+        "B": 15000
+      },
+      "n_matches": 5000,
+      "n_engagements": 17417,
+      "cohort_counts": {
+        "S": 8455,
+        "T": 6670,
+        "P": 2292
+      }
+    },
+    "D_4000": {
+      "params": {
+        "G": 13700,
+        "D": 4000.0,
+        "R": 1600.0,
+        "B": 15000
+      },
+      "n_matches": 5000,
+      "n_engagements": 18247,
+      "cohort_counts": {
+        "S": 8955,
+        "T": 6746,
+        "P": 2546
+      }
+    },
+    "D_4500": {
+      "params": {
+        "G": 13700,
+        "D": 4500.0,
+        "R": 1600.0,
+        "B": 15000
+      },
+      "n_matches": 5000,
+      "n_engagements": 18148,
+      "cohort_counts": {
+        "S": 8824,
+        "T": 6806,
+        "P": 2518
+      }
+    },
+    "R_1400": {
+      "params": {
+        "G": 13700,
+        "D": 4264.0,
+        "R": 1400.0,
+        "B": 15000
+      },
+      "n_matches": 5000,
+      "n_engagements": 12750,
+      "cohort_counts": {
+        "S": 6375,
+        "T": 4523,
+        "P": 1852
+      }
+    },
+    "R_1800": {
+      "params": {
+        "G": 13700,
+        "D": 4264.0,
+        "R": 1800.0,
+        "B": 15000
+      },
+      "n_matches": 5000,
+      "n_engagements": 22912,
+      "cohort_counts": {
+        "S": 11600,
+        "T": 7932,
+        "P": 3380
+      }
+    },
+    "B_10000": {
+      "params": {
+        "G": 13700,
+        "D": 4264.0,
+        "R": 1600.0,
+        "B": 10000
+      },
+      "n_matches": 5000,
+      "n_engagements": 24166,
+      "cohort_counts": {
+        "S": 11933,
+        "T": 7753,
+        "P": 4480
+      }
+    },
+    "B_20000": {
+      "params": {
+        "G": 13700,
+        "D": 4264.0,
+        "R": 1600.0,
+        "B": 20000
+      },
+      "n_matches": 5000,
+      "n_engagements": 13088,
+      "cohort_counts": {
+        "S": 7018,
+        "T": 4468,
+        "P": 1602
+      }
+    }
+  },
+  "vs_ref": {
+    "G_12200": {
+      "n_common_anchors": 18134,
+      "n_ref_only": 58,
+      "n_alt_only": 614,
+      "n_1to1": 18134,
+      "cohort_moves": {
+        "T->S": 240,
+        "S->P": 81,
+        "T->P": 53,
+        "P->S": 1
+      },
+      "eng_ref": 18192,
+      "eng_alt": 18748
+    },
+    "G_15700": {
+      "n_common_anchors": 17367,
+      "n_ref_only": 825,
+      "n_alt_only": 50,
+      "n_1to1": 17367,
+      "cohort_moves": {
+        "P->S": 97,
+        "S->T": 132,
+        "P->T": 25,
+        "T->P": 2
+      },
+      "eng_ref": 18192,
+      "eng_alt": 17417
+    },
+    "D_4000": {
+      "n_common_anchors": 18158,
+      "n_ref_only": 34,
+      "n_alt_only": 89,
+      "n_1to1": 18158,
+      "cohort_moves": {
+        "T->S": 66,
+        "S->P": 7,
+        "S->T": 4,
+        "P->S": 4,
+        "T->P": 1
+      },
+      "eng_ref": 18192,
+      "eng_alt": 18247
+    },
+    "D_4500": {
+      "n_common_anchors": 18133,
+      "n_ref_only": 59,
+      "n_alt_only": 15,
+      "n_1to1": 18133,
+      "cohort_moves": {
+        "S->T": 13,
+        "P->S": 2,
+        "S->P": 1,
+        "T->P": 1
+      },
+      "eng_ref": 18192,
+      "eng_alt": 18148
+    },
+    "R_1400": {
+      "n_common_anchors": 12518,
+      "n_ref_only": 5674,
+      "n_alt_only": 232,
+      "n_1to1": 12518,
+      "cohort_moves": {},
+      "eng_ref": 18192,
+      "eng_alt": 12750
+    },
+    "R_1800": {
+      "n_common_anchors": 17864,
+      "n_ref_only": 328,
+      "n_alt_only": 5048,
+      "n_1to1": 17864,
+      "cohort_moves": {},
+      "eng_ref": 18192,
+      "eng_alt": 22912
+    },
+    "B_10000": {
+      "n_common_anchors": 16212,
+      "n_ref_only": 1980,
+      "n_alt_only": 7954,
+      "n_1to1": 16212,
+      "cohort_moves": {
+        "T->S": 370,
+        "S->P": 613,
+        "T->P": 3
+      },
+      "eng_ref": 18192,
+      "eng_alt": 24166
+    },
+    "B_20000": {
+      "n_common_anchors": 11608,
+      "n_ref_only": 6584,
+      "n_alt_only": 1480,
+      "n_1to1": 11608,
+      "cohort_moves": {
+        "P->S": 399,
+        "S->T": 144
+      },
+      "eng_ref": 18192,
+      "eng_alt": 13088
+    }
+  },
+  "wall_s": 267.43502044677734,
+  "reading": "Frozen-score OAT on detector constants only. Earliest-kill anchors. Do not call D alternates 'CI boundaries'."
+}
