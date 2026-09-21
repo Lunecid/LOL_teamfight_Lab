@@ -1,0 +1,185 @@
+{
+  "status": "DESIGN_PROPOSAL_NOT_RUN",
+  "source_commit": "154caf9711b436d6d4b860533971c60c9f071993",
+  "target": "actual final match outcome W; downstream DeltaV/SVI/q frozen until V is selected",
+  "profiles": {
+    "expanded": {
+      "numeric": 351,
+      "categorical": 10,
+      "native_width": 361,
+      "neural_embedding_dim": 8,
+      "neural_flat_width": 431
+    },
+    "core_ablation": {
+      "numeric": 257,
+      "categorical": 10,
+      "native_width": 267,
+      "neural_embedding_dim": 8,
+      "neural_flat_width": 337
+    },
+    "history_expanded": {
+      "K": [
+        3,
+        5
+      ],
+      "numeric_per_token": 351,
+      "relative_time_per_token": 1,
+      "mask_per_token": 1,
+      "static_categorical_once": 10,
+      "flat_width_formula": "K*(351+1)+K+10",
+      "width_K3": 1069,
+      "width_K5": 1775
+    },
+    "history_core_optional": {
+      "K": [
+        3,
+        5
+      ],
+      "numeric_per_token": 257,
+      "relative_time_per_token": 1,
+      "mask_per_token": 1,
+      "static_categorical_once": 10,
+      "flat_width_formula": "K*(257+1)+K+10",
+      "width_K3": 787,
+      "width_K5": 1305
+    }
+  },
+  "history_contract": {
+    "targets": "May retain predeclared bucket-sampled supervised query times.",
+    "history_source": "Use the full as-of observation store, not only supervised bucket rows.",
+    "current_token": "State reconstructed at exact query_ms, event cutoff <=query_ms.",
+    "past_tokens": "K-1 distinct earlier actual frame states preceding the snapshot used by the current token. No duplicate same-frame carry-forward treated as a new observation.",
+    "causality": "All source timestamps <= query_ms; no future interpolation.",
+    "rnn_padding": "Valid observations first (left aligned); padding at tail; pack lengths denote valid prefix.",
+    "tcn_padding": "Keep chronological validity explicitly; gather last valid index and trim convolution tail to preserve time alignment.",
+    "mask": "Boolean; separate from source missingness; zeros reset after numerical scaling.",
+    "relative_time": "(history_timestamp-query_ms)/60000; update consistently at all application times.",
+    "categories": "One frozen TRAIN vocabulary plus UNK; store ten static champion IDs once."
+  },
+  "models": {
+    "logistic": {
+      "categorical_encoding": "onehot TRAIN-only, handle unknown explicitly",
+      "transformed_dim": "d_num + sum(slot_category_counts)",
+      "C_candidates": [
+        0.001,
+        0.01,
+        0.1,
+        1,
+        10
+      ],
+      "weights": "mean-one normalized; preserve this scale in all fits"
+    },
+    "lgbm": {
+      "categorical_encoding": "native TRAIN category mapping, dtype and booster features asserted",
+      "num_leaves": [
+        15,
+        31,
+        63
+      ],
+      "min_child_samples": [
+        100,
+        300
+      ],
+      "learning_rate": 0.03,
+      "n_estimators_cap": 3000,
+      "colsample_bytree": 0.8,
+      "subsample": 0.8,
+      "subsample_freq": 1,
+      "reg_lambda": 5,
+      "early_stop": "TRAIN inner match split, time-balanced Brier"
+    },
+    "mlp": {
+      "numeric": 351,
+      "champion_embedding_dim": 8,
+      "input_width": 431,
+      "hidden_candidates": [
+        [
+          128,
+          64
+        ],
+        [
+          256,
+          128
+        ]
+      ],
+      "dropout": [
+        0.1,
+        0.3
+      ],
+      "learning_rate_candidates": [
+        0.0003,
+        0.001
+      ],
+      "grid_note": "Select a predeclared bounded subset, do not implicitly launch the full product.",
+      "batch_size": 1024,
+      "max_epochs": 100,
+      "patience": 10,
+      "weight_decay": 0.0001
+    },
+    "history_gru": {
+      "input_shape": "B,K,352 plus static B,10 categorical and B,K mask",
+      "token_projection": [
+        352,
+        128
+      ],
+      "hidden_dim": 128,
+      "layers": 1,
+      "current_numeric_skip": [
+        351,
+        128
+      ],
+      "champion_context_width": 80,
+      "fused_width": 336,
+      "head": [
+        336,
+        128,
+        1
+      ]
+    },
+    "history_transformer_optional": {
+      "token_dim": 128,
+      "heads": 4,
+      "layers": 2,
+      "ffn_dim": 256,
+      "relative_time_encoding": true,
+      "validity_mask": true,
+      "current_numeric_skip_dim": 128,
+      "static_champion_dim": 80,
+      "fused_width": 336
+    },
+    "team_set_optional": {
+      "player_numeric_shape": [
+        10,
+        16
+      ],
+      "champion_embedding_dim": 8,
+      "player_width": 24,
+      "shared_phi": [
+        24,
+        64,
+        32
+      ],
+      "team_pool": "mean within each five-player team",
+      "team_event_shape": [
+        2,
+        47
+      ],
+      "global_numeric": 3,
+      "readout_width": 193,
+      "head": [
+        193,
+        128,
+        1
+      ],
+      "profile": "core 267; lossy representation comparison, not a proven improvement"
+    }
+  },
+  "selection": {
+    "train_inner_stop": "match-disjoint within 15.14",
+    "V_CAL": "calibration only after final candidate refit",
+    "V_SELECT": "four-band equal-weight Brier, same-weight logloss tie-break",
+    "TEST": "report after freeze; all runs remain exploratory due prior exposure",
+    "raw_vs_sigmoid": "explicit candidates; no automatic recalibration",
+    "quality_gate": "development-only as-of current-state/continuity checks; no preference merely for matching old V labels"
+  }
+}

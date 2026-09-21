@@ -1,0 +1,865 @@
+% =============================================================================
+% sec_limit.tex -- Where the Limit Comes From.
+% Owner: M4-limit.  Answers CoG 2026 reviews: R1 (connective argument between the prediction result and
+% the observation result; motivation for non-experts), R2 (temporal resolution: the event-level state
+% reconstruction), R3 (every method motivated before it is described; TreeSHAP given a purpose).
+%
+% Every number carries its source in a comment.  Path prefixes used in those comments:
+%   WT/    = C:/Users/todtj/문서/LOL_Teamfight/worktrees/engagement-state-value/
+%   FEAT/  = D:/LOL_Project/fusion_2615/features/
+%   REV/   = FEAT/tog_revision/
+%   REPO/  = C:/Users/todtj/PycharmProjects/LOL_teamfight/
+% Code is cited by function name because other agents keep editing those files and line numbers drift.
+%
+% Weighting.  Every AUC, Brier score, ECE, R^2 and sign accuracy from WT/ is match-weighted: weight
+% 1 / (rows of the match), mean-normalised (WT/train/state_value_experiment.py match_weights(), metrics();
+% WT/scripts/validate_temporal_winprob_claude.py metrics(); WT/scripts/diagnose_downstream_winprob_v3.py
+% score()).  The swing means and the slope of subsection sec:limit-martingale are unweighted
+% (WT/scripts/test_martingale_and_swing_v3.py match_ci(), swing_table(), stats.linregress) with
+% match-cluster bootstrap intervals; the Pearson and Spearman correlations there are unweighted too
+% (stats.linregress r, stats.spearmanr).  The REV/A4 patch-holdout AUCs are unweighted row AUCs
+% (sklearn roc_auc_score without weights in WT/scripts/evidence_block_patch_holdout_v33.py).
+%
+% Deliberately NOT used here:
+%   - WT/docs/CLAUDE_FULL_PIPELINE_SUMMARY.md section 7.1 says "our predictor is the same 0.665": wrong.
+%     The published B column is the |delta-V|-weighted sign(delta-V) predictor, test AUC 0.583
+%     (WT/scripts/train_engagement_predictor_v3.py run(): layers use oof / p of the deltaV_weighted model).
+%   - The 50k evidence pilot (AUC 0.6649 -> 0.6708, WT/docs/experiments/claude_evidence_pilot_results.json):
+%     its position-error curve was read from its own evaluation matches (WT/gameplay/evidence_state.py
+%     comment above POS_ERROR_CURVE).  Superseded by the full-corpus patch holdout below.
+%   - By-band paired intervals in WT/outputs/engagement_predictor_v3/downstream_winprob.json
+%     (horizons.*.by_game_time.*.C_minus_A / B_minus_A): main() passes full-length prediction vectors with
+%     band-length targets to paired_delta(), so the resampled rows do not align (e.g. end 2-10 C_minus_A
+%     r2 mean -0.528 while the point R^2 rises from 0.037 to 0.695).  Only point values per band and the
+%     pooled horizons.*.paired intervals are quoted.
+%   - Any attribution ranking of the CoG submission.
+%
+% Fact-check revision 2026-09-14: synthetic-sweep AUCs compared on one label (direction of delta-V; B' 0.622 there),
+% "largely" -> "partly" predictable magnitude (+ R^2 0.19 from magnitude_diagnostic.json), frame position kept 78.6%
+% (incl. dead), 60 s slope "no longer detectable", partial-oracle explanation softened, glosses for cross-validation,
+% isotonic regression, Pearson and Spearman correlation, 30-1000 band source comment corrected.
+% Cross-references to sec:label and sec:prediction stay \fwdref, as in sec_label.tex, sec_prediction.tex and
+% sec_definition.tex; both labels now exist, so \fwdref renders as \ref.
+% =============================================================================
+
+\section{Where the Limit Comes From}\label{sec:limit}
+
+Section~\fwdref{sec:prediction} ranks the outcomes of engagements before they begin with an AUC of
+about 0.67, and Section~\ref{sec:learners} asks whether another learner ranks them better. This section
+asks two further questions: what an engagement's outcome is worth to the match, and whether the limit on
+predicting it lies in the game or in what the telemetry records at the cutoff. We first build a model of
+the probability that blue wins the match (Section~\ref{sec:limit-value}) and take its change over an
+engagement as the engagement's value (Section~\ref{sec:limit-delta}). We then measure how much of that
+value the outcome accounts for (Section~\ref{sec:limit-explained}), whether a predicted outcome improves
+a prediction of the match (Section~\ref{sec:limit-stacking}), and why a calibrated probability leaves
+little of an engagement's value to predict (Section~\ref{sec:limit-martingale}). Finally, we test whether
+part of the limit is observational by reconstructing the state at the cutoff from the event log
+(Section~\ref{sec:limit-evidence}), and describe how attributions are used to check that no leaked input
+carries a result (Section~\ref{sec:limit-shap}).
+% 0.67: FEAT/scale_decomposition_v33_market_event.json overall_auc 0.6699089924634439 (quoted in sec_learners.tex).
+
+Sections~\ref{sec:limit-value}--\ref{sec:limit-martingale} use a working sample of 49,677 matches from
+the same cache, patches and definition as the corpus, selected by a hash of each match identifier and
+therefore independently of how the matches ended. Its matches are divided once into disjoint groups:
+10,007 fit, calibrate and select the win-probability model, 4,986 test it, 24,840 train engagement
+predictors and 9,844 test them. In these sections every AUC, Brier score, calibration error, $R^2$ and
+sign accuracy is \emph{match-weighted}: an engagement from a match with $k$ engagements has weight $1/k$,
+so every match counts equally and matches with many engagements do not dominate.
+Section~\ref{sec:limit-evidence} uses the full labelled corpus and the patch holdout of
+Section~\ref{sec:learners} and, like that section, reports unweighted AUCs.
+% 49,677: WT/outputs/state_value_main_50k/manifest.json requested_matches 50000, completed (list) 49677, status complete;
+%   settings.json preset "v3.3", patches "15.14,15.15,15.16", cache_dir D:/LOL_Project/cache/match_cache_fresh_v3_engage_status13,
+%   sampling "sha256 rank independent of outcomes".  Built 2026-09-09 14:37 (manifest mtime), after the input-leak fixes
+%   5b5f9c8 (09:33) and v3.3 commit 1624ebc (11:28).
+% Groups: WT/outputs/state_value_main_50k_eval/match_splits.json value_train 10007, value_validation 4986,
+%   predict_train 24840, predict_test 9844 (sum 49677).  Disjointness asserted in
+%   WT/scripts/train_engagement_predictor_v3.py run() (assert_disjoint against every protocol split).
+
+% -----------------------------------------------------------------------------
+\subsection{A Model of Match Win Probability}\label{sec:limit-value}
+
+Gold measures what a fight yields, not what it does to the match. The gold-priced label, for example,
+gives an elemental drake a fitted price of 0 (Section~\fwdref{sec:label}), although a team's fourth drake
+grants the Dragon Soul (Table~\ref{tab:terms}), and Section~\ref{sec:limit-martingale} shows that winning
+an engagement moves the match by very different amounts depending on how close the match is. A measure
+that reads every situation on one scale is the probability that a team wins the match given what is
+observable at a moment. Maymin fitted such a model for LoL and
+valued kills and deaths by the change in it~\cite{maymin2021smart}; we value engagements the same way.
+We write $V(S)$ for the model's probability that blue wins the match given the observable state $S$ at a
+time $t$.
+% Drake fitted price 0: sec_background.tex Table tab:terms, row "Outcome label" ("a drake's fitted price is 0").
+% "very different amounts": tab:limit-swing, M_plus +14.13 at V_pre 0.456-0.512 vs +2.19 above 0.872 (martingale_swing.json).
+
+The state $S$ contains the game time and its square. For each of the ten players it contains the values
+of the most recent frame at or before $t$ (total and current gold, level, experience, share of health and
+mana, whether alive, lane and jungle creep score), the champion, and the player's kills, deaths and time
+since the last death. For each team it contains counts of the events up to $t$ (kills, drakes by element,
+plates, towers by type, inhibitors, epic monsters and Dragon Souls) and how long ago the team last took
+each epic monster. Products of 94 of these team values with game time let their effect change as the
+match goes on. The model reads 361 inputs in all, and nothing after $t$.
+% 361 = WT/outputs/state_value_main_50k/schema.json state_names (362) minus snapshot_age_s, which
+%   WT/train/temporal_winprob.py feature_matrix() drops for the "expanded" family; 94 names end in "_x_time";
+%   10 names end in "champion_id" (one-hot in WT/train/state_value_experiment.py logistic()).
+% Frame values vs event counts: WT/gameplay/state_value.py StateBuilder.at(): snapshot index = last minute_ts <= q
+%   (searchsorted side right); events = those with timestamp <= q (bisect_right).
+
+Following Maymin~\cite{maymin2021smart}, the model is a logistic regression: it forms a weighted sum of
+the inputs and passes it through the logistic function, which maps any number to a probability between 0
+and 1. With 361 inputs, the weights can fit accidental regularities of the training matches, so a penalty
+on their size is added. Its strength was chosen from four candidates by three-fold cross-validation
+grouped by match: the fitting matches are split into three groups, each candidate is fitted on two groups
+and scored on the third, in turn, and the candidate with the lowest log loss is kept, where log loss is
+the average of $-\log$ of the probability given to what happened. A model can rank states well while its
+probabilities are systematically too high or too low, so the probabilities were then recalibrated on
+separate matches. Two recalibrations were tried: Platt scaling, a one-input logistic regression on the
+model's log-odds~\cite{platt2000probabilities}, and isotonic regression, a stepwise mapping from old to
+new probabilities that is constrained only never to decrease~\cite{zadrozny2002transforming}. Platt
+scaling gave a lower log loss on a third set of matches than either isotonic regression or no
+recalibration. These three sets hold 7,004, 1,501 and 1,502 matches.
+% Family "expanded": WT/scripts/run_temporal_winprob_v3_buckets.py run(): select_value_regularization(candidates=(.001,.01,.1,1.)),
+%   3-fold GroupKFold, criterion match-weighted log loss; WT/outputs/temporal_winprob_v3_buckets/expanded_training_cv.json
+%   chosen_C 0.001 (inverse penalty strength, liblinear L2 default).
+% Calibration variants raw / sigmoid / isotonic: WT/train/temporal_winprob.py calibrated_variants() (sigmoid = LogisticRegression
+%   on logit(p), isotonic = IsotonicRegression) fitted on the calibrate partition; chosen by lowest select-partition log loss:
+%   WT/outputs/temporal_winprob_v3_buckets/selection.json chosen expanded_sigmoid; log_loss raw 0.47028, sigmoid 0.46963,
+%   isotonic 0.47808.
+% 7,004 / 1,501 / 1,502: results.json partition_matches fit / calibrate / select.
+
+The model learns only from final match results attached to states sampled from whole matches; no
+engagement is used to train it, and no match of the engagement groups is among its matches. States lie on
+a one-minute grid, and consecutive states of a match are strongly correlated, which led Maymin to sample
+one random minute per match~\cite{maymin2021smart}. That sample inherits the distribution of match
+lengths: sampled that way, only 211 of our 7,004 fitting states (3.0\%) fell after minute 30. We
+therefore follow Jalovaara~\cite{jalovaara2024win} and sample one state from each 5-minute interval of
+each match, which gives 2,517 of 40,228 fitting states (6.3\%) after minute 30. Nothing else in the
+procedure changed, except that the same selection then chose a stronger penalty.
+% v2 (one random minute): WT/outputs/temporal_winprob_v2/sampled_minutes.json role "fit": 7004 rows, 211 with time_ms >= 1,800,000;
+%   211 / 7004 = 0.0301.  v2 chosen_C 0.01 (WT/outputs/temporal_winprob_v2/expanded_training_cv.json) vs v3 0.001.
+% v3: WT/outputs/temporal_winprob_v3_buckets/sampling_census.json fit.rows 40228, fit.bands["30-1000"] 2517; 2517 / 40228 = 0.0626.
+%   bucket_minute_indices(): one seeded grid point per 300,000 ms bucket; protocol.json single_change and test_sampling UNCHANGED.
+% Engagement groups disjoint from value partitions: WT/scripts/score_engagements_v3.py run() raises if predict_train overlaps any
+%   value partition; train_engagement_predictor_v3.py run() asserts predict_train / predict_test against every protocol split.
+
+On one random minute of each of the 4,986 test matches, $V$ reaches an AUC of 0.846 and a Brier score of
+0.160, where the Brier score is the mean squared difference between the predicted probability and the
+result (1 if blue won, 0 otherwise). A seven-input logistic regression on Maymin's inputs (minutes
+elapsed and each team's kills, towers and epic monsters), fitted on the same states, reaches 0.828 and
+0.171 on the same minutes.
+% WT/outputs/temporal_winprob_v3_buckets/results.json test_one_minute.expanded auc 0.8463625, brier 0.1597808;
+%   test_one_minute.maymin auc 0.8278331, brier 0.1707944 (unpenalised: WT/train/temporal_winprob.py maymin_model(),
+%   inputs feature_matrix() family "maymin": time_minutes and red/blue sums of kills, towers, monsters).
+%   One row per test match, so match weighting is uniform here.  Maymin's inputs: sec_related.tex comment on
+%   maymin2021smart Section 3.2 (kills, towers, large monsters, minutes elapsed; one random minute per game).
+
+Ranking is not enough for what follows, because an engagement's value is a difference of two
+probabilities, and a systematic error in the probabilities passes into the difference. A model is
+\emph{calibrated} if, among the states it gives probability $p$, blue wins about a fraction $p$ of the
+matches~\cite{naeini2015obtaining}. We summarise calibration by the expected calibration error
+(ECE)~\cite{naeini2015obtaining,guo2017calibration}: the predictions are sorted into ten bins of equal
+width on $[0, 1]$, the gap between the mean predicted probability and the observed win rate is taken in
+each bin, and the gaps are averaged with weights equal to each bin's share of the predictions. An ECE of
+0.02 means that predictions miss the observed rate by about two percentage points, averaged over bins. On
+the random test minutes, the ECE of $V$ is 0.029.
+% ECE: WT/scripts/run_temporal_winprob_v3_buckets.py ece_from() and WT/scripts/validate_temporal_winprob_claude.py reliability():
+%   10 equal-width bins on [0, 1], share = match-weight share of the bin, sum of share * |observed - predicted|.
+% 0.029: results.json test_one_minute.expanded.ece 0.0287681.
+
+A model calibrated at random minutes need not be calibrated at engagement cutoffs: a cutoff is placed
+15\,s before a kill that is known to follow, so the moments are selected. We therefore measured
+calibration on the 26,712 engagements of the 9,198 engagement-test matches that have one, at the four
+instants defined in Section~\ref{sec:limit-delta}. The ECE is 0.018 at the cutoff, 0.010 at the last kill,
+0.023 30\,s later and 0.025 60\,s later, and the AUC for the match result at these instants is 0.805,
+0.833, 0.835 and 0.835. By game time at the cutoff, the ECE is 0.009 between minutes 2 and 10, 0.024
+between 10 and 20 and 0.012 between 20 and 30. It is worst after minute 30, at 0.069 (1,077 engagements
+from 817 matches), where the AUC is 0.844; at the last kill that band's ECE is 0.028. Values measured
+after minute 30 therefore rest on the least calibrated probabilities (Section~\ref{subsec:limitations}).
+% WT/outputs/temporal_winprob_v3_buckets/validation_a/results.json engagement_all_available.<point>.families.expanded
+%   (the v3 validation run; commands in WT/docs/CLAUDE_V3_BUCKET_RETRAIN_REPORT.md "재현"):
+%   pre: n 26712, matches 9198, auc 0.8049846, ece 0.0182205; last_kill_proxy: auc 0.8334841, ece 0.0103018;
+%   plus_30s: n 26095, auc 0.8345401, ece 0.0227604; plus_60s: n 25350, auc 0.8347919, ece 0.0248910.
+%   pre by_game_time_min: 2-10 ece 0.0090579; 10-20 ece 0.0243072; 20-30 ece 0.0118769; 30+ n 1077, matches 817,
+%   auc 0.8443298, ece 0.0690157.  last_kill_proxy by_game_time_min 30+ ece 0.0280792.
+% Selection of cutoffs by a following kill: validate_temporal_winprob_claude.py interpretation_guard ("conditioned on a kill
+%   having occurred ... NOT exchangeable with the random-minute population").
+
+% -----------------------------------------------------------------------------
+\subsection{The Value of an Engagement}\label{sec:limit-delta}
+
+To state how much an engagement changed the match, we compare $V$ just before it with $V$ just after it:
+\begin{equation}
+\Delta V = V(S_{\mathrm{end}}) - V(S_{\mathrm{pre}}),
+\end{equation}
+in percentage points from blue's side, so that $\Delta V = +10$ means blue's probability of winning the
+match rose by ten points. The two states follow a fixed time contract.
+\begin{itemize}
+\item $S_{\mathrm{pre}}$ is the state at $\tau - 1$\,ms, where $\tau$ is the cutoff, 15\,s before the
+  engagement's first kill (Table~\ref{tab:terms}). The predictors' inputs end at the same instant.
+\item $S_{\mathrm{end}}$ is the state at the timestamp of the engagement's last kill. The telemetry records
+  no end of combat, so the last kill stands in for it.
+\item The state at time $t$ contains every event with a timestamp at most $t$ and the most recent frame at
+  or before $t$. At the last kill, $V$ therefore sees the engagement's kills but not yet the gold and
+  experience they paid, which arrive with the next frame.
+\item Two later horizons, 30 and 60\,s after the last kill, let the frames catch up and count objectives
+  taken just after the fight, at the cost of also counting whatever happened next. A horizon that falls
+  after the match's end or its last frame is dropped, which removes 617 and 1,362 of the 26,712
+  engagements.
+\end{itemize}
+$V$ is fitted once, before any engagement is scored, and never sees an engagement.
+% Contract: WT/train/temporal_winprob.py observed_queries(): pre = cutoff - 1, end = last_kill ("No fabricated combat end: last
+%   recorded cluster kill is an explicit proxy"), end + 30000 / end + 60000 ms, -1 if >= terminal or > last snapshot.
+% Predictor inputs end at the cutoff: REV/A4-evidence-state-leak/evidence_block_patch_holdout_v33_v2.json leak_notes[0]
+%   (corpus X event buckets end at label_start_ms = engage_ts; causal anchors at engage_ts - 1 ms).
+% Event and frame inclusion: WT/gameplay/state_value.py StateBuilder.at() (bisect_right on event timestamps; last minute_ts <= q).
+% 617 / 1,362: validation_a/results.json denominators.dropped_rows_per_point plus_30s 617, plus_60s 1362.
+% V frozen: WT/scripts/score_engagements_v3.py loads maymin_model.joblib / expanded_model.joblib; model ids in results.json model_ids.
+
+% -----------------------------------------------------------------------------
+\subsection{How Much of the Value the Outcome Explains}\label{sec:limit-explained}
+
+If who wins an engagement determines most of its value, then predicting the outcome before the fight
+predicts most of what the fight does to the match. If the state before the fight already fixes the
+value, the outcome adds little. We compare the two directly. For the 63,457 training and 25,177 test
+engagements with a decided \texttt{market\_event} outcome, gradient-boosted regression trees
+(LightGBM~\cite{ke2017lightgbm}) predict $\Delta V$ from three sets of inputs: the 7,106 pre-cutoff
+columns of Section~\ref{sec:learners-input}; the realised outcome alone, a single column that is 1 if blue
+won; and both. Two scores are reported. $R^2$ is the share of the variance of $\Delta V$ across test
+engagements that the predictions account for: 1 is perfect, 0 is no better than always predicting the
+mean, and it can be negative. \emph{Sign accuracy} is the share of test engagements whose predicted and
+realised $\Delta V$ have the same sign.
+% WT/outputs/engagement_predictor_v3/downstream_winprob.json horizons.end n_train 63457, n_test 25177 (labelled rows,
+%   market >= 0 and finite delta).  Script WT/scripts/diagnose_downstream_winprob_v3.py: regressor() LGBMRegressor
+%   n_estimators 250, num_leaves 31, learning_rate .05, min_child_samples 40, reg_lambda 1, colsample_bytree .9,
+%   subsample .9, seed 7, fitted with match weights; layers A_X_only, C_plus_realized (X + realised market label),
+%   R_realized_outcome_alone (one column); score(): r2_score and sign accuracy with match weights.
+
+\begin{table}[!t]
+\centering
+\caption{Share of the win-probability change $\Delta V$ explained ($R^2$) and sign accuracy on held-out
+engagements, by horizon and by game-time band at the cutoff (minutes). X: the 7,106 pre-cutoff columns;
+Out.: the realised outcome as the only input; Both: X and the outcome. Match-weighted.}
+\label{tab:limit-explained}
+\footnotesize
+\setlength{\tabcolsep}{3.2pt}
+\begin{tabular}{@{}llrccccc@{}}
+\toprule
+ & & & \multicolumn{3}{c}{$R^2$} & \multicolumn{2}{c}{Sign accuracy} \\
+\cmidrule(lr){4-6}\cmidrule(l){7-8}
+Horizon & Band & $n$ & X & Out. & Both & X & Out. \\
+\midrule
+% WT/outputs/engagement_predictor_v3/downstream_winprob.json horizons.end: pooled keys A_X_only / R_realized_outcome_alone /
+%   C_plus_realized {r2, sign_accuracy}; bands by_game_time.<band> keys A_X_only / R_realized_only / C_plus_realized.
+%   end all: r2 0.023716 / 0.549710 / 0.656513; sign 0.556068 / 0.924365.
+%   2-10: 0.036620 / 0.630390 / 0.694902; 0.565662 / 0.919827.  10-20: 0.014992 / 0.529370 / 0.632432; 0.551919 / 0.923303.
+%   20-30: 0.002789 / 0.360772 / 0.594589; 0.554732 / 0.931459.  30-1000: 0.005347 / 0.394457 (3 dp 0.394) / 0.546227;
+%   0.521399 / 0.920679 (values re-read 2026-09-14).
+Last kill & All & 25,177 & 0.024 & 0.550 & 0.657 & 0.556 & 0.924 \\
+ & 2--10 & 10,166 & 0.037 & 0.630 & 0.695 & 0.566 & 0.920 \\
+ & 10--20 & 8,591 & 0.015 & 0.529 & 0.632 & 0.552 & 0.923 \\
+ & 20--30 & 5,366 & 0.003 & 0.361 & 0.595 & 0.555 & 0.931 \\
+ & $\geq 30$ & 1,054 & 0.005 & 0.394 & 0.546 & 0.521 & 0.921 \\
+\midrule
+% horizons.plus_30s: all n_test 24562, r2 0.0378 / 0.413 (4 dp 0.4135, 3 dp format 0.413) / 0.520; sign 0.560 / 0.839.
+%   bands: 2-10 n 10166: 0.057 / 0.430 / 0.511; 0.571 / 0.822.  10-20 n 8501: 0.033 / 0.401 / 0.509; 0.563 / 0.836.
+%   20-30 n 5000: 0.008 / 0.377 / 0.535; 0.538 / 0.881.  30-1000 n 895: 0.018 / 0.393 / 0.532; 0.543 / 0.875.
+$+30$\,s & All & 24,562 & 0.038 & 0.413 & 0.520 & 0.560 & 0.839 \\
+ & 2--10 & 10,166 & 0.057 & 0.430 & 0.511 & 0.571 & 0.822 \\
+ & 10--20 & 8,501 & 0.033 & 0.401 & 0.509 & 0.563 & 0.836 \\
+ & 20--30 & 5,000 & 0.008 & 0.377 & 0.535 & 0.538 & 0.881 \\
+ & $\geq 30$ & 895 & 0.018 & 0.393 & 0.532 & 0.543 & 0.875 \\
+\midrule
+% horizons.plus_60s: all n_test 23819, r2 0.039 / 0.324 / 0.425; sign 0.562 / 0.786.
+%   bands: 2-10 n 10161: 0.064 / 0.301 / 0.385; 0.573 / 0.755.  10-20 n 8403: 0.039 / 0.318 / 0.417; 0.569 / 0.790.
+%   20-30 n 4568: 0.003 / 0.345 / 0.486; 0.525 / 0.844.  30-1000 n 687: 0.016 / 0.312 / 0.437; 0.546 / 0.835.
+$+60$\,s & All & 23,819 & 0.039 & 0.324 & 0.425 & 0.562 & 0.786 \\
+ & 2--10 & 10,161 & 0.064 & 0.301 & 0.385 & 0.573 & 0.755 \\
+ & 10--20 & 8,403 & 0.039 & 0.318 & 0.417 & 0.569 & 0.790 \\
+ & 20--30 & 4,568 & 0.003 & 0.345 & 0.486 & 0.525 & 0.844 \\
+ & $\geq 30$ & 687 & 0.016 & 0.312 & 0.437 & 0.546 & 0.835 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:limit-explained} gives the result. At the last kill, the realised outcome alone explains
+55.0\% of the variance of $\Delta V$ and gives its sign for 92.4\% of engagements, which is how often the
+side that the gold-priced label names as the winner is the side whose win probability rose. The
+pre-cutoff columns alone explain 2.4\% and give the sign for 55.6\%, and both together explain 65.7\%.
+What an engagement does to the match is therefore decided mainly by who wins it, not by the state before
+it. The outcome's share of the variance falls with game time, from 0.630 between minutes 2 and 10 to
+0.361 between 20 and 30, while its sign accuracy does not (0.920 to 0.931), and it falls with the
+horizon, to 0.413 after 30\,s and 0.324 after 60\,s, as later events enter the change. The weak $R^2$ of
+the pre-cutoff columns does not contradict Section~\fwdref{sec:prediction}: the same columns rank who wins
+the engagement with an AUC of 0.665 in this sample, but $\Delta V$ takes the sign of the outcome, and
+given the state before the fight its expected value is close to zero
+(Section~\ref{sec:limit-martingale}). Adding an out-of-fold predicted outcome to the pre-cutoff columns
+changes the pooled $R^2$ at the last kill by $+0.0005$ (95\% interval $-0.0019$ to $+0.0029$).
+% Text numbers: table rows above.  0.665: WT/outputs/engagement_predictor_v3/results.json market_event.test.auc 0.6648862
+%   (n 25177, matches 9061, match-weighted).
+% +0.0005 [-0.0019, +0.0029]: downstream_winprob.json horizons.end.paired.B_minus_A.r2 mean 0.00048, lo -0.00191, hi +0.00290
+%   (300 match bootstraps, paired_delta()).  The B' column is that run's own market predictor (out-of-fold on train,
+%   full model on test; unweighted test AUC market_predictor_test_auc 0.6537).
+
+% -----------------------------------------------------------------------------
+\subsection{Does a Predicted Outcome Improve Match Prediction?}\label{sec:limit-stacking}
+
+If the outcome carries most of an engagement's value and can be predicted before the engagement, a
+natural next step is to give that prediction to a model of the match winner, as a tool that shows live
+win probabilities might. Using the output of one model as an input to another is called
+\emph{stacking}~\cite{wolpert1992stacked}. So that the second model never learns from predictions made
+with knowledge of its own training rows, the added column is computed \emph{out of fold} on the
+training matches: the matches are split into five groups, and each group's engagements are predicted by
+a model fitted on the other four.
+% Out of fold: WT/scripts/train_engagement_predictor_v3.py oof_predict() GroupKFold(5) by match with assert_disjoint;
+%   REV/A9-stacking-market/stacking_market_event_v3.json folds 5.
+
+Three gradient-boosted classifiers predict the final match winner from each of 67,468 training
+engagements (23,173 matches) and are tested on 26,712 engagements (9,198 matches). Model A reads the
+7,106 pre-cutoff columns. Model B reads them plus a predicted engagement label. Model C reads them plus
+the realised label, a retrospective ceiling that no forecaster has. Differences from A are given with
+95\% intervals from 300 match bootstraps: the test matches are resampled with replacement and the AUC
+difference is recomputed on each resample~\cite{efron1993bootstrap}.
+% WT/outputs/engagement_predictor_v3/results.json rows.predict_train n 67468, matches 23173; rows.predict_test n 26712, matches 9198.
+%   Learner: WT/train/state_value_experiment.py learner(trees=250): LGBMClassifier num_leaves 15, learning_rate .04,
+%   min_child_samples 40, reg_lambda 1, colsample_bytree .9, seed 7; fitted on tr['winner'] with match weights.
+%   Bootstrap: paired_bootstrap(n_boot=300), match multiplicities, rng seed 7, auc_improvement_ci95.
+
+\begin{table*}[!t]
+\centering
+\caption{Match-winner prediction from engagement rows: 26,712 test engagements from 9,198 matches.
+A reads the 7,106 pre-cutoff columns; every other row adds one column to A. Added column's AUC: for the
+engagement label the column targets (``own label'') and for the realised direction of $\Delta V$ at the
+last kill, the label from which the synthetic columns are built. The two coincide in rows B, C and
+S1--S8; for C$'$ the second was not computed.
+$\Delta$: match AUC minus A's, with 95\% interval from 300 match bootstraps. Match-weighted.}
+\label{tab:limit-stacking}
+\footnotesize
+\begin{tabular}{@{}llcccl@{}}
+\toprule
+ & & \multicolumn{2}{c}{Added column's AUC} & & \\
+\cmidrule(lr){3-4}
+Row & Added column & Own label & Direction of $\Delta V$ & Match AUC & $\Delta$ [95\% interval] \\
+\midrule
+% A: WT/outputs/engagement_predictor_v3/results.json A_pre_information.auc 0.8123867; reproduced to 1e-9 in
+%   REV/A9-stacking-market/stacking_market_event_v3.json reproduction.A_reproduced true.
+A & none & -- & -- & 0.8124 & -- \\
+% B (published): results.json B_plus_predicted_engagement.auc 0.8125137; B_minus_A.auc_improvement_ci95 [-0.00055034, +0.00082022];
+%   column = deltaV_weighted OOF / test predictions, deltaV_weighted.test.auc 0.5832091 (label sign(delta-V_end));
+%   0.8125137 - 0.8123867 = +0.000127.  Reproduced: A9 reproduction.B_deltaV_reproduced true.
+B & predicted direction of $\Delta V$, $|\Delta V|$-weighted training & 0.583 & 0.583 & 0.8125 & $+0.0001$ [$-0.0006$, $+0.0008$] \\
+% B (market_event): REV/A9-stacking-market/stacking_market_event_v3.json layers.B_market.auc 0.8125223;
+%   paired_vs_A.B_market.auc_improvement_ci95 [-0.00099465, +0.00129165]; 0.8125223 - 0.8123867 = +0.000136.
+%   Column: market_event OOF on all 67,468 train rows (fits on labelled rows of the training folds), full-train model on test;
+%   reproduction.market_test_auc_now 0.6648862 = published, test_p_market_max_abs_diff 0.0.
+%   Own label: market_event, 25,177 decided test rows (results.json market_event.test.auc 0.6648862).
+%   Direction of delta-V: results.json cross_currency.market_predictor_vs_deltaV_label.auc 0.6216259 (n 26712, matches 9198,
+%   the same test predictions scored against sign(delta-V_end), the label of the synthetic sweep).
+B$'$ & predicted \texttt{market\_event} outcome & 0.665 & 0.622 & 0.8125 & $+0.0001$ [$-0.0010$, $+0.0013$] \\
+% C: results.json C_plus_realized_label_RETROSPECTIVE.auc 0.8307814 (realised sign(delta-V_end)); C - A = +0.018395.
+%   Interval: WT/outputs/engagement_predictor_v3/stacking_ceiling.json sweep[target 1.0] match_auc 0.8307814 (identical fit:
+%   synthetic() returns y itself at AUC 1.0) minus_A.auc_improvement_ci95 [+0.0157216, +0.0207526].
+C & realised direction of $\Delta V$ & 1 & 1 & 0.8308 & $+0.0184$ [$+0.0157$, $+0.0208$] \\
+% C': A9 layers.C_market.auc 0.8328183 (realised market_event, draws missing); paired_vs_A.C_market.auc_improvement_ci95
+%   [+0.0177697, +0.0227289]; 0.8328183 - 0.8123867 = +0.020432.  (stacking_ceiling.json ceiling_with_market_event_label,
+%   draws coded -1 instead of missing: 0.8324536, [+0.01745, +0.02259]; not quoted.)
+C$'$ & realised \texttt{market\_event} outcome & 1 & -- & 0.8328 & $+0.0204$ [$+0.0178$, $+0.0227$] \\
+\midrule
+\multicolumn{6}{@{}l}{\emph{Synthetic direction of $\Delta V$: realised direction plus independent Gaussian noise}} \\
+% stacking_ceiling.json sweep[*]: realised_engagement_auc, match_auc, minus_A.auc_improvement_ci95; Delta = match_auc - 0.8123867.
+%   0.600: 0.5979045, 0.8118694, -0.000517, [-0.0012333, +0.0002923]
+%   0.665: 0.6687492, 0.8141272, +0.001740, [+0.0008185, +0.0028399]
+%   0.700: 0.6999369, 0.8141469, +0.001760, [+0.0006736, +0.0032450]
+%   0.750: 0.7508914, 0.8145842, +0.002197, [+0.0006840, +0.0035471]
+%   0.800: 0.8028877, 0.8166093, +0.004223, [+0.0027833, +0.0059269]
+%   0.850: 0.8466214, 0.8197531, +0.007366, [+0.0054996, +0.0090327]
+%   0.900: 0.9015355, 0.8204919, +0.008105, [+0.0058214, +0.0099591]
+%   0.950: 0.9479620, 0.8231105, +0.010724, [+0.0086320, +0.0126662]
+%   (1.000 is row C.)
+S1 & synthetic & 0.598 & 0.598 & 0.8119 & $-0.0005$ [$-0.0012$, $+0.0003$] \\
+S2 & synthetic & 0.669 & 0.669 & 0.8141 & $+0.0017$ [$+0.0008$, $+0.0028$] \\
+S3 & synthetic & 0.700 & 0.700 & 0.8141 & $+0.0018$ [$+0.0007$, $+0.0032$] \\
+S4 & synthetic & 0.751 & 0.751 & 0.8146 & $+0.0022$ [$+0.0007$, $+0.0035$] \\
+S5 & synthetic & 0.803 & 0.803 & 0.8166 & $+0.0042$ [$+0.0028$, $+0.0059$] \\
+S6 & synthetic & 0.847 & 0.847 & 0.8198 & $+0.0074$ [$+0.0055$, $+0.0090$] \\
+S7 & synthetic & 0.902 & 0.902 & 0.8205 & $+0.0081$ [$+0.0058$, $+0.0100$] \\
+S8 & synthetic & 0.948 & 0.948 & 0.8231 & $+0.0107$ [$+0.0086$, $+0.0127$] \\
+\midrule
+\multicolumn{6}{@{}l}{\emph{Partial oracle: realised direction inside one quarter of realised $|\Delta V|$, row B's prediction elsewhere}} \\
+% stacking_ceiling.json partial_oracle.Q<k>.auc and minus_A.auc_improvement_ci95; quartile edges by_abs_deltaV_quartile keys
+%   (test quantiles of |delta-V| in pp): Q1 [0.0, 3.5], Q2 [3.5, 8.4], Q3 [8.4, 14.2], Q4 [14.2, 62.8]; 6,678 test rows each.
+%   Q1 0.8124512 (+0.000064) [-0.0007758, +0.0008519]; Q2 0.8141813 (+0.001795) [+0.0007745, +0.0027803];
+%   Q3 0.8163239 (+0.003937) [+0.0024500, +0.0052552]; Q4 0.8319858 (+0.019599) [+0.0170258, +0.0224421].
+P1 & smallest quarter, $|\Delta V| < 3.5$ & -- & -- & 0.8125 & $+0.0001$ [$-0.0008$, $+0.0009$] \\
+P2 & $3.5 \leq |\Delta V| < 8.4$ & -- & -- & 0.8142 & $+0.0018$ [$+0.0008$, $+0.0028$] \\
+P3 & $8.4 \leq |\Delta V| < 14.2$ & -- & -- & 0.8163 & $+0.0039$ [$+0.0024$, $+0.0053$] \\
+P4 & largest quarter, $|\Delta V| \geq 14.2$ & -- & -- & 0.8320 & $+0.0196$ [$+0.0170$, $+0.0224$] \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+Table~\ref{tab:limit-stacking} gives the results. In the stack we first ran, the column added in B did
+not predict the \texttt{market\_event} outcome. It predicted the direction of $\Delta V$ at the last kill,
+whether blue's win probability rose, with a model trained with each engagement weighted by $|\Delta V|$,
+a weighting we later dropped; that column's test AUC for its own label is 0.583. B reaches 0.8125
+against A's 0.8124, a difference of $+0.0001$ (interval $-0.0006$ to $+0.0008$). Row B$'$
+repeats the stack with the \texttt{market\_event} predictor, whose test AUC is 0.665 for its own label and
+0.622 for the direction of $\Delta V$; the re-run reproduces A and the first B exactly, and B$'$ again
+reaches 0.8125 (interval of the difference from A $-0.0010$ to $+0.0013$). The realised outcome does add
+information: C and C$'$ lie 0.018 and 0.020 above A.
+% |delta-V| weighting dropped: WT/docs/CLAUDE_FULL_PIPELINE_SUMMARY.md section 4 ("폐기된 계약: |ΔV| 표본 가중").
+% Reproduction: REV/A9-stacking-market/stacking_market_event_v3.json reproduction A_reproduced true, B_deltaV_reproduced true,
+%   test_p_market_reproduced true (commit 15751e8, WT/scripts/stack_market_event_predictor_v3.py).
+% Draws-as-missing variant of B': layers.B_market_nan.auc 0.8119833, interval [-0.0013686, +0.0006128]; not quoted.
+
+A null is what the construction leads one to expect, whatever the predictor's accuracy. The column added
+in B or B$'$ is computed from the same pre-cutoff columns that A reads, so it carries no information that
+A's inputs lack: A's inputs are contained in B's, and the one extra column is a function of them, so the
+best prediction achievable from B's inputs is the best achievable from A's. A tree ensemble fitted on A's
+inputs can in principle represent that function itself. In a finite sample a learner may still gain from
+a precomputed summary, so the argument does not forbid a gain, but it explains a null without any
+appeal to the game, and a null here says nothing about whether engagements matter to the match.
+
+For reference, we also replaced B's column with synthetic predictors informed from outside A's inputs.
+Each is the realised direction of $\Delta V$ (1 or 0) plus Gaussian noise drawn independently of
+everything else, once for the training and once for the test engagements, with the noise's standard
+deviation $\sigma$ set so that the column reaches a target AUC, $\Phi\big(1/(\sigma\sqrt{2})\big)$, where
+$\Phi$ is the standard normal distribution function; A is refitted with each column (rows S1--S8). The
+synthetic columns' AUCs are therefore AUCs for the direction of $\Delta V$, and on that label the column of
+B scores 0.583 and the \texttt{market\_event} predictor 0.622, not 0.665. A synthetic column with AUC 0.598
+does not change the match AUC detectably, and every synthetic column from AUC 0.669 upwards raises it, by
+0.0017 at 0.669 and by 0.0107 at 0.948. Both real columns lie below 0.669: the column of B lies below the
+weakest synthetic column, which shows no detectable gain either, and the \texttt{market\_event} column lies
+between that column and the first synthetic column that helps. The sweep is therefore consistent with the
+nested-input explanation, but it cannot by itself tell whether a real column fails to help because its
+information comes from A's inputs or because it is not accurate enough, since a column of AUC 0.622
+informed from outside A's inputs might not help detectably either. Only the nested-input argument
+predicts the null of B and B$'$. The synthetic columns' errors are also unrelated to
+A's inputs, which a real predictor's errors need not be, so their gains are an optimistic reference rather
+than an expectation.
+% Synthetic construction: WT/scripts/diagnose_stacking_ceiling_v3.py synthetic(): y + rng.normal(0, sigma), sigma =
+%   1 / (sqrt(2) * norm.ppf(target)), y = sign(delta-V) label (tr['y'], te['y']), one draw per target from
+%   default_rng(7); the module docstring calls it "an oracle-with-noise ... an upper bound for a real predictor of that AUC".
+%   Stack refitted: learner(trees) on column_stack([X, synthetic]) with match weights.
+% "from AUC 0.669 upwards": sweep rows with target 0.665-0.950 all have auc_improvement_ci95 above zero (realised AUCs
+%   0.6687-0.9480); threshold_engagement_auc_for_a_detectable_gain 0.665 (a target, realised 0.6687).  The target-0.600 row
+%   (realised 0.5979) has interval [-0.0012333, +0.0002923].
+% Real columns on the synthetic label (sign(delta-V_end), all 26,712 test rows, match-weighted):
+%   B: results.json deltaV_weighted.test.auc 0.5832091; B': results.json cross_currency.market_predictor_vs_deltaV_label.auc
+%   0.6216259.  0.5832 < 0.5979 (S1) and 0.5979 < 0.6216 < 0.6687 (S2).
+% Nested-input wording: B's extra column on test rows is the full-train model applied to the row's X; on training rows it is the
+%   out-of-fold model of the row's fold applied to the row's X (oof_predict()).
+
+The partial-oracle rows ask where better prediction would pay. They supply the realised direction only
+inside one quarter of engagements, ranked by the size of their realised change, and keep B's prediction
+elsewhere; training and test engagements are each cut at their own quartiles. For the quarter with the
+largest changes ($|\Delta V| \geq 14.2$ points), the gain is 0.0196, slightly more than supplying the
+realised direction everywhere (row C, 0.0184). The two stacks are fitted separately, so part of that
+difference of 0.0012 may be fitting noise; it is also consistent with the finding that inside the quarter
+with the smallest changes C ranks match results worse than A ($-0.0043$, interval $-0.0068$ to
+$-0.0020$), although an AUC over all engagements is not a sum of AUCs within quarters, so that finding
+does not show why P4 exceeds C. For that smallest quarter ($|\Delta V| < 3.5$), knowing the realised
+direction gains 0.0001, and for the two middle quarters 0.0018 and 0.0039. The quarters are defined by
+the realised change, so part of this holds by construction; still, the gains that better pre-fight prediction could
+bring to a match forecast are concentrated in the engagements that move the match most.
+% Partial oracle: diagnose_stacking_ceiling_v3.py section 2 (realised label inside quarter q on train and test, stored
+%   deltaV-weighted prediction elsewhere, learner refitted).  Values: table rows P1-P4.
+% C inside the smallest quarter: stacking_ceiling.json by_abs_deltaV_quartile["Q1 [0.0,3.5]"] C_minus_A -0.0042766,
+%   C_minus_A_ci.auc_improvement_ci95 [-0.0067958, -0.0020338] (A and C predictions evaluated on the Q1 rows only).
+% P4 0.8320 > C 0.8308: table rows; partial_oracle.Q4.auc 0.8319858 - stored_check.C 0.8307814 = +0.0012044.
+% Own quartiles: diagnose_stacking_ceiling_v3.py section 2, tr_edges = np.quantile(|delta-V| of training rows) and te_edges from
+%   test rows.  Recomputed read-only 2026-09-14 from WT/outputs/temporal_winprob_v3_buckets/engagement_changes_predict_train.npz
+%   (expanded[:,1] - expanded[:,0], finite and non-zero, 67,468 rows): 3.605 / 8.585 / 14.220 pp; engagement_changes.npz
+%   (26,712 rows): 3.534 / 8.450 / 14.221 pp (the table's P1-P4 edges).  In Q4 the training mask is also capped at the test
+%   maximum 62.77 pp (training maximum 83.53 pp), so the few larger training changes keep B's prediction.
+
+% -----------------------------------------------------------------------------
+\subsection{Why a Calibrated Probability Leaves Little to Predict}\label{sec:limit-martingale}
+
+A calibrated win probability behaves like a fair price. Suppose $V$ at the cutoff were exactly the
+probability that blue wins given everything $V$ reads. Averaged over all the ways the next seconds can
+go, its later value must then equal its present value: a forecaster that expected its own number to rise
+would already have raised it. A sequence of forecasts with this property is called a \emph{martingale}.
+For engagements it means that, given the state at the cutoff, the expected $\Delta V$ is zero: $V$ has
+already priced the fight about to happen. A fight that blue is likely to win therefore cannot show up as
+a positive expected change. It shows up as an asymmetry. Let $q$ be the probability that blue wins the
+engagement, $M_+$ the mean change when it does and $M_-$ (negative) the mean change when it does not. A
+zero mean requires $q M_+ + (1-q) M_- = 0$, that is
+\begin{equation}
+q = \frac{-M_-}{M_+ - M_-},
+\end{equation}
+so the favourite gains little by winning and loses much by losing. The argument is exact only for moments
+chosen without knowledge of the future; a cutoff is placed before a kill that is known to follow, so small
+departures can occur.
+% Derivation and identity: WT/scripts/test_martingale_and_swing_v3.py module docstring (E[V(S_end) | S_pre] = V(S_pre);
+%   q = -M_minus / (M_plus - M_minus)); martingale_swing.json identity "holds exactly when E[delta-V]=0".
+
+On the 25,177 test engagements with a decided outcome, the mean $\Delta V$ at the last kill is $+0.19$
+points (95\% interval $+0.002$ to $+0.38$, from 400 match bootstraps), against a mean absolute change of
+10.6 points. It is $+0.10$ ($-0.07$ to $+0.26$) after 30\,s and $-0.29$ ($-0.50$ to $-0.09$) after
+60\,s. These means, and those in Table~\ref{tab:limit-swing}, are unweighted.
+% WT/outputs/engagement_predictor_v3/martingale_swing.json horizons.end n 25177, T1_martingale_overall mean +0.18784,
+%   lo +0.00191, hi +0.37698 (match_ci n_boot 400, seed 7); T4_variance mean_abs_pp 10.5835.
+%   plus_30s T1 mean +0.09621 [-0.06510, +0.25521]; plus_60s T1 mean -0.29448 [-0.50184, -0.09384].
+
+\begin{table}[!t]
+\centering
+\caption{Win-probability change at the last kill by decile of $V_{\mathrm{pre}} = V(S_{\mathrm{pre}})$:
+mean change when blue wins ($M_+$) and loses ($M_-$) the engagement, in points; blue's engagement win
+rate implied by the changes, $-M_-/(M_+ - M_-)$, and realised; mean $\Delta V$. 2,517 or 2,518
+test engagements per decile.}
+\label{tab:limit-swing}
+\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{@{}lrrccr@{}}
+\toprule
+ & & & \multicolumn{2}{c}{Blue win rate} & \\
+\cmidrule(lr){4-5}
+$V_{\mathrm{pre}}$ & $M_+$ & $M_-$ & Implied & Realised & Mean $\Delta V$ \\
+\midrule
+% martingale_swing.json horizons.end.T1_by_V_pre_decile["D<k> V_pre[lo,hi]"]: M_plus_pp, M_minus_pp, q_implied_by_swings,
+%   q_realised (unweighted share of market_event blue wins), mean_delta_pp.mean; n per decile 2517 / 2518.
+%   D1 [0.000,0.136] 6.2973 / -2.2282 / 0.2614 / 0.2959 / +0.294
+%   D2 [0.136,0.275] 13.0966 / -6.5260 / 0.3326 / 0.4071 / +1.462
+%   D3 [0.275,0.377] 14.3079 / -8.9346 / 0.3844 / 0.4430 / +1.362
+%   D4 [0.377,0.456] 14.2808 / -11.7172 / 0.4507 / 0.4726 / +0.569
+%   D5 [0.456,0.512] 14.1312 / -12.9179 / 0.4776 / 0.5260 / +1.311
+%   D6 [0.512,0.566] 12.8642 / -14.1938 / 0.5246 / 0.5048 / -0.536
+%   D7 [0.566,0.642] 11.2751 / -14.4764 / 0.5622 / 0.5373 / -0.639
+%   D8 [0.642,0.737] 9.2820 / -14.4067 / 0.6082 / 0.5546 / -1.268
+%   D9 [0.737,0.872] 6.5198 / -12.3871 / 0.6552 / 0.6211 / -0.644
+%   D10 [0.872,1.000] 2.1938 / -5.2483 / 0.7052 / 0.7010 / -0.032
+0.000--0.136 & $+6.30$ & $-2.23$ & 0.261 & 0.296 & $+0.29$ \\
+0.136--0.275 & $+13.10$ & $-6.53$ & 0.333 & 0.407 & $+1.46$ \\
+0.275--0.377 & $+14.31$ & $-8.93$ & 0.384 & 0.443 & $+1.36$ \\
+0.377--0.456 & $+14.28$ & $-11.72$ & 0.451 & 0.473 & $+0.57$ \\
+0.456--0.512 & $+14.13$ & $-12.92$ & 0.478 & 0.526 & $+1.31$ \\
+0.512--0.566 & $+12.86$ & $-14.19$ & 0.525 & 0.505 & $-0.54$ \\
+0.566--0.642 & $+11.28$ & $-14.48$ & 0.562 & 0.537 & $-0.64$ \\
+0.642--0.737 & $+9.28$ & $-14.41$ & 0.608 & 0.555 & $-1.27$ \\
+0.737--0.872 & $+6.52$ & $-12.39$ & 0.655 & 0.621 & $-0.64$ \\
+0.872--1.000 & $+2.19$ & $-5.25$ & 0.705 & 0.701 & $-0.03$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:limit-swing} shows the asymmetry. Where $V_{\mathrm{pre}}$ lies between 0.456 and 0.512, a
+blue win adds 14.13 points on average and a loss costs 12.92; above 0.872, a win adds 2.19 and a loss
+costs 5.25. The stakes of an engagement can thus be stated before it starts, and the win rates that the
+changes imply track the realised ones, from 0.261 against 0.296 in the lowest decile to 0.705 against
+0.701 in the highest. The departures from a zero mean have a pattern: the mean $\Delta V$ is positive in
+each of the five deciles below 0.512, up to $+1.46$ points (interval $+0.91$ to $+2.00$), and negative in
+each of the five above, down to $-1.27$ ($-1.83$ to $-0.66$). Either $V$ at engagement cutoffs gives the
+leading side up to about 1.5 points too much, or selecting cutoffs by a following kill favours the
+trailing side; these data cannot separate the two. Either way, the departure is small beside a typical
+change of 10.6 points.
+% Deciles: table rows.  Intervals: T1_by_V_pre_decile D2 mean_delta_pp [+0.913, +1.996]; D8 [-1.827, -0.660].
+%   D1-D5 means all > 0; D6-D10 all < 0 (intervals of D4, D6 and D10 include 0: D4 [-0.075, +1.231], D6 [-1.207, +0.141],
+%   D10 [-0.233, +0.155]).
+
+Does the engagement predictor know anything about the change that $V_{\mathrm{pre}}$ has not priced? We
+regressed $\Delta V$ on $\hat p$, the \texttt{market\_event} predictor's probability that blue wins the
+engagement. At the last kill, the slope is $+5.05$ points per unit of $\hat p$ (95\% interval $+4.12$ to
+$+6.06$, from 400 match bootstraps), and the Pearson correlation, which measures how closely the points
+follow a straight line (1 when they lie exactly on a rising line, 0 when there is no linear relation), is
+0.050. Moving $\hat p$ from 0.3 to 0.7 thus raises the expected change by about 2 points, and $\hat p$
+accounts for 0.25\% of the variance of $\Delta V$. The slope is $+2.07$ ($+1.20$ to $+3.11$) after 30\,s. The predictor therefore carries a small
+amount of information about the change beyond what $V_{\mathrm{pre}}$ prices, and 60\,s after the last
+kill that information is no longer detectable (slope $-0.07$, interval $-1.36$ to $+1.23$). These slopes
+weight every engagement equally. With every match weighted equally the point slope stays positive at all
+three horizons, including 60\,s, but no intervals were computed for those slopes, so the result at 60\,s
+is a loss of detectability, not evidence that the information is gone.
+% martingale_swing.json horizons.end.T3_exploitability slope_pp_per_unit_p +5.05201 (unweighted OLS, stats.linregress),
+%   slope_ci95 [+4.12369, +6.06446] (400 match bootstraps of the unweighted slope), pearson_r 0.049831;
+%   match-weighted point slope slope_match_weighted 6.705 (not quoted).  p-hat = predictions.npz test_p_market (market_event
+%   predictor, results.json market_event.test.auc 0.6649).
+% Computed: 0.4 * 5.05201 = 2.021 points; 0.049831^2 = 0.002483 -> 0.25%.
+% plus_30s: slope +2.06693 [+1.19992, +3.10883], r 0.019706; plus_60s: slope -0.07430 [-1.36181, +1.23403], r -0.000628.
+% Match-weighted point slopes (slope_match_weighted, no bootstrap): end +6.70507, plus_30s +3.94933, plus_60s +2.37520.
+%   WT/scripts/test_martingale_and_swing_v3.py T3 computes them as sum(w c (y - ybar_w)) / sum(w c^2) with c centred on the
+%   UNWEIGHTED mean of p-hat, which slightly shrinks them relative to a textbook weighted least-squares slope; hence only their
+%   sign is used in the text.
+
+The size of the change, unlike its direction, is partly predictable before the engagement. Spearman's
+rank correlation measures whether two quantities put engagements in the same order: it is the correlation
+of their ranks, 1 when the two orders are identical and 0 when they are unrelated. The absolute change
+$|\Delta V|$ has a rank correlation of 0.52 with the headroom $\min(V_{\mathrm{pre}}, 1 - V_{\mathrm{pre}})$,
+the distance of the match from being decided. LightGBM trained on the pre-cutoff columns to predict
+$|\Delta V|$ at the last kill explains 19\% of its variance ($R^2 = 0.19$) on the 26,712 test engagements.
+A close match has high stakes whoever wins; which way the probability moves is what an outcome predictor
+has to supply.
+% martingale_swing.json horizons.end.T4_variance spearman_abs_vs_headroom 0.518355 (unweighted stats.spearmanr over the
+%   25,177 decided test engagements, WT/scripts/test_martingale_and_swing_v3.py T4).
+% R^2 0.19: WT/outputs/engagement_predictor_v3/magnitude_diagnostic.json targets.abs_deltaV_pp.test r2 0.1922980 (match-weighted
+%   r2_score), n 26712, matches 9198; Spearman 0.4583 (unweighted, not quoted).  Script WT/scripts/diagnose_deltaV_magnitude_
+%   predictability.py: LGBMRegressor 250 trees, num_leaves 15, learning_rate .04, min_child_samples 40, seed 7, fitted with match
+%   weights on predict_train X (load_split(): delta = expanded[:,1] - expanded[:,0], the last-kill horizon) against |delta| x 100.
+%   By band (not quoted): 2-10 0.051, 10-20 0.181, 20-30 0.334, 30-1000 0.249.
+
+% -----------------------------------------------------------------------------
+\subsection{Observation as a Bound: Reconstructing the State at the Cutoff}\label{sec:limit-evidence}
+
+The pre-cutoff columns hold the values of the most recent frame. Frames arrive every 60\,s, and at the
+cutoff the most recent one is a median 33.6\,s old (Section~\ref{subsec:limitations}), whereas events
+carry millisecond timestamps. Holding a frame is right for a quantity that changes only at events, such
+as level, as long as no such event happened after the frame, and wrong for a quantity that accumulates
+continuously, such as gold. In 99.6\% of the frame gaps audited below, the match log records at least one
+event. If the limit on pre-fight prediction is partly a matter of what the frames show, correcting the
+state at the cutoff from these events should raise it; if the limit is a property of the game, it
+should not.
+% 33.6 s: sec_limitations.tex (FEAT/prediction_situation_pilot.json checks.freshness.age_s_quantiles p50 33.60).
+% 99.6%: REV/A4-evidence-state-leak/audit_predict_test_1000_v2curve.json share_with_any_event_in_gap 0.995839 (any event of the
+%   match in (frame j-1, tau], WT/scripts/audit_evidence_state.py main(): event_ts over all events of the match).
+
+The reconstruction treats each field according to how it changes, and never reads anything after the
+cutoff.
+\begin{itemize}
+\item \emph{Known exactly from events}: level (from level-up events), ultimate rank, items held (from
+  purchase, sale, undo and destruction events), whether a champion is alive and when it respawns (from its
+  deaths and the respawn timer), Baron and Elder buffs, and Dragon Souls.
+\item \emph{Approximated from events}: champion statistics such as attack damage, armour and maximum
+  health, as the frame's value plus the statistics of items bought or sold since and the growth from
+  levels gained, read from Riot's Data Dragon tables for versions 15.14.1--15.16.1 (619 items and 171
+  champions each). Ability haste, armour and magic penetration and omnivamp are not in those tables and
+  are held, and unique item passives are not modelled.
+\item \emph{Extrapolated}: total gold, experience and creep score, as the frame's value plus the rate over
+  the minute before that frame times the frame's age. Gold also adds the bounties of the champion's kills
+  since the frame, current gold also adds sale refunds and subtracts purchases, and experience is kept
+  within the range that the level from level-up events allows.
+\item \emph{Fused}: position, chosen among the frame's position and positions that events imply (the
+  champion's own kills and assists, the epic monsters, structures and plates it destroyed, and its
+  fountain after a respawn or purchase) as the candidate with the smallest expected error for its kind
+  and age.
+\item \emph{Held}: health and mana between events (set to zero at a death and to full at a respawn),
+  damage totals and crowd-control time.
+\end{itemize}
+Nothing is interpolated towards the next frame: that frame lies after the cutoff, often after the first
+kill, and interpolating towards it would carry the kill into the inputs.
+% WT/gameplay/evidence_state.py module docstring (EVIDENCE / EXTRAPOLATE / FUSE / HOLD / STATIC) and FIELD_CLASSES
+%   (EVIDENCE_APPROX incl. cs_lifesteal, note "unique passives, haste, penetration, omnivamp not covered"; HOLD cs_abilityHaste,
+%   cs_armorPen*, cs_magicPen*, cs_omnivamp, cs_physicalVamp, cs_spellVamp, ds_*, ccTime_norm); position_candidates(): frame,
+%   respawn (fountain), killer, assist, objective, shop (fountain; Ornn excluded); dead champions keep the frame.
+% EvidenceStateBuilder._index_events(): objectives = ELITE_MONSTER_KILL, BUILDING_KILL, TURRET_PLATE_DESTROYED by killerId;
+%   items = ITEM_PURCHASED / ITEM_SOLD / ITEM_UNDO / ITEM_DESTROYED.  at(): rate = (frame i - frame i-1) / dt, times age_s;
+%   bounty (bounty + shutdownBounty of own kills since the frame) added to total and current gold; current gold + shop gold delta;
+%   xp clamped to [XP_AT_LEVEL[lv], XP_AT_LEVEL[lv+1] - 1] when events prove a higher level; level = max(frame, LEVEL_UP replay).
+% Data Dragon tables: WT/config/game_rules/datadragon/items_15.1{4,5,6}.json version 15.1x.1, 619 items each;
+%   champions_15.1{4,5,6}.json 171 champions each; index.json note "Data Dragon stats omit ability haste, lethality/armor pen,
+%   magic pen, omnivamp; those fields are held, not reconstructed".  (No bib key covers the item tables; not cited.)
+% Objective candidates include structures: WT/docs/CLAUDE_EVIDENCE_STATE_REPORT.md section 2 row "융합" (오브젝트·타워·플레이트).
+% No forward interpolation: evidence_state.py docstring ("Forward interpolation toward the engagement's own first kill would
+%   leak the kill and is not done").
+
+To measure how accurate the reconstruction is without leaking, we take a frame as the truth and
+reconstruct the state 1\,ms before it from the previous frame and the events in between, never reading the
+truth frame. The held frame is then at its oldest, about 60\,s, so the errors are upper estimates for a
+cutoff. On 257,120 player-frames from 1,000 engagement-test matches, the share of exactly correct levels
+rises from 52.2\% when the frame is held to 99.98\%, and that of correct alive status from 83.9\% to
+98.4\%. The mean absolute error falls from 388 to 188 for total gold, from 485 to 233 for experience,
+from 461 to 236 for current gold, from 5.9 to 3.6 for attack damage and from 74.5 to 17.7 for maximum
+health. The mean position error falls from 4,617 to 4,055\,u (median from 3,975 to 3,184\,u). Where an
+event supplies the chosen position, the error falls by 41 to 62\%: from 5,191 to 2,712\,u for the
+champion's own kills, 5,182 to 3,044\,u for assists, 5,326 to 3,012\,u for objectives and 7,469 to
+2,849\,u after a respawn. The frame position is kept for 78.6\% of player-frames: for 67.9\% because no
+event gives a position or none is expected to be closer, and for 10.7\% because the champion is dead.
+Some fields do not improve: movement speed (mean absolute error 46.0 to
+45.3), Baron-buff status (98.28\% to 98.25\% correct) and ultimate rank (0.081 to 0.082 ranks).
+% REV/A4-evidence-state-leak/audit_predict_test_1000_v2curve.json (WT/scripts/audit_evidence_state.py, tau = minute_ts[j] - 1 ms,
+%   truth = frame j): matches 1000, participant_frames 257120; exact_match_rate level hold 0.521702 / evidence 0.999774;
+%   alive 0.838865 / 0.984140; has_baron 0.982810 / 0.982467.  fields.<f>.hold_abs_error.mean / evidence_abs_error.mean:
+%   totalGold_norm 388.21 / 187.61; xp_norm 485.16 / 233.42; curGold_norm 460.95 / 235.71; cs_attackDamage 5.926 / 3.552;
+%   cs_healthMax 74.48 / 17.75; cs_movementSpeed 45.97 / 45.27; ult_level_norm 0.0809 / 0.0822 (x 3 ranks, RAW table).
+%   position_error_u hold mean 4617.4, median 3975.1; evidence mean 4055.4, median 3184.3; by_evidence_kind killer 17193 rows
+%   evidence 2711.8 / hold 5190.9; assist 3044.1 / 5182.4; objective 3012.3 / 5326.3; respawn 2848.8 / 7469.2;
+%   frame n 174470: 174470 / 257120 = 0.6786; dead n 27602 (evidence mean = hold mean 3745.9 u): 27602 / 257120 = 0.1073;
+%   (174470 + 27602) / 257120 = 0.7859 -> 78.6%.  Kinds killer 17193 + assist 19733 + objective 10419 + respawn 7703 + frame
+%   + dead = 257120 (no shop rows).  provenance.split predict_test (engagement-test matches).
+%   Computed reductions: 1 - 2711.8/5190.9 = 0.478; 1 - 3044.1/5182.4 = 0.413; 1 - 3012.3/5326.3 = 0.434;
+%   1 - 2848.8/7469.2 = 0.619 -> "41 to 62%".
+% Identical to the legacy audit WT/docs/experiments/claude_evidence_state_audit_1000.json in every field, exact rate and
+%   position entry (checked 2026-09-14 with a read-only script: dict equality of fields, exact_match_rate, position_error_u).
+
+The fusion needs the expected error of each kind of position evidence as a function of its age. The first
+version of that curve was read from an audit of the very matches later used to evaluate the prediction
+pilot, with one row lowered by hand, so it is withdrawn. The curve used here is measured on 1,000 matches
+of patch 15.14 from the engagement-training group, none of them among the 9,844 engagement-test matches,
+the 4,986 value-model test matches, or any corpus match of patches 15.15 (69,298) and 15.16 (56,254). It
+is fitted to rise with age by weighted isotonic regression, the stepwise non-decreasing fit of
+Section~\ref{sec:limit-value}. It differs from the withdrawn curve by at most
+247\,u in any cell and, on the 1,000 audit matches, selects the same evidence, so every audit figure above
+is unchanged.
+% Withdrawn curve: WT/gameplay/evidence_state.py comment above POS_ERROR_CURVE (read from audit_1000.json, whose 1,000 matches are
+%   predict_test, the pilot's evaluation matches; frame row lowered by hand, measured 749.5 / 2226.7 / 3332.1 / 4478.4 / 5007.3 /
+%   3944.4 u).
+% New curve: REV/A4-evidence-state-leak/position_error_calibration_v2.json split.name predict_train, holdout_patches 15.15 / 15.16
+%   excluded (selection.excluded_holdout_patch 1730), n_matches 1000; disjointness: predict_test n_eval 9844 intersection 0,
+%   value_validation 4986 / 0, corpus_patch_15.15 69298 / 0, corpus_patch_15.16 56254 / 0; fit_rule isotonic_weighted.
+%   Patch 15.14: the only patch left after the exclusion (corpus patches 15.14-15.16).
+% Max |fitted - legacy|: fitted_minus_legacy maximum absolute cell 246.8 u (frame, 20-30 s bin).
+% Same selection on the audit matches: audit_predict_test_1000_v2curve.json (provenance.pos_error_curve.version
+%   position_error_calibration_v2) equals the legacy audit in every position entry, incl. by_evidence_kind counts.
+
+We then repeated the prediction experiment on the full labelled corpus under the patch holdout of
+Section~\ref{sec:learners}: LightGBM with the settings of that section's published tree model, trained on
+15.14 (187,547 engagements), with 15.15 (191,184) used for early stopping, and tested once on 15.16
+(153,816 engagements from 55,449 matches). Adding 306 columns could raise the AUC merely because they present
+per-player values in a new layout. We therefore compare three models: the 6,164 non-constant pre-cutoff
+columns alone (X); X plus 306 reconstructed columns (thirty fields per player, including position
+evidence kind and age, and six team differences); and, as a control, X plus the same 306 columns filled
+from the held frame. The effect of the evidence is the difference between the last two. X alone
+reproduces the published patch-holdout AUC, 0.6665, exactly. Intervals come from 1,000 bootstrap
+resamples of the test matches, shared by all models and bands, so the differences are paired.
+% REV/A4-evidence-state-leak/evidence_block_patch_holdout_v33_v2.json: split train 15.14 / val 15.15 / test 15.16, rows 187547 /
+%   191184 / 153816, matches.test 55449; n_rows 532547, n_matches 191940; n_features_X 6164; block_columns 306
+%   (WT/scripts/build_evidence_block_v3.py FIELDS 30 per player x 10 + TEAM_DIFF 6; hold_values() zeroes respawn_in_s, item_count,
+%   item_gold_owned, pos_evidence_kind in the control); lgbm_params n_estimators 400, learning_rate .05, num_leaves 31,
+%   subsample .9, colsample_bytree .9, seed 7, reference_params_verified true; block_rows_not_built 0 in every split
+%   (block_manifest rows_ok 566452 / rows 566452).
+% reproduces_lgbm_paper: x_only_test_auc 0.6664835 = lgbm_paper_test_auc (FEAT/model_comparison_v33_patch.json), abs_diff 0.0.
+% "used for early stopping", not "stopped early" (corrected 2026-09-14, item F4-consistency-fills): models.X.best_iteration 381,
+%   models.X_plus_hold.best_iteration 355, models.X_plus_evidence.best_iteration 287, each with lgbm_params n_estimators 400 and
+%   100-tree patience (WT/scripts/evidence_block_patch_holdout_v33.py, callbacks=[early_stopping(100, ...)]); X, the published configuration, and X+Hold keep a best point less than 100 trees before the cap, so their
+%   stopping rule never fires (FEAT/model_comparison_v33_patch.json models.lgbm_paper.best_iteration 381 likewise).
+% bootstrap n_boot 1000, seed 7, clusters 55449, percentile 2.5 / 97.5, one multiplicity vector per draw for all models and bands.
+% Calibration matches vs this run: calibration_vs_loaded_rows disjoint_from_test_patch true, disjoint_from_val_patch true;
+%   train_patch_15.14 intersection 928 (allowed: feature construction fitted on training-side matches).
+
+\begin{table*}[!t]
+\centering
+\caption{Reconstructing the state at the cutoff from events, full corpus, patch holdout (training 15.14,
+early stopping 15.15, test 15.16). X: 6,164 pre-cutoff columns; Hold: 306 columns from the held frame;
+Evidence: the same 306 columns reconstructed from events. Test AUC (unweighted); differences with 95\%
+intervals from 1,000 match bootstraps. Bands: game minute at the cutoff.}
+\label{tab:limit-evidence}
+\footnotesize
+\begin{tabular}{@{}lrccccc@{}}
+\toprule
+Band & Test engagements & X & X+Hold & X+Evidence & Evidence $-$ X & Evidence $-$ Hold \\
+\midrule
+% evidence_block_patch_holdout_v33_v2.json model_auc_ci.<model>.<band>.auc and n_rows; paired.<comparison>.<band> delta, lo, hi.
+%   overall: X 0.666484, hold 0.668163, evidence 0.673239; ev-X +0.006755 [+0.005700, +0.007757]; ev-hold +0.005076 [+0.004083, +0.006042]
+%   2-10 (62637): 0.649441, 0.651302, 0.656105; +0.006664 [+0.004844, +0.008441]; +0.004803 [+0.003129, +0.006589]
+%   10-20 (52026): 0.650796, 0.652814, 0.656754; +0.005958 [+0.004175, +0.007627]; +0.003940 [+0.002215, +0.005560]
+%   20-30 (32800): 0.714873, 0.715170, 0.720394; +0.005521 [+0.003697, +0.007206]; +0.005224 [+0.003594, +0.006815]
+%   30-1000 (6353): 0.671754, 0.673488, 0.687568; +0.015815 [+0.010389, +0.021578]; +0.014080 [+0.008695, +0.019430]
+%   Differences are computed from unrounded AUCs, so they can differ by 0.0001 from differences of the rounded columns.
+All & 153,816 & 0.6665 & 0.6682 & 0.6732 & $+0.0068$ [$+0.0057$, $+0.0078$] & $+0.0051$ [$+0.0041$, $+0.0060$] \\
+2--10 & 62,637 & 0.6494 & 0.6513 & 0.6561 & $+0.0067$ [$+0.0048$, $+0.0084$] & $+0.0048$ [$+0.0031$, $+0.0066$] \\
+10--20 & 52,026 & 0.6508 & 0.6528 & 0.6568 & $+0.0060$ [$+0.0042$, $+0.0076$] & $+0.0039$ [$+0.0022$, $+0.0056$] \\
+20--30 & 32,800 & 0.7149 & 0.7152 & 0.7204 & $+0.0055$ [$+0.0037$, $+0.0072$] & $+0.0052$ [$+0.0036$, $+0.0068$] \\
+$\geq 30$ & 6,353 & 0.6718 & 0.6735 & 0.6876 & $+0.0158$ [$+0.0104$, $+0.0216$] & $+0.0141$ [$+0.0087$, $+0.0194$] \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+Table~\ref{tab:limit-evidence} gives the result. The reconstructed columns raise the test AUC from 0.6665
+to 0.6732, by 0.0068 (interval 0.0057 to 0.0078), while the same columns filled from the held frame raise
+it by 0.0017 (0.0010 to 0.0024), a quarter as much. The effect of the evidence, reconstructed against
+held, is 0.0051 (0.0041 to 0.0060), and its interval excludes zero in every game-time band. It is largest
+after minute 30, at 0.0141 (0.0087 to 0.0194), on the smallest band; we have not measured which fields
+carry that late gain. In the model with reconstructed columns, the team differences in reconstructed total
+gold, level and champions alive receive 14.4\%, 6.8\% and 3.7\% of the total split gain, a measure of how
+much the trees use a column rather than of what it contributes to the AUC.
+% Values: table rows.  Hold / evidence effect over X: 0.001680 / 0.006755 = 0.249 (computed) -> "a quarter".
+% Gain shares: evidence_block_patch_holdout_v33_v2.json models.X_plus_evidence.top_features ev_teamdiff_totalGold_norm
+%   0.144202, ev_teamdiff_level_norm 0.067947, ev_teamdiff_alive 0.037463 (LightGBM gain importance share).
+
+Part of the limit on pre-fight prediction is therefore observational: events that the frames do not yet
+reflect raise the AUC on a patch the models never saw, beyond a control with the same columns. The gain
+is small, and the reconstruction reaches only what the event log records. The log has no record of
+ability or summoner-spell use, of movement, or of damage beyond a summary for each kill victim
+(Table~\ref{tab:terms}), so cooldowns, health between events and most of the vision each team has remain
+unobserved at the cutoff.
+% Event types: sec_background.tex Table tab:terms row "Match-V5 events" (kills, aces, plates, structures, epic monsters,
+%   Dragon Souls, wards, items, level-ups; none records movement or damage except a summary of each kill victim's damage).
+%   Vision: rows "Vision, ward, control ward" (wards only via WARD_PLACED / WARD_KILL).
+
+% -----------------------------------------------------------------------------
+\subsection{Attributions as Leak Forensics}\label{sec:limit-shap}
+
+An input that carries information not available at the cutoff can raise an AUC for the wrong reason, and
+the AUC alone does not reveal it. The feature path of the conference submission had two such inputs:
+game time was divided by the match's final length, which is unknown at the cutoff, and map anchors were
+computed from structures destroyed at any time in the match, including after the cutoff. The corrected
+path divides game time by 45 minutes, capped at one, and keeps only structures destroyed before the cutoff
+(Section~\ref{sec:def-constants}). On 12,603 engagements from 5,000 matches, with match-grouped five-fold
+out-of-fold LightGBM, restoring both leaks raises the AUC from 0.620 to 0.640, almost all of it through
+game time (0.639 with that leak alone, 0.624 with the anchor leak alone). An AUC shows that a leak helps;
+it does not show where in the inputs a model finds it.
+% CoG feature path: REPO/core/presets.py PRESETS["cog2026"] TIME_NORM_ABSOLUTE False, ANCHORS_CAUSAL False (orchestrator-verified
+%   fact 1); leaky definitions: REPO/scripts/run_shap_leak_forensics_v33.py docstring (time_norm = t / (match length - 1);
+%   anchors = every tower / objective destroyed anywhere in the match).  Corrected path: sec_definition.tex sec:def-constants
+%   (game time divided by 45 minutes and capped at one; anchors before the cutoff).
+% FEAT/leak_ablation_v33.json n_matches 5000, configs.clean.n_rows 12603, auc 0.619726; time_leak 0.639154; anchor_leak 0.624101;
+%   both_leaks 0.639965.  Protocol: REPO/scripts/run_leak_ablation.py docstring (same fight refs, flags toggled, match-grouped
+%   5-fold OOF LightGBM, unweighted roc_auc_score).
+
+Attribution is the tool for that question. For each prediction, SHAP values split the difference between
+the model's output and its average output into one additive contribution per input column, using the
+Shapley value from cooperative game theory, and TreeSHAP computes them exactly for tree
+ensembles~\cite{lundberg2020local}. We use them for one purpose. The same engagements are built twice,
+with the corrected inputs and with both leaks; the columns a leak affects are found by rebuilding the
+inputs with each switch, not listed by hand; one LightGBM model per build is trained under the patch
+holdout; and on the same test engagements we compare the share of mean absolute SHAP value that falls on
+the leak columns, with match-clustered intervals, together with the paired AUC difference. If the leaky
+model's extra accuracy comes through the leaks, that model should concentrate its attribution on the leak
+columns and the model trained without them should not. The SHAP values are also
+checked against the Shapley definition by code that shares nothing with LightGBM.
+
+The run uses 54,561 engagements from a random sample of 20,000 matches; 15,911 engagements from 5,695
+matches form the test patch. The model with both leaks reaches a test AUC of 0.6637 against 0.6471
+without them, a paired difference of 0.0165 (95\% interval 0.0122 to 0.0211, from 2,000 bootstrap
+resamples of the test matches). On 10,000 test engagements, the leaky model places 9.2\% of its mean
+absolute SHAP value on the leak columns and the audit-fixed model 0.5\%, a paired difference of 8.7
+percentage points (8.6 to 8.9). Almost all of it is game time: in the leaky model the time quantity
+holds 9.0\% of the attribution and ranks second among the base quantities, behind the gold difference,
+whereas in the audit-fixed model, where it carries elapsed minutes divided by 45, it holds 0.1\% and
+ranks 154th. The anchor columns hold 0.2\% in the leaky model and 0.3\% in the audit-fixed one, in line
+with the small AUC effect of the anchor leak above. On every checked tree and engagement the SHAP values
+agree with the Shapley definition to within $10^{-15}$. We do not
+reproduce the attribution ranking of the conference submission: it was computed on the leaky feature path,
+where a ranking cannot separate the game's structure from the leaks.
+% Design: REPO/scripts/run_shap_leak_forensics_v33.py docstring, Protocol steps 3 (two builds, identical row keys), 5 (leak columns
+%   derived by rebuilding probe rows under each single switch), 6 (LightGBM patch holdout 15.14 / 15.15 / 15.16, match-clustered
+%   bootstrap CIs, paired difference), 7 (TreeSHAP on one seeded sample of test rows, same rows for both configurations, leak share
+%   with match-clustered CI and paired difference), 8 (verify_tree_shap: enumeration with EXPVALUE and leaf decomposition).
+%   Values: LightGBM Booster.predict(pred_contrib=True), Lundberg et al. 2020 path-dependent TreeSHAP.
+% Filled 2026-09-14 by item F2-fill-and-gloss (was \pending{shap}): REV/A7-shap-forensics/rerun.json (queue_state
+%   A7-shap-leak-forensics-v33-m20000-r3.ok 16:06, rc 0, final true; provenance.script_sha1 a9d1362 = committed
+%   run_shap_leak_forensics_v33.py, commit 8978bfb).  sample.n_matches_sampled 20000, n_matches_with_rows 19698, n_rows 54561;
+%   split.test rows 15911, matches 5695; row_identity keys_equal true; shard_crosscheck identical true (clean build = v3.3 shards).
+%   test_auc.overall auc_leaky 0.663690, auc_clean 0.647144, diff_leaky_minus_clean +0.016547, ci_diff [+0.012196, +0.021074],
+%   n_boot 2000.  shap.n_rows 10000.  leak_share (n_boot 2000, n_matches 4912, paired):
+%   union share_leaky 0.091930, share_clean 0.004567, diff +0.087363, ci_diff [+0.085716, +0.088987];
+%   TIME_NORM_ABSOLUTE share_leaky 0.089712, share_clean 0.001322; ANCHORS_CAUSAL share_leaky 0.002218, share_clean 0.003245.
+%   rank_shift.leak_bases time_norm rank_clean 154, rank_leaky 2; rank_shift.top_k_union goldDiff rank_leaky 1.
+%   leak_share_note: in the clean build the same bases hold causal values (absolute game time, anchors destroyed before the
+%   cutoff), hence "where it carries elapsed minutes divided by 45".
+%   Verification: shap_verification.all_agree true; max_abs_diff leaf_decomposition_phi 2.5e-17 (clean) / 1.4e-17 (leaky),
+%   whole_ensemble max_abs_diff_phi_and_expected 6.9e-17 / 1.2e-16, auxiliary_small_model enumeration 1.4e-17 -> "within 1e-15".
+%   Learner: n_estimators 2000, learning_rate 0.05, num_leaves 31, early_stopping_rounds 50 on 15.15 (learner.config); not
+%   called the published configuration in the text.  Anchor sentence refers to the leak-ablation AUCs quoted in the first paragraph.
+% Re-check 2026-09-14 (item F3-fill-results): every SHAP-forensics number printed in this subsection (54,561; 20,000; 15,911; 5,695;
+%   0.6637; 0.6471; 0.0165 [0.0122, 0.0211]; 2,000; 10,000; 9.2 %; 0.5 %; 8.7 pp [8.6, 8.9]; 9.0 %, rank 2 behind goldDiff
+%   (rank_shift.top_k_union goldDiff rank_leaky 1); 0.1 %, rank 154; anchors 0.2 % / 0.3 %; 1e-15) was compared with
+%   REV/A7-shap-forensics/rerun.json (the source cited above) and matches it.  The earlier
+%   REV/A7-shap-forensics/shap_leak_forensics_v33_m20000.json (05:29, produced from a mid-edit tree) gave identical values: of
+%   its JSON leaves, the 57 that differ from rerun.json are timings, argv, output paths and git provenance; every key cited
+%   above is equal to the last digit.  The market_lex robustness run (shap_leak_forensics_v33_market_lex_m20000.json) is not cited.
+
+% -----------------------------------------------------------------------------
+\subsection{Summary}\label{sec:limit-summary}
+
+Who wins an engagement decides most of what it does to the match: at the last kill the outcome alone
+explains 55\% of the variance of the change in win probability, and the state before the engagement
+explains 2\%. A prediction of that outcome made from the same pre-cutoff columns does not improve a match
+model that already reads those columns, as nested inputs lead one to expect, so this null says nothing
+about whether engagements matter to the match. A synthetic column informed from outside those columns
+helps once its AUC for the direction of the change reaches 0.669, above the 0.583 and 0.622 of the two
+real predictors on that label, so the sweep does not separate information source from accuracy. A
+calibrated win probability has
+already priced the favourite, so the predictability of an engagement appears as asymmetric stakes rather
+than as an expected gain. Finally, reconstructing the state at the cutoff from events that 60\,s frames
+do not yet show raises the AUC on an unseen patch by 0.005 beyond a same-columns control, so part of the
+limit is what the telemetry records before a fight; whether part of it is also the learner is the
+question of Section~\ref{sec:learners}.
+% 55% / 2%: tab:limit-explained row "Last kill, All" (0.550 / 0.024).  0.005: tab:limit-evidence Evidence - Hold, All, +0.0051.
+% 0.669 / 0.583 / 0.622: tab:limit-stacking rows S2 (stacking_ceiling.json sweep[1] realised_engagement_auc 0.6687492), B
+%   (results.json deltaV_weighted.test.auc 0.5832091), B' (cross_currency.market_predictor_vs_deltaV_label.auc 0.6216259).

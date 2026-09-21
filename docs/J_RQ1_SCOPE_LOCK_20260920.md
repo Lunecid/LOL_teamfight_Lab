@@ -1,0 +1,109 @@
+# J-RQ1 문구·범위 고정 (질문 고정; 집필용 검증 스택은 RR로 닫힘)
+
+**Date:** 2026-09-20  
+**Status:** **연구질문 문구·범위 LOCKED.**  
+**Writing update (same day):** Under [JOURNAL_FINISH_LOCK_20260920.md](JOURNAL_FINISH_LOCK_20260920.md), J-RQ1 is answered for the **journal draft** by frozen fit85 \(V\) + closed RR3/RR5/RR6b measurement stack, with residual limitations explicit in manuscript prose. This does **not** mean “SVI is the true fight winner” or that every sensitivity is exhausted.  
+**Applies to:** 저널 원고의 **J-RQ1**. 동일 실험 줄기는 석사에서 **M-RQ2**로 인용한다 (아래 §4).  
+**목적·목표 문구:** [V_Q_TARGET_LOCK_20260920.md](V_Q_TARGET_LOCK_20260920.md) — \(V\)=토대(수준), \(q\)=중심(이동 방향); 주 목표=이진 SVI.  
+**Draft spine:** [journal_manuscript_v1/](journal_manuscript_v1/README.md)
+
+---
+
+## 0. 구분 (필수)
+
+| 상태 | 의미 | 현재 |
+|---|---|---|
+| **질문 고정** | 무엇을 물을지·무엇을 답의 대상으로 할지 확정 | **완료** |
+| **집필용 검증 스택** | fit85 동결 + RR3/5/6b 등으로 측정·대응·구간 민감성을 원고에 쓸 수 있는 수준 | **완료 (한계 명시 조건)** |
+| **강한 존재론적 결론** | “SVI = 참 한타 승패” / “모든 합리적 \(V\)에서 동일” | **주장하지 않음** |
+
+이전 문구 “RQ1 전체 검증 미완료”는 **강한 존재론·완전 민감성 탐색**을 뜻했다. 저널 마감에서는 위 중간 행을 기준으로 원고를 쓴다.
+
+---
+
+## 1. 고정하는 연구질문 (저널 J-RQ1)
+
+기존 저널 계획의 문구를 **그대로** 유지한다.
+
+> **경기 승패와 연결하여 정의한 SVI는 어떤 교전 후 상태 변화를 반영하며, 교전 구간과 가치모형의 합리적인 변경에 얼마나 안정적인가?**
+
+출처: [JOURNAL_RESEARCH_PLAN_20260919.md](JOURNAL_RESEARCH_PLAN_20260919.md) §6.
+
+**의도:** V 재설계는 질문을 바꾼 것이 아니라, SVI를 정의하기 **전에** 기반 승률 평가기를 확보하는 선행 작업이다.  
+RQ1의 중심을 “어떤 승률 모델이 1등인가?”로 좁히지 않는다. CoG의 고정 교환 가치를 **경기 승패에 연결된 상태 가치 변화**로 확장하는 개선 목적과 일치한다.
+
+---
+
+## 2. 하나의 RQ1 안의 답변 순서 (RQ 추가 아님)
+
+| 내부 구성 | 확인할 내용 | 현재 상태 |
+|---|---|---|
+| **① 평가기의 근거** | \(\widehat{V}(X_{\le t})\to W\)를 시간대별로 얼마나 잘 예측하는가? 어떤 입력·학습기로 구성할 것인가? | **후보 비교·시간대별 성능 근거 확보.** `corrected_v1` / **fit85** / **A_MLP_expanded** 잠정 동결([V_EVALUATOR_FREEZE_CLOSE_20260920.md](V_EVALUATOR_FREEZE_CLOSE_20260920.md)). |
+| **② 변화량의 의미와 안정성** | \(\Delta\widehat{V}\), \(Y_{\mathrm{SVI}}=\mathbf{1}[\Delta\widehat{V}>0]\)가 무엇을 반영하며, 관측 갱신·모형·구간 선택에 얼마나 의존하는가? | **결과표·분포·물질 대응·안정성 장부 확보**([NEWV_ENGAGEMENT_VALUE_VERIFY_20260920.md](NEWV_ENGAGEMENT_VALUE_VERIFY_20260920.md)). Quiet smoke·사례 추적·원고 결과 절은 남음. RQ1 검증 완료는 아직 아님. |
+
+첫 부분:
+
+\[
+\widehat{V}(X_{\le t})\longrightarrow W.
+\]
+
+두 번째 부분:
+
+\[
+\Delta\widehat{V}
+=
+\widehat{V}(X_{\le t_{\mathrm{end}}})
+-
+\widehat{V}(X_{\le t_{\mathrm{pre}}}),
+\qquad
+Y_{\mathrm{SVI}}=\mathbf{1}[\Delta\widehat{V}>0].
+\]
+
+승률 예측 근거가 먼저이고, 출력 차이를 교전 결과로 해석하는 것은 그다음이다.
+
+---
+
+## 3. 지금 고정할 것 / 아직 고정하지 않을 결론
+
+### 고정
+
+- **연구질문:** 위 J-RQ1 문구.
+- **평가 대상 구분:** 실제 승패 \(W\)로 학습·평가한 \(\widehat{V}\) vs 그 출력 차이로 정의한 모델 추정 가치 개선(SVI).
+- **실행 범위:** `corrected_v1` / **fit85** / **MLP Expanded**를 검증용 평가기로 유지. **모델 탐색 재확대 금지.** 전체 TRAIN 재적합은 `corrected_v2`로 미룸 ([V_FREEZE_PREP_POST_WAVE4_REVIEW_20260919.md](V_FREEZE_PREP_POST_WAVE4_REVIEW_20260919.md)).
+
+### 고정하지 않음 (현재 표가 직접 뒷받침하지 않음)
+
+- “MLP가 모든 대안보다 확실히 우수하다.”
+- “V의 성능이 좋으므로 SVI는 올바른 한타 승패다.”
+- “모델 간 부호가 약 91% 일치하므로 나머지는 라벨 오류다.”
+
+질문을 고정한다는 것은 **긍정적 답을 미리 확정**한다는 뜻이 아니다.
+
+### ①에 대해 현재 쓸 수 있는 답 (허용 문구)
+
+> 교정된 입력·학습 절차 아래에서, 사전에 정한 시간 균형 Brier에 따라 Expanded361 임베딩 MLP를 선정하였다. 해당 평가기는 TEST에서 전체 AUC 0.8542와 Brier 0.1552를 보였고, 시간대별 성능은 V_SELECT와 유사한 양상을 유지했다.
+
+이어서 **“이 평가기로 측정한 교전 전후 변화는 어떤 특성을 보였는가?”**를 연결하면 RQ1의 답이 완성된다.
+
+---
+
+## 4. 원고별 번호 매핑 (혼동 금지)
+
+| 내용 | 저널 | 석사학위논문 |
+|---|---|---|
+| 교전 사례·경계 구성 | J-RQ1의 사례 정의 기반 (I1) | **M-RQ1** |
+| 경기 승률 V와 ΔV/SVI의 구성·검증 | **J-RQ1의 중심** (I2) | **M-RQ2** |
+| 교전 전 정보로 SVI를 예측하는 q | J-RQ2 | M-RQ3 |
+| 초기 우세 의존성·조건별 성능·전이 | J-RQ3 | M-RQ4 |
+
+**현재 V 개발·시간대 성능·연속성 작업을 양쪽에서 모두 ‘RQ1’이라고 부르지 않는다.**  
+저널 = **J-RQ1 (부분 ① 중심, ② 진행 중)** / 석사 = **M-RQ2**.
+
+---
+
+## 5. Next execution (모델 탐색 아님)
+
+1. ~~같은 평가기의 보정·재현(subprocess reload) 확인 마무리.~~ → [V_EVALUATOR_FREEZE_CLOSE_20260920.md](V_EVALUATOR_FREEZE_CLOSE_20260920.md)  
+2. ~~동일 `fit85` MLP로 ΔV/SVI 결과표·분포·물질 대응·안정성.~~ → [NEWV_ENGAGEMENT_VALUE_VERIFY_20260920.md](NEWV_ENGAGEMENT_VALUE_VERIFY_20260920.md)  
+3. 남은 항목: quiet(무킬) 참고 smoke(선택), 불일치 사례 추적(석사 심화), **RQ1 결과 절 작성** 후 q(J-RQ2).  
+4. freeze of **labels for q**는 OOF V 계약 이후에만.

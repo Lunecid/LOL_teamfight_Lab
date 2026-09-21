@@ -1,0 +1,339 @@
+% =============================================================================
+% sec_related.tex -- Related Work  (ToG manuscript, item W6-related-work)
+%
+% Answers CoG 2026 reviews: R1 (value to the wider community, citing Schubert et al. 2016, Block et
+% al. 2018, Kokkinakis et al. 2020, Pedrassoli Chitayat et al. 2024 (two papers) and Charleer et al.
+% 2018; where the thresholds come from), R2 (why deep baselines, and why an equal-effort comparison),
+% R3 (every algorithm motivated before it is used), R4 (fights without kills: pointer to the
+% measurement).  Five paragraphs: (1) match and in-game win prediction; (2) encounter and team-fight
+% detection; (3) audiences and broadcast; (4) deep learning versus gradient-boosted trees on tables;
+% (5) win-probability models and calibration.
+%
+% Provenance conventions
+%   * Every citation key exists in docs/references/definition_refs.bib, each marked [VERIFIED <date>]
+%     there.  The comment after each sentence names the passage of the cited work that supports it and
+%     the copy it was read on.  Copies other than the publisher's (arXiv, an authors' accepted
+%     manuscript, a local PDF, an abstract served by the Semantic Scholar API) were used for content
+%     only, never for bibliographic facts.  All passages were re-read on 2026-09-14 for this pass.
+%       REFS = D:/LOL_Project/references (local PDFs, text extracted with pdftotext)
+%       S2   = https://api.semanticscholar.org/graph/v1/paper/DOI:<doi>?fields=title,abstract
+%   * Every number about this study carries its artefact and key.
+%       FEAT = D:/LOL_Project/fusion_2615/features
+%       REPO = C:/Users/todtj/PycharmProjects/LOL_teamfight
+%       WT   = C:/Users/todtj/문서/LOL_Teamfight/worktrees/engagement-state-value
+%   * No result of a run still in progress is stated or implied: the section makes no claim about
+%     which learner is best, about scale classes, or about any calibration value.
+%   * Game-version naming: no patch is named in the text.  Jalovaara's thesis names its data
+%     "Patch 14.15" (Riot's pre-2025 displayed number); the text does not repeat it, so no mapping
+%     between Riot's numbering schemes is relied on here (the mapping used elsewhere, displayed 25.N =
+%     gameVersion 15.N, is documented in definition_refs.bib section 10).
+%   * Cross-references use labels that exist on 2026-09-14 (sec:background-data, sec:definition,
+%     sec:def-constants, sec:def-killless, sec:learners, sec:learners-input, sec:learners-effort,
+%     subsec:future-work).  sec_limit.tex was not written when this file was drafted, so its label was rendered as
+%     a visible pending-ref placeholder; item F4-consistency-fills (2026-09-14) replaced both with \ref{sec:limit}, whose
+%     label exists (sec_limit.tex, \section{Where the Limit Comes From}).
+%   * Paraphrase only; the text contains no direct quotation.
+%   * Length: IEEEtran journal build on 2026-09-14 after the fact-check fixes (MiKTeX pdflatex + bibtex,
+%     scratchpad copy with url, hyperref and cleveref as in main.tex, followed by sec_background,
+%     sec_definition, sec_learners and sec_limitations so that cross-references resolve): no errors,
+%     no undefined citations, 0 bibtex warnings, every \ref of this file resolved except the pending
+%     sec:limit; about 1,100 words of prose, one page plus four lines while the two pending-ref
+%     placeholders were rendered (both replaced by \ref{sec:limit} on 2026-09-14, item F4-consistency-fills).
+%
+% Triage of the previous draft (2026-09-14 05:41), kept where correct.  Changed in this pass:
+%   - (2) added Maymin's own LoL engagement rule (damage-based, 5 s gap, experience-range gate), the
+%     closest precedent for the rule anchors R and B, which the draft omitted;
+%   - (2) the draft said all prior constants were "chosen by hand or computed from damage and position
+%     streams"; Ke et al.'s radii are game ranges and the OpenDota rule reads only deaths, so the text
+%     now says which rule needs which stream;
+%   - (2) D is stated as in sec_definition.tex (sharing rate falls to 0.5), not "most pairs stop";
+%   - (1) Bisberg and Ferrara are no longer called a pre-game model (their paper does not say so plainly);
+%   - (4) the draft argued the data "differ in both respects" and used the 942 constant columns as the
+%     second respect; constant columns are dropped before learning, so only size is used;
+%   - (2) the timeline citation is attached to the timeline, not to the claim about its content, which
+%     rests on sec_background.tex;
+%   - (5) added Naeini et al.'s near-perfect-AUC, poorly calibrated example for "ranking is not
+%     calibration";
+%   - \ref{sec:limit} -> pending-ref placeholder (since restored to \ref{sec:limit}, item F4); prose shortened from about
+%     1.1 pages to one page.
+%
+% Fact-check fixes (2026-09-14, second pass; all four findings re-verified and accepted):
+%   - (2) "built from kills, as Ke et al.'s team fights are" misdescribed Ke et al., whose team fights
+%     are position-built encounters filtered by a kill (Section VI-B item 7, VI-C); now "requires a kill,
+%     as Ke et al.'s team fights do, but is built from kill events alone";
+%   - (2) "these constants are set by hand" extended to OpenDota's 15 s and three deaths, for which the
+%     source file gives no derivation either way; now the two are stated separately;
+%   - (2) D is now "the distance at which the share of consecutive kill pairs within that gap that
+%     involve a common champion falls to one half" (local, distance-binned rate, as sec_definition.tex);
+%   - (4) "about 19 times that size, so none of them settles our case" was a non sequitur for Gorishniy
+%     et al. and Shwartz-Ziv and Armon, whose benchmarks include larger datasets; the size point is now
+%     tied to Grinsztajn et al. alone ("about 19 times that medium size") and the need to measure rests
+%     on Gorishniy et al.'s finding ("with no family superior on every dataset").
+%   - To stay near one page, two sentences of (2) were joined with a semicolon; no content was removed.
+% =============================================================================
+
+\section{Related Work}\label{sec:related}
+
+% --- (1) Match-outcome and in-game win prediction ------------------------------------------
+Outcome prediction for multiplayer online battle arena (MOBA) games such as League of Legends (LoL)
+and Dota~2 has mostly targeted the match winner: from champion picks and the players'
+past performance \cite{costa2021,hitar2023}, from a graph of a league's season \cite{bisberg2022}, or,
+during the match, from per-minute statistics \cite{silva2018continuous} or live professional data
+\cite{hodge2021win}.
+% costa2021, S2 abstract (DOI 10.1109/CoG52621.2021.9619019): pre-game information for professional LoL
+%   matches; historical performance the most accurate features.
+% hitar2023, S2 abstract (DOI 10.1109/TG.2022.3153086): winner of professional LoL matches from pre-game
+%   data only; built features include a player's skill with a champion and team synergies.
+% bisberg2022, arXiv 2207.13191 abstract and Section IV-A: semi-supervised graph convolutional network
+%   that learns the structure of a league over a season and classifies games by their neighbourhood
+%   (nodes are team-games linked to the opponent and to the team's previous game).  Whether its inputs
+%   are strictly pre-game is not stated plainly, so the text does not call it a pre-game model.
+% silva2018continuous, publisher PDF p. 639 (abstract, Section I): recurrent networks, one input per
+%   minute, 7621 competitive LoL matches.
+% hodge2021win, S2 abstract (DOI 10.1109/TG.2019.2948469): live win prediction for professional DotA 2
+%   matches, trialled at a major international tournament.
+For in-game win probability in LoL, Maymin fitted a logistic regression on elapsed time and each
+team's kills, turrets and large monsters, sampling one random minute per game because consecutive
+minutes are strongly correlated \cite{maymin2021smart}; Jalovaara trained a deep network on 400,000
+ranked matches from Riot's public application programming interface (API) \cite{jalovaara2024win}.
+% maymin2021smart: open-access article (CC BY), copy https://d-nb.info/1367424143/34, Section 3.2
+%   "In-Game Win Probability", pp. 17-18: features red and blue kills, towers and large monsters plus
+%   minutes elapsed; logistic regression; one random minute per game because consecutive rows of the
+%   same game are highly correlated.  Towers = turrets.
+% jalovaara2024win: thesis PDF (url in the bib entry), abstract p. 3 (deep neural network for in-game
+%   win probability) and Section 5.1: 400 000 Ranked matches collected with the LoL API; matches divided
+%   into 5-minute intervals, one game state sampled uniformly per interval.
+In Dota~2, deaths \cite{katona2019time} and team fights \cite{tot2021camera} have been predicted
+seconds ahead, and team fights have fed match-winner prediction \cite{ke2022}, but none of these
+studies predicts, before a fight in LoL begins, which team will win it.
+% katona2019time, arXiv 1906.03939 abstract: death of a Dota 2 player within a five-second window.
+% tot2021camera, REFS/Tot2021_TeamFightPrediction_CoG.pdf abstract and Section I: predicts and detects
+%   team fights, shortly before their start, from player and camera positions (Dota 2).
+% ke2022, REFS/Ke2022_TeamFightModels_CoG.pdf Sections VI-E and VII: team-fight features fed to recurrent
+%   networks (GRU, LSTM) to classify the overall match outcome.
+% "None of these": checked against the passages above for the nine works of this paragraph.  Schubert
+%   et al. predict encounter outcomes in Dota 2; they are discussed in the next paragraph.
+
+% --- (2) Encounter and team-fight detection ---------------------------------------------------
+Predicting a fight's winner first needs a rule that delimits fights. Schubert et al.\ segmented 412
+Dota~2 replays into \emph{encounters}, groups of opposing units within combat range (each unit's mean
+damage distance plus one standard deviation) that continue while at least two opposing units stay
+involved \cite{schubert2016encounter}. As 81.1\% of encounters had no kill, they predicted which team
+killed more opponents only in decisive encounters, from what they describe as the initial state.
+% schubert2016encounter: REFS/Schubert2016_EncounterDetection_SSAC.pdf (printed page numbers): Section
+%   4.2 successor relation (timeout tau; at least two opposing units carried over), p. 7; combat range =
+%   mean + 1 SD of each unit's damage distance, about 85% of damage, p. 9; 412 DOTA matches, p. 11;
+%   18,744 of 23,110 encounters (81.1%) without kill events, 4,012 decisive encounters (one team killed
+%   more opponents), p. 12; logistic regression predicting which team had more kills from number of
+%   units, role distribution, gold and XP of the initial state, pp. 14-15.  No value of tau is given.
+%   The Fig. 9 caption speaks of gold and XP "during the encounter" while the text calls them initial,
+%   hence "what they describe as".
+Ke et al.\ kept this structure, fixed the link radii at Dota~2's attack and healing ranges (700
+and 400 units), and required a kill and at least two players on one side \cite{ke2022}. In LoL, Maymin
+chained champion-on-champion damage into an engagement that ends after 5\,s without damage, a gap he
+tied to the game's notion of combat, and added champions within experience range of it
+\cite{maymin2021smart}.
+% ke2022: REFS/Ke2022_TeamFightModels_CoG.pdf Section VI-B: combat link within the general attack range
+%   (700 units), support link within the general healing range (400 units); team fight = encounter with
+%   at least one kill and one side having at least two players of the same team.
+% maymin2021smart, Section 3.2 "Basic and Advanced Stats", p. 19: an engagement is a continuous sequence
+%   of champion-on-champion damage until 5 s pass with no damage; 5 s is consistent with the game's
+%   in-combat concept (an item's speed bonus after 5 s out of combat); any champion within XP range of a
+%   champion already in the engagement is included.  No numeric range is given in the paper.
+These three rules need positions every tick or second, and Maymin's also damage, which he captured
+from the game client \cite{maymin2021smart}; LoL's public Match-V5 timeline \cite{riotapi2024timeline} records
+positions once a minute and no damage events (Section~\ref{sec:background-data}). The
+OpenDota labels used by Tot et al.\ \cite{tot2021camera} need only deaths: in its public source, the
+processor opens a fight 15\,s before a hero death, closes it after 15\,s without one, and keeps it if
+it has at least three deaths \cite{opendota2018processteamfights}. Tot et al.\ found the labels' timing
+inconsistent; the processor gives no derivation for its 15\,s or its three deaths, and our conference
+version set its 18\,s and 4,000\,u by hand.
+% "every tick or second": Schubert pp. 7-9 (stream of position updates per tick); Ke Section VI-C
+%   (positions updated at each tick); Maymin p. 19 (optical tracking to know all champion locations
+%   every second).  Maymin abstract and Section 1 (Introduction), p. 11: the publisher's API offers only
+%   rudimentary, box-score-equivalent statistics; data captured with computer vision and client hooks.
+% Timeline content: sec_background.tex subsection sec:background-data (frames once per minute; no
+%   damage, ability-use or movement event; frames carry running damage totals, hence "no damage events").
+% tot2021camera: REFS/Tot2021_TeamFightPrediction_CoG.pdf Section IV.A (team-fight labels of 1,457
+%   professional matches from the OpenDota API) and Section VI (labels set too early or too late).
+% opendota2018processteamfights: processors/processTeamfights.js at commit e2e4432, lines 10-57
+%   (teamfightCooldown = 15; start = death time - 15; closes 15 after the last death; deaths >= 3; no
+%   spatial condition, so the rule reads only deaths).  The repository cannot show which version
+%   OpenDota's servers ran for Tot et al. (references_audit.md section 2a), hence "in its public
+%   source".  Closing rule re-read on 2026-09-14 at
+%   https://raw.githubusercontent.com/odota/core/e2e44328032e/processors/processTeamfights.js:
+%   a fight closes when an event's time minus last_death >= teamfightCooldown (15).
+%   "No derivation": the file declares the constant 15 and the filter deaths >= 3 with no comment or
+%   derivation.  The text does not say they were set by hand, which the source does not show.
+% 18 s and 4,000 u set by hand: sec_definition.tex opening paragraph (lines 14-15); CoG text
+%   REPO/docs/CoG2026_Paper.md section 3.1.
+Our engagement (Section~\ref{sec:definition}) requires a kill, as Ke et al.'s team fights do, but is
+built from kill events alone, estimates its two boundaries from the corpus and re-estimates them for
+every patch. The time gap lies at the valley between the two modes of the intervals between
+consecutive kills, as session thresholds do for the gaps between user actions
+\cite{halfaker2015session}, and the distance limit is the distance at which the share of consecutive
+kill pairs within that gap that involve a common champion falls to one half. Its two remaining gates,
+like Maymin's experience range, come from rules of the game (Section~\ref{sec:def-constants}), and
+Section~\ref{sec:def-killless} measures what requiring a kill misses.
+% Method statements: sec_definition.tex subsections "Kill episodes and the temporal boundary G" (KDE
+%   valley between the two modes of the log kill-interval distribution), "The spatial boundary D"
+%   (lines 118-125: among consecutive kill pairs no more than G apart, 5,460,008 pairs, the rate of
+%   involving the same champion as killer, victim or assister is computed in distance bins, and D is
+%   the distance at which that rate falls to 0.5; "share ... falls to one half" is this local,
+%   per-distance rate, not a cumulative share), "Presence
+%   gate, lead and anchor" (R = experience-sharing radius, B = assist window) and "Re-estimation per
+%   patch" (G and D re-estimated per patch under a drift rule; sec_definition.tex motivates this with
+%   chitayat2023beyond, which this section no longer cites for lack of space).
+% "requires a kill, as Ke et al.'s team fights do, but is built from kill events alone": Ke et al.
+%   (REFS/Ke2022_TeamFightModels_CoG.pdf) Section VI-B item 7 (team fight = encounter containing at
+%   least one kill link) and Section VI-C (the detector reads a stream of player unit positions each
+%   tick, links combat components into encounters, then keeps encounters with one or more kill links).
+%   So the kill is a filter on position-built encounters; only the kill requirement is shared.  Our
+%   engagement is built from kill events (sec_definition.tex, "Kill episodes and the temporal
+%   boundary G" and "The spatial boundary D").
+% halfaker2015session: REFS/Halfaker2015_UserSessionIdentification_WWW.pdf (arXiv copy) abstract and
+%   Section 3.1: histogram of log inter-activity times inspected for a valley, two-component Gaussian
+%   mixture, threshold where the within- and between-session components are equally likely.
+
+% --- (3) Esports analytics for audiences and broadcast ---------------------------------------
+Esports analytics includes communicating patterns found in data \cite{schubert2016encounter}, and
+audience research builds such communication. At a Dota~2 tournament watched by 25 million people,
+Echo, which turns exceptional player performances into broadcast graphics, affected the range and
+quality of storytelling and raised audience engagement \cite{block2018narrative}. Spectators using
+the Weavr companion app at two Dota~2 tournaments checked their reading of a match against its win
+probability and doubted it when the two disagreed \cite{kokkinakis2020dax}; a streaming
+extension that reached over 300,000 people showed win probability in place of the reliable score that
+Dota~2 lacks \cite{pedrassoli2024passive}.
+% schubert2016encounter p. 1 (Introduction): esports analytics defined to include communicating
+%   patterns with visualization to assist decision-making.
+% block2018narrative, S2 abstract (DOI 10.1145/3210825.3210833; ACM gold open access): Echo detects
+%   extraordinary player performances in Dota 2 from live and historic data and turns them into
+%   audience-facing graphics; tournament watched by 25 million; measurably affected range and quality of
+%   storytelling; increased audience engagement.
+% kokkinakis2020dax: authors' accepted manuscript, White Rose eprint 160015 (content only): abstract
+%   (Weavr companion app, deployments at two major tournaments); Section 3.1.1 (Dota 2 has no score like
+%   football); Section 3.3 (Win Probability view as a live score); Section 4.4.2 (Win Probability used
+%   to check one's own intuition about the game); Section 5 (validity of win prediction questioned when
+%   it conflicted with users' own perception).
+% pedrassoli2024passive: authors' accepted manuscript, White Rose eprint 211999 (content only): abstract
+%   (Dota 2 streaming extension reaching over 300,000 people) and Section 3.3 (Player Performance
+%   panel: team win probabilities, given in lieu of a reliable score).
+Spectator dashboards for LoL and Counter-Strike had to limit cognitive load and earn trust through
+transparent design \cite{charleer2018dashboards}, and black-box win predictions leave commentators to
+improvise explanations, which led to a model of the game state each team needs in order to win
+\cite{pedrassoli2024wincondition}. For fights, this work points to two cues that viewers can check
+against play: the probability, stated before an engagement begins, that each team wins it, and its
+stakes, how far the match's win probability moves with its outcome
+(Section~\ref{sec:limit}). Whether they help needs a user study
+(Section~\ref{subsec:future-work}).
+% charleer2018dashboards, S2 abstract (DOI 10.1145/3242671.3242680): dashboards for LoL and CS:GO
+%   contribute to spectator insight and experience; in-game complexity and cognitive load must be
+%   managed; trust through transparent design.
+% pedrassoli2024wincondition, S2 abstract (DOI 10.1145/3677079): win predictions are mostly black-box
+%   outputs that force commentators into ad-hoc interpretation; the win condition model predicts the
+%   game state needed for each team to win.
+% sec_limitations.tex subsection subsec:future-work, item "Audience-facing tools": no user study has
+%   been run.  Stakes by pre-fight probability are the subject of sec_limit.tex (plan
+%   REPO/docs/CLAUDE_TOG_PAPER_PLAN.md section 2, item 7.4); no value is stated here.
+
+% --- (4) Deep learning and gradient-boosted trees on tabular data ----------------------------
+For tables such as our pre-engagement input (Section~\ref{sec:learners-input}), it is open whether
+neural networks or gradient-boosted decision trees, ensembles in which each tree corrects the errors
+of those before it, work better. Papers proposing neural architectures for tables report gains on their
+own benchmarks, among them TabNet, which selects features step by step
+\cite{arik2021tabnet}, and SAINT, which relates features and rows to one another and outperforms
+XGBoost, CatBoost and LightGBM on average \cite{somepalli2021saint}.
+% arik2021tabnet, arXiv 1908.07442 abstract (preprint of the AAAI paper): sequential attention chooses
+%   which features to reason from at each decision step; outperforms other neural network and decision
+%   tree variants on non-performance-saturated tabular datasets.
+% somepalli2021saint, arXiv 2106.01342 abstract: attention over both rows and columns; contrastive
+%   self-supervised pre-training; outperforms XGBoost, CatBoost and LightGBM on average over a variety
+%   of benchmark tasks.
+Independent comparisons are less favourable. XGBoost beat recent deep models, even on the datasets of
+the papers that proposed them, with much less tuning \cite{shwartzziv2022tabular}; after an extensive
+hyper-parameter search on 45 datasets, tree-based models stayed ahead on medium-sized data of about
+10,000 samples \cite{grinsztajn2022tree}; and under one training and tuning protocol, neither the best
+deep models, among them the FT-Transformer, nor gradient-boosted trees were universally superior
+\cite{gorishniy2021revisiting}. Our training patch alone holds 187,547 engagements, about 19 times that
+medium size, and with no family superior on every dataset, the answer has to be measured on these
+inputs. Section~\ref{sec:learners} therefore compares
+a ladder of learners on identical inputs, each with a hyper-parameter search declared in advance
+(Section~\ref{sec:learners-effort}), with LightGBM, which samples rows and bundles features to boost
+quickly on large, wide data, as the tree learner \cite{ke2017lightgbm}.
+% shwartzziv2022tabular, arXiv 2106.03253 abstract: XGBoost outperforms the deep models across the
+%   datasets, including those used in the papers that proposed them; XGBoost requires much less tuning.
+% grinsztajn2022tree, arXiv 2207.08815 abstract: 45 datasets; 20,000 compute hours of hyper-parameter
+%   search per learner; tree-based models remain state-of-the-art on medium-sized data (~10K samples).
+% gorishniy2021revisiting, arXiv 2106.11959 abstract: ResNet-like and Transformer-based (FT-Transformer)
+%   models compared under the same training and tuning protocols; best DL models versus gradient boosted
+%   decision trees: still no universally superior solution.
+% 187,547: FEAT/model_comparison_v33_patch.json split.rows.train = 187547 (train patch 15.14), equal to
+%   FEAT/model_comparison_input_audit.json truth.patches["15.14"].  187,547 / 10,000 = 18.75 -> "about 19".
+%   Re-read 2026-09-14: split.rows = {train 187547, val 191184, test 153816}.
+% Scope of the size point: "that medium size" refers back to the Grinsztajn et al. clause alone (the only
+%   clause that names a size: medium-sized benchmark, ~10K samples, arXiv 2207.08815 abstract, re-read
+%   2026-09-14).  "with no family superior on every dataset" restates Gorishniy et al.'s finding, cited
+%   in the preceding sentence.  The size point does not separate our data from Gorishniy et al. (arXiv 2106.11959
+%   PDF, dataset table row "#objects": 20,640 ... 500,000, 515,345, 581,012, 709,877, 1,200,192) or from
+%   Shwartz-Ziv and Armon (arXiv 2106.03253 PDF, Section 3 and Table 1: 7,000 to 1,000,000 samples,
+%   including Forest Cover Type 580k and Higgs Boson 800k).  Both PDFs re-read 2026-09-14.  For those two the text
+%   instead uses Gorishniy et al.'s finding of no universally superior solution (abstract, re-read
+%   2026-09-14): which family wins depends on the dataset, so it has to be measured on our inputs.
+% Declared search: sec_learners.tex subsection sec:learners-effort (protocol only; its budget and all
+%   results are \pending{learners} there).  No result is implied here.
+% ke2017lightgbm, NeurIPS proceedings abstract page: GBDT implementations scale poorly when feature
+%   dimension is high and data size is large; Gradient-based One-Side Sampling and Exclusive Feature
+%   Bundling; up to over 20 times faster than conventional GBDT with almost the same accuracy.
+
+% --- (5) Win-probability models and calibration ----------------------------------------------
+A win probability measures value only if it is \emph{calibrated}: among situations given
+probability $p$, the team should win about a fraction $p$ of them \cite{naeini2015obtaining}.
+Maymin calls a kill smart and a death worthless by whether the team's estimated win
+probability rose after it, and finds these track team performance far better than raw kills and deaths
+\cite{maymin2021smart}; Jalovaara values items by win probability added, the change in win probability
+that accompanies an action \cite{jalovaara2024win}.
+% naeini2015obtaining, publisher PDF p. 2901 (Introduction): predictions of a binary outcome are well
+%   calibrated if outcomes predicted with probability p occur about a fraction p of the time.
+% maymin2021smart Section 3.2 "Worthless Deaths and Smart Kills", p. 18: a worthless death did not
+%   increase the team's estimated win probability, a smart kill did; abstract: regular kills and deaths
+%   do not nearly explain team performance as much as smart kills and worthless deaths.
+% jalovaara2024win abstract (p. 3): win probability added = the change in win probability associated
+%   with an action, a contextualised measure of value, applied to the evaluation of items.
+Ranking well does not imply calibration: a classifier can separate two classes almost perfectly and
+still be poorly calibrated, which post-processing by histogram binning, isotonic regression (a stepwise
+mapping from scores to probabilities, fitted to the observed outcomes under the sole constraint that it
+never decreases) or a
+fitted sigmoid \cite{platt2000probabilities} is meant to correct \cite{naeini2015obtaining}. Guo et
+al.\ found modern neural networks poorly calibrated and temperature scaling, a one-parameter variant
+of Platt's sigmoid, effective on most datasets \cite{guo2017calibration}, and Kim et al.\ calibrated a
+LoL winner predictor better than temperature scaling by modelling data uncertainty
+\cite{kim2020confidence}.
+% naeini2015obtaining p. 2903, Table 1(b) and its discussion: an SVM with AUC 1.00 and ECE 0.14 on a
+%   simulated dataset; the learner discriminates very well but is poorly calibrated.  pp. 2901-2902:
+%   histogram binning, Platt's sigmoid and isotonic regression as existing post-processing methods
+%   (binning and isotonic regression non-parametric); ECE = sum over bins of the bin share times
+%   |observed fraction - mean predicted probability|.
+% Gloss of isotonic regression at its first use in the paper (item F3-fill-results, 2026-09-14; R3): a definition of the
+%   method, not a claim of the cited works; the same wording is used in sec_limit.tex (sec:limit-value: "a stepwise mapping
+%   from old to new probabilities that is constrained only never to decrease", cited there to zadrozny2002transforming).
+%   No citation is added here.
+% guo2017calibration, arXiv 1706.04599 abstract (preprint of the PMLR paper): modern neural networks,
+%   unlike those from a decade ago, are poorly calibrated; on most datasets temperature scaling, a
+%   single-parameter variant of Platt Scaling, is effective.
+% platt2000probabilities: Platt's manuscript of the chapter dated 1999-03-26, copy at
+%   https://home.cs.colorado.edu/~mozer/Teaching/syllabi/6622/papers/Platt1999.pdf (content only),
+%   abstract: train an SVM, then train the parameters of an additional sigmoid that maps the SVM
+%   outputs into probabilities.
+% kim2020confidence, arXiv 2006.15521 abstract: data-uncertainty calibration for LoL winner prediction;
+%   ECE 0.57% against 1.11% for temperature scaling.
+Hence the AUC, which depends only on how predictions are ranked, is silent on calibration,
+and a model calibrated on random match minutes need not be calibrated at engagement
+cutoffs, which the kills that follow select; the value model of Section~\ref{sec:limit} is
+therefore checked at those cutoffs.
+% AUC is unchanged by any strictly increasing transformation of the scores (it depends only on their
+%   ranking); stated without citation as a property of the measure.
+% Check at engagement times exists: WT/scripts/validate_temporal_winprob_claude.py module docstring
+%   (queries at engagement times are conditioned on a kill, so random-minute calibration does not
+%   transfer by assumption; both populations scored with the same frozen models); results in
+%   WT/outputs/temporal_winprob_v3_buckets/validation_a/results.json keys
+%   engagement_all_available.pre and .last_kill_proxy (values cited in sec_intro.tex, not here).

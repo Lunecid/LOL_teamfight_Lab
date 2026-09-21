@@ -1,0 +1,85 @@
+{
+  "generated": "2026-09-20T09:31:48+09:00",
+  "epistemic": "EXPLORATORY_Q_NEWV_OOF_PRIOR_TEST_EXPOSURE",
+  "contract": "docs/Q_PREDICTION_DESIGN_CONTRACT_20260920.md",
+  "architecture": "Expanded embedding MLP (wave-4 recipe); NOT fit85 weight clone",
+  "integrity": {
+    "n_rows": 39605,
+    "expected_n": 39605,
+    "n_unique_keys": 39605,
+    "no_duplicate_keys": true,
+    "row_count_matches_expected": true,
+    "y_matches_delta_sign": true,
+    "delta_matches_p_post_minus_p_pre": true,
+    "B40_from_same_p_pre": true,
+    "n_missing": 0,
+    "n_exact_zero": 1,
+    "folds_recorded": 5,
+    "PASS": true
+  },
+  "P_SVI": 0.5048604974119429,
+  "B40_n": 6483,
+  "path": "outputs/q_newv_fit85_20260920/labels/TRAIN_oof_h90.npz",
+  "folds": [
+    {
+      "fold": 0,
+      "n_held_matches": 14628,
+      "n_eng": 7870,
+      "n_fit_rows": 289615,
+      "n_stop_rows": 51013,
+      "best_epoch": 1,
+      "best_val_brier": 0.1566125452518463,
+      "calib_ok": true,
+      "calib_coef": 1.0284593432515816,
+      "calib_intercept": 0.018895330110471686
+    },
+    {
+      "fold": 1,
+      "n_held_matches": 15017,
+      "n_eng": 7850,
+      "n_fit_rows": 287184,
+      "n_stop_rows": 51142,
+      "best_epoch": 2,
+      "best_val_brier": 0.15352840721607208,
+      "calib_ok": true,
+      "calib_coef": 0.9926015361268619,
+      "calib_intercept": 0.021751805827767402
+    },
+    {
+      "fold": 2,
+      "n_held_matches": 14796,
+      "n_eng": 7860,
+      "n_fit_rows": 287989,
+      "n_stop_rows": 51405,
+      "best_epoch": 2,
+      "best_val_brier": 0.1548922061920166,
+      "calib_ok": true,
+      "calib_coef": 0.9928239735712198,
+      "calib_intercept": -0.13911117801919745
+    },
+    {
+      "fold": 3,
+      "n_held_matches": 14769,
+      "n_eng": 8037,
+      "n_fit_rows": 289051,
+      "n_stop_rows": 50597,
+      "best_epoch": 2,
+      "best_val_brier": 0.15614557266235352,
+      "calib_ok": true,
+      "calib_coef": 0.9829300687111869,
+      "calib_intercept": -0.027739821439953474
+    },
+    {
+      "fold": 4,
+      "n_held_matches": 14958,
+      "n_eng": 7988,
+      "n_fit_rows": 288077,
+      "n_stop_rows": 50567,
+      "best_epoch": 1,
+      "best_val_brier": 0.15559956431388855,
+      "calib_ok": true,
+      "calib_coef": 1.0071764274801092,
+      "calib_intercept": 0.07853688781115156
+    }
+  ]
+}

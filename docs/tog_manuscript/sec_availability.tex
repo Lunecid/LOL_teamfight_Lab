@@ -1,0 +1,143 @@
+% =============================================================================
+% sec_availability.tex -- Code and Data Availability.
+% Answers reviewer R2 of the earlier conference submission ("no anonymised GitHub link or alternative
+% source has been provided").  Owner: W5-availability.  Background for every sentence -- what is released and
+% why, the reading of the Riot terms, the ToG review model (double-anonymous; pages and access
+% dates) and the anonymisation procedure with its preview -- is in REPO/docs/DATA_AVAILABILITY.md.
+%
+% Every number carries its source in a comment.  Path prefixes used in those comments:
+%   FEAT/    = D:/LOL_Project/fusion_2615/features/
+%   SHARDS/  = D:/LOL_Project/fusion_2615/corpus_shards_v33/
+%   CACHE/   = D:/LOL_Project/cache/match_cache_fresh_v3_engage_status13/
+%   REPO/    = C:/Users/todtj/PycharmProjects/LOL_teamfight/
+% Citation keys (all in REPO/docs/references/definition_refs.bib, marked VERIFIED; placeholder-to-key
+% mapping in REPO/docs/tog_manuscript/references_audit.md sections 2a and 2c):
+%   riot2013apiterms     Riot Games API Terms and Conditions, https://developer.riotgames.com/terms
+%                        (last updated Dec. 9, 2013; clauses re-read 2026-09-14)
+%   riot2025devpolicies  Riot Games General Policies, https://developer.riotgames.com/policies/general
+%                        (last updated May 29, 2025; re-read 2026-09-14)
+%   riotapi2024matchv5, riotapi2024timeline   Match-V5 match and timeline endpoints
+% ToG is reviewed double-anonymously (REPO/docs/DATA_AVAILABILITY.md section 6), so this section
+% names no repository, account or URL of the authors; the review link is a \pending marker.
+% =============================================================================
+
+\section{Code and Data Availability}\label{sec:availability}
+
+Every number in this article depends on choices that a reader cannot see in the text alone: the
+detector constants, the label rule, the feature extraction and the settings of each learner.
+The code and the derived data are therefore released, so that each result can be checked and the
+definition can be applied to new matches.
+
+The complete pipeline is released under the MIT License: the engagement detector, the procedure
+that estimates the kill-gap and cluster-diameter thresholds from data, the label construction,
+feature extraction, every learner in the comparison, and the evaluation and audit scripts. The
+release also contains the definition specifications as JavaScript Object Notation (JSON) files, one
+per patch and one pooled over the three patches, together with the fitted event-price table, the
+static map anchors and a configuration preset that sets every constant of this article at once.
+% Specs: REPO/config/fight_boundary/spec_{15.14,15.15,15.16,pooled}.json.
+% Price table and anchors: REPO/config/game_rules/{event_prices.json,map_anchors.json}.
+% Preset: REPO/core/presets.py, "v3.3" (G 13,700 ms, D 4,264.0 u, R 1,600 u, B 15,000 ms, horizon 35 s,
+%   label market_event, engagement attribution, 300 g dead zone).  Licence: REPO/LICENSE (MIT).
+% NOTE: the tree, linear and lead-only learners (scripts/run_model_comparison_v33.py, commit 3fb00c3),
+%   the input audit and the paired intervals (scripts/audit_model_comparison_inputs.py,
+%   scripts/paired_learner_cis_v33.py, commit 37bc991) are only on branch codex/engagement-state-value;
+%   merge them before the release commit is tagged.
+The corpus manifest records the commit from which the corpus was built, the detector constants,
+the label settings and hashes of the price table and the map anchors.
+% SHARDS/manifest.json: git_commit aac7131, detector, effective_overrides, label.price_table_sha1
+%   (d731292b..., the table at commit 5b5f9c8; prices identical to the current file, see
+%   DATA_AVAILABILITY.md section 2.1), label.map_anchors_sha1 (108932f8..., equal to the current file).
+For review, an anonymised copy of the code is available at
+\pending{anon-url}{anonymised review link or supplementary archive, made from the release commit
+with scripts/prepare\_anonymous\_release.py; its form is to be agreed with the ToG editorial office}.
+% Preview of the procedure on commit b5e30fe (2026-09-14; the same counts on 1073858): 0 residual known
+%   identifiers in text and non-text files, 80 lines left for the authors' decision, exit status 3;
+%   on ac13e86 (same day) 0 residual identifiers and 81 lines (DATA_AVAILABILITY.md section 7).
+%   The review copy itself does not exist yet.
+The public repository, the release tag and an archived copy of the release will be identified
+after review \pending{release-doi}{repository URL, release tag and archival DOI}.
+
+The derived data behind every reported number are released as well: the per-engagement feature
+matrix of the corpus (566,452 engagements with 7,106 columns each); five outcome labels with draws
+marked; the out-of-fold (OOF) predictions of the headline model for the 532,547 engagements with a
+non-draw label; the predictions of every learner in the comparison for the 153,816 engagements of
+the test patch; and the identifiers of the 210,000 matches from which the corpus was built, among
+them the 191,940 matches that contain a labelled engagement. The files of the feature matrix also
+hold the label with which their rows were built, which is the headline label with each draw resolved
+by a deterministic seeded coin. No result in this article uses that label.
+% 566,452 rows and 7,106 columns: FEAT/model_comparison_input_audit.json ("rows_total",
+%   "columns_total"); 32 shards, SHARDS/manifest.json.
+% Five labels (y_market_event, y_market_event@window, y_market_lex, y_market_lex@window,
+%   y_attention_value_win; -1 = draw): keys of every SHARDS/shard_*.npz (read 2026-09-14).
+% Row-building label: array "y" in every shard; SHARDS/manifest.json label.row_label "market_event",
+%   label.row_tie_policy "random" (extra_tie_policy "drop").  Checked over the 32 shards on 2026-09-14:
+%   all 566,452 rows are 0 or 1; y == y_market_event on all 532,547 non-draw rows; the 33,905 draws take
+%   the coin of gameplay/labels.py _seeded_tie_coin (blake2b hash of seed 7, engagement key and window
+%   events).  Every cited result uses y_market_event (y_key / label_key of the headline, A6 and learner
+%   files).  Whether "y" stays in the released shards or is removed is open (DATA_AVAILABILITY.md
+%   sections 2.2 and 8); if it is removed, delete the sentence above.
+% 532,547 engagements and 191,940 matches: FEAT/scale_decomposition_v33_market_event.json ("n",
+%   "n_matches"); OOF predictions in FEAT/scale_decomposition_v33_market_event.preds.npz (532,547 rows).
+% 153,816 test rows (patch 15.16): FEAT/model_comparison_v33_patch.json split.rows.test; predictions in
+%   FEAT/model_comparison_v33_patch.preds.npz and FEAT/deep_tabular_v33_patch_{full,ft,saint}.preds.npz
+%   (153,816 rows each, read 2026-09-14).
+% 210,000 matches: number of *.meta.json files in CACHE/ and of entries in
+%   D:/LOL_Project/cache/match_cache_fresh_v3_engage_status13_patch_index.json (both counted 2026-09-14).
+%   191,940: unique "groups" (Riot match IDs, KR_<gameId>) of rows with y_market_event >= 0 over the
+%   32 shards (2026-09-14), equal to "n_matches" above.
+These tables contain no player identifiers. No feature column holds an account, summoner or Riot
+identifier, and the identifier-type columns encode only game content: champions, rune styles and
+summoner spells.
+% Check of 2026-09-14: 0 of the 7,106 names in SHARDS/feature_names.json ("names") match
+%   puuid | summoner (other than summoner_spell) | riot_id | game_name | tag_line | account |
+%   player_name | participant_id.  Identifier-type bases: champion_id, champion_name_id,
+%   primary_style_id, sub_style_id, summoner_spell_1_id, summoner_spell_2_id.
+The terms of the Riot Games application programming interface (API) count copies, extracts and
+derivatives of the returned data among Riot's materials, and they license the use of the data for
+applications that show it to users or for purposes that Riot sets out \cite{riot2013apiterms}. The
+terms do not mention research use or datasets, so they neither expressly authorise nor expressly
+forbid sharing derived research tables such as these. Riot's developer policies separately forbid
+products that de-anonymise players who cannot reasonably be identified from visible information
+\cite{riot2025devpolicies}. The authors limit the release to tables without player identifiers,
+intended for non-commercial research. The licence of the data files, and whether Riot's written
+confirmation is sought before they are released, are still open
+\pending{data-licence}{licence of the released data files; decision on asking Riot for written
+confirmation that the per-engagement tables may be shared for research}.
+% riot2013apiterms, "Definitions": Materials include the Game Information with its "copies, portions,
+%   extracts and derivatives thereof"; "Licensed Uses and Restrictions" (a): use to develop and
+%   distribute Applications that display Game Information to end users, or for purposes set out in
+%   the Specifications or communicated by Riot in writing.  A string search finds no "research" and no
+%   "dataset" (2026-09-14; re-read the same day for this revision: no "research", "dataset",
+%   "data set" or "academic").  "Neither expressly authorise nor expressly forbid": the terms prohibit
+%   distributing Game Information "in any manner not authorized" but do not say whether a derived
+%   per-engagement table falls under that clause; DATA_AVAILABILITY.md section 3 gives the same reading.
+%   An earlier draft said the release was "therefore" limited, as if the terms supported it; they do not.
+% riot2025devpolicies, "Game Integrity": products cannot de-anonymise players who cannot reasonably be
+%   identified from visible information.
+
+The raw Match-V5 match and timeline responses are not released. A match record lists the Riot
+identifiers of its players \cite{riotapi2024matchv5}. The API terms permit the returned data to
+be used only as authorised and require a developer to delete it when the licence ends, and Riot
+forwards players' deletion requests to developers, which a public copy could not honour
+\cite{riot2013apiterms}.
+% riotapi2024matchv5: the fields were read at https://developer.riotgames.com/api-details/match-v5
+%   (2026-09-14; re-read the same day for this revision, HTTP 200): MetadataDto.participants "A list of
+%   participant PUUIDs"; ParticipantDto has puuid, riotIdGameName, riotIdTagline.
+%   MISMATCH TO FIX IN THE BIB (not owned by W5): the entry gives url
+%   https://developer.riotgames.com/apis#match-v5 and "Accessed: Sep. 11, 2026".  That URL returns a
+%   script-rendered shell to a plain HTTP client (about 1,500 characters of text, none of the fields
+%   above); the api-details page is the one read.  riotapi2024timeline has the same URL form.  The bib
+%   owner should set both URLs to the api-details page and the access date to Sep. 14, 2026.
+% riot2013apiterms: "Licensed Uses and Restrictions" (no use, distribution or transmission of Game
+%   Information "in any manner not authorized"); "Termination" (delete all Game Information);
+%   "General Data Protection Regulation" (deletion requests passed on as lists of identifiers).
+The raw responses are also no longer held. The corpus was built from a per-match cache of the
+210,000 matches, which is now the only copy of the data. The cache is not released either, because
+it is an event-level extract of the timelines rather than a per-engagement table.
+% Raw data gone: REPO/docs/DATA_MANIFEST.md, corpora table ("SOLE COPY (raw no longer exists)");
+%   D:/LOL_Project/data/raw/ holds only 2026 collections (listed 2026-09-14).
+% 210,000: see above.  (The DATA_MANIFEST.md row says 205,884; the file count is 210,000.)
+With the released match identifiers, a reader who holds an API key can request the same match and
+timeline records, for as long as the API serves them, and rebuild every table with the released
+code \cite{riotapi2024matchv5,riotapi2024timeline}.
+% API retention of patch 15.14-15.16 matches has not been checked; do not promise more than this.

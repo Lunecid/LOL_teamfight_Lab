@@ -1,0 +1,33 @@
+{
+  "evaluator_id": "A_MLP_expanded",
+  "kind": "mlp_embedding",
+  "fit_scope": "train_fit85_match_holdout_frac0.15_seed7_NO_full_train_refit",
+  "calibration": {
+    "coef": 0.9076135707081889,
+    "intercept": 0.06402350633118875
+  },
+  "preproc_dims": {
+    "profile": "expanded",
+    "n_numeric": 351,
+    "n_champ": 10,
+    "onehot_width": 1729,
+    "lgbm_width": 361,
+    "emb_vocab": 172
+  },
+  "vocab_n": 172,
+  "meta": {
+    "wave4_generated": "2026-09-19T23:39:41+09:00",
+    "L_time": 0.13827723579531015,
+    "state_value_v2_sha256_16": "418ff787b5cddd2a",
+    "census": {
+      "train": 424160,
+      "cal": 106580,
+      "select": 108558,
+      "test": 347234,
+      "train_fit": 360479,
+      "train_stop": 63681
+    },
+    "note": "Provisional freeze-prep evaluator. Fit on TRAIN 85% match-holdout; not full-TRAIN refit. Continuity and labels must use THIS bundle."
+  },
+  "path": "outputs/v_redesign_wave4_corrected_20260919/evaluators/A_MLP_expanded_evaluator.joblib"
+}

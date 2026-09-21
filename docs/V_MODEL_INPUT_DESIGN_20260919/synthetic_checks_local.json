@@ -1,0 +1,17 @@
+{
+  "packed_right_api": [
+    0.0,
+    0.0
+  ],
+  "packed_left_api": [
+    10.0,
+    20.0
+  ],
+  "builder_left_packed": [
+    1.0,
+    2.0,
+    3.0
+  ],
+  "pack1_pass": true,
+  "history_align_default": "left"
+}

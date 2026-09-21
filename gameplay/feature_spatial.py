@@ -229,7 +229,11 @@ def _compute_spatial_batch(
     return fight_xy, blue_c, red_c, team_sep, pairs_frac, mean_min_enemy
 
 
-def compute_spatial_seq_from_node(node_role_seq: np.ndarray, sample: Dict[str, Any]) -> np.ndarray:
+def compute_spatial_seq_from_node(node_role_seq: np.ndarray, sample: Dict[str, Any],
+                                  xy_abs: Optional[np.ndarray] = None) -> np.ndarray:
+    """Spatial block per bin.  ``xy_abs`` (L, 10, 2) is the absolute normalised position of
+    each role slot; without it the node XY is used, which is centroid-relative when
+    USE_RELATIVE_XY is on and then only the translation-invariant signals are meaningful."""
     anchors = _get_anchors_norm_from_sample(sample)
     obj = anchors["obj"]
     tower = anchors["tower"]
@@ -251,7 +255,8 @@ def compute_spatial_seq_from_node(node_role_seq: np.ndarray, sample: Dict[str, A
     prev_mean_min_enemy = 1.0
     for t in range(L):
         step = node_role_seq[t].astype(np.float32)
-        xy = step[:, [xi, yi]].astype(np.float32)
+        xy = (np.asarray(xy_abs[t], dtype=np.float32) if xy_abs is not None
+              else step[:, [xi, yi]].astype(np.float32))
         alive = step[:, ai].astype(np.float32) if ai is not None else np.ones((10,), np.float32)
 
         w = alive[:, None]

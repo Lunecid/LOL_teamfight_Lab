@@ -1,0 +1,741 @@
+% =============================================================================
+% sec_limitations.tex -- Limitations and Future Work.
+% Answers CoG 2026 reviews: R1 (limitations and future work "missing completely or only
+% superficially touched"; labelling to be discussed as a limitation; wider-community use),
+% R2 (deep baselines, observation window), R4 (teamfights with no kills).
+% Owner: W8-limitations-future-work.
+% Item F4-consistency-fills (2026-09-14): filled \pending{gxd_sweep} from the G x D sweep and updated the learner-comparison
+%   limitation to the finished re-runs (TabNet with the regulariser sign fixed, FT-Transformer at token dimension 192, SAINT
+%   with match-disjoint batches); \pending{learners} stays open for SAINT d128, SAINT with pre-training and the declared search.
+% Item F5-limitations-fills (2026-09-14): filled \pending{labels} (REV/A2-label-family/label_family_v33.json),
+%   \pending{evidence_state} (REV/A4-evidence-state-leak/evidence_block_patch_holdout_v33_v2.json) and \pending{window}
+%   (REV/A3-temporal-windows/window_sweep_paired_cis_v33.json, with its seed_replication block); corrected the stale
+%   sentences on other attribution radii and on the headline AUC awaiting the label family; named the LightGBM
+%   comparator of the deep re-runs.  No model-class conclusion (\pending{learners} still open).
+%
+% Every number carries its source in a comment.  Path prefixes used in those comments:
+%   FEAT/    = D:/LOL_Project/fusion_2615/features/
+%   SHARDS/  = D:/LOL_Project/fusion_2615/corpus_shards_v33/
+%   CACHE/   = D:/LOL_Project/cache/match_cache_fresh_v3_engage_status13/
+%   REPO/    = C:/Users/todtj/PycharmProjects/LOL_teamfight/
+%   WT/      = C:/Users/todtj/문서/LOL_Teamfight/worktrees/engagement-state-value/
+% Code is cited by function name and documents by section, because other agents keep editing
+% those files and line numbers drift.  Sections whose \label exists are referenced with \cref;
+% the others are named in words.
+% =============================================================================
+
+\section{Limitations and Future Work}\label{sec:limitations}
+
+This section states what the study does not establish. Each limitation is given with the
+measurement that bounds it; where that measurement does not exist yet, the text says so.
+
+\subsection{Limitations}\label{subsec:limitations}
+
+\subsubsection{What a kill-anchored definition cannot see}
+
+The detector starts from champion kills. An exchange in which both teams commit and then
+disengage without a kill (zoning, an abandoned objective contest, or an exchange of abilities
+followed by a retreat) is therefore not an instance (\cref{sec:def-killless}). To bound how often
+such exchanges occur, we scanned a seeded sample of 20,000 matches for proximity encounters. The
+sample is drawn from the whole 210,000-match cache, not only from the 191,940 matches that yield
+labelled engagements, and all of it falls in patches 15.14--15.16.
+% FEAT/tog_revision/killless_grid/summary.json rows[*].matches 20000, seed 7 (written 2026-09-11 11:25:37,
+% git_commit 5600f8b; _progress.txt "ALL DONE" at 11:25:18).  Sample drawn from the cache, not the labelled
+% corpus: REPO/scripts/run_killless_encounters.py main() (sorted CACHE_DIR ids, random.Random(seed).sample).
+% 210,000 = count of CACHE/*.meta.json.  Patch mix recomputed 2026-09-11:
+% random.Random(7).sample(sorted cache ids, 20000) -> meta "patch" 15.14: 7190, 15.15: 7121, 15.16: 5689 (sum 20000).
+% 191,940: FEAT/scale_decomposition_v33_market_event.json n_matches.
+A proximity encounter is a run of consecutive points of the 5\,s position grid at which some alive
+champion has at least $k$ alive champions of each team, itself included, within $R$ of its position.
+It counts as containing a kill if a champion kill falls inside the run or within 15\,s of either end.
+% REPO/scripts/run_killless_encounters.py encounters_for_match(): every alive champion is tried as the anchor and
+% counts for its own team (distance 0); has_kill = any kill_ts in [t0 - grace_ms, t1 + grace_ms];
+% grace_ms 15000: summary.json rows[*].grace_ms.
+With $R = 1{,}600$\,u and $k = 4$, 351 of 12,602 encounters (2.79\%) contain no kill when the
+minimum-duration setting is 20\,s, which the scanner applies as at least four consecutive grid points,
+and 591 of 19,155 (3.09\%) when it is $G = 13.7$\,s, applied as at least three.
+% summary.json rows[setting=r1600_t4_d20_g15]: encounters 12602, killless 351, killless_share_of_encounters
+% 0.027853 (= 351 / 12602); rows[setting=r1600_t4_dG_g15]: encounters 19155, killless 591, share 0.030854 (= 591 / 19155).
+% Grid points: encounters_for_match() min_frames = max(1, round(min_duration_s * 1000 / 5000)): 20 s -> 4;
+% 13.7 s -> round(2.74) = 3.
+These are 0.018 and 0.030 kill-less encounters per match, against 0.572 engagements per match in the
+teamfight class (at least four participants on each side) of the labelled corpus.
+% killless_per_match 0.01755 (= 351 / 20000) and 0.02955 (= 591 / 20000): same rows;
+% corpus_reference.teamfight_class_per_match 0.57220 (= 109829 / 191940; teamfight n from
+% FEAT/scale_decomposition_v33_market_event.json by_participation_scale.teamfight.n).
+Lowering $k$ raises the share: at $k = 3$ it is 3.27\% (20\,s) and 3.99\% ($G$), and at $k = 2$ with
+the minimum set to $G$ it is 7.95\% (16,756 of 210,738). At $k = 4$ and $G$, the share is 2.00\% for
+$R = 1{,}200$\,u, 3.47\% for $R = 2{,}000$\,u, and 4.34\% with a 10\,s grace period.
+% summary.json killless_share_of_encounters: rows[r1600_t3_d20_g15] 0.032722; rows[r1600_t3_dG_g15] 0.039922;
+% rows[r1600_t2_dG_g15] 0.079511 (= 16756 / 210738); rows[r1200_t4_dG_g15] 0.020003; rows[r2000_t4_dG_g15] 0.034711;
+% rows[r1600_t4_dG_g10] 0.043435.  k = 2 at 20 s (rows[r1600_t2_d20_g15] 0.067818) is also above k = 3.
+Three cautions govern these numbers. Their denominator is proximity encounters, not engagements.
+Proximity is not commitment: champions standing near one another need not be fighting, and a fight
+conducted at longer range need not register as an encounter, so the per-match rates cannot be
+divided into engagement counts to estimate how many fights the corpus omits. Finally, the grid does
+not locate the two kinds of encounter equally well. For every kill it moves the killer, the victim
+and the assisting champions along a straight line from their positions in the preceding frame to
+the kill position, up to the time of the kill, whereas champions in a kill-less encounter keep
+positions interpolated between frames 60\,s apart; for both kinds, alive status is held from the
+most recent frame.
+% summary.json denominator_warning.  Grid: REPO/gameplay/fight_clustering.py build_5s_position_grid() (linear
+% between minute frames; kill participants re-placed on a line from the preceding frame to the kill position for
+% grid points up to the kill timestamp when TF2_USE_KILL_TRAJECTORY_INTERP, default True in REPO/core/config.py and
+% not overridden by the grid commands in summary.json); alive held: REPO/scripts/run_killless_encounters.py main()
+% (searchsorted on minute_ts, side="right").
+The share depends strongly on how an encounter is defined: in Dota~2, Schubert et al.\ found no
+kill in 81.1\% of the encounters returned by their proximity-based detector~\cite{schubert2016encounter}.
+% 81.1%: REPO/docs/DEFINITION_LITERATURE.md (Schubert 2016 entry, PDF read 2026-09-07); the 2026-09-11 fact-check
+% found it on PDF p. 14 as 18,744 of 23,110 encounters without kill events (18744 / 23110 = 0.8111).
+
+Frequency is only half of the question, because a fight can be won without a kill. Under the
+market label such a win is not mis-measured but unmeasured. The label sums, over events inside
+the attribution disc, the gold each kill paid (bounty and shutdown bounty read from the event,
+plus the fitted 20\,g per kill and 45\,g per assist) and the fitted price of each plate, turret,
+inhibitor and epic monster.
+% REPO/gameplay/labels.py _compute_label_market_event() (kill gold = bounty + shutdownBounty + table kills + table
+% assists x assisting ids) and _priced_event_gold(); kills 20.0, assists 45.0: REPO/config/game_rules/event_prices.json pooled.
+A kill-less exchange that ends in a retreat pays no kill gold and produces no priced event, so its
+swing is zero and falls inside the $\pm 300$\,g dead zone. The refinement that follows finds no kill
+difference, then compares the number of living champions on each team, then the sign of
+structure, plate and monster events, and otherwise declares a draw.
+% dead zone 300 g: SHARDS/manifest.json label.gold_deadzone 300.0; refinement order: REPO/gameplay/labels.py
+% _lex_refine() (cluster kills -> alive counts -> sign of ELITE_MONSTER_KILL / BUILDING_KILL /
+% TURRET_PLATE_DESTROYED -> tie policy).
+The living-champion count covers all ten champions, not only the participants. A kill-less fight
+would therefore be decided by a death elsewhere on the map, by a plate, structure or monster event
+inside the disc whose price leaves the swing within the dead zone (a single plate, or an elemental
+dragon at 0\,g), or by the tie policy (a seeded coin flip for the stored row label, exclusion for
+every reported label variant), but not by the fight itself.
+% plate 120 g and dragon 0 g: REPO/config/game_rules/event_prices.json pooled (plates 120.0, dragon 0.0), both below
+% the 300 g dead zone.
+% all ten champions: REPO/gameplay/labels.py _lex_refine() (alive summed over every champion of each team, read by
+% interp_node_global at the last kill or the window end); tie policies: SHARDS/manifest.json
+% label.row_tie_policy "random", label.extra_tie_policy "drop".
+Measuring kill-less fights would require a second label, not only a second detector.
+
+Instances are also constructed retrospectively. The cutoff is placed 15\,s before the first
+kill, a kill that has not happened at prediction time.
+% 15 s: SHARDS/manifest.json detector.TF2_ENGAGE_PRE_KILL_MS = 15000.
+The task is therefore to predict which side wins an engagement given that one is about to
+occur at that place, not to anticipate whether one will occur; the second task needs a trigger
+that does not depend on the future.
+
+\subsubsection{What the label measures}
+
+The market label prices non-kill events with a table fitted by ordinary least squares (OLS):
+each team's gold change over a one-minute frame interval is regressed on that team's event
+counts in the interval, pooled over 24,000 matches (8,000 per patch, 1,173,822 intervals,
+$R^2 = 0.962$).
+% FEAT/event_prices.json fits.pooled: n_matches 24000, n_intervals 1173822, r2 0.96182;
+% n_matches_per_patch 8000, seed 7.
+A coefficient is the average team gold associated with an event conditional on the other
+regressors. It is not the payout written in the game rules, and it absorbs income that
+co-occurs with the event in the same minute.
+% REPO/analysis/event_prices.py module docstring.
+Four entries show what this means in practice. We report them rather than adjust them.
+\begin{itemize}
+\item \emph{Elemental dragon.} The fitted coefficient is $-41.83$\,g (95\% interval
+  $[-43.12, -40.59]$\,g from 200 cluster-bootstrap resamples of 23,829 matches). The table
+  construction assumes that the frames count an epic monster as one jungle creep, adds that creep's
+  fitted price (23.33\,g) back, and clamps the result ($-18.50$\,g) at zero. An elemental dragon
+  therefore moves the gold swing by 0\,g and can influence a verdict only through the dead-zone
+  refinement.
+  % coef dragon -41.82868, d_jg_cs 23.33189: FEAT/event_prices.json fits.pooled.coef; interval
+  % [-43.12328, -40.58769]: fits.pooled.cluster_bootstrap.dragon; -41.82868 + 23.33189 = -18.49679;
+  % "cluster bootstrap over 23,829 matches x 200": FEAT/event_prices_boot.log; add-back and clamp:
+  % REPO/analysis/event_prices.py price_table(); table value 0.0: REPO/config/game_rules/event_prices.json pooled.dragon.
+  Dragons are not rare near engagements: in the 26,712-engagement sample of the win-probability
+  study, 1,060 engagements contain an elemental dragon kill between the pre-fight query point and
+  the engagement's last kill, against 225 with Baron Nashor, 18 with the Elder Dragon and 63 with a
+  Dragon Soul event.
+  % 26,712 engagements / 9,198 matches: WT/outputs/temporal_winprob_v3_buckets/validation_a/results.json
+  % denominators; 1060 / 225 / 18 / 63: WT/outputs/temporal_winprob_v3_buckets/validation_c/results_c.json
+  % C1_event_census.windows.pre_to_end.rows_with_any_by_category (dragon, baron, elder, soul).
+  % Window pre_to_end = query point 0 (pre, cutoff - 1 ms) to query point 1 (last_kill_proxy):
+  % WT/scripts/validate_objective_passthrough_claude.py WINDOWS; point names: validation_a denominators.valid_rows_per_point.
+  The patch history of the League of Legends Wiki page on the dragon pit records that a hotfix to
+  patch 9.23 set the kill gold of an elemental drake to 25\,g, and it lists no later change until
+  patch 26.1 raised the value to 75\,g. Riot's notes for patch 26.1 give the same earlier value, and the notes for the
+  corpus patches (numbered 25.14--25.16 there) list no drake gold
+  change~\cite{lolwiki2026dragonpit,riot2026patch261,riot2025patch2514,riot2025patch2515,riot2025patch2516}.
+  The kill gold in 15.14--15.16 is therefore 25\,g, a value for which no change is listed rather than
+  one confirmed patch by patch. Neither source says whether the killer or every member of the
+  killing team receives it, so a team receives 25\,g or, if every member is paid, 125\,g; which
+  applies is \pending{rulefact}{whether the 25\,g elemental drake kill gold of 15.14--15.16 is paid
+  to the killer only or to every member of the killing team}.
+  % Elemental drake redirects to Dragon pit.  lolwiki2026dragonpit (definition_refs.bib section 10, revision 4000799,
+  % VERIFIED 2026-09-14): patch-history lines on elemental-drake kill gold, re-read 2026-09-14 from the raw
+  % wikitext (api.php action=parse, oldid=4000799, via WebFetch): V8.23 "increased to 100 from 25", V9.23 "reduced
+  % to 25 from 100", V26.01 "increased to 75 from 25"; the headings between V26.01 and V9.23 (V25.19, V25.12,
+  % V25.05, V25.S1.2, V14.15 ... V9.24) carry no gold line; the V26.01 global-gold line belongs to the Elder
+  % Dragon.  The hotfix is the V9.23 November 25th hotfix (references_audit.md section 2c, note N9).  Recipient:
+  % the Rewards section does not say who receives the gold (same reading; also REPO/gameplay/labels.py
+  % DRAGON_RULE_VERIFICATION and FEAT/event_prices.json wiki_cross_check.dragon "per-member status unclear").
+  % riot2026patch261: Patch 26.1 notes downloaded 2026-09-14 (HTTP 200, 576,268 bytes), under Elemental Drakes
+  % "Kill gold: 25 => 75" (recipient not stated).  riot2025patch2514/2515/2516: notes downloaded 2026-09-14 (HTTP
+  % 200), tag-stripped text searched: "drake" 0 / 0 / 1 (25.16, a Mel bug fix), "kill gold" 0 in each; the one
+  % "dragon" hit (25.14) is champion balance prose.  Mapping 25.N = 15.N: see the comment on the rule constants
+  % below.  125 = 5 x 25; five members per team: CACHE/*.meta.json team_map has five participant ids on team 100 and
+  % five on team 200 in each of 200 matches drawn with random.seed(0), random.sample(sorted ids, 200) (2026-09-14).
+  % V9.23 heading re-read verbatim 2026-09-14: "V9.23 - November 25th Hotfix", elemental drakes kill gold reduced to
+  % 25 from 100.  The label table prices the dragon at 0 g (above).
+\item \emph{Turrets.} An inner turret is priced at 730\,g (fitted 729.79\,g, interval
+  $[728.29, 731.66]$\,g), above the outer (540\,g), base (510\,g) and nexus (185\,g) turrets.
+  % FEAT/event_prices.json fits.pooled.coef tower_inner_turret 729.794, cluster_bootstrap [728.290, 731.660];
+  % outer 537.745, base 507.728, nexus 183.724; rounded table: REPO/config/game_rules/event_prices.json pooled.
+  The League of Legends Wiki lists 50\,g of global gold per team member for an outer turret and
+  25\,g for an inner turret, with no local gold~\cite{lolwiki2026turret}. That table gives the
+  rewards from patch 26.1 onwards; that patch moved local turret gold onto turret
+  plates~\cite{riot2026patch261}.
+  In 15.14--15.16 a destroyed outer turret paid 250\,g of local gold, and each of its five plates
+  125\,g until the plates fell off at 14 minutes; an inner turret paid 425\,g (mid lane) or 675\,g
+  (top and bottom lanes) of local gold and an inhibitor turret, the base turret of the event data,
+  375\,g, and both paid 25\,g of global gold per team member~\cite{riot2026patch261,lolwiki2026turret}.
+  These are the values that the 26.1 notes replaced. The wiki's patch history dates the plate value
+  to patch 13.20 and the inner and inhibitor turret values to patch 13.23, and the notes for the
+  corpus patches list no turret or plate gold
+  change~\cite{riot2025patch2514,riot2025patch2515,riot2025patch2516}. Like $R$ and $B$ below, they
+  are values for which no change is listed, not values confirmed patch by patch.
+  % Values for 15.14-15.16.  riot2026patch261: Patch 26.1 notes downloaded 2026-09-14 (HTTP 200), before => after:
+  % under Outer Turrets "Local gold: 250 => 0", "Turret plate gold: 125 => 120", "Maximum local gold: 875 => 600"
+  % (= 250 + 5 x 125), plates "now permanent instead of falling off at 14 minutes", plate gold "Turret plates drop
+  % at 14 minutes, awarding no further gold"; under Inner and Inhibitor Turrets "Inner turret local gold: 425/675
+  % => 600 spread across 5 plates", "Inhibitor turret local gold: 375 => 600 spread across 5 plates"; the section
+  % introduction says all turrets except nexus turrets now have plates and total local gold was shifted into
+  % them.  No line gives global turret gold.
+  % lolwiki2026turret (revision 4050003, VERIFIED 2026-09-14), raw wikitext re-read 2026-09-14 (api.php
+  % action=parse, oldid=4050003, via WebFetch): V13.20 plate gold "reduced to 125 from 175"; V13.23 mid-lane inner
+  % turret local gold "increased to 425 from 300", side-lane inner turret "increased to 675 from 550", inhibitor
+  % turret "increased to 375 from 50", and global gold of all three "reduced to 25 from 50"; V26.01 outer local gold
+  % "reduced to 0 from 250".  Blocks V14.1-V25.20 have no turret-gold line other than the first-turret bonus
+  % (definition_refs.bib comment on lolwiki2026turret; references_audit.md section 2c, note N8).  Global reward "to
+  % all the champions in the team, regardless of range or death status": Turret rewards section, same reading.
+  % The 50 g outer-turret global gold is not stated for 15.14-15.16 here because no source dates it (note N8).
+  % riot2025patch2514/2515/2516 (downloaded 2026-09-14, HTTP 200, tag-stripped text searched): "turret" once in each,
+  % all bug fixes (25.14 jungle buffs on turrets, 25.15 Heimerdinger's turrets, 25.16 Voidgrub damage and Viego);
+  % "plate" only in the item name Experimental Hexplate (25.16); "local gold", "global gold" 0 in each.
+  % Base turret = inhibitor turret: REPO/config/game_rules/map_anchors.json, e.g. team 100 bot BASE_TURRET (4281, 1253)
+  % lies between the bot INHIBITOR_BUILDING (3468, 1230) and INNER_TURRET (6919, 1483).
+  % Superseded comment (2026-09-11 reading): "no patch history for 15.x" was wrong; the page has V25.S1.1 and V26.01
+  % entries among others (audit notes N5, N8, N7).
+  In the corpus patches an inner turret therefore paid more local gold than an outer or an inhibitor
+  turret, so the regression's ranking of the inner turret first does not contradict the rule in
+  force. The comparison is one of order only. The wiki page shares local gold only among living
+  champions near the turret when it falls and champions that helped destroy it, and plates are
+  priced as separate events, so the rule fixes no single team-gold amount against which a turret
+  coefficient could be checked.
+  % Order: 425 and 675 > 375 > 250 (local gold, values above); regression inner 729.79 > outer 537.75 > base 507.73.
+  % Local-gold sharing: lolwiki2026turret Turret rewards section (same reading), local reward shared by champions
+  % alive and within 1200 range at destruction, plus any champion that dealt the killing blow or assisted within
+  % the last 10 seconds.  Plates as a separate regressor: FEAT/event_prices.json fits.pooled.coef plates 117.66
+  % (table 120 g, REPO/config/game_rules/event_prices.json pooled.plates).
+\item \emph{First turret.} The first-turret coefficient is negative, $-53.44$\,g (interval
+  $[-55.45, -50.83]$\,g). The wiki page used for the cross-check lists a 300\,g first-turret bonus,
+  but the corpus patches did not pay it. Patch 25.S1.1 replaced the bonus with Feats of Strength,
+  which give upgraded boots to the first team to achieve two of first blood, first turret and three
+  epic monster takedowns, and patch 26.1 removed the Feats and restored the
+  bonus~\cite{riot2025patch25s11,riot2026patch261,lolwiki2026turret}. The table omits the term, so
+  the label prices no first-turret bonus, as the rule in force paid none; the boot upgrade, which is
+  not gold, is not priced either.
+  % FEAT/event_prices.json fits.pooled.coef first_tower -53.445, cluster_bootstrap [-55.448, -50.827];
+  % wiki_cross_check.first_tower "300 bonus (current page)"; omission: REPO/analysis/event_prices.py price_table()
+  % (skips kill_bounty, d_lane_cs, d_jg_cs, first_tower); unpriced in the label: REPO/gameplay/labels.py
+  % _priced_event_gold() adds table.get("first_tower", 0.0) and the pooled table has no first_tower entry.
+  % riot2025patch25s11 (downloaded 2026-09-14, HTTP 200): under Feats of Strength, the system replaces the gold
+  % bonuses from First Blood and First Turret; the team that first completes two of First Blood, First Turret and
+  % Monster Slaying (three epic monster claims) has its tier-2 boots upgraded to Triumphant versions.
+  % riot2026patch261: Feats of Strength removed; "The first Turret destroyed once again grants +300g".
+  % lolwiki2026turret history: V25.S1.1 first turret no longer grants the 300 bonus gold; V26.01 first turret
+  % takedown grants a bonus 300 (same reading as above).  Feats still in the game in the corpus patches: the 25.16
+  % notes fix a bug in which Voidgrubs did not count toward Feats (downloaded 2026-09-14).
+\item \emph{Kill bounty.} The bounty coefficient is 1.203 (interval $[1.200, 1.205]$), where the
+  estimation code expects a value near 1 if frame gold and event bounties agree. The label
+  nevertheless counts kill gold at face value, so, in the regression's own currency, a bounty is
+  counted at 0.83 of its estimated team-gold value relative to the table-priced events.
+  % FEAT/event_prices.json fits.pooled.coef kill_bounty 1.20320, cluster_bootstrap [1.20039, 1.20541];
+  % expectation ~1: REPO/analysis/event_prices.py module docstring; face value: REPO/gameplay/labels.py
+  % _compute_label_market_event() (bounty + shutdownBounty); 1 / 1.2032 = 0.831.
+\end{itemize}
+The table is pooled over patches. The rounded per-patch tables differ by at most 5\,g in any
+entry they contain, and the Elder Dragon is absent from all of them because each patch has fewer
+than the 200 events the construction requires.
+% per-patch tables: REPO/config/game_rules/event_prices.json per_patch (max entry difference 5 g);
+% elder counts 158 / 166 / 144: FEAT/event_prices.json fits.<patch>.count.elder_dragon; min_count 200:
+% REPO/analysis/event_prices.py price_table(min_count=200.0); the label loads "pooled":
+% REPO/gameplay/labels.py _event_price_table().
+The table is also fitted on matches from the same corpus that is later evaluated. The prices
+are label constants, not model inputs, so this is not a feature leak, but the label is not
+independent of the corpus.
+% sampling from the corpus cache: REPO/scripts/estimate_event_prices.py main()
+% (analysis.kill_pairs list_cache_match_ids -> group_by_patch -> sample_ids per patch).
+
+Whether any conclusion depends on these choices is tested by a label-family ablation, scored by the
+area under the receiver operating characteristic curve (AUC) and by verdict agreement
+(\cref{sec:label-family}). Twelve labels, \texttt{market\_event} and eleven variants of it (kills-only
+pricing, non-kill prices $\times 0.5$ and $\times 2$, the elemental dragon at 25\,g, dead zones of 0,
+150, 600 and 900\,g, an attribution disc of radius $D/2 = 2{,}132$\,u, the raw kill-difference label and
+the kill-and-survivor score), were each scored with a model of their own on the 484,474 engagements
+(188,104 matches) that every one of them labels. On these common rows their AUCs range from 0.6737 to
+0.6884, with \texttt{market\_event} at 0.6822, and each variant names the same winner as
+\texttt{market\_event} on 97.97\% to 99.995\% of the engagements. The \texttt{market\_event} model,
+scored against each variant's labels, comes within 0.0010 AUC of the variant's own model.
+% Filled 2026-09-14 by item F5-limitations-fills (was \pending{labels}); same values as sec_label.tex Table tab:label-family.
+%   REV/A2-label-family/label_family_v33.json (partial false, finished 2026-09-14 14:26:43, git_dirty false):
+%   label_keys: 12 labels (market_event = dead zone 300 g plus the 11 variants listed).
+%   rowsets.common.n 484474, rowsets.common.n_matches 188104.
+%   rowsets.common.variants.<v>.auc: min market_event_kills_only 0.673676 (market_event_dz0 0.673699), max
+%     market_event_prices_x2 0.688404; market_event 0.682212.
+%   rowsets.common.variants.<v>.agreement_vs_market_event.agreement: min market_event_dz0 0.979665, max
+%     market_event_dragon_rule 0.999950.
+%   rowsets.common.variants.<v>.transfer.transfer_minus_own.mean: range -0.000947 (dz0) to +0.000307 (prices_x0.5);
+%     point transfer.auc - auc: -0.000954 to +0.000308; largest absolute value 0.000954 -> "within 0.0010".
+%   Variants: REPO/gameplay/labels.py REQUIRED_LABEL_VARIANTS; scorer REPO/scripts/run_label_family_v33.py.
+The ablation measures how far the tested settings move the AUC on identical rows; it does not cover
+settings outside those tested, and it does not make the label independent of these choices. The headline AUC of 0.670 is measured on the 532,547 engagements that
+\texttt{market\_event} itself labels, and on each variant's own labelled engagements the AUC ranges from
+0.6474 (dead zone 0\,g) to 0.6870 (raw kill difference), because these choices also change which
+engagements receive a verdict.
+% 0.66991: FEAT/scale_decomposition_v33_market_event.json overall_auc 0.6699090 (= label_family_v33.json
+%   reproduction_market_event_own.auc_now 0.669908992463444, preds_identical true); 532,547: rowsets.own.variants.market_event.n.
+% Own rows: label_family_v33.json rowsets.own.variants.<v>.auc min market_event_dz0 0.647365 (n 559117), max micro_win
+%   0.686978 (n 489984).
+
+By contrast, the labels stored with the corpus are scored on their own rows. The v3.3 corpus holds
+566,452 engagements, and each label drops its own draws. This leaves 532,547 rows (191,940
+matches) for \texttt{market\_event}, 541,627 for \texttt{market\_event@window}, 538,593 for
+\texttt{market\_lex}, 541,895 for \texttt{market\_lex@window} and 561,721 for the CoG exchange-value
+label (\texttt{attention\_value\_win}).
+% total 566452 and labelled counts per y_* key (draws 33905 / 24825 / 27859 / 24557 / 4731):
+% counted from SHARDS/shard_*.npz; the same n and n_matches in
+% FEAT/scale_decomposition_v33_{market_event,market_event_window,market_lex,market_lex_window,attention_value_win}.json.
+The largest difference, 29,174 rows, is 5.5\% of the headline rows, so an AUC difference between
+two variants mixes a label effect with a population effect. The ablation above re-scores every
+variant on common rows for this reason.
+% 561721 - 532547 = 29174; 29174 / 532547 = 0.0548.
+
+The label reads only events whose position lies within $D = 4{,}264$\,u of the first kill.
+% radius = CLUSTER_MAX_DIAMETER when LABEL_ATTRIBUTION_RADIUS_U = 0 (default 0.0 in REPO/core/config.py):
+% REPO/gameplay/labels.py attribute_events(); anchor = first kill position: REPO/data/index_split.py _fight_anchor(),
+% REPO/core/fight_types.py FightRef.anchor_x ("fight centre (first kill position)");
+% D = 4264.0: SHARDS/manifest.json detector.CLUSTER_MAX_DIAMETER.
+Three properties of this rule are conventions rather than measurements. First, $D$ bounds the
+diameter of a kill cluster but is used here as a radius, so the disc is 8,528\,u across, twice
+the widest cluster the detector accepts. Second, the disc stays at the first kill and does not
+follow a fight that moves. Third, the disc is isotropic, whereas the champion-sharing crossover
+that defines $D$ is longer along a lane than across it (5,212\,u along the top lane against
+3,456\,u across it).
+% 2 x 4264 = 8528.  FEAT/fight_boundary_full/details_pooled.json spatial.lane_anisotropy.top:
+% along.crossover_u 5212.1, across.crossover_u 3456.1.
+Events without a position, such as ward kills, are never attributed. In a 553-match pilot
+(1,438 engagements, \texttt{market\_event} label), 39.1\% of engagements had at least one event
+outside the disc within the label window; attribution changed the verdict of 3.0\% of the
+engagements labelled under both rules and changed whether 2.6\% were draws. On the full corpus, two other
+settings have been evaluated (\cref{sec:def-attribution,sec:label-family}). A disc of radius
+$D/2 = 2{,}132$\,u, whose diameter is $D$, names a different winner than the disc of radius $D$ for 2.16\%
+of the 524,711 engagements both label and lowers the common-row AUC by 0.0050 (95\% interval 0.0044 to
+0.0055); reading every event of the window with no disc names a different winner for 2.20\% of the 530,599
+engagements both label. No intermediate radius has been evaluated.
+% FEAT/label_window_fixes.json label "market_event", attribution: has_far_events_share 0.3908,
+% flip_share_among_both_labelled 0.0301, draw_status_changed_share 0.0257; n_matches 553,
+% n_engagements 1438 (file written 2026-09-09 10:18, after the price table of commit 5b5f9c8).
+% Positionless events dropped: REPO/gameplay/labels.py attribute_events() (skips events for which _event_xy()
+% returns None).
+% Corrected 2026-09-14 by item F5-limitations-fills (was "No other radius has been evaluated yet").  Same values as
+%   sec_definition.tex sec:def-attribution and sec_label.tex sec:label-family.
+%   D/2: REV/A2-label-family/label_family_v33.json agreement_vs_market_event.market_event_attr_radius_half n_both 524711,
+%     flip_rate 0.021604; rowsets.common.variants.market_event_attr_radius_half.auc 0.677253 - market_event.auc 0.682212 =
+%     -0.004959; own_minus_market_event ci_2.5 -0.005489, ci_97.5 -0.004430 (1,000 paired match bootstraps, seed 7).
+%   No disc (y_market_event@window, REPO/gameplay/labels.py LABEL_VARIANTS "market_event@window"): re-computed 2026-09-14
+%     (read-only) from REV/A2-label-family/label_sidecars_v33/labels_shard_000..031.npz keys y_market_event and
+%     y_market_event@window (566,452 rows; -1 = no verdict): rows both >= 0: 530,599; agreement 0.977968 -> 1 - 0.977968 =
+%     0.022032 (as sec_label.tex, cmd check_window.py).  No-disc AUC: sec_label.tex (own rows only, no common-row value).
+
+\subsubsection{What the inputs observe}
+
+Champion state (position, gold, level, experience and champion statistics) arrives in frames 60\,s
+apart, whereas kills, item purchases and objectives are timestamped to the millisecond.
+% frame spacing 60000-60003 ms: CACHE/<one match drawn from a seeded 300-match sample>.npz minute_ts
+% (one match checked; the final partial frame at game end is shorter).  Frame fields vs events:
+% REPO/docs/REPRESENTATION_AUDIT_V3.md section 1 (participantFrames: position, level, xp, currentGold, totalGold,
+% CS, championStats, damageStats; items come only from ITEM_PURCHASED / SOLD / UNDO events).
+At the cutoff, the most recent frame is a median 33.6\,s old (10th and 90th percentiles 8.2\,s
+and 51.6\,s, 553-match pilot).
+% FEAT/prediction_situation_pilot.json checks.freshness.age_s_quantiles p10 8.18 / p50 33.60 / p90 51.55.
+Holding the last frame misplaces a champion. Over 152,517 kills in 3,000 matches, the last-frame
+position of the victim lies a median 2,126\,u from where it died (90th percentile 6,779\,u),
+rising to 3,746\,u when the frame is 50--60\,s old.
+% FEAT/fight_boundary/interp_and_horizon.json: n_matches 3000, n_kills_measured 152517,
+% interp_error_u.hold p50 2126 / p90 6779; interp_error_by_since_frame_s["50-60"].hold 3746.
+Linear interpolation towards the next frame roughly halves the median error, to 1,149\,u, but it
+uses information from after the cutoff, so it is used only to construct instances, never as a
+model input. Even so, the linearly interpolated victim position lies within $R = 1{,}600$\,u of the
+kill site for only 61.7\% of kills. The presence gate reads such interpolated positions for every
+champion it does not place on a kill trajectory, so its comparison against $R$ rests on a position
+error of the same order as $R$ itself. These errors are measured at the moment of a kill, when
+champions move most, and may therefore overstate the error at other times.
+% interp_error_u.linear p50 1149; linear_share_within["1600"] 0.617: same file.
+% feature path holds, gate interpolates (5 s grid, linear between frames, kill participants on a trajectory to the
+% kill position): REPO/docs/DEFINITION_EVIDENCE.md section 18.1 (table of interpolation paths: features, presence
+% gate, label gold); kill instants as an upper-side estimate: same section, paragraph under the error table.
+The effect of this gap on the prediction ceiling belongs to the analysis of where that ceiling
+comes from (\cref{sec:limit-evidence}). There, under the patch holdout and with a position-error curve
+fitted on 1,000 training-side matches, none from the validation or test patch, adding 306 columns
+reconstructed at the cutoff from millisecond events raises the test AUC of LightGBM in its published
+configuration from 0.6665 to 0.6732, by 0.0068 (95\% interval 0.0057 to 0.0078), and exceeds the same
+columns filled from the held frame by 0.0051 (0.0041 to 0.0060); each model was fitted once, and the
+intervals resample test matches only. Here we note only that the gap also limits the definition.
+% Filled 2026-09-14 by item F5-limitations-fills (was \pending{evidence_state}); same values as sec_limit.tex Table
+%   tab:limit-evidence, row "All".  REV = D:/LOL_Project/fusion_2615/features/tog_revision/.
+%   REV/A4-evidence-state-leak/evidence_block_patch_holdout_v33_v2.json (git dirty false, smoke false):
+%   split patch holdout train 15.14 / val 15.15 / test 15.16; block_columns 306.
+%   block_provenance.pos_error_curve.n_matches 1000 (source position_error_calibration_v2.json, fit_rule isotonic_weighted);
+%     calibration_vs_loaded_rows disjoint_from_test_patch true, disjoint_from_val_patch true, train_patch_15.14 intersection
+%     928 ("training-side matches"); position_error_calibration_v2.json split.name predict_train, holdout_patches
+%     ["15.15", "15.16"], selection.excluded_holdout_patch 1730.
+%   models.X.overall_auc 0.666484 (= reproduces_lgbm_paper.lgbm_paper_test_auc); models.X_plus_evidence.overall_auc 0.673239.
+%   paired.evidence_minus_X.overall delta +0.006755, lo +0.005700, hi +0.007757.
+%   paired.evidence_minus_hold.overall delta +0.005076, lo +0.004083, hi +0.006042.
+%   Fitted once: lgbm_params random_state 7, one fit per model; bootstrap n_boot 1000, seed 7, clusters 55449 (test matches).
+
+The observation window, 30\,s before the cutoff summarised in six 5\,s bins, is carried over
+from the CoG submission; it was not derived.
+% FIGHT_CONTEXT_SEC 30 and BIN_MS 5000: REPO/core/config.py (30 / 5 = 6 bins); "not derived from data, a CoG
+% convention": REPO/docs/DEFINITION_EVIDENCE.md section 18.1; kept on 2026-09-09: REPO/docs/RELEASE_REPORT_V3.md
+% section 7 (decision log).
+Because frames are 60\,s apart, a 30\,s window contains at most one frame, so its length mostly
+changes how many events are seen rather than how much state. Before the sweep below, the only
+measurement was a 553-match pilot that predates the input-audit leak fixes and is therefore not a v3.3
+result: it used 1,360 labelled rows from 1,438 engagements, the \texttt{market\_lex} label, and 7,105
+pre-fix feature columns without the frame-age column. It gives AUCs of 0.614, 0.626 and 0.631 for windows of 15, 30
+and 60\,s, without intervals, and we draw no conclusion from that ordering for the v3.3 features.
+% FEAT/prediction_situation_pilot.json checks.ctx: 15 -> 0.61420, 30 -> 0.62626, 60 -> 0.63127; n_matches 553,
+% n_refs 1438, n_rows 1360, n_features 7105, v3.LABEL_TYPE market_lex.  Pre-fix status: REPO/docs/RELEASE_REPORT_V3.md
+% section 5.5 (pilot and audit metrics), caveat 1: pilot written 2026-09-09 05:33, before commits 5b5f9c8 and
+% 86095c8, no frame_age_s, "not v3.3 results".
+The sweep of \cref{sec:learners-window} scores LightGBM in its published configuration for windows of
+15, 30, 60 and 120\,s in 5\,s bins and for bins of 2.5 and 10\,s within 30\,s, on 50,766 engagements
+from a 20,000-match sample that are identical across settings. No window or bin width improves on the
+30\,s, 5\,s reference by a margin that survives both the sampling of test matches and the training seed.
+With the fitted models held fixed, 2.5\,s bins raise the AUC by 0.0063 (95\% interval 0.0029 to 0.0100)
+on the patch holdout and by 0.0047 (0.0024 to 0.0071) out of fold, a protocol fitted with one seed only.
+Over ten patch-holdout refits that differ only in LightGBM's random seed, however, the difference of the
+mean AUCs for 2.5\,s bins is $+0.0016$ ($-0.0007$ to $+0.0039$), and the corresponding intervals of the
+other four settings also include zero. The sample's training patch holds about a tenth of the engagements
+of the full one, and windows beyond 120\,s and bins finer than 2.5\,s were not tested. The 30\,s window
+therefore remains a convention: the sweep shows neither that it limits the AUC nor that it is the best
+choice.
+% Filled 2026-09-14 by item F5-limitations-fills (was \pending{window}); same values as sec_learners.tex Table tab:window.
+%   REV = D:/LOL_Project/fusion_2615/features/tog_revision/.
+%   REV/A3-temporal-windows/window_sweep_paired_cis_v33.json (created_utc 2026-09-14T07:41:41Z, the rewrite with
+%   seed_replication; checks.passed true):
+%   settings ctx15/30/60/120_bin5000, ctx30_bin2500, ctx30_bin10000; reference "ctx30_bin5000".
+%   source_run.lgbm_params n_estimators 400, learning_rate 0.05, num_leaves 31, colsample_bytree 0.9, random_state 7 (the
+%     published configuration); source_run.n_matches_sampled 20000; checks.common_rows n_rows 50766 (identical rows and
+%     labels across settings: checks.settings.<s>.setting_cache.row_order_labels_groups_patch_equal_common true).
+%   protocols.patch.paired."ctx30_bin2500 - ctx30_bin5000" delta +0.006325, ci_lo +0.002878, ci_hi +0.009956.
+%   protocols.oof.paired."ctx30_bin2500 - ctx30_bin5000" delta +0.004710, ci_lo +0.002398, ci_hi +0.007135; one seed:
+%     method.held_fixed "the OOF protocol is not refitted".
+%   seed_replication.seeds [7, 1, 2, 3, 4, 5, 6, 8, 9, 10]; varied "LightGBM random_state only"; estimand seed_mean
+%     ("interval of the difference of seed-averaged AUCs: per replicate the same match draw plus 10 seeds drawn with
+%     replacement per setting"), n_boot 2000.
+%   seed_replication.paired."<s> - ctx30_bin5000".seed_mean delta, ci_lo, ci_hi:
+%     ctx30_bin2500 +0.001568 [-0.000734, +0.003896]; ctx15_bin5000 -0.002503 [-0.005656, +0.000387];
+%     ctx60_bin5000 +0.003051 [-0.000129, +0.006244]; ctx120_bin5000 +0.000431 [-0.002986, +0.003817];
+%     ctx30_bin10000 -0.000302 [-0.002867, +0.002194]; ci_excludes_zero false for all five.
+%   source_run.split.rows.train 17909; FEAT/model_comparison_v33_patch.json split.rows.train 187547;
+%     17909 / 187547 = 0.095 ("about a tenth").
+%   Untested ranges: sec_learners.tex paragraph "What this implies for Hypothesis W" (windows beyond 120 s, bins finer
+%     than 2.5 s).
+
+The win-probability model that values an engagement is least reliable late in the game. Even
+after sampling one training point per 5-minute bucket, only 2,517 of its 40,228 fitting rows
+(6.3\%) and 176 of its 4,986 test rows fall after 30 minutes.
+% WT/outputs/temporal_winprob_v3_buckets/sampling_census.json: fit.rows 40228, fit.bands["30-1000"] 2517;
+% test.rows 4986, test.bands["30-1000"] 176; 2517 / 40228 = 0.0626.  One seeded grid point per 5-minute bucket per
+% match for fit / calibrate / select: WT/scripts/run_temporal_winprob_v3_buckets.py bucket_minute_indices().
+At the engagement cutoff, its expected calibration error (ECE) is 0.069 after 30 minutes (1,077
+engagements from 817 matches), against 0.009, 0.024 and 0.012 in the 2--10, 10--20 and 20--30
+minute bands, while its AUC in the late band is 0.844.
+% WT/outputs/temporal_winprob_v3_buckets/validation_a/results.json
+% engagement_all_available.pre.families.expanded.by_game_time_min: 30+ ece 0.06902, n 1077,
+% matches 817, auc 0.84433; 2-10 ece 0.00906; 10-20 ece 0.02431; 20-30 ece 0.01188.  "expanded" is the primary
+% family (WT/scripts/run_temporal_winprob_v3_buckets.py report "primary"; value_pre read from z["expanded"] in
+% WT/scripts/report_two_axis_output_v3.py).  The maymin baseline is worse late (30+ ece 0.09587), not used here.
+Value swings of late engagements are therefore measured with the least calibrated instrument in
+the study.
+
+\subsubsection{What the corpus covers}
+
+Every one of the 210,000 match records in the corpus cache carries the Korean platform prefix,
+and the labelled corpus comes from three patches, with 187,547, 191,184 and 153,816 engagements in
+15.14, 15.15 and 15.16.
+% CACHE/: 210000 *.meta.json files, all prefixed "KR_"; patch counts:
+% FEAT/scale_decomposition_v33_market_event.json patch_distribution.
+The learner comparison tests transfer only from 15.14 to 15.16, with 15.15 used for validation.
+Nothing here speaks to other regions, later patches, lower ranks or professional play.
+% split train 15.14 / validation 15.15 / test 15.16: REPO/docs/RELEASE_REPORT_V3.md section 5.4 (learner comparison).
+
+Rank is a property of how the matches were collected, not a measured variable. The collection
+targeted Master tier and above, but the cached records carry no rank, tier or league-point
+field, so results cannot be conditioned or stratified on skill.
+% collection frame: REPO/analysis/analysis.py summary-table entry sampling_frame "KR Master+ ladder (collection
+% constraint; per-match tier not retained)"; tier claim withdrawn in commit 5eaf4ea.  No tier field: CACHE/*.meta.json
+% keys (match_id, patch_full, patch, team_map, role_slots, anchors, anchor_is_norm, static_meta, interp_policy,
+% feature_version), 0 of 300 seeded samples contain a tier or league-point key.
+
+The cache carries no player identity. Participants are identified by slot, team and champion; in
+a seeded sample of 300 matches, neither the match metadata nor the event files contain the Riot
+player identifier (PUUID).
+% CACHE/: 0 of 300 sampled *.meta.json and 0 of 300 *.events.json contain "puuid".
+Player-level questions, such as individual skill, familiar duos, or a player on both sides of a
+fold, cannot be asked. Match-grouped cross-validation cannot group by player either, so the same
+player may appear in training and evaluation folds; the size of that effect is unknown.
+
+\subsubsection{What the learner comparison establishes}
+
+In the first learner comparison, each deep tabular model was trained once, with one fixed
+configuration and no per-architecture search. The token-based models,
+FT-Transformer~\cite{gorishniy2021revisiting} and SAINT~\cite{somepalli2021saint}, used token dimension 32, three layers, eight attention heads,
+batch size 64 and learning rate $10^{-4}$.
+% FEAT/deep_tabular_v33_patch_ft.json and deep_tabular_v33_patch_saint.json token_config {d_token 32, n_layers 3,
+% n_heads 8, batch_size 64, lr 0.0001}; no per-architecture search: REPO/docs/RELEASE_REPORT_V3.md section 5.4
+% (learner comparison), notes ("None of the neural learners received a hyperparameter search") and limitation paragraph.
+The neural learners were not matched in capacity either: the multilayer perceptron (MLP) has
+4.17\,M trainable parameters and TabNet~\cite{arik2021tabnet} 4.08\,M, against 0.46\,M for SAINT
+and 0.29\,M for FT-Transformer.
+% REPO/docs/RELEASE_REPORT_V3.md section 5.4 "learner comparison" table and parameter-count note (sum(p.numel()) of
+% the models built at commit 60945ed): MLP 4,167,681; TabNet 4,075,989; SAINT 459,713; FT-Transformer 285,857.
+Two of its runs are withdrawn (\cref{sec:learners-published}). The TabNet run applied its sparsity
+regulariser with the sign reversed, which rewards dense rather than sparse feature-selection masks. The
+SAINT run evaluated engagements in batches that kept the engagements of a match together, so its attention
+across engagements could let an engagement attend to later engagements of its own match, recorded after
+its cutoff.
+% REPO/docs/RELEASE_REPORT_V3.md section 5.4 "learner comparison", dagger note: train_torch computed
+% loss - sparsity_lambda * entropy (REPO/scripts/run_deep_tabular_baselines.py at commit 60945ed), "do not cite
+% 0.6188"; run kept for provenance only in FEAT/deep_tabular_v33_patch_full.json models.tabnet.
+% SAINT leak exposure: sec_learners.tex paragraph "Two withdrawn rows" (published evaluate() used 1,024 consecutive rows in load
+%   order; all 151 test batches contained engagements of a common match).  As in sec_learners.tex, the withdrawn AUCs are not
+%   printed; only differences from them are.
+Three runs at the first comparison's training budget have since finished, on the same 153,816 test
+engagements. TabNet with the regulariser added reaches a test AUC of 0.6114 (95\% interval 0.6086 to
+0.6142), 0.0074 (0.0058 to 0.0090) below the withdrawn run. SAINT with batches that hold at most one
+engagement per match reaches 0.6550 (0.6522 to 0.6577), a difference from the withdrawn run whose interval
+includes zero ($-0.0006$ to $+0.0014$). FT-Transformer at token dimension 192, with 2.45\,M parameters,
+reaches 0.6578 (0.6549 to 0.6606), 0.0018 (0.0007 to 0.0029) above dimension 32. On the same engagements
+the neural-pipeline LightGBM, which reads all 7,106 columns, reaches 0.6661 (0.6632 to 0.6688), and the
+three runs lie 0.008 to 0.055 below this neural-pipeline LightGBM, each paired interval excluding zero.
+This comparator is not LightGBM in its published configuration on 6,164 columns, against which
+\cref{tab:learners} states the differences of the same runs.
+% Comparator naming (item F5-limitations-fills, 2026-09-14; no number changed): "neural pipeline" = row "LightGBM, neural
+%   pipeline, 7,106" of sec_learners.tex tab:learners (FEAT/deep_tabular_v33_patch_full.json models.lightgbm, the
+%   "published_lightgbm" of the REV/A1-deep-baselines files); 6,164 = FEAT/model_comparison_v33_patch.json lgbm_paper input
+%   (sec_learners.tex sec:learners-input comment: AUD truth.columns_non_constant 6164), the reference of tab:learners.
+These are still single
+runs of fixed configurations, with intervals from 1,000 match-bootstrap resamples that hold the fitted
+models fixed: they show what these configurations reach under that budget, not what the architectures can
+reach, and we draw no conclusion about model classes from them. SAINT at token dimension 128, SAINT with
+pre-training and the declared search of \cref{sec:learners-effort} are still running:
+\pending{learners}{test AUC with paired intervals of SAINT at token dimension 128 and of SAINT with
+pre-training, and test AUC on 15.16 of every learner, LightGBM included, after the declared search
+selected on 15.15}.
+% Updated 2026-09-14 by item F4-consistency-fills.  REV = D:/LOL_Project/fusion_2615/features/tog_revision/.
+%   All three: REPO/scripts/run_deep_tabular_baselines.py, git_commit fa166ec, git_dirty false, preset v3.3, seed 7, patch split
+%   15.14 / 15.15 / 15.16 (test 153,816 rows, 55,449 matches), training_options epochs 30, patience 5 (the first comparison's
+%   budget: file names "published_config" / "published_budget", as sec_learners.tex "Corrected and enlarged runs, first
+%   comparison's training budget"); test_auc_bootstrap n_boot 1000, seed 7, "match-clustered percentile bootstrap, matches resampled jointly across
+%   models".  In these files "published_lightgbm" is the LightGBM of FEAT/deep_tabular_v33_patch_full.json (7,106 columns,
+%   models.lightgbm.test_auc 0.666089, best_iteration 306), NOT lgbm_paper (6,164 columns, 0.666484).
+%   REV/A1-deep-baselines/a_tabnet_sign_fixed_published_config.json: models.tabnet.sparsity_sign "+", config.legacy_sparsity_sign
+%     false, n_params 4075989; test_auc_bootstrap.auc.tabnet point 0.611370 ci95 [0.608602, 0.614197];
+%     paired."tabnet-published_tabnet" delta -0.007424 [-0.008966, -0.005834]; "tabnet-published_lightgbm" -0.054719
+%     [-0.056966, -0.052387]; auc.published_lightgbm 0.666089 [0.663194, 0.668803] (identical in all three files).
+%   REV/A1-deep-baselines/b_ft_transformer_d192_published_budget.json: token_config d_token 192, n_layers 3, n_heads 8, batch 64,
+%     lr 1e-4; models.ft_transformer.n_params 2452417; auc.ft_transformer 0.657835 [0.654946, 0.660590];
+%     paired."ft_transformer-published_ft_transformer" (d_token 32) +0.001779 [+0.000700, +0.002884];
+%     "ft_transformer-published_lightgbm" -0.008254 [-0.009628, -0.006793].
+%   REV/A1-deep-baselines/c0_saint_d32_published_config_match_disjoint.json: config.batching "match_disjoint", d_token 32,
+%     eval_batch_size 64, n_params 459713; deviations.protocol[1] (published SAINT row used row-order evaluation batches of 1,024,
+%     through which intersample attention could reach later engagements of the same match); auc.saint 0.655013 [0.652200,
+%     0.657733]; paired."saint-published_saint" +0.000428 [-0.000646, +0.001446]; "saint-published_lightgbm" -0.011076
+%     [-0.012568, -0.009634].
+%   "0.008 to 0.055": 0.008254 (FT-Transformer), 0.011076 (SAINT), 0.054719 (TabNet); every ci95 below zero.
+%   The corrected runs also seed torch (deviations.protocol[0]) and SAINT evaluates at batch 64, so the differences from the
+%   withdrawn runs do not isolate the fix; the text states them as differences only.
+%   sec_learners.tex Table tab:learners gives the same runs against lgbm_paper on the A8 draws (Delta -0.0551 / -0.0086 /
+%   -0.0115); the comparator here is named as the 7,106-column pipeline LightGBM to match these files.
+% Still running (REV/queue_state/b2_saint_d128_published_budget.running; c_saint_d32_pretrain5_published_config and
+%   d1-d3 hparam search queued in REV/queue_wave5.json, no queue_state entry): protocol in sec_learners.tex sec:learners-effort and
+%   REPO/scripts/run_deep_hparam_search_v33.py module docstring (families lightgbm, mlp, tabnet, ft_transformer, saint,
+%   saint_pretrain).
+
+\subsubsection{How precisely the constants are known}
+
+$R = 1{,}600$\,u and $B = 15$\,s are read from the game rules, not estimated: $R$ is the radius
+within which a champion's death shares experience, and $B$ is the window within which the game
+credits a kill or an assist on Summoner's Rift. Minute frames cannot resolve either quantity.
+% SHARDS/manifest.json detector.TF2_VALIDITY_RADIUS 1600.0, TF2_ENGAGE_PRE_KILL_MS 15000;
+% FEAT/fight_boundary_full/spec_pooled.json radius_source "rule:champion-death experience share radius",
+% lead_source "rule:kill/assist credit window (Summoner's Rift)".
+Both values were taken from League of Legends Wiki pages read on 8 September 2026 and re-read on
+11 September 2026~\cite{lolwiki2026experience,lolwiki2026assist,lolwiki2026kill}, and were applied
+unchanged to all three patches.
+% first read: REPO/docs/DEFINITION_EVIDENCE.md section 15 (game-rule constants table, 2026-09-08); re-read:
+% REPO/docs/references/rule_constants_evidence.md section 1 (retrieved 2026-09-11); Experience (champion) page
+% fetched again for this section on 2026-09-11: 1,600 u for champion deaths, 1,500 u for minions.
+% Same R, B per patch: FEAT/fight_boundary_full/spec_15.14.json, spec_15.15.json, spec_15.16.json.
+% Cite keys (definition_refs.bib section 10, VERIFIED 2026-09-14): lolwiki2026experience revision 4053165 of
+% 2026-08-22, lolwiki2026assist revision 4016680 of 2026-05-12, lolwiki2026kill revision 4053216 of 2026-08-23; all
+% predate 8 Sep. 2026, so both readings saw these revisions (references_audit.md section 2c, note N6).  Permanent
+% links re-read 2026-09-14: 1600 u for champion deaths (1500 u for minions), 15 s assist window and 15 s kill credit
+% on Summoner's Rift.
+The pages give current values without dating them. The patch history of the experience page lists
+no change to the champion-death radius; its range entries concern minion experience only. The
+official notes for the three corpus patches list no change to either
+rule~\cite{riot2025patch2514,riot2025patch2515,riot2025patch2516}. That no note lists a change does
+not show that a rule was
+unchanged: notes can omit changes, and hotfixes announced elsewhere were not searched.
+% Experience (champion) patch history: V25.S1.1 minion range 1,400 -> 1,500 and V4.11 lane minion range
+% 1,250 -> 1,400, no champion-death radius entry (WebFetch 2026-09-11; also rule_constants_evidence.md section 1).
+% Assist page: no patch-history entries; Kill page: none for the 15 s window (rule_constants_evidence.md section 1;
+% Kill page re-fetched 2026-09-11).  Notes 25.14-25.16: "no change listed" for the experience radius and the assist
+% window (rule_constants_evidence.md section 2, automated-fetch reading; that file asks for a manual check).
+% Displayed patches 25.14-25.16 = game versions 15.14-15.16: rule_constants_evidence.md section 3 (PARTLY VERIFIED).
+% Cite keys (definition_refs.bib section 10, VERIFIED 2026-09-14): riot2025patch2514, riot2025patch2515,
+% riot2025patch2516.  Re-checked 2026-09-14 (pages downloaded, HTTP 200, whole-page string search): "assist" and
+% "credit" 0 hits in each; "1,600" 0; "1600" only as image dimensions in 25.15.  Mapping relied on, displayed 25.N =
+% gameVersion 15.N: definition_refs.bib header (Data Dragon has Yunara, key 804, at 15.14.1 and not at 15.13.1; the
+% 25.14 notes introduce Yunara; re-run 2026-09-14: champion 804 in 99 of 500 corpus matches of patch 15.14,
+% random.seed(0) then random.sample(sorted ids, 500) over the 74,673 ids with value 15.14 in
+% D:/LOL_Project/cache/match_cache_fresh_v3_engage_status13_patch_index.json, champion ids from each CACHE meta.json
+% static_meta.champion_by_pid); 25.15 and 25.16 follow by succession.
+
+The two kinds of constant have been probed with different measures, so their effects cannot be
+ranked against each other. For the rule anchors, on 2,971 matches (81,914 kill episodes) the share
+of episodes that pass the presence gate is 10.3\% at the operating point and ranges from 6.5\% to
+41.1\% over $R \in \{1{,}350, 1{,}600, 1{,}800, 2{,}500\}$\,u and $B \in \{5, 10, 15\}$\,s.
+% FEAT/fight_boundary/presence_sensitivity.json: n_matches 2971, n_episodes 81914, constants.R_grid, B_grid_ms;
+% grid.R1600_B15.valid_share 0.1027, minimum grid.R1350_B15 0.0649, maximum grid.R2500_B5 0.4112.
+For $G$, every swept value from 10 to 18\,s partitions kills with an adjusted Rand index (ARI) of at
+least 0.90 against the valley partition; this measures agreement between partitions, not the size of
+the corpus.
+% FEAT/fight_boundary_full/details_pooled.json temporal.ari_vs_valley: 10 -> 0.9048, 12 -> 0.9609,
+% 13 -> 0.9844, 14 -> 0.9942, 15 -> 0.9746, 16 -> 0.9562, 18 -> 0.9225 (8 -> 0.8293 and 20 -> 0.8916 fall below).
+How $G$ and $D$ together change the corpus and the AUC was measured by re-detecting the engagements of a
+random sample of 10,000 of the 210,000 cached matches with $G \in \{10, 12, 13.7, 16, 18\}$\,s and
+$D \in \{3{,}500, 4{,}000, 4{,}264, 4{,}750\}$\,u (\cref{sec:pred-constants}). Against the adopted
+constants, the number of engagements changes by $-8.5$\% to $+11.6$\%. Under the patch holdout, on the
+test engagements that a setting shares with the adopted constants and with each model scored against its
+own labels, the AUC differs by $-0.0094$ to $+0.0036$; two of the 19 intervals lie below zero, both at
+$G = 10$\,s, and none lies above it. These differences describe that sample only. On it the adopted
+constants reach a test AUC of just 0.6252, with models trained on 8,185 to 10,162 engagements instead of
+187,547; each setting was fitted once, the intervals hold the fitted models fixed and are not adjusted for
+the 19 comparisons, and no margin of negligible difference was set in advance. The sweep therefore does
+not show that the full-corpus result is insensitive to $G$ and $D$.
+% Filled 2026-09-14 by item F4-consistency-fills (was \pending{gxd_sweep}; same values as sec_definition.tex and sec_prediction.tex
+%   sec:pred-constants, whose comment block lists all 20 settings with intervals).  Source:
+%   REV = D:/LOL_Project/fusion_2615/features/tog_revision/
+%   REV/A6-definition-sensitivity/gd_sweep/gd_sweep_summary.json: provenance.n_matches_sampled 10000 (seed 7, sample_digest
+%   51646dbd62f59fa0d9c50186), split patch holdout 15.14 / 15.15 / 15.16, n_boot 1000, tolerance_ms 5000, operating_point
+%   G13700_D4264; settings_requested = 5 G x 4 D (G10000..G18000, D3500..D4750), settings_missing []; deviations[0] "Match
+%   subsample of 10,000 cache matches (seed 7), not the full corpus".  210,000 cached matches: CACHE count (see "What the corpus
+%   covers" below).
+%   settings[*].counts.n_engagements min 24764 (G18000_D4750), max 30185 (G10000_D3500), operating point 27053:
+%   24764 / 27053 - 1 = -0.0846; 30185 / 27053 - 1 = +0.1158.
+%   settings[*].paired_vs_operating_point.shared_setting_minus_op (setting's model on its labels minus the operating point's model
+%   on its labels, shared test rows matched one-to-one within 5 s): point min -0.009439 (G10000_D4264), max +0.003594
+%   (G13700_D4000); intervals entirely below zero G10000_D3500 [-0.015477, -0.000819] and G10000_D4264 [-0.017364, -0.002415];
+%   none entirely above zero (G13700_D4750 upper end +0.000046).
+%   settings[G13700_D4264].test.auc.point 0.625191; settings[*].counts.by_split.train.rows min 8185 (G18000_D4750), max 10162
+%   (G10000_D3500); 187,547 = FEAT/model_comparison_v33_patch.json split.rows.train.  Fitted once: signature seed 7, one fit per
+%   setting (REPO/scripts/run_gd_sweep_v33.py); intervals resample test matches of the stored predictions, models not refitted
+%   (the paired stream resamples the union of both settings' test matches, deviations[8]; wording as sec_prediction.tex).
+
+The derived constants carry numerical limits of their own. $G$ is the minimum of a kernel density
+estimate (KDE) evaluated on 1,401 points spaced uniformly in the base-10 logarithm of the interval
+from $10^{-0.5}$ to $10^{3}$\,s. The step is 0.0025 decades, or 79\,ms at 13.72\,s.
+% grid (-0.5, 3.0, 1401): REPO/analysis/temporal_boundary.py kde_valley() default, evaluated with np.linspace(*grid);
+% step 3.5 / 1400 = 0.0025; 13.7246 * (10**0.0025 - 1) = 0.0792 s.
+The pooled valley and all three per-patch valleys fall on grid points, and the pooled and 15.16
+estimates are the same point (13.7246\,s), so differences below one step cannot be resolved. The
+detector was run with $G = 13.700$\,s, 25\,ms from the estimate and inside the match-bootstrap
+interval $[12.16, 15.67]$\,s.
+% gap_s 13.724609610075618 in both FEAT/fight_boundary_full/spec_pooled.json and spec_15.16.json;
+% 15.14 13.9637 and 15.15 13.4896 also on grid nodes (checked); gap_ci_s [12.160, 15.668]:
+% spec_pooled.json; detector 13700 ms: SHARDS/manifest.json; 13.7246 - 13.700 = 0.0246 s.
+$D$ is the distance at which the champion-sharing rate crosses 50\%, found by linear interpolation
+between the centres of the 3,750\,u and 4,500\,u distance bins (rates 0.647 and 0.432). Its
+match-bootstrap interval, $[4{,}256, 4{,}274]$\,u, is only 18\,u wide because it resamples matches
+with the bins fixed; it does not include the uncertainty of placing a crossing inside a 750\,u gap.
+The detector was run with $D = 4{,}264.0$\,u.
+% linear interpolation between bin centres: REPO/analysis/spatial_boundary.py crossover() docstring;
+% FEAT/fight_boundary_full/details_pooled.json spatial.curve [3750, 0.6469], [4500, 0.4325];
+% 3750 + (0.6469 - 0.5) / (0.6469 - 0.4325) * 750 = 4263.9; spec_pooled.json diameter_u 4263.87 (diameter_source
+% "crossover"), diameter_ci_u [4256.05, 4273.97] (width 17.92); detector 4264.0: SHARDS/manifest.json.
+Both constants, like the price table, are estimated on the corpus that is later evaluated
+(208,141 matches).
+% FEAT/fight_boundary_full/spec_pooled.json n_matches 208141.
+The remaining detector rules (merging a candidate into a neighbour within 15\,s and 2,000\,u, a
+60\,s duration cap, and truncation when one team is eliminated) are carried over from the
+released CoG code, and no sensitivity analysis is reported for them.
+% REPO/docs/RELEASE_REPORT_V3.md section 4 (confirmed definition table, clean-up row: "released code");
+% defaults 15000 ms, 2000.0 u and 60000 ms: REPO/core/config.py and REPO/gameplay/fights.py detection config
+% (CONTINUOUS_FIGHT_MAX_GAP_MS, CONTINUOUS_FIGHT_MERGE_RADIUS, MAX_MERGED_FIGHT_DURATION_MS).
+
+\subsection{Future Work}\label{subsec:future-work}
+
+\begin{itemize}
+\item \emph{Measurement from replays.} Replay video can measure what this study had to assume: the
+  time from first contact to first kill (for $B$), the distance of participants at the first kill
+  (for $R$), the error of holding the last frame, and the kill-less encounters that the detector
+  cannot see. The practical obstacle is that the 1,053 replay files available can be played only
+  on patch 16.15, not on the corpus patches.
+  % REPO/docs/RELEASE_REPORT_V3.md section 8 item 7; replay files: REPO/docs/DATA_MANIFEST.md corpus table,
+  % row "Replays 16.15" (1,053 ROFL, playable only on 16.15).
+\item \emph{Channel ablation.} An ablation over the four input channels (fixed match information,
+  frame snapshots, millisecond events and terrain), with each channel alone, each left out, and all
+  added cumulatively, would show which channel carries the signal the learners use.
+  % REPO/docs/RELEASE_REPORT_V3.md section 8 item 2.
+\item \emph{Per-patch rule constants.} A per-patch table of rule constants (experience-sharing
+  radius, credit window and event prices) would replace the pooled values assumed here and make the
+  definition portable across patches, in line with patch-agnostic analytics built on game-design
+  parameters~\cite{chitayat2023beyond}.
+  % REPO/docs/RELEASE_REPORT_V3.md section 8 item 5.
+\item \emph{Data cache.} A rebuilt cache would drop the six champion-statistic fields that the
+  application programming interface (API) always reports as zero, and would evaluate adding the
+  \texttt{goldPerSecond} frame field, which the current features do not use.
+  % REPO/docs/RELEASE_REPORT_V3.md section 8 item 6 (remove the dead stats; review goldPerSecond,
+  % victimTeamfightDamage and FEAT_UPDATE) and section 6 (six dead API fields, goldPerSecond unused);
+  % six zero-valued stats: REPO/docs/DEFINITION_EVIDENCE.md section 20.1.
+\item \emph{A label and a detector for kill-less fights.} Scoring position and objective control
+  rather than paid gold, triggered by proximity rather than by a kill, would address the blind spot
+  measured above. Such a detector would also need positions of the same accuracy for encounters with
+  and without kills.
+\item \emph{Online anticipation.} Live coaching or broadcast use requires a trigger computed from
+  pre-fight state only, in place of the retrospective cutoff, together with a latency budget; live
+  win prediction in professional play shows the form such a system takes~\cite{hodge2021win}.
+  % CoG future work "Real-time deployment": REPO/docs/CoG2026_Paper.md section 8.3.
+\item \emph{Other regions and professional play.} Re-running the definition pipeline on other
+  servers would test whether $G$ and $D$ are properties of the game or of the Korean high-rank
+  population. Professional matches, with far fewer games per patch, would test whether the
+  estimates survive small samples.
+  % REPO/docs/CoG2026_Paper.md section 8.3 ("Cross-region transfer", "Professional match adaptation").
+\item \emph{Causal analysis.} The value-swing analysis is associational. Estimating the effect of
+  winning an engagement on winning the match requires a causal design that accounts for the state
+  that made the engagement likely.
+  % REPO/docs/CoG2026_Paper.md section 8.3 ("Causal analysis").
+\item \emph{Audience-facing tools.} Encounter detection was introduced as a basis for esports
+  analytics~\cite{schubert2016encounter}. Research on esports audiences has built data-driven content
+  for broadcasts~\cite{block2018narrative}, data-driven audience experiences~\cite{kokkinakis2020dax},
+  real-time dashboards for spectators~\cite{charleer2018dashboards}, interactive audience
+  experiences~\cite{pedrassoli2024passive} and win-condition narratives~\cite{pedrassoli2024wincondition}.
+  An engagement record (start, end, participants, scale class, pre-fight probability and realised
+  value swing) is a structured game event that such tools could consume. A broadcast tool could flag
+  engagements won by the side the model gave a low probability, or list the engagements that moved
+  win probability most. With a pre-fight AUC of 0.670, the probability is a coarse cue, not a
+  forecast to announce, and whether such annotations help viewers needs a user study, which we have
+  not run.
+  % keys block2018narrative, kokkinakis2020dax, charleer2018dashboards, pedrassoli2024passive,
+  % pedrassoli2024wincondition: REPO/docs/references/definition_refs.bib section 3, each [VERIFIED 2026-09-11].
+  % 0.670: FEAT/scale_decomposition_v33_market_event.json overall_auc 0.66991.
+\end{itemize}

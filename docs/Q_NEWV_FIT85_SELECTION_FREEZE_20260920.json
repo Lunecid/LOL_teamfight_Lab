@@ -1,0 +1,51 @@
+{
+  "selected_q": "logit_state",
+  "selection_metric": "match_weighted_Brier_on_Q_SELECT_T",
+  "selection_scores": {
+    "constant": {
+      "n": 10195,
+      "n_matches": 7469,
+      "brier": 0.2500268692759867,
+      "logloss": 0.6932009224148596,
+      "auc": 0.5
+    },
+    "b_p": {
+      "n": 10195,
+      "n_matches": 7469,
+      "brier": 0.23885493999718552,
+      "logloss": 0.6705911177811783,
+      "auc": 0.6217866932459082
+    },
+    "PT": {
+      "n": 10195,
+      "n_matches": 7469,
+      "brier": 0.2388490523755041,
+      "logloss": 0.670578491920434,
+      "auc": 0.6217428608799955
+    },
+    "logit_state": {
+      "n": 10195,
+      "n_matches": 7469,
+      "brier": 0.23393198747092173,
+      "logloss": 0.6603821409736865,
+      "auc": 0.6462091388785496
+    },
+    "lgbm_state": {
+      "n": 10195,
+      "n_matches": 7469,
+      "brier": 0.23825683212504914,
+      "logloss": 0.6692655400873128,
+      "auc": 0.6271136141311556
+    }
+  },
+  "label_train": "TRAIN_oof_h90.npz",
+  "label_eval": "frozen_fit85 for Q_CAL/Q_SELECT/TEST",
+  "engagement_def": "T_h90",
+  "direction_threshold": "Y=1[delta_V>0]; exact0 -> Y=0",
+  "primary_contrast": "DeltaBrier = Brier(q)-Brier(PT_linear) on identical TEST rows",
+  "tau": 0.001,
+  "generated": "2026-09-20T09:33:55+09:00",
+  "pt_definition": "PT_linear: StandardScaler+Logistic on [p_pre, time_minutes]; no spline/interaction",
+  "q_cal_role": "LGBM early_stopping only; no post-hoc probability calibrator for logit/PT/b_p",
+  "scope_lock": "docs/Q_RESULT_SCOPE_LOCK_20260920.md"
+}

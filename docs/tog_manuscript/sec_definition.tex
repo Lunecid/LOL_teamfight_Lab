@@ -1,0 +1,815 @@
+% =============================================================================
+% sec_definition.tex -- Engagement definition (MAINTAINED COPY; item W3-definition, revised 2026-09-14,
+%   second pass after the W3 fact-check: lane-anisotropy ratio, Pedrassoli Chitayat paraphrase, Schubert "heroes",
+%   constants table scope and missing switches).
+% Derived from docs/references/definition_section_draft.tex (2026-09-08/09), which is superseded.
+% Answers CoG R1 (why these thresholds; every constant that shapes the engagement set, its scale class or the
+% label, Table tab:constants) and R4 (kill-less fights, subsection sec:def-killless: frequency AND measurability).
+% Every number carries a "% src:" comment (file and key) or a "% cmd:" comment (the computation).
+% Game-rule sources, the patch-note check and the patch-number mapping: docs/references/rule_constants_evidence.md.
+% Citation keys: docs/references/definition_refs.bib (mapping in docs/tog_manuscript/references_audit.md 2a, 2c).
+% Labels that exist on 2026-09-14: sec:limitations, sec:availability, sec:background-data, sec:learners-input,
+%   sec:learners-window.  sec_label.tex and sec_prediction.tex are not written, so their references use
+%   \fwdref{...} (macros.tex), which prints \pending{ref}{...} until the label exists.
+% \pending keys used here: none.  gxd_sweep and presence_gate_v33 were filled on 2026-09-14 by item F3-fill-results from
+%   REV/A6-definition-sensitivity/gd_sweep/gd_sweep_summary.json and REV/A6-definition-sensitivity/presence_gate/
+%   presence_gate_summary.json (temporal-boundary subsection, presence-gate subsection, Table tab:constants rows G, D, R, B, M;
+%   full values and keys in sec_prediction.tex, subsection sec:pred-constants).  window was filled on
+%   2026-09-14 (item F2-fill-and-gloss) from REV/A3-temporal-windows/window_sweep_paired_cis_v33.json (Table tab:constants,
+%   row "Context guard, observation window").  Item F4-consistency-fills (2026-09-14) added the ten-seed qualification from the
+%   same file's seed_replication block to that row: the 2.5 s gain holds for one seed's fixed models, not over ten refits.
+%   scale_cut is NOT pending: the A6 artefact matches (see scale classes).  attr_radius and labels were filled on
+%   2026-09-14 (item F2-fill-and-gloss) from REV/A2-label-family/label_family_v33.json (finished, partial false).
+% killless_char was filled on 2026-09-14 (item F1-cross-file-fixes) from REV/A5-killless/{freq,char}_*_20k.json,
+%   listed by the orchestrator as finished.  There is no char_t4 frame-only (ktoff) run, so the four-per-side
+%   characterization is quoted on the kill-adjusted track only (subsection sec:def-killless says so).
+% Item F1 (2026-09-14) also corrected the withdrawn scale claim's attribution in the validity summary: the
+%   CoG text has no scale classes; the claim came from the post-conference analyses (v0.2 draft, corpus v3).
+% Retracted claims (docs/CLAUDE_TOG_PAPER_PLAN.md section 4) appear only as retractions.
+% Shorthand in comments: FEAT = D:/LOL_Project/fusion_2615/features; SHARDS = D:/LOL_Project/fusion_2615/corpus_shards_v33;
+%   REV = FEAT/tog_revision; FB = config/fight_boundary (repository).
+% =============================================================================
+
+\section{Defining the Engagement}\label{sec:definition}
+
+The conference version of this study chained kills that were at most 18\,s apart and split them when
+they were more than 4,000 game units (u) apart. Both values were set by hand, and reviewers rightly
+asked why. This section replaces them with a rule whose two boundary constants are estimated from the
+corpus, whose two gate constants are taken from rules the game itself applies, and whose remaining
+constants are listed with the evidence behind each, or with the statement that none has been measured
+(Table~\ref{tab:constants}). It ends with what a kill-anchored definition cannot observe
+(Section~\ref{sec:def-killless}).
+
+\subsection{Construct and operationalisation}
+
+``Teamfight'' is a player term, not a measurement unit. We found no formal definition from the
+publisher; the community wiki's glossary describes a teamfight informally as several champions,
+possibly whole teams, meeting in one place to fight~\cite{lolwiki2026terminology}.
+% src: lolwiki2026terminology (Terminology, revision 4057849 of 2026-08-28, entry "Teamfight" in section T);
+%   paraphrase checked against the entry by item W1b (references_audit.md 2c, row sec_definition.tex:27).
+The formal definitions that exist disagree on what makes a fight. The \emph{encounter} of Schubert et
+al., defined for Dota~2, begins when heroes (Dota~2's counterpart of champions) of opposing teams come
+within combat range of each other~\cite{schubert2016encounter}.
+The \emph{team fight} of Ke et al.\ is an encounter in which one side has at least two players and at
+least one kill occurs~\cite{ke2022}. The OpenDota labels used by Tot et al.~\cite{tot2021camera} need
+only deaths: consecutive hero deaths less than 15\,s apart are grouped, groups of at least three are
+kept, and no spatial condition is applied~\cite{opendota2018processteamfights}. The definitions thus
+differ in whether proximity, a kill or several deaths define a fight, and in how many champions must
+take part.
+% src: D:/LOL_Project/references/Schubert2016_EncounterDetection_SSAC.pdf (pdftotext, 2026-09-14): an encounter is established when two or
+%   more heroes of opposing teams are within combat range (section 4); D:/LOL_Project/references/Ke2022_TeamFightModels_CoG.pdf section
+%   VI-B "Team Fight Definition": an encounter with one side having at least two players of the same team and at least one killing event;
+%   OpenDota: odota/core processors/processTeamfights.js at e2e4432 (a death opens a fight if none is open; the fight closes at the first
+%   interval event 15 or more after its last death; filter deaths >= 3; no position test) -- references_audit.md 3.2.
+We therefore treat the engagement as an operationalised construct in the sense of measurement modelling
+\cite{jacobs2021measurement}: a rule that maps observable telemetry to instances of an unobservable
+concept, whose assumptions are stated and whose reliability and validity are tested rather than
+asserted.
+
+\subsection{Kill episodes and the temporal boundary \texorpdfstring{$G$}{G}}
+
+Riot's Match-V5 timeline~\cite{riotapi2024timeline} has no event for damage exchanged between champions.
+Damage and health appear only in the participant frames, which are written once a minute, and as a
+summary of the damage behind each death attached to the kill event. The only champion-versus-champion
+combat event that the timeline timestamps to the millisecond and places on the map is the champion
+kill.
+% src: cached timeline of KR_7715477686 (D:/LOL_Project/cache/match_cache_fresh_v3_engage_status13): event types
+%   BUILDING_KILL, CHAMPION_KILL, CHAMPION_SPECIAL_KILL, DRAGON_SOUL_GIVEN, ELITE_MONSTER_KILL, FEAT_UPDATE, GAME_END,
+%   ITEM_*, LEVEL_UP, PAUSE_END, SKILL_LEVEL_UP, TURRET_PLATE_DESTROYED, WARD_KILL, WARD_PLACED (no damage event);
+%   CHAMPION_KILL keys include victimDamageDealt, victimDamageReceived, position, timestamp; minute-frame node
+%   columns ds_totalDamageDoneToChampions, hp_pct (core/contract.py NODE_IDX).  Checked 2026-09-14.
+The unit is therefore built from kills, and the population is the set of combat episodes that resolve
+with at least one death. This is a \emph{case definition} in the epidemiological sense, a rule that
+fixes which instances are counted: fights without a kill exist, but they lie outside the observable
+population.
+
+Consecutive kills of a match are chained into an episode when their gap is at most $G$. Intervals
+between kills of the same fight are short and intervals between fights are long, so the distribution of
+all intervals has two peaks, and the natural boundary is the lowest point between them, its
+\emph{antimode}. Session identification from inter-activity times \cite{halfaker2015session,mehrzadi2012session}
+and earthquake declustering from nearest-neighbour space--time distances \cite{zaliapin2013clusters}
+place their boundaries the same way, and a kernel density estimate (KDE), a smoothed histogram, is the
+standard tool for locating such peaks \cite{silverman1981multimodality}. On a base-10 logarithmic scale,
+the intervals between consecutive kills have a within-fight mode at 5.7\,s and a between-fight mode at
+62.7\,s.
+% src: FB/details_pooled.json temporal.kde.mode1_s = 5.7214, mode2_s = 62.7336
+A two-component Gaussian mixture decides on which side of the distribution each mode lies, and the
+boundary is the minimum of a Gaussian KDE between the two KDE peaks (analysis/temporal\_boundary.py,
+\texttt{kde\_valley}). Halfaker et al.\ use the mixture's posterior crossing instead. Mehrzadi and
+Feitelson warn that a global threshold can leave artefacts of its own value in the extracted sessions,
+which is one reason to derive the threshold from the data and to re-derive it for every patch.
+
+Across the corpus of 208,141 matches (10,417,458 intervals; the KDE and the mixture are fitted to a
+seeded subsample of 1,000,000 of them) the valley lies at $\hat G = 13.7246$\,s. Its depth, the KDE
+density at the valley divided by the lower of the two mode densities, is 0.87.
+% src: FB/spec_pooled.json n_matches 208141, n_intervals 10417458, gap_s 13.724609610075618, gap_depth 0.8660
+% src: analysis/temporal_boundary.py MAX_POINTS = 1_000_000 (kde_valley and mixture_crossing subsample with seed);
+%      FB/details_pooled.json temporal.mixture.n_fit 1000000
+A bootstrap that resamples whole matches~\cite{efron1993bootstrap}, with 200 replicates, gives a 95\%
+confidence interval (CI) of 12.2--15.7\,s. Each replicate is subsampled to 100,000 intervals, so this
+interval is wider than the full corpus warrants.
+% src: spec_pooled.json gap_ci_s [12.1601, 15.6675], provenance.n_boot 200; analysis/temporal_boundary.py cluster_bootstrap(max_pairs=100_000)
+Varying the bandwidth factor from 0.05 to 0.16 (default 0.08) moves the valley between 13.6 and
+14.1\,s; the mixture crossing lies at 14.5\,s; and the three patches give 14.0, 13.5 and 13.7\,s.
+% src: details_pooled.json temporal.bandwidth_sweep valley_s 14.1254 / 13.7246 / 13.5675 / 13.5675; temporal.mixture.crossing_s 14.4818
+% src: FB/drift.json patches.*.gap_s 13.9637 / 13.4896 / 13.7246
+In a 9,903-match pilot, the terciles of match kill count gave 11.4, 14.0 and 14.5\,s.
+% src: FEAT/temporal_boundary/temporal_boundary.json n_matches 9903, by_kill_count low 11.4156 / mid 13.9637 / high 14.4544
+
+\emph{Reported precision.} The KDE is evaluated on a fixed grid of 1,401 nodes spanning
+$\log_{10}$ intervals from $-0.5$ to $3.0$, a step of 0.0025 in $\log_{10}$, or 79\,ms at 13.7\,s.
+% src: analysis/temporal_boundary.py kde_valley(grid=(-0.5, 3.0, 1401)); python: g=np.linspace(-0.5,3.0,1401) -> node 655 = 13.72461 s, neighbours 13.64583 s and 13.80384 s (steps 78.8 ms and 79.2 ms)
+The valley is therefore always a grid node. This is why the pooled estimate and the estimate for patch
+15.16 coincide to every printed digit (13.7246\,s), and why the bandwidths 0.12 and 0.16 return the
+same valley (13.5675\,s): the coincidence reflects the grid, not unusual stability. We report $G$ to one
+decimal place. The detector was run with $G = 13.700$\,s, the estimate $\hat G = 13.7246$\,s rounded
+before it was injected; the rounding moves $G$ by 25\,ms, less than one grid step.
+% src: FB/drift.json pooled_gap_s = patches."15.16".gap_s = 13.724609610075618
+% src: SHARDS/manifest.json detector.TF2_KILL_CLUSTER_GAP_MS 13700 (= effective_overrides); core/presets.py PRESETS["v3.3"]
+% cmd: 13.7246 - 13.700 = 0.0246 s
+
+\emph{Plateau and continuity with the conference version.} The adjusted Rand index (ARI) measures how
+similarly two partitions group the same items: it is 1 for identical groupings and close to 0 for
+agreement no better than chance \cite{hubert1985comparing}. The partition is insensitive to $G$ near the
+valley: the ARI between the temporal episodes at $\hat G$ and those at another gap stays at or above 0.9
+for every tested gap from 10 to 18\,s, which we report as the plateau, in the spirit of stability-based
+cluster selection \cite{campello2013hdbscan}. The hand-set 18\,s of the conference version, which this
+paper replaces, partitions the corpus's kills into temporal episodes (before the spatial split) almost
+identically to the derived value: ARI 0.9225. The constant changes; the episodes it produces change
+little. For this step, the derived constant justifies the conference version's partition rather than
+overturning it.
+% src: FB/details_pooled.json temporal.ari_vs_valley (reference gap = valley 13.7246 s, all 208,141 matches' kills,
+%   analysis/temporal_boundary.py plateau_ari): "10" 0.9048, "12" 0.9609, "14" 0.9942, "18" 0.9225361913023281, "20" 0.8916;
+%   gaps tested 6..60 s; temporal.plateau_s [10.0, 18.0] (threshold spec_pooled.json plateau_ari 0.9)
+% note: for patch 15.14 alone the plateau starts at 12 s (ari_vs_valley "10" = 0.8991, FB/details_15.14.json)
+How $G$ and $D$ jointly move the engagement set and its predictability was measured on a random sample of
+10,000 matches under the patch holdout (Section~\fwdref{sec:pred-constants}, Table~\fwdref{tab:pred-gxd}).
+Over $G$ from 10 to 18\,s and $D$ from 3,500 to 4,750\,u, the number of engagements changes by $-8.5$\% to
+$+11.6$\%, and on the test engagements detected both at a setting and at the adopted constants the AUC
+differs from the adopted constants' by $-0.0094$ to $+0.0036$. No setting's 95\% interval lies above zero;
+the two that lie below it both have $G = 10$\,s. On this sample the adopted constants reach a test AUC of
+only 0.6252, so only these differences are read, and they do not show that the result is insensitive to
+$G$ and $D$ (Section~\fwdref{sec:pred-constants} states why).
+% src (filled 2026-09-14, item F3-fill-results; was \pending{gxd_sweep}): REV/A6-definition-sensitivity/gd_sweep/gd_sweep_summary.json
+%   provenance.n_matches_sampled 10000, split patch holdout; settings[*].counts.n_engagements min 24764 (G18000_D4750) / max
+%   30185 (G10000_D3500) against 27053 (G13700_D4264): 24764 / 27053 - 1 = -0.0846, 30185 / 27053 - 1 = +0.1158;
+%   settings[*].paired_vs_operating_point.shared_setting_minus_op point min -0.009439 (G10000_D4264), max +0.003594
+%   (G13700_D4000); intervals entirely below zero: G10000_D3500 [-0.015477, -0.000819], G10000_D4264 [-0.017364, -0.002415];
+%   none entirely above zero; settings[G13700_D4264].test.auc.point 0.625191.  All 19 settings: sec_prediction.tex comment
+%   block of subsection sec:pred-constants.
+
+Two qualifications follow from the same analysis. First, the valley is a mid-game feature. In the
+pilot, a clear dip appears only between 10 and 20 minutes (valley 12.2\,s, depth 0.94); before
+10 minutes the dip is too shallow to pass the acceptance threshold (depth 0.96 against 0.95), and
+after 20 minutes the interval density has no dip at all. In the late game $G$ is therefore a convention
+justified only by the plateau.
+% src: FEAT/temporal_boundary/temporal_boundary.json by_phase: 0-10 min depth 0.9588 ok=false; 10-20 min valley 12.1619 depth 0.9400 ok=true; 20-30 and 30+ min valley NaN depth 1.0; threshold MAX_VALLEY_DEPTH = 0.95 in analysis/temporal_boundary.py
+Second, Mehrzadi and Feitelson warn that using activity gaps both to place boundaries and to judge
+them is circular \cite{mehrzadi2012session}. The spatial boundary is therefore validated against an
+independent signal.
+
+\subsection{The spatial boundary \texorpdfstring{$D$}{D}}
+
+Kills that are close in time can still belong to different fights, for instance simultaneous fights in
+two lanes. An episode is therefore split so that no two of its kills are more than $D$ apart: taken in
+time order, each kill joins the first group whose members all lie within $D$ of it, or starts a new
+group (gameplay/fight\_clustering.py, \texttt{split\_kill\_cluster\_spatial}).
+
+$D$ is estimated from a signal the temporal rule does not use: whether two consecutive kills involve
+the same champion, as killer, victim or assister. A champion cannot be in two places at once, so among
+pairs no more than $\hat G$ apart, the rate of sharing a champion as a function of distance traces where
+``same fight'' ends. $D$ is the distance at which that rate falls to 0.5, the decision point that
+misclassifies the fewest pairs when both errors cost the same. Over the 5,460,008 consecutive pairs
+within $\hat G$, $\hat D = 4{,}263.87$\,u (match bootstrap 95\% CI 4,256--4,274\,u). In every map region
+the crossing lies between 3,974\,u (top lane) and 4,412\,u (bases), within 7\% of the pooled value, so a
+single $D$ serves the whole map.
+% src: FB/spec_pooled.json n_pairs_in_window 5460008, diameter_u 4263.868841984671, diameter_ci_u [4256.05, 4273.97]
+% src: FB/details_pooled.json spatial.by_region crossover_u top 3974.5, mid 4180.8, bot 4308.2, river 4279.0, jungle_top 4288.2,
+%   jungle_bot 4375.1, dragon_pit 4406.3, baron_pit 4402.6, base 4412.4
+% cmd: 3974.5 / 4263.87 = 0.932; 4412.4 / 4263.87 = 1.035
+Pairs that the rule links (within $\hat G$ and $\hat D$; 4,622,011 pairs) share a champion in 93.8\%
+of cases, and pairs within $\hat G$ that it separates (farther than $\hat D$; 837,997 pairs) in 5.5\%.
+Beyond 6,000\,u the sharing rate is at most 2.4\% in every distance bin: these are simultaneous fights
+elsewhere.
+% cmd (re-run 2026-09-14): python -c "import numpy as np;G=13.724609610075618;D=4263.868841984671;t={}
+%   for f in ('15.14','15.15','15.16'): z=np.load('FEAT/fight_boundary_full/pairs_%s.npz'%f); dt,dd,sh=z['dt'],z['dd'],z['shared'].astype(bool); fin=np.isfinite(dd)
+%     for k,msk in (('link',(dt<=G)&(dd<=D)),('sep',(dt<=G)&(dd>D)),('merge_le2000',(dt>G)&(dt<=45)&(dd<=2000)),('merge_gt2000',(dt>G)&(dt<=45)&(dd>2000)),('dt_gt60_le2000',(dt>60)&(dd<=2000))):
+%       m=msk&fin; a,b=t.get(k,(0,0)); t[k]=(a+int(sh[m].sum()),b+int(m.sum()))
+%   print({k:(b,round(a/b,4)) for k,(a,b) in t.items()})"
+%      -> link (4622011, 0.9376), sep (837997, 0.0551), merge_le2000 (465651, 0.8798), merge_gt2000 (2111326, 0.4677),
+%         dt_gt60_le2000 (209284, 0.9257)
+% src: details_pooled.json spatial.curve bins centred 7000 / 10000 / 13000 u: 0.0238 / 0.0131 / 0.0061
+
+\emph{Reported precision.} The sharing rate is computed in distance bins, and $\hat D$ is a linear
+interpolation between the centres of the two bins that straddle 0.5: 3,750\,u (rate 0.647) and
+4,500\,u (rate 0.432), which are 750\,u apart. The bootstrap resamples matches but keeps the bins and
+the interpolation fixed. Its 18\,u interval therefore measures the sampling variation of the two bin
+means; it cannot see the error of assuming that the rate is linear across a 750\,u gap. We do not claim
+precision finer than that gap. Only 1.7\% of in-window pairs lie within $\pm$10\% of $\hat D$ (between
+3,837 and 4,690\,u), so a change of $D$ of that size relabels at most 1.7\% of pairs. The detector was
+run with $D = 4{,}264.0$\,u, the estimate $\hat D = 4{,}263.87$\,u rounded before it was injected.
+% src: analysis/spatial_boundary.py DIST_EDGES [...,3500,4000,5000,...]; crossover() "Linear interpolation between bin centres";
+%   bootstrap_crossover() re-bins each replicate with the same edges; mass_near_boundary(tol=0.10)
+% src: details_pooled.json spatial.curve [3750.0, 0.6469, 80489], [4500.0, 0.4325, 97517]; spatial.mass_near_boundary 0.01733
+% cmd: 3750 + (0.64690 - 0.5) / (0.64690 - 0.43250) * 750 = 4263.9; 0.9 * 4263.87 = 3837.5; 1.1 * 4263.87 = 4690.3; 4273.97 - 4256.05 = 17.9
+% src: SHARDS/manifest.json detector.CLUSTER_MAX_DIAMETER 4264.0
+
+Inside lanes the boundary is anisotropic. Holding the across-lane offset below 500\,u, the crossing
+along the lane lies at 5,212, 5,917 and 5,516\,u (top, middle, bottom). Holding the along-lane offset
+below 1,000\,u, the crossing across the lane lies at 3,456, 3,612 and 3,726\,u. Pooled over the corpus,
+the along-lane crossing is 1.5 to 1.6 times the across-lane crossing (top 1.51, middle 1.64, bottom
+1.48). Within single patches the ratio ranges from 1.41 (patch 15.15, bottom) to 1.75 (patch 15.15,
+middle), but the along-lane crossing is the longer one in every lane and every patch (along
+5,124--6,256\,u, across 3,350--3,769\,u).
+% src: details_pooled.json spatial.lane_anisotropy.{top,mid,bot}.{along,across}.crossover_u: along 5212.1/5917.0/5516.0, across 3456.1/3612.5/3725.7
+% src: FB/details_15.14/15.15/15.16.json spatial.lane_anisotropy: along min 5123.8 (15.15 top), max 6255.6 (15.15 mid); across min 3350.4 (15.16 top), max 3768.8 (15.15 bot)
+% cmd (2026-09-14): python -c "import json;[print(t,[round(json.load(open('config/fight_boundary/details_%s.json'%t))['spatial']['lane_anisotropy'][l]['along']['crossover_u']/json.load(open('config/fight_boundary/details_%s.json'%t))['spatial']['lane_anisotropy'][l]['across']['crossover_u'],3) for l in ('top','mid','bot')]) for t in ('pooled','15.14','15.15','15.16')]"
+%   -> pooled [1.508, 1.638, 1.481]; 15.14 [1.463, 1.496, 1.521]; 15.15 [1.494, 1.754, 1.414]; 15.16 [1.584, 1.685, 1.544]  (all > 1)
+We keep the isotropic rule. In the pilot sample an elliptical boundary would have relabelled 381 lane
+pairs, 0.16\% of in-window pairs. Walkable-path distance computed on the minimap's terrain mask did not
+separate shared from unshared pairs better than straight-line distance (area under the receiver
+operating characteristic curve, AUC, 0.939 against 0.940 on 341,734 pilot pairs; median ratio of path
+to straight-line distance 1.09), and the along-lane crossing stays longer than the across-lane crossing
+under path distance (5,765 against 4,444\,u). The anisotropy therefore describes how fights move along
+a lane, not the terrain.
+% src: FEAT/fight_boundary/geodesic_experiment.json ellipse_not_adopted_cost.along_dominant_beyond_D_upto_5765 381,
+%   share_of_all_window_pairs 0.001644; euclid.auc_distance_vs_shared 0.94025, geodesic.auc_distance_vs_shared 0.93906;
+%   n_pairs_used 341734; geo_over_euclid.median 1.0942; lane.geodesic.along_dominant.crossover_u 5765.4,
+%   lane.geodesic.across_dominant.crossover_u 4444.3 (re-read 2026-09-14)
+
+The seismological nearest-neighbour proximity $\eta = \Delta t\,\Delta d^{\,d}$
+\cite{zaliapin2013clusters,zaliapin2022perspectives}, computed on the same kind of kill pairs, is
+bimodal for every exponent we tried ($d = 0, 0.5, 1, 1.5, 2$). The rectangular rule
+($\Delta t \leq G$, $\Delta d \leq D$) thus shares its qualitative structure with an established
+space--time clustering criterion.
+% src: FEAT/fight_boundary/eta_proximity.json valley_ok true for d in {0.0,0.5,1.0,1.5,2.0}
+% note: the draft's "92 % agreement" and "93.3 vs 93.7 %" figures are not in this JSON and were removed.
+
+\subsection{Presence gate, lead and anchor: \texorpdfstring{$R$, $B$ and $M$}{R, B and M}}
+
+A kill alone does not show that both teams were in a position to fight shortly before it. An episode
+therefore becomes an \emph{engagement} only when, at the cutoff
+$\tau$ placed $B$ before its first kill, at least $M = 2$ alive champions of each team stand within $R$
+of the first kill's position, the \emph{anchor}. ``Alive'' is read from the last one-minute frame before
+$\tau$. Positions are read from a 5\,s grid interpolated between one-minute frames, with each kill
+participant's path drawn towards the position of its kill (gameplay/fights.py,
+\texttt{\_validate\_teamfight\_at\_engage}). Ke et al.\ require at least two players on one
+side~\cite{ke2022}; we require two on both sides.
+
+Neither $R$ nor $B$ can be estimated from Match-V5, which records positions once a minute. We therefore
+hold both fixed, by assumption, at values that the game itself uses for a closely related purpose.
+$R = 1{,}600$\,u is the radius within which enemy champions share the experience granted by a champion's
+death. $B = 15$\,s is the window within which the game credits a champion with an assist on Summoner's
+Rift~\cite{lolwiki2026experience,lolwiki2026assist}.
+% src: lolwiki2026experience (Experience (champion), revision 4053165: 1,600 u for champion deaths; minions 1,500 u);
+%   lolwiki2026assist (Assist, revision 4016680: 15 s Summoner's Rift, 20 s Howling Abyss) -- rule_constants_evidence.md section 1
+% src: SHARDS/manifest.json detector.TF2_VALIDITY_RADIUS 1600.0, TF2_ENGAGE_PRE_KILL_MS 15000; FB/spec_pooled.json
+%   radius_source "rule:champion-death experience share radius", lead_source "rule:kill/assist credit window (Summoner's Rift)"
+$B$ also equals the offset at which OpenDota's team-fight processor, whose labels Tot et
+al.\ used~\cite{tot2021camera}, opens a fight before the death that starts it; in its public source the
+offset is 15 and fights with fewer than three deaths are discarded~\cite{opendota2018processteamfights}.
+Which version OpenDota's servers ran when Tot et al.\ fetched their labels is not recorded.
+% src: opendota2018processteamfights = odota/core processors/processTeamfights.js at e2e4432 (2018-10-21): teamfightCooldown = 15,
+%   start = e.time - teamfightCooldown, filter deaths >= 3 (raw file re-read 2026-09-14).  Same constants at 3b6a7cd (2023-12-02,
+%   renamed .mjs), in odota/parser processors/processTeamfights.mjs on master de9d6b2 (2026-08-25) and in its Java port
+%   (src/main/java/opendota/CreateParsedDataBlob.java, int teamfightCooldown = 15; deaths >= 3).  History:
+%   rule_constants_evidence.md section 4.  Tot et al. do not state the offset (references_audit.md 2a), hence both keys.
+%   Unit of e.time (seconds) is inferred from the parser's field names, not stated in the file.
+We searched the official notes for patches 25.14, 25.15 and 25.16, which the Match-V5 \texttt{gameVersion}
+field records as 15.14--15.16, and the hotfixes listed for them
+\cite{riot2025patch2514,riot2025patch2515,riot2025patch2516,lolwiki2026v2514,lolwiki2026v2515,lolwiki2026v2516}.
+No change to the experience-sharing radius or to the assist window is listed. The one related entry, in
+25.14, changes how champion bounties accrue; it alters kill gold, which the label reads from each kill
+event, but neither $R$ nor $B$. ``No change listed'' is the strength of this check: patch notes can omit
+changes, so the values are not verified unchanged.
+% src: rule_constants_evidence.md section 2 (notes published 2025-07-15, 2025-07-29, 2025-08-12; wiki V25.14 hotfix 07-21,
+%   V25.16 hotfixes 08-13/08-14); references_audit.md 3.10 (string search of the downloaded notes: no "assist", no "credit",
+%   no experience range or radius; 25.14 bounty accrual 1 per 17.5 g -> 1 per 20 g, suppression thresholds 25 % wider).
+% Mapping 25.14 = 15.14: rule_constants_evidence.md section 3 (Data Dragon: Yunara, key 804, absent at 15.13.1, present at
+%   15.14.1 [riot2025ddragon1514]; Riot's 25.14 notes introduce Yunara; 108 of 500 sampled corpus matches of version 15.14 field
+%   her, re-checked 2026-09-14).  25.15 and 25.16 follow by succession.  See also Section sec:background (patches paragraph).
+Nearby game quantities are of the same order: champions see 1,350\,u, Zac's Elastic Slingshot, a
+non-ultimate engage ability, reaches 1,800\,u at rank five, and most out-of-combat effects start 5\,s
+after the last combat action~\cite{lolwiki2026sight,lolwiki2026zac,lolwiki2026combatstatus}. These
+values place $R$ and $B$ in a plausible range; they do not single them out. $B$ is a lead, not a fight
+onset.
+% src: rule_constants_evidence.md section 4 (Zac E range template-drawn, no range change V25.10-V25.20; sight 1,350 u and the 5 s
+%   out-of-combat delay are current values, not patch-dated)
+
+Because $R$ and $B$ are held by assumption, we report how much they move the corpus. On 81,914 kill
+episodes from 2,971 matches (with $G = 13.7$\,s and $D = 4{,}264$\,u), the share that qualifies as an
+engagement is 10.3\% at (1,600\,u, 15\,s) and 19.1\% at the conference-version point (1,800\,u,
+10\,s). Over $R \in \{1{,}350,\ 1{,}600,\ 1{,}800,\ 2{,}500\}$\,u and $B \in \{5,\ 10,\ 15\}$\,s the
+share rises with $R$ and falls with $B$, from 6.5\% to 41.1\%, a factor of six.
+% src: FEAT/fight_boundary/presence_sensitivity.json n_matches 2971, n_episodes 81914, constants gap_ms 13700 diam_u 4264 min_per_team 2;
+%   grid.R1600_B15.valid_share 0.1027, grid.R1800_B10.valid_share 0.1914, min grid.R1350_B15 0.0649, max grid.R2500_B5 0.4112;
+%   strictly increasing in R for each B and strictly decreasing in B for each R (checked 2026-09-14)
+% cmd: 0.4112 / 0.0649 = 6.3
+The gate therefore decides the size of the engagement set. It also moves predictability. We re-ran the
+v3.3 pipeline on all 210,000 cached matches with only the gate changed and scored each point under the
+patch holdout with the published LightGBM configuration (Section~\fwdref{sec:pred-constants}). At the
+adopted gate the run reproduces the published test AUC of 0.6665 exactly. At (1,800\,u, 10\,s) the corpus
+holds 1,022,489 engagements, 1.8 times the 566,452 at (1,600\,u, 15\,s), and the test AUC is 0.6736; on
+the 139,397 test engagements that both gates accept it is 0.6693 against 0.6654, a paired difference of
+$+0.0039$ (95\% interval $+0.0025$ to $+0.0053$). With $M = 3$ the corpus holds 76,290 engagements and
+the test AUC is 0.6789, but on the 19,918 test engagements that both gates accept the model trained under
+$M = 3$ is below the adopted gate's model (0.6811 against 0.6877; $-0.0066$, $-0.0097$ to $-0.0035$), so
+the higher AUC comes from which engagements remain. The prediction result is therefore not invariant to the
+gate. $R$ and $B$ remain fixed by the game rules above and $M$ by convention, not chosen by the AUC they
+give.
+% src (filled 2026-09-14, item F3-fill-results; was \pending{presence_gate_v33}): REV/A6-definition-sensitivity/presence_gate/
+%   presence_gate_summary.json (provenance n_matches 210000, git_commit fa166ec, git_dirty_tracked false, n_boot 1000):
+%   points[rule_R1600_B15] counts.all.n_engagements 566452, test.auc.point 0.666484, reproduces_lgbm_paper.test_auc_diff 0.0
+%     (max_abs_pred_diff 0.0, best_iteration 381 = 381);
+%   points[ref_R1800_B10] counts.all.n_engagements 1022489 (1022489 / 566452 = 1.805), test.auc.point 0.673588,
+%     test_rows_vs_reference.n_shared 139397, auc_vs_reference.setting_shared 0.669312, operating_point_shared 0.665425,
+%     paired_vs_reference.shared_setting_minus_op +0.003887 [+0.002550, +0.005307];
+%   points[rule_R1600_B15_M3] counts.all.n_engagements 76290, test.auc.point 0.678927, n_shared 19918,
+%     auc_vs_reference.setting_shared 0.681144, operating_point_shared 0.687695, shared_setting_minus_op -0.006551
+%     [-0.009725, -0.003525].  Label and model effects and the full-row differences: sec_prediction.tex, sec:pred-constants.
+% note: the draft's 0.669 / 0.660 / 0.659 / 0.658 comparison came from a run with the time-feature leak and is not used.
+%   No sentence here claims that predictability is invariant to R, B or M; the v3.3 re-run shows that it is not.
+
+The anchor is the first kill's position rather than the centroid of the episode's kills. Under the
+conference-version constants (2,971 matches, 79,408 episodes), moving the anchor to the centroid, a
+median shift of 663\,u among multi-kill episodes, changed the gate verdict for 6.0\% of episodes. The
+mean number of present champions changed by $+0.02$, and presence classes changed in both directions
+(534 and 445 engagements). This experiment has not been repeated with the v3.3 constants.
+% src: FEAT/fight_boundary/anchor_experiment.json constants gap_ms 18000, diam_u 4000, R 1800, lead_ms 10000; shift_first_to_centroid_u.multi_median 662.57;
+%   centroid.verdict_change_share_all 0.0605; presence_delta_mean_both_valid 0.0177; presence_class_transitions_both_valid skirmish->teamfight 534, teamfight->skirmish 445
+
+\subsection{Which events the label may read}\label{sec:def-attribution}
+
+The outcome label (\texttt{market\_event}, Section~\fwdref{sec:label}) reads events in the window
+$[\tau,\ \max(t_{\mathrm{last\,kill}} + 1\,\mathrm{ms},\ \tau + H))$ with $H = 35$\,s, cut short if an
+ace occurs inside it.
+% src: gameplay/fights.py label_window_end_ts(); _truncate_fights_at_ace(); SHARDS/manifest.json detector.FIGHT_HORIZON_SEC 35
+A kill or a structure on the other side of the map should not decide a fight, so within that window
+label attribution keeps only events whose position lies inside a \emph{disc of radius $D$ centred on the
+anchor}, that is, a disc of diameter $2D = 8{,}528$\,u. Events without a position, such as ward kills,
+are dropped.
+% src: core/presets.py PRESETS["v3.3"] LABEL_EVENT_ATTRIBUTION "engagement"; gameplay/labels.py attribute_events():
+%   radius = LABEL_ATTRIBUTION_RADIUS_U (0.0 in core/config.py) -> CLUSTER_MAX_DIAMETER (4264.0 in v3.3); keeps events with
+%   (dx^2 + dy^2) <= radius^2; anchor = centroid_x/y = first kill position (data/index_split.py _fight_anchor,
+%   gameplay/fight_clustering.py finalize_kill_cluster)
+We use radius $D$, not $D/2$, because the spatial split guarantees that every kill of an unmerged
+episode lies within $D$ of its first kill. Radius $D$ is thus the smallest anchor-centred radius that
+cannot exclude any of the episode's own kills, whereas a disc of diameter $D$ could. The price is that
+the disc can also admit a kill, structure or monster up to $D$ from the anchor that belongs to a
+neighbouring fight. After the re-engagement merge (Table~\ref{tab:constants}), the merged engagement
+keeps the earlier anchor, so kills of the absorbed episode can lie up to $D + 2{,}000$\,u from it,
+outside the disc.
+% src: gameplay/fights.py _merge_adjacent_candidates() keeps the earlier candidate's centroid_x/y; merge radius CONTINUOUS_FIGHT_MERGE_RADIUS 2000.0 (core/config.py)
+How much the radius matters was measured in the label family (Section~\fwdref{sec:label-family}). With
+radius $D/2 = 2{,}132$\,u, a disc of diameter $D$, the label names the same winner as with radius $D$ on
+97.84\% of the 524,711 engagements both decide. On the 484,474 engagements that every label of the family
+decides, a model trained on the radius-$D/2$ label reaches an AUC of 0.6773 against 0.6822 for
+\texttt{market\_event}, a paired difference of $-0.0050$ (95\% interval $-0.0055$ to $-0.0044$;
+Table~\fwdref{tab:label-family}).
+% src: gameplay/labels.py ATTRIBUTION_RADIUS_HALF_V33_U 2132.0, variant "market_event_attr_radius_half"
+% src (filled 2026-09-14, item F2; was \pending{attr_radius}): REV/A2-label-family/label_family_v33.json (partial false, finished
+%   2026-09-14 14:26:43, git_dirty false): agreement_vs_market_event.market_event_attr_radius_half n_both 524711, agreement 0.978396;
+%   rowsets.common n 484474; rowsets.common.variants.market_event_attr_radius_half.auc 0.677253,
+%   rowsets.common.variants.market_event.auc 0.682212; point difference 0.677253 - 0.682212 = -0.004959;
+%   own_minus_market_event ci_2.5 -0.005489, ci_97.5 -0.004430 (mean -0.004967; 1,000 paired match bootstraps, seed 7).
+%   Same values as sec_label.tex Table tab:label-family row "Radius D/2".
+
+\subsection{Re-estimation per patch}
+
+Patches change the rules and parameters of an esport title, so the validity of a model built on one
+version is not guaranteed on the next \cite{chitayat2023beyond}. The constants are therefore not fixed
+once.
+% src: D:/LOL_Project/references/PedrassoliChitayat2023_BeyondTheMeta_AIIDE.pdf (text extracted 2026-09-14): introduction and
+%   related work (patches alter game rules and parameters; with one-hot character encodings "model validity is no longer
+%   guaranteed" as parameters change).  Paraphrase of the paper's motivation only: its own experiment finds no clear drop on the
+%   held-out patches 7.32 / 7.33 (NN1 no difference, NN2 a small drop within the margin of error, NN3 consistent), so the
+%   sentence claims no measured decay.
+A pipeline re-estimates $G$ and $D$ for each patch and applies a drift rule fixed before it was run: a patch keeps the pooled definition if its
+$G$ lies inside the pooled plateau and its $D$ lies within 10\% of the pooled value with an overlapping
+interval.
+% src: FB/drift.json diameter_rel_tol 0.1, plateau_ari 0.9; analysis/fight_boundary_pipeline.py DIAMETER_REL_TOL = 0.10;
+%   docs/DEFINITION_EVIDENCE.md section 10 (rule fixed before running)
+$R$ and $B$ are not estimated; for them the check is the patch-note search described above. For patches
+15.14--15.16 the per-patch values are $G = 14.0$, 13.5 and 13.7\,s and $D = 4{,}285$, 4,265 and
+4,241\,u (at most 0.53\% from the pooled value), all inside, so one definition serves the corpus. The
+value of $G$ for 15.16 equals the pooled value to every digit because both fall on the same grid node.
+% src: FB/drift.json verdict "pooled"; gap_s 13.9637 / 13.4896 / 13.7246; diameter_u 4285.26 / 4265.27 / 4241.47; diameter_rel_diff max 0.00525
+A pilot on 3,000 sampled matches per patch had placed patch 15.15 at 12.6\,s and 4,146\,u; on the full
+corpus that difference vanishes. The tolerances of the drift rule are therefore wide relative to the
+between-patch variation actually observed. Zaliapin and Ben-Zion likewise defend their declustering by
+reporting how little their cluster statistics move under wide changes of catalogue parameters
+\cite{zaliapin2022perspectives}.
+% src: FB/sample_3000/drift.json patches."15.15".gap_s 12.5893, diameter_u 4146.02
+
+\subsection{Scale classes}
+
+Scale is a post-hoc attribute and is used only for reporting, never as a model input. The participation
+count of each side is the number of its champions among the killers, victims and assisters of the
+engagement's kills, plus the actors of other timeline events placed within 3,000\,u of the anchor
+between $\tau$ and the last kill. Structure and monster events are excluded from this count, and events
+without a position are placed at the actor's interpolated position.
+% src: gameplay/fights.py _collect_interactions_in_radius() (TF2_INTERACTION_RADIUS 3000.0; ELITE_MONSTER_KILL, BUILDING_KILL,
+%   TURRET_PLATE_DESTROYED skipped; position-less events use the actor's 5 s grid position; shop events included,
+%   TF2_EXCLUDE_SHOP_INTERACTIONS False); det_cluster_blue/red -> scripts/build_corpus_shard.py cluster_blue/red.
+% note: _merge_adjacent_candidates() does not update det_cluster_blue/red, so a merged engagement keeps the earlier candidate's counts.
+Classes use the smaller side's count, $n_{\min}$. Among the 532,547 engagements of the v3.3 corpus,
+$n_{\min}$ is 1, 2, 3, 4 and 5 in 19.1, 40.2, 20.0, 13.4 and 7.2\% of engagements (42 engagements, 0.01\%,
+carry no participation record). The smaller side's count alone therefore has no antimode. The diagonal
+of the joint distribution does: 2v2 (14.7\%) is a mode, 3v3 is 7.6\%, 4v4 (6.2\%) is a trough, and 5v5
+(7.2\%) is a second mode at the edge of the range.
+% cmd (re-run 2026-09-14): python -c "import numpy as np;z=np.load('FEAT/scale_decomposition_v33_market_event.preds.npz');b=z['cluster_blue'].astype(int);r=z['cluster_red'].astype(int);m=np.minimum(b,r);M=np.maximum(b,r);n=len(m);p=lambda s:round(100*s.sum()/n,2);print('n',n,'min',{k:p(m==k) for k in range(-1,6)},'diag',{k:p((b==k)&(r==k)) for k in range(1,6)},'pick',int((m==1).sum()),p(m==1),'skirmish',int(((m==2)|(m==3)).sum()),p((m==2)|(m==3)),'teamfight',int((m>=4).sum()),p(m>=4),'unknown',int((m<0).sum()),'pick_1vH',{h:round(100*((m==1)&(M==h)).sum()/(m==1).sum(),2) for h in range(1,6)})"
+%      -> n 532547; min {-1: 0.01, 0: 0.0, 1: 19.12, 2: 40.24, 3: 20.01, 4: 13.4, 5: 7.22}; diag {1: 0.42, 2: 14.7, 3: 7.61, 4: 6.17, 5: 7.22};
+%         pick 101798 19.12; skirmish 320878 60.25; teamfight 109829 20.62; unknown 42; pick_1vH {1: 2.18, 2: 47.34, 3: 36.76, 4: 11.09, 5: 2.62}
+Classes follow these modes, as behavioural states are read from density peaks in unsupervised ethology
+\cite{berman2014mapping}. A \emph{pick} has $n_{\min} \leq 1$ (101,798 engagements, 19.1\%; in 84.1\% of
+them one champion faces two or three). A \emph{skirmish} has $2 \leq n_{\min} \leq 3$ (320,878,
+60.3\%). A \emph{teamfight} has $n_{\min} \geq 4$ (109,829, 20.6\%), which is exactly the block in which
+both sides field four or five champions.
+% src: SHARDS/manifest.json scale {pick_max 1, skirmish_min 2, teamfight_min 4}; FEAT/scale_decomposition_v33_market_event.json
+%   by_participation_scale n 101798 / 320878 / 109829 (the 42 rows without a record are outside all three)
+% cmd: 47.34 + 36.76 = 84.10
+The two diagonal modes support two kinds of multi-champion engagement, but neither the margin nor the
+diagonal fixes where between them the cut lies. Placing it at four follows the community sense of whole
+teams fighting and is a convention. The choice decides any per-class comparison. Re-scoring the same
+out-of-fold predictions (the 42 engagements without a record counted as picks), pick AUC minus
+teamfight AUC is $+0.0108$ (95\% CI $+0.0070$ to $+0.0147$) with the cut at three, $-0.0019$ ($-0.0065$
+to $+0.0028$) at four, and $-0.0105$ ($-0.0170$ to $-0.0041$) at five. The sign of the difference
+follows the cut, so no statement about scale is made in either direction
+(Section~\fwdref{sec:prediction}).
+% src: REV/A6-definition-sensitivity/scale_cut_sensitivity_v33.json participation.cuts.{3,4,5}.gaps.pick_minus_teamfight
+%   point +0.010759 / -0.001925 / -0.010499; ci_2.5 +0.00698 / -0.00650 / -0.01701; ci_97.5 +0.01472 / +0.00284 / -0.00410
+%   (400 match bootstraps, seed 7; participation.negative_count_as "zero", rows_with_negative_count 42);
+%   reproduces_main_loop_table.by_reading.zero.{3,4,5}.reproduced_to_4dp true (re-read 2026-09-14).  Artefact provenance
+%   git_commit dc243cf with git_dirty_tracked true: if the A6 re-verification changes these values, update this paragraph.
+% cmd (independent point check, 2026-09-14): python -c "import numpy as np;from sklearn.metrics import roc_auc_score as A;z=np.load('FEAT/scale_decomposition_v33_market_event.preds.npz');y,p=z['y'],z['pred'];m=np.maximum(np.minimum(z['cluster_blue'],z['cluster_red']),0);print({c:round(A(y[m<=1],p[m<=1])-A(y[m>=c],p[m>=c]),4) for c in (3,4,5)})"
+%      -> {3: 0.0108, 4: -0.0019, 5: -0.0105}
+Under the conference-version constants, excluding item-shop events from the interaction set changed the
+class of 1.6\% of engagements (226 of 14,211, on 3,000 matches). The effect of the 3,000\,u radius itself
+has not been measured under v3.3.
+% src: FEAT/shop_event_sensitivity.json n_matches 3000, n_engagements_with_shop 14211, n_class_changes 226, class_change_rate 0.0159 (run 2026-08-12, CoG constants)
+
+\subsection{Every constant and its source}\label{sec:def-constants}
+
+Table~\ref{tab:constants} lists every constant that shapes the engagement set, its scale class or the
+label, with its value and one of four source classes. \emph{Data-derived} constants are estimated from the corpus, with an estimator and
+an interval. \emph{Rule anchors} are fixed by assumption at a value the game applies and are checked
+against the patch notes. \emph{Convention} marks choices that follow a published definition, community
+usage or the conference version. \emph{Engineering} marks implementation choices; for each we give the
+measured impact, or state that it has not been measured. Values are those injected into the detector: $G$ and $D$ were rounded before injection
+(13.7246\,s to 13.700\,s, 4,263.87\,u to 4,264.0\,u), and constants that the v3.3 preset does not set
+keep their configuration defaults.
+
+Three kinds of constant are left out of the table. The detector reads a proximity radius of 1,800\,u
+that feeds only per-player diagnostics, not the engagement set. Its configuration also carries switches
+of earlier detectors (for instance, a requirement of a kill or a combat signal in the horizon) that the
+kill-anchored detector never reads. The v3.3 preset further fixes three input-feature settings (game time
+divided by 45 minutes and capped at one, map anchors restricted to buildings destroyed before the cutoff,
+and the age of the last frame as an extra column); they change what a model sees, not which engagements
+exist or how they are labelled, and Section~\ref{sec:learners-input} describes them.
+% src: core/presets.py PRESETS["v3.3"] TIME_NORM_ABSOLUTE True + TIME_NORM_DENOM_MIN 45.0 (one setting: min(t / 45 min, 1), core/config.py
+%   comment above TIME_NORM_ABSOLUTE), ANCHORS_CAUSAL True, TAB_FRAME_AGE_FEATURE True;
+% src: gameplay/fights.py detect_fights_teamfight_v2: R_compat = config.standoff_radius (STANDOFF_RADIUS 1800.0) feeds prox_pairs,
+%   compute_player_engagement() and generate_fight_visualization() only; det_prox_pairs (used by the overlap priority) is
+%   blue_cnt * red_cnt, not prox_pairs.  FightDetectorConfig.from_cfg loads VERIFY_KILL_IN_HORIZON, FIGHT_VALIDATION_RULE,
+%   MIN_DAMAGE_NORM_IN_HORIZON, MIN_SUMMONER_SPELLS_IN_HORIZON, USE_BACKTRACK/BACKTRACK_*, USE_KILL_ANCHOR/KILL_ANCHOR_*,
+%   REQUIRE_ENGAGED_PER_TEAM, REQUIRE_LCC_*, STANDOFF_MIN_PAIRS, ENGAGE_MIN_*, REQUIRE_WARD_ACTOR_IN_FIGHT_RADIUS,
+%   WARD_ACTOR_RADIUS, DETECT_STEP_MS; the detector never reads these dataclass fields (grep over gameplay/, data/, scripts/,
+%   app/, core/, analysis/, 2026-09-14); several are only hashed into the fight-index cache key
+%   (data/index_split.py _FIGHT_INDEX_CACHE_CFG_KEYS).
+% note: LABEL_TIE_EPS (default 1e-8, getattr in gameplay/labels.py) is read by _compute_label_attention_value_win,
+%   _compute_label_kill_survival and _compute_label_weighted, not by _compute_label_market_event() or _lex_refine(), so it is
+%   not a constant of the v3.3 label.  LABEL_GOLD_METHOD is read by market_lex, weighted and _compute_window_targets only.
+\begin{table*}[!t]
+\centering
+\caption{Constants that shape the engagement set, the scale classes and the label of the v3.3 corpus,
+with value and source class. Values are those injected into the detector (\texttt{core/presets.py},
+preset \texttt{v3.3}; other constants at their \texttt{core/config.py} defaults). Constants omitted
+from the table are named in Section~\ref{sec:def-constants}.}
+\label{tab:constants}
+\scriptsize
+\renewcommand{\arraystretch}{1.0}
+\setlength{\tabcolsep}{3.5pt}
+% src (values): core/config.py CFG defaults; core/presets.py PRESETS["v3.3"]; SHARDS/manifest.json (detector, effective_overrides, label, scale)
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.25cm}>{\raggedright\arraybackslash}p{3.05cm}>{\raggedright\arraybackslash}p{1.75cm}>{\raggedright\arraybackslash}p{1.9cm}X@{}}
+\toprule
+Constant & Configuration key & Value & Source class & Basis and measured impact \\
+\midrule
+\multicolumn{5}{@{}l}{\emph{Detector: episode boundaries}} \\
+Kill gap $G$ & \texttt{\scriptsize TF2\_\allowbreak KILL\_\allowbreak CLUSTER\_\allowbreak GAP\_\allowbreak MS} & 13.7\,s (estimate 13.7246\,s; run at 13,700\,ms) & Data-derived &
+KDE antimode of log inter-kill intervals, 208,141 matches; match bootstrap 95\% CI 12.2--15.7\,s (conservative); ARI $\geq$ 0.9 for 10--18\,s; ARI 0.9225 against the former 18\,s; estimate resolution 79\,ms (grid). Downstream, $G$ = 10--18\,s at adopted $D$: AUC on shared engagements $-0.0094$ to $+0.0013$ (Table~\fwdref{tab:pred-gxd}). \\
+Diameter $D$ & \texttt{\scriptsize CLUSTER\_\allowbreak MAX\_\allowbreak DIAMETER} & 4,264\,u (estimate 4,263.87\,u; run at 4,264.0\,u) & Data-derived &
+0.5 crossing of the champion-sharing rate over 5,460,008 pairs; match bootstrap 95\% CI 4,256--4,274\,u, sampling only (interpolated between bin centres 750\,u apart). Downstream, $D$ = 3,500--4,750\,u at adopted $G$: $-0.0056$ to $+0.0036$. \\
+Executions & kills with \texttt{\scriptsize killerId} 0 & included & Engineering &
+619 of 152,513 kills (0.41\%) and 0.78\% of consecutive pairs (2,967-match pilot). Effect on engagements not measured. \\
+\multicolumn{5}{@{}l}{\emph{Detector: presence gate}} \\
+Presence radius $R$ & \texttt{\scriptsize TF2\_\allowbreak VALIDITY\_\allowbreak RADIUS} & 1,600\,u & Rule anchor &
+Champion-death experience-sharing radius~\cite{lolwiki2026experience}; no change listed in patch notes 25.14--25.16. Qualifying share of kill episodes 10.3\% (19.1\% at 1,800\,u, 10\,s). At (1,800\,u, 10\,s): 1,022,489 engagements, AUC on shared engagements $+0.0039$. \\
+Lead $B$ & \texttt{\scriptsize TF2\_\allowbreak ENGAGE\_\allowbreak PRE\_\allowbreak KILL\_\allowbreak MS} & 15\,s & Rule anchor &
+Assist window on Summoner's Rift~\cite{lolwiki2026assist}; no change listed in patch notes 25.14--25.16; equals OpenDota's team-fight start offset~\cite{opendota2018processteamfights}. Sets the cutoff $\tau$. Predictive effect: moved together with $R$ (Section~\fwdref{sec:pred-constants}). \\
+Minimum per team $M$ & \texttt{\scriptsize TF2\_\allowbreak MIN\_\allowbreak PER\_\allowbreak TEAM}, \texttt{\scriptsize REQUIRE\_\allowbreak ALIVE\_\allowbreak PER\_\allowbreak TEAM} & 2 & Convention &
+At least two players on a side, after Ke et al.~\cite{ke2022}; required on both sides, within $R$ and in the whole team. At $M = 3$: 76,290 engagements, AUC on shared engagements $-0.0066$. \\
+Position grid & \texttt{\scriptsize TF2\_\allowbreak GRID\_\allowbreak STEP\_\allowbreak MS}; \texttt{\scriptsize TF2\_\allowbreak USE\_\allowbreak FRAME\_\allowbreak INTERP}, \texttt{\scriptsize TF2\_\allowbreak USE\_\allowbreak KILL\_\allowbreak TRAJECTORY\_\allowbreak INTERP} & 5\,s; on, on & Engineering &
+Linear interpolation between one-minute frames, kill participants moved towards the kill position. Against 152,517 victims' kill positions (3,000-match pilot) linear interpolation errs by a median 1,149\,u, an upper-side figure because a victim's next frame follows its death. Effect on the gate not measured. \\
+\multicolumn{5}{@{}l}{\emph{Detector: assembly and guards}} \\
+Re-engagement merge and gap & \texttt{\scriptsize CONTINUOUS\_\allowbreak FIGHT\_\allowbreak MERGE}; \texttt{\scriptsize CONTINUOUS\_\allowbreak FIGHT\_\allowbreak MAX\_\allowbreak GAP\_\allowbreak MS} & on; 15\,s & Engineering &
+A candidate whose cutoff falls at most 15\,s after the previous label-window end (or inside it) is merged into it if the anchors are within the re-engagement radius and the duration cap holds. Merges not counted. \\
+Re-engagement radius & \texttt{\scriptsize CONTINUOUS\_\allowbreak FIGHT\_\allowbreak MERGE\_\allowbreak RADIUS} & 2,000\,u & Engineering (proxy measured) &
+Kill pairs $\hat G$--45\,s apart share a champion in 88.0\% of cases within 2,000\,u and 46.8\% beyond (full corpus; 86.9\% at 18--45\,s, 2,967-match pilot). Pairs over 60\,s apart share one in 92.6\% within 2,000\,u, so sharing cannot tell a resumed fight from a later one at the same place. Corpus effect not measured. \\
+Duration cap & \texttt{\scriptsize MAX\_\allowbreak MERGED\_\allowbreak FIGHT\_\allowbreak DURATION\_\allowbreak MS} & 60\,s & Engineering &
+Rejects a candidate whose last kill is more than 60\,s after $\tau$; skips a merge whose label window would end more than 60\,s after the earlier cutoff. Not measured. \\
+Start and end exclusion & \texttt{\scriptsize START\_\allowbreak OFFSET\_\allowbreak MIN}; $H$ & 2\,min; $\tau + 35$\,s & Engineering &
+Cutoffs in the first two minutes are rejected, as are cutoffs less than 35\,s before the last frame. Not measured. \\
+Context guard, observation window & \texttt{\scriptsize FIGHT\_\allowbreak CONTEXT\_\allowbreak SEC}, \texttt{\scriptsize BIN\_\allowbreak MS}, \texttt{\scriptsize PREDICTION\_\allowbreak GAP\_\allowbreak MS} & 30\,s in 5\,s bins; gap 0 & Convention (conference version) &
+$\tau - 30$\,s must not precede the first frame; the 30\,s up to $\tau$ form the observation window (Section~\ref{sec:learners-window}). Sweep (patch holdout): 2.5\,s bins $+0.0063$ [$+0.0029$, $+0.0100$] AUC over 0.6380 with one seed's models (Holm-adjusted $p \leq 0.005$) but $+0.0016$ [$-0.0007$, $+0.0039$] over ten seeds; other windows and bins $-0.0009$ to $+0.0042$, none above zero after adjustment or over ten seeds. \\
+Label horizon $H$; ace truncation & \texttt{\scriptsize FIGHT\_\allowbreak HORIZON\_\allowbreak SEC}; -- & 35\,s; on & Engineering; ace: convention &
+Keeps the conference version's reach of first kill $+20$\,s. Pilot (553 matches, \texttt{market\_lex} labels): 97.5\% and 94.3\% label agreement with 45\,s and 60\,s windows. The window ends early at an ace (not measured). \\
+Overlap resolution & location radius $= D$ & on & Engineering &
+When a cutoff falls inside the previous engagement's label window and the two are not merged, the one with lower priority (mainly the product of the two sides' participant counts) is removed; if the anchors are more than $D$ apart and the earlier one has lower priority, its window is clipped instead. Priority uses participation after the cutoff. Not measured. \\
+Tail buffer, minimum start gap & \texttt{\scriptsize TF2\_\allowbreak TAIL\_\allowbreak BUFFER\_\allowbreak MS}, \texttt{\scriptsize FIGHT\_\allowbreak MIN\_\allowbreak GAP\_\allowbreak MS} & 0, 0 & Engineering &
+Disabled. \\
+Post-fight window & \texttt{\scriptsize TF2\_\allowbreak POST\_\allowbreak FIGHT\_\allowbreak WINDOW\_\allowbreak MS} & 30\,s & Engineering (unused) &
+Feeds only a diagnostic record of the detector; read by neither the label nor the features, so it has no effect on the corpus. \\
+Interaction radius, shop events & \texttt{\scriptsize TF2\_\allowbreak INTERACTION\_\allowbreak RADIUS}; \texttt{\scriptsize TF2\_\allowbreak EXCLUDE\_\allowbreak SHOP\_\allowbreak INTERACTIONS} & 3,000\,u; shop events included & Engineering &
+Adds event actors to participation counts (scale classes only). Carried over without a measured basis; not measured under v3.3. Shop events have no position and are placed at the buyer's interpolated position; excluding them changed 1.6\% of classes (conference constants, 3,000 matches). \\
+\multicolumn{5}{@{}l}{\emph{Scale classes and label}} \\
+Scale cuts & \texttt{\scriptsize pick\_max}, \texttt{\scriptsize teamfight\_min} & $\leq 1$ / 2--3 / $\geq 4$ & Convention &
+Shares 19.1 / 60.3 / 20.6\%; pick minus teamfight AUC $+0.0108$ / $-0.0019$ / $-0.0105$ with the teamfight cut at 3 / 4 / 5. \\
+Dead zone $\varepsilon$ & \texttt{\scriptsize LABEL\_\allowbreak GOLD\_\allowbreak DEADZONE} & 300\,g & Engineering (rule-motivated) &
+One base champion kill bounty~\cite{lolwiki2026bounties,riot2025patch2509}; swings within $\pm\varepsilon$ go to refinement. Variants at 0, 150, 600 and 900\,g (Table~\fwdref{tab:label-family}): common-row AUC 0.6737, 0.6785, 0.6860 and 0.6871, against 0.6822 at 300\,g. \\
+Attribution & \texttt{\scriptsize LABEL\_\allowbreak EVENT\_\allowbreak ATTRIBUTION}; \texttt{\scriptsize LABEL\_\allowbreak ATTRIBUTION\_\allowbreak RADIUS\_\allowbreak U} $= 0 \Rightarrow D$ & engagement; 4,264\,u & Engineering (tied to $D$) &
+Only events with a position inside a disc of radius $D$ (diameter $2D$) around the anchor are read. Radius $D/2$ (Table~\fwdref{tab:label-family}): common-row AUC 0.6773 against 0.6822, paired difference $-0.0050$ [$-0.0055$, $-0.0044$]; 97.84\% agreement. \\
+Event prices & \texttt{\scriptsize LABEL\_\allowbreak EVENT\_\allowbreak PRICE\_\allowbreak TABLE} & table & Data-derived (regression) &
+Team gold per structure, plate and monster; estimated and audited in Section~\fwdref{sec:label}. \\
+Price perturbation & \texttt{\scriptsize LABEL\_\allowbreak EVENT\_\allowbreak PRICE\_\allowbreak NONKILL\_\allowbreak SCALE}; \texttt{\scriptsize LABEL\_\allowbreak EVENT\_\allowbreak PRICE\_\allowbreak OVERRIDES} & 1.0; none & Engineering (identity) &
+Identity. Variants scale non-kill prices by 0.5 or 2 or price an elemental dragon by the game's rule (Table~\fwdref{tab:label-family}): common-row AUC $-0.0021$, $+0.0062$ and $-0.0001$ from 0.6822, the last with an interval containing zero. \\
+Draws & \texttt{\scriptsize LABEL\_\allowbreak TIE\_\allowbreak POLICY} & drop & Convention &
+Engagements on which the label finds no winner are dropped: 33,905 of 566,452. \\
+\bottomrule
+\end{tabularx}
+% src (row "Kill gap", "Diameter"): spec_pooled.json; SHARDS/manifest.json detector (13700 ms, 4264.0 u); FB/details_pooled.json temporal.ari_vs_valley."18" 0.9225
+% src (rows "Kill gap", "Diameter", downstream; filled 2026-09-14, item F3-fill-results; was \pending{gxd_sweep}):
+%   REV/A6-definition-sensitivity/gd_sweep/gd_sweep_summary.json settings[*].paired_vs_operating_point.shared_setting_minus_op.point.
+%   G row, D = 4,264 u: G10000_D4264 -0.009439, G12000_D4264 -0.005744, G16000_D4264 +0.001320, G18000_D4264 -0.000126
+%   -> -0.0094 to +0.0013.  D row, G = 13.7 s: G13700_D3500 -0.001980, G13700_D4000 +0.003594, G13700_D4750 -0.005638
+%   -> -0.0056 to +0.0036.  Whole grid and intervals: sec_prediction.tex, sec:pred-constants, Table tab:pred-gxd.
+% src (rows "Presence radius", "Lead", "Minimum per team", predictive effect; filled 2026-09-14, item F3-fill-results; was
+%   \pending{presence_gate_v33}): REV/A6-definition-sensitivity/presence_gate/presence_gate_summary.json
+%   points[ref_R1800_B10].counts.all.n_engagements 1022489, paired_vs_reference.shared_setting_minus_op.point +0.003887;
+%   points[rule_R1600_B15_M3].counts.all.n_engagements 76290, shared_setting_minus_op.point -0.006551.  The (1,800 u, 10 s) point
+%   changes R and B together, hence "moved together with R" in the Lead row.
+% src (row "Executions"): FEAT/kill_pairs_summary.json n_matches 2967, n_kills 152513, n_exec 619, exec.kills_exec_share 0.00406,
+%   exec.pairs_involving_exec 0.00780; gameplay/fights.py _extract_kill_events keeps killerId 0
+% src (rows "Presence radius", "Lead"): lolwiki2026experience, lolwiki2026assist, opendota2018processteamfights; FEAT/fight_boundary/presence_sensitivity.json
+% src (row "Minimum per team"): core/config.py TF2_MIN_PER_TEAM 2 (within R, gameplay/fights.py _validate_teamfight_at_engage),
+%   REQUIRE_ALIVE_PER_TEAM 2 (whole team alive at the last frame before tau, _check_alive_at_ts); presence-gate point
+%   rule_R1600_B15_M3 in scripts/run_presence_gate_points.py
+% src (row "Position grid"): gameplay/fight_clustering.py build_5s_position_grid(); core/config.py TF2_GRID_STEP_MS 5000,
+%   TF2_USE_FRAME_INTERP True, TF2_USE_KILL_TRAJECTORY_INTERP True; FEAT/fight_boundary/interp_and_horizon.json n_matches 3000,
+%   n_kills_measured 152517, interp_error_u.linear.p50 1149 (victim's kill position vs frames; interp_and_horizon.py)
+% src (row "Re-engagement radius"): FEAT/kill_pairs_summary.json n_matches 2967, zones.C_phase3_dt18-45_dd<=2000 n 4511 shared_rate 0.8694
+%   (docs/DEFINITION_EVIDENCE.md section 3.6); full corpus: "% cmd:" one-liner in the spatial subsection (merge_le2000 465651 0.8798,
+%   merge_gt2000 2111326 0.4677, dt_gt60_le2000 209284 0.9257); DEFINITION_EVIDENCE.md section 3.2 already notes that sharing is high
+%   for unrelated kills far apart in time
+% src (row "Re-engagement merge and gap"): core/config.py CONTINUOUS_FIGHT_MERGE True (line 513), CONTINUOUS_FIGHT_MAX_GAP_MS 15000;
+%   gameplay/fights.py detect_fights_teamfight_v2: merge runs only if config.continuous_fight_merge
+% src (row "Context guard"): core/config.py PREDICTION_GAP_MS 0 (line 455; not set by PRESETS["v3.3"]); gameplay/pipeline.py
+%   (line ~119) prediction_gap_ms = getattr(cfg, "PREDICTION_GAP_MS", 0): observation window ends at engage_ts - gap, label window starts at engage_ts
+%   Sweep values (filled 2026-09-14, item F2-fill-and-gloss; was \pending{window}): REV/A3-temporal-windows/window_sweep_paired_cis_v33.json
+%   (item C2, created_utc 2026-09-14T07:41:41Z after the rewrite that added seed_replication, re-read 2026-09-14 by item F4; checks.passed true; source_run.n_matches_sampled 20000, checks.common_rows n_rows 50766,
+%   n_matches 18335; split patch holdout 15.14 / 15.15 / 15.16, test 14,417 rows, 5,206 matches; lgbm_params = published configuration,
+%   400 trees, learning rate 0.05, 31 leaves, early stopping on 15.15).  protocols.patch.auc.ctx30_bin5000.auc 0.637953;
+%   protocols.patch.paired.<arm> - ctx30_bin5000 delta [ci_lo, ci_hi] (2,000 match bootstraps, seed 7):
+%   ctx15_bin5000 -0.000923 [-0.004876, +0.002671]; ctx60_bin5000 +0.003760 [-0.000311, +0.007678]; ctx120_bin5000 +0.004198
+%   [+0.000040, +0.008467]; ctx30_bin2500 +0.006325 [+0.002878, +0.009956]; ctx30_bin10000 +0.000418 [-0.003466, +0.004060].
+%   family_ci (Bonferroni over the five arms) excludes zero only for ctx30_bin2500 [+0.001932, +0.010999] (ctx120 family
+%   [-0.001305, +0.010111]); for ctx30_bin2500 the Holm-adjusted p is a bound, not an estimate (p_at_floor true,
+%   p_two_sided_holm_is_bound true, p_report "Holm-adjusted bootstrap p <= 0.0050"; no replicate of 2,000 reached zero), so it is
+%   written only as p <= 0.005 if ever printed; >= 0.196 for the others.  Hence "-0.0009 to +0.0042, none
+%   above zero after adjustment" for the other four arms (the unadjusted ctx120 interval excludes zero by 0.00004).  Row kept short:
+%   a longer version overfilled the table* page by 6.1 pt (build check 2026-09-14).
+%   Ten-seed qualification (added 2026-09-14, item F4-consistency-fills): the intervals above hold the seed-7 models fixed
+%   (method.held_fixed).  seed_replication (seeds 7, 1-6, 8-10; LightGBM random_state only, which seeds the 0.9 column draw;
+%   patch holdout only) paired.<arm> - ctx30_bin5000 .seed_mean delta [ci_lo, ci_hi] = difference of ten-seed mean AUCs, interval
+%   from 2,000 replicates that redraw the matches and ten seeds per setting: ctx30_bin2500 +0.001568 [-0.000734, +0.003896]
+%   (seed 7's +0.006325 is same_seed_delta_max of the ten); ctx15 -0.002503 [-0.005656, +0.000387]; ctx60 +0.003051
+%   [-0.000129, +0.006244]; ctx120 +0.000431 [-0.002986, +0.003817]; ctx30_bin10000 -0.000302 [-0.002867, +0.002194].  Every
+%   ten-refit interval includes zero, hence "none above zero after adjustment or over ten seeds" ("other windows and bins" = the
+%   15, 60, 120 s windows and the 10 s bins).  "the 30 s up to tau": the gap 0 is in the value column.  The 20,000-match sample
+%   size was dropped from the row to keep the table* on its page (first F4 build overfilled it by 6.1 pt; final build clean);
+%   sec:learners-window states it.
+% src (row "Interaction radius, shop events"): core/config.py TF2_EXCLUDE_SHOP_INTERACTIONS False (line 486; comment: shop events have no
+%   position and are placed by the actor's interpolated location); gameplay/fights.py _collect_interactions_in_radius exclude_shop;
+%   FEAT/shop_event_sensitivity.json class_change_rate 0.0159 (226 / 14211)
+% src (row "Attribution"): core/presets.py PRESETS["v3.3"] LABEL_EVENT_ATTRIBUTION "engagement"; core/config.py LABEL_ATTRIBUTION_RADIUS_U 0.0
+%   Radius D/2 values (filled 2026-09-14, item F2; was \pending{attr_radius}): see the src comment at the end of subsection
+%   sec:def-attribution (REV/A2-label-family/label_family_v33.json market_event_attr_radius_half: common auc 0.677253 vs
+%   market_event 0.682212, own_minus_market_event [-0.005489, -0.004430], agreement 0.978396 on n_both 524711).
+% src (row "Dead zone", filled 2026-09-14, item F2; was \pending{labels}): REV/A2-label-family/label_family_v33.json (partial false)
+%   rowsets.common.variants.{market_event_dz0, market_event_dz150, market_event_dz600, market_event_dz900}.auc 0.673699 / 0.678536 /
+%   0.685977 / 0.687110; market_event 0.682212 (484,474 common rows, 188,104 matches); sec_label.tex Table tab:label-family.
+% src (row "Price perturbation"): core/config.py LABEL_EVENT_PRICE_NONKILL_SCALE 1.0, LABEL_EVENT_PRICE_OVERRIDES {} (field default_factory=dict);
+%   gameplay/labels.py _apply_price_table_variant() returns the table unchanged when scale == 1.0 and no overrides; variants
+%   market_event_prices_x0.5 / market_event_prices_x2 (NONKILL_SCALE) and market_event_dragon_rule (OVERRIDES {"dragon": DRAGON_RULE_TEAM_GOLD})
+%   in LABEL_VARIANTS, all required=True; results: REV/A2-label-family/label_family_v33.json (finished 2026-09-14 14:26:43,
+%   partial false; queue_state A2_label_family_v33_full.ok).  Filled 2026-09-14, item F2 (was \pending{labels}): common-row
+%   AUC minus market_event (0.682212), point on unrounded AUCs: prices_x0.5 0.680134 - 0.682212 = -0.002078 [ci -0.002423,
+%   -0.001735]; prices_x2 0.688404 - 0.682212 = +0.006192 [+0.005714, +0.006665]; dragon_rule 0.682152 - 0.682212 = -0.000060
+%   [-0.000302, +0.000169] (own_minus_market_event ci_2.5 / ci_97.5, 1,000 paired match bootstraps).
+% note (rule values, item F1 2026-09-14): this section prints no turret, plate or drake rule value.  The "game's rule" of the dragon
+%   variant is gameplay/labels.py DRAGON_RULE_TEAM_GOLD 25.0 g, the elemental-drake kill gold in force before patch 26.1 (set in the
+%   V9.23 hotfix, raised to 75 in V26.01; Riot's 26.1 notes "Kill gold: 25 => 75"; no drake gold change in the 25.14-25.16 notes),
+%   i.e. the 15.14-15.16 value at the "no change listed" standard (references_audit.md N9; rule_constants_evidence.md section 4).
+% src (rows "Re-engagement merge and gap", "Duration cap", "Start and end exclusion", "Context guard"): gameplay/fights.py detect_fights_teamfight_v2
+%   guards (engage_ts - ctx_ms < t_min; engage_ts - t_min < START_OFFSET_MIN; engage_ts + horizon_ms > t_max;
+%   fight_end_ts - engage_ts > max_merged_fight_duration_ms) and _merge_adjacent_candidates() (gap <= max_gap_ms, centroid distance
+%   <= merge_radius, span from the earlier engage_ts to the merged horizon_end_ts <= max_duration_ms)
+% src (row "Label horizon"): FEAT/prediction_situation_pilot.json checks.horizon."45".label_agreement_with_35 0.9748, ."60" 0.9431; n_matches 553
+% src (row "Overlap resolution"): gameplay/fight_postmerge.py enforce_postmerge_spacing_and_nonoverlap() (location_radius = CLUSTER_MAX_DIAMETER)
+%   and fight_priority_score() = 100 * det_prox_pairs + 50 * det_anchor + 20 * n_segments + 10 * det_backtracked, det_prox_pairs = blue_cnt * red_cnt
+% src (row "Post-fight window"): gameplay/fights.py _compute_postfight_outcome() -> fight["post_fight_outcome"], read only by
+%   app/detection_quality_report.py and analysis/analysis.py (grep, re-run 2026-09-14)
+% src (row "Interaction radius"): no artefact gives a basis for 3,000 u; its former justification is withdrawn (docs/CLAUDE_TOG_PAPER_PLAN.md section 4)
+% src (row "Scale cuts"): scale subsection (preds one-liner; REV/A6-definition-sensitivity/scale_cut_sensitivity_v33.json)
+% src (row "Dead zone"): lolwiki2026bounties (revision 4040646: base 300 g at levels 1-6) and riot2025patch2509 (base set in 25.09);
+%   Riot's notes for 25.10-25.16 list no base-kill-gold change (references_audit.md N4); variants gameplay/labels.py
+%   market_event_dz{0,150,600,900}
+% src (row "Draws"): SHARDS/manifest.json label.extra_tie_policy "drop" (scripts/build_corpus_shard.py --extra-tie-policy sets
+%   cfg.LABEL_TIE_POLICY for the extra labels, which include market_event; row_tie_policy "random" applies only to the row label);
+%   REV/A6-definition-sensitivity/scale_cut_sensitivity_v33.json
+%   alignment_with_shards shard_rows 566452, shard_rows_with_label 532547 (566452 - 532547 = 33905)
+\end{table*}
+
+\subsection{What a kill-anchored definition cannot see}\label{sec:def-killless}
+
+Fights in which no champion dies are outside the population by construction. Two questions follow:
+how common such fights are, and whether their outcome could be scored if they were detected.
+
+\emph{Frequency.} A kill-anchored detector cannot count what it omits, so we counted proximity
+directly. Schubert et al.\ report that 81.1\% of the proximity encounters they detected in Dota~2
+contained no kill, and they restricted outcome analysis to encounters that one side won on
+kills~\cite{schubert2016encounter}.
+% src: D:/LOL_Project/references/Schubert2016_EncounterDetection_SSAC.pdf (pdftotext, re-read 2026-09-14), results on encounter extraction:
+%   23,110 encounters, 18,744 (81.1 %) without kill events (18744 / 23110 = 0.8111); further experiments on the 4,012 "decisive"
+%   encounters in which one team killed more opponents than the other.  Also docs/DEFINITION_LITERATURE.md line 254.
+We scanned the 5\,s position grid of 20,000 matches, sampled with a fixed seed from the 210,000 cached
+matches of patches 15.14--15.16, for \emph{proximity encounters}: runs of consecutive grid points at which
+some alive champion has at least $k$ alive champions of each team, itself included, within
+$R = 1{,}600$\,u of its position. An encounter counts as kill-less when no champion kill, anywhere on the
+map, falls inside the run or within $B = 15$\,s of either end. With $k = 4$, the teamfight threshold, 591
+of 19,155 encounters (3.09\%) were kill-less when a run had to hold for at least three consecutive grid
+points, the scanner's rounding of a minimum duration of $G = 13.7$\,s, and 351 of 12,602 (2.79\%) at four
+points, its rounding of 20\,s. These are 0.030 and 0.018 kill-less encounters per scanned match. On the
+same 20,000 matches the labelled corpus holds 0.529 teamfight-class engagements per match; the rate per
+corpus match, 0.572, is higher because 1,665 of the scanned matches have no labelled engagement. With
+$k = 2$ and three grid points, 16,756 of 210,738 encounters (7.95\%) were kill-less, 0.838 per scanned
+match, against 2.538 labelled engagements per scanned match. The other six gates of the grid set the
+radius to 1,200 or 2,000\,u, set $k$ to 3 at either minimum duration or to 2 at 20\,s, or shorten the kill
+margin to 10\,s. Across all gates with $k \geq 3$ the kill-less share lies between 2.0\% and 4.3\%; the two
+gates with $k = 2$ give 6.8\% and 8.0\%.
+% src: REV/killless_grid/summary.json (written 2026-09-11 11:25:37, git_commit 5600f8b, seed 7, 20,000 matches per row, grace_ms 15000):
+%   rows[setting r1600_t4_dG_g15] min_duration_s 13.7, encounters 19155, killless 591, killless_share_of_encounters 0.030854, killless_per_match 0.02955;
+%   rows[setting r1600_t4_d20_g15] encounters 12602, killless 351, share 0.027853, killless_per_match 0.01755;
+%   rows[setting r1600_t2_dG_g15] encounters 210738, killless 16756, share 0.079511, killless_per_match 0.8378;
+%   corpus_reference.teamfight_class_per_match 0.572205 (= 109829 / 191940).
+% src: same file, all nine rows, killless_share_of_encounters (re-read 2026-09-14): k >= 3 rows r1200_t4_dG_g15 0.020003, r1600_t3_d20_g15 0.032722,
+%   r1600_t3_dG_g15 0.039922, r1600_t4_d20_g15 0.027853, r1600_t4_dG_g10 0.043435, r1600_t4_dG_g15 0.030854, r2000_t4_dG_g15 0.034711
+%   -> min 2.00 %, max 4.34 %; k = 2 rows r1600_t2_d20_g15 0.067818, r1600_t2_dG_g15 0.079511.
+% note (denominators): encounter rates are per scanned cache match (20,000); 0.572 is per corpus match.
+% src: REV/A5-killless/freq_t4_dG_g15_20k.json (scripts/run_killless_v33.py, started 2026-09-14 09:46, seed 7, 20,000 matches,
+%   n_failed 0; grid_reproduction.status "reproduced" against r1600_t4_dG_g15): corpus_comparison.same_sample_corpus matches_in_corpus
+%   18335, n_teamfight_class 10582, teamfight_class_per_match 0.5291, engagements_per_match 2.5383 (50,766 / 20,000);
+%   published_corpus.teamfight_class_per_match 0.572205.  cmd: 20000 - 18335 = 1665.  Deviation 4 of that file: the corpus keeps only
+%   matches with >= 1 labelled engagement.  freq_t2_dG_g15_20k.json has the same same_sample_corpus block (engagements_per_match 2.5383).
+% src: freq_t4_dG_g15_20k.json gate.kill_test "has_kill = any CHAMPION_KILL anywhere on the map with start_ms - grace_ms <= t <=
+%   end_ms + grace_ms" (deviation 5: stricter than "no kill inside the encounter").
+% src: scripts/run_killless_encounters.py encounters_for_match(): every alive champion is tried as the anchor and counts for its own team;
+%   min_frames = max(1, round(min_duration_s * 1000 / 5000)): 13.7 s -> 3, 20 s -> 4; has_kill = any kill in [t0 - grace_ms, t1 + grace_ms];
+%   main(): sample = sorted(random.Random(seed).sample(sorted CACHE_DIR ids, n)); CACHE_DIR = D:/LOL_Project/cache/match_cache_fresh_v3_engage_status13
+%   (210,000 *.meta.json, counted 2026-09-14; patch index values 15.14 / 15.15 / 15.16 only).
+These shares depend on how positions between frames are drawn. The grid used above moves every kill's
+participants towards the kill position, which assembles encounters around kills that interpolation
+between frames a minute apart would not; kill-less encounters receive no such adjustment. Re-scanning
+the same 20,000 matches on frame-only positions leaves the number of kill-less encounters at $k = 4$
+almost unchanged (598 against 591) but finds about a third fewer encounters with a kill (12,561 against
+18,564), so the kill-less share rises to 4.54\% (95\% CI 4.17--4.91\%, against 2.84--3.35\% on the
+adjusted grid; paired difference $+1.46$ percentage points, 95\% CI $+1.25$ to $+1.67$). At $k = 2$ it rises
+from 7.95\% to 12.54\% (21,316 of 170,020). The intervals come from a bootstrap over matches with 1,000
+replicates. We therefore quote each share as a range over the two position tracks: 3.1--4.5\% of
+proximity encounters at four champions per side and 8.0--12.5\% at two.
+% src: REV/A5-killless/freq_t4_dG_g15_20k.json track_sensitivity (--track-sensitivity: same matches on both tracks):
+%   kill-adjusted encounters 19155, killless 591, with_kill 18564, killless_share_of_encounters 0.030854, killless_share_ci
+%   [0.028373, 0.033516]; frame-only encounters 13159, killless 598, with_kill 12561, killless_share_of_encounters 0.045444,
+%   killless_share_ci [0.041713, 0.049128]; frame_only_minus_kill_adjusted.killless_share_of_encounters diff 0.014591, ci95
+%   [0.012455, 0.016726]; n_boot 1000, bootstrap resamples scanned matches (deviation 8).  The separate frame-only scan
+%   freq_t4_dG_g15_ktoff_20k.json (--kill-trajectory-interp off) gives the same 598 / 13159, CI [0.041713, 0.049128].
+%   cmd: 12561 / 18564 = 0.677 (32 % fewer).
+% src: REV/A5-killless/freq_t2_dG_g15_20k.json track_sensitivity: kill-adjusted 16756 / 210738 = 0.079511; frame-only 21316 / 170020
+%   = 0.125373 (ci [0.123866, 0.126894]); same values in freq_t2_dG_g15_ktoff_20k.json denominator.
+% cmd: ranges 0.030854 -> 3.1 %, 0.045444 -> 4.5 %; 0.079511 -> 8.0 %, 0.125373 -> 12.5 %.
+Three cautions govern these numbers. Their denominator is proximity encounters, not engagements.
+Proximity is not commitment: champions near one another need not be fighting, so the per-match rates are
+not a count of the fights the corpus omits and cannot be divided into engagement counts. And neither
+track observes a fight between frames: the frame-only track places every champion on a straight line
+between positions a minute apart, and on both tracks a champion counts as alive if it was alive at the
+last frame, so neither share bounds the omitted fights in either direction.
+% src: summary.json denominator_warning; gameplay/fight_clustering.py build_5s_position_grid() (TF2_USE_KILL_TRAJECTORY_INTERP True,
+%   not overridden by the grid commands in summary.json); freq_t4_dG_g15_20k.json gate.alive_rule "alive flag of the last minute
+%   frame at or before the 5 s grid timestamp" (deviation 1: up to 59 s stale, both kinds of encounter).
+
+\emph{Measurability.} Detection is only half of the problem, because a fight can be won without a kill.
+Even if a kill-less fight were found, the label could not score it. The label's window starts at $\tau$,
+which is defined from the first kill, and its attribution disc is centred on the first kill's position;
+without a kill, neither exists. Imposing a window and a centre would not solve this. The label's
+currency is kill gold plus priced team gold for structures, turret plates and epic monsters. A fight
+that trades health, cooldowns and position but ends without a death, a structure or a monster has no
+priced event, so its swing is zero and falls inside the 300\,g dead zone. Refinement would then fall back
+on survivor counts read from one-minute frames and on structure events, neither of which describes the
+exchange.
+% src: gameplay/labels.py _compute_label_market_event() (kill bounty + shutdownBounty + priced BUILDING_KILL / TURRET_PLATE_DESTROYED /
+%   ELITE_MONSTER_KILL / WARD_KILL; ward kills carry no position and are dropped by attribute_events) and _lex_refine()
+%   (cluster kills -> alive counts from interp_node_global at the last kill or window end -> structure sign -> tie policy);
+%   dead zone SHARDS/manifest.json label.gold_deadzone 300.0
+Applying the label to the detected kill-less encounters shows how often this holds. We scored every one that
+starts from minute 2, as corpus cutoffs do, over a window from its start to 15\,s after its end: 559
+encounters at $k = 4$ and 13,485 at $k = 2$, on the kill-adjusted grid. With no first kill, the
+attribution disc of radius $D$ was centred on the champions gathered around the encounter's best-supported
+anchor. Under this engagement attribution, 23.3\% (95\% CI 19.9--26.6\%) of the four-per-side kill-less
+encounters hold any event the label prices, against 98.2\% of the encounters with a kill and 12.2\% of
+matched windows of the same length, match and game phase that hold no proximity run and no kill. At $k = 2$
+the share is 17.2\%, and 16.7\% on frame-only positions. The remaining 76.7\% (82.8\% at $k = 2$) are
+unmeasurable in the label's currency. Unmeasurable is not the same as undecided, because refinement can
+return a winner without a priced event, from survivor counts at the window end, which in a kill-less
+window can reflect a death more than 15\,s earlier, or from drake kills, which refinement counts although
+their fitted price is zero; this happens for 17.5\% of the four-per-side encounters. The label returns no verdict for
+59.6\% of them (61.5\% at $k = 2$), and decides 14.7\% by gold beyond the dead zone, 13.1\% by survivors
+and 12.7\% by structures and monsters. Counting instead every event anywhere on the map in the window
+(window attribution) finds a priced event in 84.1\% of the four-per-side encounters, but also in 87.4\% of
+their matched windows, and in only 31.1\% of the encounters once ward kills, which carry no position, are
+set aside: those events belong to the rest of the match, not to the encounter.
+% src: REV/A5-killless/char_t4_dG_g15_20k.json (scripts/characterize_killless_v33.py, seed 7, 20,000 matches, kill-adjusted track,
+%   attribution_radius_u 4264.0, tie policy drop, dead zone 300 g; grid_reproduction.status "reproduced";
+%   windows.market_window "[start_ms, end_ms + after_ms]", after_ms 15000): headline_killless_market.eng.pooled_ge2
+%   (bands 2-10, 10-20, 20-30, 30+; encounters starting before minute 2 excluded) n_windows 559; priced_any mean 0.2326
+%   ci95 [0.1986, 0.2658]; with_kill_priced_any 0.9824 (n 18376); baseline_priced_any 0.1221 (n 516); unmeasurable_share 0.7674;
+%   verdict_unpriced 0.1753; no_verdict_share 0.5957 (ci95 [0.5566, 0.6383]); tier_market_gold 0.1467, tier_refine_alive 0.1306,
+%   tier_refine_structures 0.1270, tier_draw 0.5957 (sum 1.0000).  headline_killless_market.win.pooled_ge2 priced_any 0.8408,
+%   baseline_priced_any 0.8743 (n 517), priced_nonward_any 0.3113.
+% src: char_t2_dG_g15_20k.json eng.pooled_ge2 n_windows 13485, priced_any 0.1720, unmeasurable_share 0.8280, no_verdict_share 0.6148;
+%   char_t2_dG_g15_ktoff_20k.json (frame-only track) eng.pooled_ge2 n_windows 15385, priced_any 0.1667.
+% cmd (independent re-count from the row tables, 2026-09-14): for f in char_t4_dG_g15_20k / char_t2_dG_g15_20k / char_t2_dG_g15_ktoff_20k
+%   .rows.npz: rows with has_kill == 0 and start_ms >= 120000 -> n 559 / 13485 / 15385; mean of mk_eng_priced_any 0.2326 / 0.1720 /
+%   0.1667; 1 - mean(mk_eng_verdict_defined) 0.5957 / 0.6148 / 0.6426; mk_eng_verdict_unpriced 0.1753 (t4); mk_win_priced_any 0.8408,
+%   mk_win_priced_nonward_any 0.3113, base_mk_win_priced_any 0.8743 (t4) -- identical to the JSON.  Of the 429 t4 rows with
+%   mk_eng_priced_any == 0, 98 get a verdict (98 / 559 = 0.1753): 61 at tier_refine_alive and 37 at tier_refine_structures, all 37
+%   with mk_eng_table_type_any == 1; the only zero price in checks.price_table.pooled_used is dragon 0.0, hence "drake kills".
+% note: matched window = same match and game-time band, same number of 5 s frames, no frame active at 2 per side and no
+%   CHAMPION_KILL within +-15 s (windows.baseline_exclusion).  Attribution centre = centroid of the champions within R of the
+%   best-supported qualifying anchor at its peak frame (char_t4 deviations).  Ward kills are priced 25 g but have no position, so
+%   engagement attribution drops them (priced_any = priced_nonward_any under eng).  No char_t4 run exists on the frame-only track.
+%   checks.all_zero_ok is false only because of damage_component_sum_mismatch_cells = 1 (a damage column, not used here).
+With this telemetry the outcome of a kill-less fight is therefore unmeasurable, not merely undetected: the
+timeline records health and damage only once a minute, and most kill-less encounters contain nothing that
+the label prices. A kill-less fight that forces a retreat and concedes a structure or a monster would be
+priced, but through the objective rather than through the fight.
+
+Kills alone do not settle outcomes either. Among 25,995 fights detected under the conference-version
+constants on 5,000 matches, the side that won the kills and the side that won the structures were
+opposite in 7.54\% of fights (1,959). A rule that ranks kills above structures, or structures above
+kills, decides those fights by fiat. The market label instead adds both into one gold swing, so neither
+is ranked above the other unless the swing falls inside the dead zone. Measuring kill-less fights would
+require damage or health telemetry at sub-minute resolution, which the public API does not provide
+(Section~\ref{sec:limitations}).
+% src: docs/ENGAGEMENT_WINNER_DEFINITION.md section "Structures are not peripheral -- measured": 7.54 % of all fights, 1,959 labels,
+%   25,995 fights from the 5,000-match dump run (header); per class (not printed; class cuts of that run): picks 6.99 %,
+%   skirmishes 6.45 %, teamfights 8.74 %.  cmd: 1959 / 25995 = 0.0754
+% note: the dump's detector constants are not stated in that file; "conference-version constants" is inferred from its companion
+%   docs/ENGAGEMENT_SCALE_DEFINITION.md header (18 s, 4,000 u, 1,800 u, 10 s).  How "structure winner" was computed is not re-derived here.
+
+\subsection{Validity summary}
+
+Following Jacobs and Wallach \cite{jacobs2021measurement}, the evidence falls into five parts.
+\emph{Content validity}: the rule combines the kill requirement of Ke et al.\ with a proximity condition in
+the manner of Schubert et al., and states what it excludes. \emph{Convergent validity}: the seismological proximity computed on the same kind of
+pairs has the same bimodal structure. \emph{Discriminant validity}: among consecutive kills within
+$\hat G$, pairs the rule links share a champion in 93.8\% of cases, against 5.5\% for pairs it
+separates. \emph{Test--retest reliability}: three patches fall inside one definition, supported by
+bootstrap intervals and the ARI plateau. \emph{Predictive validity}: with every input restricted to what
+is observable at the cutoff, the outcome of the 532,547 engagements in 191,940 matches is predictable at
+a match-grouped out-of-fold AUC of 0.670.
+% src: FEAT/scale_decomposition_v33_market_event.json n 532547, n_matches 191940, overall_auc 0.6699089924634439
+Our analyses after the conference version had concluded that predictability grows with engagement
+scale; that conclusion is withdrawn. It was carried by a time feature normalised by each match's own
+length, which is not known at the cutoff, and with that input removed the sign of the difference between
+classes follows the arbitrary teamfight cut. The conference paper reported no scale classes, but its
+pipeline used the same time feature, together with map anchors that included structures and objectives
+taken later in the match.
+% src: docs/DEFINITION_EVIDENCE.md section 22 (leak ablation); retraction per docs/CLAUDE_TOG_PAPER_PLAN.md section 4 -- stated as a
+%   retraction only, no live scale claim; cut dependence: scale subsection (A6 artefact)
+% src (attribution, item F1 2026-09-14): the scale-decomposition claim was made after the CoG submission, in the v0.2 extension
+%   draft paper/tog/main_en.tex (teamfight n_min >= 3) and in the corpus-v3 analyses (DEFINITION_EVIDENCE.md section 19,
+%   n_min >= 4); the CoG text (paper/abstract.tex, intro.tex, methods.tex, result.tex) has no scale classes (sec_intro.tex header).
+%   The CoG pipeline: core/presets.py PRESETS["cog2026"] TIME_NORM_ABSOLUTE False, ANCHORS_CAUSAL False (v3.3: both True);
+%   FEAT/leak_ablation_v33.json (5,000 matches) configs.time_leak.by_class.teamfight 0.69116 vs configs.clean 0.64207,
+%   configs.anchor_leak.by_class.teamfight 0.65358.
+Construct validity is a matter of degree; the pipeline and its verdicts are released
+(Section~\ref{sec:availability}) so that the degree can be re-assessed on new patches.

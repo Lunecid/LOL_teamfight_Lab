@@ -1,0 +1,178 @@
+{
+  "generated": "2026-09-20T11:47:45+09:00",
+  "epistemic": "EXPLORATORY_RR3_NEWV_QUIET_PRIOR_TEST_EXPOSURE",
+  "design": "docs/REVIEW_RESPONSE_EXPERIMENT_DESIGN_20260920.md \u00a77",
+  "V_sha16": "ac459cc4397630a9",
+  "matching": {
+    "dp_max": 0.025,
+    "dt_max_ms": 120000,
+    "step_ms": 15000,
+    "start_min_ms": 120000,
+    "note": "proposal values"
+  },
+  "interpretation": "Quiet is a same-match no-kill reference of equal observed length L_i under frozen fit85. Not a causal fight effect. Objects/farming/time allowed. L_i is post information used only for matching/measurement.",
+  "Q_CAL": {
+    "n_fight": 10390,
+    "n_matched": 2987,
+    "coverage": 0.28748796920115494,
+    "n_loaded": 7550,
+    "n_cache_miss": 0,
+    "matched_fight": {
+      "n": 2987,
+      "n_matches": 2721,
+      "mean": -0.0005819107998029249,
+      "median": 0.00040018558502197266,
+      "mean_abs": 0.07533888300637434,
+      "median_abs": 0.034114498645067215,
+      "p_pos": 0.50808526277104,
+      "q25_abs": 0.009358672425150871,
+      "q75_abs": 0.10787084698677063,
+      "q90_abs": 0.2100100874900818
+    },
+    "matched_quiet": {
+      "n": 2987,
+      "n_matches": 2721,
+      "mean": -0.0012421013068788381,
+      "median": -0.00015158206224441528,
+      "mean_abs": 0.01643406722148027,
+      "median_abs": 0.008116364479064941,
+      "p_pos": 0.4920066152149945,
+      "q25_abs": 0.0027319826185703278,
+      "q75_abs": 0.018838390707969666,
+      "q90_abs": 0.04162437915802003
+    },
+    "contrast": {
+      "mean_abs_fight_minus_quiet": {
+        "estimate": 0.05890481578489407,
+        "ci95": [
+          0.05550899887339905,
+          0.06252151795047177
+        ],
+        "bootstrap_fraction_positive": 1.0
+      },
+      "mean_signed_fight_minus_quiet": {
+        "estimate": 0.0006601905070759128,
+        "ci95": [
+          -0.004053049837119292,
+          0.005130270664090655
+        ],
+        "bootstrap_fraction_positive": 0.5985
+      },
+      "p_pos_fight_minus_quiet": {
+        "estimate": 0.016078647556045572,
+        "ci95": [
+          -0.011273428886438808,
+          0.0431221670954306
+        ],
+        "bootstrap_fraction_positive": 0.8865
+      }
+    },
+    "balance": {
+      "mean_abs_dp": 0.00905422139744476,
+      "mean_abs_dt_s": 72.76876565115501,
+      "mean_abs_dL_ms": 0.0,
+      "max_abs_dp": 0.02496039867401123,
+      "max_abs_dt_s": 120.0
+    },
+    "unmatched_reason": {
+      "no_candidate": 7403
+    },
+    "matched_fight_traits": {
+      "n": 2987,
+      "mean_p": 0.5042904026215197,
+      "mean_t_min": 23.095105512777593,
+      "mean_L_s": 52.7122942751925,
+      "mean_abs_dV": 0.07572821212575777
+    },
+    "unmatched_fight_traits": {
+      "n": 7403,
+      "mean_p": 0.5033071085748514,
+      "mean_t_min": 20.46373454230267,
+      "mean_L_s": 88.8823300013508,
+      "mean_abs_dV": 0.12979698612928486
+    }
+  },
+  "TEST": {
+    "n_fight": 32981,
+    "n_matched": 9140,
+    "coverage": 0.2771292562384403,
+    "n_loaded": 24020,
+    "n_cache_miss": 0,
+    "matched_fight": {
+      "n": 9140,
+      "n_matches": 8438,
+      "mean": 0.0005886238542391799,
+      "median": 0.0001254675444215536,
+      "mean_abs": 0.07997705723674674,
+      "median_abs": 0.03868257999420166,
+      "p_pos": 0.5028640278106977,
+      "q25_abs": 0.010050565004348755,
+      "q75_abs": 0.11254770681262016,
+      "q90_abs": 0.22452418506145477
+    },
+    "matched_quiet": {
+      "n": 9140,
+      "n_matches": 8438,
+      "mean": -0.0022084247058296014,
+      "median": -0.00028443336486816406,
+      "mean_abs": 0.016645450591361487,
+      "median_abs": 0.008084360510110855,
+      "p_pos": 0.48364541360511965,
+      "q25_abs": 0.0026704631745815277,
+      "q75_abs": 0.01936083287000656,
+      "q90_abs": 0.042948588728904724
+    },
+    "contrast": {
+      "mean_abs_fight_minus_quiet": {
+        "estimate": 0.06333160664538526,
+        "ci95": [
+          0.06118756221474504,
+          0.06542419549310519
+        ],
+        "bootstrap_fraction_positive": 1.0
+      },
+      "mean_signed_fight_minus_quiet": {
+        "estimate": 0.002797048560068782,
+        "ci95": [
+          1.6788438823777353e-05,
+          0.005648746117102285
+        ],
+        "bootstrap_fraction_positive": 0.975
+      },
+      "p_pos_fight_minus_quiet": {
+        "estimate": 0.019218614205577942,
+        "ci95": [
+          0.004559235995891601,
+          0.0338745358299755
+        ],
+        "bootstrap_fraction_positive": 0.992
+      }
+    },
+    "balance": {
+      "mean_abs_dp": 0.008827994497140352,
+      "mean_abs_dt_s": 72.20170995623633,
+      "mean_abs_dL_ms": 0.0,
+      "max_abs_dp": 0.02499490976333618,
+      "max_abs_dt_s": 120.0
+    },
+    "unmatched_reason": {
+      "no_candidate": 23841
+    },
+    "matched_fight_traits": {
+      "n": 9140,
+      "mean_p": 0.5004633088275195,
+      "mean_t_min": 23.010526812545585,
+      "mean_L_s": 52.376526586433265,
+      "mean_abs_dV": 0.08051220261913682
+    },
+    "unmatched_fight_traits": {
+      "n": 23841,
+      "mean_p": 0.5063313024617506,
+      "mean_t_min": 20.593939677446418,
+      "mean_L_s": 87.75174065685165,
+      "mean_abs_dV": 0.128728656055706
+    }
+  },
+  "closeout": "docs/REVIEW_RESPONSE_RR3_CLOSEOUT_20260920.md",
+  "scope_note": "Results apply to the matchable subset under |dp|<=0.025, |dt|<=120s, equal L; L>120s unmatchable by construction."
+}

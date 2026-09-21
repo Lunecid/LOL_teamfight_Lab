@@ -1,0 +1,64 @@
+{
+ "scope": "pooled",
+ "patches": [
+  "15.14",
+  "15.15",
+  "15.16"
+ ],
+ "n_matches": 8927,
+ "n_intervals": 447809,
+ "n_pairs_in_window": 233758,
+ "gap_s": 13.567505302998619,
+ "gap_source": "valley",
+ "gap_ci_s": [
+  12.302687708123818,
+  15.313084382914669
+ ],
+ "gap_depth": 0.8728183568022138,
+ "gap_ok": true,
+ "gap_plateau_s": [
+  10.0,
+  18.0
+ ],
+ "plateau_ari": 0.9,
+ "diameter_u": 4262.552448375993,
+ "diameter_source": "crossover",
+ "diameter_ci_u": [
+  4223.506761586811,
+  4302.201988605233
+ ],
+ "diameter_mass_near": 0.016867871901710317,
+ "validity_radius_u": 1800.0,
+ "radius_source": "mechanics:1800u; coverage from datadragon:15.14.1",
+ "radius_coverage": 0.890881913303438,
+ "min_per_team": 2,
+ "lead_s": 10.0,
+ "lead_source": "fixed",
+ "pick_max_min": 1,
+ "skirmish_max_min": 3,
+ "provenance": {
+  "created": "2026-09-08T00:16:45",
+  "seed": 7,
+  "n_boot": 200,
+  "bandwidth": 0.08,
+  "gaps_swept_s": [
+   6,
+   8,
+   10,
+   12,
+   13,
+   14,
+   15,
+   16,
+   18,
+   20,
+   22,
+   24,
+   27,
+   30,
+   36,
+   45,
+   60
+  ]
+ }
+}

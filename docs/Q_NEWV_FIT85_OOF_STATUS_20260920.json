@@ -1,0 +1,17 @@
+{
+  "status": "COMPLETE",
+  "integrity": {
+    "n_rows": 39605,
+    "expected_n": 39605,
+    "n_unique_keys": 39605,
+    "no_duplicate_keys": true,
+    "row_count_matches_expected": true,
+    "y_matches_delta_sign": true,
+    "delta_matches_p_post_minus_p_pre": true,
+    "B40_from_same_p_pre": true,
+    "n_missing": 0,
+    "n_exact_zero": 1,
+    "folds_recorded": 5,
+    "PASS": true
+  }
+}

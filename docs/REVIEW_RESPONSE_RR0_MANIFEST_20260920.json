@@ -1,0 +1,150 @@
+{
+  "generated": "2026-09-20T11:17:17+09:00",
+  "epistemic": "EXPLORATORY_REVIEW_RESPONSE_PRIOR_TEST_EXPOSURE",
+  "source_commit": "f8b275361c504e0c742b32f6668c972f4849ecc6",
+  "design": "docs/REVIEW_RESPONSE_EXPERIMENT_DESIGN_20260920.md",
+  "execution_addendum": "docs/REVIEW_RESPONSE_RR1_EXECUTION_ADDENDUM_20260920.md",
+  "V_bundle_sha256": "AC459CC4397630A953D672730CAA687B50FC1EDCD5A029928FAD236FC5B204E3",
+  "q_base": "frozen logit_state (no refit in RR1)",
+  "g_V": "unchanged (fit85 PosSlopeSigmoid inside V bundle)",
+  "g_q": "optional; RR1 selected identity for q and PT_flex",
+  "OOF_integrity": {
+    "n_rows": 39605,
+    "expected_n": 39605,
+    "n_unique_keys": 39605,
+    "no_duplicate_keys": true,
+    "row_count_matches_expected": true,
+    "y_matches_delta_sign": true,
+    "delta_matches_p_post_minus_p_pre": true,
+    "B40_from_same_p_pre": true,
+    "n_missing": 0,
+    "n_exact_zero": 1,
+    "folds_recorded": 5,
+    "PASS": true
+  },
+  "TEST_key_parity": {
+    "n_label_eligible": 32981,
+    "n_label_unique": 32981,
+    "n_label_duplicate_keys": 0,
+    "n_prediction": 32981,
+    "n_prediction_unique": 32981,
+    "n_prediction_duplicate_keys": 0,
+    "prediction_equals_label_keyset": true,
+    "same_row_order": true,
+    "only_in_label": 0,
+    "only_in_prediction": 0,
+    "PASS": true
+  },
+  "digests": {
+    "TRAIN_oof_STATUS": {
+      "path": "outputs/q_newv_fit85_20260920/labels/TRAIN_oof_STATUS.json",
+      "exists": true,
+      "sha256": "f924a5e2be9cf2177ffcc7e0932a99d6357a9ed5eb3bf79bb2b53fae542e9362",
+      "sha16": "f924a5e2be9cf217",
+      "bytes": 409
+    },
+    "TRAIN_oof_h90_meta": {
+      "path": "outputs/q_newv_fit85_20260920/labels/TRAIN_oof_h90_meta.json",
+      "exists": true,
+      "sha256": "14870768b7fde836fab7918f3d5946c4deec013f2223721a14abe213bc7e5bbd",
+      "sha16": "14870768b7fde836",
+      "bytes": 3098
+    },
+    "TEST_h90": {
+      "path": "outputs/q_newv_fit85_20260920/labels/TEST_h90.npz",
+      "exists": true,
+      "sha256": "0a2e977b231acf855525accd4ad1e370b57700c39ed35848d0ecb206ea7bf663",
+      "sha16": "0a2e977b231acf85",
+      "bytes": 806362
+    },
+    "logit_state": {
+      "path": "outputs/q_newv_fit85_20260920/models/logit_state.joblib",
+      "exists": true,
+      "sha256": "d6e8fc31310a5a58f7aefbffe96d2b5d395560ec06a3d63ed701e3993e02deba",
+      "sha16": "d6e8fc31310a5a58",
+      "bytes": 13494
+    },
+    "primary_table": {
+      "path": "outputs/q_newv_fit85_20260920/primary_table.json",
+      "exists": true,
+      "sha256": "a80340fede7b6e6a67d66cef610dfee949818be521551fd2bb8ab90e620d3011",
+      "sha16": "a80340fede7b6e6a",
+      "bytes": 3808
+    },
+    "selection_freeze": {
+      "path": "outputs/q_newv_fit85_20260920/selection_freeze.json",
+      "exists": true,
+      "sha256": "294a3e4261f9a40e0fe1d9915a818bdb3768a1ec47e77275d9e6bd5630aa5c41",
+      "sha16": "294a3e4261f9a40e",
+      "bytes": 1332
+    },
+    "rr12_paired_ci": {
+      "path": "outputs/review_response_rr12_20260920/paired_ci.json",
+      "exists": true,
+      "sha256": "9484c09c4e097f251d5ccca291cc62b609c4becfe56764bb8a236460dc046940",
+      "sha16": "9484c09c4e097f25",
+      "bytes": 35763
+    },
+    "rr12_baseline_selection": {
+      "path": "outputs/review_response_rr12_20260920/baseline_selection.json",
+      "exists": true,
+      "sha256": "4b798eed3795e789548b519a613c32d7ea0861e1d39212598f7b130c111fb627",
+      "sha16": "4b798eed3795e789",
+      "bytes": 1663
+    },
+    "rr12_prediction_table": {
+      "path": "outputs/review_response_rr12_20260920/prediction_table.npz",
+      "exists": true,
+      "sha256": "b16b1ce417d61f5380593507ef6fef05ce42daa00db8f4045793259b359bcde8",
+      "sha16": "b16b1ce417d61f53",
+      "bytes": 2125971
+    },
+    "rr12_PT_flex": {
+      "path": "outputs/review_response_rr12_20260920/models/PT_flex.joblib",
+      "exists": true,
+      "sha256": "15acc630abe5930db9c5793d88d3bd8454d9cf52af00f25eaac3d7210a2e9b84",
+      "sha16": "15acc630abe5930d",
+      "bytes": 3905
+    },
+    "rr12_PT_linear": {
+      "path": "outputs/review_response_rr12_20260920/models/PT_linear.joblib",
+      "exists": true,
+      "sha256": "2215150ca4bc0f89e4d4be844fd0a42d0aa6eacc960c2599c25b627c065b057e",
+      "sha16": "2215150ca4bc0f89",
+      "bytes": 1441
+    },
+    "rr12_b_spline": {
+      "path": "outputs/review_response_rr12_20260920/models/b_spline.joblib",
+      "exists": true,
+      "sha256": "b34f46c62d72637ba05dceb470ce08d468a828535823d4388320847cb9a5af54",
+      "sha16": "b34f46c62d72637b",
+      "bytes": 2625
+    }
+  },
+  "rr1_execution_as_run": {
+    "spline_knots": "sklearn SplineTransformer default knots='uniform' (NOT TRAIN weighted quantiles)",
+    "fit_sample_weight": "match weight 1/n_match (NOT mean-1 renormalized)",
+    "selection_procedure": "two-stage: pick spline hyperparams on raw Q_SELECT Brier, then identity vs sigmoid",
+    "joint_config_x_calibrator": false,
+    "calibrator_choice": {
+      "constant": "sigmoid",
+      "b_linear": "identity",
+      "b_spline": "identity",
+      "PT_linear": "identity",
+      "PT_flex": "identity",
+      "q_base": "identity"
+    },
+    "PT_flex": {
+      "n_knots_p": 4,
+      "n_knots_t": 4,
+      "C": 0.01,
+      "degree": 3
+    },
+    "b_spline": {
+      "n_knots": 6,
+      "C": 0.01
+    }
+  },
+  "bootstrap_field_note": "paired_ci.json field p_gt0 == bootstrap_fraction_positive (fraction of match-bootstrap draws with \u0394Brier>0); not a classical p-value.",
+  "PASS": true
+}

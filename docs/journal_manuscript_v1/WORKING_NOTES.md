@@ -1,0 +1,63 @@
+# Working notes — journal_manuscript_v1 (not manuscript text)
+
+Internal writing memo. Nothing here is manuscript prose. Sections A–C were moved out of `04_DISCUSSION.md` by T003 (base 21391b2); section D mirrors `.ai/RQ_DECISION_BRIEF.md`.
+
+## A. Journal-fit memo
+
+IEEE Transactions on Games seeks mature, original work on the science and engineering of games. Naming the paper a “verification study” does not by itself establish fit: the manuscript must make the CoG→ToG increment and the answered questions visible in the prose. The empirical increment here is the upgraded object (WP direction) and the joint reporting of limited in-patch lift with external failure — not the count of diagnostic tools used.
+
+---
+
+## B. Deferred work (thesis / v2)
+
+Targeted follow-up: freeze \(V\)/SVI/\(q\) weights and ask whether a **low-dimensional probability adapter** on small new-environment data can reduce Brier while preserving discrimination, versus the same adapter on PT, with adapt/eval separation. Other deferred items (path filters, multi-horizon rationality, ΔV uncertainty, \(q_\lambda\) combinations) stay outside this journal version.
+
+---
+
+## C. Writing instructions for the next pass
+
+When those sections are written, every headline sentence should be checkable against Results §§3–5 and must not exceed Discussion §5. The paper’s last word should be that **limited, environment-sensitive pre-information about WP-direction exists under the frozen procedures** — not that the ceiling of public telemetry has been found.
+
+---
+
+## D. RQ structure — author decision pending
+
+### RQ 구조 — 저자 결정 대기 (2026-09-20)
+
+**상태:** 저자가 "전체 자료와 집필 의견을 본 뒤 논의해 확정"하기로 함. 결정 전까지 어떤 작업서도 연구질문 문구를 바꾸지 않는다. T001은 01_OUTLINE의 "frozen — not redesigned" 표기를 "편집 제안, 저자 확인 대기"로만 고친다.
+
+#### 현재 상태
+잠금 문서 3곳은 **3개 RQ**다: `docs/JOURNAL_RESEARCH_PLAN_20260919.md` §6 ("문구 LOCKED"), `docs/J_RQ1_SCOPE_LOCK_20260920.md` §1 ("기존 문구 그대로 유지"), `docs/COG_SUCCESSION_LOCK_20260919.md` §5 (I1·I2→J-RQ1 / I3→J-RQ2 / I4→J-RQ3).
+
+- J-RQ1: 경기 승패와 연결하여 정의한 SVI는 어떤 교전 후 상태 변화를 반영하며, 교전 구간과 가치모형의 합리적 변경에 얼마나 안정적인가?
+- J-RQ2: 정의된 SVI를 교전 전 공개정보로 어느 정도 예측할 수 있으며, 동일한 정보에서의 학습기 선택과 정보집합의 차이는 예측 품질에 어떻게 반영되는가?
+- J-RQ3: 예측 성능은 초기 경기 우세에 얼마나 의존하며, 균형 상태·경기 시간대·다른 패치와 지역에서도 어느 범위까지 유지되는가?
+
+`docs/journal_manuscript_v1/01_OUTLINE_AND_CLAIM_EVIDENCE.md`는 J-RQ1 / J-RQ2("beyond initial WP and time" 포함) / 번호 없는 "Transfer / scope"로 압축하고 "frozen — not redesigned"라 표기했다. 즉 **원래 J-RQ3의 앞부분(초기 우세 의존성)을 J-RQ2로 옮기고 뒷부분(조건·외부 적용 범위)만 남긴 편집안**이다.
+
+#### 안 A — 3개 유지 (계획 문구 그대로)
+- 장점: 잠금 문서·I1–I4 매핑·석사 M-RQ1~4 교차표(J-RQ3↔M-RQ4)와 일치. 독자가 측정→예측→의미·범위를 따라가기 쉬움. Results 순서(§1–2 V/ΔV/SVI = RQ1, §3 q = RQ2, §3.2 B40·§4 민감도·§5 EXT = RQ3)와 자연스럽게 대응.
+- 비용: (i) J-RQ2의 "동일한 정보에서의 학습기 선택과 정보집합의 차이" 절은 동결 설계가 뒷받침하지 않는다 — 저널 freeze에는 정보집합 절제(석사 M-F0~F3)가 없고, logit(352 입력)과 LGBM(362 입력)은 입력이 다르다. 이 절을 축소하려면 LOCKED 문장을 고쳐야 한다. (ii) 헤드라인 결과(ΔBrier vs PT_flex)가 "초기 우세 의존"을 묻는 RQ3의 답이 되어, 논문의 주 결과가 세 번째 질문에 놓인다.
+
+#### 안 B — 2개 + 전이 (현재 개요)
+- 장점: `JOURNAL_FINISH_LOCK`의 thesis 문단이 문자 그대로 두 질문("beyond initial WP and time" / "where that lift fails to transfer")이고, PT_flex 기준선이 "초기 우세 의존"을 주 대비 안에 흡수하므로 RQ2가 곧 헤드라인. B40 이질성(H CI가 0 포함)처럼 결론이 약한 항목을 독립 RQ의 답으로 두지 않아도 된다.
+- 비용: 잠금 문서 3곳과 석사 교차표를 모두 갱신해야 하며, "frozen"이라는 현재 표기는 사실과 다르므로 어느 경우든 상태 문구는 고쳐야 한다. 전이가 번호 없는 질문이 되어 J-RQ3↔M-RQ4 대응이 끊긴다.
+
+#### 안 C (Claude 권고) — 3개 ID 유지 + 문구 재배치
+- J-RQ1: 계획 문구 유지(측정·안정성).
+- J-RQ2: "정의된 SVI 방향을 교전 전 공개정보로 어느 정도 예측할 수 있으며, 초기 승률·시간의 유연한 함수(PT_flex)를 넘는 이득이 있는가?" — 학습기·정보집합 절은 삭제하고, Methods에 "logit vs LGBM은 입력이 달라 동일 정보 학습기 비교가 아님"을 명시.
+- J-RQ3: "그 이득은 균형 상태(B40), 소규모 변화 제외(λ·s_Q), 다른 패치·지역(16.13 KR/NA1)에서 어디까지 유지되는가?"
+- 근거: 헤드라인이 RQ2의 답이 되면서도 ID·I1–I4·석사 교차표가 보존된다. 비용은 LOCKED 두 문장의 문구 변경이며 저자 승인이 필요하다. 변경 시 `JOURNAL_RESEARCH_PLAN` §6, `J_RQ1_SCOPE_LOCK` §4, `COG_SUCCESSION_LOCK` §5에 "문구 개정" 이력 한 줄씩 추가.
+
+#### 어느 안이든 공통
+- 01_OUTLINE의 "frozen — not redesigned"는 "편집 제안, 저자 확인 대기"로 바꾼다 (T001).
+- 결정 후 별도 작업서(T005 예정)로 01_OUTLINE RQ 표·잠금 문서 이력·Results 절 매핑을 한 번에 반영한다.
+
+#### 결정 기록
+- (저자가 채움) 선택안: ___ / 날짜: ___ / 비고: ___
+
+### D.1 2026-09-21 addendum (synced from `.ai/RQ_DECISION_BRIEF.md`)
+- The author decided (contract SCALE_SPLIT §8, option C) to report the skirmish cohort S in the main text. The RQ wording is still undecided and is not changed by that decision.
+- Whichever option (A/B/C) is chosen, J-RQ3's scope list must include engagement scale (T and S cohorts); J-RQ2 is answered per cohort with one primary contrast each.
+- Forbidden as an RQ answer: any ranking of cohorts by absolute score. Allowed: within-cohort lift over PT_flex; partial transfer of the T model to S; no gain from pooling.
+- The writing package prepared on 2026-09-21 (`00_WRITING_DOSSIER.md`) lists the decision as the first blocking item.
