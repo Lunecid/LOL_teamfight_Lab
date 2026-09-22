@@ -1,32 +1,34 @@
-%% table 객체: tab:roles-engagement — 출처 Methods §5 Table 5b (PAPER_COHORT_CONTRACT §2, §4; SCALE_SPLIT_RR0_MANIFEST; RRX)
+%% table 객체: tab:roles-engagement — 교전 단위 역할. 코드명·기호는 본문 말로 바꿈.
 \begin{table}[!t]
   \centering
-  \caption{방향 예측기 $q$의 데이터 역할 (교전 단위)}
+  \caption{한타와 소규모 교전을 학습과 평가에 나눈 수}
   \label{tab:roles-engagement}
   \footnotesize
-  \begin{tabularx}{\linewidth}{@{}lll>{\raggedleft\arraybackslash}p{1.5cm}>{\raggedleft\arraybackslash}p{2.1cm}X@{}}
+  \begin{tabular}{@{}llccrr@{}}
     \toprule
-    코호트 & 역할 & 패치·지역 & 교전 & 경기 & 라벨 출처 · 용도 \\
+    집단 & 쓰는 일 & 패치 & 지역 & 교전 & 경기 \\
     \midrule
-    T & TRAIN & 15.14 & \numTTrain{} & \numTTrainMatches{} & $\Vfold{k}$ · $q$, $\PTflex$ 적합 \\
-    T & Q\_CAL & 15.15 & \numTQcal{} & \numTQcalMatches{} & fit85 · 보정기 후보 \\
-    T & Q\_SELECT & 15.15 & \numTQsel{} & \numTQselMatches{} & fit85 · 매듭·$C$·보정기 선정 \\
-    T & V\_CAL / V\_SELECT & 15.15 & \numTVcal{} / \numTVsel{} & \numTVcalMatches{} / \numTVselMatches{} & 평가기 전용, $q$에 미사용 \\
-    T & TEST & 15.16 & \numTTest{} & \numTTestMatches{} & fit85 · 주 결과 \\
-    T & $\Bforty \subset$ TEST & 15.16 & \numTBforty{} & \numTBfortyMatches{} & fit85 · 조건부 \\
-    T & EXT KR 16.13 & KR & \numTExtKR{} & \numTExtKRMatches{} / \numExtKRCollected{} & fit85 · 점수 전용 \\
-    T & EXT NA1 16.13 & NA1 & \numTExtNA{} & \numTExtNAMatches{} / \numExtNACollected{} & fit85 · 점수 전용 \\
-    T & EXT KR 16.15 & KR & \numTExtKRb{} & \numTExtKRbMatches{} / \numExtKRbCollected{} & 보고만, 합산 안 함 \\
-    T & EXT KR 16.14 파일럿 & KR & \numTExtPilot{} & \numTExtPilotMatches{} / \numExtPilotCollected{} & 보고만, 합산 안 함 \\
+    한타 & 학습 & 15.14 & 한국 & \numTTrain{} & \numTTrainMatches{} \\
+    한타 & 보정 & 15.15 & 한국 & \numTQcal{} & \numTQcalMatches{} \\
+    한타 & 선정 & 15.15 & 한국 & \numTQsel{} & \numTQselMatches{} \\
+    한타 & 승률 모형의 보정 & 15.15 & 한국 & \numTVcal{} & \numTVcalMatches{} \\
+    한타 & 승률 모형의 선정 & 15.15 & 한국 & \numTVsel{} & \numTVselMatches{} \\
+    한타 & 평가 & 15.16 & 한국 & \numTTest{} & \numTTestMatches{} \\
+    한타 & 평가의 일부 & 15.16 & 한국 & \numTBforty{} & \numTBfortyMatches{} \\
+    한타 & 점수만 & 16.13 & 한국 & \numTExtKR{} & \numTExtKRMatches{} / \numExtKRCollected{} \\
+    한타 & 점수만 & 16.13 & 북미 & \numTExtNA{} & \numTExtNAMatches{} / \numExtNACollected{} \\
+    한타 & 보고만 & 16.15 & 한국 & \numTExtKRb{} & \numTExtKRbMatches{} / \numExtKRbCollected{} \\
+    한타 & 보고만 & 16.14 & 한국 & \numTExtPilot{} & \numTExtPilotMatches{} / \numExtPilotCollected{} \\
     \midrule
-    S & TRAIN & 15.14 & \numSTrain{} & \numSTrainMatches{} & $\Vfold{k}$ (T와 같은 fold 평가기) \\
-    S & Q\_CAL & 15.15 & \numSQcal{} & \numSQcalMatches{} & fit85 · 진단용 \\
-    S & Q\_SELECT & 15.15 & \numSQsel{} & \numSQselMatches{} & fit85 · 매듭·$C$ 선정 \\
-    S & TEST & 15.16 & \numSTest{} & \numSTestMatches{} & fit85 · 주 결과 (S 블록) \\
-    S & $\Bforty \subset$ TEST & 15.16 & \numSBforty{} & \numSBfortyMatches{} & fit85 · 조건부 (S 내부) \\
-    S & EXT KR / NA1 16.13 & KR / NA1 & \numSExtKR{} / \numSExtNA{} & --- / \numExtKRCollected{}, --- / \numExtNACollected{} & 점수 전용 \\
-    S & EXT KR 16.15 / 파일럿 & KR & \numSExtKRb{} / \numSExtPilot{} & --- / \numExtKRbCollected{}, --- / \numExtPilotCollected{} & 보고만 \\
+    소규모 교전 & 학습 & 15.14 & 한국 & \numSTrain{} & \numSTrainMatches{} \\
+    소규모 교전 & 보정 & 15.15 & 한국 & \numSQcal{} & \numSQcalMatches{} \\
+    소규모 교전 & 선정 & 15.15 & 한국 & \numSQsel{} & \numSQselMatches{} \\
+    소규모 교전 & 평가 & 15.16 & 한국 & \numSTest{} & \numSTestMatches{} \\
+    소규모 교전 & 평가의 일부 & 15.16 & 한국 & \numSBforty{} & \numSBfortyMatches{} \\
+    소규모 교전 & 점수만 & 16.13 & 한국 & \numSExtKR{} & --- / \numExtKRCollected{} \\
+    소규모 교전 & 점수만 & 16.13 & 북미 & \numSExtNA{} & --- / \numExtNACollected{} \\
+    소규모 교전 & 보고만 & 16.15 & 한국 & \numSExtKRb{} & --- / \numExtKRbCollected{} \\
+    소규모 교전 & 보고만 & 16.14 & 한국 & \numSExtPilot{} & --- / \numExtPilotCollected{} \\
     \bottomrule
-  \end{tabularx}
-  \tabnote{외부 코호트의 경기 수는 유효 경기 / 수집 경기. 수집 경기는 두 코호트가 같은 수집 집합을 공유하므로 T와 같은 값이다. ``---'' = S의 유효 경기 수가 원장에 기록되지 않음(코호트 원장은 T와 N의 경기 수만 담고, N은 소규모 교전과 pick을 합친 다른 모집단이다).}
+  \end{tabular}
 \end{table}

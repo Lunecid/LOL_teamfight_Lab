@@ -1,0 +1,18 @@
+%% table 객체: tab:input-dims — 모형별 입력 열 수.
+%% 출처: 저장소 실행 매니페스트와 rr20260920_q_newv_primary_fit.py (로지스틱은 챔피언 식별자 제외, 트리 앙상블은 전체 + 추정 승률).
+%% 저장소의 gen_feature_census.py 산출물에서 정보군 arm 행과 코드명·표주를 덜어 낸 것이다.
+\begin{table}[!t]
+  \centering
+  \caption{모형별 입력 열 수}
+  \label{tab:input-dims}
+  \small
+  \begin{tabular}{@{}llr@{}}
+    \toprule
+    모형 & 입력 & 열 \\
+    \midrule
+    승률 모형 & 수치 \dimNumeric{} + 챔피언 식별자 \dimChampSlots{} & \dimExpanded{} \\
+    교전 결과를 예측하는 모형 & 수치 \dimNumeric{} + 추정 승률 & \dimInputQ{} \\
+    트리 앙상블 후보 & 수치 \dimNumeric{} + 챔피언 식별자 \dimChampSlots{} + 추정 승률 & \dimInputLgbm{} \\
+    \bottomrule
+  \end{tabular}
+\end{table}

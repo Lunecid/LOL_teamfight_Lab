@@ -1,11 +1,18 @@
 %!TEX root = ../../main.tex
-\section{원천 코퍼스}
+\section{코퍼스와 데이터의 역할}
 \label{sec:data-corpus}
+\label{sec:data-roles}
 
-원천 코퍼스는 한국(KR) 서버의 랭크 경기 \numMatchesTotal{} 건으로, Match-V5의 \texttt{gameVersion} 필드가 15.14, 15.15, 15.16으로 기록하는 세 패치에 걸쳐 있다. 이 필드는 공개 패치 번호 25.14--25.16에 대응한다. 패치별 경기 수는 \numMatchesTrain{} / \numMatchesVal{} / \numMatchesTest{} 건이며, 세 패치는 순서대로 학습, 보정·선정, 평가의 역할을 맡는다(제 \ref{sec:data-roles} 절). 표 \ref{tab:corpus-census}는 패치별로 검출된 교전, 결과 시점 규칙에서 유효한 교전, 그리고 규모 계급에 따른 한타 T와 그 밖의 교전 N의 행 수를 보인다. 검출과 결과 시점 규칙은 제 \ref{ch:engagement} 장에서 정의한다.
+원천 코퍼스는 한국(KR) 서버의 랭크 경기 \numMatchesTotal{} 건이다. Match-V5의 \texttt{gameVersion}이 15.14, 15.15, 15.16인 세 패치이며, 공개 번호 25.14--25.16에 대응한다 \cite{lolwiki2026v2514,lolwiki2026v2516}. 수집 경로는 Match-V5이다. 경기 식별자로 경기 문서를 받고, 같은 식별자로 타임라인을 받는다 \cite{riotapi2024matchv5,riotapi2024timeline}. 분석 대상은 각 패치가 적용된 동안 진행된 경기이다. 파일을 받은 시각이 아니다. 어느 패치인지는 \texttt{gameVersion}으로 가른다.
 
+15.14는 학습에, 15.15는 보정과 선정에, 15.16은 평가에 쓴다. 역할은 경기 단위로 배정하므로, 한 경기의 여러 교전이 서로 다른 역할에 들어가지 않는다. 그림 \ref{fig:data-roles}이 이 순서이다. 표 \ref{tab:corpus-census}는 패치별 경기 수와 교전 수이고, 검출된 교전과 유효한 교전을 가르는 규칙은 제 \ref{ch:engagement} 장에 있다. 표의 합계는 코퍼스 전체이고, 주 예측 결과는 15.16의 교전에서만 낸다.
+
+\input{figures/fig_data_roles}
 \input{tables/tab_corpus_census}
 
-연구 코퍼스는 \numMatchesTotal{} 경기이고, 주 예측 성능은 그 가운데 15.16의 홀드아웃 교전 표본에서 평가된다. 합동 T의 기술통계는 코퍼스의 규모를, 15.16의 $q$ 성능은 평가 표본의 결과를 각각 기술하며, 두 수치는 서로 다른 표에 둔다.
+승률 모형은 경기 안의 한 시각마다, 교전의 결과가 오를지를 예측하는 모형은 교전마다 나눈다. 두 모형은 서로 다른 보정·선정 경기를 쓴다. 15.14 교전의 결과는 그 경기를 빼고 다시 만든 승률 모형이 매기고, 그 뒤의 패치에는 15.14로 학습한 뒤 고정한 승률 모형을 쓴다. 표 \ref{tab:roles-evaluator}와 표 \ref{tab:roles-engagement}가 각각의 수이다. 한타와 소규모 교전을 어떻게 고르고 맞추는지는 제 \ref{ch:prediction} 장에 있다.
 
-외부 코퍼스로 2026년 시즌의 API 패치 16.13 KR 경기 \numExtKRCollected{} 건, NA1 경기 \numExtNACollected{} 건, 16.15 KR 경기 \numExtKRbCollected{} 건, 16.14 KR 파일럿 \numExtPilotCollected{} 건을 별도로 수집하였다. 이들은 점수 전용(score-only) 평가에만 쓰인다(제 \ref{sec:val-external} 절). 원시 경기 자료는 Riot API 이용약관에 따라 재배포 대상에서 제외하며, 논문은 파생 수량만 보고한다.
+\input{tables/tab_roles_evaluator}
+\input{tables/tab_roles_engagement}
+
+외부 코퍼스는 2026년 시즌의 패치 16.13 한국 경기 \numExtKRCollected{} 건, 북미 경기 \numExtNACollected{} 건, 16.15 한국 경기 \numExtKRbCollected{} 건, 16.14 한국 파일럿 \numExtPilotCollected{} 건이다. 같은 Match-V5 경로로 따로 모았고, 각 패치가 적용된 동안 진행된 경기이다. 이 가운데는 패치 26.1에서 일부 오브젝트의 규칙이 바뀐 뒤의 경기도 있다 \cite{riot2026patch261}. 모형을 다시 학습하지 않고 점수만 내며, 그 결과는 제 \ref{sec:val-external} 절에 있다. 원시 경기 자료는 Riot API 이용약관에 따라 재배포하지 않고, 논문은 파생 수량만 보고한다.

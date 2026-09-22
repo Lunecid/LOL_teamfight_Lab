@@ -1,14 +1,18 @@
 %!TEX root = ../../main.tex
-\section{결과 시점 규칙}
+\section{결과를 재는 끝 시각}
 \label{sec:eng-endpoint}
 
-\paragraph{규칙.} $K$를 첫 킬, $s = K - 15$초, $q_{\mathrm{pre}} = s - 1$ ms, $L$을 교전의 마지막 킬, $K_{\mathrm{next}}$를 $L$ 이후 지도 어디서든 일어난 첫 챔피언 킬, $S_{\mathrm{next}}$를 다음 유효 교전의 시작(그 첫 킬의 15초 전), $T_{\mathrm{end}}$를 경기 종료라 하고 없는 사건은 $+\infty$로 둔다. 지평 $h$에서의 결과 시점은
+교전의 결과는 두 시각의 상태를 견주어 잰다. 앞은 예측 시점이고, 뒤는 이 절에서 정하는 끝 시각이다.
+
+끝 시각은 네 시각 가운데 가장 이른 것이다. 마지막 킬로부터 $h$초 뒤, 마지막 킬 이후 지도 어디서든 일어난 첫 킬, 다음 교전의 예측 시점, 그리고 경기 종료이다. 뒤의 세 가지는 그 직전까지로 자른다. 마지막 킬을 $L$, 그 뒤의 첫 킬을 $K_{\mathrm{next}}$, 다음 교전의 시작을 $S_{\mathrm{next}}$, 경기 종료를 $T_{\mathrm{end}}$라 하고 없는 사건을 $+\infty$로 두면, 지평 $h$에서의 끝 시각 $\eh$는 다음과 같다.
 \begin{equation}
-  \eh = \min\bigl(L + 1000h,\ K_{\mathrm{next}} - 1,\ S_{\mathrm{next}} - 1,\ T_{\mathrm{end}} - 1\bigr)\ \text{[ms]}, \qquad h = 90\ (\text{주}),\ 60,\ 120\ (\text{민감도})
+  \eh = \min\bigl(L + 1000h,\ K_{\mathrm{next}} - 1,\ S_{\mathrm{next}} - 1,\ T_{\mathrm{end}} - 1\bigr)\ \text{[ms]}
   \label{eq:endpoint}
 \end{equation}
-이며, $\dV = \Vhat(S(\eh)) - \Vhat(S(q_{\mathrm{pre}}))$이다. 오브젝트 획득과 에이스는 이 규칙에서 종료 사건이 아니다. 행은 $\eh \ge L$, $\eh > q_{\mathrm{pre}}$, $\eh \le$ 마지막 프레임, $q_{\mathrm{pre}}$가 관측 프레임 안에 있음, $S_{\mathrm{next}} > L$, 두 질의에서 상태 구성이 성공함(\texttt{valid\_h90 == 1})일 때 라벨링된다. 실패는 사유와 함께 기록되어 제외된다. 조기 경기 종료는 $\eh$를 잘라내며 행은 유효하고 $\Vhat$의 값이 라벨의 근거로 남는다.
+주 결과는 $h = 90$초이고 60초와 120초는 민감도로 함께 본다. 오브젝트를 가져가는 것과 한 팀이 모두 죽는 것은 끝내는 사건으로 보지 않는다.
 
-검출된 \numEngDetected{} 교전 가운데 \numEngValid{}가 h60, h90, h120에서 똑같이 유효하며, 무효 \numEngInvalid{} 행은 모두 중첩 사례($S_{\mathrm{next}} \le L$)이고 한타는 없다. 상한이 마지막 킬에 앵커되므로 ``h90''은 마지막 킬 뒤 최대 90초의 구간이다. 15.16 timeline에서 $L$ 이후의 실현된 추적 시간은 평균 \followupMean{}초(중앙값 \followupMedian{}초)이고, \shareCapReached{}\%의 행이 상한에 도달하며, 약 \shareNextKillStop{}\%가 다음 킬에서 멈춘다. $L$ 이후 새 관측 프레임이 없는 행이 \shareNoNewFrame{}\%이다. 이 통계는 2026-09-15의 로지스틱 평가기 아래에서 계산된 값이며, 결과 시점은 평가기와 무관하게 정해진다.
+교전이 결과를 받으려면 끝 시각이 마지막 킬보다 뒤여야 하고, 예측 시점보다 뒤여야 하며, 마지막 프레임 안에 있어야 하고, 두 시각 모두에서 상태를 다시 만들 수 있어야 한다. 통과하지 못한 교전은 사유와 함께 기록하고 제외한다. 경기가 일찍 끝나 구간이 잘린 교전은 유효하다.
 
-\paragraph{대안 정지 규칙.} 식 \eqref{eq:endpoint}는 다음 킬에서 구간을 자르므로 변화의 귀속 범위가 좁다. 보완 실험(15.16 노출 이후의 진단)으로, 다음 킬에 의한 조기 종료를 두지 않는 대안 $e_{\mathrm{fixed}} = \min(L + 30\,\text{s},\ T_{\mathrm{end}} - 1)$을 같은 T 행(\efN{})에서 계산하였다. 두 규칙의 결과 시점이 같은 행은 \efSameEp{}\%이고, 평균 추적 길이는 \efFollowFixed{}초(h90은 \efFollowH{}초)이며, $\SVI$ 라벨은 \efFlip{}의 행에서 뒤집힌다. 동결 $q$와 $\PTflex$의 예측을 고정한 채 라벨만 $Y_{\mathrm{fixed}}$로 바꾸면 경기 가중 $\dBrier$는 \efDbFixed{}(주 라벨에서는 \efDbH{})이다. 대안 구간에는 추가 교전이 들어올 수 있어 귀속 범위가 넓어지며, 이 값은 대안 규칙의 우열이 아니라 결과 시점 규칙에 대한 라벨과 예측 비교의 의존성을 기술한다.
+검출한 교전 \numEngDetected{}개 가운데 \numEngValid{}개가 세 지평 모두에서 유효하다. 무효인 \numEngInvalid{}개는 모두 다음 교전과 겹친 경우이고 한타는 없다. 상한이 마지막 킬에 걸려 있으므로 90초는 마지막 킬 뒤 최대 90초라는 뜻이다. 15.16에서 마지막 킬 이후 실제로 이어진 시간은 평균 \followupMean{}초, 중앙값 \followupMedian{}초이고, \shareCapReached{}\%가 상한에 닿으며 약 \shareNextKillStop{}\%가 다음 킬에서 멈춘다. 마지막 킬 뒤에 새 프레임이 없는 교전은 \shareNoNewFrame{}\%이다.
+
+이 규칙은 다음 킬에서 구간을 자르므로 변화를 좁게 귀속시킨다. 다음 킬로 자르지 않고 마지막 킬 뒤 30초와 경기 종료 가운데 이른 쪽으로 끊는 대안을 같은 한타 \efN{}개에서 계산하였다. 두 규칙의 끝 시각이 같은 교전은 \efSameEp{}\%이고, 평균 추적 길이는 \efFollowFixed{}초로 주 규칙의 \efFollowH{}초보다 짧으며, 결과의 부호가 뒤집히는 교전의 비율은 \efFlip{}이다. 대안 구간에는 다른 교전이 들어올 수 있어 귀속 범위가 넓어진다. 이 대안이 예측 비교를 어떻게 바꾸는지는 제 \ref{ch:validation} 장에서 다룬다.

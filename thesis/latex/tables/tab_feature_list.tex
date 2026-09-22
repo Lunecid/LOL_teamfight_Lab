@@ -1,0 +1,27 @@
+%% table 객체: tab:app-feature-list — 상태 표현의 열 이름 전체.
+%% 출처: 저장소 실행 매니페스트의 feature_groups 목록 전사. gen_feature_census.py 산출물에서 표주와 경로를 덜어 냈다.
+\begin{table}[H]
+  \centering
+  \caption{상태 표현의 열 이름}
+  \label{tab:app-feature-list}
+  \footnotesize
+  \begin{tabularx}{\linewidth}{@{}llX@{}}
+    \toprule
+    블록 & 열 수 & 이름 \\
+    \midrule
+    경기 시각 & $1 \times 2 = 2$ & \texttt{time\_minutes}, \texttt{time\_minutes\_sq} \\
+    \addlinespace
+    자료 품질 & $1 \times 1 = 1$ & \texttt{unknown\_objective\_team\_count} \\
+    \addlinespace
+    참가자 상태 & $10 \times 9 = 90$ & \texttt{participant\_slot}$i$\texttt{\_}$\ast$, $i = 0, \ldots, 9$: \texttt{totalGold\_norm}, \texttt{curGold\_norm}, \texttt{level\_norm}, \texttt{xp\_norm}, \texttt{hp\_pct}, \texttt{mp\_pct}, \texttt{alive}, \texttt{laneCS\_norm}, \texttt{jgCS\_norm} \\
+    \addlinespace
+    참가자 사건 & $10 \times 7 = 70$ & 같은 자리 접두: \texttt{kills}, \texttt{deaths}, \texttt{death\_since\_snapshot}, \texttt{death\_last\_30s}, \texttt{death\_age\_minutes}, \texttt{baron\_death\_since\_acquisition}, \texttt{elder\_death\_since\_acquisition} \\
+    \addlinespace
+    팀 사건 & $2 \times 47 = 94$ & \texttt{blue\_}$\ast$, \texttt{red\_}$\ast$: \texttt{kills}, \texttt{plates}, \texttt{inhibitor\_kills}, \texttt{tower\_OUTER\_TURRET}, \texttt{tower\_INNER\_TURRET}, \texttt{tower\_BASE\_TURRET}, \texttt{tower\_NEXUS\_TURRET}, \texttt{tower\_OTHER}, \texttt{dragons}, \texttt{dragon\_AIR}, \texttt{dragon\_EARTH}, \texttt{dragon\_FIRE}, \texttt{dragon\_WATER}, \texttt{dragon\_HEXTECH}, \texttt{dragon\_CHEMTECH}, \texttt{dragon\_OTHER}, \texttt{soul\_AIR}, \texttt{soul\_EARTH}, \texttt{soul\_FIRE}, \texttt{soul\_WATER}, \texttt{soul\_HEXTECH}, \texttt{soul\_CHEMTECH}, \texttt{soul\_OTHER}, \texttt{soul\_event\_recorded}, \texttt{baron}, \texttt{elder}, \texttt{herald}, \texttt{horde}, \texttt{atakhan}, 그리고 \texttt{baron}·\texttt{elder}·\texttt{herald}·\texttt{horde}·\texttt{atakhan}의 \texttt{\_ever}와 \texttt{\_age\_minutes}, \texttt{baron}·\texttt{elder}의 \texttt{\_acquired\_last\_}\{\texttt{60s}, \texttt{120s}, \texttt{180s}, \texttt{300s}\} \\
+    \addlinespace
+    팀 사건 $\times$ 시각 & $2 \times 47 = 94$ & 위 47개 이름에 \texttt{\_x\_time}을 붙인 열 \\
+    \addlinespace
+    챔피언 식별자 & $10 \times 1 = 10$ & \texttt{participant\_slot}$i$\texttt{\_champion\_id} \\
+    \bottomrule
+  \end{tabularx}
+\end{table}

@@ -1,0 +1,25 @@
+%% table 객체: tab:input-blocks — 상태 표현의 블록 구성.
+%% 출처: 저장소 실행 매니페스트(V_FEATURE_MANIFEST_RUNTIME_20260919)의 group 집계와 feature_groups 목록의 전사.
+%% 저장소의 gen_feature_census.py 산출물을 학위논문 표기에 맞게 옮긴 것이다 (코드명·표주·경로 제거).
+\begin{table}[!t]
+  \centering
+  \caption{상태 표현의 블록 구성}
+  \label{tab:input-blocks}
+  \small
+  \begin{tabular}{@{}lrrl@{}}
+    \toprule
+    블록 & 짜임 & 열 & 자료형 \\
+    \midrule
+    경기 시각 & $1 \times 2$ & 2 & 수치 \\
+    자료 품질 & $1 \times 1$ & 1 & 수치 \\
+    참가자 상태 & $10 \times 9$ & 90 & 수치 \\
+    참가자 사건 & $10 \times 7$ & 70 & 수치 \\
+    팀 사건 & $2 \times 47$ & 94 & 수치 \\
+    팀 사건 $\times$ 시각 & $2 \times 47$ & 94 & 수치 \\
+    챔피언 식별자 & $10 \times 1$ & 10 & 범주 \\
+    \midrule
+    수치 소계 & & \dimNumeric{} & \\
+    합계 & & \dimExpanded{} & \\
+    \bottomrule
+  \end{tabular}
+\end{table}

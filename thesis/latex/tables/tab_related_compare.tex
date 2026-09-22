@@ -1,0 +1,18 @@
+%% table 객체: tab:related-compare — 교전 단위 연구의 비교 (2.2절 본문의 서술을 표로 옮긴 것; 각 행의 근거는 해당 bib 항목)
+\begin{table}[!t]
+  \centering
+  \caption{교전 단위 연구의 비교}
+  \label{tab:related-compare}
+  \footnotesize
+  \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{2.5cm}>{\raggedright\arraybackslash}p{1.2cm}>{\raggedright\arraybackslash}p{1.7cm}>{\raggedright\arraybackslash}p{2.9cm}Xcc@{}}
+    \toprule
+    연구 & 게임 & 분석 단위 & 검출 신호 (자료) & 결과 정의 & 승률 변화 & 사전 예측 \\
+    \midrule
+    Schubert 등 \cite{schubert2016encounter} & Dota~2 & encounter & 유닛 근접·전투 범위 (리플레이) & encounter 승자 & $\times$ & $\circ$ \\
+    Ke 등 \cite{ke2022} & Dota~2 & 전투 & 사거리 내 근접과 킬 (리플레이) & 경기 승자 예측의 입력 & $\times$ & --- \\
+    Maymin \cite{maymin2021smart} & LoL & 킬·데스 사건 & 피해 기록 (클라이언트) & 승률 변화 & $\circ$ & --- \\
+    Baek과 Kwon \cite{baek2026killconditioned} & LoL & 교전 & 킬 (Match-V5) & 손으로 가중한 교환가치의 부호 & $\times$ & $\circ$ \\
+    본 논문 & LoL & 교전 & 킬과 자료에서 추정한 경계 (Match-V5) & 고정한 승률 모형의 추정 승률 증가 여부 & $\circ$ & $\circ$ \\
+    \bottomrule
+  \end{tabularx}
+\end{table}

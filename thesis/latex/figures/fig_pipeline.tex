@@ -13,10 +13,10 @@
     \node[frozen, below=of det] (V) {동결 평가기 $\Vhat$ (fit85 MLP)\\TRAIN 행은 fold 평가기 $\Vfold{k}$};
     \node[box, left=of V] (pre) {$\Spre$ at $\tcut = K - 15$ s\\$\ppre = \Vhat(\Spre)$};
     \node[box, right=of V] (post) {$S(\eh)$, $\eh = \min(L + 90\,\mathrm{s}, \ldots)$\\$\Ysvi = \ind[\dV > 0]$};
-    \node[box, below=of pre] (q) {$q(\xpre)$: 로지스틱, \dimInputQ{} 입력\\코호트별 $q$, $\qS$};
-    \node[box, below=of post] (pt) {$\PTflex$: $(\ppre, t)$ 스플라인\\Q\_SELECT에서 선정 후 동결};
-    \node[box, below=of V, yshift=-4mm] (contrast) {주 대비 (코호트당 1개)\\$\dBrier(q - \PTflex)$, 경기 군집 부트스트랩};
-    \node[box, below=of contrast, text width=0.86\linewidth] (verify) {검증 (추정 대상을 바꾸지 않음): $V\to W$ 품질 · 방향/평균/규모 분리 · 비교전 대조 · 물질·오브젝트 대응 · 지평 · $\Bforty$ · $\lambda s_Q$ · CORP · 외부 점수 전용};
+    \node[box, below=of pre] (q) {$q(\xpre)$: 로지스틱, \dimInputQ{} 입력\\코호트별로 따로 적합};
+    \node[box, below=of post] (pt) {PT 기준선: $(\ppre, t)$의 유연한 함수\\Q\_SELECT에서 선정 후 동결};
+    \node[box, below=of V, yshift=-4mm] (contrast) {주 대비 (코호트당 1개)\\$\dBrier(q - \mathrm{PT})$, 경기 군집 부트스트랩};
+    \node[box, below=of contrast, text width=0.86\linewidth] (verify) {검증 (추정 대상을 바꾸지 않음): $V\to W$ 품질 · 방향/평균/규모 분리 · 비교전 대조 · 물질·오브젝트 대응 · 지평 · $\Bforty$ · 작은 변화 제외 · CORP · 외부 점수 전용};
     \draw[arr] (tele) -- (det);
     \draw[arr] (det) -- (coh);
     \draw[arr] (det) -- (V);
