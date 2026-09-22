@@ -1,9 +1,9 @@
 %!TEX root = ../../main.tex
 \section{교전 구간과 비교전 구간의 대조}
-\label{sec:val-quiet}
+\label{sec:value-quiet}
 
-$\SVI$가 교전과 무관한 잡음이 아님을 보이기 위해, 같은 경기 안에서 $\ppre$와 시각이 가깝고 길이가 같은 \emph{비교전(quiet)} 구간을 짝지어 절대 변화를 비교하였다. 짝지을 수 있는 부분 집합(\numQuietMatched{} 행, \numQuietMatches{} 경기; TEST 교전의 약 \quietCoverage\%)에서 교전의 절대 변화는 비교전 구간을 넘는다.
+교전 구간의 변화가 비교전 구간의 변화보다 큰지를 보기 위해, 같은 경기 안에서 $\ppre$와 시각이 가깝고 길이가 같은 \emph{비교전(quiet)} 구간을 짝지어 절대 변화를 비교하였다. 짝지을 수 있는 부분 집합(\numQuietMatched{} 행, \numQuietMatches{} 경기; TEST 교전의 약 \quietCoverage\%)에서 교전의 절대 변화는 비교전 구간을 넘는다.
 \begin{equation}
   \E\bigl[|\dV|_{\mathrm{fight}} - |\dV|_{\mathrm{quiet}}\bigr] = \quietDiff, \qquad 95\%\ \text{CI}\ \ci{\quietCiLo}{\quietCiHi}.
 \end{equation}
-긴 교전($L > 120$초, TEST의 \shareLongEng\%)은 같은 길이의 비교전 구간을 찾을 수 없어 구조적으로 짝지어지지 않는다. 이 결과는 \emph{규모 대조}이지 식별된 인과적 교전 효과(처치받은 집단의 평균 처치 효과)가 아니며, 모든 교전에 대한 진술도 아니다. 비교전 구간의 규모 $s_Q$는 제 \ref{sec:val-lambda} 절의 작은 변화 제외 분석에서 참조 척도로 다시 쓰인다.
+긴 교전($L > 120$초, TEST의 \shareLongEng\%)은 같은 길이의 비교전 구간을 찾을 수 없어 구조적으로 짝지어지지 않는다. 이 결과는 짝지을 수 있었던 부분 집합에서의 \emph{규모 대조}이다. 비교전 구간의 규모 $s_Q$는 제 \ref{sec:val-lambda} 절의 작은 변화 제외 분석에서 참조 척도로 다시 쓰인다.

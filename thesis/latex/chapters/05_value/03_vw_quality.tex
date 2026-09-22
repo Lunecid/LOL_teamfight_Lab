@@ -1,9 +1,9 @@
 %!TEX root = ../../main.tex
 \section{평가기의 경기 승패 예측 품질 ($V \to W$)}
-\label{sec:val-vw}
+\label{sec:value-vw}
 
-표 \ref{tab:vw-quality}는 동결 평가기가 15.16 timeline의 시간상태 질의(\numVTest{} 행, \numVTestMatches{} 경기; 경기 가중; 이 표에는 부트스트랩 구간 없음)에서 실제 승패 $W$를 얼마나 잘 예측하는지 보인다. 전체 Brier \vwBrier{}, AUC \vwAUC{}이며, CORP 분해는 $\UNC \approx \uncApprox$ 아래의 간격 대부분을 판별 성분($\DSC$ \vwDSC{})에 귀속시키고 오보정 성분은 작다($\MCB$ \vwMCB{}). 성능은 시간 조건부이다. 초기 밴드 $[2,10)$분(\numVEarly{} 행)은 Brier \vwEarlyBrier{}, AUC \vwEarlyAUC{}로 약하고 후기 밴드는 강하다. 이는 측정 맥락으로 보고하는 것이지, 시험 패치에서 $V$를 재조정할 이유가 아니다.
+표 \ref{tab:vw-quality}는 동결 평가기가 15.16 timeline의 시간상태 질의(\numVTest{} 행, \numVTestMatches{} 경기; 경기 가중; 점값)에서 실제 승패 $W$를 얼마나 잘 예측하는지 보인다. 전체 Brier \vwBrier{}, AUC \vwAUC{}이며, CORP 분해는 $\UNC \approx \uncApprox$ 아래의 간격 대부분을 판별 성분($\DSC$ \vwDSC{})에 귀속시키고 오보정 성분은 작다($\MCB$ \vwMCB{}). 성능은 시간 조건부이다. 초기 밴드 $[2,10)$분(\numVEarly{} 행)은 Brier \vwEarlyBrier{}, AUC \vwEarlyAUC{}로 약하고 후기 밴드는 강하다. 시간대별 차이는 측정 맥락으로 보고한다.
 
 \input{tables/tab_vw_quality}
 
-예측 표본(\numTTest{} 행)의 교전 전·후 스냅숏으로 제한하면 $V_{\mathrm{pre}}$와 $V_{\mathrm{post}}$는 Brier \vpreBrier{} / \vpostBrier{}, AUC \vpreAUC{} / \vpostAUC{}에 이른다. 이 수치는 $\dV$를 \emph{정의하는} 평가기를 특성화하는 것이며, 그 자체가 방향 예측 결과는 아니다.
+예측 표본(\numTTest{} 행)의 교전 전·후 스냅숏으로 제한하면 $V_{\mathrm{pre}}$와 $V_{\mathrm{post}}$는 Brier \vpreBrier{} / \vpostBrier{}, AUC \vpreAUC{} / \vpostAUC{}에 이른다. 이 수치는 $\dV$를 정의하는 평가기의 품질을 특성화한다. 방향 예측의 결과는 같은 행에 대해 제 \ref{ch:prediction} 장에서 보고한다.

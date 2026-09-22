@@ -1,11 +1,17 @@
 %!TEX root = ../../main.tex
-\section{학습기와 정보 구성에 관하여 말할 수 있는 것}
-\label{sec:pred-learner}
+\section{정보군 비교}
+\label{sec:pred-infogroups}
 
-M-RQ3의 두 번째 절은 관측 정보의 구성과 학습기의 선택이 예측 성능과 확률 품질에 어떻게 반영되는가이다. 동결 설계가 이 절에 답하는 범위는 제한적이며 그대로 밝힌다.
+M-RQ3의 두 번째 절은 시작 승률과 경기 시각을 넘어 어떤 관측 정보가 추가 예측력을 제공하는가이다. 이 절은 보완 실험(15.16 노출 이후의 진단)으로 답하고, 학습 알고리즘의 선택에 관해 본 논문이 말할 수 있는 범위를 끝에 적는다.
 
-\paragraph{학습기.} 로지스틱 $q$는 \dimInputQ{}개 입력을, 진단용 LightGBM 후보는 챔피언 ID 10개를 더한 \dimInputLgbm{}개 입력을 썼다. 따라서 둘은 동일 정보의 학습기 비교가 아니다. 본 논문은 로지스틱 사양을 사전에 고정했고 아키텍처 탐색을 하지 않았으므로, 학습기에 관한 순위나 우열을 주장하지 않는다. 선행 연구의 정합 입력 비교(같은 테이블 입력의 그래디언트 부스팅과 MLP)는 다른 라벨과 코퍼스에서의 결과이므로 여기에 옮겨 오지 않는다.
+\paragraph{설계.} 모든 정보군에 사전 승률 요약 $C = (\ppre,\ t,\ t^2)$와 자료 품질 신호 $Q_0$(미확인 오브젝트 팀 수)를 공통 제공하고, 프레임 특징 $F$(참가자 10명 $\times$ 9개, 90열)와 사건 특징 $E$(플레이어 사건 70 + 팀 사건 94 + 시간 파생 94, 258열)를 직접 추가하는 효용을 비교하였다. 네 arm은 M-F0 ($C + Q_0$, \igDimFzero{}열), M-F1 ($+F$, \igDimFone{}열), M-F2 ($+E$, \igDimFtwo{}열), M-F3 ($+F+E$, \igDimFthree{}열)이다(표 \ref{tab:infogroups-arms}). 챔피언 ID는 $q$와 같이 제외하였다. 학습기는 LightGBM으로 고정하고 arm마다 후보 4개(\texttt{num\_leaves} $\{15, 31\}$ $\times$ \texttt{min\_child\_samples} $\{100, 300\}$; 학습률 0.03, 최대 2{,}000 트리, 시드 \bootSeed)를 T와 S에서 각각 TRAIN(out-of-fold 라벨)에 적합하고, Q\_CAL의 경기 가중 로그 손실로 조기 종료하며, Q\_SELECT의 경기 가중 Brier가 가장 낮은 후보를 고른 뒤 TEST를 한 번 점수화하였다. 보정기는 항등이다. 주 대비는 코호트마다 둘이다. 사건 추가 효용 $D_{E\mid F} = L(\text{M-F3}) - L(\text{M-F1})$과 프레임 추가 효용 $D_{F\mid E} = L(\text{M-F3}) - L(\text{M-F2})$이며, 네 대비를 하나의 추론 가족으로 등록하였다. 적합 가중치의 정규화가 $q$와 다르므로 이 arm들의 절대 Brier는 표 \ref{tab:primary-T}, \ref{tab:primary-S}의 $q$·$\PTflex$와 같은 척도 위에 있지 않다.
 
-\paragraph{정보 구성.} 학위논문 연구계획은 초기 상태 요약 $C$($\ppre$와 시간 기본 열), $C + F$(프레임 기반 자원·성장·체력 특징군), $C + E$(사건·이력 특징군), 전체 $X$의 네 정보집합(M-F0--M-F3)을 같은 학습기로 비교하는 심화 모듈을 제안하였다. 이 모듈은 실행되지 않았다. 따라서 어떤 특징군이 초기 승률 요약에 조건부로 추가 효용을 갖는지에 관해 본 논문은 결과를 제시하지 않으며, 부록 \ref{app:deferred}에 사전 등록 형식의 계획으로만 둔다. $q$의 계수나 SHAP 같은 특징 귀속을 정보 유무의 독립 검정이나 인과적 승리 조건으로 쓰지 않는다.
+\input{tables/gen/tab_infogroups_arms}
 
-\paragraph{확률 품질.} 학습기·정보 구성이 확률 품질에 반영되는 방식은 제 \ref{sec:val-corp} 절의 점수 분해가 $q$와 $\PTflex$ 사이에서 보여 주는 범위까지만 말할 수 있다.
+\paragraph{결과.} 사전 승률 요약을 공통 제공한 비교에서, 사건 특징을 프레임 특징에 추가하는 효용이 두 코호트에서 관측되었다. $D_{E\mid F}$는 T에서 \igTDEgF{} \ci{\igTDEgFLo}{\igTDEgFHi}, S에서 \igSDEgF{} \ci{\igSDEgFLo}{\igSDEgFHi}이다. 프레임 특징을 사건 특징에 추가하는 효용은 코호트별로 다르게 나타났다. T에서 $D_{F\mid E}$의 추정치는 \igTDFgE{}로 0 부근이고 구간 \ci{\igTDFgELo}{\igTDFgEHi}은 양·음의 값을 모두 포함하며, S에서는 \igSDFgE{} \ci{\igSDFgELo}{\igSDFgEHi}이다(표 \ref{tab:infogroups-contrasts}). 보조 대비로 M-F3과 M-F0의 차이는 T \igTFthreeVsFzero{} \ci{\igTFthreeVsFzeroLo}{\igTFthreeVsFzeroHi}, S \igSFthreeVsFzero{} \ci{\igSFthreeVsFzeroLo}{\igSFthreeVsFzeroHi}이다. T와 S의 효과 차이는 직접 검정하지 않았으므로 두 코호트의 결과는 각각 읽는다. T에서 프레임 추가 효용의 구간이 0을 포함한다는 결과는 그 정보군이 이 학습 절차·예산·공유 승률 요약 아래에서 명확한 추가 효용을 보이지 않았다는 뜻이며, 정보의 부재나 게임 기전에 관한 진술과 구분된다.
+
+\input{tables/gen/tab_infogroups_contrasts}
+
+\paragraph{학습기.} 로지스틱 $q$는 \dimInputQ{}개 입력을, 진단용 LightGBM 후보는 챔피언 ID 10개를 더한 \dimInputLgbm{}개 입력을 썼으므로 둘은 동일 정보의 학습기 비교와 다르다. 위의 정보군 비교는 학습기를 LightGBM 하나로 고정한 비교이다. 동일한 352열 입력에서 로지스틱과 LightGBM을 같은 전처리·역할·가중치로 비교하는 정합 실험은 미실행이며(부록 \ref{app:deferred}), 학습기 선택의 독립적 영향에 관해 본 논문이 답하는 범위는 이 한도 안이다. $q$의 계수나 특징 귀속은 정보 유무의 독립 검정과 다른 양이므로 그 용도로 쓰지 않았다.
+
+\paragraph{확률 품질.} 학습기·정보 구성이 확률 품질에 반영되는 방식은 제 \ref{sec:val-corp} 절의 점수 분해가 $q$와 $\PTflex$ 사이에서 보여 주는 범위까지 말할 수 있다.

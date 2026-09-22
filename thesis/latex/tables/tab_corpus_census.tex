@@ -1,16 +1,16 @@
 %% table 객체: tab:corpus-census — 출처 lineage_20260915/README.md L82–86 (e0ec3d0 manuscript.md L200–208)
-\begin{table}[htbp]
+\begin{table}[!t]
   \centering
-  \caption{패치별 원천 코퍼스 census. 유효 행은 결과 시점 규칙 h60/h90/h120에서 동일하며, 제외된 \numEngInvalid{} 행은 다음 교전의 시작이 현재 마지막 킬 이하인 중첩 사례로 모두 N에 속한다.}
+  \caption{패치별 경기와 교전 수}
   \label{tab:corpus-census}
-  \small
-  \begin{tabular}{@{}llrrrrr@{}}
+  \footnotesize
+  \begin{tabular}{@{}lrrrrrr@{}}
     \toprule
-    역할 & 패치 & 경기 & 검출 교전 & 유효 교전 & T 행 & N 행 \\
+    쓰는 일 & 패치 & 경기 & 검출된 교전 & 유효한 교전 & 한타 & 한타 외 \\
     \midrule
-    TRAIN & 15.14 & \numMatchesTrain{} & \numEngTrainDet{} & \numEngTrainValid{} & \numTTrain{} & \numNTrain{} \\
-    VALIDATION & 15.15 & \numMatchesVal{} & \numEngValDet{} & \numEngValValid{} & \numTVal{} & \numNVal{} \\
-    TEST & 15.16 & \numMatchesTest{} & \numEngTestDet{} & \numEngTestValid{} & \numTTest{} & \numNTest{} \\
+    학습 & 15.14 & \numMatchesTrain{} & \numEngTrainDet{} & \numEngTrainValid{} & \numTTrain{} & \numNTrain{} \\
+    보정·선정 & 15.15 & \numMatchesVal{} & \numEngValDet{} & \numEngValValid{} & \numTVal{} & \numNVal{} \\
+    평가 & 15.16 & \numMatchesTest{} & \numEngTestDet{} & \numEngTestValid{} & \numTTest{} & \numNTest{} \\
     \midrule
     합계 & & \numMatchesTotal{} & \numEngDetected{} & \numEngValid{} & \numTPooled{} & \numNPooled{} \\
     \bottomrule

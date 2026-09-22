@@ -1,11 +1,13 @@
 %!TEX root = ../../main.tex
-\section{규모 계급과 코호트 T, S}
+\section{한타와 소규모 교전}
 \label{sec:eng-scale}
 
-규모는 사후 속성이며 보고에만 쓰이고 모델 입력이 아니다. 각 팀의 참여 인원은 교전의 킬에서 킬러·희생자·어시스트로 나타난 그 팀의 챔피언 수에, $\tcut$과 마지막 킬 사이에 앵커로부터 3{,}000 단위 안에서 발생한 다른 timeline 사건의 행위자를 더한 수이다. 계급은 작은 쪽의 인원 $\nmin$으로 정한다. 정의 계보 코퍼스(\numEngLineage{} 교전)에서 $\nmin$은 1, 2, 3, 4, 5인 경우가 각각 \shareNminOne{}, \shareNminTwo{}, \shareNminThree{}, \shareNminFour{}, \shareNminFive{}\%로 작은 쪽 인원만으로는 antimode가 없지만, 결합 분포의 대각선은 2v2(14.7\%)가 모드, 4v4(6.2\%)가 골, 5v5(7.2\%)가 두 번째 모드를 이룬다. 비지도 행동학이 밀도 봉우리에서 행동 상태를 읽듯 \cite{berman2014mapping}, 계급은 이 모드를 따른다. \emph{pick}은 $\nmin \le 1$(\numPickLineage{}, \sharePick{}\%), \emph{소규모 교전}(skirmish)은 $2 \le \nmin \le 3$(\numSkirmishLineage{}, \shareSkirmish{}\%), \emph{한타}(teamfight)는 $\nmin \ge 4$(\numTeamfightLineage{}, \shareTeamfight{}\%)이다.
+교전에 몇 명이 모였는지는 교전이 끝나야 정해진다. 각 팀의 참여 인원은 그 교전의 킬에 킬러나 희생자나 어시스트로 나타난 그 팀의 챔피언 수에, 예측 시점과 마지막 킬 사이에 앵커로부터 3{,}000 단위 안에서 일어난 다른 사건의 행위자를 더해 센다. 계급은 적게 모인 쪽의 인원으로 정한다. 여기 쓰인 3{,}000 단위는 이전 정의에서 이어받은 값이고 근거가 기록되어 있지 않다. 이 반경이 참여 인원을 정하고 참여 인원이 계급을 정하므로, 반경을 바꾸면 같은 교전이 다른 계급으로 옮겨 갈 수 있다. 그 영향은 측정하지 않았다.
 
-두 모드는 두 종류의 다인 교전을 지지하지만, 그 사이 어디에 절단을 둘지는 정해 주지 않는다. 절단을 4에 두는 것은 팀 전체가 싸운다는 커뮤니티의 감각을 따른 관례이다. 같은 out-of-fold 예측을 다시 점수화하면 pick AUC에서 한타 AUC를 뺀 값은 절단 3에서 \cutDiffThree{}, 4에서 \cutDiffFour{}, 5에서 \cutDiffFive{}로 부호가 절단을 따른다. 따라서 규모에 관한 진술은 어느 방향으로도 하지 않는다. 선행 연구 계보의 사후 분석이 내렸던 ``예측 가능성은 규모와 함께 커진다''는 결론은 이 사실과 시간 특징 누출 때문에 철회되었다.
+정의 상수를 추정한 코퍼스의 교전 \numEngLineage{}개에서 적게 모인 쪽이 1명부터 5명인 경우는 각각 \shareNminOne{}, \shareNminTwo{}, \shareNminThree{}, \shareNminFour{}, \shareNminFive{}\%이다. 적게 모인 쪽의 인원만 보면 봉우리 사이의 골이 없다. 두 팀의 인원을 함께 보면 2대 2가 봉우리이고 4대 4가 골이며 5대 5가 두 번째 봉우리이다. 계급은 이 두 봉우리를 따른다 \cite{berman2014mapping}. 적게 모인 쪽이 1명 이하이면 pick, 곧 한 명이 따로 잡히는 경우이고, 2명이나 3명이면 소규모 교전, 4명 이상이면 한타이다. 세 계급은 각각 \sharePick{}, \shareSkirmish{}, \shareTeamfight{}\%를 차지한다.
 
-본 논문의 예측 표본은 두 코호트이다. \textbf{한타 T}는 동결 파이프라인에서 플래그 \texttt{cohort == 1}, 곧 저장된 v3.3 참여 인원에 대해 $\min(\texttt{cluster\_blue}, \texttt{cluster\_red}) \ge 4$이며 v3.3의 한타 계급(\texttt{fine == 2})과 모든 집합에서 정확히 일치한다. \textbf{소규모 교전 S}는 \texttt{cohort == 0 \& fine == 1}, 곧 $2 \le \nmin \le 3$이다. pick($\nmin \le 1$; 15.16 교전의 약 \sharePickTest{}\%)은 사전에 제외되며 fit85 계보의 결과가 존재하지 않는다. \pendingauthor{pick 제외 사유 문장 (저널 원고 \texttt{\textbackslash pending\{pick-exclusion-wording\}}과 동일 문안으로 확정)} 두 코호트는 각자의 $q$와 기준선, 각자의 주 대비를 가지며, 한 표 행으로 합동되지 않고 절대 점수를 서로 비교하지 않는다. 코호트 소속은 예측 시점 이후의 정보이므로 배치나 운용의 주장(어느 교전에 걸 것인가)에 쓰지 않는다.
+두 봉우리는 두 종류의 다인 교전을 지지하지만, 그 사이를 4에서 끊는 것은 자료가 정해 준 값이 아니다. 팀 전체가 싸운다는 커뮤니티의 감각을 따른 관례이다. 끊는 자리를 3이나 5로 옮기면 계급마다 다른 교전이 들어오고, 계급 사이의 예측 성능을 견준 값은 부호까지 바뀐다(제 \ref{sec:eng-sensitivity} 절). 따라서 계급 사이의 절대 성능 차이는 정의의 효과와 나뉘지 않는다. 본 논문은 두 집단을 각각 보고하고 서로 견주지 않는다(제 \ref{sec:disc-scope} 절).
 
-정의 계보 코퍼스의 수(\numMatchesLineage{} 경기에서 \numEngLineage{} 교전, 그중 한타 \numTeamfightLineage{})는 본 논문의 합동 T(\numMatchesTotal{} 경기에서 \numTPooled{})와 코퍼스·필터가 다르므로 한 표에 넣지 않는다.
+예측의 대상은 이 가운데 한타와 소규모 교전이다. pick은 사전에 제외하였다. 한쪽이 한 명뿐인데 킬이 났다는 것은 그 한 명을 암살했거나 홀로 떨어져 있던 챔피언을 잡았다는 뜻이고, 양쪽이 맞붙은 국면이 아니기 때문이다. 15.16 교전의 약 \sharePickTest{}\%가 여기에 해당하며 이 계급의 결과는 없다. 두 집단은 같은 교전을 공유하지 않으며, 각자의 모형과 기준선을 갖고, 모든 결과는 집단 안에서 읽는다.
+
+정의 상수를 추정한 코퍼스(\numMatchesLineage{} 경기, 교전 \numEngLineage{}개)와 예측에 쓰는 코퍼스(\numMatchesTotal{} 경기)는 거르는 조건이 다른 별개의 집합이며, 각각의 표에서 따로 보고한다.

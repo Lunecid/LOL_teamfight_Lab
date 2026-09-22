@@ -205,3 +205,19 @@
 \newcommand{\oldSkirmSpec}{-0.00023} \newcommand{\oldSkirmSpecLo}{-0.00043} \newcommand{\oldSkirmSpecHi}{-0.00004}
 \newcommand{\oldPickSpec}{-0.00083}
 \newcommand{\meSkirmAUC}{0.6633}    \newcommand{\meTeamfightAUC}{0.6809}
+
+%% --- Baek & Kwon (CoG 2026) 정의 상수 (인용 전용; 2장에서 \cite{baek2026killconditioned}가 붙은 문장에만)
+%%     출처: docs/CoG2026_Paper.md §3.1–3.2 및 상수표 (TF2_KILL_CLUSTER_GAP_MS, diameter 4,000 u, TF2_VALIDITY_RADIUS,
+%%     TF2_MIN_PER_TEAM, TF2_ENGAGE_PRE_KILL_MS, FIGHT_CONTEXT_SEC, FIGHT_HORIZON_SEC, CONTINUOUS_FIGHT_MAX_GAP_MS,
+%%     CONTINUOUS_FIGHT_MERGE_RADIUS); docs/tog_manuscript/sec_label.tex L56–60 (fourteen weights); sec_intro.tex L111–120 (AUC 0.675)
+\newcommand{\cogGap}{18}            % s, 킬 사슬 간격
+\newcommand{\cogDiam}{4{,}000}      % u, 군집 지름 분할
+\newcommand{\cogGateR}{1{,}800}     % u, 존재 게이트 반경
+\newcommand{\cogGateMin}{2}         % 팀당 최소 생존 인원
+\newcommand{\cogLead}{10}           % s, 첫 킬 전 engage 시점 오프셋 (컷오프)
+\newcommand{\cogWindow}{30}         % s, 관측 창
+\newcommand{\cogLabelWindow}{30}    % s, 라벨 창
+\newcommand{\cogMergeGap}{15}       % s, 인접 후보 병합 간격
+\newcommand{\cogMergeRadius}{2{,}000} % u, 병합 반경
+\newcommand{\cogWeights}{14}        % 교환가치 라벨의 가중 수
+\newcommand{\aucCog}{0.675}         % 홀드아웃 패치 AUC

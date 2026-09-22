@@ -1,7 +1,7 @@
 %% table 객체: tab:primary-T — 출처 RR12 json TEST_all.{q_base,PT_flex,PT_linear}; bootstrap.all_q_minus_PT_flex / PT_linear
-\begin{table}[htbp]
+\begin{table}[!t]
   \centering
-  \caption{T 블록 (15.16 TEST, $n = \numTTest{}$, \numTTestMatches{} 경기; 경기 가중; 항등 보정기). 주 대비는 굵게.}
+  \caption{한타 코호트 T의 주 결과 (15.16 TEST)}
   \label{tab:primary-T}
   \small
   \begin{tabular}{@{}lrrr@{}}
@@ -16,4 +16,5 @@
     \multicolumn{4}{@{}l}{연속성 $\dBrier(q - \PTlin)$ = \dBrierTlin{}, 95\% CI \ci{\dBrierTlinLo}{\dBrierTlinHi}} \\
     \bottomrule
   \end{tabular}
+  \tabnote{$n = \numTTest{}$ 교전, \numTTestMatches{} 경기; 경기 가중; 항등 보정기; 구간은 \numBootDraws{}회 경기 군집 백분위 부트스트랩(시드 \bootSeed).}
 \end{table}

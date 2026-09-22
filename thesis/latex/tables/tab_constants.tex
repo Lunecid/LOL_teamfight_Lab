@@ -1,25 +1,26 @@
-%% table 객체: tab:constants — 요약판. 출처 Methods §1 상수표 (sec_definition.tex tab:constants L451–L641); 전체는 부록 B
-\begin{table}[htbp]
+%% table 객체: tab:constants — 요약판. 출처 Methods §1 상수표 (sec_definition.tex tab:constants L451–L641); 전체는 부록 B.
+%% 2026-09-22: 표주 제거(본문으로), 출처 분류 이름을 본문과 통일(자료 추정 / 게임 규칙 / 관례 / 구현 선택), 기호 τ와 코드 세부 제거.
+\begin{table}[!t]
   \centering
-  \caption{교전 집합·규모 계급·라벨을 결정하는 주요 상수와 출처 분류 (요약). 전체 표는 부록 \ref{app:constants}.}
+  \caption{교전 집합을 정하는 주요 상수}
   \label{tab:constants}
   \small
-  \begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}p{2.6cm}>{\raggedright\arraybackslash}p{1.8cm}X@{}}
+  \begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}p{2.6cm}>{\raggedright\arraybackslash}p{1.6cm}X@{}}
     \toprule
-    상수 & 값 & 출처 분류 & 근거와 측정된 영향 \\
+    상수 & 값 & 출처 & 근거와 측정된 영향 \\
     \midrule
-    킬 간격 $G$ & \constG{} s (추정 \constGest{}; 실행 \constGrun{} ms) & 자료 유도 & 로그 킬 간격의 KDE antimode; CI \constGciLo{}--\constGciHi{} s; ARI $\ge 0.9$ (\ariPlateauLo{}--\ariPlateauHi{} s) \\
-    지름 $D$ & \constD{} u (추정 \constDest{}) & 자료 유도 & 챔피언 공유율의 0.5 교차; CI \constDciLo{}--\constDciHi{} u (표본 변동만) \\
-    존재 반경 $R$ & \constR{} u & 규칙 앵커 & 사망 경험치 공유 반경; 패치 노트 변경 없음 \\
-    여유 $B$ & \constB{} s & 규칙 앵커 & 어시스트 창; 예측 시점 $\tcut$을 정함 \\
-    팀당 최소 $M$ & \constM{} (양 팀, $R$ 내, 생존) & 관례 & Ke 등을 따름; $M=3$이면 \numEngMthree{} 교전 \\
-    위치 격자 & 5 s; 프레임·킬 궤적 보간 & 공학 & 파일럿 중앙 위치 오차 1{,}149 u; 게이트 영향 미측정 \\
-    재교전 병합 & 15 s / 2{,}000 u & 공학 & 병합 횟수 미집계 \\
-    지속 시간 상한 & $\tcut$ 이후 60 s & 공학 & 미측정 \\
-    시작·끝 제외 & 첫 2분; 마지막 프레임 35 s 전 & 공학 & 미측정 \\
-    관측 창 & $\tcut$까지 30 s, 5 s 구간 & 관례 (선행 연구) & 창 길이 스윕은 계보에 기록 \\
-    상호작용 반경 & 3{,}000 u; 상점 사건 포함 & 공학 & 참여 인원(규모 계급)에만 사용 \\
-    규모 절단 & pick $\le 1$ / 소규모 2--3 / 한타 $\ge 4$ & 관례 & pick$-$한타 AUC 부호가 절단에 따라 바뀜 \\
+    시간 경계 $G$ & \constG{} s (추정 \constGest{}) & 자료 추정 & 킬 간격 분포의 두 봉우리 사이; 95\% 구간 \constGciLo{}--\constGciHi{} s; \ariPlateauLo{}--\ariPlateauHi{} s에서 묶음이 유지됨 \\
+    거리 경계 $D$ & \constD{} u (추정 \constDest{}) & 자료 추정 & 챔피언 공유율이 0.5로 떨어지는 거리; 95\% 구간 \constDciLo{}--\constDciHi{} u (표본 변동만) \\
+    존재 반경 $R$ & \constR{} u & 게임 규칙 & 사망 경험치 공유 반경; 패치 노트에 변경 없음 \\
+    여유 $B$ & \constB{} s & 게임 규칙 & 어시스트 인정 시간; 예측 시점을 정함 \\
+    팀당 최소 $M$ & \constM{} (양 팀, $R$ 안, 생존) & 관례 & Ke 등을 따름; 3이면 \numEngMthree{} 교전 \\
+    위치 격자 & 5 s; 프레임·킬 궤적 보간 & 구현 선택 & 파일럿 중앙 위치 오차 1{,}149 u; 존재 조건에 대한 영향 미측정 \\
+    재교전 병합 & 15 s / 2{,}000 u & 구현 선택 & 병합 횟수 미집계 \\
+    지속 시간 상한 & 예측 시점 이후 60 s & 구현 선택 & 미측정 \\
+    시작·끝 제외 & 첫 2분; 마지막 프레임 35 s 전 & 구현 선택 & 미측정 \\
+    관측 창 & 예측 시점까지 30 s, 5 s 구간 & 관례 (이전 정의) & 창 길이는 이전 연구의 라벨 아래에서만 훑음 \\
+    상호작용 반경 & 3{,}000 u; 상점 사건 포함 & 구현 선택 & 참여 인원, 곧 규모 계급을 정함; 이전 정의에서 이어받았고 근거 기록 없음 \\
+    규모 절단 & pick $\le 1$ / 소규모 2--3 / 한타 $\ge 4$ & 관례 & pick과 한타의 AUC 차이 부호가 절단에 따라 바뀜 \\
     \bottomrule
   \end{tabularx}
 \end{table}

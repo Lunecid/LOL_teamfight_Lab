@@ -1,8 +1,18 @@
 #!/usr/bin/env python3
 """E4 §7.4 — engagement-definition OAT (CACHE_MAIN).
 
-Reference G/D/R/B from v3.3 preset; one-at-a-time alternatives.
+Reference constants from the v3.3 preset; one-at-a-time alternatives.
 Hash-fixed match subsample (budget, not power). Earliest-kill 1:1 anchors.
+
+Covers the four boundary/gate constants (G, D, R, B) and the assembly
+constants the manuscript records as unmeasured:
+  I      TF2_INTERACTION_RADIUS          participation count -> scale class
+  MR     CONTINUOUS_FIGHT_MERGE_RADIUS   adjacent-candidate merge radius
+  MD     MAX_MERGED_FIGHT_DURATION_MS    duration cap (rejects late candidates)
+  SHOPEX TF2_EXCLUDE_SHOP_INTERACTIONS   shop events as interaction participants
+
+I decides the teamfight/skirmish split, so every arm also reports the
+per-class counts and the class moves of the 1:1 anchors against the reference.
 Task: .ai/tasks/T023.md
 """
 from __future__ import annotations
@@ -28,7 +38,23 @@ DOCS_MD = REPO / "docs/SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.md"
 PRED_T = REPO / "outputs/review_response_rr12_20260920/prediction_table.npz"
 # Design says 20_000; wall-clock budget — use 5_000 with note (still OAT census).
 N_MATCHES = 5000
-REF = dict(G=13700, D=4264.0, R=1600.0, B=15000)
+REF = dict(G=13700, D=4264.0, R=1600.0, B=15000,
+           I=3000.0, MR=2000.0, MD=60000, SHOPEX=False)
+
+# The only cfg attributes apply_oat() writes. Names verified against core/config.py.
+CFG_ATTR = {
+    "G": "TF2_KILL_CLUSTER_GAP_MS",
+    "D": "CLUSTER_MAX_DIAMETER",
+    "R": "TF2_VALIDITY_RADIUS",
+    "B": "TF2_ENGAGE_PRE_KILL_MS",
+    "I": "TF2_INTERACTION_RADIUS",
+    "MR": "CONTINUOUS_FIGHT_MERGE_RADIUS",
+    "MD": "MAX_MERGED_FIGHT_DURATION_MS",
+    "SHOPEX": "TF2_EXCLUDE_SHOP_INTERACTIONS",
+}
+CAST = {"G": int, "D": float, "R": float, "B": int,
+        "I": float, "MR": float, "MD": int, "SHOPEX": bool}
+
 ALTS = [
     ("ref", {}),
     ("G_12200", {"G": 12200}),
@@ -39,6 +65,17 @@ ALTS = [
     ("R_1800", {"R": 1800.0}),
     ("B_10000", {"B": 10000}),
     ("B_20000", {"B": 20000}),
+    # interaction radius: sets participation count, hence the class split
+    ("I_2000", {"I": 2000.0}),
+    ("I_2500", {"I": 2500.0}),
+    ("I_3500", {"I": 3500.0}),
+    ("I_4264", {"I": 4264.0}),      # = D, the cluster's own diameter
+    ("SHOPEX_on", {"SHOPEX": True}),
+    # assembly constants that merge or reject candidates
+    ("MR_1000", {"MR": 1000.0}),
+    ("MR_3000", {"MR": 3000.0}),
+    ("MD_45000", {"MD": 45000}),
+    ("MD_90000", {"MD": 90000}),
 ]
 
 
@@ -65,14 +102,22 @@ def apply_oat(cfg, overrides: dict) -> None:
     from core.presets import apply_preset
 
     apply_preset(cfg, "v3.3")
-    g = int(overrides.get("G", REF["G"]))
-    d = float(overrides.get("D", REF["D"]))
-    r = float(overrides.get("R", REF["R"]))
-    b = int(overrides.get("B", REF["B"]))
-    cfg.TF2_KILL_CLUSTER_GAP_MS = g
-    cfg.CLUSTER_MAX_DIAMETER = d
-    cfg.TF2_VALIDITY_RADIUS = r
-    cfg.TF2_ENGAGE_PRE_KILL_MS = b
+    unknown = set(overrides) - set(CFG_ATTR)
+    if unknown:
+        raise SystemExit(f"unknown OAT knob(s): {sorted(unknown)}")
+    for knob, attr in CFG_ATTR.items():
+        if not hasattr(cfg, attr):
+            raise SystemExit(f"cfg has no attribute {attr} (knob {knob})")
+        setattr(cfg, attr, CAST[knob](overrides.get(knob, REF[knob])))
+
+
+def current_params(cfg) -> dict:
+    """Every knob as the detector will read it, after apply_oat()."""
+    return {k: getattr(cfg, a) for k, a in CFG_ATTR.items()}
+
+
+def changed_label(overrides: dict) -> str:
+    return ", ".join(f"{k}={overrides[k]}" for k in sorted(overrides)) or "—"
 
 
 def fight_start_L(f) -> Tuple[int, int]:
@@ -178,7 +223,7 @@ def main() -> int:
     t0 = time.time()
     for name, ov in ALTS:
         apply_oat(cfg, ov)
-        params = dict(G=cfg.TF2_KILL_CLUSTER_GAP_MS, D=cfg.CLUSTER_MAX_DIAMETER, R=cfg.TF2_VALIDITY_RADIUS, B=cfg.TF2_ENGAGE_PRE_KILL_MS)
+        params = current_params(cfg)
         print(f"detect {name} {params}", flush=True)
         anchors: Dict[str, List] = {}
         n_eng = 0
@@ -194,6 +239,7 @@ def main() -> int:
                 cohort_counts[cohort_of(n_min)] += 1
         results[name] = dict(
             params=params,
+            changed=changed_label(ov),
             n_matches=len(packs),
             n_engagements=n_eng,
             cohort_counts=dict(cohort_counts),
@@ -262,17 +308,19 @@ def main() -> int:
         f"**generated:** {doc['generated_at_utc']}  ",
         f"n_matches={doc['n_matches_run']} (design 20k; {doc['budget_note']})",
         "",
-        "| Setting | G | D | R | B | n_eng | T | S | vs_ref common | ref_only | alt_only |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| Setting | changed | n_eng | T | S | pick | common | ref_only | alt_only | class moves |",
+        "|---|---|---:|---:|---:|---:|---:|---:|---:|---|",
     ]
     for name, block in slim.items():
-        p = block["params"]
         cc = block["cohort_counts"]
         vs = comparisons.get(name, {})
+        moves = vs.get("cohort_moves") or {}
+        moves_s = ", ".join(f"{k} {v}" for k, v in sorted(moves.items())) or "—"
         lines.append(
-            f"| {name} | {p['G']} | {p['D']} | {p['R']} | {p['B']} | {block['n_engagements']} | "
-            f"{cc.get('T', 0)} | {cc.get('S', 0)} | {vs.get('n_common_anchors', '—')} | "
-            f"{vs.get('n_ref_only', '—')} | {vs.get('n_alt_only', '—')} |"
+            f"| {name} | {block['changed']} | {block['n_engagements']} | "
+            f"{cc.get('T', 0)} | {cc.get('S', 0)} | {cc.get('P', 0)} | "
+            f"{vs.get('n_common_anchors', '—')} | {vs.get('n_ref_only', '—')} | "
+            f"{vs.get('n_alt_only', '—')} | {moves_s} |"
         )
     lines += ["", doc["reading"], ""]
     DOCS_MD.write_text("\n".join(lines), encoding="utf-8")

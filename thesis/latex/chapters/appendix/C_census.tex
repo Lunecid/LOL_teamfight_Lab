@@ -2,9 +2,11 @@
 \chapter{데이터 역할 census 보충}
 \label{app:census}
 
+표 \ref{tab:app-folds}는 TRAIN의 다섯 fold별 행·경기 수이다.
+
 \begin{table}[H]
   \centering
-  \caption{TRAIN fold별 행·경기 수. T 경기 수의 합 \numTTrainMatches{}는 manifest 필드의 합이며 그 자체로 기록된 값은 아니다.}
+  \caption{TRAIN fold별 행·경기 수}
   \label{tab:app-folds}
   \small
   \begin{tabular}{@{}lrrrrr@{}}
@@ -19,4 +21,10 @@
   \end{tabular}
 \end{table}
 
-합동 T의 경기 수를 역할별 기록 값에서 더하면 TRAIN \numTTrainMatches{} + VALIDATION 30{,}099 + TEST \numTTestMatches{} = 83{,}108이며, 이는 기록된 필드가 아니라 산술이다. 15.16에서 검출된 소규모 교전은 \numSTestDetected{}이고 h90에서 유효한 것은 \numSTest{}이다. 외부 코호트의 수집 경기 수는 표 \ref{tab:roles-engagement}에 있으며, S의 외부 경기 수는 기록되어 있지 않다. 원천 경기에서 검출 교전, 규모 계급, 예측 시점 상태 가용, \texttt{valid\_h90}, 유한 점수, 역할 배정에 이르는 표본 흐름의 중간 단계 수는 동결 문서에 기록되어 있지 않으며 본 논문은 이를 추정하지 않는다.
+합동 T의 경기 수를 역할별 기록 값에서 더하면 TRAIN \numTTrainMatches{} + VALIDATION 30{,}099 + TEST \numTTestMatches{} = 83{,}108이며, 이는 기록된 필드가 아니라 산술이다. 15.16에서 검출된 소규모 교전은 \numSTestDetected{}이고 h90에서 유효한 것은 \numSTest{}이다. 외부 코호트의 수집 경기 수는 표 \ref{tab:roles-engagement}에 있으며, S의 외부 경기 수는 기록되어 있지 않다. 원천 경기에서 검출 교전, 규모 계급, 예측 시점 상태 가용, \texttt{valid\_h90}, 유한 점수, 역할 배정에 이르는 표본 흐름의 중간 단계 수는 동결 문서에 기록되어 있지 않다.
+
+\section{상태 표현의 열}
+
+표 \ref{tab:app-feature-list}는 제 \ref{sec:data-inputs} 절의 상태 표현을 만드는 열 이름 전체이다. 참가자 열 명의 자리와 두 진영이 각각 같은 이름 집합을 반복하므로, 서로 다른 이름 114개가 열 \dimExpanded{}개를 만든다. 자리를 가리키는 $i$는 참가자의 역할 자리이고, \texttt{blue}와 \texttt{red}는 두 팀을 가른다. 수치 열의 합은 \dimNumeric{}이고 여기에 챔피언 식별자를 더하면 \dimExpanded{}이다. 마지막 프레임 이후 흐른 시간은 어느 모형의 입력도 아니므로 이 표에 없다. 블록별 열 수는 표 \ref{tab:input-blocks}, 모형별 입력 열 수는 표 \ref{tab:input-dims}에 있다.
+
+\input{tables/tab_feature_list}

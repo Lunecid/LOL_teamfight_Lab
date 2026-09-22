@@ -1,0 +1,16 @@
+%!TEX root = ../../main.tex
+\section{시간 경과와 관측 갱신의 분해}
+\label{sec:value-shold}
+
+$\dV$는 교전의 결과만이 아니라 질의 시각의 이동, 시간 파생 특징의 재계산, 새 분 프레임의 유입에 따라 변한다. 이 성분을 나누기 위해 예측 시점까지의 프레임·사건만 유지한 채 질의 시각을 결과 시점으로 옮긴 진단용 상태 $S_{\mathrm{hold}}$를 만들었다(보완 실험, 15.16 노출 이후의 진단). $A = \Vhat(\Spre)$, $H = \Vhat(S_{\mathrm{hold}})$, $P = \Vhat(S_{\mathrm{post}})$라 하면
+\begin{equation}
+  \dV = P - A = \underbrace{(H - A)}_{d_{\mathrm{clock}}} + \underbrace{(P - H)}_{d_{\mathrm{update}}}
+  \label{eq:shold}
+\end{equation}
+이다. 이 분해는 선택한 갱신 순서(시간 먼저, 관측 나중)에서의 산술 항등이며, 항등의 성립은 구현이 시간 파생 특징을 원천 규칙대로 일관되게 다시 계산했다는 확인이다. $S_{\mathrm{hold}}$는 무교전 잠재결과가 아니고, 오래된 프레임을 유지하므로 학습 분포 밖의 상태일 수 있다.
+
+T의 15.16 TEST \shN{} 행 전부에서 항등이 성립한다(허용 오차 $10^{-6}$; 성립 비율 \shIdentity{}). 표 \ref{tab:shold}에서 $d_{\mathrm{clock}}$의 평균 절댓값은 \shClockAbs{}, $d_{\mathrm{update}}$의 평균 절댓값은 \shUpdAbs{}이며 $\dV$ 전체는 \shDvAbs{}이다. 절댓값 평균은 합산되지 않으므로 두 값의 비를 성분의 기여율로 읽지 않는다. $\SVI$ 라벨과 $\ind[d_{\mathrm{update}} > 0]$은 \shFlip{}의 행에서 다르고, $d_{\mathrm{clock}}$과 $d_{\mathrm{update}}$의 부호가 다른 행은 \shOpp{}이다. 정확한 0은 어느 성분에도 없다. hold 상태의 스냅샷 나이 평균은 \shHoldAge{}초이며, 이 값이 학습 분포에서 흔한 나이를 넘는 정도만큼 $H$는 지원 범위 밖의 평가일 수 있다.
+
+\input{tables/gen/tab_shold}
+
+같은 질문의 다른 면, 즉 결과 시점까지 새 프레임이 들어왔는지에 따라 예측 비교가 어떻게 달라지는지는 제 \ref{sec:val-frame} 절에서 층화로 다룬다.
