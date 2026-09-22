@@ -53,6 +53,9 @@ def check_generated():
     rc, out = run([sys.executable, str(TOOLS / "gen_status_table.py"), "--check"])
     print(out)
     bad += rc != 0
+    rc, out = run([sys.executable, str(TOOLS / "gen_feature_census.py"), "--check"])
+    print(out)
+    bad += rc != 0
     return bad
 
 

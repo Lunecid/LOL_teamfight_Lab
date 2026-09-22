@@ -14,6 +14,7 @@ thesis/
 │   ├── CLAIMS.md          #   주장 C1–C32 → 근거 객체 → 해석 조건; M-RQ 대응; 해석 범위 내부 ID
 │   ├── NUMBERS.md         #   주 결과 매크로의 출처 (config/numbers.tex)
 │   ├── NUMBERS_SUPP.md    #   보완 실험 매크로·생성 표의 통계량·분자·분모·출처 (생성물)
+│   ├── FEATURE_CENSUS.md  #   입력 특징 전수조사: 두 특징 경로, 폭 대조, 블록별 열 이름 (생성물)
 │   ├── OUTLINE.md         #   장·절·라벨·파일·객체 지도 (생성물)
 │   ├── REVERSE_OUTLINE.md #   절별 문단 첫 문장 (생성물; 역개요 점검용)
 │   ├── SELF_REVIEW.md     #   paper-self-review 7단계 결과와 주장 감사 (내부 점검)
@@ -23,6 +24,7 @@ thesis/
 ├── tools/                 # 생성기와 검사기 (Python 3, 표준 라이브러리)
 │   ├── gen_supp.py        #   docs/SUPPLEMENTARY_*.json → config/numbers_supp.tex, tables/gen/*.tex, docs/NUMBERS_SUPP.md
 │   ├── gen_status_table.py#   docs/STATUS.md → tables/gen/tab_status.tex
+│   ├── gen_feature_census.py # docs/ 특징 매니페스트 → docs/FEATURE_CENSUS.md, tables/gen/tab_input_blocks.tex
 │   ├── gen_outline.py     #   main.tex 도달 파일 → docs/OUTLINE.md, docs/REVERSE_OUTLINE.md
 │   ├── check_numbers_supp.py  # 생성물이 JSON 원장과 일치하는지 (차단)
 │   ├── check_thesis.py    #   차단 검사: 생성물·미정의 참조·라벨·헤드라인 불변·M-RQ 문구 해시
@@ -60,7 +62,7 @@ thesis/
 1. **원고** (여기): 절·표를 고친다. 주 결과 수치는 `latex/config/numbers.tex`만, 출처는 `docs/NUMBERS.md`.
 2. **실행** (Cursor): 보완 실험은 `docs/SUPPLEMENTARY_EXPERIMENT_DESIGN_20260921.md`의 계약과 `.ai/tasks/T0xx.md` 작업서 아래에서만 실행하고 `.ai/reports/`에 보고한다.
 3. **반영**: 새 `docs/SUPPLEMENTARY_*.json`이 생기면 `python thesis/tools/gen_supp.py`로 매크로·표를 재생성하고, `docs/STATUS.md`의 상태를 고친 뒤 `python thesis/tools/gen_status_table.py`를 실행하며, 해당 절만 갱신한다.
-4. **검사**: `python thesis/tools/check_thesis.py`(차단), `python thesis/tools/check_style.py --baseline thesis/tools/style_baseline.json --verbose`(보고), `python thesis/tools/gen_outline.py`(문서 갱신).
+4. **검사**: `python thesis/tools/check_thesis.py`(차단; `gen_supp`·`gen_status_table`·`gen_feature_census`의 생성물 일치를 포함), `python thesis/tools/check_style.py --baseline thesis/tools/style_baseline.json --verbose`(보고), `python thesis/tools/gen_outline.py`(문서 갱신).
 
 ## 빌드
 
@@ -90,6 +92,7 @@ cd thesis/latex
 - [x] 클래스·앞부속(표지, 인준지, 차례, 국·영문 초록), 소속 = 데이터사이언스전문대학원 데이터사이언스학과
 - [x] 8장 + 부록 A–E; 일반 논문 서술로 재구성(Widom), Baek & Kwon 2026은 2장에서 3인칭, 결과별 해석 조건, 캡션 이름화
 - [x] 보완 실험 E1–E5·G0 통합(생성 매크로·표), 실행 상태 원장(`STATUS.md`)과 부록 E 상태 표
+- [x] 입력 특징 전수조사(`docs/FEATURE_CENSUS.md`): 351/352/361/362/257/7,105 대조, 3.4절 사실 오류 수정
 - [x] 차단 검사 통과(`check_thesis.py`), 자기 심사(`SELF_REVIEW.md`)
 - [ ] 저자 결정 A1–A5 (`docs/TASKS.md`)
 - [ ] 그림 추가(B1), 사례 추적 본문화(B2; event-prefix 덤프 후), 문헌 재확인(B4), 제출 체크리스트(B5)

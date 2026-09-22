@@ -33,7 +33,9 @@ def main() -> int:
                 bad += 1
         # stale generated files that the generator no longer produces
         for p in sorted((ROOT / "thesis/latex/tables/gen").glob("*.tex")):
-            if not (tmp / "thesis/latex/tables/gen" / p.name).exists() and p.name != "tab_status.tex":
+            # tables produced by the other generators (gen_status_table.py, gen_feature_census.py)
+            other = {"tab_status.tex", "tab_input_blocks.tex"}
+            if not (tmp / "thesis/latex/tables/gen" / p.name).exists() and p.name not in other:
                 print(f"STALE    {p.relative_to(ROOT)}  (not produced by gen_supp.py)")
                 bad += 1
     print("numbers_supp: " + ("OK" if bad == 0 else f"{bad} problem(s)"))

@@ -21,7 +21,7 @@
 | | 비동기 공개 텔레메트리의 구조 | `sec:data-telemetry` | `latex/chapters/03_data/01_telemetry.tex` |  |
 | | 원천 코퍼스 | `sec:data-corpus` | `latex/chapters/03_data/02_corpus.tex` | `tables/tab_corpus_census` |
 | | 데이터 역할 | `sec:data-roles` | `latex/chapters/03_data/03_roles.tex` | `tables/tab_roles_evaluator`, `tables/tab_roles_engagement` |
-| | 교전 전 상태와 입력의 구성 | `sec:data-inputs` | `latex/chapters/03_data/04_prestate_inputs.tex` |  |
+| | 교전 전 상태와 입력의 구성 | `sec:data-inputs` | `latex/chapters/03_data/04_prestate_inputs.tex` | `tables/gen/tab_input_blocks` |
 | | 시간 계약과 누출 방지 | `sec:data-contract` | `latex/chapters/03_data/05_time_contract.tex` |  |
 | **교전 사례의 정의와 구성** (`ch:engagement`) | | | | |
 | | (도입) | `` | `latex/chapters/04_engagement/00_lead.tex` |  |

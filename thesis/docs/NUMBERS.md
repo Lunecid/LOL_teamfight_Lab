@@ -23,7 +23,8 @@
 | `\quiet*`, `\numQuiet*`, `\shareLongEng` | `REVIEW_RESPONSE_RR3_CLOSEOUT_20260920.md`, `..._RR3_QUIET_20260920.json` | F |
 | `\killAgree*`, `\objBlue*`, `\objGameEnded` | `REVIEW_RESPONSE_RR5_RR6B_20260920.md` RR5a 교차표, L35–38 | F |
 | `\flip*`, `\sameEp*`, `\peerAgree*` | 동일 horizon 표; `CONTINUITY_LEDGER_MLP_FIT85_20260920.md` L15–27 | F |
-| `\dimInputQ`, `\dimInputLgbm`, `\knots*`, `\ridgeC`, `\splineDeg`, `\numBootDraws*`, `\bootSeed`, `\tauMeaningful` | `journal_manuscript_v1/02_METHODS_CORE.md` §4, §6; `REVIEW_RESPONSE_RR1_EXECUTION_ADDENDUM_20260920.md`; RR12 json `PT_flex`, `b_spline` | F |
+| `\dimInputQ`, `\dimInputLgbm`, `\knots*`, `\ridgeC`, `\splineDeg`, `\numBootDraws*`, `\bootSeed`, `\tauMeaningful` | `journal_manuscript_v1/02_METHODS_CORE.md` §4, §6; `REVIEW_RESPONSE_RR1_EXECUTION_ADDENDUM_20260920.md`; RR12 json `PT_flex`, `b_spline`; 입력 폭의 조립은 `scripts/rr20260920_q_newv_primary_fit.py` L236–L245 (`\dimInputQ` = 수치 351 + p_pre, `\dimInputLgbm` = Expanded 361 + p_pre) | F |
+| 입력 특징의 블록 구성 (`tables/gen/tab_input_blocks.tex`; 생성물) | `docs/V_FEATURE_MANIFEST_RUNTIME_20260919.md`, `docs/supplementary_e1_20260921/feature_groups.json`, `docs/V_MODEL_INPUT_DESIGN_20260919/STATEV2_REFERENCE_FEATURE_SET.json` → 블록·열 이름·자료형·파생 관계의 전수 대조는 [`FEATURE_CENSUS.md`](FEATURE_CENSUS.md) (`tools/gen_feature_census.py`) | F |
 | `\q*`, `\ptflex*`, `\ptlin*`, `\dBrierT*`, `\het T`, `\qMCB`, `\qDSC`, `\ptflexMCB`, `\ptflexDSC`, `\dMCBT`, `\dDSCT`, `\posRateT`, `\shareTBforty` | `REVIEW_RESPONSE_RR12_RESULTS_20260920.json` `TEST_all.*`, `TEST_B40.*`, `bootstrap.*`, `TEST_all.constant.p_pos`; `RR6A_CORP` rows `q_to_SVI` (5 dp) | F |
 | `\qS*`, `\ptflexS*`, `\ptlinS*`, `\dBrierS*`, `\dBrierTtoS*`, `\dBrierSvs*`, `\dBrierTSvsT*`, `\hetS*`, `\qSMCB`, `\qSDSC`, `\ptflexSMCB`, `\ptflexSDSC`, `\dMCBS`, `\dDSCS`, `\posRateS`, `\shareSBforty` | `docs/SCALE_SPLIT_TvsS_RESULTS_20260920.json` `table1_S_TEST_identity`, `table2a_identity`, `table2b_sensitivity`, `table3_CORP_identity`; `REVIEW_RESPONSE_RR12_RESULTS_20260920_S_{qS,qT,qTS}_id.json` | F |
 | `\lambdaDeltaApprox`, `\numRowsLambdaOne`, `\sharePonlyFallback` | `REVIEW_RESPONSE_RR4_MARGIN_20260920.md` λ 표 | F |
@@ -38,6 +39,7 @@
 
 - B40 CI 상단 세 가지 인쇄 → **RR12 값** (−0.00003) 채택, RR4 재추출(−0.0001)은 본문에 병기.
 - 외부 ΔBrier 두 계열 → 표는 **q−PT_flex (RRX)**; PT_linear 계열은 문장으로만.
+- 입력 특징 경로 두 가지 → StateV2(362/361/351, `state_value_v2.py`)와 탭·시퀀스 표현(1,015 × 7 = 7,105, 저장소 `gameplay/`)은 서로 다른 경로이다. 45분 시각 정규화(`TIME_NORM_ABSOLUTE`)와 인과적 지도 앵커(`ANCHORS_CAUSAL`)는 **탭 경로**의 설정이므로 3.4절(StateV2 입력)이 아니라 4.8절(교전 승자 라벨 아래의 정의 민감도)에 적는다. 근거: [`FEATURE_CENSUS.md`](FEATURE_CENSUS.md) §1, §5.
 - PT_linear 연속성 CI 두 가지 (800회 vs 2,000회) → **RR12 (2,000회)** 채택.
 - 첫 시간대 라벨 `t_0_10` vs `t_2_10` → **[2,10)** (t<2분 제외).
 - CORP q/PT_flex MCB 4 dp (0.0009/0.0005) vs 5 dp (0.00086/0.00053) → **5 dp**로 한 번만 인쇄.

@@ -20,6 +20,7 @@
 | B0 | 서술 재구성: 일반 논문 서술(Widom), CoG 2026 3인칭·2장 배치, 결과별 해석 조건, 캡션 이름화, 보완 실험 E1–E5·G0 통합 | P0 | — | **done** (2026-09-21) |
 | B1 | 개념 그림 추가: 코호트·역할 표본 흐름, ΔBrier by p_pre bin 점도표 (기존 원장의 bin 표 값만 사용), 신뢰도 다이어그램(T014) | P1 | C8 | pending |
 | B2 | 사례 추적 절 본문화 (5.8의 hash 표본; event-prefix 덤프가 실행되면 질의→사건 접두→V̂→SVI→q 서사) | P2 | C7 | pending |
+| B6 | 입력 특징 전수조사와 3.4절 사실 수정 (두 특징 경로 구분, 좌표·앵커 열 부재, `snapshot_age_s` 배제, LightGBM 362 = 361 + p_pre) | P0 | — | **done** (2026-09-22) |
 | B3 | 문체 재검토: `tools/check_style.py --verbose`의 N/V/S/ST 위치를 사람이 읽고 불확실성 보존 확인 | P1 | — | 1차 완료; 최종 검토 전 재실행 |
 | B4 | 참고문헌: 저장소 풀의 `[verify]` 표시 항목 재확인, 학위논문 추가 4건 DOI 확인 | P1 | — | pending |
 | B5 | 부산대 제출 체크리스트 (`CHECKLIST.md`) | P0 | A3, A4 | pending |
@@ -38,6 +39,7 @@
 | C7 | E5 event-prefix 사례 추적 덤프 | 보완설계 §8.1 | INCOMPLETE | 5.8 / B2 |
 | C8 | 그림 데이터 내보내기: CORP 다이어그램 q/PT_flex, T/S (T014와 공유) | T014 | pending | 7.4 그림 |
 | C9 | E6 미노출 표본 수집 (API 키 갱신 후) → 점수 전용 평가 | 보완설계 §9; T024 | BLOCKED | 7.5, 8.4 |
+| C10 | 참가자 상태 90열의 정규화 상수를 `gameplay/state_value_v2.py`(worktree)에서 추출해 매니페스트에 기록 (`FEATURE_CENSUS.md` §3.3의 공백) | 새 계약 필요 | pending | 3.4, 부록 A |
 
 완료(반영됨): E1 정보군 LGBM(T018), E2 S_hold·층화(T019/T022), E3 외부 부트스트랩(T017), E4 지평·동료 평가기·e_fixed·OAT 사례 구성(T020/T023), E5 물질 축·nextobj·market_event·R0/R1·표본 CSV(T021/T023), E6 규칙 잠금(T024), G0 Phase A+B(T015/T016).
 
