@@ -13,16 +13,22 @@ constants the manuscript records as unmeasured:
 
 I decides the teamfight/skirmish split, so every arm also reports the
 per-class counts and the class moves of the 1:1 anchors against the reference.
+
+Also supports --census-only: reference arm alone over the full CACHE_MAIN
+corpus (N_MATCHES=0) or a hash subsample, writing a separate class-census
+JSON/MD (never overwrites the 5k OAT file).
+
 Task: .ai/tasks/T023.md
 """
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import os
 import sys
 import time
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -35,9 +41,12 @@ os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
 DOCS_JSON = REPO / "docs/SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json"
 DOCS_MD = REPO / "docs/SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.md"
+CENSUS_JSON = REPO / "docs/SUPPLEMENTARY_E4_CLASS_CENSUS_20260922.json"
+CENSUS_MD = REPO / "docs/SUPPLEMENTARY_E4_CLASS_CENSUS_20260922.md"
 PRED_T = REPO / "outputs/review_response_rr12_20260920/prediction_table.npz"
 # Design says 20_000; wall-clock budget — use 5_000 with note (still OAT census).
-N_MATCHES = 5000
+# 0 = every match in CACHE_MAIN that has a *.meta.json (full-corpus census).
+DEFAULT_N_MATCHES = 5000
 REF = dict(G=13700, D=4264.0, R=1600.0, B=15000,
            I=3000.0, MR=2000.0, MD=60000, SHOPEX=False)
 
@@ -172,7 +181,8 @@ def detect_match(pack, detect_fights, cfg) -> List[Tuple]:
         cb = int(f.get("det_cluster_blue", -1))
         cr = int(f.get("det_cluster_red", -1))
         n_min = min(cb, cr) if cb >= 0 and cr >= 0 else -1
-        keys.append((k, n_min, s, L))
+        # (kill_key, n_min, start, last, cluster_blue, cluster_red)
+        keys.append((k, n_min, s, L, cb, cr))
     return keys
 
 
@@ -188,7 +198,40 @@ def cohort_of(n_min: int) -> str:
     return "UNK"
 
 
-def main() -> int:
+def list_cache_match_ids(cache_dir: Path) -> List[str]:
+    """Every match_id with a *.meta.json under CACHE_MAIN."""
+    ids: List[str] = []
+    # scandir avoids building a huge Path list for ~210k matches × 3 files.
+    with os.scandir(cache_dir) as it:
+        for entry in it:
+            name = entry.name
+            if name.endswith(".meta.json") and entry.is_file():
+                mid = name[: -len(".meta.json")]
+                if mid:
+                    ids.append(mid)
+    ids.sort()
+    return ids
+
+
+def hash_first_pred_sample(n_matches: int) -> List[str]:
+    pred = np.load(PRED_T, allow_pickle=True)
+    matches = sorted(set(pred["match"].astype(str).tolist()))
+    ranked = sorted(matches, key=lambda m: hashlib.sha256(m.encode()).hexdigest())
+    return ranked[:n_matches]
+
+
+def _share(n: int, total: int) -> Optional[float]:
+    return (float(n) / float(total)) if total else None
+
+
+def _n_min_bucket(n_min: int) -> str:
+    if 1 <= n_min <= 5:
+        return str(n_min)
+    return "other"
+
+
+def run_census(n_matches: int) -> int:
+    """Reference-arm class census. Streams packs (no full-corpus pack dict)."""
     root = data_root()
     setup(root)
     import fc20260915_common as C
@@ -197,16 +240,218 @@ def main() -> int:
     from gameplay.fights import detect_fights
 
     cio.CACHE_DIR = Path(C.CACHE_MAIN)
-    # sample matches from TEST pred table (patch-aware via meta when loaded)
-    pred = np.load(PRED_T, allow_pickle=True)
-    matches = sorted(set(pred["match"].astype(str).tolist()))
-    ranked = sorted(matches, key=lambda m: hashlib.sha256(m.encode()).hexdigest())
-    sample = ranked[:N_MATCHES]
+    cache_dir = Path(cio.CACHE_DIR)
+
+    if n_matches == 0:
+        sample = list_cache_match_ids(cache_dir)
+        sample_mode = "full_cache_meta"
+    else:
+        sample = hash_first_pred_sample(n_matches)
+        sample_mode = "hash_first_pred_table"
+
+    print(
+        f"CENSUS-ONLY n_matches_request={n_matches} sample={len(sample)} "
+        f"mode={sample_mode} CACHE={cache_dir}",
+        flush=True,
+    )
+
+    # Verify CFG attrs / reference params before the long run.
+    apply_oat(cfg, {})
+    params = current_params(cfg)
+    print(f"ref params verified: {params}", flush=True)
+    expected = {k: CAST[k](v) for k, v in REF.items()}
+    for k, v in expected.items():
+        if params[k] != v:
+            raise SystemExit(f"ref param mismatch {k}: got {params[k]!r} expected {v!r}")
+
+    t0 = time.time()
+    n_miss = 0
+    n_loaded = 0
+    n_detect_err = 0
+    n_eng = 0
+    cohort_counts: Counter = Counter()
+    n_min_hist: Counter = Counter()
+    joint_5x5: Counter = Counter()  # keys "b,r" for b,r in 1..5
+    diagonal = Counter()  # 2v2 / 4v4 / 5v5 among engagements
+
+    for i, mid in enumerate(sample):
+        if i % 1000 == 0:
+            elapsed = time.time() - t0
+            print(
+                f"  [{i}/{len(sample)}] loaded={n_loaded} miss={n_miss} "
+                f"eng={n_eng} elapsed_s={elapsed:.0f}",
+                flush=True,
+            )
+        pack = cio.load_match_cache(mid)
+        if pack is None:
+            n_miss += 1
+            continue
+        n_loaded += 1
+        try:
+            keys = detect_match(pack, detect_fights, cfg)
+        except Exception:
+            n_detect_err += 1
+            keys = []
+        n_eng += len(keys)
+        for _k, n_min, _s, _L, cb, cr in keys:
+            cohort_counts[cohort_of(n_min)] += 1
+            n_min_hist[_n_min_bucket(n_min)] += 1
+            if 1 <= cb <= 5 and 1 <= cr <= 5:
+                joint_5x5[f"{cb},{cr}"] += 1
+            if cb == cr and cb in (2, 4, 5):
+                diagonal[f"{cb}v{cr}"] += 1
+
+    wall_s = float(time.time() - t0)
+    cohort_order = ["T", "S", "P", "UNK"]
+    cohort_block = {
+        c: {"count": int(cohort_counts.get(c, 0)), "share": _share(int(cohort_counts.get(c, 0)), n_eng)}
+        for c in cohort_order
+        if c != "UNK" or cohort_counts.get(c, 0)
+    }
+    # Always include UNK key if present; keep T/S/P always.
+    for c in ("T", "S", "P"):
+        cohort_block.setdefault(c, {"count": 0, "share": _share(0, n_eng)})
+
+    n_min_block = {}
+    for b in ["1", "2", "3", "4", "5", "other"]:
+        cnt = int(n_min_hist.get(b, 0))
+        if b == "other" and cnt == 0:
+            continue
+        n_min_block[b] = {"count": cnt, "share": _share(cnt, n_eng)}
+
+    joint_block = {
+        k: {"count": int(v), "share": _share(int(v), n_eng)}
+        for k, v in sorted(joint_5x5.items(), key=lambda kv: (int(kv[0].split(",")[0]), int(kv[0].split(",")[1])))
+    }
+    diag_block = {
+        k: {"count": int(diagonal.get(k, 0)), "share": _share(int(diagonal.get(k, 0)), n_eng)}
+        for k in ("2v2", "4v4", "5v5")
+    }
+
+    note = (
+        "Census of detector scale class only (reference arm / empty overrides on v3.3). "
+        "Not the exchange-value labeled subset. AUC/cut sensitivity not recomputed. "
+        "T=min(cluster_blue,cluster_red)>=4; S=2..3; P=0..1 (via n_min). "
+        "May differ slightly from stored corpus row counts (566,104 valid; T 113,901)."
+    )
+    doc = dict(
+        schema="SUPPLEMENTARY_E4_CLASS_CENSUS_v1",
+        generated_at_utc=datetime.now(timezone.utc).isoformat(),
+        task=".ai/tasks/T023.md",
+        mode="census_only_reference_arm",
+        sample_mode=sample_mode,
+        n_matches_request=int(n_matches),
+        n_matches_listed=len(sample),
+        n_matches_loaded=n_loaded,
+        n_miss=n_miss,
+        n_detect_err=n_detect_err,
+        n_engagements=n_eng,
+        cohort_counts={c: cohort_block[c]["count"] for c in cohort_block},
+        cohort_shares={c: cohort_block[c]["share"] for c in cohort_block},
+        cohort=cohort_block,
+        n_min_histogram=n_min_block,
+        joint_cluster_blue_red_1to5=joint_block,
+        diagonal_cited=diag_block,
+        params=params,
+        reference=REF,
+        cache_path=str(cache_dir),
+        wall_s=wall_s,
+        note=note,
+    )
+    CENSUS_JSON.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
+
+    def pct(share: Optional[float]) -> str:
+        return "—" if share is None else f"{100.0 * share:.2f}%"
+
+    lines = [
+        "# Supplementary E4 — Reference-arm class census",
+        "",
+        f"**generated:** {doc['generated_at_utc']}  ",
+        f"**cache:** `{cache_dir}`  ",
+        f"**sample_mode:** {sample_mode} (n_matches_request={n_matches})  ",
+        f"**wall_s:** {wall_s:.1f}  ",
+        "",
+        note,
+        "",
+        "## Scale",
+        "",
+        f"| metric | value |",
+        f"|---|---:|",
+        f"| n_matches_listed | {len(sample)} |",
+        f"| n_matches_loaded | {n_loaded} |",
+        f"| n_miss | {n_miss} |",
+        f"| n_detect_err | {n_detect_err} |",
+        f"| n_engagements | {n_eng} |",
+        "",
+        "## Cohort (scale class)",
+        "",
+        "| class | count | share |",
+        "|---|---:|---:|",
+    ]
+    for c in cohort_order:
+        if c not in cohort_block:
+            continue
+        lines.append(
+            f"| {c} | {cohort_block[c]['count']} | {pct(cohort_block[c]['share'])} |"
+        )
+    lines += [
+        "",
+        "## n_min histogram",
+        "",
+        "| n_min | count | share |",
+        "|---|---:|---:|",
+    ]
+    for b, block in n_min_block.items():
+        lines.append(f"| {b} | {block['count']} | {pct(block['share'])} |")
+    lines += [
+        "",
+        "## Diagonal (blue==red among 1..5 joints recorded)",
+        "",
+        "| cell | count | share of engagements |",
+        "|---|---:|---:|",
+    ]
+    for k in ("2v2", "4v4", "5v5"):
+        lines.append(f"| {k} | {diag_block[k]['count']} | {pct(diag_block[k]['share'])} |")
+    lines += [
+        "",
+        "## Params (reference arm)",
+        "",
+        "```",
+        json.dumps(params, indent=2),
+        "```",
+        "",
+    ]
+    CENSUS_MD.write_text("\n".join(lines), encoding="utf-8")
+    print(f"wrote {CENSUS_JSON}", flush=True)
+    print(f"wrote {CENSUS_MD}", flush=True)
+    print(
+        f"DONE eng={n_eng} T={cohort_counts.get('T', 0)} "
+        f"S={cohort_counts.get('S', 0)} P={cohort_counts.get('P', 0)} "
+        f"wall_s={wall_s:.1f}",
+        flush=True,
+    )
+    return 0
+
+
+def run_oat(n_matches: int) -> int:
+    root = data_root()
+    setup(root)
+    import fc20260915_common as C
+    import data.cache_io as cio
+    from core.config import cfg
+    from gameplay.fights import detect_fights
+
+    cio.CACHE_DIR = Path(C.CACHE_MAIN)
+    if n_matches == 0:
+        raise SystemExit(
+            "OAT mode refuses N_MATCHES=0 (would overwrite 5k OAT with a full-corpus "
+            "multi-arm run). Use --census-only --n-matches 0 for the reference census."
+        )
+    sample = hash_first_pred_sample(n_matches)
     print(f"OAT n_matches={len(sample)} CACHE={cio.CACHE_DIR}", flush=True)
 
     # load packs once
     packs = {}
-    patches = []
     n_miss = 0
     for i, mid in enumerate(sample):
         if i % 500 == 0:
@@ -216,7 +461,6 @@ def main() -> int:
             n_miss += 1
             continue
         packs[mid] = pack
-        patches.append(str(pack.get("meta", {}).get("patch", "?")))
     print(f"loaded {len(packs)} miss={n_miss}", flush=True)
 
     results = {}
@@ -235,7 +479,7 @@ def main() -> int:
                 keys = []
             anchors[mid] = keys
             n_eng += len(keys)
-            for _k, n_min, _s, _L in keys:
+            for _k, n_min, _s, _L, _cb, _cr in keys:
                 cohort_counts[cohort_of(n_min)] += 1
         results[name] = dict(
             params=params,
@@ -254,9 +498,8 @@ def main() -> int:
             continue
         alt = results[name]["anchors"]
         n_common = n_ref_only = n_alt_only = 0
-        n_1to1 = n_1tomany = 0
+        n_1to1 = 0
         cohort_move = defaultdict(int)
-        flip_join = dict(n=0, flip=None)  # filled if we join pred
         for mid in packs:
             rk = {a[0]: a for a in ref_anchors.get(mid, [])}
             ak = {a[0]: a for a in alt.get(mid, [])}
@@ -326,6 +569,32 @@ def main() -> int:
     DOCS_MD.write_text("\n".join(lines), encoding="utf-8")
     print(f"wrote {DOCS_MD}", flush=True)
     return 0
+
+
+def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
+    p = argparse.ArgumentParser(description="E4 definition OAT / reference class census")
+    p.add_argument(
+        "--census-only",
+        action="store_true",
+        help="Run only the reference arm and write CLASS_CENSUS docs (not the 5k OAT file).",
+    )
+    p.add_argument(
+        "--n-matches",
+        type=int,
+        default=DEFAULT_N_MATCHES,
+        help=(
+            "Match budget. Default 5000 (hash-first from pred table). "
+            "0 = every *.meta.json under CACHE_MAIN (census-only)."
+        ),
+    )
+    return p.parse_args(argv)
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    args = parse_args(argv)
+    if args.census_only:
+        return run_census(int(args.n_matches))
+    return run_oat(int(args.n_matches))
 
 
 if __name__ == "__main__":

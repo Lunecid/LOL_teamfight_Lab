@@ -1,0 +1,202 @@
+{
+  "schema": "SUPPLEMENTARY_E4_CLASS_CENSUS_v1",
+  "generated_at_utc": "2026-09-22T09:36:21.221197+00:00",
+  "task": ".ai/tasks/T023.md",
+  "mode": "census_only_reference_arm",
+  "sample_mode": "full_cache_meta",
+  "n_matches_request": 0,
+  "n_matches_listed": 210000,
+  "n_matches_loaded": 210000,
+  "n_miss": 0,
+  "n_detect_err": 0,
+  "n_engagements": 566452,
+  "cohort_counts": {
+    "T": 113901,
+    "S": 349248,
+    "P": 103303
+  },
+  "cohort_shares": {
+    "T": 0.20107793775995142,
+    "S": 0.6165535649975638,
+    "P": 0.1823684972424848
+  },
+  "cohort": {
+    "T": {
+      "count": 113901,
+      "share": 0.20107793775995142
+    },
+    "S": {
+      "count": 349248,
+      "share": 0.6165535649975638
+    },
+    "P": {
+      "count": 103303,
+      "share": 0.1823684972424848
+    }
+  },
+  "n_min_histogram": {
+    "1": {
+      "count": 103244,
+      "share": 0.18226434013826415
+    },
+    "2": {
+      "count": 235034,
+      "share": 0.41492306497284853
+    },
+    "3": {
+      "count": 114214,
+      "share": 0.20163050002471525
+    },
+    "4": {
+      "count": 74346,
+      "share": 0.13124854356591556
+    },
+    "5": {
+      "count": 39555,
+      "share": 0.06982939419403586
+    },
+    "other": {
+      "count": 59,
+      "share": 0.00010415710422065771
+    }
+  },
+  "joint_cluster_blue_red_1to5": {
+    "1,1": {
+      "count": 2293,
+      "share": 0.004048004067423189
+    },
+    "1,2": {
+      "count": 23945,
+      "share": 0.04227189594175676
+    },
+    "1,3": {
+      "count": 18500,
+      "share": 0.032659430984443516
+    },
+    "1,4": {
+      "count": 5784,
+      "share": 0.01021092696292007
+    },
+    "1,5": {
+      "count": 1290,
+      "share": 0.0022773332956720076
+    },
+    "2,1": {
+      "count": 25109,
+      "share": 0.04432679203180499
+    },
+    "2,2": {
+      "count": 88949,
+      "share": 0.15702830954785224
+    },
+    "2,3": {
+      "count": 52610,
+      "share": 0.09287636022116613
+    },
+    "2,4": {
+      "count": 16440,
+      "share": 0.029022759209959538
+    },
+    "2,5": {
+      "count": 4333,
+      "share": 0.007649368348951014
+    },
+    "3,1": {
+      "count": 19345,
+      "share": 0.034151172561841074
+    },
+    "3,2": {
+      "count": 52304,
+      "share": 0.09233615557893696
+    },
+    "3,3": {
+      "count": 44896,
+      "share": 0.07925826018797709
+    },
+    "3,4": {
+      "count": 25634,
+      "share": 0.04525361372190406
+    },
+    "3,5": {
+      "count": 9208,
+      "share": 0.016255569757013835
+    },
+    "4,1": {
+      "count": 5584,
+      "share": 0.00985785203335852
+    },
+    "4,2": {
+      "count": 15877,
+      "share": 0.02802885328324377
+    },
+    "4,3": {
+      "count": 25128,
+      "share": 0.04436033415011334
+    },
+    "4,4": {
+      "count": 34650,
+      "share": 0.061170231546538806
+    },
+    "4,5": {
+      "count": 19597,
+      "share": 0.03459604697308863
+    },
+    "5,1": {
+      "count": 1394,
+      "share": 0.0024609322590440144
+    },
+    "5,2": {
+      "count": 4521,
+      "share": 0.007981258782738873
+    },
+    "5,3": {
+      "count": 9348,
+      "share": 0.01650272220770692
+    },
+    "5,4": {
+      "count": 20099,
+      "share": 0.035482265046288125
+    },
+    "5,5": {
+      "count": 39555,
+      "share": 0.06982939419403586
+    }
+  },
+  "diagonal_cited": {
+    "2v2": {
+      "count": 88949,
+      "share": 0.15702830954785224
+    },
+    "4v4": {
+      "count": 34650,
+      "share": 0.061170231546538806
+    },
+    "5v5": {
+      "count": 39555,
+      "share": 0.06982939419403586
+    }
+  },
+  "params": {
+    "G": 13700,
+    "D": 4264.0,
+    "R": 1600.0,
+    "B": 15000,
+    "I": 3000.0,
+    "MR": 2000.0,
+    "MD": 60000,
+    "SHOPEX": false
+  },
+  "reference": {
+    "G": 13700,
+    "D": 4264.0,
+    "R": 1600.0,
+    "B": 15000,
+    "I": 3000.0,
+    "MR": 2000.0,
+    "MD": 60000,
+    "SHOPEX": false
+  },
+  "cache_path": "D:\\LOL_Project\\cache\\match_cache_fresh_v3_engage_status13",
+  "wall_s": 4986.28203701973,
+  "note": "Census of detector scale class only (reference arm / empty overrides on v3.3). Not the exchange-value labeled subset. AUC/cut sensitivity not recomputed. T=min(cluster_blue,cluster_red)>=4; S=2..3; P=0..1 (via n_min). May differ slightly from stored corpus row counts (566,104 valid; T 113,901)."
+}
