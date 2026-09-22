@@ -469,36 +469,73 @@ def gen_e4():
     srco = "`SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json`"
     R.add("oatNrun", fint(oat["n_matches_run"]), "OAT 실행 경기 수 (hash 선두)", cond="설계 예산 20,000; 검정력 보장 아님", source=f"{srco} `n_matches_run`")
     R.add("oatNdesign", fint(oat["n_matches_design"]), "OAT 설계 경기 수", source=f"{srco} `n_matches_design`")
-    setmac = {"ref": "Ref", "G_12200": "Gtwelve", "G_15700": "Gfifteen", "D_4000": "Dfour", "D_4500": "Dfourfive", "R_1400": "Rfourteen", "R_1800": "Reighteen", "B_10000": "Bten", "B_20000": "Btwenty"}
-    setko = {"ref": "기준", "G_12200": "$G$ 12.2 s", "G_15700": "$G$ 15.7 s", "D_4000": "$D$ 4,000 u", "D_4500": "$D$ 4,500 u", "R_1400": "$R$ 1,400 u", "R_1800": "$R$ 1,800 u", "B_10000": "$B$ 10 s", "B_20000": "$B$ 20 s"}
+    # Macro suffixes and display labels for every arm in the extended OAT (G/D/R/B + I/SHOPEX/MR/MD).
+    setmac = {
+        "ref": "Ref",
+        "G_12200": "Gtwelve", "G_15700": "Gfifteen",
+        "D_4000": "Dfour", "D_4500": "Dfourfive",
+        "R_1400": "Rfourteen", "R_1800": "Reighteen",
+        "B_10000": "Bten", "B_20000": "Btwenty",
+        "I_2000": "Itwo", "I_2500": "Itwofive", "I_3500": "Ithreefive", "I_4264": "Ifourd",
+        "SHOPEX_on": "Shopex",
+        "MR_1000": "MRone", "MR_3000": "MRthree",
+        "MD_45000": "MDfortyfive", "MD_90000": "MDninety",
+    }
+    setko = {
+        "ref": "기준",
+        "G_12200": "$G$ 12.2 s", "G_15700": "$G$ 15.7 s",
+        "D_4000": "$D$ 4,000 u", "D_4500": "$D$ 4,500 u",
+        "R_1400": "$R$ 1,400 u", "R_1800": "$R$ 1,800 u",
+        "B_10000": "$B$ 10 s", "B_20000": "$B$ 20 s",
+        "I_2000": "$I$ 2,000 u", "I_2500": "$I$ 2,500 u", "I_3500": "$I$ 3,500 u", "I_4264": "$I{=}D$ 4,264 u",
+        "SHOPEX_on": "상점 제외",
+        "MR_1000": "병합반경 1,000 u", "MR_3000": "병합반경 3,000 u",
+        "MD_45000": "지속상한 45 s", "MD_90000": "지속상한 90 s",
+    }
+    missing = set(oat["settings"]) - set(setmac)
+    if missing:
+        raise SystemExit(f"gen_supp OAT: unknown setting keys {sorted(missing)}")
     rows = []
     for s, d in oat["settings"].items():
         p = f"oat{setmac[s]}"
         cc = d["cohort_counts"]
+        changed = d.get("changed") or "—"
         R.add(f"{p}Eng", fint(d["n_engagements"]), f"검출 교전 수 ({s})", source=f"{srco} `settings.{s}.n_engagements`")
-        R.add(f"{p}T", fint(cc["T"]), f"T 교전 수 ({s})", cond="n_min ≥ 4", source=f"{srco} `settings.{s}.cohort_counts.T`")
-        R.add(f"{p}S", fint(cc["S"]), f"S 교전 수 ({s})", cond="2 ≤ n_min ≤ 3", source=f"{srco} `settings.{s}.cohort_counts.S`")
-        R.add(f"{p}P", fint(cc["P"]), f"pick 교전 수 ({s})", cond="n_min ≤ 1", source=f"{srco} `settings.{s}.cohort_counts.P`")
-        prm = d["params"]
+        R.add(f"{p}T", fint(cc.get("T", 0)), f"T 교전 수 ({s})", cond="n_min ≥ 4", source=f"{srco} `settings.{s}.cohort_counts.T`")
+        R.add(f"{p}S", fint(cc.get("S", 0)), f"S 교전 수 ({s})", cond="2 ≤ n_min ≤ 3", source=f"{srco} `settings.{s}.cohort_counts.S`")
+        R.add(f"{p}P", fint(cc.get("P", 0)), f"pick 교전 수 ({s})", cond="n_min ≤ 1", source=f"{srco} `settings.{s}.cohort_counts.P`")
         if s == "ref":
-            rows.append(f"{setko[s]} & {prm['G']/1000:.1f} & {fint(prm['D'])} & {fint(prm['R'])} & {prm['B']/1000:.0f} & {fint(d['n_engagements'])} & {fint(cc['T'])} & {fint(cc['S'])} & {fint(cc['P'])} & --- & --- & ---")
+            rows.append(
+                f"{setko[s]} & --- & {fint(d['n_engagements'])} & {fint(cc.get('T', 0))} & "
+                f"{fint(cc.get('S', 0))} & {fint(cc.get('P', 0))} & --- & --- & --- & ---"
+            )
         else:
             v = oat["vs_ref"][s]
+            moves = v.get("cohort_moves") or {}
+            moves_s = ", ".join(f"{k} {fint(n)}" for k, n in sorted(moves.items())) or "---"
             R.add(f"{p}Common", fint(v["n_common_anchors"]), f"기준과 공통 앵커 ({s})", "가장 이른 킬 1:1 일치", source=f"{srco} `vs_ref.{s}.n_common_anchors`")
             R.add(f"{p}RefOnly", fint(v["n_ref_only"]), f"기준에만 있는 교전 ({s})", source=f"{srco} `vs_ref.{s}.n_ref_only`")
             R.add(f"{p}AltOnly", fint(v["n_alt_only"]), f"대안에만 있는 교전 ({s})", source=f"{srco} `vs_ref.{s}.n_alt_only`")
-            rows.append(f"{setko[s]} & {prm['G']/1000:.1f} & {fint(prm['D'])} & {fint(prm['R'])} & {prm['B']/1000:.0f} & {fint(d['n_engagements'])} & {fint(cc['T'])} & {fint(cc['S'])} & {fint(cc['P'])} & {fint(v['n_common_anchors'])} & {fint(v['n_ref_only'])} & {fint(v['n_alt_only'])}")
+            # Escape underscores in changed labels for LaTeX.
+            ch_tex = str(changed).replace("_", r"\_").replace("=", r"$=$")
+            rows.append(
+                f"{setko[s]} & {ch_tex} & {fint(d['n_engagements'])} & {fint(cc.get('T', 0))} & "
+                f"{fint(cc.get('S', 0))} & {fint(cc.get('P', 0))} & {fint(v['n_common_anchors'])} & "
+                f"{fint(v['n_ref_only'])} & {fint(v['n_alt_only'])} & {moves_s}"
+            )
     table(
         "tab_oat.tex",
-        "E4 정의 상수 일변량 변경의 사례 구성 census",
+        "E4 정의 상수 일변량 변경의 사례 구성 census (확장: I/SHOPEX/MR/MD)",
         f"{srco} `settings`, `vs_ref`",
         wrap_table(
             f"교전 정의 상수의 일변량 변경에 따른 사례 구성 ({fint(oat['n_matches_run'])} 경기)", "tab:oat",
-            "@{}lrrrrrrrrrrr@{}",
-            r"설정 & $G$ (s) & $D$ (u) & $R$ (u) & $B$ (s) & 교전 & T & S & pick & 공통 앵커 & 기준만 & 대안만",
+            "@{}l>{\\raggedright\\arraybackslash}p{2.4cm}rrrrrrr>{\\raggedright\\arraybackslash}p{2.8cm}@{}",
+            r"설정 & 변경 & 교전 & T & S & pick & 공통 & 기준만 & 대안만 & 계급 이동",
             rows,
-            "패치 비율을 유지한 hash 선두 5{,}000 경기(설계 예산 20{,}000; 검정력 보장이 아님). 한 번에 한 상수만 변경. 공통 앵커 = 가장 이른 킬이 같은 1:1 대응 교전. "
-            "$D$의 대안은 운영적 교란값이며 통계적 구간 경계가 아니다. 고정 $q$/PT 점수의 민감도는 이 실행에 포함되지 않았다(사례 구성만).",
+            "패치 비율을 유지한 hash 선두 5{,}000 경기(설계 예산 20{,}000; 검정력 보장이 아님). 한 번에 한 상수만 변경. "
+            "공통 = 가장 이른 킬이 같은 1:1 대응. 계급 이동은 공통 앵커에서만 집계. "
+            "$I$는 상호작용 반경(참여 인원·규모 계급), SHOPEX는 상점 사건 제외, MR/MD는 재교전 병합 반경·지속 상한. "
+            "$D$의 대안은 운영적 교란값이며 통계적 구간 경계가 아니다. 고정 $q$/PT 점수는 이 실행에 포함되지 않았다(사례 구성만).",
             size=r"\scriptsize",
         ),
     )

@@ -18,7 +18,7 @@
 | `latex/tables/gen/tab_horizon_strata_T.tex` | E4 지평 층화와 h60 라벨 이식 (T) | `SUPPLEMENTARY_E4_SENSITIVITY_20260921.json` `horizon.T` |
 | `latex/tables/gen/tab_horizon_strata_S.tex` | E4 지평 층화와 h60 라벨 이식 (S) | `SUPPLEMENTARY_E4_SENSITIVITY_20260921.json` `horizon.S` |
 | `latex/tables/gen/tab_peer_transfer.tex` | E4 동료 평가기 라벨 이식 (T) | `SUPPLEMENTARY_E4_SENSITIVITY_20260921.json` `peer_label_transfer` |
-| `latex/tables/gen/tab_oat.tex` | E4 정의 상수 일변량 변경의 사례 구성 census | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings`, `vs_ref` |
+| `latex/tables/gen/tab_oat.tex` | E4 정의 상수 일변량 변경의 사례 구성 census (확장: I/SHOPEX/MR/MD) | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings`, `vs_ref` |
 | `latex/tables/gen/tab_material_axes.tex` | E5 SVI와 물질 결과 축의 동일 사례 대응 (T, S) | `SUPPLEMENTARY_E5_CORRESPONDENCE_20260921.json` `cohorts.*.material_axes` |
 | `latex/tables/gen/tab_nextobj.tex` | E5 다음 엘리트 오브젝트와의 연관 (T) | `SUPPLEMENTARY_E5_CORRESPONDENCE_20260921.json` `cohorts.T.nextobj` |
 
@@ -429,6 +429,69 @@
 | `\oatBtwentyCommon` | 11{,}608 | 기준과 공통 앵커 (B_20000) | 가장 이른 킬 1:1 일치 | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `vs_ref.B_20000.n_common_anchors` |
 | `\oatBtwentyRefOnly` | 6{,}584 | 기준에만 있는 교전 (B_20000) | — | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `vs_ref.B_20000.n_ref_only` |
 | `\oatBtwentyAltOnly` | 1{,}480 | 대안에만 있는 교전 (B_20000) | — | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `vs_ref.B_20000.n_alt_only` |
+| `\oatItwoEng` | 18{,}195 | 검출 교전 수 (I_2000) | — | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.I_2000.n_engagements` |
+| `\oatItwoT` | 6{,}251 | T 교전 수 (I_2000) | — | — | n_min ≥ 4 | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.I_2000.cohort_counts.T` |
+| `\oatItwoS` | 9{,}107 | S 교전 수 (I_2000) | — | — | 2 ≤ n_min ≤ 3 | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.I_2000.cohort_counts.S` |
+| `\oatItwoP` | 2{,}837 | pick 교전 수 (I_2000) | — | — | n_min ≤ 1 | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.I_2000.cohort_counts.P` |
+| `\oatItwoCommon` | 18{,}163 | 기준과 공통 앵커 (I_2000) | 가장 이른 킬 1:1 일치 | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `vs_ref.I_2000.n_common_anchors` |
+| `\oatItwoRefOnly` | 29 | 기준에만 있는 교전 (I_2000) | — | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `vs_ref.I_2000.n_ref_only` |
+| `\oatItwoAltOnly` | 32 | 대안에만 있는 교전 (I_2000) | — | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `vs_ref.I_2000.n_alt_only` |
+| `\oatItwofiveEng` | 18{,}196 | 검출 교전 수 (I_2500) | — | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.I_2500.n_engagements` |
+| `\oatItwofiveT` | 6{,}544 | T 교전 수 (I_2500) | — | — | n_min ≥ 4 | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.I_2500.cohort_counts.T` |
+| `\oatItwofiveS` | 8{,}994 | S 교전 수 (I_2500) | — | — | 2 ≤ n_min ≤ 3 | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.I_2500.cohort_counts.S` |
+| `\oatItwofiveP` | 2{,}658 | pick 교전 수 (I_2500) | — | — | n_min ≤ 1 | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.I_2500.cohort_counts.P` |
+| `\oatItwofiveCommon` | 18{,}184 | 기준과 공통 앵커 (I_2500) | 가장 이른 킬 1:1 일치 | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `vs_ref.I_2500.n_common_anchors` |
+| `\oatItwofiveRefOnly` | 8 | 기준에만 있는 교전 (I_2500) | — | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `vs_ref.I_2500.n_ref_only` |
+| `\oatItwofiveAltOnly` | 12 | 대안에만 있는 교전 (I_2500) | — | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `vs_ref.I_2500.n_alt_only` |
+| `\oatIthreefiveEng` | 18{,}192 | 검출 교전 수 (I_3500) | — | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.I_3500.n_engagements` |
+| `\oatIthreefiveT` | 6{,}901 | T 교전 수 (I_3500) | — | — | n_min ≥ 4 | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.I_3500.cohort_counts.T` |
+| `\oatIthreefiveS` | 8{,}872 | S 교전 수 (I_3500) | — | — | 2 ≤ n_min ≤ 3 | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.I_3500.cohort_counts.S` |
+| `\oatIthreefiveP` | 2{,}419 | pick 교전 수 (I_3500) | — | — | n_min ≤ 1 | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.I_3500.cohort_counts.P` |
+| `\oatIthreefiveCommon` | 18{,}181 | 기준과 공통 앵커 (I_3500) | 가장 이른 킬 1:1 일치 | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `vs_ref.I_3500.n_common_anchors` |
+| `\oatIthreefiveRefOnly` | 11 | 기준에만 있는 교전 (I_3500) | — | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `vs_ref.I_3500.n_ref_only` |
+| `\oatIthreefiveAltOnly` | 11 | 대안에만 있는 교전 (I_3500) | — | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `vs_ref.I_3500.n_alt_only` |
+| `\oatIfourdEng` | 18{,}192 | 검출 교전 수 (I_4264) | — | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.I_4264.n_engagements` |
+| `\oatIfourdT` | 7{,}050 | T 교전 수 (I_4264) | — | — | n_min ≥ 4 | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.I_4264.cohort_counts.T` |
+| `\oatIfourdS` | 8{,}847 | S 교전 수 (I_4264) | — | — | 2 ≤ n_min ≤ 3 | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.I_4264.cohort_counts.S` |
+| `\oatIfourdP` | 2{,}295 | pick 교전 수 (I_4264) | — | — | n_min ≤ 1 | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.I_4264.cohort_counts.P` |
+| `\oatIfourdCommon` | 18{,}174 | 기준과 공통 앵커 (I_4264) | 가장 이른 킬 1:1 일치 | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `vs_ref.I_4264.n_common_anchors` |
+| `\oatIfourdRefOnly` | 18 | 기준에만 있는 교전 (I_4264) | — | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `vs_ref.I_4264.n_ref_only` |
+| `\oatIfourdAltOnly` | 18 | 대안에만 있는 교전 (I_4264) | — | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `vs_ref.I_4264.n_alt_only` |
+| `\oatShopexEng` | 18{,}195 | 검출 교전 수 (SHOPEX_on) | — | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.SHOPEX_on.n_engagements` |
+| `\oatShopexT` | 6{,}452 | T 교전 수 (SHOPEX_on) | — | — | n_min ≥ 4 | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.SHOPEX_on.cohort_counts.T` |
+| `\oatShopexS` | 8{,}899 | S 교전 수 (SHOPEX_on) | — | — | 2 ≤ n_min ≤ 3 | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.SHOPEX_on.cohort_counts.S` |
+| `\oatShopexP` | 2{,}844 | pick 교전 수 (SHOPEX_on) | — | — | n_min ≤ 1 | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.SHOPEX_on.cohort_counts.P` |
+| `\oatShopexCommon` | 18{,}169 | 기준과 공통 앵커 (SHOPEX_on) | 가장 이른 킬 1:1 일치 | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `vs_ref.SHOPEX_on.n_common_anchors` |
+| `\oatShopexRefOnly` | 23 | 기준에만 있는 교전 (SHOPEX_on) | — | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `vs_ref.SHOPEX_on.n_ref_only` |
+| `\oatShopexAltOnly` | 26 | 대안에만 있는 교전 (SHOPEX_on) | — | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `vs_ref.SHOPEX_on.n_alt_only` |
+| `\oatMRoneEng` | 18{,}198 | 검출 교전 수 (MR_1000) | — | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.MR_1000.n_engagements` |
+| `\oatMRoneT` | 6{,}838 | T 교전 수 (MR_1000) | — | — | n_min ≥ 4 | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.MR_1000.cohort_counts.T` |
+| `\oatMRoneS` | 8{,}884 | S 교전 수 (MR_1000) | — | — | 2 ≤ n_min ≤ 3 | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.MR_1000.cohort_counts.S` |
+| `\oatMRoneP` | 2{,}476 | pick 교전 수 (MR_1000) | — | — | n_min ≤ 1 | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.MR_1000.cohort_counts.P` |
+| `\oatMRoneCommon` | 18{,}071 | 기준과 공통 앵커 (MR_1000) | 가장 이른 킬 1:1 일치 | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `vs_ref.MR_1000.n_common_anchors` |
+| `\oatMRoneRefOnly` | 121 | 기준에만 있는 교전 (MR_1000) | — | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `vs_ref.MR_1000.n_ref_only` |
+| `\oatMRoneAltOnly` | 127 | 대안에만 있는 교전 (MR_1000) | — | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `vs_ref.MR_1000.n_alt_only` |
+| `\oatMRthreeEng` | 18{,}189 | 검출 교전 수 (MR_3000) | — | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.MR_3000.n_engagements` |
+| `\oatMRthreeT` | 6{,}777 | T 교전 수 (MR_3000) | — | — | n_min ≥ 4 | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.MR_3000.cohort_counts.T` |
+| `\oatMRthreeS` | 8{,}871 | S 교전 수 (MR_3000) | — | — | 2 ≤ n_min ≤ 3 | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.MR_3000.cohort_counts.S` |
+| `\oatMRthreeP` | 2{,}541 | pick 교전 수 (MR_3000) | — | — | n_min ≤ 1 | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.MR_3000.cohort_counts.P` |
+| `\oatMRthreeCommon` | 18{,}149 | 기준과 공통 앵커 (MR_3000) | 가장 이른 킬 1:1 일치 | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `vs_ref.MR_3000.n_common_anchors` |
+| `\oatMRthreeRefOnly` | 43 | 기준에만 있는 교전 (MR_3000) | — | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `vs_ref.MR_3000.n_ref_only` |
+| `\oatMRthreeAltOnly` | 40 | 대안에만 있는 교전 (MR_3000) | — | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `vs_ref.MR_3000.n_alt_only` |
+| `\oatMDfortyfiveEng` | 17{,}975 | 검출 교전 수 (MD_45000) | — | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.MD_45000.n_engagements` |
+| `\oatMDfortyfiveT` | 6{,}649 | T 교전 수 (MD_45000) | — | — | n_min ≥ 4 | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.MD_45000.cohort_counts.T` |
+| `\oatMDfortyfiveS` | 8{,}898 | S 교전 수 (MD_45000) | — | — | 2 ≤ n_min ≤ 3 | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.MD_45000.cohort_counts.S` |
+| `\oatMDfortyfiveP` | 2{,}428 | pick 교전 수 (MD_45000) | — | — | n_min ≤ 1 | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.MD_45000.cohort_counts.P` |
+| `\oatMDfortyfiveCommon` | 17{,}700 | 기준과 공통 앵커 (MD_45000) | 가장 이른 킬 1:1 일치 | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `vs_ref.MD_45000.n_common_anchors` |
+| `\oatMDfortyfiveRefOnly` | 492 | 기준에만 있는 교전 (MD_45000) | — | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `vs_ref.MD_45000.n_ref_only` |
+| `\oatMDfortyfiveAltOnly` | 275 | 대안에만 있는 교전 (MD_45000) | — | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `vs_ref.MD_45000.n_alt_only` |
+| `\oatMDninetyEng` | 18{,}027 | 검출 교전 수 (MD_90000) | — | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.MD_90000.n_engagements` |
+| `\oatMDninetyT` | 6{,}694 | T 교전 수 (MD_90000) | — | — | n_min ≥ 4 | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.MD_90000.cohort_counts.T` |
+| `\oatMDninetyS` | 8{,}803 | S 교전 수 (MD_90000) | — | — | 2 ≤ n_min ≤ 3 | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.MD_90000.cohort_counts.S` |
+| `\oatMDninetyP` | 2{,}530 | pick 교전 수 (MD_90000) | — | — | n_min ≤ 1 | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `settings.MD_90000.cohort_counts.P` |
+| `\oatMDninetyCommon` | 17{,}903 | 기준과 공통 앵커 (MD_90000) | 가장 이른 킬 1:1 일치 | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `vs_ref.MD_90000.n_common_anchors` |
+| `\oatMDninetyRefOnly` | 289 | 기준에만 있는 교전 (MD_90000) | — | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `vs_ref.MD_90000.n_ref_only` |
+| `\oatMDninetyAltOnly` | 124 | 대안에만 있는 교전 (MD_90000) | — | — | — | — | `SUPPLEMENTARY_E4_DEFINITION_OAT_20260921.json` `vs_ref.MD_90000.n_alt_only` |
 | `\maNT` | 32{,}981 | 행 수 (T) | — | — | — | — | `SUPPLEMENTARY_E5_CORRESPONDENCE_20260921.json` `cohorts.T.n` |
 | `\maTKillAllNdec` | 28{,}711 | 결정 행 수 (축 ≠ 0) | — | — | — | — | `SUPPLEMENTARY_E5_CORRESPONDENCE_20260921.json` `cohorts.T.material_axes.kill_diff.all_T`.n_decided |
 | `\maTKillAllTie` | 0.129 | 동률 비율 | 축 = 0 행 | 범위 행 | — | — | `SUPPLEMENTARY_E5_CORRESPONDENCE_20260921.json` `cohorts.T.material_axes.kill_diff.all_T`.tie_share |

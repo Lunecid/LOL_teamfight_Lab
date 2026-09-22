@@ -1,6 +1,6 @@
 {
   "schema": "SUPPLEMENTARY_E4_DEFINITION_OAT_v1",
-  "generated_at_utc": "2026-09-21T09:17:51.554826+00:00",
+  "generated_at_utc": "2026-09-22T08:07:02.146637+00:00",
   "task": ".ai/tasks/T023.md",
   "n_matches_design": 20000,
   "n_matches_run": 5000,
@@ -10,7 +10,11 @@
     "G": 13700,
     "D": 4264.0,
     "R": 1600.0,
-    "B": 15000
+    "B": 15000,
+    "I": 3000.0,
+    "MR": 2000.0,
+    "MD": 60000,
+    "SHOPEX": false
   },
   "settings": {
     "ref": {
@@ -18,8 +22,13 @@
         "G": 13700,
         "D": 4264.0,
         "R": 1600.0,
-        "B": 15000
+        "B": 15000,
+        "I": 3000.0,
+        "MR": 2000.0,
+        "MD": 60000,
+        "SHOPEX": false
       },
+      "changed": "\u2014",
       "n_matches": 5000,
       "n_engagements": 18192,
       "cohort_counts": {
@@ -33,8 +42,13 @@
         "G": 12200,
         "D": 4264.0,
         "R": 1600.0,
-        "B": 15000
+        "B": 15000,
+        "I": 3000.0,
+        "MR": 2000.0,
+        "MD": 60000,
+        "SHOPEX": false
       },
+      "changed": "G=12200",
       "n_matches": 5000,
       "n_engagements": 18748,
       "cohort_counts": {
@@ -48,8 +62,13 @@
         "G": 15700,
         "D": 4264.0,
         "R": 1600.0,
-        "B": 15000
+        "B": 15000,
+        "I": 3000.0,
+        "MR": 2000.0,
+        "MD": 60000,
+        "SHOPEX": false
       },
+      "changed": "G=15700",
       "n_matches": 5000,
       "n_engagements": 17417,
       "cohort_counts": {
@@ -63,8 +82,13 @@
         "G": 13700,
         "D": 4000.0,
         "R": 1600.0,
-        "B": 15000
+        "B": 15000,
+        "I": 3000.0,
+        "MR": 2000.0,
+        "MD": 60000,
+        "SHOPEX": false
       },
+      "changed": "D=4000.0",
       "n_matches": 5000,
       "n_engagements": 18247,
       "cohort_counts": {
@@ -78,8 +102,13 @@
         "G": 13700,
         "D": 4500.0,
         "R": 1600.0,
-        "B": 15000
+        "B": 15000,
+        "I": 3000.0,
+        "MR": 2000.0,
+        "MD": 60000,
+        "SHOPEX": false
       },
+      "changed": "D=4500.0",
       "n_matches": 5000,
       "n_engagements": 18148,
       "cohort_counts": {
@@ -93,8 +122,13 @@
         "G": 13700,
         "D": 4264.0,
         "R": 1400.0,
-        "B": 15000
+        "B": 15000,
+        "I": 3000.0,
+        "MR": 2000.0,
+        "MD": 60000,
+        "SHOPEX": false
       },
+      "changed": "R=1400.0",
       "n_matches": 5000,
       "n_engagements": 12750,
       "cohort_counts": {
@@ -108,8 +142,13 @@
         "G": 13700,
         "D": 4264.0,
         "R": 1800.0,
-        "B": 15000
+        "B": 15000,
+        "I": 3000.0,
+        "MR": 2000.0,
+        "MD": 60000,
+        "SHOPEX": false
       },
+      "changed": "R=1800.0",
       "n_matches": 5000,
       "n_engagements": 22912,
       "cohort_counts": {
@@ -123,8 +162,13 @@
         "G": 13700,
         "D": 4264.0,
         "R": 1600.0,
-        "B": 10000
+        "B": 10000,
+        "I": 3000.0,
+        "MR": 2000.0,
+        "MD": 60000,
+        "SHOPEX": false
       },
+      "changed": "B=10000",
       "n_matches": 5000,
       "n_engagements": 24166,
       "cohort_counts": {
@@ -138,14 +182,199 @@
         "G": 13700,
         "D": 4264.0,
         "R": 1600.0,
-        "B": 20000
+        "B": 20000,
+        "I": 3000.0,
+        "MR": 2000.0,
+        "MD": 60000,
+        "SHOPEX": false
       },
+      "changed": "B=20000",
       "n_matches": 5000,
       "n_engagements": 13088,
       "cohort_counts": {
         "S": 7018,
         "T": 4468,
         "P": 1602
+      }
+    },
+    "I_2000": {
+      "params": {
+        "G": 13700,
+        "D": 4264.0,
+        "R": 1600.0,
+        "B": 15000,
+        "I": 2000.0,
+        "MR": 2000.0,
+        "MD": 60000,
+        "SHOPEX": false
+      },
+      "changed": "I=2000.0",
+      "n_matches": 5000,
+      "n_engagements": 18195,
+      "cohort_counts": {
+        "S": 9107,
+        "T": 6251,
+        "P": 2837
+      }
+    },
+    "I_2500": {
+      "params": {
+        "G": 13700,
+        "D": 4264.0,
+        "R": 1600.0,
+        "B": 15000,
+        "I": 2500.0,
+        "MR": 2000.0,
+        "MD": 60000,
+        "SHOPEX": false
+      },
+      "changed": "I=2500.0",
+      "n_matches": 5000,
+      "n_engagements": 18196,
+      "cohort_counts": {
+        "S": 8994,
+        "T": 6544,
+        "P": 2658
+      }
+    },
+    "I_3500": {
+      "params": {
+        "G": 13700,
+        "D": 4264.0,
+        "R": 1600.0,
+        "B": 15000,
+        "I": 3500.0,
+        "MR": 2000.0,
+        "MD": 60000,
+        "SHOPEX": false
+      },
+      "changed": "I=3500.0",
+      "n_matches": 5000,
+      "n_engagements": 18192,
+      "cohort_counts": {
+        "S": 8872,
+        "T": 6901,
+        "P": 2419
+      }
+    },
+    "I_4264": {
+      "params": {
+        "G": 13700,
+        "D": 4264.0,
+        "R": 1600.0,
+        "B": 15000,
+        "I": 4264.0,
+        "MR": 2000.0,
+        "MD": 60000,
+        "SHOPEX": false
+      },
+      "changed": "I=4264.0",
+      "n_matches": 5000,
+      "n_engagements": 18192,
+      "cohort_counts": {
+        "S": 8847,
+        "T": 7050,
+        "P": 2295
+      }
+    },
+    "SHOPEX_on": {
+      "params": {
+        "G": 13700,
+        "D": 4264.0,
+        "R": 1600.0,
+        "B": 15000,
+        "I": 3000.0,
+        "MR": 2000.0,
+        "MD": 60000,
+        "SHOPEX": true
+      },
+      "changed": "SHOPEX=True",
+      "n_matches": 5000,
+      "n_engagements": 18195,
+      "cohort_counts": {
+        "S": 8899,
+        "T": 6452,
+        "P": 2844
+      }
+    },
+    "MR_1000": {
+      "params": {
+        "G": 13700,
+        "D": 4264.0,
+        "R": 1600.0,
+        "B": 15000,
+        "I": 3000.0,
+        "MR": 1000.0,
+        "MD": 60000,
+        "SHOPEX": false
+      },
+      "changed": "MR=1000.0",
+      "n_matches": 5000,
+      "n_engagements": 18198,
+      "cohort_counts": {
+        "S": 8884,
+        "T": 6838,
+        "P": 2476
+      }
+    },
+    "MR_3000": {
+      "params": {
+        "G": 13700,
+        "D": 4264.0,
+        "R": 1600.0,
+        "B": 15000,
+        "I": 3000.0,
+        "MR": 3000.0,
+        "MD": 60000,
+        "SHOPEX": false
+      },
+      "changed": "MR=3000.0",
+      "n_matches": 5000,
+      "n_engagements": 18189,
+      "cohort_counts": {
+        "S": 8871,
+        "T": 6777,
+        "P": 2541
+      }
+    },
+    "MD_45000": {
+      "params": {
+        "G": 13700,
+        "D": 4264.0,
+        "R": 1600.0,
+        "B": 15000,
+        "I": 3000.0,
+        "MR": 2000.0,
+        "MD": 45000,
+        "SHOPEX": false
+      },
+      "changed": "MD=45000",
+      "n_matches": 5000,
+      "n_engagements": 17975,
+      "cohort_counts": {
+        "S": 8898,
+        "T": 6649,
+        "P": 2428
+      }
+    },
+    "MD_90000": {
+      "params": {
+        "G": 13700,
+        "D": 4264.0,
+        "R": 1600.0,
+        "B": 15000,
+        "I": 3000.0,
+        "MR": 2000.0,
+        "MD": 90000,
+        "SHOPEX": false
+      },
+      "changed": "MD=90000",
+      "n_matches": 5000,
+      "n_engagements": 18027,
+      "cohort_counts": {
+        "S": 8803,
+        "T": 6694,
+        "P": 2530
       }
     }
   },
@@ -249,8 +478,106 @@
       },
       "eng_ref": 18192,
       "eng_alt": 13088
+    },
+    "I_2000": {
+      "n_common_anchors": 18163,
+      "n_ref_only": 29,
+      "n_alt_only": 32,
+      "n_1to1": 18163,
+      "cohort_moves": {
+        "T->S": 545,
+        "S->P": 306,
+        "T->P": 1
+      },
+      "eng_ref": 18192,
+      "eng_alt": 18195
+    },
+    "I_2500": {
+      "n_common_anchors": 18184,
+      "n_ref_only": 8,
+      "n_alt_only": 12,
+      "n_1to1": 18184,
+      "cohort_moves": {
+        "T->S": 256,
+        "S->P": 131
+      },
+      "eng_ref": 18192,
+      "eng_alt": 18196
+    },
+    "I_3500": {
+      "n_common_anchors": 18181,
+      "n_ref_only": 11,
+      "n_alt_only": 11,
+      "n_1to1": 18181,
+      "cohort_moves": {
+        "S->T": 99,
+        "P->S": 106
+      },
+      "eng_ref": 18192,
+      "eng_alt": 18192
+    },
+    "I_4264": {
+      "n_common_anchors": 18174,
+      "n_ref_only": 18,
+      "n_alt_only": 18,
+      "n_1to1": 18174,
+      "cohort_moves": {
+        "S->T": 246,
+        "P->S": 230
+      },
+      "eng_ref": 18192,
+      "eng_alt": 18192
+    },
+    "SHOPEX_on": {
+      "n_common_anchors": 18169,
+      "n_ref_only": 23,
+      "n_alt_only": 26,
+      "n_1to1": 18169,
+      "cohort_moves": {
+        "T->S": 340,
+        "S->P": 314,
+        "T->P": 2
+      },
+      "eng_ref": 18192,
+      "eng_alt": 18195
+    },
+    "MR_1000": {
+      "n_common_anchors": 18071,
+      "n_ref_only": 121,
+      "n_alt_only": 127,
+      "n_1to1": 18071,
+      "cohort_moves": {},
+      "eng_ref": 18192,
+      "eng_alt": 18198
+    },
+    "MR_3000": {
+      "n_common_anchors": 18149,
+      "n_ref_only": 43,
+      "n_alt_only": 40,
+      "n_1to1": 18149,
+      "cohort_moves": {},
+      "eng_ref": 18192,
+      "eng_alt": 18189
+    },
+    "MD_45000": {
+      "n_common_anchors": 17700,
+      "n_ref_only": 492,
+      "n_alt_only": 275,
+      "n_1to1": 17700,
+      "cohort_moves": {},
+      "eng_ref": 18192,
+      "eng_alt": 17975
+    },
+    "MD_90000": {
+      "n_common_anchors": 17903,
+      "n_ref_only": 289,
+      "n_alt_only": 124,
+      "n_1to1": 17903,
+      "cohort_moves": {},
+      "eng_ref": 18192,
+      "eng_alt": 18027
     }
   },
-  "wall_s": 267.43502044677734,
+  "wall_s": 593.4814085960388,
   "reading": "Frozen-score OAT on detector constants only. Earliest-kill anchors. Do not call D alternates 'CI boundaries'."
 }
