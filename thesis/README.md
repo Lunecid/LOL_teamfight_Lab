@@ -50,7 +50,7 @@ thesis/
     │   ├── 08_discussion/     # 결과의 연결, 해석의 범위(표), 평가기 의존성, 한계, 향후 과제, 결론
     │   └── appendix/          # A 재현·무결성·설계–실행 차이, B 상수표, C census, D 증거 추적, E 실행 상태
     ├── tables/            #   손으로 쓴 표 (tab_<label>.tex; 캡션은 이름만, 조건은 \tabnote)
-    │   └── gen/           #   생성 표 (gen_supp.py, gen_status_table.py) — 손으로 고치지 않음
+    │   └── gen/           #   생성 표 (gen_supp.py, gen_status_table.py, gen_feature_census.py) — 손으로 고치지 않음
     ├── figures/           #   그림 객체
     ├── bib/               #   definition_refs.bib, econometrics_for_lol.bib, thesis_extra.bib (검증된 문헌만)
     ├── fonts/             #   나눔명조·나눔고딕 (SIL OFL) — 경로로 직접 로드
