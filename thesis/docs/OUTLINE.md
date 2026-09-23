@@ -5,37 +5,35 @@
 | 장 | 절 | 라벨 | 파일 | 포함 객체 |
 |---|---|---|---|---|
 | **서론** (`ch:intro`) | | | | |
-| | 리그 오브 레전드와 한타 | `sec:intro-game` | `latex/chapters/01_introduction/01_game_and_teamfight.tex` | `tables/tab_terms` |
+| | 리그 오브 레전드와 교전 | `sec:intro-game` | `latex/chapters/01_introduction/01_game_and_teamfight.tex` | `figures/fig_engagement_pair`, `tables/tab_terms` |
 | | 문제 | `sec:intro-problem` | `latex/chapters/01_introduction/02_problem.tex` |  |
 | | 기존 접근과 남은 어려움 | `sec:intro-prior` | `latex/chapters/01_introduction/03_prior_and_challenge.tex` |  |
-| | 본 논문의 접근과 주요 결과 | `sec:intro-approach` | `latex/chapters/01_introduction/04_approach_results.tex` | `figures/fig_pipeline` |
+| | 본 논문의 접근과 주요 결과 | `sec:intro-approach` | `latex/chapters/01_introduction/04_approach_results.tex` |  |
 | | 연구 질문 | `sec:intro-rq` | `latex/chapters/01_introduction/05_research_questions.tex` |  |
 | | 기여와 논문의 구성 | `sec:intro-contrib` | `latex/chapters/01_introduction/06_contributions_outline.tex` |  |
-| **관련 연구** (`ch:related`) | | | | |
+| **관련 연구 및 방법론적 배경** (`ch:related`) | | | | |
 | | MOBA 경기의 승률 모형 | `sec:rel-winprob` | `latex/chapters/02_related_work/01_winprob_models.tex` |  |
 | | 교전의 검출과 교전 단위 예측 | `sec:rel-encounter` | `latex/chapters/02_related_work/02_encounter_detection.tex` |  |
 | | 사건의 가치를 승률 변화로 매기기 | `sec:rel-eventvalue` | `latex/chapters/02_related_work/03_event_value.tex` |  |
 | | 적정 점수, 보정, 짝 비교 | `sec:rel-scores` | `latex/chapters/02_related_work/04_scores_calibration.tex` |  |
-| | 남은 문제와 본 논문의 위치 | `sec:rel-position` | `latex/chapters/02_related_work/05_gap_and_position.tex` | `tables/tab_prior_vs_thesis` |
+| | 남은 문제와 본 논문의 위치 | `sec:rel-position` | `latex/chapters/02_related_work/05_gap_and_position.tex` | `tables/tab_related_compare` |
 | **데이터와 사전 정보 구성** (`ch:data`) | | | | |
-| | 비동기 공개 텔레메트리의 구조 | `sec:data-telemetry` | `latex/chapters/03_data/01_telemetry.tex` |  |
-| | 원천 코퍼스 | `sec:data-corpus` | `latex/chapters/03_data/02_corpus.tex` | `tables/tab_corpus_census` |
-| | 데이터 역할 | `sec:data-roles` | `latex/chapters/03_data/03_roles.tex` | `tables/tab_roles_evaluator`, `tables/tab_roles_engagement` |
-| | 교전 전 상태와 입력의 구성 | `sec:data-inputs` | `latex/chapters/03_data/04_prestate_inputs.tex` | `tables/gen/tab_input_blocks`, `tables/gen/tab_input_dims` |
-| | 시간 계약과 누출 방지 | `sec:data-contract` | `latex/chapters/03_data/05_time_contract.tex` |  |
+| | (도입) | `` | `latex/chapters/03_data/00_lead.tex` |  |
+| | 비동기 공개 텔레메트리의 구조 | `sec:data-telemetry` | `latex/chapters/03_data/01_telemetry.tex` | `figures/fig_telemetry_pair` |
+| | 코퍼스와 데이터의 역할 | `sec:data-corpus` | `latex/chapters/03_data/02_corpus.tex` | `figures/fig_data_roles`, `tables/tab_corpus_census`, `tables/tab_roles_evaluator`, `tables/tab_roles_engagement` |
+| | 교전 전 상태와 입력의 구성 | `sec:data-inputs` | `latex/chapters/03_data/04_prestate_inputs.tex` | `tables/tab_input_blocks`, `tables/tab_input_dims` |
+| | 예측에 쓰는 정보의 경계 | `sec:data-contract` | `latex/chapters/03_data/05_time_contract.tex` |  |
 | **교전 사례의 정의와 구성** (`ch:engagement`) | | | | |
 | | (도입) | `` | `latex/chapters/04_engagement/00_lead.tex` |  |
-| | 킬 에피소드와 시간 경계 G | `sec:eng-temporal` | `latex/chapters/04_engagement/01_temporal_boundary.tex` |  |
-| | 공간 경계 D | `sec:eng-spatial` | `latex/chapters/04_engagement/02_spatial_boundary.tex` |  |
-| | 존재 게이트 R, B, M | `sec:eng-gate` | `latex/chapters/04_engagement/03_presence_gate.tex` |  |
-| | 조립 규칙과 모든 상수의 출처 | `sec:eng-constants` | `latex/chapters/04_engagement/04_assembly_constants.tex` | `tables/tab_constants` |
-| | 규모 계급과 코호트 T, S | `sec:eng-scale` | `latex/chapters/04_engagement/05_scale_cohorts.tex` |  |
-| | 결과 시점 규칙 | `sec:eng-endpoint` | `latex/chapters/04_engagement/06_endpoint_rule.tex` |  |
-| | 킬에 조건화된 정의의 분석 대상 | `sec:eng-killless` | `latex/chapters/04_engagement/07_killless.tex` |  |
-| | 정의 민감도 | `sec:eng-sensitivity` | `latex/chapters/04_engagement/08_sensitivity_lineage.tex` | `tables/gen/tab_oat` |
-| | 타당성 요약 | `sec:eng-validity` | `latex/chapters/04_engagement/09_validity_summary.tex` |  |
+| | 킬을 묶는 시간과 거리의 경계 | `sec:eng-temporal` | `latex/chapters/04_engagement/01_temporal_boundary.tex` | `figures/fig_kill_gap_kde`, `figures/fig_boundary_per_patch` |
+| | 양 팀이 그 자리에 있었는가 | `sec:eng-gate` | `latex/chapters/04_engagement/03_presence_gate.tex` |  |
+| | 교전 집합을 정하는 상수 | `sec:eng-constants` | `latex/chapters/04_engagement/04_assembly_constants.tex` | `tables/tab_constants` |
+| | 한타와 소규모 교전 | `sec:eng-scale` | `latex/chapters/04_engagement/05_scale_cohorts.tex` |  |
+| | 결과를 재는 끝 시각 | `sec:eng-endpoint` | `latex/chapters/04_engagement/06_endpoint_rule.tex` |  |
+| | 킬이 없는 전투 | `sec:eng-killless` | `latex/chapters/04_engagement/07_killless.tex` |  |
+| | 정의의 민감도와 타당성 | `sec:eng-sensitivity` | `latex/chapters/04_engagement/08_sensitivity_lineage.tex` | `tables/gen/tab_oat` |
 | **경기 승패 기반 결과 가치** (`ch:value`) | | | | |
-| | 설계 원칙: 측정과 예측의 분리 | `sec:value-principle` | `latex/chapters/05_value/01_design_principle.tex` |  |
+| | 설계 원칙: 측정과 예측의 분리 | `sec:value-principle` | `latex/chapters/05_value/01_design_principle.tex` | `figures/fig_measure_predict` |
 | | 동결 승률 평가기 | `sec:value-evaluator` | `latex/chapters/05_value/02_evaluator.tex` |  |
 | | 평가기의 경기 승패 예측 품질 (V W) | `sec:value-vw` | `latex/chapters/05_value/03_vw_quality.tex` | `tables/tab_vw_quality` |
 | | 구간 변화와 전략적 가치 개선의 정의 | `sec:value-svi` | `latex/chapters/05_value/04_svi_definition.tex` |  |
@@ -73,7 +71,7 @@
 | **chapters/appendix/chapter** (``) | | | | |
 | | 재현 자료 | `app:repro` | `latex/chapters/appendix/A_reproducibility.tex` |  |
 | | 교전 정의 상수의 전체 표 | `app:constants` | `latex/chapters/appendix/B_constants.tex` |  |
-| | 데이터 역할 census 보충 | `app:census` | `latex/chapters/appendix/C_census.tex` | `tables/gen/tab_feature_list` |
+| | 데이터 역할 census 보충 | `app:census` | `latex/chapters/appendix/C_census.tex` | `tables/tab_feature_list` |
 | | 수치의 증거 추적 | `app:trace` | `latex/chapters/appendix/D_evidence_trace.tex` |  |
 | | 실행 상태와 이연된 계획 | `app:deferred` | `latex/chapters/appendix/E_deferred.tex` | `tables/gen/tab_status` |
 
