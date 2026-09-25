@@ -619,6 +619,30 @@ class CFG:
     LABEL_ATTRIBUTION_RADIUS_U: float = 0.0
     LABEL_TIE_SEED: int = 7
 
+    # =========================================================
+    # 9b) v4-exact engagement definition switches (preset 'v4-exact', core/presets.py).
+    #     Every default below reproduces the v3.3 behaviour; only the preset turns them on.
+    #     (Stage 0 adds the fields; the v4 modules that read them come in stage 1.)
+    # =========================================================
+    # Alive status source: "frame" = frame/interpolated node alive column (v3.3);
+    # "event" = kill-event death intervals + respawn formula.
+    ENG_ALIVE_SOURCE: str = "frame"
+    # Participation: "kill_plus_interactions" = v3.3 rule (kill credit plus grid-placed
+    # interaction events); "kill_credit" = killer / victim / assists only.
+    ENG_PARTICIPATION: str = "kill_plus_interactions"
+    # Overlapping candidates: "legacy_priority" (v3.3) or "none" (no priority suppression).
+    ENG_OVERLAP_RULE: str = "legacy_priority"
+    # Merge adjacent kill clusters that share credited participants (review fix A6).
+    ENG_MERGE_A6: bool = False
+    # Keep only engagements isolated from other kills.
+    ENG_ISOLATION: bool = False
+    # Clean-engagement filter: frame age at tau must be < this many ms; 0 = off (v3.3).
+    ENG_CLEAN_MAX_AGE_MS: int = 0
+    # True once G / D have been re-estimated (E1) and written into the preset.
+    ENG_BOUNDARIES_LOCKED: bool = False
+    # Data Dragon extract folder (repo-relative) for item / champion tables.
+    DD_TABLE_DIR: str = "config/game_rules/datadragon"
+
     # weighted label
     W_KILL: float = 1.0
     W_GOLD: float = 0.5

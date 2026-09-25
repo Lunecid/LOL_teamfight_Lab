@@ -1,0 +1,359 @@
+{
+  "stat_map": {
+    "FlatPhysicalDamageMod": "attackDamage",
+    "FlatMagicDamageMod": "abilityPower",
+    "FlatArmorMod": "armor",
+    "FlatSpellBlockMod": "magicResist",
+    "FlatHPPoolMod": "healthMax",
+    "FlatMPPoolMod": "powerMax",
+    "PercentAttackSpeedMod": "attackSpeed_pct",
+    "FlatMovementSpeedMod": "movementSpeed",
+    "PercentMovementSpeedMod": "movementSpeed_pct",
+    "FlatCritChanceMod": "critChance",
+    "PercentLifeStealMod": "lifesteal",
+    "FlatHPRegenMod": "healthRegen",
+    "FlatMPRegenMod": "powerRegen"
+  },
+  "patches": {
+    "15.14": {
+      "version": "15.14.1",
+      "version_candidates": [
+        "15.14.1"
+      ],
+      "items": 619,
+      "items_sr_instore": 227,
+      "champions": 171,
+      "champions_untagged": [],
+      "champions_key_ge_10000": [],
+      "champions_key_ge_10000_n": 0,
+      "unmapped_item_stat_keys": [],
+      "raw": {
+        "item": {
+          "file": "item_15.14.1.json",
+          "bytes": 514338,
+          "sha256": "c43534628a178e47a52254b4bc4e755277d81d3bf1db662d8bd65252dbc82540"
+        },
+        "championFull": {
+          "file": "championFull_15.14.1.json",
+          "bytes": 1532196,
+          "sha256": "c039fb19565328c8660a7921a1fe3bcba724bc70e465354aa9413fdf8bdd5a8b"
+        }
+      },
+      "extract_sha256": {
+        "items_15.14.json": "c3d3c7fb58fb623f25ab98819e6b21003940ba0bcc4d0c8ca98b61817504068b",
+        "champions_15.14.json": "f9a85a104663e7e1600bf3a0c4ba0e0fa395cd26d046184f554924c48a4f450e"
+      },
+      "built_utc": "2026-09-25T08:39:38Z"
+    },
+    "15.15": {
+      "version": "15.15.1",
+      "version_candidates": [
+        "15.15.1"
+      ],
+      "items": 619,
+      "items_sr_instore": 227,
+      "champions": 171,
+      "champions_untagged": [],
+      "champions_key_ge_10000": [],
+      "champions_key_ge_10000_n": 0,
+      "unmapped_item_stat_keys": [],
+      "raw": {
+        "item": {
+          "file": "item_15.15.1.json",
+          "bytes": 514338,
+          "sha256": "f8e499227f17b4bbc9cdd3d883600aed9ace4f470e8d8fd64a3e7323209a017e"
+        },
+        "championFull": {
+          "file": "championFull_15.15.1.json",
+          "bytes": 1532729,
+          "sha256": "43cb5c11be017fa41203c4f41ccfe5044f779f6549f1f0f97f859e5fe2cdec5a"
+        }
+      },
+      "extract_sha256": {
+        "items_15.15.json": "fdd5bed36d735feba6399a8731ac993a22e7f8d4840c27700ad6b04957e6dd47",
+        "champions_15.15.json": "00219791e5820048af0df1629f54e3defd4c836061ba24249cea16565437fee7"
+      },
+      "built_utc": "2026-09-25T08:39:38Z"
+    },
+    "15.16": {
+      "version": "15.16.1",
+      "version_candidates": [
+        "15.16.1"
+      ],
+      "items": 619,
+      "items_sr_instore": 227,
+      "champions": 171,
+      "champions_untagged": [],
+      "champions_key_ge_10000": [],
+      "champions_key_ge_10000_n": 0,
+      "unmapped_item_stat_keys": [],
+      "raw": {
+        "item": {
+          "file": "item_15.16.1.json",
+          "bytes": 514376,
+          "sha256": "0f590e325271b3090ab2273b861425febd5979c8c07c474a7d59767241e0359a"
+        },
+        "championFull": {
+          "file": "championFull_15.16.1.json",
+          "bytes": 1533039,
+          "sha256": "5c51a5ce1c390a31509ecbd0148b103fbe091c9fe9649c86e8e59b1b9b2e3b93"
+        }
+      },
+      "extract_sha256": {
+        "items_15.16.json": "fa5463c3a31adfe3952f8f262efad43238ac4c65727805411532a022d5222600",
+        "champions_15.16.json": "b7cc41f8113cb9ff0221f8c73fddd78930539d1ce0f4e32ab930e9238dbbe9d5"
+      },
+      "built_utc": "2026-09-25T08:39:38Z"
+    },
+    "15.18": {
+      "version": "15.18.1",
+      "version_candidates": [
+        "15.18.1"
+      ],
+      "items": 635,
+      "items_sr_instore": 242,
+      "champions": 171,
+      "champions_untagged": [],
+      "champions_key_ge_10000": [],
+      "champions_key_ge_10000_n": 0,
+      "unmapped_item_stat_keys": [],
+      "raw": {
+        "item": {
+          "file": "item_15.18.1.json",
+          "bytes": 528523,
+          "sha256": "82be96abb7a67042e7e8caf833b3b3a86e9b36719c869ae4dbe0daaeda2e8d22"
+        },
+        "championFull": {
+          "file": "championFull_15.18.1.json",
+          "bytes": 1533958,
+          "sha256": "5cf91151b5ba56223bf7fcf3093a4775f8f04ecb143a47cb3eb7160a39b17d75"
+        }
+      },
+      "extract_sha256": {
+        "items_15.18.json": "5b8a3445d0d78c04218b85d4a5039c79b28d624d536663b4c55900b8f55dbbc7",
+        "champions_15.18.json": "5c319aafc2c7bdde3bda7de74f5092444afb4bbb60ef30d286dae624f173ce4c"
+      },
+      "built_utc": "2026-09-25T08:39:38Z"
+    },
+    "15.19": {
+      "version": "15.19.1",
+      "version_candidates": [
+        "15.19.1"
+      ],
+      "items": 635,
+      "items_sr_instore": 242,
+      "champions": 171,
+      "champions_untagged": [],
+      "champions_key_ge_10000": [],
+      "champions_key_ge_10000_n": 0,
+      "unmapped_item_stat_keys": [],
+      "raw": {
+        "item": {
+          "file": "item_15.19.1.json",
+          "bytes": 528818,
+          "sha256": "46678cad9b9a10a4c00fab08b08afd8f3218e88d5a51bef6fef6ec1f4c1b722f"
+        },
+        "championFull": {
+          "file": "championFull_15.19.1.json",
+          "bytes": 1534213,
+          "sha256": "c3e2a5478e2c17fcb23db498c4f34897e850c929585cec54d4f963aaf587e34c"
+        }
+      },
+      "extract_sha256": {
+        "items_15.19.json": "5cd37a25323649bf5c9d4e0e85df9d169511076df3fd4dd4a70dd50234fb95aa",
+        "champions_15.19.json": "55ca638e9e280e244c693d00051646f2e0143315ea70232179158535179d65ae"
+      },
+      "built_utc": "2026-09-25T08:39:38Z"
+    },
+    "15.20": {
+      "version": "15.20.1",
+      "version_candidates": [
+        "15.20.1"
+      ],
+      "items": 635,
+      "items_sr_instore": 242,
+      "champions": 171,
+      "champions_untagged": [],
+      "champions_key_ge_10000": [],
+      "champions_key_ge_10000_n": 0,
+      "unmapped_item_stat_keys": [],
+      "raw": {
+        "item": {
+          "file": "item_15.20.1.json",
+          "bytes": 528776,
+          "sha256": "793f2a71dbf9ba5bb085c4550847693db4ffa366fd9def2461e972dd6a2f4be5"
+        },
+        "championFull": {
+          "file": "championFull_15.20.1.json",
+          "bytes": 1534447,
+          "sha256": "04c020388ec95ec201ba0fd57ab7a8c137ff1d06532fa6cf04b50444257dd8a1"
+        }
+      },
+      "extract_sha256": {
+        "items_15.20.json": "076f9892ccd741f663eb621febbb1d608f8442c42e1f55e1615b80ad06af199e",
+        "champions_15.20.json": "0e8f1a1a00e9696f83ea4ec639b2d564c9dcc8e06464b120dccf0c7b24028649"
+      },
+      "built_utc": "2026-09-25T08:39:38Z"
+    },
+    "15.21": {
+      "version": "15.21.1",
+      "version_candidates": [
+        "15.21.1"
+      ],
+      "items": 639,
+      "items_sr_instore": 242,
+      "champions": 171,
+      "champions_untagged": [],
+      "champions_key_ge_10000": [],
+      "champions_key_ge_10000_n": 0,
+      "unmapped_item_stat_keys": [],
+      "raw": {
+        "item": {
+          "file": "item_15.21.1.json",
+          "bytes": 533577,
+          "sha256": "3bb9df4cc6fe3601a246f71537bd76b9cbaa9c9e61ffdbbacfac5cb1e5cb2ec1"
+        },
+        "championFull": {
+          "file": "championFull_15.21.1.json",
+          "bytes": 1535089,
+          "sha256": "4c82622e5278c4ef54c69b150e37f68d8aa08e68e888f43ee216b161a9864e67"
+        }
+      },
+      "extract_sha256": {
+        "items_15.21.json": "a472e10e2dcd49dd95bfc163e194f67c498f84e01cb91e9123804851a9ebe628",
+        "champions_15.21.json": "f0a38b7f573280d596640ea52063573f05e8a83c87035b9920c7d2e312407e7e"
+      },
+      "built_utc": "2026-09-25T08:39:38Z"
+    },
+    "15.22": {
+      "version": "15.22.1",
+      "version_candidates": [
+        "15.22.1"
+      ],
+      "items": 639,
+      "items_sr_instore": 242,
+      "champions": 171,
+      "champions_untagged": [],
+      "champions_key_ge_10000": [],
+      "champions_key_ge_10000_n": 0,
+      "unmapped_item_stat_keys": [],
+      "raw": {
+        "item": {
+          "file": "item_15.22.1.json",
+          "bytes": 533549,
+          "sha256": "421f395b0a5406208c972e99404dc61a2838bba0a15168e1f41b49ef81fcb223"
+        },
+        "championFull": {
+          "file": "championFull_15.22.1.json",
+          "bytes": 1535424,
+          "sha256": "7a5c3ca9fd746e968f02e042b124a5d5fdb32f620f7d125f8ff606a4608aa8f8"
+        }
+      },
+      "extract_sha256": {
+        "items_15.22.json": "75e205bb63f92a7cf217f60f34db9ccbbbd8b34227601d744a07a3082ccc6375",
+        "champions_15.22.json": "a0792d3c6930a5dcb67621bd20cfb1ccf2e096eba4289a91808287144f1335ef"
+      },
+      "built_utc": "2026-09-25T08:39:38Z"
+    },
+    "16.13": {
+      "version": "16.13.1",
+      "version_candidates": [
+        "16.13.1"
+      ],
+      "items": 706,
+      "items_sr_instore": 254,
+      "champions": 173,
+      "champions_untagged": [],
+      "champions_key_ge_10000": [],
+      "champions_key_ge_10000_n": 0,
+      "unmapped_item_stat_keys": [],
+      "raw": {
+        "item": {
+          "file": "item_16.13.1.json",
+          "bytes": 583139,
+          "sha256": "568f2e6cd50baaefffdecfb713825b62a87b74b23d238fc20e57112c50dfd322"
+        },
+        "championFull": {
+          "file": "championFull_16.13.1.json",
+          "bytes": 2211340,
+          "sha256": "d8e7670f9c390c379241406602f58448fd5fb2398665de3f563663bd54278911"
+        }
+      },
+      "extract_sha256": {
+        "items_16.13.json": "a51c8b12a225579f83a6968e47d48d5f6964cf27f9d57a670bb7ccd7790c3faa",
+        "champions_16.13.json": "3823927842cc6e69c64055f58c7ec69c436a365a035ba14c437506d1a6116c70"
+      },
+      "built_utc": "2026-09-25T08:39:38Z"
+    },
+    "16.14": {
+      "version": "16.14.1",
+      "version_candidates": [
+        "16.14.1"
+      ],
+      "items": 706,
+      "items_sr_instore": 254,
+      "champions": 173,
+      "champions_untagged": [],
+      "champions_key_ge_10000": [],
+      "champions_key_ge_10000_n": 0,
+      "unmapped_item_stat_keys": [],
+      "raw": {
+        "item": {
+          "file": "item_16.14.1.json",
+          "bytes": 583139,
+          "sha256": "0094f848489371da9e86b9f210f70b6ce0a3982c9063c7c734099cd5a88ddb75"
+        },
+        "championFull": {
+          "file": "championFull_16.14.1.json",
+          "bytes": 2215751,
+          "sha256": "6a620d7c45ed3a68e6c27c5f50748499c5e542a2c67abbda709296706882b219"
+        }
+      },
+      "extract_sha256": {
+        "items_16.14.json": "5d9a9192fc4db1d65c88386ccd0ea8c97dc295cfc84af87eb44c4f92b3b944bb",
+        "champions_16.14.json": "9f775f4c7a91b96b388cc55d37a86962cb12c638e807ec883535beae561c8eca"
+      },
+      "built_utc": "2026-09-25T08:39:38Z"
+    },
+    "16.15": {
+      "version": "16.15.1",
+      "version_candidates": [
+        "16.15.1"
+      ],
+      "items": 868,
+      "items_sr_instore": 254,
+      "champions": 233,
+      "champions_untagged": [],
+      "champions_key_ge_10000": [
+        "Jade_*"
+      ],
+      "champions_key_ge_10000_n": 60,
+      "unmapped_item_stat_keys": [],
+      "raw": {
+        "item": {
+          "file": "item_16.15.1.json",
+          "bytes": 715489,
+          "sha256": "4b58e3b9dc0cc21c71ba34c0a862f98ef38ee4206f0e84ecbf90425c71aa9d08"
+        },
+        "championFull": {
+          "file": "championFull_16.15.1.json",
+          "bytes": 2744166,
+          "sha256": "baef7159efe393adee950ada63796afe14fb385a4dba88d66b4f2707c69a27ad"
+        }
+      },
+      "extract_sha256": {
+        "items_16.15.json": "cddd8cd8414e72cfef359e09d034a97358716d2fe80bb383ae6541b136db58c4",
+        "champions_16.15.json": "8baa270b9747c2e4135d409c7e2d2c5cfb030f054e8b1146c40c78677a81f12f"
+      },
+      "built_utc": "2026-09-25T08:39:38Z"
+    }
+  },
+  "versions_json": {
+    "bytes": 5209,
+    "sha256": "1980ce4cefdff0a299f1071fcc7570133ce2030e4ba4b99bbf3441d51b980d75"
+  },
+  "raw_dir": "C:\\Users\\todtj\\문서\\LOL_Teamfight\\outputs\\reest_exact_v4_20260925\\datadragon_raw",
+  "growth_formula": "stat(L) = base + growth * (L-1) * (0.7025 + 0.0175*(L-1))",
+  "note": "Data Dragon stats omit ability haste, lethality/armor pen, magic pen, omnivamp; those fields are held, not reconstructed. depth=null means the key is absent (basic item). map_sr = maps['11'].",
+  "unresolved_patches": []
+}

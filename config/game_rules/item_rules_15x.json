@@ -1,0 +1,247 @@
+{
+  "applies_to": "gameplay.item_state exact replay when the patch major is 15 (ItemStateIndex with patch; rules_15x=None decides by the patch, False switches them off); a replay without a patch, of patch major 16 (item_rules_16x.json) or of any other major never reads this file",
+  "source": "events of the 15.14 rule-check sample (300 cache matches, 3,000 players; ev4_s1_item_gold.samples()['rule_check'], seed 20260925) and of the FIRST KR 15.18 sample (500 matches, 5,000 players; records/replication_exclusions_inventory_1518.txt: timeline ITEM_* / LEVEL_UP / ELITE_MONSTER_KILL events and detail item0-6 at game end, outcome keys dropped at parse).  The fresh KR 15.18 validation sample was not read.  Counts produced by scripts/exact_v4/ev4_s1y_items_15x.py evidence -> stage1/item_state_15x/rules_evidence_15x.json",
+  "loose_destroy_transforms": {
+    "map": {
+      "3010": 3013
+    },
+    "names": {
+      "3010": "Symbiotic Soles",
+      "3013": "Synchronized Souls"
+    }
+  },
+  "trinket_slot": {
+    "start_trinket": 3340,
+    "start_trinket_by_champion_id": {
+      "9": 3330
+    },
+    "herald_eye": 3513
+  },
+  "rune_grants": {
+    "8345": {
+      "name": "Biscuit Delivery",
+      "item": 2010,
+      "at_ms": [
+        120000,
+        240000,
+        360000
+      ]
+    }
+  },
+  "rules": [
+    {
+      "id": "R15-1",
+      "rule": "Symbiotic Soles: a loose destroy (not consumed by a purchase at that ms) of a held 3010 turns it into 3013 Synchronized Souls (Data Dragon 3013 from=[3010], gold_base 0, no specialRecipe); not applied to a destroy that is a Viego possession swap",
+      "evidence": {
+        "15.14 rule-check": {
+          "3010_destroys_non_viego": 45,
+          "with_a_same_ms_purchase": 0,
+          "later_3013_event": "18/45 (all ITEM_DESTROYED)",
+          "3013_events_after_a_3010_destroy": 19,
+          "3013_events_without_a_prior_3010_destroy_non_viego": 0,
+          "purchases_3010_3013": "52 / 0"
+        },
+        "KR 15.18 first sample": {
+          "3010_destroys_non_viego": 85,
+          "with_a_same_ms_purchase": 0,
+          "end_3013_in_item0_5": 54,
+          "3013_left_by_a_later_destroy_or_sale": 31,
+          "loose_3010_destroy_and_no_3013": 0,
+          "3013_in_item0_5_without_a_loose_3010_destroy": 0,
+          "3010_in_item0_5": "8 (none destroyed)"
+        }
+      }
+    },
+    {
+      "id": "R15-2",
+      "rule": "trinket slot at 0 ms: 3340 Stealth Ward; 3330 Scarecrow Effigy for Fiddlesticks (championId 9, Data Dragon requiredChampion FiddleSticks).  The game gives the starting trinket without an event unless the player picks one in the shop (R15-3)",
+      "evidence": {
+        "15.14 rule-check": {
+          "first_trinket_event": {
+            "ITEM_PURCHASED 3340": 1498,
+            "ITEM_DESTROYED 3340 (no earlier trinket event)": 1079,
+            "ITEM_PURCHASED 3364": 160,
+            "ITEM_DESTROYED 3330": 2,
+            "none": 261
+          },
+          "first_event_is_a_destroy_earliest_s": 42.3,
+          "fiddlesticks": "13 players: 11 without trinket events, 2 first event ITEM_DESTROYED 3330"
+        },
+        "KR 15.18 first sample": {
+          "first_trinket_event": {
+            "ITEM_PURCHASED 3340": 2450,
+            "ITEM_DESTROYED 3340": 1779,
+            "ITEM_PURCHASED 3364": 325,
+            "ITEM_DESTROYED 3330": 6,
+            "none": 440
+          },
+          "no_trinket_event_item6": {
+            "3340": 422,
+            "0": "5 (all with 0 ITEM_* events, remakes ending <= 104 s: not modelled)"
+          },
+          "fiddlesticks_item6_3330": "19/19 (13 without trinket events)"
+        }
+      }
+    },
+    {
+      "id": "R15-3",
+      "rule": "a trinket purchase without a same-ms trinket destroy replaces the held trinket (the starting pick in the shop); its undo (beforeId 0 / afterId X / goldGain 0, item_state rule 1) gives the replaced trinket back.  A purchase with a same-ms trinket destroy is the ordinary swap (existing rule)",
+      "evidence": {
+        "15.14 rule-check": {
+          "purchases_without_trinket_destroy": {
+            "3340": 1530,
+            "3364": 162
+          },
+          "their_time_s_max": {
+            "3340": 85.2,
+            "3364": "517.2 (99th percentile 54.2)"
+          },
+          "swaps_with_same_ms_destroy": 2610,
+          "undo_beforeId0_afterId_trinket": 67,
+          "trinket_purchase_while_3513_held": 0
+        },
+        "KR 15.18 first sample": {
+          "purchases_without_trinket_destroy": {
+            "3340": 2499,
+            "3364": 328
+          },
+          "their_time_s_max": {
+            "3340": 85.3,
+            "3364": 63.2
+          },
+          "swaps_with_same_ms_destroy": 4252,
+          "undo_beforeId0_afterId_trinket": 118,
+          "trinket_purchase_while_3513_held": 0
+        }
+      }
+    },
+    {
+      "id": "R15-4",
+      "rule": "rune Biscuit Delivery (8345): 2010 at 2:00, 4:00 and 6:00 (same schedule as R16-11)",
+      "evidence": {
+        "15.14 rule-check": {
+          "rune_players_by_n_2010_events": {
+            "0": 7,
+            "1": 3,
+            "2": 6,
+            "3": 878,
+            "4": 13
+          },
+          "kth_event_minus_k_x_2min_s_percentile_1": {
+            "k=1": 1.43,
+            "k=2": 1.33,
+            "k=3": 1.23
+          },
+          "kth_event_minus_k_x_2min_s_min": {
+            "k=1": 0.73,
+            "k=2": 1.06,
+            "k=3": "-17.3 (one player with 11 2010 events)"
+          },
+          "2010_events_without_the_rune": "8, all Viego (possession)",
+          "2010_purchases": 0
+        },
+        "KR 15.18 first sample": {
+          "rune_players_all_3_due_3_events_none_held": 1469,
+          "rune_players_2010_in_item0_5": "24 (9 in games ending before 4:00 without a 2010 event; 15 with 3 due and 0-2 events)",
+          "rune_players_in_games_ending_before_2_00": "18, none held",
+          "2010_events_without_the_rune": "38, all Viego",
+          "kth_event_minus_k_x_2min_s_percentile_1": {
+            "k=1": 1.34,
+            "k=2": 1.28,
+            "k=3": 1.19
+          }
+        }
+      }
+    },
+    {
+      "id": "R15-6",
+      "rule": "Eye of the Herald: a loose destroy of a held trinket with no trinket purchased at that ms puts 3513 into the trinket slot (the trinket is stored); the destroy of the held 3513 (used) gives the stored trinket back",
+      "evidence": {
+        "15.14 rule-check": {
+          "loose_trinket_destroys": 250,
+          "by_id": {
+            "3364": 189,
+            "3340": 48,
+            "3363": 11,
+            "3330": 2
+          },
+          "own_team_RIFTHERALD_kill_within_2_min_before": "250/250 (delay median 1.64 s, max 19.2 s)",
+          "next_trinket_event_is_a_3513_destroy": 239,
+          "no_later_trinket_event": 11,
+          "3513_destroys_without_a_prior_loose_trinket_destroy": 0,
+          "after_the_3513_destroy_next_trinket_event_is_a_destroy_of_the_stored_trinket": "15/15"
+        },
+        "KR 15.18 first sample": {
+          "loose_trinket_destroys": 432,
+          "own_team_RIFTHERALD_kill_within_2_min_before": "432/432 (max 15.3 s)",
+          "next_trinket_event_is_a_3513_destroy": 421,
+          "3513_held_at_end_item6_3513": "11/11",
+          "3513_used_item6_is_the_stored_trinket": "410; the other 11 bought a trinket after the 3513 destroy",
+          "after_the_3513_destroy_next_trinket_event_is_a_destroy_of_the_stored_trinket": "11/11"
+        }
+      }
+    },
+    {
+      "id": "R15-7",
+      "rule": "Viego: a lone loose trinket destroy (the only loose destroy at that ms) and the destroy of a held 3513 are not possession swaps (they go to R15-6 / the ordinary swap)",
+      "evidence": {
+        "15.14 rule-check": {
+          "viego_loose_trinket_destroys": 21,
+          "alone_at_their_ms": "21/21",
+          "viego_multi_destroy_groups_with_a_trinket": "0 (978 without)"
+        },
+        "KR 15.18 first sample": {
+          "viego_loose_trinket_destroys": 43,
+          "alone_at_their_ms": "43/43",
+          "viego_multi_destroy_groups_with_a_trinket": "0 (2,115 without)"
+        }
+      }
+    }
+  ],
+  "not_modelled": {
+    "starting trinket of AFK players": "5 KR players with 0 ITEM_* events in remakes (<= 104 s) end with item6 0; the replay gives them 3340",
+    "3867 upgrade choice": "the support-item upgrade (3869 / 3870 / 3871 / 3876 / 3877) is chosen without an event; the replay keeps 3867 as its proxy (item_state rule 3); the author's strict measure treats the six ids as one class",
+    "8313 Triple Tonic elixirs (2150 / 2151 / 2152)": "not granted by the replay: rule R15-5 was removed by author decision (see removed_rules); their ITEM_DESTROYED events without a held copy are counted as unowned removals, not guessed",
+    "3400 Your Cut / 3599 Kalista's Black Spear": "destroys of items created without events, never held at game end (unowned removals only)"
+  },
+  "removed_rules": [
+    {
+      "id": "R15-5",
+      "removed_on": "2026-09-25",
+      "decision": "REMOVE (was not on the author's rule list). The fresh KR 15.18 sample is re-measured without it; that result must not be used to change any rule.",
+      "decision_record": "C:/Users/todtj/문서/LOL_Teamfight/outputs/reest_exact_v4_20260925/records/items_confirmations_20260925T134510Z.json (created_utc 20260925T134510Z, decided_by author (chat), key R15-5_triple_tonic)",
+      "removed_rule_text": "rune Triple Tonic (8313): 2151 at the LEVEL_UP to 3, 2152 at the LEVEL_UP to 6 (as R16-12); 2150 (level 9) is not granted",
+      "removed_rune_grant": {
+        "8313": {
+          "name": "Triple Tonic",
+          "at_level": {
+            "3": 2151,
+            "6": 2152
+          },
+          "not_granted": {
+            "2150": "Elixir of Skill at level 9 is not granted (as R16-12): 15.14 49/80 and KR 74/98 rune players reaching level 9 have a 2150 event; no stats, 0 gold in Data Dragon"
+          }
+        }
+      },
+      "removed_evidence": {
+        "15.14 rule-check": {
+          "rune_players": 81,
+          "level3_reached_with_2151_event_at_or_after_it": "80/80",
+          "level6_reached_with_2152_event_at_or_after_it": "79/80",
+          "level9_reached_with_2150_event": "49/80",
+          "tonic_purchases": 0,
+          "tonic_events_without_the_rune": 0
+        },
+        "KR 15.18 first sample": {
+          "rune_players": 100,
+          "level3": "100/100",
+          "level6": "99/100",
+          "level9_2150_event": "74/98",
+          "2152_in_item0_5": "1 (rune player)",
+          "tonic_events_without_the_rune": 1
+        }
+      },
+      "note": "rule ids are not renumbered: R15-6 / R15-7 keep their ids"
+    }
+  ]
+}

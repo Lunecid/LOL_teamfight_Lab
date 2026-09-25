@@ -38,6 +38,7 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 
 from core.config import CS_DENOM, MAP_MAX, NODE_FEATURE_NAMES
+from gameplay.item_state import replay_inventory   # the former _replay_inventory body (legacy mode, unchanged)
 
 ROOT = Path(__file__).resolve().parents[1]
 DD_DIR = ROOT / "config/game_rules/datadragon"
@@ -311,43 +312,7 @@ class EvidenceStateBuilder:
 
     def _replay_inventory(self, pid: int, upto: int, since: Optional[int] = None):
         """Inventory at `upto`; also the gold delta and the stat delta of transactions in (since, upto]."""
-        inv: List[int] = []
-        gold_delta, stat_delta = 0.0, defaultdict(float)
-        destroyed_at: Dict[int, set] = defaultdict(set)
-        for ts, kind, iid, gold, before, after in self.ev[pid].shop:
-            if ts > upto:
-                break
-            if kind == "destroy":
-                destroyed_at[ts].add(iid)
-        for ts, kind, iid, gold, before, after in self.ev[pid].shop:
-            if ts > upto:
-                break
-            added, removed, delta_gold = [], [], 0.0
-            if kind == "buy":
-                it = self.items.get(iid, {})
-                components = set(it.get("from", []))
-                paid = it.get("gold_base", 0) if (components & destroyed_at.get(ts, set())) else it.get("gold_total", 0)
-                added, delta_gold = [iid], -float(paid)
-            elif kind == "sell":
-                removed, delta_gold = [iid], gold
-            elif kind == "undo":
-                removed, added, delta_gold = ([before] if before else []), ([after] if after else []), gold
-            else:                                                       # destroy: consumed / combined
-                removed = [iid]
-            for x in added:
-                inv.append(x)
-            for x in removed:
-                if x in inv:
-                    inv.remove(x)
-            if since is not None and ts > since:
-                gold_delta += delta_gold
-                for x in added:
-                    for k, v in self.items.get(x, {}).get("stats", {}).items():
-                        stat_delta[k] += v
-                for x in removed:
-                    for k, v in self.items.get(x, {}).get("stats", {}).items():
-                        stat_delta[k] -= v
-        return inv, gold_delta, stat_delta
+        return replay_inventory(self.ev[pid].shop, self.items, upto, since)
 
     def _level_at(self, pid: int, t: int) -> int:
         lv = 1

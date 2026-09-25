@@ -1,0 +1,205 @@
+{
+  "version": 2,
+  "created": "2026-09-25",
+  "resolved_by": "reviewer mapping (REESTIMATION_PLAN_V4_EXACT_20260925, stage 1 task A2)",
+  "rule": "A flag is 1 when the inventory at t holds at least one item whose id is in the flag's id set. Ids are Summoner's Rift ids (map_sr). Flags with 'ids' use the same set in every patch; flags with 'ids_by_patch' use that patch's set (gameplay.item_state.load_effect_flags(patch=...)). gameplay.item_state.verify_effect_flags checks that each id exists (map_sr) with its recorded name in every patch table and, for 'resolve_names' flags, that the set equals every map_sr id carrying one of the names.",
+  "patches": [
+    "15.14",
+    "15.15",
+    "15.16",
+    "15.18",
+    "15.19",
+    "15.20",
+    "15.21",
+    "15.22",
+    "16.13",
+    "16.14",
+    "16.15"
+  ],
+  "flags": {
+    "stasis": {
+      "ids": [
+        3157,
+        2420
+      ],
+      "names": {
+        "3157": "Zhonya's Hourglass",
+        "2420": "Seeker's Armguard"
+      },
+      "excluded": {
+        "2421": "Shattered Armguard: the stasis has been used",
+        "223157": "Arena variant",
+        "773157": "16.15 mode variant",
+        "773191": "16.15 mode variant"
+      }
+    },
+    "revive": {
+      "ids": [
+        3026
+      ],
+      "names": {
+        "3026": "Guardian Angel"
+      },
+      "excluded": {
+        "223026": "Arena variant",
+        "773026": "16.15 mode variant"
+      }
+    },
+    "cleanse": {
+      "ids": [
+        3140,
+        3139
+      ],
+      "names": {
+        "3140": "Quicksilver Sash",
+        "3139": "Mercurial Scimitar"
+      },
+      "excluded": {
+        "3222": "Mikael's Blessing: cleanses an ally, not self",
+        "223139": "Arena variant",
+        "773139": "16.15 mode variant",
+        "773140": "16.15 mode variant"
+      }
+    },
+    "shield": {
+      "ids": [
+        3190,
+        323190
+      ],
+      "names": {
+        "3190": "Locket of the Iron Solari",
+        "323190": "Locket of the Iron Solari"
+      },
+      "excluded": {
+        "223190": "Arena variant",
+        "773190": "16.15 mode variant"
+      }
+    },
+    "lifeline": {
+      "decided_by": "author decision 2026-09-25 (records/stage1_decisions_20260925T103104Z.json: effect_flags)",
+      "meaning": "low-health survival shield (lifeline passive)",
+      "resolve_names": [
+        "Sterak's Gage",
+        "Immortal Shieldbow",
+        "Maw of Malmortius",
+        "Seraph's Embrace"
+      ],
+      "ids_by_patch": {
+        "15.14": [
+          3040,
+          3053,
+          3156,
+          6673,
+          323040
+        ],
+        "15.15": [
+          3040,
+          3053,
+          3156,
+          6673,
+          323040
+        ],
+        "15.16": [
+          3040,
+          3053,
+          3156,
+          6673,
+          323040
+        ],
+        "15.18": [
+          3040,
+          3053,
+          3156,
+          6673,
+          323040
+        ],
+        "15.19": [
+          3040,
+          3053,
+          3156,
+          6673,
+          323040
+        ],
+        "15.20": [
+          3040,
+          3053,
+          3156,
+          6673,
+          323040
+        ],
+        "15.21": [
+          3040,
+          3053,
+          3156,
+          6673,
+          323040
+        ],
+        "15.22": [
+          3040,
+          3053,
+          3156,
+          6673,
+          323040
+        ],
+        "16.13": [
+          3040,
+          3053,
+          3156,
+          6673,
+          323040
+        ],
+        "16.14": [
+          3040,
+          3053,
+          3156,
+          6673,
+          323040
+        ],
+        "16.15": [
+          3040,
+          3053,
+          3156,
+          6673,
+          323040
+        ]
+      },
+      "names": {
+        "3040": "Seraph's Embrace",
+        "3053": "Sterak's Gage",
+        "3156": "Maw of Malmortius",
+        "6673": "Immortal Shieldbow",
+        "323040": "Seraph's Embrace"
+      },
+      "excluded": {
+        "223040": "Arena variant (map_sr false)",
+        "223053": "Arena variant (map_sr false)",
+        "223156": "Arena variant (map_sr false)",
+        "226673": "Arena variant (map_sr false)",
+        "773040": "16.15 mode variant (map_sr false)",
+        "773156": "16.15 mode variant (map_sr false)"
+      },
+      "notes": {
+        "3040": "Seraph's Embrace is never bought: Archangel's Staff 3003 transforms into it (ITEM_DESTROYED 3003, gameplay.item_state rule 2)",
+        "323040": "SR-only (map 11) variant with specialRecipe 3003; kept because map_sr is true, like 323190 in 'shield'"
+      },
+      "missing_or_renamed_by_patch": {
+        "15.14": [],
+        "15.15": [],
+        "15.16": [],
+        "15.18": [],
+        "15.19": [],
+        "15.20": [],
+        "15.21": [],
+        "15.22": [],
+        "16.13": [],
+        "16.14": [],
+        "16.15": []
+      }
+    }
+  },
+  "excluded_id_patterns": {
+    "22xxxx": "Arena variants (map_sr false)",
+    "773xxx": "16.15 mode variants (map_sr false)"
+  },
+  "updated": "2026-09-25"
+}

@@ -1,0 +1,340 @@
+{
+  "applies_to": "gameplay.item_state exact replay when the patch major is >= 16 (ItemStateIndex with patch); 15.x replays never read this file",
+  "source": "16.15 KR ranked solo (queue 420), 553 matches, D:/LOL_Project/fusion_2615/raw/kr/{detail,timeline}: timeline ITEM_* events and detail item0-6 / roleBoundItem / teamPosition / pre-game summoner spells; evidence counts below were produced by scripts/exact_v4/ev4_s1x_items_16x.py evidence",
+  "role_by_slot": [
+    "TOP",
+    "JUNGLE",
+    "MIDDLE",
+    "BOTTOM",
+    "UTILITY"
+  ],
+  "role_quests": {
+    "start": {
+      "TOP": {
+        "with_teleport": 1222,
+        "without_teleport": 1200
+      },
+      "JUNGLE": 1204,
+      "MIDDLE": 1201,
+      "BOTTOM": 1202,
+      "UTILITY": 1203
+    },
+    "top_teleport_spell": 12,
+    "transforms": {
+      "1200": 1220,
+      "1222": 1221,
+      "1201": 1206,
+      "1202": 1207,
+      "1204": 1209,
+      "1203": 1208
+    },
+    "chains": {
+      "TOP": [
+        1200,
+        1220,
+        1222,
+        1221
+      ],
+      "JUNGLE": [
+        1204,
+        1209
+      ],
+      "MIDDLE": [
+        1201,
+        1206
+      ],
+      "BOTTOM": [
+        1202,
+        1207
+      ],
+      "UTILITY": [
+        1203,
+        1208
+      ]
+    }
+  },
+  "support_ward_slot": {
+    "quest": 1203,
+    "reward": 1208,
+    "completion_destroy": 3866,
+    "ward": 2055
+  },
+  "mid_tier3_boots": {
+    "quest": 1201,
+    "upgrade": "gameplay.item_state.tier3_boots_map (tier-2 boots -> the 'into' item built only from it with gold_base 0)"
+  },
+  "bot_boots_slot": {
+    "quest": 1202,
+    "reward": 1207
+  },
+  "transient_ids": {
+    "ids": [
+      2001,
+      2002
+    ],
+    "names": [
+      "Recall",
+      "Enhanced Recall"
+    ]
+  },
+  "trinket_slot": {
+    "start_trinket": 3340,
+    "herald_eye": 3513,
+    "start_trinket_by_champion_id": {
+      "9": 3330
+    }
+  },
+  "rune_grants": {
+    "8345": {
+      "name": "Biscuit Delivery",
+      "item": 2010,
+      "at_ms": [
+        120000,
+        240000,
+        360000
+      ]
+    },
+    "8313": {
+      "name": "Triple Tonic",
+      "at_level": {
+        "3": 2151,
+        "6": 2152
+      },
+      "not_granted": {
+        "2150": "Elixir of Skill at level 9 needs a free normal slot (16.15: no 2150 event for 211/212 Triple Tonic players with >= 6 occupied normal slots at level 9, an event for 616/641 with a free slot); not modelled: no stats and 0 gold in Data Dragon, destroyed a median 2.3 s after the level-up"
+      }
+    }
+  },
+  "rules": [
+    {
+      "id": "R16-1",
+      "rule": "role-quest item at 0 ms by slot role (pid 1-5 / 6-10 = TOP, JUNGLE, MIDDLE, BOTTOM, UTILITY): TOP 1222 when Teleport (12) is a pre-game summoner spell else 1200, JUNGLE 1204, MIDDLE 1201, BOTTOM 1202, UTILITY 1203; it occupies the role-bound slot (detail roleBoundItem), not item0-5",
+      "evidence": {
+        "data": "16.15, 553 matches, 5,530 players",
+        "slot_role_equals_teamPosition": "5530/5530",
+        "first_quest_destroy_matches_slot_role": "5385/5385 (145 players without a quest destroy)",
+        "quest_items_never_purchased": "0 ITEM_PURCHASED of 1200-1222; 11,476 ITEM_DESTROYED",
+        "top_by_teleport": {
+          "no Teleport: 1200 destroyed -> roleBoundItem 1220": 587,
+          "Teleport: 1222 destroyed -> roleBoundItem 1221": 497,
+          "no Teleport, no destroy -> roleBoundItem 1200": 15,
+          "Teleport, no destroy -> roleBoundItem 1222": 7
+        },
+        "roleBoundItem_not_completed": {
+          "1204": 69,
+          "1201": 17,
+          "1202": 23,
+          "1203": 22,
+          "1200": 15,
+          "1222": 7
+        }
+      }
+    },
+    {
+      "id": "R16-2",
+      "rule": "a destroy of a held quest token turns it into its reward: 1200 -> 1220, 1222 -> 1221, 1201 -> 1206, 1202 -> 1207, 1204 -> 1209 (the jungle pet destroyed at that ms is consumed); a destroy of a held placeholder 1207 / 1208 (or 1203 outside its completion ms) removes it",
+      "evidence": {
+        "data": "16.15, 553 matches, 5,530 players",
+        "1200_destroyed_alone": 587,
+        "1222_destroyed_alone": 497,
+        "1204_destroyed_with_pet_1101_1102_1103": "580 + 408 + 57 alone with the pet",
+        "roleBoundItem_reward_at_end": {
+          "1220": 587,
+          "1221": 497,
+          "1206": 1089,
+          "1209": 1037
+        },
+        "1202_destroyed_alone_then_1207_placeholder": 103
+      }
+    },
+    {
+      "id": "R16-3",
+      "rule": "support ward slot: 1203 -> 1208 when 3866 is destroyed at that ms (quest completion; a 3866 destroy while the slot holds a ward switches the placeholder silently); a 2055 destroy at the ms of a 1203 / 1208 destroy is the bought ward moving into the slot (not a removal); when the player's last 2055 leaves (placed, sold, undone) the placeholder of the current stage (1203 / 1208) comes back without an event",
+      "evidence": {
+        "data": "16.15, 553 matches, 5,530 players",
+        "group DES 2055 + DES 1203 + PUR 2055": 2433,
+        "group DES 2055 + DES 1208 + PUR 2055": 2645,
+        "group DES 3866 + DES 1203": 603,
+        "roleBoundItem UTILITY": {
+          "2055": 763,
+          "1208": 321,
+          "1203": 22
+        },
+        "unowned 2055 removals before -> after": "4,290 -> 18 (all roles)"
+      }
+    },
+    {
+      "id": "R16-4",
+      "rule": "mid quest: from the ms of the 1201 destroy on, a loose destroy of a held tier-2 boots turns it into its free tier-3 upgrade (item_state.tier3_boots_map: the 'into' item built only from it with gold_base 0; 3006 -> 3172 although 3172 has no Boots tag); a 'destroy X' listed before 'buy X' at one ms is moved after the purchase (the game upgrades the new boots at once)",
+      "evidence": {
+        "data": "16.15, 553 matches, 5,530 players",
+        "1201_destroyed_with_tier2_boots_same_ms": 555,
+        "1201_destroyed_alone": 534,
+        "boots_destroyed_with_1201_by_id": {
+          "3158": 138,
+          "3020": 112,
+          "3009": 104,
+          "3111": 92,
+          "3006": 77,
+          "3047": 22,
+          "3008": 15,
+          "1001": 2
+        },
+        "mid_DES_X_and_PUR_X_same_ms_boots": 512,
+        "mid_end_tier3_boots_in_detail": "1040/1106",
+        "tier3_boots_purchase_events": 5
+      }
+    },
+    {
+      "id": "R16-5",
+      "rule": "bot quest: a loose boots destroy at the ms of a 1207 destroy is the boots moving into the role slot (not a removal)",
+      "evidence": {
+        "data": "16.15, 553 matches, 5,530 players",
+        "group DES 1202 + DES boots + DES 1207": 979,
+        "group DES 1207 + PUR boots": 100,
+        "roleBoundItem BOTTOM = boots": 1078,
+        "roleBoundItem 1202 / 1207": "23 / 5"
+      }
+    },
+    {
+      "id": "R16-6",
+      "rule": "2001 Recall / 2002 Enhanced Recall events are dropped: never purchased, never in item0-6 at game end, no stats; created without events after the team's Baron / Herald / Dragon kills",
+      "evidence": {
+        "data": "16.15, 553 matches, 5,530 players",
+        "2001_destroys": 3153,
+        "2002_destroys": 2511,
+        "own_team_elite_kill_within_5min": {
+          "2001 BARON": 2190,
+          "2001 HERALD": 963,
+          "2002 BARON": 1246,
+          "2002 HERALD": 718,
+          "2002 DRAGON": 506,
+          "2002 none": 41
+        },
+        "in_detail_item0_6": 0,
+        "absent_from_15.14_events_and_table": true
+      }
+    },
+    {
+      "id": "R16-7",
+      "rule": "trinket slot: 3340 at 0 ms; a trinket purchase without a same-ms trinket destroy replaces the held trinket (its undo gives it back)",
+      "evidence": {
+        "data": "16.15, 553 matches, 5,530 players",
+        "players_without_any_trinket_event": "552 (item6: 3340 541, 3330 6, 0 5)",
+        "players_whose_first_trinket_event_is_a_destroy": 1848,
+        "item6_agreement_before_after": "0.8259 -> 0.9976"
+      }
+    },
+    {
+      "id": "R16-8",
+      "rule": "Eye of the Herald: a loose trinket destroy (no trinket bought at that ms) at the ms of a 2001 / 2002 destroy puts 3513 into the trinket slot; the 3513 destroy gives the stored trinket back",
+      "evidence": {
+        "data": "16.15, 553 matches, 5,530 players",
+        "loose_trinket_destroys": 436,
+        "at_a_recall_item_destroy_ms": "436/436",
+        "herald_kill_within_5s": "424/436",
+        "followed_by_3513_destroy": 419,
+        "held_3513_at_end_item6": 17
+      }
+    },
+    {
+      "id": "R16-9",
+      "rule": "ITEM_UNDO with beforeId 0 and afterId 0 undoes the player's last purchase (the item or its immediate tier-3 upgrade) and restores what it consumed",
+      "evidence": {
+        "data": "16.15, 553 matches, 5,530 players",
+        "undo_before0_after0": 71,
+        "last_purchase": {
+          "UTILITY 2055 (ward moved into the slot)": 42,
+          "MIDDLE tier-2 boots (upgraded at once, R16-4)": 27,
+          "other": 2
+        }
+      }
+    },
+    {
+      "id": "R16-10",
+      "rule": "Viego: a destroy group that would be a possession swap is his own quest completing when it holds a destroy of his own quest-chain item and at most one other loose destroy; the R16-8 herald exchange is not a swap either",
+      "evidence": {
+        "data": "16.15, 553 matches, 5,530 players",
+        "viego_quest_chain_destroys_in_swap_groups": "1201: 9, 1204: 81, 1206: 47, 1208: 9, 1209: 186, 1220: 7 (groups of >= 4 other destroys)",
+        "viego_players_mismatched_before_after_rule": "37 -> 2"
+      }
+    },
+    {
+      "id": "R16-11",
+      "rule": "rune Biscuit Delivery (8345): 2010 at 2:00, 4:00 and 6:00",
+      "note": "not 16.x-specific (2010 removals of an unowned item are listed for 15.14 too); applied only for patch major >= 16 to keep 15.x byte-identical",
+      "evidence": {
+        "data": "16.15, 553 matches, 5,530 players",
+        "players_with_rune": 621,
+        "3_events_kth_at_or_after_k_x_2min": 602,
+        "2010_events_without_the_rune": 1
+      }
+    },
+    {
+      "id": "R16-12",
+      "rule": "rune Triple Tonic (8313): 2151 at the LEVEL_UP to 3, 2152 at the LEVEL_UP to 6; 2150 (level 9) is not granted (it needs a free normal slot; no stats, 0 gold)",
+      "note": "not 16.x-specific (2150-2152 are listed for 15.14 too); applied only for patch major >= 16",
+      "evidence": {
+        "data": "16.15, 553 matches, 5,530 players",
+        "elixir_events_only_with_rune": "2151: 868/868, 2152: 862/862, 2150: 617/617",
+        "level3_reached_with_2151_event": "868/868",
+        "level6_reached_with_2152_event": "859/868",
+        "level9_reached_with_2150_event": "617/853",
+        "level9_2150_event_by_normal_slots": "no event for 211/212 players with >= 6 occupied normal slots; event for 616/641 with a free slot"
+      }
+    },
+    {
+      "id": "R16-13",
+      "rule": "Fiddlesticks (9) starts with 3330 Scarecrow Effigy instead of 3340",
+      "evidence": {
+        "data": "16.15, 553 matches, 5,530 players",
+        "item6_3330": "8/8 FiddleSticks",
+        "3330 requiredChampion": "FiddleSticks"
+      }
+    }
+  ],
+  "not_modelled": {
+    "3867 upgrade choice": "the support-item upgrade (3869 / 3870 / 3871 / 3876 / 3877) is chosen without an event; the replay keeps 3867 as its proxy (item_state rule 3, identical Data Dragon stats): 1,036 of 5,530 players",
+    "2150 Elixir of Skill": "see R16-12",
+    "3400 Your Cut / 3599 Kalista's Black Spear": "destroys of items created without events (110 / 10), never held at game end"
+  },
+  "other_16x_only_ids_in_item_events": {
+    "note": "ids in 16.15 ITEM_* events that are absent from the 15.14 Data Dragon table and from the 50 15.14 identity matches; new shop items are ordinary purchases (recipes from Data Dragon), no rule",
+    "role_quest": {
+      "1203": 3040,
+      "1208": 2656,
+      "1204": 1159,
+      "1201": 1106,
+      "1207": 1086,
+      "1202": 1083,
+      "1200": 587,
+      "1222": 497,
+      "1209": 206,
+      "1206": 49,
+      "1220": 7
+    },
+    "recall": {
+      "2001": 3153,
+      "2002": 2511
+    },
+    "new_shop_items": {
+      "1086": 1201,
+      "3008": 489,
+      "1120": 400,
+      "2520": 147,
+      "2525": 130,
+      "2524": 124,
+      "2523": 108,
+      "2510": 104,
+      "3097": 75,
+      "2512": 63,
+      "2517": 61,
+      "2526": 38,
+      "2522": 21
+    },
+    "tier3_boots_via_quest": {
+      "3168": 4
+    },
+    "event_types": "no new ITEM_* event type; the only 16.15 event type absent from the 50 15.14 identity matches is CHAMPION_TRANSFORM (16 events, Kayn); FEAT_UPDATE is in those 15.14 matches but not in 16.15"
+  }
+}

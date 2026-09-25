@@ -1,0 +1,107 @@
+{
+  "schema": "objective_rules_v1",
+  "created": "2026-09-25",
+  "time_unit": "ms of game time (Match-V5 timeline timestamp)",
+  "patch_mapping": "Match-V5 gameVersion 15.N = public patch 25.N; 16.N = 26.N. patch_range bounds are Match-V5 major.minor, inclusive.",
+  "status_legend": {
+    "verified": "documented in a Riot patch note or the official LoL wiki AND consistent with 15.14 events (500-match scan, stage1/objective_timers/validation)",
+    "documented": "documented (patch note / wiki) but no data check was possible under the split rules (16.x events are not read)",
+    "uncertain": "sources conflict or no source found; the value is a best reading and gameplay.objective_timers exposes a flag for it"
+  },
+  "sources": {
+    "wiki_dragon": "https://wiki.leagueoflegends.com/en-us/Elemental_drake (first spawn 5:00, respawn 5:00, Rift transforms after the 2nd drake, soul at a team's 4th drake, Elder 6:00 after the 4th drake, Elder respawn 6:00)",
+    "wiki_elder": "https://wiki.leagueoflegends.com/en-us/Elder_Dragon (respawn 6:00, Aspect of the Dragon 150 s)",
+    "wiki_aspect": "https://wiki.leagueoflegends.com/en-us/Aspect_of_the_Dragon (150 s, living members of the slayer's team, lost upon death)",
+    "wiki_baron": "https://wiki.leagueoflegends.com/en-us/Baron_Nashor (respawn 6:00, V25.S1.1 initial 20:00 -> 25:00, V26.01 25:00 -> 20:00)",
+    "wiki_hand_of_baron": "https://wiki.leagueoflegends.com/en-us/Hand_of_Baron (180 s, living champions, lost upon death)",
+    "wiki_herald": "https://wiki.leagueoflegends.com/en-us/Rift_Herald (V25.S1.1 spawn 16:00, despawn 24:45 / 24:55 in combat; V25.09 spawn 15:00; infobox (2026) says despawn 19:45 / 19:55 without a patch entry)",
+    "wiki_voidgrub_camp": "https://wiki.leagueoflegends.com/en-us/Voidgrub_camp (V25.09 spawn 8:00, no respawn; despawn 14:45 / 14:55 in combat; V26.01 stat changes only)",
+    "wiki_atakhan": "https://wiki.leagueoflegends.com/en-us/Atakhan (spawn 20:00, one per game; V26.01 removed from the game)",
+    "wiki_inhibitor": "https://wiki.leagueoflegends.com/en-us/Inhibitor (respawn 5 minutes since V4.20)",
+    "wiki_turret": "https://wiki.leagueoflegends.com/en-us/Turret (Nexus turrets respawn 3 minutes after being destroyed)",
+    "patch_25_09": "https://www.leagueoflegends.com/en-us/news/game-updates/patch-25-09-notes/ (Herald 15:00; Voidgrubs 6:00 -> 8:00, no longer respawn)",
+    "patch_26_1": "https://www.leagueoflegends.com/en-us/news/game-updates/patch-26-1-notes/ (Baron 25m -> 20m; Atakhan removed; outer turret plates permanent instead of falling at 14 minutes; minions 1:05 -> 0:30; no Dragon / Herald / Voidgrub spawn-time change listed)",
+    "data_15_14": "C:/Users/todtj/문서/LOL_Teamfight/outputs/reest_exact_v4_20260925/stage1/objective_timers/validation_15_14.json"
+  },
+  "rules": {
+    "dragon_first_spawn_ms": [
+      {"patch_range": ["15.9", "15.24"], "value": 300000, "status": "verified", "sources": ["wiki_dragon"], "data": "15.14 first dragon kill min 5:22"},
+      {"patch_range": ["16.1", "16.24"], "value": 300000, "status": "documented", "sources": ["wiki_dragon", "patch_26_1"], "note": "26.1 lists no dragon spawn change; 26.2-26.15 notes not read one by one"}
+    ],
+    "dragon_respawn_ms": [
+      {"patch_range": ["15.9", "15.24"], "value": 300000, "status": "verified", "sources": ["wiki_dragon"], "data": "15.14 min gap between elemental drake kills 305.4 s"},
+      {"patch_range": ["16.1", "16.24"], "value": 300000, "status": "documented", "sources": ["wiki_dragon", "patch_26_1"]}
+    ],
+    "dragon_soul_count": [
+      {"patch_range": ["15.9", "16.24"], "value": 4, "status": "verified", "sources": ["wiki_dragon"], "data": "15.14 DRAGON_SOUL_GIVEN with teamId 100/200 follows the team's 4th drake by 0.5 s"}
+    ],
+    "rift_element_after_drakes": [
+      {"patch_range": ["15.9", "16.24"], "value": 2, "status": "verified", "sources": ["wiki_dragon"], "data": "15.14 DRAGON_SOUL_GIVEN with teamId 0 follows the 2nd drake by 0.5 s and names the Rift element"}
+    ],
+    "elder_first_spawn_after_soul_ms": [
+      {"patch_range": ["15.9", "15.24"], "value": 360000, "status": "verified", "sources": ["wiki_dragon"], "data": "15.14 min 376.0 s from soul drake to first Elder kill (n small)"},
+      {"patch_range": ["16.1", "16.24"], "value": 360000, "status": "documented", "sources": ["wiki_dragon"]}
+    ],
+    "elder_respawn_ms": [
+      {"patch_range": ["15.9", "15.24"], "value": 360000, "status": "verified", "sources": ["wiki_elder"], "data": "15.14 Elder-Elder gaps >= 400 s (n small)"},
+      {"patch_range": ["16.1", "16.24"], "value": 360000, "status": "documented", "sources": ["wiki_elder"]}
+    ],
+    "elder_buff_ms": [
+      {"patch_range": ["15.9", "16.24"], "value": 150000, "status": "documented", "sources": ["wiki_elder", "wiki_aspect"], "lost_on_death": true, "granted_to": "living members of the slayer's team", "note": "no ground truth for buff holders in Match-V5; not data-checked"}
+    ],
+    "baron_first_spawn_ms": [
+      {"patch_range": ["15.1", "15.24"], "value": 1500000, "status": "verified", "sources": ["wiki_baron"], "data": "15.14 first Baron kill min 25:10"},
+      {"patch_range": ["16.1", "16.24"], "value": 1200000, "status": "documented", "sources": ["wiki_baron", "patch_26_1"]}
+    ],
+    "baron_respawn_ms": [
+      {"patch_range": ["15.9", "15.24"], "value": 360000, "status": "verified", "sources": ["wiki_baron"], "data": "15.14 min Baron-Baron gap 370.6 s"},
+      {"patch_range": ["16.1", "16.24"], "value": 360000, "status": "documented", "sources": ["wiki_baron"]}
+    ],
+    "baron_buff_ms": [
+      {"patch_range": ["15.9", "16.24"], "value": 180000, "status": "documented", "sources": ["wiki_baron", "wiki_hand_of_baron"], "lost_on_death": true, "granted_to": "living members of the slayer's team", "note": "no ground truth for buff holders in Match-V5; not data-checked"}
+    ],
+    "herald_spawn_ms": [
+      {"patch_range": ["15.9", "15.24"], "value": 900000, "status": "verified", "sources": ["patch_25_09", "wiki_herald"], "data": "15.14 herald kill min 15:18"},
+      {"patch_range": ["16.1", "16.24"], "value": 900000, "status": "documented", "sources": ["wiki_herald", "patch_26_1"]}
+    ],
+    "herald_despawn_ms": [
+      {"patch_range": ["15.9", "15.24"], "value": 1485000, "combat_grace_ms": 10000, "status": "verified", "sources": ["wiki_herald"], "data": "V25.S1.1 note 24:45; 15.14: an untaken herald is logged as ELITE_MONSTER_KILL with killerTeamId 300 at 24:45.26; latest team herald kill 23:49 (> 19:55, so the 19:45 infobox value cannot hold in 15.14)"},
+      {"patch_range": ["16.1", "16.24"], "value": 1185000, "combat_grace_ms": 10000, "status": "uncertain", "sources": ["wiki_herald"], "note": "wiki infobox says 19:45 with Baron spawning in her place at 20:00, but no patch entry records the change back from 24:45; not data-checked"}
+    ],
+    "herald_count": [
+      {"patch_range": ["15.9", "16.24"], "value": 1, "status": "verified", "sources": ["wiki_herald"], "data": "15.14 at most 1 herald kill per game"}
+    ],
+    "voidgrub_spawn_ms": [
+      {"patch_range": ["15.9", "15.24"], "value": 480000, "status": "verified", "sources": ["patch_25_09", "wiki_voidgrub_camp"], "data": "15.14 first grub kill min 8:05"},
+      {"patch_range": ["16.1", "16.24"], "value": 480000, "status": "documented", "sources": ["wiki_voidgrub_camp"]}
+    ],
+    "voidgrub_despawn_ms": [
+      {"patch_range": ["15.9", "15.24"], "value": 885000, "combat_grace_ms": 10000, "status": "verified", "sources": ["wiki_voidgrub_camp"], "data": "15.14: untaken grubs are logged as ELITE_MONSTER_KILL with killerTeamId 300 at 14:45.00-14:45.02; no team grub kill after 14:55"},
+      {"patch_range": ["16.1", "16.24"], "value": 885000, "combat_grace_ms": 10000, "status": "documented", "sources": ["wiki_voidgrub_camp"]}
+    ],
+    "voidgrub_count": [
+      {"patch_range": ["15.9", "16.24"], "value": 3, "status": "verified", "sources": ["patch_25_09", "wiki_voidgrub_camp"], "data": "15.14 at most 3 HORDE kills per game, single wave"}
+    ],
+    "atakhan_spawn_ms": [
+      {"patch_range": ["15.1", "15.24"], "value": 1200000, "status": "verified", "sources": ["wiki_atakhan"], "data": "15.14 Atakhan kill min 20:14, at most 1 per game"},
+      {"patch_range": ["16.1", "16.24"], "value": null, "status": "documented", "sources": ["wiki_atakhan", "patch_26_1"], "note": "removed from the game in 26.1"}
+    ],
+    "atakhan_count": [
+      {"patch_range": ["15.1", "15.24"], "value": 1, "status": "verified", "sources": ["wiki_atakhan"]},
+      {"patch_range": ["16.1", "16.24"], "value": 0, "status": "documented", "sources": ["patch_26_1"]}
+    ],
+    "inhibitor_respawn_ms": [
+      {"patch_range": ["15.1", "16.24"], "value": 300000, "status": "verified", "sources": ["wiki_inhibitor"], "data": "15.14 min re-kill gap of one inhibitor 305.8 s; 16.x not data-checked"}
+    ],
+    "nexus_turret_respawn_ms": [
+      {"patch_range": ["15.1", "16.24"], "value": 180000, "status": "verified", "sources": ["wiki_turret"], "data": "15.14 min re-kill gap of one nexus turret 184.2 s; 16.x not data-checked"}
+    ],
+    "turret_plates_per_outer": [
+      {"patch_range": ["15.1", "16.24"], "value": 5, "status": "verified", "sources": ["wiki_turret"], "data": "15.14 <= 5 TURRET_PLATE_DESTROYED per outer turret"}
+    ],
+    "turret_plates_fall_ms": [
+      {"patch_range": ["15.1", "15.24"], "value": 840000, "status": "verified", "sources": ["patch_26_1"], "data": "15.14 last plate event 14:00.06"},
+      {"patch_range": ["16.1", "16.24"], "value": null, "status": "documented", "sources": ["patch_26_1"], "note": "plates are permanent from 26.1"}
+    ]
+  }
+}

@@ -29,6 +29,21 @@ PRESETS: Dict[str, Dict[str, Any]] = {
     },
 }
 
+# v4-exact (REESTIMATION_PLAN_V4_EXACT_20260925): the v3.3 values, then the exact-data engagement
+# definition.  The population is decided by kill events only (no presence gate, no per-team alive
+# requirement), alive status comes from kill events, and label ties are excluded.
+PRESETS["v4-exact"] = {
+    **PRESETS["v3.3"],
+    # G / D locked by E1 (record outputs/reest_exact_v4_20260925/records/record1a_boundaries_*.json):
+    # G = 14 s from the 15.14 kill-gap valley (bootstrap 95% [13.26, 14.37] s); D = 4,300 = conditional
+    # argmin at G = 14 s of the pre-specified weighted sharing disagreement (bootstrap 95% [4,200, 4,400]).
+    "TF2_KILL_CLUSTER_GAP_MS": 14000, "CLUSTER_MAX_DIAMETER": 4300.0,
+    "ENG_ALIVE_SOURCE": "event", "ENG_PARTICIPATION": "kill_credit", "ENG_OVERLAP_RULE": "none",
+    "ENG_MERGE_A6": True, "ENG_ISOLATION": True, "ENG_CLEAN_MAX_AGE_MS": 10000,
+    "ENG_BOUNDARIES_LOCKED": True, "DD_TABLE_DIR": "config/game_rules/datadragon_v2",
+    "REQUIRE_ALIVE_PER_TEAM": 0, "LABEL_TIE_STRATEGY": "exclude",
+}
+
 
 def apply_preset(c, name: str) -> Dict[str, Any]:
     """Set every field of the named preset on ``c``; returns the values applied."""
