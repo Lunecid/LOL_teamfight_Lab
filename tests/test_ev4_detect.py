@@ -196,6 +196,7 @@ def _real_ok():
     return D.MATCHES_JSON.is_file() and D.DEFAULT_CACHE_DIR.is_dir()
 
 
+@pytest.mark.slow
 @pytest.mark.skipif(not _real_ok(), reason="matches_full.json or match cache not available")
 def test_real_20_matches_reproduce_detector(tmp_path, params):
     import pandas as pd
