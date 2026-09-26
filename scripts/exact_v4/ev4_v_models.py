@@ -6,6 +6,21 @@ allowed, or a run without a frozen V), then load the frozen V with ``load_v(bund
 ``V.predict(X)`` on a StateV3 matrix (996 columns, gameplay.state_value_v3.STATE_V3_COLUMNS order; snapshot_age_s
 is a V input) -> P(blue wins).
 
+V revision (author pre-specification outputs/reest_exact_v4_20260925/records/v_revision_prespec_20260925T233953Z.json,
+made after the first full fit-V's martingale diagnostics and before any refit; bundle format ev4_v_bundle_2):
+  side marker   the model input is the 996 StateV3 columns + one column 'side' (SIDE_COLUMN, last): +1 on original
+                (blue-perspective) rows, -1 on team-swapped rows.  A team swap = the blue <-> red column permutation
+                AND a sign flip of 'side' (swap_negate_idx) AND the target flip.  predict() on a StateV3 matrix appends
+                side = +1 (SIDE_PREDICT_DEFAULT: the blue perspective, i.e. P(blue wins)) unless side= is given.
+                Standardisation of 'side' is pooled over the swap (mean 0, sd = sqrt(E[side^2]) = 1), the analogue of
+                the blue / red pair pooling.
+  recalibration (conditional; LogitRecalibrator) logistic regression of y on logit(V) with frame-age bin intercepts
+                (snapshot_age_s in 0-15, 15-30, 30-45, 45-60 s), bin x logit(V) interactions and a natural (restricted)
+                cubic spline of game minute (time_minutes, 4 knots), fitted on V_CAL.  A bundle that carries one
+                applies it inside predict(), after the PositiveSlopeSigmoid, using the state's snapshot_age_s and
+                time_minutes.
+Bundles of format ev4_v_bundle_1 (no side marker, no recalibration: the first full fit) still load (comparison).
+
 Everything here is patch-agnostic (a matrix in, probabilities out).  The split guard lives in the calling scripts.
 
 Candidates (FIXED grids, plan section 4; tuned only by 15.14 match-grouped 5-fold CV in ev4_03):
@@ -48,7 +63,19 @@ SELECT_TOL = 0.0005
 V_CLIP = 1e-12                                   # fc20260915_common.V_CLIP
 MINUTE_BINS: Tuple[Tuple[str, int, Optional[int]], ...] = (
     ("lt15", 0, 900_000), ("15to25", 900_000, 1_500_000), ("ge25", 1_500_000, None))
-BUNDLE_FORMAT = "ev4_v_bundle_1"
+BUNDLE_FORMAT = "ev4_v_bundle_2"                 # side marker + optional recalibration (V revision)
+BUNDLE_FORMATS_READ: Tuple[str, ...] = ("ev4_v_bundle_1", "ev4_v_bundle_2")
+SIDE_COLUMN = "side"                             # +1 original (blue-perspective) rows, -1 team-swapped rows
+SIDE_PREDICT_DEFAULT = 1.0                       # predict() on StateV3 = blue perspective
+AGE_COLUMN = "snapshot_age_s"                    # frame age (s) of the state (StateV3, V-only column)
+MINUTE_COLUMN = "time_minutes"                   # game minute of the state (StateV3)
+RECAL_AGE_EDGES_S: Tuple[float, ...] = (15.0, 30.0, 45.0)   # bins 0-15, 15-30, 30-45, 45-60 s
+RECAL_AGE_BIN_NAMES: Tuple[str, ...] = ("age_0_15", "age_15_30", "age_30_45", "age_45_60")
+RECAL_SPLINE_KNOTS = 4
+RECAL_KNOT_QUANTILES: Tuple[float, ...] = (0.05, 0.35, 0.65, 0.95)   # Harrell's default placement for 4 knots
+RECAL_ADOPT_TOL = 0.0005                         # adopt if V_SELECT log loss is worse by no more than this
+RECAL_B_P_LEVEL = 0.05                           # trigger: martingale (b) primary p <= this
+RECAL_MIN_BIN_ROWS = 20                          # technical: an age bin needs >= 20 rows of each class to be fitted
 
 GRIDS: Dict[str, Dict[str, Any]] = {
     "logistic": {"C": [0.001, 0.01, 0.1], "fixed": {"penalty": "l2", "standardise": "pooled swap pairs",
@@ -171,6 +198,19 @@ def swap_permutation(names: Sequence[str]) -> np.ndarray:
     return perm
 
 
+def swap_negate_idx(names: Sequence[str]) -> np.ndarray:
+    """Columns whose sign flips under a team swap: the side marker (empty for the StateV3 columns alone)."""
+    return np.array([j for j, n in enumerate(names) if n == SIDE_COLUMN], dtype=np.int64)
+
+
+def with_side(names: Sequence[str]) -> List[str]:
+    """V model input columns: the StateV3 columns + the side marker (last)."""
+    names = list(names)
+    if SIDE_COLUMN in names:
+        raise ValueError(f"{SIDE_COLUMN!r} is already a column")
+    return names + [SIDE_COLUMN]
+
+
 def swap_pairs(perm: np.ndarray) -> List[np.ndarray]:
     return [np.array([j, int(perm[j])]) for j in range(len(perm)) if perm[j] > j]
 
@@ -180,12 +220,17 @@ def swap_mask(n: int, seed: int = SEED) -> np.ndarray:
     return np.random.default_rng(seed).random(n) < 0.5
 
 
-def apply_swap_inplace(X: np.ndarray, y: np.ndarray, mask: np.ndarray, perm: np.ndarray, chunk: int = 65536) -> None:
-    """Swap the team blocks of rows[mask] and flip their target, in place (an involution: apply twice to undo)."""
+def apply_swap_inplace(X: np.ndarray, y: np.ndarray, mask: np.ndarray, perm: np.ndarray, chunk: int = 65536,
+                       negate: Optional[np.ndarray] = None) -> None:
+    """Swap the team blocks of rows[mask], flip the sign of the `negate` columns (the side marker) and flip their
+    target, in place (an involution: apply twice to undo)."""
     rows = np.flatnonzero(mask)
+    neg = np.asarray(negate if negate is not None else [], dtype=np.int64)
     for s in range(0, len(rows), chunk):
         r = rows[s:s + chunk]
         X[r] = X[r][:, perm]
+        if len(neg):
+            X[np.ix_(r, neg)] *= -1
     y[rows] = 1 - y[rows]
 
 
@@ -218,9 +263,11 @@ def fill_nan_inplace(X: np.ndarray, fill: np.ndarray, chunk: int = 50_000) -> in
 
 
 def pooled_standardizer(X: np.ndarray, rows: Optional[np.ndarray], groups: Sequence[np.ndarray],
-                        chunk: int = 50_000, sd_floor: float = 1e-6) -> Tuple[np.ndarray, np.ndarray]:
+                        chunk: int = 50_000, sd_floor: float = 1e-6,
+                        negate: Optional[Sequence[int]] = None) -> Tuple[np.ndarray, np.ndarray]:
     """(mu, sd) over `rows` (all rows if None), with first and second moments pooled within each group of columns.
 
+    `negate` columns (the side marker) are pooled with their swapped image -x: mean 0, sd = sqrt(E[x^2]).
     sd < sd_floor -> 1 (constant column: standardised value 0)."""
     p = X.shape[1]
     idx = np.arange(X.shape[0]) if rows is None else np.asarray(rows)
@@ -238,6 +285,8 @@ def pooled_standardizer(X: np.ndarray, rows: Optional[np.ndarray], groups: Seque
         g = np.asarray(g)
         mu[g] = m1[g].mean()
         ex2[g] = m2[g].mean()
+    if negate is not None and len(negate):
+        mu[np.asarray(negate, dtype=np.int64)] = 0.0
     sd = np.sqrt(np.maximum(ex2 - mu ** 2, 0.0))
     sd[sd < sd_floor] = 1.0
     return mu, sd
@@ -331,6 +380,162 @@ class PositiveSlopeSigmoid:
         c = cls()
         c.a, c.b, c.fit_info = float(d["intercept_a"]), float(d["slope_b"]), d.get("fit")
         return c
+
+
+# ============================================================================ conditional recalibration (V revision)
+def age_bin(age_s) -> np.ndarray:
+    """Frame-age bin 0..3 for 0-15, 15-30, 30-45, 45-60 s (left-closed; age < 15 incl. any negative value -> 0,
+    age >= 45 incl. a frame just over 60 s -> 3).  NaN is refused."""
+    a = np.asarray(age_s, dtype=np.float64)
+    if np.isnan(a).any():
+        raise ValueError("frame age (snapshot_age_s) has NaN")
+    return np.digitize(a, RECAL_AGE_EDGES_S).astype(np.int64)
+
+
+def rcs_basis(x, knots: Sequence[float]) -> np.ndarray:
+    """Natural (restricted) cubic spline basis with k knots: k - 1 columns [x, s_1 .. s_{k-2}] (Harrell's
+    parameterisation, nonlinear terms divided by (t_k - t_1)^2); linear beyond the boundary knots.  No intercept."""
+    x = np.asarray(x, dtype=np.float64)
+    t = np.asarray(knots, dtype=np.float64)
+    k = len(t)
+    if k < 3 or not np.all(np.diff(t) > 0):
+        raise ValueError(f"need >= 3 strictly increasing knots, got {t.tolist()}")
+
+    def pos3(v):
+        return np.maximum(v, 0.0) ** 3
+
+    norm = (t[-1] - t[0]) ** 2
+    cols = [x]
+    for j in range(k - 2):
+        cols.append((pos3(x - t[j]) - pos3(x - t[k - 2]) * (t[k - 1] - t[j]) / (t[k - 1] - t[k - 2])
+                     + pos3(x - t[k - 1]) * (t[k - 2] - t[j]) / (t[k - 1] - t[k - 2])) / norm)
+    return np.column_stack(cols)
+
+
+class LogitRecalibrator:
+    """Conditional recalibration of a calibrated V (author pre-specification, V revision 2):
+
+        logit P(y = 1) = sum_b 1[age bin b] (alpha_b + beta_b * logit V) + spline(game minute)
+
+    with the frame-age bins 0-15, 15-30, 30-45, 45-60 s of snapshot_age_s (4 intercepts and 4 bin x logit V
+    slopes; together they contain the plain logit V term) and a natural cubic spline of time_minutes with 4 knots at
+    the 5 / 35 / 65 / 95 % quantiles of the fitting rows' minutes (3 columns, no extra intercept): 11 coefficients,
+    unpenalised maximum likelihood (damped Newton), unit row weights.  logit V = clipped_logit(V, 1e-12)."""
+    kind = "logit_recal_agebin_rcs4"
+
+    def __init__(self, knots: Optional[Sequence[float]] = None):
+        self.knots: Optional[np.ndarray] = None if knots is None else np.asarray(knots, dtype=np.float64)
+        self.coef: Optional[np.ndarray] = None
+        self.fit_info: Dict[str, Any] = {}
+
+    @staticmethod
+    def term_names() -> List[str]:
+        return ([f"{b}_intercept" for b in RECAL_AGE_BIN_NAMES] + [f"{b}_x_logitV" for b in RECAL_AGE_BIN_NAMES]
+                + ["minute_linear"] + [f"minute_rcs{j + 1}" for j in range(RECAL_SPLINE_KNOTS - 2)])
+
+    def design(self, p, age_s, minute) -> np.ndarray:
+        z = clipped_logit(p)
+        b = age_bin(age_s)
+        m = np.asarray(minute, dtype=np.float64)
+        if np.isnan(m).any():
+            raise ValueError("game minute (time_minutes) has NaN")
+        onehot = (b[:, None] == np.arange(len(RECAL_AGE_BIN_NAMES))[None, :]).astype(np.float64)
+        return np.column_stack([onehot, onehot * z[:, None], rcs_basis(m, self.knots)])
+
+    def fit(self, p, age_s, minute, y) -> "LogitRecalibrator":
+        y = np.asarray(y, dtype=np.float64)
+        m = np.asarray(minute, dtype=np.float64)
+        if self.knots is None:
+            self.knots = np.quantile(m, RECAL_KNOT_QUANTILES)
+        b = age_bin(age_s)
+        counts = {RECAL_AGE_BIN_NAMES[i]: {"n": int((b == i).sum()), "n_pos": int(y[b == i].sum())}
+                  for i in range(len(RECAL_AGE_BIN_NAMES))}
+        thin = [k for k, c in counts.items() if min(c["n_pos"], c["n"] - c["n_pos"]) < RECAL_MIN_BIN_ROWS]
+        if thin:
+            raise ValueError(f"age bins {thin} have < {RECAL_MIN_BIN_ROWS} rows of a class ({counts}); "
+                             "the recalibration model is not identified")
+        D = self.design(p, age_s, m)
+        beta = np.zeros(D.shape[1])
+        beta[len(RECAL_AGE_BIN_NAMES):2 * len(RECAL_AGE_BIN_NAMES)] = 1.0   # start at the identity map
+
+        def ll(bv):
+            eta = D @ bv
+            return float(np.sum(y * eta - np.logaddexp(0.0, eta)))
+
+        cur, it, converged = ll(beta), 0, False
+        for it in range(1, 101):
+            mu = _expit(D @ beta)
+            wv = np.maximum(mu * (1 - mu), 1e-12)
+            g = D.T @ (y - mu)
+            H = (D * wv[:, None]).T @ D
+            step = np.linalg.lstsq(H, g, rcond=None)[0]
+            t, new = 1.0, cur
+            while t > 1e-10:
+                new = ll(beta + t * step)
+                if new >= cur - 1e-12:
+                    break
+                t *= 0.5
+            beta, cur = beta + t * step, new
+            if np.max(np.abs(t * step)) < 1e-9:
+                converged = True
+                break
+        if not (converged and np.isfinite(beta).all()):
+            raise ValueError(f"recalibration did not converge ({it} Newton steps)")
+        self.coef = beta
+        g = D.T @ (y - _expit(D @ beta))
+        self.fit_info = {"optimizer": "damped Newton (unpenalised ML)", "converged": converged, "n_iter": int(it),
+                         "n": int(len(y)), "loglik": cur, "mean_logloss": -cur / max(len(y), 1),
+                         "max_abs_score_per_row": float(np.max(np.abs(g))) / max(len(y), 1),
+                         "rank": int(np.linalg.matrix_rank(D.T @ D)), "n_terms": int(D.shape[1]),
+                         "age_bin_counts": counts, "knot_quantiles": list(RECAL_KNOT_QUANTILES)}
+        return self
+
+    def predict(self, p, age_s, minute) -> np.ndarray:
+        return _expit(self.design(p, age_s, minute) @ self.coef)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"kind": self.kind, "terms": self.term_names(), "coef": [float(c) for c in self.coef],
+                "age_column": AGE_COLUMN, "minute_column": MINUTE_COLUMN,
+                "age_bins_s": [[0.0, 15.0], [15.0, 30.0], [30.0, 45.0], [45.0, 60.0]],
+                "age_bin_rule": "np.digitize(snapshot_age_s, [15, 30, 45]): < 15 -> 0 (incl. negative), >= 45 -> 3 "
+                                "(incl. >= 60)",
+                "knots_minute": [float(k) for k in self.knots], "spline": "natural cubic (Harrell rcs), 4 knots",
+                "logit_clip": V_CLIP, "applied_to": "the calibrated V (PositiveSlopeSigmoid output)",
+                "fit": self.fit_info}
+
+    @classmethod
+    def from_dict(cls, d: Mapping[str, Any]) -> "LogitRecalibrator":
+        if d.get("kind") != cls.kind or list(d.get("terms") or []) != cls.term_names():
+            raise RuntimeError(f"unknown recalibration {d.get('kind')} / terms {d.get('terms')}")
+        r = cls(knots=d["knots_minute"])
+        r.coef = np.asarray(d["coef"], dtype=np.float64)
+        r.fit_info = dict(d.get("fit") or {})
+        return r
+
+
+def recal_trigger(a_means: Mapping[str, Any], b_p_primary: Optional[float],
+                  level: float = RECAL_B_P_LEVEL) -> Dict[str, Any]:
+    """Pre-specified trigger: the side-marker V fails martingale (a) in any stratum (Bonferroni interval not inside
+    its band) or (b) primary (wild bootstrap) p <= 0.05.  A stratum with too few rows to test (pass None) and a
+    missing (b) p (no bootstrap run) do not trigger; both are listed."""
+    strata = (a_means or {}).get("strata") or {}
+    failed = [s for s, v in strata.items() if v.get("pass") is False]
+    untested = [s for s, v in strata.items() if v.get("pass") is None]
+    b_fail = b_p_primary is not None and float(b_p_primary) <= level
+    return {"triggered": bool(failed or b_fail), "a_failed_strata": failed, "a_untested_strata": untested,
+            "b_p_primary": b_p_primary, "b_fail": bool(b_fail), "b_level": level,
+            "rule": "recalibrate only if martingale (a) fails in any stratum (band +-0.002; +-0.005 for recent deaths "
+                    ">= 3) or (b) primary p <= 0.05 (v_revision_prespec revision_2)"}
+
+
+def recal_adopt(select_logloss_recal: float, select_logloss_side: float, tol: float = RECAL_ADOPT_TOL) -> Dict[str, Any]:
+    """Pre-specified adoption: the recalibrated V if its V_SELECT log loss is not worse than the side-marker V's by
+    more than 0.0005."""
+    d = float(select_logloss_recal) - float(select_logloss_side)
+    return {"adopted": bool(d <= tol + 1e-12), "select_logloss_recalibrated": float(select_logloss_recal),
+            "select_logloss_side_marker": float(select_logloss_side), "difference": d, "tol": tol,
+            "rule": "adopt the recalibrated V if its V_SELECT log loss is not worse than the side-marker V's by more "
+                    "than 0.0005; otherwise keep the side-marker V"}
 
 
 # ============================================================================ metrics
@@ -657,6 +862,7 @@ class MLPModel:
         self.threads = int(min(threads, MAX_THREADS))
         self.slot_idx, self.other_idx, _ = player_layout(self.names)
         self.perm = swap_permutation(self.names)
+        self.negate = swap_negate_idx(self.names)          # side marker (if present) flips sign under a swap
         self.mu: Optional[np.ndarray] = None
         self.sd: Optional[np.ndarray] = None
         self.states: List[Dict[str, np.ndarray]] = []
@@ -693,7 +899,8 @@ class MLPModel:
 
     def fit(self, X: np.ndarray, y: np.ndarray, train_rows: np.ndarray, stop_rows: np.ndarray,
             mu: np.ndarray, sd: np.ndarray, log: Optional[Callable[[str], None]] = None) -> "MLPModel":
-        """X / y in the natural (unswapped) orientation; a fresh random 50 % of every minibatch is team-swapped."""
+        """X / y in the natural (unswapped) orientation; a fresh random 50 % of every minibatch is team-swapped
+        (blue <-> red columns, side marker sign flipped when present, target flipped)."""
         import torch
         import torch.nn.functional as F
         self.mu, self.sd = np.asarray(mu, np.float64), np.asarray(sd, np.float64)
@@ -721,6 +928,8 @@ class MLPModel:
                     sw = rng.random(len(r)) < 0.5
                     if sw.any():
                         xb[sw] = xb[sw][:, self.perm]
+                        if len(self.negate):
+                            xb[np.ix_(np.flatnonzero(sw), self.negate)] *= -1
                         yb[sw] = 1.0 - yb[sw]
                     logit = self._forward(net, xb)
                     loss = F.binary_cross_entropy_with_logits(logit, torch.from_numpy(yb))
@@ -840,16 +1049,42 @@ class GoldDiffLogistic:
 
 # ============================================================================ frozen bundle + predict API
 class FrozenV:
-    """V(state matrix) -> P(blue wins) = calibrator(model(X)), with the NaN fill of the training data."""
+    """V(StateV3 matrix) -> P(blue wins) = [recalibrator](calibrator(model([X, side]))), with the NaN fill of the
+    training data.
+
+    names = the StateV3 input columns (996); model_names = names + ['side'] when the bundle has the side marker
+    (format ev4_v_bundle_2), else names (format 1, or a format-2 bundle without it).  predict() appends side = +1
+    (SIDE_PREDICT_DEFAULT: the blue perspective) unless side= is given (a scalar or one +-1 per row); a V without the
+    side marker refuses side != +1.  A recalibrated V applies its LogitRecalibrator after the calibrator with the
+    rows' snapshot_age_s and time_minutes (after the NaN fill)."""
 
     def __init__(self, model, calibrator: PositiveSlopeSigmoid, names: Sequence[str], fill: np.ndarray,
-                 spec: Mapping[str, Any], bundle_sha256: Optional[str] = None):
+                 spec: Mapping[str, Any], bundle_sha256: Optional[str] = None, side_marker: bool = False,
+                 recalibrator: Optional[LogitRecalibrator] = None):
         self.model, self.calibrator = model, calibrator
         self.names = list(names)
+        self.side_marker = bool(side_marker)
+        self.model_names = with_side(self.names) if self.side_marker else list(self.names)
+        self.recalibrator = recalibrator
         self.fill = np.asarray(fill, dtype=np.float64)
+        if len(self.fill) != len(self.names):
+            raise ValueError(f"fill has {len(self.fill)} values, V has {len(self.names)} StateV3 columns")
         self.spec = dict(spec)
         self.bundle_sha256 = bundle_sha256
+        self.bundle_format = self.spec.get("format")
         self.kind = model.kind
+        self._age = self.names.index(AGE_COLUMN) if AGE_COLUMN in self.names else None
+        self._minute = self.names.index(MINUTE_COLUMN) if MINUTE_COLUMN in self.names else None
+        if recalibrator is not None and (self._age is None or self._minute is None):
+            raise ValueError(f"a recalibrated V needs the {AGE_COLUMN} and {MINUTE_COLUMN} columns")
+
+    @property
+    def recalibrated(self) -> bool:
+        return self.recalibrator is not None
+
+    def structure(self) -> Dict[str, Any]:
+        return {"bundle_format": self.bundle_format, "side_marker": self.side_marker,
+                "recalibrated": self.recalibrated, "kind": self.kind}
 
     def _prepare(self, X: np.ndarray, columns: Optional[Sequence[str]] = None) -> np.ndarray:
         X = np.asarray(X)
@@ -867,12 +1102,37 @@ class FrozenV:
         fill_nan_inplace(X, self.fill)
         return X
 
-    def predict_raw(self, X: np.ndarray, columns: Optional[Sequence[str]] = None) -> np.ndarray:
-        return self.model.predict_proba(self._prepare(X, columns))
+    def _model_input(self, Xs: np.ndarray, side) -> np.ndarray:
+        if side is None:
+            side = SIDE_PREDICT_DEFAULT
+        sv = np.broadcast_to(np.asarray(side, dtype=np.float32), (Xs.shape[0],))
+        if not np.all(np.abs(sv) == 1):
+            raise ValueError("side must be +1 (blue perspective) or -1 (team-swapped rows)")
+        if not self.side_marker:
+            if np.any(sv != 1):
+                raise ValueError("this V has no side marker (bundle format 1 or fitted without it): side must be +1")
+            return Xs
+        Xm = np.empty((Xs.shape[0], Xs.shape[1] + 1), dtype=np.float32)
+        Xm[:, :-1] = Xs
+        Xm[:, -1] = sv
+        return Xm
 
-    def predict(self, X: np.ndarray, columns: Optional[Sequence[str]] = None) -> np.ndarray:
-        """Calibrated P(blue wins) for each row of a StateV3 matrix."""
-        return self.calibrator.predict(self.predict_raw(X, columns))
+    def predict_raw(self, X: np.ndarray, columns: Optional[Sequence[str]] = None, side=None) -> np.ndarray:
+        """Uncalibrated model output."""
+        return self.model.predict_proba(self._model_input(self._prepare(X, columns), side))
+
+    def predict_calibrated(self, X: np.ndarray, columns: Optional[Sequence[str]] = None, side=None) -> np.ndarray:
+        """calibrator(model): the side-marker V before any recalibration."""
+        return self.calibrator.predict(self.predict_raw(X, columns, side))
+
+    def predict(self, X: np.ndarray, columns: Optional[Sequence[str]] = None, side=None) -> np.ndarray:
+        """P(blue wins) for each row of a StateV3 matrix (side = +1 by default: the blue perspective); the
+        recalibration, when the bundle has one, uses the rows' snapshot_age_s and time_minutes."""
+        Xs = self._prepare(X, columns)
+        p = self.calibrator.predict(self.model.predict_proba(self._model_input(Xs, side)))
+        if self.recalibrator is not None:
+            p = self.recalibrator.predict(p, Xs[:, self._age], Xs[:, self._minute])
+        return p
 
     __call__ = predict
 
@@ -895,34 +1155,76 @@ def _strip_timing(o: Any) -> Any:
 
 
 def save_bundle(d: Path, model, calibrator: PositiveSlopeSigmoid, names: Sequence[str], fill: np.ndarray,
-                extra: Optional[Mapping[str, Any]] = None) -> Dict[str, Any]:
+                extra: Optional[Mapping[str, Any]] = None, side_marker: bool = False,
+                recalibrator: Optional[LogitRecalibrator] = None) -> Dict[str, Any]:
     """Write model files + prep.npz + bundle.json (lists every file's sha256).  Returns {'bundle_sha256', ...}:
-    the bundle identity is the sha256 of bundle.json."""
+    the bundle identity is the sha256 of bundle.json.
+
+    names = the StateV3 input columns (fill has one value per name); side_marker=True: the model was fitted on
+    names + ['side'] (bundle 'side_marker' block); recalibrator: the adopted LogitRecalibrator (bundle
+    'recalibration' block), applied by predict()."""
     d = Path(d)
     d.mkdir(parents=True, exist_ok=True)
+    names = list(names)
+    if len(np.asarray(fill)) != len(names):
+        raise ValueError(f"fill has {len(np.asarray(fill))} values for {len(names)} StateV3 columns")
     spec = _strip_timing(model.save(d))
     savez_deterministic(d / "prep.npz", fill=np.asarray(fill, dtype=np.float64))
     files = list(spec["files"]) + ["prep.npz"]
+    mnames = with_side(names) if side_marker else names
+    side = ({"column": SIDE_COLUMN, "position": len(names), "encoding": "+1 original (blue-perspective) rows, -1 "
+             "team-swapped rows (sign flipped with the blue <-> red swap)", "predict_default": SIDE_PREDICT_DEFAULT,
+             "predict_default_meaning": "blue perspective: P(blue team wins)",
+             "model_columns_name_hash": _name_hash(mnames), "n_model_columns": len(mnames)}
+            if side_marker else None)
     bundle = {"format": BUNDLE_FORMAT, "kind": model.kind, "model": spec, "calibrator": calibrator.to_dict(),
-              "columns": list(names), "columns_name_hash": _name_hash(names), "n_columns": len(names),
+              "columns": names, "columns_name_hash": _name_hash(names), "n_columns": len(names),
+              "side_marker": side, "recalibration": recalibrator.to_dict() if recalibrator is not None else None,
               "file_sha256": {f: sha256_file(d / f) for f in files}, "output": "P(blue team wins)",
-              "predict": "ev4_v_models.load_v(dir).predict(X_stateV3)", "extra": dict(extra or {})}
+              "predict": "ev4_v_models.load_v(dir).predict(X_stateV3)  (side = +1; recalibration applied if present)",
+              "extra": dict(extra or {})}
     blob = json.dumps(bundle, indent=2, sort_keys=True, default=_json_default).encode("utf-8")
     (d / "bundle.json").write_bytes(blob)
-    return {"dir": str(d), "bundle_sha256": sha256_bytes(blob), "file_sha256": bundle["file_sha256"]}
+    return {"dir": str(d), "bundle_sha256": sha256_bytes(blob), "file_sha256": bundle["file_sha256"],
+            **bundle_structure(bundle)}
+
+
+def bundle_structure(b: Mapping[str, Any]) -> Dict[str, Any]:
+    """{'bundle_format', 'side_marker', 'recalibrated', 'kind'} of a bundle.json dict (format 1: no side marker, no
+    recalibration)."""
+    return {"bundle_format": b.get("format"), "side_marker": b.get("side_marker") is not None,
+            "recalibrated": b.get("recalibration") is not None, "kind": b.get("kind")}
+
+
+def read_bundle_structure(d: Path, expected_sha256: Optional[str] = None) -> Dict[str, Any]:
+    """bundle_structure of <d>/bundle.json (sha256-checked when expected_sha256 is given); loads no model."""
+    blob = (Path(d) / "bundle.json").read_bytes()
+    if expected_sha256 is not None and sha256_bytes(blob) != str(expected_sha256).strip().lower():
+        raise RuntimeError(f"{d}/bundle.json is not the bundle {expected_sha256}")
+    b = json.loads(blob.decode("utf-8"))
+    if b.get("format") not in BUNDLE_FORMATS_READ:
+        raise RuntimeError(f"unknown V bundle format {b.get('format')}")
+    out = bundle_structure(b)
+    rc = b.get("recalibration")
+    if rc is not None:
+        out["recalibration_knots_minute"] = rc.get("knots_minute")
+        out["recalibration_terms"] = rc.get("terms")
+    return out
 
 
 def load_v(d: Path, expected_sha256: Optional[str] = None,
            expected_columns_hash: Optional[str] = None) -> FrozenV:
-    """Load a saved V bundle; verifies every file's sha256, the bundle sha256 (if given) and the column hash."""
+    """Load a saved V bundle (format ev4_v_bundle_2, or the older ev4_v_bundle_1 without side marker and
+    recalibration); verifies every file's sha256, the bundle sha256 (if given) and the column hashes."""
     d = Path(d)
     blob = (d / "bundle.json").read_bytes()
     digest = sha256_bytes(blob)
     if expected_sha256 is not None and digest != str(expected_sha256).strip().lower():
         raise RuntimeError(f"V bundle sha256 {digest} != expected {expected_sha256}")
     b = json.loads(blob.decode("utf-8"))
-    if b.get("format") != BUNDLE_FORMAT:
-        raise RuntimeError(f"unknown V bundle format {b.get('format')}")
+    fmt = b.get("format")
+    if fmt not in BUNDLE_FORMATS_READ:
+        raise RuntimeError(f"unknown V bundle format {fmt}")
     for f, h in b["file_sha256"].items():
         if sha256_file(d / f) != h:
             raise RuntimeError(f"V bundle file {f} does not match its sha256")
@@ -931,17 +1233,25 @@ def load_v(d: Path, expected_sha256: Optional[str] = None,
         raise RuntimeError("V bundle column list does not match its hash")
     if expected_columns_hash is not None and b["columns_name_hash"] != expected_columns_hash:
         raise RuntimeError("V bundle columns differ from the expected StateV3 columns")
+    side = b.get("side_marker") if fmt != "ev4_v_bundle_1" else None
+    rc_d = b.get("recalibration") if fmt != "ev4_v_bundle_1" else None
+    mnames = with_side(names) if side is not None else list(names)
+    if side is not None and (side.get("column") != SIDE_COLUMN or
+                             side.get("model_columns_name_hash") != _name_hash(mnames)):
+        raise RuntimeError("V bundle side marker block does not match its model columns")
     kind = b["kind"]
     if kind == "logistic":
         model = LogisticModel.load(d, b["model"])
     elif kind == "lgbm":
         model = LGBMModel.load(d, b["model"])
     elif kind == "mlp":
-        model = MLPModel.load(d, b["model"], names)
+        model = MLPModel.load(d, b["model"], mnames)
     else:
         raise RuntimeError(f"unknown V kind {kind}")
     fill = np.load(d / "prep.npz")["fill"]
-    return FrozenV(model, PositiveSlopeSigmoid.from_dict(b["calibrator"]), names, fill, b, bundle_sha256=digest)
+    rc = LogitRecalibrator.from_dict(rc_d) if rc_d is not None else None
+    return FrozenV(model, PositiveSlopeSigmoid.from_dict(b["calibrator"]), names, fill, b, bundle_sha256=digest,
+                   side_marker=side is not None, recalibrator=rc)
 
 
 class VNotUsable(RuntimeError):

@@ -837,6 +837,14 @@ def v_block(fit_v: Optional[Path], allow_smoke: bool, extract_shas: Mapping[str,
     bundle = fdir / "V_frozen" / "bundle.json"
     if not bundle.is_file() or sha256_file(bundle) != vf.get("bundle_sha256"):
         raise DraftRefused("V_frozen/bundle.json does not match the manifest bundle_sha256")
+    try:                                     # bundle format 1 (first fit) or 2 (side marker, optional recalibration)
+        structure = VM.read_bundle_structure(bundle.parent, vf.get("bundle_sha256"))
+    except RuntimeError as e:
+        raise DraftRefused(f"V_frozen bundle: {e}") from e
+    for flag in ("side_marker", "recalibrated"):
+        if flag in vf and bool(vf[flag]) != bool(structure[flag]):
+            raise DraftRefused(f"frozen manifest V_frozen.{flag} = {vf[flag]}, V_frozen/bundle.json has "
+                               f"{structure[flag]}")
     if m.get("state_v3_name_hash") != STATE_V3_NAME_HASH:
         raise DraftRefused("fit-V was run on other StateV3 columns")
     pre = ((m.get("decisions") or {}).get("predecisions_record") or {}).get("sha256")
@@ -861,6 +869,10 @@ def v_block(fit_v: Optional[Path], allow_smoke: bool, extract_shas: Mapping[str,
         "code_sha256": m.get("code_sha256"), "git": m.get("git"),
         "census": rep.get("census"), "reload_max_abs_diff": rep.get("reload_max_abs_diff"),
         "final_fits": rep.get("final_fits"), "martingale_chosen": mart,
+        "V_structure": {**structure, "variant": vf.get("variant")},
+        "recalibrated": bool(structure["recalibrated"]),
+        "v_revision": m.get("v_revision"),
+        "recalibration_report": ((rep.get("v_revision") or {}).get("recalibration")),
         "candidate_grids": grids,
         "warnings": ([f"fit-V git dirty paths: {m['git'].get('dirty_paths')}"]
                      if (m.get("git") or {}).get("dirty_paths") else []),
@@ -1033,6 +1045,7 @@ def disclosures_block(records: Mapping[str, Any], record1a: Mapping[str, Any]) -
         return {"record": k, "sha256": f[k]["sha256"] if k else None}
 
     k_pre, pre = _latest(records, "stage2_predecisions_")
+    k_vr, vr = _latest(records, "v_revision_prespec_")
     k_e1, e1 = _latest(records, "e1_decision_")
     k_ps, ps = _latest(records, "e1_prespec_")
     k_st, st = _latest(records, "items_strict_rule_")
@@ -1051,8 +1064,16 @@ def disclosures_block(records: Mapping[str, Any], record1a: Mapping[str, Any]) -
          "source": {"record": "plan section 1"}},
     ] + [{"text": t, "source": ref("e1_decision_")} for t in (e1.get("reporting_notes") or [])]
     dev = [
-        {"id": "DEV-side-marker", "plan": "section 4: keep the blue / red marker",
-         "done": pre.get("side_marker"), **ref("stage2_predecisions_")},
+        ({"id": "DEV-side-marker", "plan": "section 4: keep the blue / red marker",
+          "done": vr.get("revision_1_side_marker"), "status": "reversed: the side marker is added (as in the plan)",
+          "superseded": {"done": pre.get("side_marker"), **ref("stage2_predecisions_")}, **ref("v_revision_prespec_")}
+         if k_vr else
+         {"id": "DEV-side-marker", "plan": "section 4: keep the blue / red marker",
+          "done": pre.get("side_marker"), **ref("stage2_predecisions_")}),
+    ] + ([{"id": "DEV-V-conditional-recalibration", "plan": "(not in the plan)",
+           "done": vr.get("revision_2_conditional_recalibration"),
+           "note": "whether it was triggered / adopted is recorded in V.V_structure.recalibrated and V.v_revision",
+           **ref("v_revision_prespec_")}] if k_vr else []) + [
         {"id": "DEV-flip-copies", "plan": "section 4: add team-flipped copies",
          "done": "in-place 50% team swap with target flip (memory); the MLP swaps 50% of each minibatch",
          **ref("stage2_predecisions_")},
@@ -1372,6 +1393,11 @@ def render_md(r: Mapping[str, Any]) -> str:
           f"이김 {_f(st.get('beats_gold'))}, 기록 1 전 정지 {_f(st.get('stop_before_record1'))}")
         a(f"- 동결 V 묶음 sha256 `{str((v.get('V_frozen') or {}).get('bundle_sha256'))[:16]}`, frozen_manifest sha256 "
           f"`{v['frozen_manifest']['sha256'][:16]}`{' — 스모크 V' if v.get('smoke') else ''}")
+        vs = v.get("V_structure") or {}
+        rc = ((v.get("v_revision") or {}).get("recalibration")) or {}
+        a(f"- V 구조: 묶음 형식 `{vs.get('bundle_format')}`, 진영 표지 {_f(vs.get('side_marker'))}, 재보정 적용 "
+          f"{_f(vs.get('recalibrated'))} (재보정 조건 충족 {_f(rc.get('triggered'))}, 적합 {_f(rc.get('fitted'))}, "
+          f"채택 {_f(rc.get('adopted'))})")
     else:
         a(f"- {v.get('status')}")
     vg = VM.GRIDS

@@ -256,11 +256,12 @@ def test_detect_yields_refuses_inconsistent_cells():
 
 
 # ------------------------------------------------------------------ V gate (fake frozen manifests)
-def _fake_fit_v(tmp_path: Path, **overrides) -> Path:
+def _fake_fit_v(tmp_path: Path, bundle=None, **overrides) -> Path:
     """A self-consistent fake fit-V directory (tiny files) whose manifest links to fake extract shas."""
     d = tmp_path / "fit_v"
     (d / "V_frozen").mkdir(parents=True)
-    (d / "V_frozen" / "bundle.json").write_text('{"kind": "logistic"}', encoding="utf-8")
+    (d / "V_frozen" / "bundle.json").write_text(json.dumps(bundle or {"format": "ev4_v_bundle_1", "kind": "logistic"}),
+                                                encoding="utf-8")
     (d / "report_e4.json").write_text(json.dumps({"census": {"train_rows": 10}, "martingale": {}}), encoding="utf-8")
     bsha = _sha(d / "V_frozen" / "bundle.json")
     m = {"smoke": False, "pilot": False, "frozen": True, "chosen": "logistic",
@@ -290,6 +291,30 @@ def test_v_block_usable_fake(tmp_path):
     assert v["usable"] and v["chosen"] == "logistic" and v["V_frozen"]["bundle_sha256"] == _sha(d / "V_frozen/bundle.json")
     assert v["frozen_manifest"]["sha256"] == _sha(d / "frozen_manifest.json") and v["warnings"] == []
     assert R1.v_block(None, allow_smoke=False, extract_shas=EX_SHAS)["usable"] is None     # --no-fit-v: pending
+    assert v["V_structure"]["bundle_format"] == "ev4_v_bundle_1" and v["recalibrated"] is False
+    assert v["V_structure"]["side_marker"] is False                                        # old bundle: no side
+
+
+def test_v_block_records_side_marker_and_recalibration_flag(tmp_path):
+    """V revision: a format-2 bundle with side marker and recalibration is accepted and its flags are recorded; the
+    manifest's V_frozen flags must agree with the bundle."""
+    b2 = {"format": "ev4_v_bundle_2", "kind": "logistic", "side_marker": {"column": "side"},
+          "recalibration": {"kind": "logit_recal_agebin_rcs4", "knots_minute": [5, 12, 19, 30], "terms": []}}
+    d = _fake_fit_v(tmp_path / "a", bundle=b2)
+    m = json.loads((d / "frozen_manifest.json").read_text(encoding="utf-8"))
+    m["V_frozen"].update(side_marker=True, recalibrated=True, variant="side_marker_recalibrated")
+    m["v_revision"] = {"recalibration": {"triggered": True, "fitted": True, "adopted": True}}
+    (d / "frozen_manifest.json").write_text(json.dumps(m), encoding="utf-8")
+    v = R1.v_block(d, allow_smoke=False, extract_shas=EX_SHAS)
+    assert v["recalibrated"] is True and v["V_structure"]["side_marker"] is True
+    assert v["V_structure"]["variant"] == "side_marker_recalibrated" and v["v_revision"]["recalibration"]["adopted"]
+    m["V_frozen"]["recalibrated"] = False                                                  # manifest disagrees
+    (d / "frozen_manifest.json").write_text(json.dumps(m), encoding="utf-8")
+    with pytest.raises(R1.DraftRefused, match="recalibrated"):
+        R1.v_block(d, allow_smoke=False, extract_shas=EX_SHAS)
+    d3 = _fake_fit_v(tmp_path / "b", bundle={"format": "ev4_v_bundle_9", "kind": "logistic"})
+    with pytest.raises(R1.DraftRefused, match="format"):
+        R1.v_block(d3, allow_smoke=False, extract_shas=EX_SHAS)
 
 
 @pytest.mark.parametrize("overrides", [

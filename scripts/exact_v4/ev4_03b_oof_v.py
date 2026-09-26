@@ -45,6 +45,15 @@ Implementation decisions (2026-09-26, before any OOF result; recorded here, in D
       a pilot fit-V run is always refused (its rows are a subset); a smoke fit-V run or sample extract needs --smoke
       and gives a smoke OOF set (ev4_04_labels accepts it only with --smoke); an existing oof_v/ or sidecar needs
       --force (both are removed before the new fit).
+  O10 Structure of the frozen V (V revision, records/v_revision_prespec_20260925T233953Z.json), read from
+      V_frozen/bundle.json (ev4_v_models.read_bundle_structure; must agree with frozen_manifest V_frozen flags):
+      side marker -> every fold model gets the 'side' column (+1 original rows, -1 swapped rows; logistic / lgbm: the
+      in-place swap flips it; mlp: per minibatch; standardised with swap-pooled moments), exactly as ev4_03;
+      recalibrated -> after the fold's PositiveSlopeSigmoid, a LogitRecalibrator with the same terms (frame-age bins x
+      logit V, 4-knot natural spline of game minute at the frozen V's knots = the V_CAL quantiles) is refitted per
+      fold on V_CAL and stored in the fold bundle (applied by predict()).  A format-1 frozen V (no side marker, no
+      recalibration) gives format-2 fold bundles without either.  Gate: every fold bundle's side marker /
+      recalibration flags equal the frozen V's.
 
 Outputs (inside the fit-V directory, the only place ev4_04_labels / ev4_r1_record look):
   <fit_v>/oof_v/fold_k/            V bundle of fold k (+ train_match_ids.txt), k = 0..4
@@ -141,6 +150,9 @@ DECISIONS = {
                      "rows (label-free); calibration on V_CAL",
     "O9_guards": "predecisions; forbid_grid; ev4_03 check_inputs + check_params; assert_v_usable (strict, --smoke: "
                  "allow_smoke); pilot fit-V refused; smoke inputs need --smoke; existing outputs need --force",
+    "O10_structure": "frozen V structure (V_frozen/bundle.json): side marker -> fold models with the side column "
+                     "(+1 / -1 swapped); recalibrated -> per-fold LogitRecalibrator on V_CAL with the same terms and "
+                     "knots; gate: fold flags == frozen flags",
 }
 
 
@@ -198,6 +210,11 @@ def read_fit_v(fit_v: Path, smoke: bool) -> Dict[str, Any]:
     if bundle.get("kind") != kind:
         raise RuntimeError(f"V_frozen bundle kind {bundle.get('kind')} != chosen {kind}")
     hp = _hp_from_bundle(kind, bundle)
+    structure = VM.read_bundle_structure(frozen_dir, vf["bundle_sha256"])      # O10
+    for flag in ("side_marker", "recalibrated"):
+        if flag in vf and bool(vf[flag]) != bool(structure[flag]):
+            raise RuntimeError(f"frozen_manifest V_frozen.{flag} = {vf[flag]} but V_frozen/bundle.json has "
+                               f"{structure[flag]}")
     key = HP_KEY[kind]
     rpath = fit_v / "report_e4.json"
     if not rpath.is_file():
@@ -220,6 +237,7 @@ def read_fit_v(fit_v: Path, smoke: bool) -> Dict[str, Any]:
             raise RuntimeError(f"non-smoke fit-V budget {budget} differs from the fixed budget {full}")
     return {"dir": fit_v, "vpath": vpath, "vman": vman, "vman_sha256": VM.sha256_file(vpath), "vf": vf,
             "frozen_dir": frozen_dir, "bundle": bundle, "kind": kind, "hp": hp, "report": report,
+            "structure": structure, "recal": bundle.get("recalibration") if structure["recalibrated"] else None,
             "report_path": rpath, "report_sha256": VM.sha256_file(rpath), "budget": budget,
             "threads": int(report.get("threads") or VM.MAX_THREADS)}
 
@@ -270,10 +288,12 @@ def project_runtime(fv: Mapping[str, Any]) -> Dict[str, Any]:
 def fit_fold(kind: str, k: int, X: np.ndarray, y: np.ndarray, folds: np.ndarray, inner: np.ndarray,
              hp: Mapping[str, Any], budget: Mapping[str, Any], threads: int, names: Sequence[str], perm: np.ndarray,
              ds: Any, log) -> Tuple[Any, Dict[str, np.ndarray]]:
-    """Fold model k exactly like fit-V's CV fit of fold k (decisions O3 / O4; mlp with the final seeds)."""
+    """Fold model k exactly like fit-V's CV fit of fold k (decisions O3 / O4 / O10; mlp with the final seeds).
+    `names` are the model input columns (StateV3 [+ side]); the side column's standardisation is swap-pooled."""
+    neg = VM.swap_negate_idx(names)
     if kind == "logistic":
         tr = np.flatnonzero(folds != k)
-        mu, sd = VM.pooled_standardizer(X, tr, VM.swap_pairs(perm))
+        mu, sd = VM.pooled_standardizer(X, tr, VM.swap_pairs(perm), negate=neg)
         m = VM.LogisticModel(hp["C"]).fit(X, y, tr, mu, sd, maxiter=int(budget["logistic_maxiter"]))
         return m, {"fit": tr, "stop": np.zeros(0, dtype=np.int64)}
     tr = np.flatnonzero((folds != k) & ~inner)
@@ -281,7 +301,7 @@ def fit_fold(kind: str, k: int, X: np.ndarray, y: np.ndarray, folds: np.ndarray,
     if kind == "lgbm":
         m = VM.LGBMModel(hp["num_leaves"], int(budget["lgbm_rounds"]), int(budget["lgbm_patience"]), threads)
         return m.fit(ds, tr, st), {"fit": tr, "stop": st}
-    mu, sd = VM.pooled_standardizer(X, tr, VM.mlp_groups(names, perm))
+    mu, sd = VM.pooled_standardizer(X, tr, VM.mlp_groups(names, perm), negate=neg)
     m = VM.MLPModel(hp["weight_decay"], names, seeds=VM.MLP_SEEDS_FINAL, max_epochs=int(budget["mlp_epochs"]),
                     patience=int(budget["mlp_patience"]), threads=threads)
     m.fit(X, y, tr, st, mu, sd, log=log)
@@ -415,8 +435,14 @@ def _run(args, fv, mt, ms, checks, predec, oof_dir: Path, side: Path, threads: i
     import torch
     torch.set_num_threads(threads)
     from gameplay.state_value_v3 import STATE_V3_COLUMNS, STATE_V3_NAME_HASH
-    names = list(STATE_V3_COLUMNS)
+    state_names = list(STATE_V3_COLUMNS)
+    ns = len(state_names)
+    has_side = bool(fv["structure"]["side_marker"])            # O10: reproduce the frozen V's structure
+    recal_spec = fv["recal"]
+    names = VM.with_side(state_names) if has_side else state_names
     perm = VM.swap_permutation(names)
+    neg = VM.swap_negate_idx(names)
+    age_i, min_i = state_names.index(VM.AGE_COLUMN), state_names.index(VM.MINUTE_COLUMN)
     kind, hp, budget, rep = fv["kind"], fv["hp"], fv["budget"], fv["report"]
     timings: Dict[str, float] = {}
 
@@ -424,15 +450,15 @@ def _run(args, fv, mt, ms, checks, predec, oof_dir: Path, side: Path, threads: i
     t0 = time.time()
     inputs = {"train": {"dir": str(args.train), **FV.verify_files(args.train, mt, log)},
               "select": {"dir": str(args.select), **FV.verify_files(args.select, ms, log)}}
-    Xtr, mtr = FV.load_v_rows(args.train, mt)
-    Xse, mse = FV.load_v_rows(args.select, ms)
+    Xtr, mtr = FV.load_v_rows(args.train, mt, side=has_side)
+    Xse, mse = FV.load_v_rows(args.select, ms, side=has_side)
     FV.assert_no_remakes({"train_v": mtr, "select_v": mse})
-    fill, n_nan_tr = VM.nan_fill_values(Xtr)
+    fill, n_nan_tr = VM.nan_fill_values(Xtr[:, :ns])
     V0 = VM.load_v(fv["frozen_dir"], expected_sha256=fv["vf"]["bundle_sha256"], expected_columns_hash=STATE_V3_NAME_HASH)
     if V0.fill.shape != fill.shape or not np.array_equal(V0.fill, fill):
         raise RuntimeError("15.14 NaN fill differs from V_frozen/prep.npz: these are not the rows V was fitted on")
-    VM.fill_nan_inplace(Xtr, fill)
-    n_nan_se = VM.fill_nan_inplace(Xse, fill)
+    VM.fill_nan_inplace(Xtr[:, :ns], fill)
+    n_nan_se = VM.fill_nan_inplace(Xse[:, :ns], fill)
     ytr = mtr["y_blue_win"].to_numpy().astype(np.float64)
     yse = mse["y_blue_win"].to_numpy().astype(np.float64)
     mids_tr = mtr["match_id"].astype(str).to_numpy()
@@ -457,7 +483,7 @@ def _run(args, fv, mt, ms, checks, predec, oof_dir: Path, side: Path, threads: i
         sel_idx = np.sort(np.random.default_rng(VM.SEED).choice(sel_idx, args.agree_rows, replace=False))
     X_ag, y_ag = Xse[sel_idx], yse[sel_idx]
     del Xse
-    p_frozen_ag = V0.predict(X_ag)
+    p_frozen_ag = V0.predict(X_ag[:, :ns])                  # StateV3 columns; predict appends side = +1
     timings["load"] = round(time.time() - t0, 2)
     log(f"loaded 15.14 V {Xtr.shape}, V_CAL {X_cal.shape}, agreement sample {X_ag.shape}; census {census}; "
         f"{FV.memory_info()}")
@@ -465,7 +491,7 @@ def _run(args, fv, mt, ms, checks, predec, oof_dir: Path, side: Path, threads: i
     # ---- fold fits (O3 - O6)
     swapped = kind in ("logistic", "lgbm")
     if swapped:
-        VM.apply_swap_inplace(Xtr, ytr, smask, perm)
+        VM.apply_swap_inplace(Xtr, ytr, smask, perm, negate=neg)
     ds = None
     if kind == "lgbm":
         t0 = time.time()
@@ -493,11 +519,23 @@ def _run(args, fv, mt, ms, checks, predec, oof_dir: Path, side: Path, threads: i
         if swapped:                                         # natural orientation for the pooled OOF report
             sw = smask[te]
             xt[sw] = xt[sw][:, perm]
+            if len(neg):
+                xt[np.ix_(np.flatnonzero(sw), neg)] *= -1
         p_te = m.predict_proba(xt)
-        del xt
-        cal = VM.PositiveSlopeSigmoid().fit(m.predict_proba(X_cal), y_cal, np.ones(len(y_cal)))
+        p_cal_raw = m.predict_proba(X_cal)
+        cal = VM.PositiveSlopeSigmoid().fit(p_cal_raw, y_cal, np.ones(len(y_cal)))
+        rc = None
+        if recal_spec is not None:                          # O10: same terms and knots, refitted on V_CAL
+            rc = VM.LogitRecalibrator(knots=recal_spec["knots_minute"]).fit(
+                cal.predict(p_cal_raw), X_cal[:, age_i], X_cal[:, min_i], y_cal)
+
+        def final_v(p_raw: np.ndarray, rows_x: np.ndarray) -> np.ndarray:
+            q = cal.predict(p_raw)
+            return rc.predict(q, rows_x[:, age_i], rows_x[:, min_i]) if rc is not None else q
+
         p_oof_raw[te] = p_te
-        p_oof_cal[te] = cal.predict(p_te)
+        p_oof_cal[te] = final_v(p_te, xt)
+        del xt
         tr_all = np.concatenate([rows["fit"], rows["stop"]])
         ids = sorted(set(mids_tr[tr_all].tolist()))
         if set(ids) != set(mids_tr[folds != k].tolist()):
@@ -511,8 +549,10 @@ def _run(args, fv, mt, ms, checks, predec, oof_dir: Path, side: Path, threads: i
                  "n_fit_rows": int(len(rows["fit"])), "n_stop_rows": int(len(rows["stop"])),
                  "n_train_matches": len(ids), "smoke": bool(args.smoke), "budget": budget,
                  "state_v3_name_hash": STATE_V3_NAME_HASH, "frozen_bundle_sha256": frozen_sha,
-                 "fit_v_frozen_manifest_sha256": fv["vman_sha256"]}
-        b = VM.save_bundle(oof_dir / f"fold_{k}", m, cal, names, fill, extra)
+                 "fit_v_frozen_manifest_sha256": fv["vman_sha256"], "side_marker": has_side,
+                 "recalibrated": rc is not None}
+        b = VM.save_bundle(oof_dir / f"fold_{k}", m, cal, state_names, fill, extra, side_marker=has_side,
+                           recalibrator=rc)
         fold_bundles[k] = b
         Vk = VM.load_v(oof_dir / f"fold_{k}", expected_sha256=b["bundle_sha256"],
                        expected_columns_hash=STATE_V3_NAME_HASH)
@@ -521,8 +561,11 @@ def _run(args, fv, mt, ms, checks, predec, oof_dir: Path, side: Path, threads: i
             raise RuntimeError(f"fold {k} bundle is {Vk.kind} {spec_hp}, chosen {kind} {hp}")
         if kind == "mlp" and list(Vk.model.seeds) != list(VM.MLP_SEEDS_FINAL):
             raise RuntimeError(f"fold {k} mlp seeds {Vk.model.seeds}")
-        p_ag = Vk.predict(X_ag)
-        reload_diff = float(np.max(np.abs(p_ag - cal.predict(m.predict_proba(X_ag))))) if len(p_ag) else 0.0
+        if Vk.side_marker != has_side or Vk.recalibrated != (recal_spec is not None):
+            raise RuntimeError(f"fold {k} bundle structure {Vk.structure()} differs from the frozen V "
+                               f"{fv['structure']}")
+        p_ag = Vk.predict(X_ag[:, :ns])
+        reload_diff = float(np.max(np.abs(p_ag - final_v(m.predict_proba(X_ag), X_ag)))) if len(p_ag) else 0.0
         if reload_diff > RELOAD_TOL:
             raise RuntimeError(f"fold {k} bundle reload differs from the in-memory model by {reload_diff}")
         p_ag_folds.append(p_ag)
@@ -541,7 +584,9 @@ def _run(args, fv, mt, ms, checks, predec, oof_dir: Path, side: Path, threads: i
         per_fold[str(k)] = {"bundle_sha256": b["bundle_sha256"], "n_train_matches": len(ids),
                             "n_fit_rows": int(len(rows["fit"])), "n_stop_rows": int(len(rows["stop"])),
                             "n_heldout_rows": int(len(te)), "fit_info": _fit_info(m),
-                            "calibrator": cal.describe(), "heldout_logloss_raw_natural": VM.log_loss(y_nat[te], p_te),
+                            "calibrator": cal.describe(),
+                            "recalibration": rc.to_dict() if rc is not None else None,
+                            "heldout_logloss_raw_natural": VM.log_loss(y_nat[te], p_te),
                             "heldout_logloss_cal_natural": VM.log_loss(y_nat[te], p_oof_cal[te]),
                             "cv_reproduction": repro, "reload_max_abs_diff": reload_diff,
                             "agreement_with_frozen_V_SELECT": agreement(p_ag, p_frozen_ag, y_ag),
@@ -554,7 +599,7 @@ def _run(args, fv, mt, ms, checks, predec, oof_dir: Path, side: Path, threads: i
         del m
     del ds
     if swapped:
-        VM.apply_swap_inplace(Xtr, ytr, smask, perm)       # restore (not used further)
+        VM.apply_swap_inplace(Xtr, ytr, smask, perm, negate=neg)   # restore (not used further)
 
     # ---- verification (O7)
     t0 = time.time()
@@ -587,7 +632,12 @@ def _run(args, fv, mt, ms, checks, predec, oof_dir: Path, side: Path, threads: i
               "note": "pooled over the five held-out folds in natural orientation (fit-V's CV value was scored on "
                       "the swapped rows for logistic / lgbm and with one seed for mlp)"}
     timings["verify"] = round(time.time() - t0, 2)
+    v_structure = {"frozen": fv["structure"], "folds_side_marker": has_side,
+                   "folds_recalibrated": recal_spec is not None,
+                   "matches_frozen": True,
+                   "recalibration_knots_minute": (recal_spec or {}).get("knots_minute")}
     verification = {"train_ids_exclude_own_fold": True, "coverage_v_rows": cov_v, "coverage_engagement_rows": cov_e,
+                    "v_structure": v_structure,
                     "cv_reproduction_max_abs_diff": repro_max,
                     "cv_reproduction_note": ("logistic / lgbm: held-out fold log loss of the refit vs fit-V's CV fit, "
                                              "same (swapped) rows" if kind != "mlp" else
@@ -603,7 +653,10 @@ def _run(args, fv, mt, ms, checks, predec, oof_dir: Path, side: Path, threads: i
         "The NaN fill values (15.14 column means) are computed on all 15.14 rows, as in ev4_03 and its CV (label-free)."
         + (" LightGBM bin edges come from a Dataset built on all 15.14 rows, as in ev4_03's CV (label-free)."
            if kind == "lgbm" else ""),
-        "Each fold model is calibrated on V_CAL (15.15), like V_frozen; no 15.14 row enters calibration.",
+        "Each fold model is calibrated on V_CAL (15.15), like V_frozen; no 15.14 row enters calibration."
+        + (" The frozen V is recalibrated (V revision): each fold's recalibration (frame-age bins x logit V, 4-knot "
+           "natural spline of game minute at the frozen V's knots) is refitted on V_CAL." if recal_spec is not None
+           else ""),
         "fold_k/train_match_ids.txt lists fit AND early-stopping matches of fold k (both informed the model).",
     ] + (["The MLP fold models average seeds 0, 1, 2 like the final fit; ev4_03's CV used seed 0 only, so these are "
           "new fits, not the CV fits."] if kind == "mlp" else [])
@@ -624,6 +677,7 @@ def _run(args, fv, mt, ms, checks, predec, oof_dir: Path, side: Path, threads: i
                        "report_e4_sha256": fv["report_sha256"], "chosen": kind},
              "inputs": {r: {"dir": v["dir"], "manifest_sha256": v["manifest_sha256"]} for r, v in inputs.items()},
              "predecisions_sha256": predec["sha256"], "decisions": DECISIONS, "code_sha256": code_hashes(),
+             "v_structure": v_structure,
              "verification": {"train_ids_exclude_own_fold": True, "coverage_v_rows_rate": cov_v["rate"],
                               "coverage_engagement_rows_rate": cov_e["rate"],
                               "cv_reproduction_max_abs_diff": repro_max,

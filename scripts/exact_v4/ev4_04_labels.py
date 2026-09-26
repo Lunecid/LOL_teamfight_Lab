@@ -191,7 +191,9 @@ DECISIONS = {
     "L7_v_source": "15.14: out-of-fold V (fold cv_fold(match)), refused until ev4_03 exports OOF_SPEC; 15.15 / held-out: "
                    "frozen V (assert_v_usable + load_v sha); 15.14/15.15 V inputs must be the labelled extracts; "
                    "held-out: the locked record 1 (assert_record1_locked) must name the V bundle sha256 in its "
-                   "top-level V_frozen_bundle_sha256",
+                   "top-level V_frozen_bundle_sha256; V bundle formats ev4_v_bundle_1 / _2 (side marker, optional "
+                   "recalibration applied inside V.predict on the StateV3 rows, side = +1); the frozen V's structure "
+                   "(side_marker, recalibrated) is recorded in inputs.v.v_structure and every OOF fold must share it",
     "L8_E5": "kill_diff_label (executions against the victim team); exchange_label_h (prices_1514 only, radius D, "
              "dead zone 300, ties excluded); next_objective_label_h (180 s, despawn skipped); for every h with e_h >= L; "
              "not for training",
@@ -619,8 +621,17 @@ def resolve_v(patch: str, v_manifest: Path, extract_manifest_sha: str, smoke: bo
     vf = VM.assert_v_usable(vman, allow_smoke=smoke)
     if vman.get("state_v3_name_hash") != STATE_V3_NAME_HASH:
         raise RuntimeError(f"V was fitted on StateV3 {vman.get('state_v3_name_hash')}, code has {STATE_V3_NAME_HASH}")
+    structure = VM.read_bundle_structure(vf["dir"], vf["bundle_sha256"])      # format 1 or 2; side / recalibration
+    for flag in ("side_marker", "recalibrated"):
+        if flag in vf and bool(vf[flag]) != bool(structure[flag]):
+            raise RuntimeError(f"V manifest V_frozen.{flag} = {vf[flag]}, V_frozen/bundle.json has {structure[flag]}")
     spec = {"manifest": str(vpath), "manifest_sha256": VM.sha256_file(vpath), "frozen": dict(vf),
-            "smoke": bool(vman.get("smoke")), "chosen": vman.get("chosen")}
+            "smoke": bool(vman.get("smoke")), "chosen": vman.get("chosen"),
+            "v_structure": {"bundle_format": structure["bundle_format"], "side_marker": structure["side_marker"],
+                            "recalibrated": structure["recalibrated"],
+                            "predict": "V.predict(StateV3 rows): side = +1 (blue perspective)"
+                                       + ("; recalibration from snapshot_age_s and time_minutes"
+                                          if structure["recalibrated"] else "")}}
     if patch in (TRAIN_PATCH, SELECT_PATCH):
         which = "train" if patch == TRAIN_PATCH else "select"
         want = ((vman.get("inputs") or {}).get(which) or {}).get("manifest_sha256")
@@ -635,6 +646,12 @@ def resolve_v(patch: str, v_manifest: Path, extract_manifest_sha: str, smoke: bo
         spec["record1_v"] = dict(record1_v)
     if patch == TRAIN_PATCH:
         oof = check_oof(vman, vf, smoke, vpath=vpath)
+        for k, f in oof["folds"].items():                  # the OOF folds must reproduce the frozen V's structure
+            fs = VM.read_bundle_structure(f["dir"], f["bundle_sha256"])
+            if fs["side_marker"] != structure["side_marker"] or fs["recalibrated"] != structure["recalibrated"]:
+                raise OOFNotAvailable(f"OOF fold {k} bundle has side_marker={fs['side_marker']} / recalibrated="
+                                      f"{fs['recalibrated']}, the frozen V has {structure['side_marker']} / "
+                                      f"{structure['recalibrated']}")
         spec.update(source="oof", oof=oof)
     else:
         spec.update(source="frozen")

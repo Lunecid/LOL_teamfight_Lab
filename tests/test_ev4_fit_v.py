@@ -353,6 +353,7 @@ def _write_fake_extract(d: Path, patch: str, n_matches: int, seed: int, guard, h
                 rows.append({"match_id": m, "bucket": k, "t": 120_000 * (k + 1) + int(rng.integers(0, 120_000))})
         X, y = _antisymmetric_data(len(rows), seed + c, **(data_kw or {}))
         X[:, NAMES.index("time_minutes")] = [r["t"] / 60000 for r in rows]
+        X[:, NAMES.index("snapshot_age_s")] = rng.uniform(0, 60, len(rows))       # frame ages over the 4 age bins
         mv = pd.DataFrame(rows)
         mv.insert(0, "row", np.arange(len(rows)))
         mv["game_end"] = [ge(r["match_id"]) for r in rows]
@@ -360,6 +361,7 @@ def _write_fake_extract(d: Path, patch: str, n_matches: int, seed: int, guard, h
         n_m = n_matches if patch == "15.15" else 0
         m0 = X[:n_m].copy()
         m1 = m0 + rng.normal(0, 0.05, m0.shape).astype(np.float32)
+        m1[:, NAMES.index("snapshot_age_s")] = rng.uniform(0, 60, n_m)
         mm = pd.DataFrame({"row": np.arange(n_m), "match_id": mids[:n_m], "t": 300_000, "h_ms": 50_000,
                            "game_end": [ge(m) for m in mids[:n_m]],
                            "frame_update": np.arange(n_m) % 2, "recent_deaths_ge3": (np.arange(n_m) % 4 == 0).astype(int)})
@@ -399,6 +401,25 @@ def test_end_to_end_synthetic(tmp_path):
     assert man["chosen"] == rep["selection"]["chosen"] in VM.SIMPLICITY_ORDER
     V = VM.load_v(out / "V_frozen", expected_sha256=man["V_frozen"]["bundle_sha256"])
     assert V.kind == man["chosen"]
+    # V revision: side marker in every candidate; conditional recalibration by the pre-specified rules
+    assert V.side_marker and V.bundle_format == VM.BUNDLE_FORMAT == man["V_frozen"]["bundle_format"]
+    for k in man["candidates"]:
+        assert VM.read_bundle_structure(out / "candidates" / k)["side_marker"]
+    assert rep["census"]["side_minus_rows"] == rep["census"]["swapped_rows"]
+    vr = rep["v_revision"]
+    assert vr["record"]["sha256"] == FV.V_REVISION_SHA256 == man["v_revision"]["record"]["sha256"]
+    assert vr["side_marker"]["added"] and vr["side_marker"]["n_model_columns"] == len(NAMES) + 1
+    rc = vr["recalibration"]
+    ch = man["chosen"]
+    want_trig = VM.recal_trigger(rep["martingale"][ch]["a_means"], rep["martingale"][ch]["b_p_primary_wild_bootstrap"])
+    assert rc["triggered"] == want_trig["triggered"] == man["v_revision"]["recalibration"]["triggered"]
+    assert V.recalibrated == rc["adopted"] == man["V_frozen"]["recalibrated"]
+    if rc["fitted"]:
+        ad = rc["adoption"]
+        assert ad["adopted"] == (ad["select_logloss_recalibrated"] - ad["select_logloss_side_marker"] <= 0.0005 + 1e-12)
+        assert ad["select_logloss_side_marker"] == pytest.approx(rep["e4"][ch]["cal"]["select"]["all"]["log_loss"])
+        assert rc["recalibrated_v"]["martingale"]["b_p_primary_wild_bootstrap"] is not None
+    assert man["V_frozen"]["bundle_sha256"] == (rc["bundle"]["bundle_sha256"] if rc["adopted"] else man["candidates"][ch])
     assert set(man["candidates"]) == set(VM.SIMPLICITY_ORDER)
     assert rep["census"]["select_rows"] + rep["census"]["cal_rows"] == 2 * 150 * 6
     assert rep["e4"]["gold"]["raw"]["select"]["all"]["auc"] > 0.6          # gold difference drives the synthetic target
