@@ -1,0 +1,62 @@
+{
+ "scope": "patch:15.14",
+ "patches": [
+  "15.14"
+ ],
+ "n_matches": 73972,
+ "n_intervals": 3668063,
+ "n_pairs_in_window": 1931761,
+ "gap_s": 13.963683610559377,
+ "gap_source": "valley",
+ "gap_ci_s": [
+  12.443360262254842,
+  15.577580348316028
+ ],
+ "gap_depth": 0.8745324918053763,
+ "gap_ok": true,
+ "gap_plateau_s": [
+  12.0,
+  18.0
+ ],
+ "plateau_ari": 0.9,
+ "diameter_u": 4285.264316413361,
+ "diameter_source": "crossover",
+ "diameter_ci_u": [
+  4270.676843453695,
+  4299.231825930586
+ ],
+ "diameter_mass_near": 0.017592238377314794,
+ "validity_radius_u": 1600.0,
+ "radius_source": "rule:champion-death experience share radius",
+ "radius_coverage": null,
+ "min_per_team": 2,
+ "lead_s": 15.0,
+ "lead_source": "rule:kill/assist credit window (Summoner's Rift)",
+ "pick_max_min": 1,
+ "skirmish_max_min": 3,
+ "provenance": {
+  "created": "2026-09-09T11:45:42",
+  "seed": 7,
+  "n_boot": 200,
+  "bandwidth": 0.08,
+  "gaps_swept_s": [
+   6,
+   8,
+   10,
+   12,
+   13,
+   14,
+   15,
+   16,
+   18,
+   20,
+   22,
+   24,
+   27,
+   30,
+   36,
+   45,
+   60
+  ]
+ }
+}

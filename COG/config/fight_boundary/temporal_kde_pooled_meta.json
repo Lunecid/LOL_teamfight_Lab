@@ -1,0 +1,25 @@
+{
+  "source_pairs_dir": "D:\\LOL_Project\\fusion_2615\\features\\fight_boundary_full",
+  "lock": "C:\\Users\\todtj\\PycharmProjects\\LOL_teamfight\\config\\fight_boundary\\details_pooled.json",
+  "n_matches": 208141,
+  "n_intervals": 10417458,
+  "n_fit": 1000000,
+  "bandwidth": 0.08,
+  "seed": 7,
+  "grid": [
+    -0.5,
+    3.0,
+    1401
+  ],
+  "mode1_s": 5.721369546523265,
+  "mode2_s": 62.73356959840379,
+  "valley_s": 13.724609610075618,
+  "depth": 0.8659863557385548,
+  "plateau_s": [
+    10.0,
+    18.0
+  ],
+  "lock_match": true,
+  "png": "C:\\Users\\todtj\\PycharmProjects\\LOL_teamfight\\config\\fight_boundary\\temporal_kde_pooled.png",
+  "npz": "C:\\Users\\todtj\\PycharmProjects\\LOL_teamfight\\config\\fight_boundary\\temporal_kde_pooled.npz"
+}

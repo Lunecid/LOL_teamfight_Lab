@@ -1,0 +1,24 @@
+{
+  "id": "COMMON_OBSERVED_r1_SMOKE_L3",
+  "purpose": "implementation smoke, not final architecture or history-length evidence",
+  "roles": {
+    "FIT_15.18": null,
+    "FIT_15.19": null,
+    "FIT_15.20": null,
+    "STOP_15.20": null
+  },
+  "selection": "md5('common-r1-smoke:' || match_id), within frozen role; n_queries>0; no outcome filtering",
+  "L": 3,
+  "seed": 17,
+  "torch_threads": 4,
+  "device": "cpu",
+  "epochs": 12,
+  "batch_size": 128,
+  "learning_rate": 0.001,
+  "tree_rounds": 24,
+  "tree_learning_rate": 0.05,
+  "tree_leaves": 15,
+  "tree_min_leaf": 20,
+  "full_training": false,
+  "test_access": false
+}

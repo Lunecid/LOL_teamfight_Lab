@@ -15,7 +15,7 @@ ablation_results/
 paper/
 
 # Raw match data (Riot API ToS: not redistributed)
-data/raw/
+**/data/raw/
 
 ### PyCharm ###
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio, WebStorm and Rider
@@ -307,3 +307,54 @@ poetry.toml
 pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/pycharm,python
+
+# Run-local inputs, data products, models, metrics, and provenance
+common_training_r1/CARD.json
+common_training_r1/DATA.joblib
+common_training_r1/DATA_MANIFEST.json
+common_training_r1/DB_SELECTION.json
+common_training_r1/RAW_SOURCE_HASHES.json
+common_training_r1/CANONICAL_ANCHORS.json
+common_training_r1/LOSS_SPEC.json
+common_training_r1/TEST_RESULTS.json
+common_training_r1/ACCEPTANCE.json
+common_training_r1/RESULTS.json
+common_training_r1/PREDICTIONS.npz
+common_training_r1/BASELINE.json
+common_training_r1/FEATURE_COVERAGE.json
+common_training_r1/READINESS.json
+common_training_r1/ENVIRONMENT.json
+common_training_r1/STRATA_USAGE.json
+common_training_r1/PROGRESS.json
+common_training_r1/TRAIN_TRACE.json
+common_training_r1/*.log
+common_training_r1/*.pt
+common_training_r1/*.joblib
+common_training_r1/review/
+common_training_r1/attempt_*/
+
+# Research pipeline runtime products
+research_pipeline/**/outputs/
+research_pipeline/**/runs/
+research_pipeline/**/review/
+research_pipeline/**/*.npz
+research_pipeline/**/*.joblib
+research_pipeline/**/*.pt
+research_pipeline/**/*.ckpt
+research_pipeline/**/MATCH_AUDIT.jsonl
+research_pipeline/**/SOURCE_LEDGER.jsonl
+research_pipeline/**/DISPOSITIONS.jsonl
+research_pipeline/**/RAW_CHECKPOINTS*/
+research_pipeline/**/staging/
+research_pipeline/**/strata_*.json
+research_pipeline/**/STRATA_USAGE.json
+
+# Staging inventories and local export helpers
+research_pipeline/STAGED_FILES.txt
+research_pipeline/STAGING_SKIPS.txt
+stage_research_code.py
+
+# Python bytecode and test caches
+
+
+
