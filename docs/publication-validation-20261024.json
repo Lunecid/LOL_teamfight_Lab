@@ -1,0 +1,201 @@
+{
+  "scope": "Fresh public source export, isolated serial CPU-only synthetic checks. No research entrypoint or real training run.",
+  "python_utf8_mode": true,
+  "initial_attempt": "Boundary subprocess capture failed with cp949 decoding while child output was UTF-8. Rerun with PYTHONUTF8=1 for consistent subprocess decoding; no implementation edit. CoG launcher tests then failed creating/cleaning sandbox TEMP files; identical remaining checks retried after filesystem approval.",
+  "results": [
+    {
+      "name": "boundaries",
+      "argv": [
+        "tools/check_project_boundaries.py"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 0.193,
+      "tail": [
+        "Project boundaries OK: 4 packaging declarations, 19 allowlisted AST files; no runtime imports executed."
+      ]
+    },
+    {
+      "name": "boundary_tests",
+      "argv": [
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_project_boundaries.py"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 1.139,
+      "tail": [
+        "----------------------------------------------------------------------",
+        "Ran 11 tests in 0.748s",
+        "",
+        "OK"
+      ]
+    },
+    {
+      "name": "runtime_tests",
+      "argv": [
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tools/project_runtime/tests",
+        "-p",
+        "test_runtime.py"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 0.715,
+      "tail": [
+        "----------------------------------------------------------------------",
+        "Ran 4 tests in 0.396s",
+        "",
+        "OK"
+      ]
+    },
+    {
+      "name": "cog_launcher",
+      "argv": [
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "COG/launcher_tests",
+        "-p",
+        "test_*.py"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 0.312,
+      "tail": [
+        "----------------------------------------------------------------------",
+        "Ran 19 tests in 0.114s",
+        "",
+        "OK (skipped=3)"
+      ]
+    },
+    {
+      "name": "master_launcher",
+      "argv": [
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "master_ver/launcher_tests",
+        "-p",
+        "test_*.py"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 0.334,
+      "tail": [
+        "----------------------------------------------------------------------",
+        "Ran 19 tests in 0.128s",
+        "",
+        "OK (skipped=1)"
+      ]
+    },
+    {
+      "name": "ept_pure",
+      "argv": [
+        "-m",
+        "pytest",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "-W",
+        "error",
+        "c_ept/tests/test_runtime_resources.py",
+        "c_ept/tests/test_ept_checkpoints.py",
+        "c_ept/tests/test_ept_training_step.py",
+        "--basetemp",
+        "C:\\Users\\todtj\\.codex\\visualizations\\2026\\10\\22\\01a16549-9684-7a63-9d92-63a80a0a2cb2\\modularization-gemini\\publication\\pytest-temp"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 1.382,
+      "tail": [
+        "....................................................                     [100%]",
+        "52 passed in 1.05s"
+      ]
+    },
+    {
+      "name": "ept_help",
+      "argv": [
+        "-m",
+        "c_ept.s4a_operator",
+        "--help"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 0.165,
+      "tail": [
+        "  -h, --help            show this help message and exit",
+        "  --action {Check,Start,Resume,Status}",
+        "  --config CONFIG",
+        "  --run RUN"
+      ]
+    },
+    {
+      "name": "cog_check",
+      "argv": [
+        "-m",
+        "lol_teamfight_cog",
+        "check",
+        "--source-root",
+        "C:\\Users\\todtj\\.codex\\visualizations\\2026\\10\\22\\01a16549-9684-7a63-9d92-63a80a0a2cb2\\modularization-gemini\\publication\\export\\COG",
+        "--entrypoint",
+        "main"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 0.113,
+      "tail": [
+        "  \"reference_only\": false,",
+        "  \"status\": \"available\",",
+        "  \"reason\": \"\"",
+        "}"
+      ]
+    },
+    {
+      "name": "master_check",
+      "argv": [
+        "-m",
+        "lol_teamfight_master",
+        "check",
+        "--source-root",
+        "C:\\Users\\todtj\\.codex\\visualizations\\2026\\10\\22\\01a16549-9684-7a63-9d92-63a80a0a2cb2\\modularization-gemini\\publication\\export\\master_ver",
+        "--entrypoint",
+        "v-worker"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 0.117,
+      "tail": [
+        "  \"reference_only\": false,",
+        "  \"status\": \"available\",",
+        "  \"reason\": \"\"",
+        "}"
+      ]
+    },
+    {
+      "name": "local_config_ignore",
+      "argv": [
+        "-m",
+        "pytest",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "c_ept/tests/test_s4a_operator.py::test_integrated_example_declares_verified_api_without_weakening_guards"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 0.736,
+      "tail": [
+        ".                                                                        [100%]",
+        "1 passed in 0.30s"
+      ]
+    }
+  ],
+  "all_passed": true,
+  "excluded": "Private-baseline git-show equivalence tests, full scientific suites, GPU and research executions.",
+  "publication_review": "Independent review accepted the publication scope and prerequisite disclosures; unchanged implementation blobs preserved.",
+  "whitespace_check": {
+    "result": "Existing source whitespace/EOF warnings retained to preserve reviewed source blobs; publication-authored text normalized to LF.",
+    "diagnostic_count_before_publication_text_normalization": 10
+  }
+}

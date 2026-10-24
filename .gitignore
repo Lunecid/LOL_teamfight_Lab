@@ -358,3 +358,18 @@ stage_research_code.py
 
 
 
+
+# Public three-project snapshot: local inputs and unpublished research artifacts
+/configs/s4a.local.json
+/master_ver/protocol_full.json
+/master_ver/outputs/
+/master_ver/reports/
+/master_ver/docs/
+/master_ver/deliverables/
+/master_ver/legacy_oldlineage/
+/tools/manifests/
+.ai/
+.agents/
+.cursor/
+*.npz
+*.npy

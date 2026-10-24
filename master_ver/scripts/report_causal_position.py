@@ -1,0 +1,27 @@
+from pathlib import Path
+import json
+import numpy as np
+import pandas as pd
+ROOT=Path(__file__).resolve().parents[1];OUT=ROOT/'outputs/causal_position_20260914';CACHE=Path('D:/LOL_Project/cache/match_cache_fresh_v3_engage_status13')
+def main():
+    r=json.loads((OUT/'results.json').read_text());df=pd.read_csv(OUT/'match_metrics.csv',dtype={'patch':str});coverage=pd.read_csv(OUT/'coverage.csv');errors=[]
+    for row in df[df.method=='hold'].head(10).itertuples():
+        with np.load(CACHE/(row.match+'.npz'),allow_pickle=False) as z:t=z['minute_ts']/1000.;xy=z['xy_raw_minute'].astype(float)
+        dt=np.diff(t);good=(t[2:]>=180)&(dt[1:]>=45)&(dt[1:]<=75)&(dt[:-1]>=45)&(dt[:-1]<=75)
+        e=np.linalg.norm(xy[2:]-xy[1:-1],axis=2)[good].reshape(-1);errors.append(abs(e.mean()-row.mae))
+    checks=dict(reference_hold_max_error=max(errors),duplicate_match_method=int(df.duplicated(['match','method']).sum()),points_per_match_consistent=bool((df.groupby('match').n.nunique()==1).all()),processing_errors=len(r['errors']))
+    chosen=['hold','constant_velocity',*r['selected_on_1515'].values()]
+    lines=['# 과거 정보만 사용하는 위치 추정 비교','', '2026-09-14. 다음 관측 프레임을 입력에서 숨기고 위치를 예측했다. 주 예측 지평은45–75초이며 실제 교전 cutoff의0–60초 위치 정확도를 직접 측정한 것은 아니다.','',
+    f"기존 A3 인덱스에 나타난 {r['attempted_matches']:,}경기를 대상으로 했다. 이는 seeded20k 원본에서 교전 인덱스에 나타난 경기 목록이며 전체 코퍼스가 아니다. 처리 오류 {len(r['errors'])}개. 모든 방법에 같은 위치 정답을 사용했다.",'',
+    '15.14 개발 진단,15.15의 경기 동일 가중 위치MAE로 감쇠/KF 후보 선택,15.16 비교.15.16은 기존 프로젝트에서 이미 활용된 탐색 자료이며 새로운 외부 시험이 아니다.','',
+    '## 선택된 방법의15.16 결과','', '| 방법 | 경기 수 | 플레이어·시점 수 | 평균 위치오차 u | RMSE u | 오차≤1600u |','|---|---:|---:|---:|---:|---:|']
+    for name in chosen:
+        a=next(x for x in r['summary'] if x['patch']=='15.16' and x['method']==name);lines.append(f"| {name} | {a['matches']:,} | {a['points']:,} | {a['mae']:.1f} | {a['rmse']:.1f} | {a['within1600']*100:.2f}% |")
+    lines+=['','## 마지막 위치 유지 대비 오차 차이','', '| 방법 | MAE 차이 u | 경기 bootstrap95% CI |','|---|---:|---:|']
+    for a in r['paired_1516']:lines.append(f"| {a['method']} | {a['mae_minus_hold']:+.1f} | {a['ci95'][0]:+.1f}–{a['ci95'][1]:+.1f} |")
+    lines+=['','양수는 마지막 위치 유지보다 나쁜 위치 오차다. CI는 경기 단위500회 bootstrap(seed7). MAE는 경기별 평균Euclidean 오차를 경기 동일 가중 평균한 값이다. 후보 전체의 패치별 결과는 JSON에 보존했다.','',
+    '## 해석 범위','', '- 위치의 전략적 중요성과 오래된 관측에서 정확한 위치를 복원할 수 있는지는 다른 질문이다.', '- 감쇠와 칼만의 일반 이론이LoL의 분 단위 이동을 잘 예측한다는 보증은 없다. 과거 평균 이동 방향은 급회전·귀환·사망/이동 불연속을 설명하지 못할 수 있다.', '- 이번 KF는 등속/가속도잡음과 고정 관측잡음 가정의 최소 비교 모델이다. 다른KF 계열 전체가 불가능하다는 결론으로 확대하지 않는다.', '- 분 단위 프레임을 숨기는 평가로15초/30초/45초 중간 위치의 실제 정답을 만들 수는 없다. 미래 보간 위치를 정답으로 사용하는 것은 별도 가정을 평가하는 순환적 검증이 될 수 있다.', '- 입력 채택 전: 실제 마지막 관측 좌표와 관측 나이를 보존하고, 추정 좌표를 정확한 위치처럼 취급하지 않는다. 고빈도 독립 정답과 교전 예측의 위치 특징 제거/추가 비교가 후속 과제다.', '- 이번 작업에서 q나SHAP을 재학습하지 않았고 기존 탐지용 보간은 변경하지 않았다.','',
+    '## 검증','', '```json',json.dumps(checks,indent=2),'```','',
+    '## 재현','', '- [실행 전 명세](CAUSAL_POSITION_PROTOCOL_20260914.md)','- [실험 코드](../scripts/benchmark_causal_position.py)','- [독립 재계산 및 보고 코드](../scripts/report_causal_position.py)','- [패치별 모든 후보와 선택 기록](../outputs/causal_position_20260914/results.json)','- [경기별 지표](../outputs/causal_position_20260914/match_metrics.csv)','- [관측 범위/제외 내역](../outputs/causal_position_20260914/coverage.csv)']
+    (ROOT/'docs/CAUSAL_POSITION_RESULTS_20260914.md').write_text('\n'.join(lines),encoding='utf-8');(OUT/'verification.json').write_text(json.dumps(checks,indent=2));print(json.dumps(checks))
+if __name__=='__main__':main()

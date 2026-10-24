@@ -1,0 +1,313 @@
+{
+  "schema": "gemini_comment_review_v1",
+  "route": "OpenCodex /v1/responses",
+  "requested_model": "google-antigravity/gemini-3.8-flash",
+  "review": "Codex checked model drafts against source before application; independent review is separate.",
+  "scope": "Changed components and a bounded stale-comment scan, not every comment in the repository.",
+  "batches": [
+    {
+      "name": "runtime-v2",
+      "actual_model": "gemini-3.8-flash",
+      "status": "completed",
+      "provider_reported_usage": {
+        "input_tokens": 5346,
+        "output_tokens": 3028,
+        "total_tokens": 8374,
+        "input_tokens_details": {
+          "cached_tokens": 0
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 3283
+        }
+      },
+      "application_proof": {
+        "c_ept/runtime/resources.py": {
+          "before_sha256": "121d986e7ecd38fe2aa05c1e9b6ee42da1e8c2e59b78aced7ed65122bcbbf05e",
+          "after_sha256": "e8155a4aa641c0c41003455e553736e430a91abe9a75da9b64980096f6d2cd78",
+          "executable_ast_equal": true,
+          "symbols": [
+            "<module>",
+            "tree_memory",
+            "ProcessTreeSampler",
+            "ProcessTreeSampler.scope",
+            "E6Guard",
+            "E6Guard.window"
+          ]
+        },
+        "c_ept/ept/checkpoints.py": {
+          "before_sha256": "53f8cea5b8bc70ae2fed47ececd201a8bbee6c60e6976f45a1612d6897a470f7",
+          "after_sha256": "868033a39e96fc62f29369c23b088caaee0cb1606558879409068b4e7f7ba2a9",
+          "executable_ast_equal": true,
+          "symbols": [
+            "<module>",
+            "write_atomic",
+            "latest_checkpoint",
+            "save_checkpoint"
+          ]
+        },
+        "c_ept/ept/training_step.py": {
+          "before_sha256": "84cead0d4f43032a0b97ab9dd4942e89e4dcf1a0d24ba4bb3a480580f8b4dc5f",
+          "after_sha256": "aea05351fbbf537459b7f87ef2b9c2c89d6fb7cb44c657ed50b6959809ce74c6",
+          "executable_ast_equal": true,
+          "symbols": [
+            "<module>",
+            "optimize_batch"
+          ]
+        }
+      }
+    },
+    {
+      "name": "projects",
+      "actual_model": "gemini-3.8-flash",
+      "status": "completed",
+      "provider_reported_usage": {
+        "input_tokens": 5296,
+        "output_tokens": 2390,
+        "total_tokens": 7686,
+        "input_tokens_details": {
+          "cached_tokens": 0
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "application_proof": {
+        "COG/app/fusion_spec.py": {
+          "before_sha256": "a13ea75e5b8d467cba64b69a1fe8a1b54a9bb457d9bfd55991ac1601c3316d2e",
+          "after_sha256": "62a9bcf53e3cca9c97190bff6f547893af7082a3b242ff2653392925f3932ced",
+          "executable_ast_equal": true,
+          "symbols": [
+            "<module>",
+            "_parse_model_list",
+            "_expand_single_fusion_expr",
+            "_expand_fusion_exprs"
+          ]
+        },
+        "master_ver/studies/v_production_20261004/metrics.py": {
+          "before_sha256": "6c6b9e670e15909f4b96c294f1770c69e1b271f72d05856f75fbe3e2147dc627",
+          "after_sha256": "ea9af11ac638040bb18d96a08a80f782599dcc26bd4b244ad3e8b916b35059c8",
+          "executable_ast_equal": true,
+          "symbols": [
+            "<module>",
+            "_sigmoid",
+            "raw_logloss_from_logits",
+            "raw_logloss_from_probability"
+          ]
+        },
+        "tools/project_runtime/src/lol_project_runtime/launcher.py": {
+          "before_sha256": "eab8394490ffbafee71a532f918542b9a0f047939c47f604372059a1b4470e7b",
+          "after_sha256": "c6580b277559e90ec35c755ff408d68a3fbeb5a7884579a148114ccaa1e7d50c",
+          "executable_ast_equal": true,
+          "symbols": [
+            "<module>",
+            "validate_source_root",
+            "source_manifest",
+            "build_launch_plan",
+            "execute_plan"
+          ]
+        },
+        "tools/project_runtime/src/lol_project_runtime/cli.py": {
+          "before_sha256": "36897c0413fcb9282efc1d1dc6d361bfb0d9943d87498b8b0da63cd80f5fd991",
+          "after_sha256": "37c4e1d1275034fed53734fac722a3c35851a6c40c0b1795a1a49b7d8585e45c",
+          "executable_ast_equal": true,
+          "symbols": [
+            "<module>",
+            "main"
+          ]
+        }
+      }
+    },
+    {
+      "name": "rate",
+      "actual_model": "gemini-3.8-flash",
+      "status": "completed",
+      "provider_reported_usage": {
+        "input_tokens": 4824,
+        "output_tokens": 2162,
+        "total_tokens": 6986,
+        "input_tokens_details": {
+          "cached_tokens": 0
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 5183
+        }
+      },
+      "application_proof": {
+        "c_ept/ept/heads.py": {
+          "before_sha256": "16121a869df5264fb90ff23e9b4691316a1170f803a9a316bf7220ec95fc496d",
+          "after_sha256": "838a322ca1c4c5ae104a5d7c8642b73bc8f4e9f6048fdbf9f7b054013f2eadfc",
+          "executable_ast_equal": true,
+          "symbols": [
+            "EPTHeads.m2_rate",
+            "FrameAveraged.m2_rate"
+          ]
+        },
+        "c_ept/ept/compose_heads.py": {
+          "before_sha256": "b54068663b0ce3435c2896c122198f86878118ec0d66f8d61e7669a3d53e9bc9",
+          "after_sha256": "62021a936f63d8f188150175c2e0a9e54f7a0df6c293a0989a77cf0e4bc990fa",
+          "executable_ast_equal": true,
+          "symbols": [
+            "EPTComposerHeads.rate"
+          ]
+        },
+        "c_ept/ept/train.py": {
+          "before_sha256": "ead6361224577ceee30b7a89bde0e98663f5443f0877e3e1ca3eebc97f3dd64c",
+          "after_sha256": "1fe26afdc6142ea9bd9e0b2fa11771f57360e742e3f62a877a0ba8244363a1d9",
+          "executable_ast_equal": true,
+          "symbols": [
+            "score_blocks",
+            "evaluate_stop"
+          ]
+        }
+      }
+    },
+    {
+      "name": "stale",
+      "actual_model": "gemini-3.8-flash",
+      "status": "completed",
+      "provider_reported_usage": {
+        "input_tokens": 5662,
+        "output_tokens": 5350,
+        "total_tokens": 11012,
+        "input_tokens_details": {
+          "cached_tokens": 0
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 9602
+        }
+      },
+      "application_proof": {
+        "c_ept/ept/__init__.py": {
+          "before_sha256": "ade46907b4a8d32cbe898fc734f9a4c439774efc6081076003311d4a59c42cd0",
+          "after_sha256": "eb7e309ec4ca766a53b8cff82a894837e00ea8443bc7322720529c84a45e6ca9",
+          "executable_ast_equal": true,
+          "symbols": [
+            "<module>"
+          ]
+        },
+        "c_ept/run_s4a.py": {
+          "before_sha256": "6001b2ee534e64e7b749b58d992f2a516d89bbb5ce8c0b77500d97e8c2b5d314",
+          "after_sha256": "6c56dd7018c1da4d1bf174c507f3868a0cd9ff7e5a5e4e20bd7916afdfff2ba3",
+          "executable_ast_equal": true,
+          "symbols": [
+            "<module>"
+          ]
+        },
+        "COG/runner.py": {
+          "before_sha256": "04334874837aca31231043f8a8a972a3b085db4418ae001007614d9dec70d3ae",
+          "after_sha256": "453bdec80d9914cb58972f8abee10835bdef04cb611df68849084624b3c6ffde",
+          "executable_ast_equal": true,
+          "symbols": [
+            "_run_isolated_per_model"
+          ]
+        },
+        "c_ept/ept/train.py": {
+          "before_sha256": "1fe26afdc6142ea9bd9e0b2fa11771f57360e742e3f62a877a0ba8244363a1d9",
+          "after_sha256": "6649efd966f3cb3a5147b47a0fe2ecd3c26b18a02a50f5913ba7682d5862b443",
+          "executable_ast_equal": true,
+          "symbols": [
+            "<module>"
+          ]
+        },
+        "c_ept/ept/heads.py": {
+          "before_sha256": "838a322ca1c4c5ae104a5d7c8642b73bc8f4e9f6048fdbf9f7b054013f2eadfc",
+          "after_sha256": "24b4d8af1eaeffbc80f8a8deba9319bb0b295ba45af69dff95ed32aecc6d0321",
+          "executable_ast_equal": true,
+          "symbols": [
+            "<module>"
+          ]
+        }
+      }
+    }
+  ],
+  "files": {
+    "c_ept/runtime/resources.py": {
+      "final_sha256": "c9bfe82bf58e20edbdc9b60bcdcf549b1a5cc2f2257d04ceded8b79d3921a14b",
+      "whitespace_cleanup_executable_ast_equal": true,
+      "before_cleanup_sha256": "497294a01bbcf824a39c44435f153ca7ac2ec8a3ff2e01f8214285deba46376a"
+    },
+    "c_ept/ept/checkpoints.py": {
+      "final_sha256": "6ca70b7dddbeca3f1e83481cded9270f7384c971d8f7d7e9fde60336ad6d952e",
+      "whitespace_cleanup_executable_ast_equal": true,
+      "before_cleanup_sha256": "d35ea8d59d56d38d010d8dc342a6aaa767246df210f3bd74b751877e2e03892c"
+    },
+    "c_ept/ept/training_step.py": {
+      "final_sha256": "584bb824ce7f0e62c97e82bf75aa00c52c419680a34d735335642023454a434a",
+      "whitespace_cleanup_executable_ast_equal": true,
+      "before_cleanup_sha256": "584bb824ce7f0e62c97e82bf75aa00c52c419680a34d735335642023454a434a"
+    },
+    "COG/app/fusion_spec.py": {
+      "final_sha256": "53a898e9dae125306d8f109bf6bfded8c28d379c9bea11d93de87b490501fd3d",
+      "whitespace_cleanup_executable_ast_equal": true,
+      "before_cleanup_sha256": "53a898e9dae125306d8f109bf6bfded8c28d379c9bea11d93de87b490501fd3d"
+    },
+    "master_ver/studies/v_production_20261004/metrics.py": {
+      "final_sha256": "44e229a8ac7609cc984a4d9f5500133734e0ac544b41152460720e833915aceb",
+      "whitespace_cleanup_executable_ast_equal": true,
+      "before_cleanup_sha256": "44e229a8ac7609cc984a4d9f5500133734e0ac544b41152460720e833915aceb"
+    },
+    "tools/project_runtime/src/lol_project_runtime/launcher.py": {
+      "final_sha256": "e21d1d1c027d66f9247d6caca61f1ffe5a16bfadd879f7d533e7a6d0697b343f",
+      "whitespace_cleanup_executable_ast_equal": true,
+      "before_cleanup_sha256": "e21d1d1c027d66f9247d6caca61f1ffe5a16bfadd879f7d533e7a6d0697b343f"
+    },
+    "tools/project_runtime/src/lol_project_runtime/cli.py": {
+      "final_sha256": "593291f4c11f9446a3312aa3f7efdf9a31eb62dbc3edf28e62557b77aa5ffe4c",
+      "whitespace_cleanup_executable_ast_equal": true,
+      "before_cleanup_sha256": "593291f4c11f9446a3312aa3f7efdf9a31eb62dbc3edf28e62557b77aa5ffe4c"
+    },
+    "c_ept/ept/heads.py": {
+      "final_sha256": "c9484a7fde8b1a27927aac4e9139c8625d23da235af3690cabc8730e7df17322",
+      "whitespace_cleanup_executable_ast_equal": true,
+      "before_cleanup_sha256": "c9484a7fde8b1a27927aac4e9139c8625d23da235af3690cabc8730e7df17322"
+    },
+    "c_ept/ept/compose_heads.py": {
+      "final_sha256": "e620d55d488ca43df84d6ac0c219803ef413e52a7ad4ae0408fdc20c61d6091c",
+      "whitespace_cleanup_executable_ast_equal": true,
+      "before_cleanup_sha256": "e620d55d488ca43df84d6ac0c219803ef413e52a7ad4ae0408fdc20c61d6091c"
+    },
+    "c_ept/ept/train.py": {
+      "final_sha256": "9d53ceba09788cc562b69740f6b1bfc9c06b771d3c5992b013c8b270f0ef61aa",
+      "whitespace_cleanup_executable_ast_equal": true,
+      "before_cleanup_sha256": "9d53ceba09788cc562b69740f6b1bfc9c06b771d3c5992b013c8b270f0ef61aa"
+    },
+    "c_ept/ept/__init__.py": {
+      "final_sha256": "eb7e309ec4ca766a53b8cff82a894837e00ea8443bc7322720529c84a45e6ca9",
+      "whitespace_cleanup_executable_ast_equal": true,
+      "before_cleanup_sha256": "eb7e309ec4ca766a53b8cff82a894837e00ea8443bc7322720529c84a45e6ca9"
+    },
+    "c_ept/run_s4a.py": {
+      "final_sha256": "6c56dd7018c1da4d1bf174c507f3868a0cd9ff7e5a5e4e20bd7916afdfff2ba3",
+      "whitespace_cleanup_executable_ast_equal": true,
+      "before_cleanup_sha256": "6c56dd7018c1da4d1bf174c507f3868a0cd9ff7e5a5e4e20bd7916afdfff2ba3"
+    },
+    "COG/runner.py": {
+      "final_sha256": "c83e48fe7ff2b2ee3252926107f915656d3e77c44869e93c01d2310386769874",
+      "whitespace_cleanup_executable_ast_equal": true,
+      "before_cleanup_sha256": "c83e48fe7ff2b2ee3252926107f915656d3e77c44869e93c01d2310386769874"
+    }
+  },
+  "docstrings_applied": 37,
+  "discarded_attempts": [
+    {
+      "name": "runtime",
+      "status": "incomplete",
+      "applied": false
+    }
+  ],
+  "review_corrections": [
+    "No atomic E6 counter or unconditional sampler cleanup guarantee.",
+    "head.json existence is distinct from validity; checkpoint reads return bytes, not loaded tensors.",
+    "No multi-file transaction or power-loss durability claim from per-file fsync/replace.",
+    "Training scorer passes target dictionaries, not weights, to total_loss.",
+    "Master metrics flatten inputs and use unit-row means; NaN survives clipping, Inf/out-of-range values clip.",
+    "Source-root checks are not a sandbox, authenticity check, or scientific validation.",
+    "Training rate dispatch preserves full M2; injected callback RNG effects and mixed child modes are not guaranteed.",
+    "Historical missing-reference paths are marked unbundled; equation registry existence is not equation certification.",
+    "Original train/heads module equation text retained; no invented run_s4a Status action.",
+    "COG subprocess separation does not enforce physical RAM/GPU limits."
+  ],
+  "subsequent_noncomment_changes": [
+    "COG isolated-run child failure now returns nonzero through SystemExit(1); separately implemented, tested and reviewed."
+  ]
+}

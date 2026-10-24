@@ -3,20 +3,25 @@ requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "lol-teamfight-lab"
+name = "lol-teamfight-cog"
 version = "0.1.0"
-description = "ML pipeline for predicting League of Legends teamfight outcomes"
+description = "COG source-backed launcher; separate research sources required"
 requires-python = ">=3.8"
 license = {text = "MIT"}
 
-dependencies = [
+dependencies = ["lol-project-runtime==0.1.0"]
+
+[project.scripts]
+lol-teamfight-cog = "lol_teamfight_cog.cli:main"
+
+[project.optional-dependencies]
+legacy = [
     "torch>=2.0.0",
     "numpy>=1.21.0",
     "scikit-learn>=1.0.0",
     "lightgbm>=3.3.0",
 ]
 
-[project.optional-dependencies]
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
@@ -32,7 +37,7 @@ acquisition = [
     "httpx>=0.24.0",
 ]
 all = [
-    "lol-teamfight-lab[dev,analysis,acquisition]",
+    "lol-teamfight-cog[legacy,dev,analysis,acquisition]",
 ]
 
 [tool.pytest.ini_options]
@@ -41,18 +46,13 @@ python_files = ["test_*.py"]
 python_functions = ["test_*"]
 addopts = "-v --tb=short"
 
+[tool.setuptools]
+py-modules = []
+
 [tool.setuptools.packages.find]
-where = ["."]
-include = [
-    "acquisition*",
-    "analysis*",
-    "app*",
-    "core*",
-    "data*",
-    "gameplay*",
-    "train*",
-]
-exclude = ["tests*", "docs*", "paper*", "output*", "outputs*"]
+where = ["src"]
+include = ["lol_teamfight_cog"]
+namespaces = false
 
 [tool.mypy]
 python_version = "3.8"

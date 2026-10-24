@@ -1,0 +1,28 @@
+{
+  "files": {
+    "config/game_rules/datadragon_v2/champions_15.18.json": "5c319aafc2c7bdde3bda7de74f5092444afb4bbb60ef30d286dae624f173ce4c",
+    "config/game_rules/datadragon_v2/champions_15.19.json": "55ca638e9e280e244c693d00051646f2e0143315ea70232179158535179d65ae",
+    "config/game_rules/datadragon_v2/champions_15.20.json": "0e8f1a1a00e9696f83ea4ec639b2d564c9dcc8e06464b120dccf0c7b24028649",
+    "config/game_rules/datadragon_v2/champions_15.21.json": "f0a38b7f573280d596640ea52063573f05e8a83c87035b9920c7d2e312407e7e",
+    "config/game_rules/datadragon_v2/champions_15.22.json": "a0792d3c6930a5dcb67621bd20cfb1ccf2e096eba4289a91808287144f1335ef",
+    "config/game_rules/datadragon_v2/champions_16.13.json": "3823927842cc6e69c64055f58c7ec69c436a365a035ba14c437506d1a6116c70",
+    "config/game_rules/datadragon_v2/items_15.18.json": "5b8a3445d0d78c04218b85d4a5039c79b28d624d536663b4c55900b8f55dbbc7",
+    "config/game_rules/datadragon_v2/items_15.19.json": "5cd37a25323649bf5c9d4e0e85df9d169511076df3fd4dd4a70dd50234fb95aa",
+    "config/game_rules/datadragon_v2/items_15.20.json": "076f9892ccd741f663eb621febbb1d608f8442c42e1f55e1615b80ad06af199e",
+    "config/game_rules/datadragon_v2/items_15.21.json": "a472e10e2dcd49dd95bfc163e194f67c498f84e01cb91e9123804851a9ebe628",
+    "config/game_rules/datadragon_v2/items_15.22.json": "75e205bb63f92a7cf217f60f34db9ccbbbd8b34227601d744a07a3082ccc6375",
+    "config/game_rules/datadragon_v2/items_16.13.json": "a51c8b12a225579f83a6968e47d48d5f6964cf27f9d57a670bb7ccd7790c3faa",
+    "config/game_rules/item_effect_flags.json": "bb94e41475ebe0f2531a0356a9d4f0fe600409601a2cacf4e776342b89844dd6",
+    "config/game_rules/item_rules_15x.json": "f900000c5e65e83ddb4704c15ee1fb9cb7e72bbfd72aede86f794645748c6fda",
+    "config/game_rules/item_rules_16x.json": "b4a17ce2b43f1b3d17598f997c68b279af6687f69481d93a2dc4fb4ed7fea8d8",
+    "config/game_rules/map_anchors.json": "64d9d41cc39db10ce78133959adf60664b9e4dbec8342b69a6955d19b6386f83",
+    "config/game_rules/objective_rules.json": "70d40ae89d487b967987c45a7cdad52b7f58cf1d31f644c81c9de637ca9d9910",
+    "gameplay/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "gameplay/champion_attributes.py": "49f59375886b0256f998f1dfd1f4d63841ab4dd863fa47acd3d274909b215a80",
+    "gameplay/event_survival.py": "31805988b99d61598c4b1823bdfef135566c512484ad46487543e44f8e7c67bf",
+    "gameplay/item_state.py": "7e3689f187122f6f2c104140b3e0f9897a3259a5573f8bbd944141c92f91ae1a",
+    "gameplay/objective_timers.py": "fc4a0f7d631eba4bd4b58445c456c8239ec86eaff5ce5cc5a48d27f357177446",
+    "gameplay/respawn_rules.py": "ba2b46be35b62c1d3113f31e7bed250108016313d9a93b95d3db6c2ac162a294"
+  },
+  "head": "5cf5cac542e93d192e8b8b6533cc9c683de28f5a"
+}

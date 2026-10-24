@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import itertools
 import subprocess
 import sys
 from typing import Dict, List, Optional, Tuple
@@ -10,27 +9,23 @@ from core.config import cfg
 from app.experiment import run
 from train.speed import apply_speed_profile
 from core.utils import set_seed
-
-
-def _parse_model_list(x) -> List[str]:
-    if x is None:
-        return []
-    if isinstance(x, str):
-        x = x.replace(";", ",")
-        return [t.strip() for t in x.split(",") if t.strip()]
-    if isinstance(x, (list, tuple)):
-        out = []
-        for t in x:
-            if t is None:
-                continue
-            s = str(t).strip()
-            if s:
-                out.append(s)
-        return out
-    try:
-        return [str(t).strip() for t in list(x) if str(t).strip()]
-    except Exception:
-        return []
+from app.fusion_spec import (
+    _parse_model_list,
+    _FUSION_GLOBAL_ORDER,
+    _FUSION_GNN_ORDER,
+    _FUSION_EVENT_ORDER,
+    _FUSION_LOGIT_ORDER,
+    _FUSION_GLOBAL_ALIASES,
+    _FUSION_GNN_ALIASES,
+    _FUSION_EVENT_ALIASES,
+    _FUSION_LOGIT_ALIASES,
+    _stable_unique,
+    _axis_key_from_token,
+    _normalize_fusion_axis_key,
+    _expand_fusion_axis_values,
+    _expand_single_fusion_expr,
+    _expand_fusion_exprs,
+)
 
 
 def _normalize_split_mode(mode: str) -> str:
@@ -50,57 +45,6 @@ def _normalize_split_mode(mode: str) -> str:
     return m
 
 
-_FUSION_GLOBAL_ORDER: Tuple[str, ...] = ("ugru", "bigru", "ulstm", "bilstm", "transformer", "tcn", "mamba")
-_FUSION_GNN_ORDER: Tuple[str, ...] = ("gcn", "graphsage", "graphtransformer", "gatv2", "mpnn")
-_FUSION_EVENT_ORDER: Tuple[str, ...] = ("attn", "xattn", "mean")
-_FUSION_LOGIT_ORDER: Tuple[str, ...] = ("1", "0")
-
-_FUSION_GLOBAL_ALIASES: Dict[str, str] = {
-    "gru": "ugru",
-    "ugru": "ugru",
-    "bigru": "bigru",
-    "lstm": "ulstm",
-    "ulstm": "ulstm",
-    "bilstm": "bilstm",
-    "transformer": "transformer",
-    "tcn": "tcn",
-    "mamba": "mamba",
-}
-_FUSION_GNN_ALIASES: Dict[str, str] = {
-    "gcn": "gcn",
-    "graphsage": "graphsage",
-    "sage": "graphsage",
-    "gnnsage": "graphsage",
-    "graphtransformer": "graphtransformer",
-    "gat": "gatv2",
-    "gatv2": "gatv2",
-    "mpnn": "mpnn",
-}
-_FUSION_EVENT_ALIASES: Dict[str, str] = {
-    "attn": "attn",
-    "xattn": "xattn",
-    "event_xattn": "xattn",
-    "mean": "mean",
-    "avg": "mean",
-    "pool": "mean",
-}
-_FUSION_LOGIT_ALIASES: Dict[str, str] = {
-    "1": "1",
-    "true": "1",
-    "on": "1",
-    "yes": "1",
-    "y": "1",
-    "with": "1",
-    "use": "1",
-    "0": "0",
-    "false": "0",
-    "off": "0",
-    "no": "0",
-    "n": "0",
-    "without": "0",
-    "drop": "0",
-}
-
 _PAPER_CORE4_MODELS = ",".join(
     [
         "rnn_bigru",
@@ -118,180 +62,6 @@ _PAPER_CORE4_OPTIMAL_MODELS = ",".join(
         "layered_fusion@global=bigru+gnn=graphsage+event=xattn+logit=1",
     ]
 )
-
-
-def _stable_unique(xs: List[str]) -> List[str]:
-    seen = set()
-    out: List[str] = []
-    for x in xs:
-        if x in seen:
-            continue
-        seen.add(x)
-        out.append(x)
-    return out
-
-
-def _axis_key_from_token(tok: str) -> Optional[Tuple[str, str]]:
-    t = (tok or "").strip().lower()
-    if not t:
-        return None
-
-    if "=" in t:
-        k, v = t.split("=", 1)
-        return k.strip(), v.strip()
-    if ":" in t:
-        k, v = t.split(":", 1)
-        return k.strip(), v.strip()
-
-    if t in ("rnn_all", "global_all"):
-        return "rnn", "all"
-    if t in ("gnn_all", "graph_all"):
-        return "gnn", "all"
-    if t in ("event_all",):
-        return "event", "all"
-    if t in ("logit_all", "lgbm_all"):
-        return "logit", "all"
-
-    if t.startswith(("rnn_", "global_")):
-        return "rnn", t
-    if t.startswith("gnn_"):
-        return "gnn", t
-    if t.startswith(("event_", "attn_")):
-        return "event", t
-    if t.startswith(("logit_", "lgbm_")):
-        return "logit", t
-
-    if t in _FUSION_GLOBAL_ALIASES:
-        return "rnn", t
-    if t in _FUSION_GNN_ALIASES:
-        return "gnn", t
-    if t in _FUSION_EVENT_ALIASES:
-        return "event", t
-    if t in _FUSION_LOGIT_ALIASES:
-        return "logit", t
-
-    return None
-
-
-def _normalize_fusion_axis_key(k: str) -> Optional[str]:
-    key = (k or "").strip().lower()
-    if key in ("rnn", "global", "g"):
-        return "rnn"
-    if key in ("gnn", "graph", "n"):
-        return "gnn"
-    if key in ("event", "attn", "e"):
-        return "event"
-    if key in ("logit", "lgbm", "use_logit", "use_lgbm_logit", "l"):
-        return "logit"
-    return None
-
-
-def _expand_fusion_axis_values(axis: str, raw_val: str) -> List[str]:
-    v = (raw_val or "").strip().lower()
-    if axis == "rnn":
-        if v in ("all", "rnn_all", "global_all"):
-            return list(_FUSION_GLOBAL_ORDER)
-        if v.startswith("global_"):
-            v = v[len("global_") :]
-        if v.startswith("rnn_"):
-            v = v[len("rnn_") :]
-        x = _FUSION_GLOBAL_ALIASES.get(v)
-        if x is not None:
-            return [x]
-        raise ValueError(f"Unsupported fusion rnn/global token: {raw_val!r}")
-
-    if axis == "gnn":
-        if v in ("all", "gnn_all", "graph_all"):
-            return list(_FUSION_GNN_ORDER)
-        if v.startswith("gnn_"):
-            v = v[len("gnn_") :]
-        x = _FUSION_GNN_ALIASES.get(v)
-        if x is not None:
-            return [x]
-        raise ValueError(f"Unsupported fusion gnn token: {raw_val!r}")
-
-    if axis == "event":
-        if v in ("all", "event_all"):
-            return list(_FUSION_EVENT_ORDER)
-        if v.startswith("event_"):
-            x = _FUSION_EVENT_ALIASES.get(v)
-            if x is not None:
-                return [x]
-            v = v[len("event_") :]
-        if v.startswith("attn_"):
-            v = v[len("attn_") :]
-        x = _FUSION_EVENT_ALIASES.get(v)
-        if x is not None:
-            return [x]
-        raise ValueError(f"Unsupported fusion event token: {raw_val!r}")
-
-    if axis == "logit":
-        if v in ("all", "logit_all", "lgbm_all"):
-            return list(_FUSION_LOGIT_ORDER)
-        if v.startswith("logit_"):
-            v = v[len("logit_") :]
-        elif v.startswith("lgbm_"):
-            v = v[len("lgbm_") :]
-        x = _FUSION_LOGIT_ALIASES.get(v)
-        if x is not None:
-            return [x]
-        raise ValueError(f"Unsupported fusion logit token: {raw_val!r}")
-
-    raise ValueError(f"Unsupported fusion axis: {axis!r}")
-
-
-def _expand_single_fusion_expr(expr: str) -> List[str]:
-    parts = [p.strip() for p in str(expr or "").split("+") if p.strip()]
-    if not parts:
-        return []
-
-    axis_vals: Dict[str, List[str]] = {"rnn": [], "gnn": [], "event": [], "logit": []}
-
-    for p in parts:
-        kv = _axis_key_from_token(p)
-        if kv is None:
-            raise ValueError(f"Could not parse fusion token: {p!r}")
-        raw_k, raw_v = kv
-        axis = _normalize_fusion_axis_key(raw_k)
-        if axis is None:
-            raise ValueError(f"Unsupported fusion axis key: {raw_k!r}")
-        vals = _expand_fusion_axis_values(axis, raw_v)
-        for v in vals:
-            if v not in axis_vals[axis]:
-                axis_vals[axis].append(v)
-
-    rnn_vals = axis_vals["rnn"] or [None]
-    gnn_vals = axis_vals["gnn"] or [None]
-    event_vals = axis_vals["event"] or [None]
-    logit_vals = axis_vals["logit"] or [None]
-
-    out: List[str] = []
-    for rnn_v, gnn_v, event_v, logit_v in itertools.product(rnn_vals, gnn_vals, event_vals, logit_vals):
-        spec_parts: List[str] = []
-        if rnn_v is not None:
-            spec_parts.append(f"global=rnn_{rnn_v}")
-        if gnn_v is not None:
-            spec_parts.append(f"gnn=gnn_{gnn_v}")
-        if event_v is not None:
-            event_token = "event_xattn" if event_v == "xattn" else event_v
-            spec_parts.append(f"event={event_token}")
-        if logit_v is not None:
-            spec_parts.append(f"logit={logit_v}")
-
-        if spec_parts:
-            out.append("layered_fusion@" + "+".join(spec_parts))
-        else:
-            out.append("layered_fusion")
-
-    return _stable_unique(out)
-
-
-def _expand_fusion_exprs(raw: str) -> List[str]:
-    exprs = _parse_model_list(raw)
-    out: List[str] = []
-    for expr in exprs:
-        out.extend(_expand_single_fusion_expr(expr))
-    return _stable_unique(out)
 
 
 def _apply_paper_preset(args: argparse.Namespace) -> None:
@@ -664,18 +434,22 @@ def _run_isolated_per_model(
     model_list: List[str],
     parallel: int = 1,
 ) -> None:
-    """각 모델을 별도 프로세스로 실행하여 메모리 격리를 보장한다.
+    """각 모델을 별도 파이썬 서브프로세스로 실행하여 모델별 파이썬 인터프리터와 전역 실행 상태를 분리한다.
+
+    주의: 서브프로세스 분리는 파이썬 프로세스 간 네임스페이스 및 메모리 상태를 격리할 뿐이며,
+    OS 또는 하드웨어 수준의 물리적 RAM/GPU 메모리 격리나 자원 사용량 상한(cgroup/VRAM 제한)을 보장하지 않는다.
 
     parallel=1: 순차 실행 (기존 동작)
-    parallel≥2: 모든 모델(LGBM 포함)을 N개씩 동시 실행
+    parallel≥2: 모든 모델(LGBM 포함)을 parallel 개씩 배치 단위로 동시 실행
 
     각 서브프로세스가 독립적으로 experiment.run()을 호출하므로
     LGBM logit이 필요한 모델은 자체적으로 baseline을 학습한다.
-    따라서 LGBM을 별도 Phase로 분리할 필요 없이 동일한 병렬 풀에서 실행 가능.
+    따라서 LGBM을 별도 Phase로 분리할 필요 없이 동일한 병렬 풀에서 실행 가능하다.
 
-    프로세스 격리 보장:
-        ∀ i ≠ j: AddressSpace(M_i) ∩ AddressSpace(M_j) = ∅
-    """
+    실행 및 실패 처리:
+        각 서브프로세스의 종료 코드(returncode)를 수집하여 SUCCESS 또는 FAILED (exit=코드) 상태를 기록하며,
+        모든 배치 완료 후 요약(Summary)을 출력하고 실패한 모델 목록을 보고한 뒤 SystemExit(1)로 실패를 전달한다. 성공 시에는 정상 반환한다.
+    파일·데이터베이스·외부 서비스와 물리 RAM/GPU는 공유할 수 있으므로 부작용의 완전 격리를 뜻하지 않는다."""
     base_argv = _strip_isolate_args(raw_argv)
 
     total = len(model_list)
@@ -733,6 +507,7 @@ def _run_isolated_per_model(
     failed = [m for m, s in results.items() if not s.startswith("SUCCESS")]
     if failed:
         print(f"[ISOLATE] {len(failed)} model(s) FAILED: {failed}")
+        raise SystemExit(1)
     else:
         print(f"[ISOLATE] All {total} model(s) completed successfully.")
 

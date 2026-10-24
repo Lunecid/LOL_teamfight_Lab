@@ -1,0 +1,167 @@
+{
+  "schema": "ept_modularization_test_evidence_v1",
+  "date": "2026-10-24",
+  "branch": "codex/modularize-three-projects",
+  "baseline_commit": "282dcc36f2e175b33782fc0b4bcb31581e663612",
+  "provenance": "Transcribed from completed tool outputs and executed stdin harnesses; historical runs are not rerun by this evidence file. Temporary root is represented symbolically as $TEMP. This is not a byte-for-byte captured raw log.",
+  "native_environment": {
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "NUMEXPR_NUM_THREADS": "1",
+    "VECLIB_MAXIMUM_THREADS": "1",
+    "BLIS_NUM_THREADS": "1",
+    "LOKY_MAX_CPU_COUNT": "1",
+    "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "CUDA_VISIBLE_DEVICES": "-1"
+  },
+  "python_process_setup": [
+    "torch.set_num_threads(1)",
+    "torch.set_num_interop_threads(1)",
+    "original_defaults = train.deterministic_cpu.__defaults__",
+    "train.deterministic_cpu.__defaults__ = (1, None)",
+    "try: code = pytest.main(argv)",
+    "finally: train.deterministic_cpu.__defaults__ = original_defaults"
+  ],
+  "execution": "Separate fresh Python processes; serial CPU-only synthetic inputs; no xdist, real data, GPU or benchmarks",
+  "focused_runs": [
+    {
+      "name": "initial",
+      "entrypoint": "pytest.main",
+      "argv": [
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--maxfail=1",
+        "-W",
+        "error::pytest.PytestUnhandledThreadExceptionWarning",
+        "--basetemp",
+        "$TEMP/ept-focused-serial-20261024",
+        "c_ept/tests/test_run_s3.py::test_the_sampler_gives_each_scope_its_own_peak_and_scopes_nest",
+        "c_ept/tests/test_run_s3.py::test_the_sampler_thread_samples_while_the_call_runs_and_stops",
+        "c_ept/tests/test_run_s3.py::test_the_memory_of_a_list_of_processes_is_the_sum_of_their_private_bytes_and_of_their_peak_pagefile",
+        "c_ept/tests/test_run_s3.py::test_a_process_without_a_peak_pagefile_leaves_the_upper_bound_unknown_and_a_process_that_is_gone_is_skipped",
+        "c_ept/tests/test_run_s3.py::test_a_scope_records_the_largest_upper_bound_beside_its_peak_and_scopes_nest",
+        "c_ept/tests/test_run_s3.py::test_a_measure_that_gives_one_number_leaves_the_upper_bound_of_every_scope_unknown",
+        "c_ept/tests/test_run_s3.py::test_the_sampler_thread_takes_the_pairs_too",
+        "c_ept/tests/test_run_s3.py::test_the_guard_counts_and_times_the_e6_check_and_lets_a_refusal_through",
+        "c_ept/tests/test_run_s3.py::test_the_guard_looks_up_the_e6_check_at_the_time_of_the_call",
+        "c_ept/tests/test_ept_train.py::test_the_bounds_are_a_strict_memory_cap_and_an_inclusive_time_cap",
+        "c_ept/tests/test_ept_train.py::test_the_memory_sample_is_the_tree_of_this_process_and_its_children_through_the_public_runtime_helper",
+        "c_ept/tests/test_ept_train.py::test_the_guard_reads_the_sampler_and_the_clock_and_takes_no_sample_of_its_own",
+        "c_ept/tests/test_ept_train.py::test_pending_write_time_is_in_the_heartbeat_origin_and_orphan_charge",
+        "c_ept/tests/test_ept_train.py::test_pending_accounting_and_heartbeat_share_one_clock_sample",
+        "c_ept/tests/test_ept_train.py::test_files_are_flushed_to_disk_before_a_checkpoint_counts",
+        "c_ept/tests/test_ept_train.py::test_a_failed_write_of_the_last_file_leaves_the_earlier_checkpoint_valid",
+        "c_ept/tests/test_ept_train.py::test_a_failed_write_of_a_state_file_leaves_no_complete_checkpoint_behind",
+        "c_ept/tests/test_ept_train.py::test_a_managed_interruption_is_finalized_and_resumes_with_the_same_bits_whatever_the_epoch",
+        "c_ept/tests/test_ept_train.py::test_the_best_stop_state_is_returned_and_the_last_state_is_what_resumes",
+        "c_ept/tests/test_ept_train.py::test_m2_is_called_once_for_the_marks_and_zones_on_the_union_of_their_views_and_scores_as_before",
+        "c_ept/tests/test_ept_train.py::test_q10_components_are_measured_and_checkpoint_schema_is_explicit",
+        "c_ept/tests/test_ept_train.py::test_checkpoint_missing_q10_components_is_refused_before_tensor_loading"
+      ],
+      "result": {
+        "passed": 22,
+        "failed": 1,
+        "failure": "STOP FrameAveraged default training flag prevented rate-only dispatch; fixed"
+      },
+      "pytest_seconds": 24.15,
+      "wall_seconds_including_imports": 27.521
+    },
+    {
+      "name": "modefix",
+      "entrypoint": "pytest.main",
+      "argv": [
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--maxfail=1",
+        "-W",
+        "error::pytest.PytestUnhandledThreadExceptionWarning",
+        "--basetemp",
+        "$TEMP/ept-focused-modefix-20261024",
+        "c_ept/tests/test_ept_train.py::test_m2_is_called_once_for_the_marks_and_zones_on_the_union_of_their_views_and_scores_as_before",
+        "c_ept/tests/test_ept_train.py::test_the_loop_uses_frame_averaged_encode_epoch_batches_and_selective_m2",
+        "c_ept/tests/test_ept_train.py::test_a_managed_interruption_is_finalized_and_resumes_with_the_same_bits_whatever_the_epoch",
+        "c_ept/tests/test_ept_train.py::test_the_best_stop_state_is_returned_and_the_last_state_is_what_resumes",
+        "c_ept/tests/test_ept_train.py::test_q10_components_are_measured_and_checkpoint_schema_is_explicit",
+        "c_ept/tests/test_ept_train.py::test_checkpoint_missing_q10_components_is_refused_before_tensor_loading"
+      ],
+      "result": {
+        "passed": 6,
+        "failed": 0
+      },
+      "pytest_seconds": 14.48,
+      "wall_seconds_including_imports": 18.006
+    },
+    {
+      "name": "numeric",
+      "entrypoint": "pytest.main",
+      "argv": [
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--maxfail=1",
+        "-W",
+        "error::pytest.PytestUnhandledThreadExceptionWarning",
+        "--basetemp",
+        "$TEMP/ept-numeric-final-20261024",
+        "c_ept/tests/test_ept_training_step_numeric.py",
+        "c_ept/tests/test_ept_train.py::test_the_schedule_rises_over_the_warmup_then_follows_a_cosine_to_the_horizon",
+        "c_ept/tests/test_ept_train.py::test_a_longer_horizon_decays_more_slowly_and_the_value_depends_on_the_step_only",
+        "c_ept/tests/test_ept_train.py::test_two_runs_with_one_seed_are_bit_identical",
+        "c_ept/tests/test_ept_train.py::test_a_managed_interruption_is_finalized_and_resumes_with_the_same_bits_whatever_the_epoch",
+        "c_ept/tests/test_ept_train.py::test_evaluation_is_deterministic_draws_no_random_numbers_and_leaves_no_gradient"
+      ],
+      "result": {
+        "passed": 6,
+        "failed": 0
+      },
+      "pytest_seconds": 13.26,
+      "wall_seconds_including_imports": 16.171
+    }
+  ],
+  "focused_wall_seconds_total": 61.698,
+  "pure_suite": {
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "-q",
+      "-p",
+      "no:cacheprovider",
+      "-W",
+      "error",
+      "c_ept/tests/test_runtime_resources.py",
+      "c_ept/tests/test_ept_checkpoints.py",
+      "c_ept/tests/test_ept_training_step.py",
+      "--basetemp",
+      "$TEMP/ept-modularization-pure-20261024-ready"
+    ],
+    "result": {
+      "passed": 52,
+      "failed": 0,
+      "warnings": 0
+    },
+    "pytest_seconds": 0.97
+  },
+  "numeric_scope": "Real loss.total_loss over two synthetic differentiable score rows and real AdamW, checked against closed-form bias-corrected moments/decoupled weight decay; synthetic optimizer bytes verified and restored, next-step weights and optimizer moments bit-identical. Existing same-seed/managed-resume/LR/eval-RNG tests also passed.",
+  "independent_review": {
+    "reviewer": "Zeno",
+    "status": "ACCEPT",
+    "final_eval_reconciliation": "accepted per user confirmation"
+  },
+  "gemini_docstrings": {
+    "status": "applied to three components; executable AST equal per lead/user confirmation",
+    "edited_by_this_worker_after_lead_takeover": false
+  },
+  "deferred": [
+    "full targeted suite while Task8 live",
+    "full 4302-test regression",
+    "hard-interrupt subprocess matrix under production defaults",
+    "GPU and actual-input validation",
+    "benchmarks"
+  ],
+  "commit_push": "not performed"
+}
