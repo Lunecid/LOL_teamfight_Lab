@@ -1,9 +1,11 @@
 # Code map
 
+[Working guidelines](docs/WORKING_GUIDELINES_KO.md)
+
 [Repository overview](README.md) · [EPT](c_ept/MODULES.md) · [CoG](COG/MODULES.md) · [Master](master_ver/MODULES.md)
 
 The implementation folders below are the starting points for new code. Historical
-import and script paths remain as small compatibility entry points. Each moved
+import names and supported module/script commands retain compatibility entry points. Each moved
 implementation has one source file; the entry points do not contain a second copy
 of its calculations.
 
@@ -19,14 +21,23 @@ of its calculations.
 | [`c_ept/ept/`](c_ept/ept/) | EPT encoder, heads, loss, training step, checkpoints and training orchestration. |
 | [`c_ept/runtime/`](c_ept/runtime/) | Resource observations and execution support. |
 | [`c_ept/checks/`](c_ept/checks/) | Contract checks used by the research workflow. |
+| [`c_ept/workflows/`](c_ept/workflows/) | Stage runners, the manual cost operator and its lightweight startup policy. |
+| [`c_ept/reporting/`](c_ept/reporting/) | Existing S1, S2 and S3 report builders. |
+| [`c_ept/_compat/`](c_ept/_compat/) | Compatibility entry files for historical module imports and commands. |
 
 For example, new code can use `from c_ept.data import reader` instead of relying
 on the old flat `c_ept.reader` path. The two paths refer to the same module object,
 so existing imports and monkeypatches continue to use the same state.
 
-Configuration, pinned legacy-resource access, protected cohort definitions and
-the `run_s*`/operator entry points keep their existing locations. This preserves
-their file-relative paths and published commands.
+The package root keeps configuration, pinned legacy-resource access, protected
+cohort definitions and the run-log location anchor. Removed EPT root file paths
+are no longer direct-file entry points; use `python -m c_ept.run_s4a` or the
+PowerShell wrapper for that command. Legacy imports and module
+commands resolve through `_compat/`; workflow implementations live in `workflows/`.
+The root now has five Python files (`__init__`, `cohort`, `config`, `legacy`,
+`runlog`), compared with 39 before this cleanup. Use the grouped folders for new
+edits. See [next execution steps](docs/S4A_NEXT_STEPS_KO.md)
+for the distinction between a development checkout and a frozen measurement checkout.
 
 ## CoG
 

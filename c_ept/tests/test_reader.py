@@ -477,7 +477,7 @@ def test_nothing_in_c_ept_opens_the_gate():
     subfolder (``checks/`` included), passes it anything but the constant False. The tests are not part of the package."""
     package = Path(C.__file__).parent
     scanned = package_modules(package)
-    assert {'reader.py', 'run_s1.py', 'traits.py', 'checks/common.py', 'checks/sweep_s1.py'} <= set(scanned)       # the scan is not empty
+    assert {'data/reader.py', 'workflows/run_s1.py', 'preprocessing/traits.py', 'checks/common.py', 'checks/sweep_s1.py'} <= set(scanned)       # the scan is not empty
     assert not any(rel.startswith('tests/') for rel in scanned)
     assert gate_offenders(package) == []
 
@@ -586,7 +586,7 @@ def test_the_scan_of_the_package_lists_the_folder_when_it_runs_and_skips_only_th
 def test_no_module_of_c_ept_but_the_reader_and_the_config_names_the_raw_file_location():
     package = Path(C.__file__).parent
     scanned = modules_to_scan(package)
-    assert 'run_s1.py' in scanned and 'reader.py' not in scanned and 'config.py' not in scanned       # the scan is not empty
+    assert 'workflows/run_s1.py' in scanned and 'data/reader.py' not in scanned and 'config.py' not in scanned       # the scan is not empty
     assert {'checks/common.py', 'checks/sweep_s1.py'} <= set(scanned)                       # the subfolder of the scripts is in it
     assert not any(rel.startswith('tests/') for rel in scanned)
     assert raw_location_offenders(package) == []

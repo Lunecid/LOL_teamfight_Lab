@@ -17,9 +17,10 @@ import re
 import subprocess
 import sys
 
+from c_ept import __path__ as _package_path
 from c_ept.s4a_runtime import RuntimeRefused, prepare_native_runtime, validate_e6_probe
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(_package_path[0]).resolve().parent
 RUN_NAME = re.compile(r'^\d{8}_c_ept_s4a_\d+$')
 
 class OperatorError(ValueError):

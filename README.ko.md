@@ -18,7 +18,7 @@
 
 데이터 처리와 학습을 돕는 코드는 [`research_pipeline/`](research_pipeline/)과 [`common_training_r1/`](common_training_r1/)에 있습니다. [`tools/project_runtime/`](tools/project_runtime/)은 CoG와 Master에서 소스 경로를 확인하고 프로그램을 실행할 때 함께 사용하는 작은 라이브러리입니다.
 
-[모듈별 코드 지도](MODULES.md)에서 실제 구현 폴더를 찾아볼 수 있습니다.
+[모듈별 코드 지도](MODULES.md)에서 실제 구현 폴더를 찾아볼 수 있습니다. EPT 실행과 보고 코드는 각 폴더에 모으고, 이전 import용 파일은 `_compat/`에 따로 둡니다.
 
 ## 시작하기
 
@@ -50,6 +50,8 @@ python -B tools/check_project_boundaries.py
 ```
 
 ## 더 살펴보기
+
+- [프로젝트 작업 지침](docs/WORKING_GUIDELINES_KO.md) — 역할·모델 사용·보호 파일·실행 관문·검증·보고·게시 원칙을 모았습니다.
 
 - [프로젝트 구성과 설치 안내](docs/MODULARIZATION_KO.md) — 패키지 배치와 모듈 간 역할을 설명합니다.
 - [CoG 연구 소개](COG/README.md) — 영어로 작성된 기존 연구 개요입니다. 코드 구성은 한국어 [CoG 모듈 안내](COG/MODULARIZATION.md)에서 볼 수 있습니다.

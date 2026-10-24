@@ -118,7 +118,7 @@ def test_probe_refusal_propagates_before_validation():
 
 def test_s3_compatibility_adapters_keep_dynamic_monkeypatch_points(monkeypatch):
     # Runner 전역 의존성은 로드하지 않고 실제 어댑터 정의만 실행한다.
-    tree = ast.parse((Path(__file__).parents[1] / 'run_s3.py').read_text(encoding='utf-8'))
+    tree = ast.parse((Path(__file__).parents[1] / 'workflows/run_s3.py').read_text(encoding='utf-8'))
     wanted = {'_tree_memory', '_Sampler', '_require_no_strata', '_Guard'}
     definitions = [node for node in tree.body if isinstance(node, (ast.FunctionDef, ast.ClassDef)) and node.name in wanted]
     ns = {'runtime': runtime, 'psutil': None}
@@ -147,7 +147,7 @@ def test_training_and_runtime_have_no_runner_import_and_s4_uses_public_apis():
         tree = ast.parse(source)
         imports = [n for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)]
         assert not any(n.module and '.run_s' in n.module for n in imports)
-    s4 = (root / 'run_s4a.py').read_text(encoding='utf-8')
+    s4 = (root / 'workflows/run_s4a.py').read_text(encoding='utf-8')
     assert 'checkpoints.latest_checkpoint(folder)' in s4
     assert 'train._latest_checkpoint' not in s4 and 'run_s3._Guard' not in s4
     assert 'from c_ept.run_s3 import _Sampler' not in s4

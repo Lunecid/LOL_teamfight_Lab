@@ -14,7 +14,7 @@ import tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
 SHARED_FILES = (
-    "c_ept/s4a_runtime.py",
+    "c_ept/workflows/s4a_runtime.py",
     "c_ept/runtime/__init__.py",
     "c_ept/runtime/resources.py",
     "c_ept/ept/checkpoints.py",

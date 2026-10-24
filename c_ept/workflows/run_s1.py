@@ -779,18 +779,47 @@ EXTRACTION_MODULES = ('config', 'reader', 'units', 'targets', 'frame_rows', 'eve
                       'casts')
 
 
+# Fixed source inventory includes implementations and all compatibility/package glue.
+EXTRACTION_PATHS = (
+    'c_ept/__init__.py',
+    'c_ept/_compat/__init__.py',
+    'c_ept/config.py',
+    'c_ept/data/reader.py',
+    'c_ept/_compat/reader.py',
+    'c_ept/domain/units.py',
+    'c_ept/_compat/units.py',
+    'c_ept/domain/targets.py',
+    'c_ept/_compat/targets.py',
+    'c_ept/data/frame_rows.py',
+    'c_ept/_compat/frame_rows.py',
+    'c_ept/data/event_rows.py',
+    'c_ept/_compat/event_rows.py',
+    'c_ept/data/store_core.py',
+    'c_ept/_compat/store_core.py',
+    'c_ept/workflows/run_s1.py',
+    'c_ept/_compat/run_s1.py',
+    'c_ept/legacy.py',
+    'c_ept/cohort.py',
+    'c_ept/data/casts.py',
+    'c_ept/_compat/casts.py',
+    'c_ept/data/__init__.py',
+    'c_ept/domain/__init__.py',
+    'c_ept/workflows/__init__.py',
+)
+
+
 def extraction_state() -> dict:
     """Which code made the arrays of a golden lock, as git sees it now: ``code_commit`` (HEAD), ``extraction_clean`` and ``dirty_paths``.
 
     ``extraction_clean`` is True only when git shows no uncommitted change (modified, staged, deleted or untracked) in the extraction
-    modules (``EXTRACTION_MODULES`` under c_ept/, the code that turns a match into S1 rows, with the runner itself); the tests and the
+    fixed ``EXTRACTION_PATHS`` inventory (implementations, compatibility files and package glue, with the runner itself); the tests and the
     report do not count. ``dirty_paths`` lists the changed paths of those modules, repository-relative and sorted, as paths only.
     When git cannot answer, both are None: the state is unknown, not clean. ``extraction_modules`` names the paths that were checked.
 
 
     S1–S2 판정 R40의 기준값 잠금에 쓰는 지정 모듈의 Git 상태이며, 조회 실패를 깨끗한 코드로 기록하지 않는다.
     """
-    paths = [f'c_ept/{m}.py' for m in EXTRACTION_MODULES]
+    paths = list(EXTRACTION_PATHS)
     commit = (runlog._git('rev-parse', 'HEAD') or '').strip() or None
     status = runlog._git('status', '--porcelain', '--', *paths)
     if status is None:

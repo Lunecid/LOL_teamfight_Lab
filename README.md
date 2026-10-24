@@ -18,7 +18,7 @@ The projects share a topic, but their engagement definitions and evaluation sett
 
 Supporting code lives in [`research_pipeline/`](research_pipeline/) and [`common_training_r1/`](common_training_r1/). The small library in [`tools/project_runtime/`](tools/project_runtime/) handles source-path checks and process launching for CoG and Master.
 
-[Browse the code by module](MODULES.md).
+[Browse the code by module](MODULES.md). EPT stage runners and reports have their own folders; historical import entry files are kept in `_compat/`.
 
 ## Getting started
 
@@ -50,6 +50,8 @@ python -B tools/check_project_boundaries.py
 ```
 
 ## Further reading
+
+- [Working guidelines](docs/WORKING_GUIDELINES_KO.md) — implementation, independent review, execution gates and publication rules; Korean.
 
 - [Project organization and installation](docs/MODULARIZATION_KO.md) — package layout and module boundaries; Korean.
 - [CoG methods](COG/README.md) — historical research overview in English; see also the [CoG module guide](COG/MODULARIZATION.md) in Korean.

@@ -6,3 +6,9 @@ Design: docs/superpowers/specs/2026-10-20-c-ept-design.md. Modules import each o
 방법에서의 위치. S1의 교전 단위·정답과 S2의 입력 특징·저장소를 묶는 패키지 표식이다(S1–S2 계획 Task 1).
 식 목록. 자체 계산이나 수학식은 없다.
 """
+
+# Ordinary package fallback for legacy import names and python -m entrypoints.
+# Keep the real package first; do not alter global sys.path or import hooks.
+from pathlib import Path as _Path
+__path__.append(str(_Path(__file__).resolve().parent / '_compat'))
+del _Path

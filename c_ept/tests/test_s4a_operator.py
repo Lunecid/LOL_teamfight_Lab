@@ -9,8 +9,9 @@ import types
 
 import pytest
 
-SOURCE=Path(__file__).resolve().parents[1]/'s4a_operator.py'
-sys.path.insert(0,str(SOURCE.parents[1]))
+REPO=Path(__file__).resolve().parents[2]
+SOURCE=REPO/'c_ept/workflows/s4a_operator.py'
+sys.path.insert(0,str(REPO))
 spec=importlib.util.spec_from_file_location('operator_candidate',SOURCE)
 op=importlib.util.module_from_spec(spec)
 spec.loader.exec_module(op)
@@ -233,7 +234,7 @@ def test_actual_wrapper_quoted_paths_foreign_cwd_exit(tmp_path,shell):
     repo=tmp_path/'repo with spaces'
     pkg=repo/'c_ept'
     pkg.mkdir(parents=True)
-    wrapper=SOURCE.parents[1]/'run_s4a.ps1'
+    wrapper=REPO/'run_s4a.ps1'
     shutil.copyfile(wrapper,repo/'run_s4a.ps1')
     # Safe mock operator. No real module/data/runner loaded.
     (pkg/'s4a_operator.py').write_text(
@@ -289,7 +290,7 @@ def test_missing_metadata_refused(cfg,monkeypatch):
                                      ('devices',['cpu']),('python','relative.exe'),
                                      ('task7_integration_verified','yes')])
 def test_config_rejects_out_of_scope_values(tmp_path,key,value):
-    c=json.loads((SOURCE.parents[1]/'configs/s4a.example.json').read_text())
+    c=json.loads((REPO/'configs/s4a.example.json').read_text())
     c['catalog_db']=str(tmp_path/'catalog.sqlite')
     c[key]=value
     p=tmp_path/'invalid.json'
@@ -335,7 +336,7 @@ def test_wrapper_canonical_action_mock_only(tmp_path,shell,action,expected):
     repo=tmp_path/'repo with spaces'
     pkg=repo/'c_ept'
     pkg.mkdir(parents=True)
-    shutil.copyfile(SOURCE.parents[1]/'run_s4a.ps1',repo/'run_s4a.ps1')
+    shutil.copyfile(REPO/'run_s4a.ps1',repo/'run_s4a.ps1')
     (pkg/'s4a_operator.py').write_text(
         'import json,sys,os\n'
         'print(json.dumps({"args":sys.argv[1:],"cwd":os.getcwd(),"no_bytecode":sys.dont_write_bytecode}))\n'
@@ -362,14 +363,14 @@ def test_wrapper_canonical_action_mock_only(tmp_path,shell,action,expected):
 
 
 def test_wrapper_utf8_bom():
-    assert (SOURCE.parents[1]/'run_s4a.ps1').read_bytes().startswith(bytes.fromhex('efbbbf'))
+    assert (REPO/'run_s4a.ps1').read_bytes().startswith(bytes.fromhex('efbbbf'))
 
 
 @pytest.mark.parametrize('shell',['powershell','pwsh'])
 def test_wrapper_native_missing_python_korean_exact(tmp_path,shell):
     exe=shutil.which(shell)
     if not exe:pytest.skip(shell+' unavailable')
-    wrapper=SOURCE.parents[1]/'run_s4a.ps1'
+    wrapper=REPO/'run_s4a.ps1'
     missing=tmp_path/'missing-s4a-python.exe'
     # Direct native error path: exits before any Python/operator/runner invocation.
     direct=subprocess.run([exe,'-NoProfile','-File',str(wrapper),'-Action','check',
@@ -402,7 +403,7 @@ def test_wrapper_default_config_mock_only(tmp_path,shell):
     repo=tmp_path/'repo with spaces'
     pkg=repo/'c_ept'
     pkg.mkdir(parents=True)
-    shutil.copyfile(SOURCE.parents[1]/'run_s4a.ps1',repo/'run_s4a.ps1')
+    shutil.copyfile(REPO/'run_s4a.ps1',repo/'run_s4a.ps1')
     (pkg/'s4a_operator.py').write_text(
         'import json,sys\nprint(json.dumps(sys.argv[1:]))\nraise SystemExit(23)\n')
     before=snapshot(tmp_path)
@@ -543,9 +544,9 @@ def fresh_operator_repo(tmp_path):
     pkg.mkdir(parents=True)
     (pkg/'__init__.py').write_text('')
     for name in ('s4a_operator.py','s4a_runtime.py'):
-        shutil.copyfile(SOURCE.parent/name,pkg/name)
+        shutil.copyfile(REPO / ('c_ept/workflows/s4a_operator.py' if name=='s4a_operator.py' else 'c_ept/workflows/s4a_runtime.py'),pkg/name)
     (repo/'environment').mkdir()
-    shutil.copyfile(SOURCE.parents[1]/'environment/s4a-runtime.json',repo/'environment/s4a-runtime.json')
+    shutil.copyfile(REPO/'environment/s4a-runtime.json',repo/'environment/s4a-runtime.json')
     (pkg/'runlog.py').write_text(
         'import os,sys\n'
         'assert os.environ.get("MKL_THREADING_LAYER")=="SEQUENTIAL", "runlog imported before startup"\n'
@@ -555,7 +556,7 @@ def fresh_operator_repo(tmp_path):
         'import os\nassert os.environ.get("MKL_THREADING_LAYER")=="SEQUENTIAL"\n'
         'OPERATOR_API_VERSION=1\n'
         'def main(argv):\n print("MOCK_RUNNER_ARGS="+repr(argv))\n return 17\n')
-    config=json.loads((SOURCE.parents[1]/'configs/s4a.example.json').read_text())
+    config=json.loads((REPO/'configs/s4a.example.json').read_text())
     for key in ('s1','s2','s3'):
         folder=repo/key
         folder.mkdir()
@@ -637,7 +638,7 @@ def test_fresh_start_mock_shared_policy_then_api_dispatch(fresh_operator_repo):
 def test_actual_primary_metadata_writer_and_api_synthetic(tmp_path):
     # Read current primary source only. No execute/main/train call, source edits,
     # real input stores or active run outputs. Primary retains sole ownership.
-    primary=Path(op.ROOT)/'c_ept/run_s4a.py'
+    primary=Path(op.ROOT)/'c_ept/workflows/run_s4a.py'
     assert primary.is_file(), 'integrated package must include its own primary runner'
     script=tmp_path/'primary-contract-check.py'
     script.write_text('''import hashlib,json,sys,types
@@ -688,7 +689,7 @@ print(json.dumps({'primary_source_sha256':hashlib.sha256(content).hexdigest(),
  'actual_api_parse_and_normalized_resume':'passed','actual_process_writer_live_pid_status':'passed',
  'recorded_outcomes':'passed','native_modules_imported':False}))
 ''',encoding='utf-8')
-    repo=SOURCE.parents[1]
+    repo=REPO
     result=subprocess.run([sys.executable,'-B',str(script),str(primary),str(tmp_path)],cwd=tmp_path,
         capture_output=True,text=True,encoding='utf-8',env=child_environment(repo))
     assert result.returncode==0,(result.stdout,result.stderr)
@@ -698,7 +699,7 @@ print(json.dumps({'primary_source_sha256':hashlib.sha256(content).hexdigest(),
     assert data['actual_process_writer_live_pid_status']=='passed'
 
 def test_status_config_does_not_require_inputs_or_python_presence(tmp_path):
-    c=json.loads((SOURCE.parents[1]/'configs/s4a.example.json').read_text())
+    c=json.loads((REPO/'configs/s4a.example.json').read_text())
     c['python']=str(tmp_path/'missing-python.exe')
     for key in ('s1','s2','s3'):c[key]=str(tmp_path/('missing-'+key))
     path=tmp_path/'status-config.json'
@@ -756,5 +757,5 @@ def test_integrated_example_declares_verified_api_without_weakening_guards():
     assert config['task7_integration_verified'] is True
     assert config['epochs']==2 and config['share']==.25 and config['dev_sample']==200
     assert config['sizes']==['S','M'] and config['devices']==['cpu','cuda']
-    assert (Path(op.ROOT)/'c_ept/run_s4a.py').is_file()
+    assert (Path(op.ROOT)/'c_ept/workflows/run_s4a.py').is_file()
     assert '/configs/s4a.local.json' in (Path(op.ROOT)/'.gitignore').read_text(encoding='utf-8').splitlines()

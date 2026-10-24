@@ -72,8 +72,8 @@ from c_ept.tests.s3_toys import (  # noqa: F401  (the fixtures are imported by r
     toy_s2,
 )
 
-REPO = Path(run_s3.__file__).parents[1]
-SOURCE = REPO / 'c_ept' / 'run_s3.py'
+REPO = Path(__file__).resolve().parents[2]
+SOURCE = REPO / 'c_ept' / 'workflows' / 'run_s3.py'
 STAGES = run_s3.STAGES
 P3_BASE = tuple(300 + 10 * max(0, level - 6) for level in range(1, 19))
 CONSTANT_IN_FIT = 'rule_uncertain_structures'              # an S2 summary column that b0 does not read: constant in the FIT views
@@ -2847,7 +2847,7 @@ def test_a_label_store_that_was_changed_is_refused_by_the_stages_that_read_it(e2
 # =====================================================================================================================================
 # the structure of the module: what it imports, how it starts, the command line as a process
 # =====================================================================================================================================
-LIGHT_C_EPT = {'c_ept', 'c_ept.config', 'c_ept.features', 'c_ept.nll', 'c_ept.runlog', 'c_ept.store_core'}
+LIGHT_C_EPT = {'c_ept', 'c_ept.config', 'c_ept.features', 'c_ept.nll', 'c_ept.runlog', 'c_ept.store_core', 'c_ept.runtime'}
 MODEL_LIBRARIES = {'lightgbm', 'sklearn', 'torch', 'pandas', 'joblib', 'pickle', 'psycopg', 'psycopg2', 'numba'}
 STAGE_MODULES = (
     'c_ept.run_s1',
@@ -2876,7 +2876,7 @@ def run_module(*args, timeout=180):
 def test_the_module_level_imports_are_light_and_hold_no_s1_runner_no_stage_module_and_no_model_library():
     imports = module_level_imports(SOURCE)
     assert {n for n in imports if n.split('.')[0] == 'c_ept'} <= LIGHT_C_EPT
-    assert {'c_ept.config', 'c_ept.runlog', 'c_ept.store_core'} <= imports
+    assert {'c_ept.config', 'c_ept.runlog', 'c_ept.store_core', 'c_ept.runtime'} <= imports
     assert not {n.split('.')[0] for n in imports} & MODEL_LIBRARIES
     assert not imports & set(STAGE_MODULES)
 

@@ -1,80 +1,115 @@
-# c_ept module guide
+# EPT component map
 
-Implementation source lives in the domain packages below. The original root modules
-are small compatibility aliases; each algorithm has one implementation file.
+The visible `c_ept/` root now contains five Python files: `__init__.py`, `config.py`,
+`legacy.py`, `runlog.py`, and the protected `cohort.py`. The root also retains
+`legacy_pins.json` and this guide. Thirty-four former root files have moved.
 
-| Package | Implementation modules | Responsibility |
+| Package | Modules | Responsibility |
 | --- | --- | --- |
-| `data` | `casts`, `reader`, `store_core`, `store_build`, `event_rows`, `frame_rows`, `head_rows` | Checked conversion, records, stores, row construction |
-| `preprocessing` | `features`, `terrain`, `tokens`, `traits` | Model inputs, map geometry, token and trait preparation |
-| `domain` | `units`, `targets`, `state`, `symmetry` | Engagement definitions, targets, state and symmetry |
-| `valuation` | `flowprice`, `rulepay`, `towertier`, `value`, `compose` | Prices, payout rules, values and composition |
-| `models` | `baselines_b0`, `baselines_b1`, `heads`, `nll` | Baselines, head interfaces and likelihood scores |
+| `data/` | casts, reader, store_core, store_build, event_rows, frame_rows, head_rows | Records, stores and training rows |
+| `preprocessing/` | features, terrain, tokens, traits | Model input preparation |
+| `domain/` | units, targets, state, symmetry | Engagement definitions, targets and symmetry |
+| `valuation/` | flowprice, rulepay, towertier, value, compose | Prices, payouts and composed values |
+| `models/` | baselines_b0, baselines_b1, heads, nll | Baselines and likelihood interfaces |
+| `ept/` | Existing encoder, heads, training and composition modules | Transformer implementation |
+| `workflows/` | run_s1, run_s2, run_s3, run_s4a, s4a_operator, s4a_runtime | Stage orchestration, operator and native startup policy |
+| `reporting/` | report_s1, report_s2, report_s3 | Existing report builders |
+| `checks/` | gate_s3 and existing diagnostic scripts | Stage acceptance and diagnostics |
+| `runtime/` | Existing resources and public exports | Shared resource measurement |
+| `_compat/` | 34 small forwarding modules | Legacy import and module CLI compatibility |
+| `tests/` | Synthetic tests and separately gated research-data tests | Verification |
 
-`ept/` and `runtime/` retain their existing organization. `config.py`, `legacy.py`,
-`legacy_pins.json`, `runlog.py` and protected `cohort.py` stay at the root, as do
-`run_s*`, `report_s*`, `gate_s3.py`, `s4a_operator.py`, `s4a_runtime.py` and `checks/`.
-These retained paths preserve configuration, resource, runner and CLI contracts.
+## Imports and entrypoints
 
-## Migrating imports
-
-Existing imports continue to work:
+Use grouped paths for new code:
 
 ```python
-from c_ept import reader
+from c_ept.data.reader import MatchRecord
+from c_ept.workflows import run_s4a
+from c_ept.reporting import report_s3
+```
+
+Existing callers continue to work:
+
+```python
+from c_ept import reader, run_s4a
 from c_ept.reader import MatchRecord
 ```
 
-New code can use the grouped implementation path:
+Both import orders resolve to the same implementation module. Parent attributes,
+function globals and monkeypatches share that object. Old class pickle references
+such as `c_ept.reader.MatchRecord` and `c_ept.s4a_runtime.RuntimeRefused` resolve
+through the compatibility file. New pickles use canonical grouped names and require
+this layout; loading them in an older checkout is not promised.
 
-```python
-from c_ept.data import reader
-from c_ept.data.reader import MatchRecord
-```
+The original root **filesystem files** no longer exist. `c_ept.__path__` keeps the
+real package directory first and appends `_compat/` for ordinary Python lookup.
+There is no global `sys.path` change, custom import finder or eager implementation
+import. `_compat/__init__.py` makes its files visible to setuptools package
+collection, while its empty `__path__` keeps recursive discovery from advertising
+a second `c_ept._compat.reader` namespace. `pkgutil.iter_modules(c_ept.__path__)`
+continues to find each public legacy name once.
 
-After either import order, both paths resolve to the same module object and both
-parent packages expose that object. Patching either module changes the globals used
-by its functions. Group `__init__.py` files contain only a docstring, so importing a
-group does not eagerly import its implementations. There are no import finders or
-`sys.path` modifications.
-
-The implementation bodies and their existing absolute imports are byte-identical
-to the pre-move source. Their `__file__`, `__name__`, `__package__`, and `__spec__`
-now describe the grouped path. Code that locates the repository from an implementation
-file must instead use a retained location anchor such as `c_ept.config.__file__`.
-Static source checks should inspect the imported module's `__file__`, not the root
-alias. Existing source-inspection tests follow this convention.
-
-Old pickle references such as `c_ept.reader.MatchRecord` still load through the root
-alias and resolve to the moved class. New pickles record the grouped class path and
-require this layout (they are not promised to load in older checkouts). No class
-`__module__` is rewritten by the implementation. Hash-bound scientific runs remain
-subject to their existing source and resume contracts.
-
-`python -m c_ept.flowprice` delegates to the moved `main`; runner and operator CLI
-modules retain their root paths. No defaults, scientific calculations, data, splits,
-model parameters or checkpoint schemas are changed by the move.
-
-## Bounded verification
-
-`tests/test_module_layout.py` uses fresh interpreters to test all 24 modules in both
-import orders, parent attributes, function globals, legacy and new type pickle
-references, synthetic instance pickle loading, monkeypatch execution and the legacy
-flowprice dispatcher. It also checks that group imports add no path hooks or eager
-implementation imports. It does not read research inputs or train models.
-
-The regression command from the repository root is:
+Both CLI spellings work, for example:
 
 ```powershell
-python -B -m pytest -q -p no:cacheprovider --tb=short c_ept/tests/test_module_layout.py
+python -B -m c_ept.run_s4a --help
+python -B -m c_ept.workflows.run_s4a --help
+python -B -m c_ept.report_s3 --help
+python -B -m c_ept.reporting.report_s3 --help
 ```
 
-Set `CUDA_VISIBLE_DEVICES=-1`, `MKL_CBWR=COMPATIBLE`, and the native thread counts
-(`OMP_NUM_THREADS`, `MKL_NUM_THREADS`, `OPENBLAS_NUM_THREADS`, `NUMEXPR_NUM_THREADS`,
-`NUMBA_NUM_THREADS`, `VECLIB_MAXIMUM_THREADS`, `BLIS_NUM_THREADS`) to `1` first.
-These regression tests need neither Git history nor `work/` files. Their dependencies
-are the package source and installed test/runtime libraries (pytest, NumPy, SciPy,
-LightGBM and the existing runner utilities' optional dependencies).
+`run_s4a.ps1` and the `lol-teamfight-ept` console entry keep their existing module
+names. No active direct-file launcher of the removed root files was found in the
+bounded source/PowerShell/TOML scan. Untracked external callers using a literal
+`c_ept/run_s4a.py` path must switch to `python -m`; direct-file paths are not retained.
 
-The separate implementation audit, full command list, source hashes, changed paths,
-and test results are recorded in `work/c_ept-grouping-result.md` for the handoff.
+## Anchors and safety contracts
+
+`config`, `legacy`, the pin resource, `runlog` and protected `cohort` retain their
+locations. Operator `ROOT` and runner `REPO` use the first package path, which is the
+same repository anchor after the move. The small `s4a_runtime` helper belongs in
+`workflows/`: importing it does not import `psutil`, NumPy, Torch or SciPy. Placing it
+under `runtime/` would execute that package's existing eager resource exports.
+
+S1 extraction provenance uses a fixed path inventory covering its canonical
+implementations, their forwarding files, package initializers and unchanged root
+anchors. Changed canonical sources cannot hide behind an unchanged shim. Git
+failure remains unknown, never clean. S4a whole-repository cleanliness, identity,
+input hashes, E6 and resume checks are preserved. Existing scientific run identities
+are not migrated or made resumable by this file move.
+
+Historical equation and source inventories retain their original paths. The current
+lookup is `docs/module-layout-20261024.json`: `moved_implementations` records the
+first grouping; `ept_visible_root_cleanup` records the additional moves and shim
+locations. Static source checks now point to implementations, not forwarding files.
+
+## Bounded verification and limits
+
+The migration suites test all 34 legacy/canonical pairs in both cold import orders,
+type pickles, synthetic instance pickles, monkeypatch identity, module main dispatch,
+help-only CLIs, package discovery, resource anchors, bootstrap imports and extraction
+source coverage. The existing grouped package initializer simplicity test is retained.
+
+An offline wheel check stages allowlisted source, substitutes a raising sentinel
+for protected `cohort.py` without opening or copying its body, verifies all `_compat`
+files are in the wheel, and checks installed legacy/canonical operator and runner
+help commands outside the source tree. The existing `pyproject.toml` requires no
+change. This remains a source-backed operator: a wheel alone does not provide the
+external inputs, repository environment/config files or legacy assets/pin resources.
+The staged sentinel wheel is a disposable test artifact, not a distribution.
+
+Run from the repository root with GPU disabled, one native thread per library,
+`PYTHONDONTWRITEBYTECODE=1`, `PYTHONUTF8=1`, `PYTHONIOENCODING=utf-8`,
+`MKL_THREADING_LAYER=SEQUENTIAL`, `MKL_CBWR=COMPATIBLE` and
+`KMP_DUPLICATE_LIB_OK=FALSE`:
+
+```powershell
+python -B -m pytest -q -p no:cacheprovider --tb=short c_ept/tests/test_module_layout.py c_ept/tests/test_visible_root.py c_ept/tests/test_s4a_operator.py tests/test_project_boundaries.py
+```
+
+This is synthetic software verification, not a scientific run or a complete
+research-data test suite. No live run, training, inference, protected source body,
+raw input, weight payload, commit or push is part of this change. Exact results,
+source audit exceptions and remaining limitations are in
+`work/ept-root-cleanup-result.md`.

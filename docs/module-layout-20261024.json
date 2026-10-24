@@ -44,12 +44,72 @@
     "master_ver/scripts/report_validation_suite.py": "master_ver/scripts/reporting/report_validation_suite.py",
     "master_ver/scripts/report_window_validation.py": "master_ver/scripts/reporting/report_window_validation.py"
   },
-  "legacy_policy": "One canonical implementation per mapping; old paths remain tiny compatibility imports or script entry points.",
+  "legacy_policy": "EPT old import names and python -m entrypoints use actual files in c_ept/_compat through package __path__ fallback; former EPT root .py paths are removed. Other projects retain their prior compatibility layout.",
   "preserved_layouts": [
     "protected cohort/holdout/split implementations",
-    "location-sensitive EPT configuration, legacy pins and run entry points",
+    "EPT root configuration, legacy pins and runlog anchors; legacy import and module CLI entrypoints through _compat",
     "date-specific studies and scripts outside this explicit mapping",
     "standalone common_training_r1 sibling workflow"
   ],
-  "scope": "Physical software grouping only; no scientific definition or existing-result revision."
+  "scope": "Physical software grouping only; no scientific definition or existing-result revision.",
+  "ept_visible_root_cleanup": {
+    "baseline": "611a4a4ef092890fca52e00250608e70bc407e81",
+    "compatibility_files": {
+      "c_ept/casts.py": "c_ept/_compat/casts.py",
+      "c_ept/reader.py": "c_ept/_compat/reader.py",
+      "c_ept/store_core.py": "c_ept/_compat/store_core.py",
+      "c_ept/store_build.py": "c_ept/_compat/store_build.py",
+      "c_ept/event_rows.py": "c_ept/_compat/event_rows.py",
+      "c_ept/frame_rows.py": "c_ept/_compat/frame_rows.py",
+      "c_ept/head_rows.py": "c_ept/_compat/head_rows.py",
+      "c_ept/features.py": "c_ept/_compat/features.py",
+      "c_ept/terrain.py": "c_ept/_compat/terrain.py",
+      "c_ept/tokens.py": "c_ept/_compat/tokens.py",
+      "c_ept/traits.py": "c_ept/_compat/traits.py",
+      "c_ept/units.py": "c_ept/_compat/units.py",
+      "c_ept/targets.py": "c_ept/_compat/targets.py",
+      "c_ept/state.py": "c_ept/_compat/state.py",
+      "c_ept/symmetry.py": "c_ept/_compat/symmetry.py",
+      "c_ept/flowprice.py": "c_ept/_compat/flowprice.py",
+      "c_ept/rulepay.py": "c_ept/_compat/rulepay.py",
+      "c_ept/towertier.py": "c_ept/_compat/towertier.py",
+      "c_ept/value.py": "c_ept/_compat/value.py",
+      "c_ept/compose.py": "c_ept/_compat/compose.py",
+      "c_ept/baselines_b0.py": "c_ept/_compat/baselines_b0.py",
+      "c_ept/baselines_b1.py": "c_ept/_compat/baselines_b1.py",
+      "c_ept/heads.py": "c_ept/_compat/heads.py",
+      "c_ept/nll.py": "c_ept/_compat/nll.py",
+      "c_ept/run_s1.py": "c_ept/_compat/run_s1.py",
+      "c_ept/run_s2.py": "c_ept/_compat/run_s2.py",
+      "c_ept/run_s3.py": "c_ept/_compat/run_s3.py",
+      "c_ept/run_s4a.py": "c_ept/_compat/run_s4a.py",
+      "c_ept/s4a_operator.py": "c_ept/_compat/s4a_operator.py",
+      "c_ept/report_s1.py": "c_ept/_compat/report_s1.py",
+      "c_ept/report_s2.py": "c_ept/_compat/report_s2.py",
+      "c_ept/report_s3.py": "c_ept/_compat/report_s3.py",
+      "c_ept/gate_s3.py": "c_ept/_compat/gate_s3.py",
+      "c_ept/s4a_runtime.py": "c_ept/_compat/s4a_runtime.py"
+    },
+    "additional_implementations": {
+      "c_ept/run_s1.py": "c_ept/workflows/run_s1.py",
+      "c_ept/run_s2.py": "c_ept/workflows/run_s2.py",
+      "c_ept/run_s3.py": "c_ept/workflows/run_s3.py",
+      "c_ept/run_s4a.py": "c_ept/workflows/run_s4a.py",
+      "c_ept/s4a_operator.py": "c_ept/workflows/s4a_operator.py",
+      "c_ept/report_s1.py": "c_ept/reporting/report_s1.py",
+      "c_ept/report_s2.py": "c_ept/reporting/report_s2.py",
+      "c_ept/report_s3.py": "c_ept/reporting/report_s3.py",
+      "c_ept/gate_s3.py": "c_ept/checks/gate_s3.py",
+      "c_ept/s4a_runtime.py": "c_ept/workflows/s4a_runtime.py"
+    },
+    "mechanism": "c_ept.__path__ fallback; no global import hook or sys.path change",
+    "retained_root_python_files": [
+      "__init__.py",
+      "cohort.py",
+      "config.py",
+      "legacy.py",
+      "runlog.py"
+    ],
+    "bootstrap": "workflows package is docstring-only; importing legacy or canonical s4a_runtime does not import runtime/resources, psutil, numpy or torch"
+  }
 }

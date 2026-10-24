@@ -1353,7 +1353,7 @@ def test_records_are_asked_for_key_and_patch_only_and_no_holdout_switch_is_passe
     build(s1_small, terr, [0, 1, 2], tmp_path / 'r', records=spy)
     assert len(calls) == 3 and all(len(args) == 2 and not kwargs for args, kwargs in calls)
     for name in ('store_build.py', 'run_s2.py'):
-        tree = ast.parse((Path(store_build.__file__) if name == 'store_build.py' else REPO / 'c_ept' / name).read_text(encoding='utf-8'))
+        tree = ast.parse((Path(store_build.__file__) if name == 'store_build.py' else REPO / 'c_ept' / 'workflows' / name).read_text(encoding='utf-8'))
         assert not [n for n in ast.walk(tree) if isinstance(n, ast.keyword) and n.arg == 'allow_holdout'], name
 
 
@@ -1720,7 +1720,7 @@ S1_CHAIN = ('c_ept.run_s1', 'c_ept.targets', 'c_ept.event_rows', 'c_ept.frame_ro
 
 @pytest.mark.parametrize('name', ['store_build.py', 'run_s2.py'])
 def test_no_module_level_import_reaches_the_s1_runner_or_the_s1_targets(name):
-    imports = module_level_imports(Path(store_build.__file__) if name == 'store_build.py' else REPO / 'c_ept' / name)
+    imports = module_level_imports(Path(store_build.__file__) if name == 'store_build.py' else REPO / 'c_ept' / 'workflows' / name)
     assert not [i for i in imports if i in S1_CHAIN or i.startswith(S1_CHAIN)], sorted(imports)       # a spawned worker imports this module
 
 

@@ -34,6 +34,7 @@ import subprocess
 import sys
 import time
 
+from c_ept import __path__ as _package_path
 from c_ept.s4a_runtime import RuntimeRefused, prepare_native_runtime, validate_e6_probe
 
 OPERATOR_API_VERSION = 1
@@ -41,7 +42,7 @@ RUN_SCHEMA = 's4a_run_v1'
 COST_SCHEMA = 's4a_cost_v1'
 PROCESS_SCHEMA = 's4a_process_v1'
 MAX_JSON_BYTES = 4 * 1024 * 1024
-REPO = Path(__file__).resolve().parents[1]
+REPO = Path(_package_path[0]).resolve().parent
 MEMORY_CAP = 40 * 2**30
 APPROVED_RUNS_ROOT = Path(r'D:\LOL_Data\runs')
 SEED = 20261022

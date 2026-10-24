@@ -704,9 +704,32 @@ def test_golden_writes_array_hashes_of_the_first_n_matches_and_no_keys(tmp_path,
 
 
 # ---- the state of the code in a golden lock (task 8b) -----------------------------------------------------------------------------
-EXTRACTION_PATHS = [f'c_ept/{m}.py' for m in
-                    ('config', 'reader', 'units', 'targets', 'frame_rows', 'event_rows', 'store_core', 'run_s1', 'legacy', 'cohort',
-                     'casts')]
+EXTRACTION_PATHS = [
+    'c_ept/__init__.py',
+    'c_ept/_compat/__init__.py',
+    'c_ept/config.py',
+    'c_ept/data/reader.py',
+    'c_ept/_compat/reader.py',
+    'c_ept/domain/units.py',
+    'c_ept/_compat/units.py',
+    'c_ept/domain/targets.py',
+    'c_ept/_compat/targets.py',
+    'c_ept/data/frame_rows.py',
+    'c_ept/_compat/frame_rows.py',
+    'c_ept/data/event_rows.py',
+    'c_ept/_compat/event_rows.py',
+    'c_ept/data/store_core.py',
+    'c_ept/_compat/store_core.py',
+    'c_ept/workflows/run_s1.py',
+    'c_ept/_compat/run_s1.py',
+    'c_ept/legacy.py',
+    'c_ept/cohort.py',
+    'c_ept/data/casts.py',
+    'c_ept/_compat/casts.py',
+    'c_ept/data/__init__.py',
+    'c_ept/domain/__init__.py',
+    'c_ept/workflows/__init__.py',
+]
 
 
 def fake_git(status, head='f' * 40):
@@ -731,7 +754,7 @@ def test_extraction_state_is_read_from_git_status(monkeypatch, status, clean, di
     state = run_s1.extraction_state()
     assert (state['extraction_clean'], state['dirty_paths']) == (clean, dirty) and state['code_commit'] == 'f' * 40
     assert state['extraction_modules'] == EXTRACTION_PATHS
-    assert [c for c in calls if c[0] == 'status'] == [('status', '--porcelain', '--', *EXTRACTION_PATHS)]     # only those eleven modules
+    assert [c for c in calls if c[0] == 'status'] == [('status', '--porcelain', '--', *EXTRACTION_PATHS)]     # the fixed implementation and compatibility inventory
 
 
 def test_golden_records_the_extraction_state_and_the_record_is_no_input_of_the_arrays(tmp_path, synth_matches, monkeypatch):
