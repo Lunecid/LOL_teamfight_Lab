@@ -1,0 +1,21 @@
+{
+  "schema": "s4a-operator-v2",
+  "python": "C:\\Users\\todtj\\anaconda3\\python.exe",
+  "s1": "D:\\LOL_Data\\runs\\20261020_c_ept_s1_1\\s1",
+  "s2": "D:\\LOL_Data\\runs\\20261021_c_ept_s2_3\\s2",
+  "s3": "D:\\LOL_Data\\runs\\20261022_c_ept_s3_3",
+  "runs_root": "D:\\LOL_Data\\runs",
+  "catalog_db": "D:/LOL_Data/catalog/runs.sqlite",
+  "sizes": [
+    "S",
+    "M"
+  ],
+  "devices": [
+    "cuda"
+  ],
+  "epochs": 2,
+  "share": 0.25,
+  "dev_sample": 200,
+  "task7_integration_verified": true,
+  "measurement_profile": "gpu_cost"
+}

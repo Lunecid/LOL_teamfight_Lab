@@ -1,0 +1,36 @@
+{
+  "date": "2026-09-15",
+  "scope": "C:\\Users\\todtj\\문서\\LOL_Teamfight",
+  "sources": {
+    "https://github.com/donvito/codex-astra-luna-orchestrator": "642b16074ba8973d4f920ad8cbfb542bde3b4682",
+    "https://github.com/inboxpraveen/Minimize-Cursor-Cost": "bf3319fb41ca4de9619df066e7c3e44b7843aa40"
+  },
+  "adaptations": [
+    "Project-only Pro topology",
+    "Host security and credentials inherited",
+    "Research rigor overrides generic output minimization",
+    "Python/data-science/tests Claude scopes only"
+  ],
+  "sha256": {
+    ".codex\\config.toml": "f03b3b54099f32d2a06dce396967b0c8f65414d2c42206630c3bf124e3046f43",
+    ".codex\\agents\\explorer.toml": "d3eab35d0f222bfe0e70979a6bc3486192209b9ef4d33cbecd82bd3d4a4bf6c0",
+    ".codex\\agents\\researcher.toml": "b868acf0369e40fca4f15274ea9645c49df07ecf69e17e2eb6cd1fb2a258da87",
+    ".codex\\agents\\reviewer.toml": "9964bb2801d0279d7f54cddcc5c0c8eaf749cb47b390d9743f434f2cd5be4908",
+    ".codex\\agents\\tester.toml": "a46f1b7706703271ccf82953d260a9e50a1dab4b3be4bf077bb29be2985f69ab",
+    ".codex\\agents\\worker.toml": "166bb44149f5f194b672f5e8ca9b74743c5cb05f7957b8f0390f600e1fde6b44",
+    "AGENTS.md": "7539516810921d4a5e91140e396662b83be602e5d1b2400c204a50962ef18222",
+    "CLAUDE.md": "1f0fe38f68215e006b4ddda576a227693c2019629022d086012d64b4c32aa77a",
+    ".claude\\rules\\python.md": "f0c00828436be43938c719359e46dd933c88b39b0960827164ad281e2b778363",
+    ".claude\\rules\\data-science.md": "5024040fe4ef74fb9ae80b70066532740992ca7419571bd533b4c40066b217d4",
+    ".claude\\rules\\tests.md": "c36cb7744d1dbd15f1faeca81f60309494379b67348b8755f4cfacd6f51f31f6",
+    "PROMPT_TEMPLATES.md": "88420d8fce45041e4782abb31781e8ce2e129835b77f887372decd82ccaba6a3",
+    ".agents\\skills\\astra-orchestrator\\SKILL.md": "478a29ddb30252b70c4f74c4e6dc5586b264df380bb94b73dd02dca43c6f35d9"
+  },
+  "validation": {
+    "toml_files_parsed": 6,
+    "user_context_doctor_config": "loaded",
+    "doctor_overall_exit": 1,
+    "doctor_failure": "TERM=dumb",
+    "independent_review": "Luna/max completed; research overrides integrated"
+  }
+}

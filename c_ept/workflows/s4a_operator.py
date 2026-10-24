@@ -61,12 +61,20 @@ def load_config(path, *, require_inputs=True):
     c = read_json(path)
     expected = {'schema','python','s1','s2','s3','runs_root','catalog_db','sizes',
                 'devices','epochs','share','dev_sample','task7_integration_verified'}
-    if set(c) != expected or c['schema'] != 's4a-operator-v1':
+    gpu_cost = c.get('schema') == 's4a-operator-v2'
+    if gpu_cost:
+        expected.add('measurement_profile')
+    if set(c) != expected or c['schema'] not in ('s4a-operator-v1','s4a-operator-v2'):
         raise OperatorError('설정 키 또는 schema 불일치')
+    if gpu_cost and c['measurement_profile'] != 'gpu_cost':
+        raise OperatorError('승인 범위: v2 measurement_profile=gpu_cost')
     for k in ('python','s1','s2','s3','runs_root','catalog_db'):
         if not isinstance(c[k], str) or not c[k] or not Path(c[k]).is_absolute():
             raise OperatorError(f'{k}: 절대 경로를 설정하세요')
-    if c['sizes'] != ['S','M'] or c['devices'] != ['cpu','cuda']:
+    devices = ['cuda'] if gpu_cost else ['cpu','cuda']
+    if c['sizes'] != ['S','M'] or c['devices'] != devices:
+        if gpu_cost:
+            raise OperatorError('승인 범위: gpu_cost sizes S/M, devices cuda')
         raise OperatorError('승인 범위: sizes S/M, devices cpu/cuda')
     if type(c['epochs']) is not int or c['epochs'] != 2:
         raise OperatorError('승인 범위: epochs=2')
