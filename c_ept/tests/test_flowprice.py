@@ -1386,13 +1386,13 @@ def test_the_default_probe_is_the_prototype_of_ruling_r4():
 
 # ---- how the module is imported ----------------------------------------------------------------------------------------------------------
 def test_no_module_level_import_reaches_the_s1_runner():
-    imports = module_level_imports(REPO / 'c_ept' / 'flowprice.py')
+    imports = module_level_imports(Path(flowprice.__file__))
     chain = ('c_ept.run_s1', 'c_ept.run_s2', 'c_ept.store_build', 'c_ept.cohort', 'c_ept.targets', 'c_ept.runlog', 'c_ept.store_core')
     assert not [i for i in imports if i in chain or i.startswith(chain)], sorted(imports)
 
 
 def test_the_e6_guard_is_imported_inside_the_command_line():
-    tree = ast.parse((REPO / 'c_ept' / 'flowprice.py').read_text(encoding='utf-8'))
+    tree = ast.parse(Path(flowprice.__file__).read_text(encoding='utf-8'))
     main = next(n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == 'main')
     inner = [n for n in ast.walk(main) if isinstance(n, ast.ImportFrom) and n.module == 'c_ept.run_s1']
     assert inner and any(a.name == 'require_no_strata' for n in inner for a in n.names)

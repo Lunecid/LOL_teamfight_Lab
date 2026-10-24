@@ -2,6 +2,17 @@
 
 This folder contains the shared observed-prefix adapter, tree and hierarchical model implementations, a bounded run card, and report/visualization code.
 
+The files form one standalone workflow and keep their sibling paths:
+
+| File | Responsibility |
+|---|---|
+| `common.py` | Shared definitions, transformations and loss calculations |
+| `data.py` | Input preparation and validation |
+| `models.py` | Tree and hierarchical model implementations |
+| `train.py` | Bounded training and evaluation orchestration |
+| `report.py` | Report and figure generation |
+| `test_pipeline.py` | Checks that require the workflow's prepared local inputs |
+
 ## Run outline
 
 1. Create an isolated run directory outside the repository and install the packages in `requirements.txt`.
@@ -9,6 +20,6 @@ This folder contains the shared observed-prefix adapter, tree and hierarchical m
 3. Copy `CARD.template.json` to a run-specific `CARD.json`, fill in the four local role sample counts, then review every path and frozen input reference before execution.
 4. Run `data.py` to build/validate the bounded input and `train.py` for the bounded fit. Use `python -m unittest` for the included adapter/pipeline checks. Keep local reports and metric exports out of public version control.
 
-This source package contains no recorded smoke counts or performance results. The report-rendering helper is omitted from the public snapshot. STOP is used for epoch selection in the bounded workflow; that role does not establish confirmatory performance or full-scale streaming capacity. Re-run locally after adapting paths and dependencies; this public code snapshot does not bundle private data, ledgers, or run receipts.
+This source package contains no recorded smoke counts or performance results. STOP is used for epoch selection in the bounded workflow; that role does not establish confirmatory performance or full-scale streaming capacity. Re-run locally after adapting paths and dependencies; this public code snapshot does not bundle private data, ledgers, or run receipts.
 
 Some raw-data audit regression tests also need LOL_REVIEW_MATCH_ID to identify a local fixture; the repository does not contain that identifier or the raw fixture.

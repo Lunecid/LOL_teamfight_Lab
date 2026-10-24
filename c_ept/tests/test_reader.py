@@ -475,7 +475,7 @@ def test_the_scan_of_the_package_for_the_gate_goes_into_the_subfolders_and_leave
 def test_nothing_in_c_ept_opens_the_gate():
     """The switch stays False everywhere in the package until S8 (which has its own approval): no call in a c_ept module, in any
     subfolder (``checks/`` included), passes it anything but the constant False. The tests are not part of the package."""
-    package = Path(reader.__file__).parent
+    package = Path(C.__file__).parent
     scanned = package_modules(package)
     assert {'reader.py', 'run_s1.py', 'traits.py', 'checks/common.py', 'checks/sweep_s1.py'} <= set(scanned)       # the scan is not empty
     assert not any(rel.startswith('tests/') for rel in scanned)
@@ -490,7 +490,7 @@ def test_nothing_in_c_ept_opens_the_gate():
 # is caught; they are compared for equality, so a docstring that speaks of raw data is not.
 RAW_LOCATION_NAMES = ('RAW_ROOT', 'RAW_REGION')
 RAW_LOCATION_STRINGS = ('raw', 'C_EPT_RAW_ROOT')
-RAW_LOCATION_EXEMPT = ('reader.py', 'config.py')               # paths relative to the package folder; everything under tests/ too
+RAW_LOCATION_EXEMPT = ('reader.py', 'data/reader.py', 'config.py')               # paths relative to the package folder; everything under tests/ too
 
 
 def raw_location_users(source: str) -> list[int]:
@@ -584,7 +584,7 @@ def test_the_scan_of_the_package_lists_the_folder_when_it_runs_and_skips_only_th
 
 
 def test_no_module_of_c_ept_but_the_reader_and_the_config_names_the_raw_file_location():
-    package = Path(reader.__file__).parent
+    package = Path(C.__file__).parent
     scanned = modules_to_scan(package)
     assert 'run_s1.py' in scanned and 'reader.py' not in scanned and 'config.py' not in scanned       # the scan is not empty
     assert {'checks/common.py', 'checks/sweep_s1.py'} <= set(scanned)                       # the subfolder of the scripts is in it

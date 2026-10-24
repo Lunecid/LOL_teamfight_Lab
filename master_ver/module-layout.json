@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "revision": "master-reporting-layout-20261024",
+  "baseline": "d9d7ac8dbd5c389c8bf70cbd4c0ed1ee8be99e4a",
+  "group": "reporting",
+  "modules": {
+    "scripts/report_b_three_horizons.py": "scripts/reporting/report_b_three_horizons.py",
+    "scripts/report_causal_position.py": "scripts/reporting/report_causal_position.py",
+    "scripts/report_event_boundary_cif.py": "scripts/reporting/report_event_boundary_cif.py",
+    "scripts/report_fixed120_events.py": "scripts/reporting/report_fixed120_events.py",
+    "scripts/report_position_ablation.py": "scripts/reporting/report_position_ablation.py",
+    "scripts/report_postkill_full.py": "scripts/reporting/report_postkill_full.py",
+    "scripts/report_validation_suite.py": "scripts/reporting/report_validation_suite.py",
+    "scripts/report_window_validation.py": "scripts/reporting/report_window_validation.py"
+  }
+}

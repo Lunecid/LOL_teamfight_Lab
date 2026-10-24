@@ -987,7 +987,8 @@ def test_the_package_of_a_file_is_the_folder_it_stands_in():
 def test_the_view_modules_import_no_s1_module(name, scan):
     """R12-g: ``tokens`` and ``symmetry`` name no S1 module anywhere, also inside a function; ``state`` and ``traits`` at module level.
     ``import c_ept.run_s1``, ``from c_ept import run_s1`` and ``from c_ept.run_s1 import x`` all show as ``c_ept.run_s1``."""
-    imported = scan(REPO / 'c_ept' / f'{name}.py')
+    from importlib import import_module
+    imported = scan(Path(import_module(f'c_ept.{name}').__file__))
     assert 'numpy' in imported                                                                  # the scan does see the imports
     assert not banned(imported), banned(imported)
 
@@ -1011,14 +1012,15 @@ NARROW_DTYPES = {'int8', 'int16', 'int32', 'uint8', 'uint16', 'uint32', 'float16
 @pytest.mark.parametrize('name', ['tokens', 'symmetry'])
 def test_no_cast_to_a_narrower_dtype_bypasses_the_checked_narrow(name):
     """R12-h: ``.astype(<narrower dtype>)`` is not used in the view modules (a widening such as astype(np.int64) is fine)."""
-    tree = ast.parse((REPO / 'c_ept' / f'{name}.py').read_text(encoding='utf-8'))
+    from importlib import import_module
+    tree = ast.parse(Path(import_module(f'c_ept.{name}').__file__).read_text(encoding='utf-8'))
     bad = [n.lineno for n in ast.walk(tree) if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and n.func.attr == 'astype'
            and any(isinstance(a, ast.Attribute) and a.attr in NARROW_DTYPES for a in n.args)]
     assert bad == []
 
 
 def test_the_citation_of_the_masking_and_elapsed_time_inputs_is_in_the_module():
-    text = (REPO / 'c_ept' / 'tokens.py').read_text(encoding='utf-8')
+    text = Path(tokens.__file__).read_text(encoding='utf-8')
     assert 'Che et al. 2018' in text and 's41598-018-24271-9' in text and '8:6085' in text
 
 

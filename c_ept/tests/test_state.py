@@ -627,7 +627,7 @@ def test_the_import_scan_sees_a_module_level_import_and_not_one_inside_a_functio
 
 @pytest.mark.parametrize('module', ['state.py', 'checks/sweep_state.py'])
 def test_no_module_level_import_reaches_an_s1_target_store_or_the_s1_runner(module):
-    assert not module_level_imports(REPO / 'c_ept' / module) & set(S1_MODULES)
+    assert not module_level_imports(Path(state.__file__) if module == 'state.py' else REPO / 'c_ept' / module) & set(S1_MODULES)
 
 
 def test_importing_the_state_module_loads_no_s1_module():

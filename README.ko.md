@@ -18,6 +18,8 @@
 
 데이터 처리와 학습을 돕는 코드는 [`research_pipeline/`](research_pipeline/)과 [`common_training_r1/`](common_training_r1/)에 있습니다. [`tools/project_runtime/`](tools/project_runtime/)은 CoG와 Master에서 소스 경로를 확인하고 프로그램을 실행할 때 함께 사용하는 작은 라이브러리입니다.
 
+[모듈별 코드 지도](MODULES.md)에서 실제 구현 폴더를 찾아볼 수 있습니다.
+
 ## 시작하기
 
 이 공개판에는 소스코드가 들어 있으며, 매치 데이터와 학습된 가중치는 포함하지 않습니다. 실험을 실행하려면 로컬 입력과 해당 연구에 맞는 환경을 따로 준비해야 합니다. 그 전에 명령줄 도구를 설치해 도움말부터 살펴볼 수 있습니다.

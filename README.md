@@ -18,6 +18,8 @@ The projects share a topic, but their engagement definitions and evaluation sett
 
 Supporting code lives in [`research_pipeline/`](research_pipeline/) and [`common_training_r1/`](common_training_r1/). The small library in [`tools/project_runtime/`](tools/project_runtime/) handles source-path checks and process launching for CoG and Master.
 
+[Browse the code by module](MODULES.md).
+
 ## Getting started
 
 This is a source-code release; match datasets and trained weights are not included. Running experiments requires your own local inputs and the appropriate research environment. You can install the command-line interfaces and explore their help before preparing those inputs.

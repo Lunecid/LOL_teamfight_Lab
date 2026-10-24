@@ -964,7 +964,7 @@ def test_terrain_verify_detects_a_changed_file(tmp_path):
 
 # ---- what the module reaches (R10-h, R11-e, S2-13) ---------------------------------------------------------------------------------------
 def test_no_module_level_import_reaches_the_s1_runner_or_store():
-    assert not module_level_imports(REPO / 'c_ept' / 'terrain.py') & set(S1_MODULES)
+    assert not module_level_imports(Path(terrain.__file__)) & set(S1_MODULES)
 
 
 def test_importing_terrain_loads_no_s1_module():

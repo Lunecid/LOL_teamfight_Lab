@@ -21,7 +21,7 @@ SHARED_FILES = (
     "c_ept/ept/training_step.py",
     "c_ept/ept/heads.py",
     "c_ept/ept/compose_heads.py",
-    "c_ept/compose.py",
+    "c_ept/valuation/compose.py",
 )
 LAUNCHERS = (
     ("COG", "lol-teamfight-cog", "lol_teamfight_cog"),

@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "baseline": "d9d7ac8dbd5c389c8bf70cbd4c0ed1ee8be99e4a",
+  "fingerprint": "SHA-256 of UTF-8 ast.dump(include_attributes=False); omit empty type_params for Python 3.11/3.12+ compatibility",
+  "modules": {
+    "report_b_three_horizons": {
+      "source_sha256": "9b99ecb3a3bdf2feb687deceae98ead89a587ec0085446290728f5ffdc1f1ad7",
+      "algorithm_ast_sha256": "3e9bc0021f6f1e22a95df3af163abc0d5f193881ceb95a40e0e66d8e78cc1b45"
+    },
+    "report_causal_position": {
+      "source_sha256": "21a09c36fabb8e1d4a510686f51f545b3f3b012b8ba22305716be0d76e5af5bc",
+      "algorithm_ast_sha256": "5261242509606dd7d1906841b6a09d048dbcc30d6f05bf117fc1fdba07dd32fc"
+    },
+    "report_event_boundary_cif": {
+      "source_sha256": "d1e9fba1c7aac87c654b8c07316459e57e018abc0c43121b5390bff145de4c18",
+      "algorithm_ast_sha256": "d6c7a874f44566c1be55659e713aff4130da8ec29cdc52877fbb87d74954e9d2"
+    },
+    "report_fixed120_events": {
+      "source_sha256": "4ecce9240ff27e53ed0fcac5d6bcfc74136c01293824148a20ae44ae4028dc79",
+      "algorithm_ast_sha256": "508095097fb25b131e9b9e9bb60c81c09b1f2b9549d3f50ad05c5ba709db8245"
+    },
+    "report_position_ablation": {
+      "source_sha256": "090fc65b9efa201420113c6766c0a7e159900aae526e3893c647cf36d1c27674",
+      "algorithm_ast_sha256": "d9aace46986069488eddd789a1e3f17625cef62f00ae67c134af4a30dc0827b2"
+    },
+    "report_postkill_full": {
+      "source_sha256": "ee5900359c8f6f7248e55c34a2b1489383148f3d41a33fa968bf5197b497a633",
+      "algorithm_ast_sha256": "a9f9ac4942fb73aa9a65a93ada781ee00d9169d9000c80320e62ad167a99ea9f"
+    },
+    "report_validation_suite": {
+      "source_sha256": "52431963d6d7d8a3bf3b1b579512174514b93c488eab49564b2709d5f457f94e",
+      "algorithm_ast_sha256": "c96420fec5fff5c482f45c1615535371e842a381053a7ee8d8470531bace07fd",
+      "legacy_inventory_ast_sha256": "1a7788d55f90a6f133c04032e1f1845b33d4067511fddf82ef15e56831ec9733"
+    },
+    "report_window_validation": {
+      "source_sha256": "d8b28566e153ec680ae06ba72758b67e1fd0fdbba9735be346fdfc70ec185679",
+      "algorithm_ast_sha256": "10795eb88142c3de8c9b14db42732892ccf2cb327de3d4d4ae596f5199dfb154"
+    }
+  }
+}

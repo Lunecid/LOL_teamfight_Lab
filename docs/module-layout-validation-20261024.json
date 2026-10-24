@@ -1,0 +1,112 @@
+{
+  "schema": "module-layout-validation-v1",
+  "implementation_baseline": "d9d7ac8dbd5c389c8bf70cbd4c0ed1ee8be99e4a",
+  "physical_moves": {
+    "ept": 24,
+    "cog": 7,
+    "master": 8
+  },
+  "implementation_checks": {
+    "ept": {
+      "distinct_worktree_cases_passed": 234,
+      "repeated_portability_cases_passed": 52,
+      "moved_bodies_byte_identical_to_pre_move": 24,
+      "full_algorithm_asts_equal": 24,
+      "evidence": "Implementation handoff; earlier test-harness failures retained locally, then corrected without algorithm edits."
+    },
+    "cog": {
+      "organization_cases_passed": 4,
+      "small_existing_cases_passed": 7,
+      "scope": "Network-blocked import and synthetic geometry/clustering checks; public-source portability checked by implementation worker."
+    },
+    "master": {
+      "organization_cases_passed": 8,
+      "repeated_public_export_cases_passed": 8,
+      "algorithm_asts_equal_after_declared_exceptions": 8,
+      "exceptions": [
+        "ROOT parent depth adjusted to preserve the same project root",
+        "Validation provenance inventory additionally includes all eight canonical implementation paths"
+      ]
+    }
+  },
+  "integration_checks": {
+    "project_boundaries": "4 declarations and 19 selected AST sources, passed",
+    "boundary_cases_passed": 11,
+    "sync_overlay_cases_passed": 3,
+    "execution": "Lead executed only bounded synthetic/static checks; no source sync applied."
+  },
+  "independent_review": "accepted",
+  "documentation_assistance": "Gemini 3.8 Flash through existing OpenCodex; filenames and responsibilities only; descriptions independently reviewed and adapted.",
+  "not_executed": [
+    "Real training or inference",
+    "Existing report generation",
+    "Raw dataset and checkpoint inspection",
+    "New scientific experiments",
+    "Whole-repository scientific validation"
+  ],
+  "interpretation": "Physical source grouping and compatibility checks do not establish absence of all design errors or scientific-result equivalence.",
+  "independent_verification": {
+    "decision": "ACCEPT",
+    "report": "docs/superpowers/reports/2026-10-24-module-layout-independent-review.md",
+    "scope": "39 physical implementation mappings, declared AST exceptions, compatibility aliases/metadata, changed test predicates, and lead-owned integration/status documents; no whole-project or scientific-result certification",
+    "open_actionable_findings": 0,
+    "resolved_findings": [
+      "P2 CoG repository-qualified imports and mixed-namespace alias overwrite"
+    ],
+    "initial_reviewer_execution": {
+      "master_organization_tests_passed": 8,
+      "ept_migration_tests_passed": 52,
+      "cog_original_organization_tests_passed": 4,
+      "master_additional_metadata_processes_passed": 6,
+      "reader_exact_exemption_synthetic_probe": "passed",
+      "fixed_git_blob_ast_checks": {
+        "ept": 24,
+        "cog": 7,
+        "master": 8
+      }
+    },
+    "correction_delta_execution": {
+      "cog_organization_tests_passed": 4,
+      "cog_organization_test_seconds": 4.76,
+      "organization_fresh_process_scenarios_passed": 8,
+      "separately_authored_fresh_process_probes_passed": 8,
+      "namespace_modes": [
+        "analysis only",
+        "COG.analysis only",
+        "mixed source-first",
+        "mixed qualified-first"
+      ],
+      "import_orders": [
+        "legacy-first",
+        "canonical-first"
+      ],
+      "module_spec_package_parent_globals_and_pickle": "passed",
+      "frozen_cog_raw_file_pins_matched": 17,
+      "canonical_implementation_raw_hashes_unchanged": 39,
+      "expected_pre_status_changed_inputs": [
+        "COG/MODULES.md",
+        "COG/analysis/fight_boundaries/__init__.py",
+        "COG/organization_tests/test_fight_boundary_layout.py",
+        "work/cog-grouping-result.md"
+      ],
+      "unexpected_input_drift": []
+    },
+    "delta_not_rerun": [
+      "Master/EPT suites already independently verified; reviewed bytes unchanged",
+      "Seven CoG scientific-unit cases; implementer result retained",
+      "Scientific experiments, real reports, payload/checkpoint inspection and whole-repository validation"
+    ],
+    "hash_inventory": "Final raw reviewed-input hashes, including completed validation/result status documents, are in the independent report; that report excludes its own hash."
+  },
+  "source_transport_note": "This inventory hashes RAW bytes in the reviewed worktree. Git core.autocrlf may normalize line endings, so identical raw SHA-256 values are not promised for a fresh clone or remote checkout. The publisher will verify committed Git blob identities in the public tree and retain algorithm AST checks; that publication transport verification was not performed by this reviewer.",
+  "lead_reported_precommit_checks": {
+    "provenance": "Human relayed lead precommit check during independent delta review; not rerun by reviewer",
+    "staged_immutable_code_doc_files": 113,
+    "staged_python_files_parsed": 99,
+    "cached_whitespace_check_exit_code": 0,
+    "source_bytes_changed": false,
+    "three_status_documents_deferred_until_reviewer_finalization": true,
+    "commit_or_push_performed": false,
+    "independently_reexecuted": false
+  }
+}

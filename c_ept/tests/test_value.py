@@ -940,7 +940,7 @@ def test_kill_levels_refuses_raw_files_that_do_not_agree_with_the_s1_kills(toy_s
 
 
 def test_the_module_never_passes_the_holdout_switch_to_the_reader():
-    tree = ast.parse((REPO / 'c_ept' / 'value.py').read_text(encoding='utf-8'))
+    tree = ast.parse(Path(value.__file__).read_text(encoding='utf-8'))
     assert not [n for n in ast.walk(tree) if isinstance(n, ast.keyword) and n.arg == 'allow_holdout']
 
 
@@ -1364,13 +1364,13 @@ def test_random_labels_survive_a_round_trip_through_the_store(random_world, tmp_
 
 # ---- how the module is imported ----------------------------------------------------------------------------------------------------------
 def test_no_module_level_import_reaches_the_s1_runner():
-    imports = module_level_imports(REPO / 'c_ept' / 'value.py')
+    imports = module_level_imports(Path(value.__file__))
     chain = ('c_ept.run_s1', 'c_ept.run_s2', 'c_ept.store_build', 'c_ept.cohort', 'c_ept.runlog')
     assert not [i for i in imports if i in chain or i.startswith(chain)], sorted(imports)
 
 
 def test_the_e6_guard_is_imported_inside_kill_levels():
-    tree = ast.parse((REPO / 'c_ept' / 'value.py').read_text(encoding='utf-8'))
+    tree = ast.parse(Path(value.__file__).read_text(encoding='utf-8'))
     fn = next(n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == 'kill_levels')
     inner = [n for n in ast.walk(fn) if isinstance(n, ast.ImportFrom) and n.module == 'c_ept' and any(a.name == 'run_s1' for a in n.names)]
     assert inner
@@ -1387,7 +1387,7 @@ def test_importing_the_module_loads_no_s1_module():
 
 
 def test_the_module_names_no_array_the_labels_do_not_need():
-    tree = ast.parse((REPO / 'c_ept' / 'value.py').read_text(encoding='utf-8'))
+    tree = ast.parse(Path(value.__file__).read_text(encoding='utf-8'))
     named = {n.value for n in ast.walk(tree) if isinstance(n, ast.Constant) and isinstance(n.value, str)}
     for prefix in ('event_rows/', 'onsets/', 'frames/', 'objectives/x', 'objectives/y', 'kills/x', 'kills/y', 'matches/champ'):
         assert not [v for v in named if v.startswith(prefix)], prefix

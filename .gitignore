@@ -373,3 +373,6 @@ stage_research_code.py
 .cursor/
 *.npz
 *.npy
+
+# Local implementation checks and long test logs
+/work/

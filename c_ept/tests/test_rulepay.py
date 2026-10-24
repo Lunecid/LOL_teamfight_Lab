@@ -23,7 +23,7 @@ import pytest
 from c_ept import rulepay
 from c_ept.tests.conftest import module_level_imports
 
-REPO = Path(rulepay.__file__).parents[1]
+REPO = Path(__file__).resolve().parents[2]
 F0_RULES = ('champion_kill_base_bounty', 'assist_bounty', 'assist_bounty_early_game_multiplier', 'first_blood_bonus')
 P3_PATCHES = ('15.18', '15.19', '15.20', '15.21', '15.22')
 P3_BASE = tuple(300 + 10 * max(0, level - 6) for level in range(1, 19))          # 300 for levels 1-6, +10 per level from 7, 420 at 18
@@ -928,7 +928,7 @@ def test_a_bad_table_value_does_not_leak_a_match_key_either(tmp_path):
 # ---- how the module is imported ----------------------------------------------------------------------------------------------------------
 def test_rulepay_imports_only_the_standard_library_and_numpy():
     """The rules never read a match, a store or a run folder: nothing of the c_ept runners (E6 guard, S1 readers) is reachable from here."""
-    imports = {name.split('.')[0] for name in module_level_imports(REPO / 'c_ept' / 'rulepay.py')}
+    imports = {name.split('.')[0] for name in module_level_imports(Path(rulepay.__file__))}
     assert imports <= {'__future__', 'dataclasses', 'json', 'math', 'numpy', 'pathlib', 're'}, sorted(imports)
 
 
@@ -936,4 +936,4 @@ def test_importing_the_module_loads_no_other_c_ept_module():
     code = ('import sys\nbefore = set(sys.modules)\nimport c_ept.rulepay\n'
             'print(sorted(m for m in set(sys.modules) - before if m.startswith("c_ept")))')
     done = subprocess.run([sys.executable, '-B', '-c', code], cwd=REPO, capture_output=True, text=True, timeout=300)
-    assert done.returncode == 0 and done.stdout.strip() == "['c_ept', 'c_ept.rulepay']", done.stderr[-500:]
+    assert done.returncode == 0 and done.stdout.strip() == "['c_ept', 'c_ept.rulepay', 'c_ept.valuation', 'c_ept.valuation.rulepay']", done.stderr[-500:]
