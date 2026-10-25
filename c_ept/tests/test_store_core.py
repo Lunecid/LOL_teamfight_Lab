@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from c_ept import store_core
+from c_ept.data import store_core
 
 
 def _manifest(root):

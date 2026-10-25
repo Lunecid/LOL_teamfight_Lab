@@ -26,12 +26,18 @@ import numpy as np
 import pytest
 
 from c_ept import config as C
-from c_ept import reader, report_s2, run_s1, runlog, state, store_core, terrain, tokens, traits
+from c_ept.data import reader
+from c_ept.reporting import report_s2
+from c_ept.workflows import run_s1
+from c_ept import runlog
+from c_ept.domain import state
+from c_ept.data import store_core
+from c_ept.preprocessing import terrain, tokens, traits
 from c_ept.checks import sweep_state
-from c_ept.store_core import Store
+from c_ept.data.store_core import Store
 from c_ept.tests import synth
 from c_ept.tests import view_helpers as vh
-from c_ept.tests.conftest import empty_process_list
+from c_ept.tests.conftest import empty_process_list, module_level_imports
 
 P, S = vh.P, vh.S                                                # column name -> index in players_num / summary
 RUN_NAME, S1_NAME = '20261021_c_ept_s2_1', '20261020_c_ept_s1_1'
@@ -1173,15 +1179,23 @@ def test_the_chunk_size_changes_no_number(nominal, tmp_path, s1_dir, terrain_bas
 
 
 def test_report_s2_does_not_import_the_runner_chain_or_the_builder_at_module_level():
-    import ast
-    tree = ast.parse(Path(report_s2.__file__).read_text(encoding='utf-8'))
-    names = set()
-    for node in tree.body:
-        if isinstance(node, ast.Import):
-            names |= {a.name for a in node.names}
-        elif isinstance(node, ast.ImportFrom):
-            names |= {node.module} | {f'{node.module}.{a.name}' for a in node.names}
+    names = module_level_imports(report_s2.__file__, 'c_ept.reporting')
     assert not names & {'c_ept.run_s1', 'c_ept.run_s2', 'c_ept.store_build', 'c_ept.report_s1'}
+
+
+@pytest.mark.parametrize('module', [
+    'c_ept.run_s1', 'c_ept.workflows.run_s1',
+    'c_ept.run_s2', 'c_ept.workflows.run_s2',
+    'c_ept.store_build', 'c_ept.data.store_build',
+    'c_ept.report_s1', 'c_ept.reporting.report_s1',
+])
+@pytest.mark.parametrize('syntax', ['import {module}', 'from {module} import Member'])
+def test_report_s2_dependency_guard_rejects_both_import_routes(tmp_path, monkeypatch, module, syntax):
+    source = tmp_path / 'synthetic_report.py'
+    source.write_text(syntax.format(module=module) + '\n', encoding='utf-8')
+    monkeypatch.setattr(report_s2, '__file__', str(source))
+    with pytest.raises(AssertionError):
+        test_report_s2_does_not_import_the_runner_chain_or_the_builder_at_module_level()
 
 
 # ---- the command line ---------------------------------------------------------------------------------------------------------------
@@ -1262,7 +1276,7 @@ def real_s1(tmp_path_factory):
 @pytest.fixture(scope='module')
 def real_run(real_s1, open_table, tmp_path_factory):
     """(run folder, the parsed S2_REPORT.json): ``build_s2`` on the synthetic S1 store, then ``report`` with the synthetic records."""
-    from c_ept import store_build            # only these tests need the builder
+    from c_ept.data import store_build            # only these tests need the builder
     base = tmp_path_factory.mktemp('report_s2_real_run')
     terr = write_terrain_folder(base / 'terrain', open_table, real_s1, 2)
     run = base / '20261021_c_ept_s2_1'

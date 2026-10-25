@@ -20,8 +20,8 @@ from pathlib import Path
 import numpy as np
 
 from c_ept import config as C
-from c_ept import units
-from c_ept.reader import MatchRecord, champion_name_id
+from c_ept.domain import units
+from c_ept.data.reader import MatchRecord, champion_name_id
 
 TEAM = np.array([100] * 5 + [200] * 5, dtype=np.int16)     # the (10,) team ids of the hand-built tables: blue 1-5, red 6-10
 

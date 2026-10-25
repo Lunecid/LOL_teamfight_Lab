@@ -47,6 +47,59 @@ def read_json(path, kind: str):
 
 
 # ---- the import scans of the structure tests ----------------------------------------------------------------------------------------
+# Pure test metadata, independently checked against module-layout-v1 by
+# test_import_guard_aliases. No production module or protected source is loaded.
+IMPORT_GUARD_GROUPS = {
+    'data': 'casts reader store_core store_build event_rows frame_rows head_rows'.split(),
+    'preprocessing': 'features terrain tokens traits'.split(),
+    'domain': 'units targets state symmetry'.split(),
+    'valuation': 'flowprice rulepay towertier value compose'.split(),
+    'models': 'baselines_b0 baselines_b1 heads nll'.split(),
+    'workflows': 'run_s1 run_s2 run_s3 run_s4a s4a_operator s4a_runtime'.split(),
+    'reporting': 'report_s1 report_s2 report_s3'.split(),
+    'checks': ['gate_s3'],
+}
+IMPORT_GUARD_ALIASES = {f'c_ept.{name}': f'c_ept.{group}.{name}'
+                        for group, names in IMPORT_GUARD_GROUPS.items() for name in names}
+
+
+def _equivalent_names(names, pairs):
+    result = set(names)
+    for name in tuple(result):
+        for source, target in pairs:
+            if name == source or name.startswith(source + '.'):
+                result.add(target + name[len(source):])
+    return result
+
+
+def legacy_import_aliases(names) -> set:
+    """Retain canonical names and add equivalent legacy names, never the reverse.
+
+    Legacy-only scanner inputs keep their exact historical result sets. Prefix
+    matches require a dot boundary, including imported members such as Store.
+    """
+    return _equivalent_names(names, tuple((new, old) for old, new in IMPORT_GUARD_ALIASES.items()))
+
+
+def import_watch_names(names) -> tuple:
+    """Both spellings for sys.modules watchers; unlike scanner normalization."""
+    pairs = tuple(IMPORT_GUARD_ALIASES.items())
+    return tuple(sorted(_equivalent_names(names, pairs + tuple((b, a) for a, b in pairs))))
+
+
+# Fresh-interpreter guards fail before reading protected module bodies. Unlike
+# the outer synthetic test runner's cohort stub, this does not hide imports of a
+# forbidden chain member: attempting to load it must fail the subprocess test.
+PROTECTED_IMPORT_PRELUDE = '''
+import sys
+class _DenyProtected:
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname in ('c_ept.cohort', 'research_pipeline.cohort_policy') or fullname.startswith('research_pipeline.holdout_r3'):
+            raise AssertionError('protected import forbidden in guard test: ' + fullname)
+sys.meta_path.insert(0, _DenyProtected())
+'''
+
+
 def package_of(path) -> str:
     """The package that a module file of the repository belongs to, dotted: ``c_ept`` for ``c_ept/tokens.py`` (and for
     ``c_ept/__init__.py``), ``c_ept.checks`` for ``c_ept/checks/common.py``. ValueError for a file outside the repository: the caller
@@ -64,16 +117,19 @@ def imported_names(node, package: str) -> set:
     module of ``package``: ``a.b`` for ``import a.b``; ``a``, ``a.b`` and ``a.c`` for ``from a import b, c``. A relative import is
     resolved the way the interpreter does it: in package ``p``, ``from . import x`` names ``p`` and ``p.x``; in package ``p.q``,
     ``from ..m import y`` names ``p.m`` and ``p.m.y``. Read as an absolute name, ``from . import run_s1`` was ``None.run_s1`` and a scan
-    for an S1 module missed it (final review, Task 12). ValueError for a relative import that climbs above the top-level package."""
+    for an S1 module missed it (final review, Task 12). Canonical grouped names
+    additionally expose equivalent legacy names so existing prohibitions cannot
+    be bypassed; legacy-only input results are unchanged. ValueError for a
+    relative import that climbs above the top-level package."""
     if isinstance(node, ast.Import):
-        return {a.name for a in node.names}
+        return legacy_import_aliases({a.name for a in node.names})
     base = node.module or ''
     if node.level:
         parts = package.split('.') if package else []
         if node.level > len(parts):
             raise ValueError(f'a relative import of level {node.level} in the package {package!r} climbs above the top-level package')
         base = '.'.join(parts[:len(parts) - node.level + 1] + ([node.module] if node.module else []))
-    return {base} | {f'{base}.{a.name}' for a in node.names}
+    return legacy_import_aliases({base} | {f'{base}.{a.name}' for a in node.names})
 
 
 def module_level_imports(path, package: str | None = None) -> set:
@@ -204,7 +260,7 @@ def golden_records():
         pytest.skip('C_EPT_S1_RUN is not set: the 20 golden matches are named by the golden lock of an S1 run')
     import numpy as np
     from c_ept import config as C
-    from c_ept import reader
+    from c_ept.data import reader
     matches = golden_folder(run) / 's1' / 'matches'
     if not ((matches / 'key.npy').is_file() and (matches / 'patch.npy').is_file()):
         pytest.fail('the golden lock (golden/s1/matches/key.npy, patch.npy) is missing in the S1 run folder', pytrace=False)
@@ -220,7 +276,7 @@ def open_table():
     """The all-pairs geodesic table of the open 75 x 75 grid, built once per session (about 4 s and a 63 MB result) and shared by the
     terrain tests and the view tests (R12-n, R13-j)."""
     import numpy as np
-    from c_ept import terrain
+    from c_ept.preprocessing import terrain
     return terrain.geodesic_table(np.ones((75, 75), dtype=bool))
 
 
@@ -232,7 +288,7 @@ def open_dir(open_table, tmp_path_factory):
     import shutil
 
     import numpy as np
-    from c_ept import terrain
+    from c_ept.preprocessing import terrain
     out = tmp_path_factory.mktemp('open_terrain')
     zero = np.zeros((150, 150))
     terrain.write_terrain_files(out, np.ones((75, 75), dtype=bool), zero, zero, open_table)
@@ -244,7 +300,7 @@ def open_dir(open_table, tmp_path_factory):
 @pytest.fixture
 def open_terrain(open_dir):
     """A fresh ``Terrain`` of the open grid (every cell walkable); the test owns it and it is dropped afterwards."""
-    from c_ept import terrain
+    from c_ept.preprocessing import terrain
     t = terrain.Terrain(open_dir)
     yield t
     del t

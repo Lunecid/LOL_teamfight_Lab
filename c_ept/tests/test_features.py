@@ -25,8 +25,11 @@ import numpy as np
 import pytest
 
 from c_ept import config as C
-from c_ept import features, flowprice, targets, tokens
-from c_ept.store_core import Store
+from c_ept.preprocessing import features
+from c_ept.valuation import flowprice
+from c_ept.domain import targets
+from c_ept.preprocessing import tokens
+from c_ept.data.store_core import Store
 from c_ept.tests.conftest import module_level_imports
 from c_ept.tests.s3_toys import (   # noqa: F401  (the fixtures are imported by ruling R1)
     JUNK, KEY_PREFIX, TOY_ALL_VIEWS, TOY_CONSTANT_COLUMN, TOY_CONSTANT_PLAYER_COLUMN, TOY_DEV_MATCHES, TOY_DROPPED_ALL, TOY_DROPPED_FIT,
@@ -1096,7 +1099,7 @@ def test_m4_ranges_come_from_the_config():
     row, q, m, z, K, O = m4_example()
     ok = features.m4_masked_inputs(row, [C.N_BINS - 1] * 4, [C.N_MARKS - 1] * 4, [9] * 4, K, O)            # the largest values pass
     assert ok.shape[0] == 4 and C.N_BINS == 18 and C.N_MARKS == 52
-    from c_ept import terrain
+    from c_ept.preprocessing import terrain
     assert len(terrain.ZONES) == features.N_ZONES == 10
 
 
@@ -1162,7 +1165,7 @@ def test_unit_zone_is_the_zone_of_the_first_kill_with_minus_one_where_there_is_n
 
 
 def test_unit_zone_hand_positions_are_what_terrain_says():
-    from c_ept import terrain                                            # the hand numbers above and the code agree
+    from c_ept.preprocessing import terrain                                            # the hand numbers above and the code agree
     for (x, y), zone in ZONE_HAND:
         assert int(terrain.zone_of(x, y)) == zone
     assert terrain.ZONES == ('base_blue', 'base_red', 'top', 'mid', 'bot', 'river', 'jg_blue_top', 'jg_blue_bot', 'jg_red_top',
@@ -1198,7 +1201,7 @@ def test_unit_zone_reads_exactly_four_arrays(tmp_path):
 
 
 def test_unit_zone_equals_a_loop_on_the_value_toys(toy_value_s1):
-    from c_ept import terrain
+    from c_ept.preprocessing import terrain
     x, y = np.asarray(toy_value_s1.array('kills/x')), np.asarray(toy_value_s1.array('kills/y'))
     missing, kill0 = np.asarray(toy_value_s1.array('kills/pos_missing')), np.asarray(toy_value_s1.array('units/kill0'))
     expected = [-1 if missing[k] else int(terrain.zone_of(x[k], y[k])) for k in kill0]

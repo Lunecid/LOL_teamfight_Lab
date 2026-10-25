@@ -137,7 +137,14 @@ from pathlib import Path
 import numpy as np
 
 from c_ept import config as C
-from c_ept import features, flowprice, gate_s3, head_rows, nll, run_s3, runlog, store_core
+from c_ept.preprocessing import features
+from c_ept.valuation import flowprice
+from c_ept.checks import gate_s3
+from c_ept.data import head_rows
+from c_ept.models import nll
+from c_ept.workflows import run_s3
+from c_ept import runlog
+from c_ept.data import store_core
 
 BOOT_B = nll.BOOT_B                                # the match bootstrap of every S3 interval: B = 2,000 replicates ...
 SEED = nll.BOOT_SEED                               # ... from this seed (the gate's constants; a test pins them)
@@ -996,7 +1003,7 @@ def game_ids(keys) -> set:
 
     입력 키에서 게임 번호 부분을 추려 문자열 검색의 대상 집합을 만든다. 최소 자릿수 조건에 맞는 부분만 포함한다.
     """
-    from c_ept import store_build               # here: the report needs its helper only when it scans
+    from c_ept.data import store_build               # here: the report needs its helper only when it scans
     return {part for key in keys for part in store_build._key_parts(key)[1:] if len(part) >= MIN_GAME_ID_DIGITS}
 
 
@@ -1390,7 +1397,7 @@ def open_s1(path: Path, manifest: dict):
 
     S1을 읽기 전용으로 열고 manifest의 파일 목록 해시를 실행 기록과 비교한다. 실제 배열 파일 각각의 해시를 다시 읽어 검증하지는 않는다.
     """
-    from c_ept.run_s1 import load_s1                       # here: no path to the runner at module level
+    from c_ept.workflows.run_s1 import load_s1                       # here: no path to the runner at module level
     try:
         store = load_s1(path, verify=False)
     except (FileNotFoundError, ValueError) as exc:
@@ -1704,7 +1711,7 @@ def build_report(run: Path, manifest: dict, ledger: dict, s1, ctx, prices: dict,
     composition = b1_composition(b0, b1, realized[:, 0], observed, sample=sample, B=B, seed=seed)
     cost, missing = cost_section(manifest, ledger, fit, compose)
     b0_names = list(fit_inputs['b0_names'])
-    from c_ept import value                                          # here: the label module is needed for one constant
+    from c_ept.valuation import value                                          # here: the label module is needed for one constant
     s2 = manifest.get('s2') or {}
     verdict = gate['verdict']
     doc = {
@@ -2065,7 +2072,7 @@ def build_parser() -> argparse.ArgumentParser:
 def _s1_keys(a) -> list:
     """The match keys, as text, of the S1 store that the command line ``a`` asks the report to read: ``--s1``, or the S1 run that RUN.json
     names, found as ``report`` finds it. They are read only to take them out of a traceback."""
-    from c_ept.run_s1 import load_s1
+    from c_ept.workflows.run_s1 import load_s1
     folder = a.s1
     if folder is None:
         manifest = _read_json(Path(a.run) / 'RUN.json', 'RUN.json')

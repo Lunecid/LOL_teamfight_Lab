@@ -32,8 +32,8 @@ from sklearn.exceptions import ConvergenceWarning
 from sklearn.linear_model import LogisticRegression
 
 from c_ept import config as C
-from c_ept import flowprice, towertier
-from c_ept.store_core import Store
+from c_ept.valuation import flowprice, towertier
+from c_ept.data.store_core import Store
 from c_ept.tests.conftest import all_imports, module_level_imports
 
 SOURCE = Path(towertier.__file__)
@@ -662,7 +662,7 @@ def test_an_e6_refusal_stops_the_fit_before_anything_is_read(hand):
 
 def test_the_real_e6_guard_refuses_through_check_while_a_model_server_runs(hand, fake_processes):
     pytest.importorskip('psutil')                                               # without it the guard cannot see any process
-    from c_ept import run_s1
+    from c_ept.workflows import run_s1
     fake_processes([(4242, 'llama-server.exe', ['llama-server.exe', '--model', 'x'])])
     spy = SpyStore(hand)
     with pytest.raises(run_s1.StrataRunning):

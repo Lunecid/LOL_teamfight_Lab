@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from c_ept.s4a_runtime import RuntimeRefused, prepare_native_runtime, validate_e6_probe
+from c_ept.workflows.s4a_runtime import RuntimeRefused, prepare_native_runtime, validate_e6_probe
 
 
 @pytest.fixture(autouse=True)
@@ -64,7 +64,7 @@ def test_runtime_helper_import_is_stdlib_only():
 
 @pytest.mark.parametrize('result', [None,probe()])
 def test_guard_optional_validator_single_probe_and_legacy_default(monkeypatch,result):
-    from c_ept import run_s1, run_s3
+    from c_ept.workflows import run_s1, run_s3
     calls=[]
     monkeypatch.setattr(run_s1,'require_no_strata',lambda:(calls.append('probe'),result)[1])
     default=run_s3._Guard()
@@ -77,7 +77,7 @@ def test_guard_optional_validator_single_probe_and_legacy_default(monkeypatch,re
 
 
 def test_guard_validator_error_keeps_finally_counters(monkeypatch):
-    from c_ept import run_s1,run_s3
+    from c_ept.workflows import run_s1, run_s3
     monkeypatch.setattr(run_s1,'require_no_strata',lambda:None)
     g=run_s3._Guard(validate=validate_e6_probe)
     with g.window() as window:
@@ -87,7 +87,7 @@ def test_guard_validator_error_keeps_finally_counters(monkeypatch):
 
 
 def test_projection_arithmetic_matches_a_hand_case():
-    from c_ept import run_s4a as r
+    from c_ept.workflows import run_s4a as r
     assert r.project_cost(10.,2.,4.,3,1) == 122.
     assert r.project_cost(10.,2.,4.,3,2) == 244.
     with pytest.raises(RuntimeRefused):
@@ -96,7 +96,7 @@ def test_projection_arithmetic_matches_a_hand_case():
 
 def test_whole_repository_guard_is_readonly_and_not_c_ept_scoped(monkeypatch,tmp_path):
     from types import SimpleNamespace
-    from c_ept import run_s4a as r
+    from c_ept.workflows import run_s4a as r
     calls=[]
     def git(argv,**kw):
         calls.append((argv,kw))
@@ -115,7 +115,7 @@ def test_whole_repository_guard_is_readonly_and_not_c_ept_scoped(monkeypatch,tmp
 
 
 def test_resume_checks_args_runtime_config_and_input_even_with_same_digest():
-    from c_ept import run_s4a as r
+    from c_ept.workflows import run_s4a as r
     base=dict(code=dict(code_commit='a'*40,code_dirty=False),args=dict(epochs=2),runtime=dict(mkl='SEQUENTIAL'),inputs=dict(s1='a'),operator_config_sha256='b'*64)
     manifest=dict(schema=r.RUN_SCHEMA,stage='s4a',operator_api_version=1,code_commit='a'*40,code_dirty=False,identity=base,run_identity_sha256=r._digest(base),operator_config_sha256=base['operator_config_sha256'])
     r.verify_resume(manifest,base)
@@ -125,7 +125,7 @@ def test_resume_checks_args_runtime_config_and_input_even_with_same_digest():
 
 
 def test_lock_real_process_contention_and_owner_exit_recovery(tmp_path):
-    from c_ept import run_s4a as r
+    from c_ept.workflows import run_s4a as r
     owner_code='from c_ept.run_s4a import run_lock; import sys; from pathlib import Path\nwith run_lock(Path(sys.argv[1])):\n print("READY",flush=True)\n sys.stdin.readline()\n'
     contender_code='from c_ept.run_s4a import run_lock; from pathlib import Path; import sys\nwith run_lock(Path(sys.argv[1])): print("ACQUIRED")\n'
     owner=subprocess.Popen([sys.executable,'-c',owner_code,str(tmp_path)],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
@@ -151,7 +151,7 @@ def test_direct_cli_refuses_unsafe_override_before_native_import(monkeypatch,inh
 
 
 def test_every_model_file_including_metadata_is_verified(tmp_path):
-    from c_ept import run_s4a as r
+    from c_ept.workflows import run_s4a as r
     arrays=tmp_path/'b0_heads.npz'; arrays.write_bytes(b'synthetic arrays')
     meta=tmp_path/'b0_heads.json'; meta.write_text(json.dumps(dict(npz_sha256=r._sha(arrays))),encoding='utf-8')
     ledger={'fit/b0/b0_heads.json':r._sha(meta)}
@@ -167,7 +167,7 @@ def test_every_model_file_including_metadata_is_verified(tmp_path):
 
 
 def test_completed_stage_revalidates_actual_output_and_skips_action(tmp_path):
-    from c_ept import run_s4a as r, run_s3
+    from c_ept.workflows import run_s4a as r, run_s3
     manifest={'stages':['stats'],'results':{}}
     ledger=run_s3.Ledger(tmp_path)
     artifact=tmp_path/'payload.txt'
@@ -184,7 +184,7 @@ def test_completed_stage_revalidates_actual_output_and_skips_action(tmp_path):
 
 
 def test_final_cost_is_integrity_bound_and_not_rewritten_on_resume(tmp_path):
-    from c_ept import run_s4a as r
+    from c_ept.workflows import run_s4a as r
     manifest={'run_identity_sha256':'a'*64}
     cost={'schema':r.COST_SCHEMA,'run_identity_sha256':'a'*64,'seconds':7}
     r._finalize_cost(tmp_path,manifest,cost)
@@ -197,7 +197,7 @@ def test_final_cost_is_integrity_bound_and_not_rewritten_on_resume(tmp_path):
 
 
 def test_process_metadata_matches_exact_run_identity_without_inventing_stage(tmp_path):
-    from c_ept import run_s4a as r
+    from c_ept.workflows import run_s4a as r
     manifest={'run_identity_sha256':'a'*64,'code_commit':'b'*40,
               'identity':{'operator_config_sha256':None}}
     record=r._process_record(tmp_path,manifest,'running')
@@ -209,7 +209,7 @@ def test_process_metadata_matches_exact_run_identity_without_inventing_stage(tmp
 
 def test_train_stage_executes_real_tiny_cpu_model_and_persists_components(tmp_path,monkeypatch):
     from types import SimpleNamespace
-    from c_ept import run_s4a as r
+    from c_ept.workflows import run_s4a as r
     from c_ept.ept import data,encoder,loss
     from c_ept.tests.ept_toys import build_ept_world,toy_static
     world=build_ept_world(tmp_path/'synthetic',n_events=3,n_edges=2)
@@ -229,7 +229,8 @@ def test_train_stage_executes_real_tiny_cpu_model_and_persists_components(tmp_pa
 
 @pytest.mark.parametrize('failure',[None,dict(running=True,matched=[dict(pid=1,name='strata')],bridges_ignored=0,scanned=1,cmdline_unreadable=0,rule='frozen')])
 def test_execute_e6_refuses_before_input_or_run_mutation(tmp_path,monkeypatch,failure):
-    from c_ept import run_s4a as r,run_s1,runlog
+    from c_ept.workflows import run_s4a as r, run_s1
+    from c_ept import runlog
     args=r._parser().parse_args(['--s1','synthetic-s1','--s2','synthetic-s2','--s3','synthetic-s3','--runs-root',str(tmp_path)])
     monkeypatch.setattr(run_s1,'require_no_strata',lambda:failure)
     def forbidden(*a,**kw):
@@ -244,7 +245,7 @@ def test_execute_e6_refuses_before_input_or_run_mutation(tmp_path,monkeypatch,fa
 
 def test_output_roots_cannot_mutate_sources_or_frozen_trees(tmp_path,monkeypatch):
     from types import SimpleNamespace
-    from c_ept import run_s4a as r
+    from c_ept.workflows import run_s4a as r
     allowed=tmp_path/'runs'
     monkeypatch.setattr(r,'APPROVED_RUNS_ROOT',allowed)
     args=SimpleNamespace(runs_root=str(allowed),catalog_db=str(tmp_path/'catalog.sqlite'))
@@ -278,7 +279,9 @@ assert value.shape==(1,4) and abs(value.sum()-1.)<1e-12
 def test_synthetic_cpu_pipeline_cost_schema_resume_and_protected_payloads(tmp_path,monkeypatch):
     import numpy as np
     from types import SimpleNamespace
-    from c_ept import run_s4a as r,run_s1,features,config as C
+    from c_ept.workflows import run_s4a as r, run_s1
+    from c_ept.preprocessing import features
+    from c_ept import config as C
     from c_ept.ept import encoder,loss,scales
     from c_ept.tests.ept_toys import build_ept_world,toy_static
     from c_ept.tests.s3_toys import _put,toy_tier_model,TOY_COMPOSE_PRICES,TOY_GOLD_REPS
@@ -338,7 +341,7 @@ def test_synthetic_cpu_pipeline_cost_schema_resume_and_protected_payloads(tmp_pa
 
 
 def test_resumed_training_is_not_uninterrupted_projection_calibration():
-    from c_ept import run_s4a as r
+    from c_ept.workflows import run_s4a as r
     fitted={'size':'S','device':'cpu','recovered':False,'resumed':True}
     result=r._projections([fitted])['projections'][0]
     assert result['available'] is False and 'uninterrupted' in result['reason']
@@ -346,7 +349,7 @@ def test_resumed_training_is_not_uninterrupted_projection_calibration():
 
 def test_resume_cannot_create_lock_inside_requested_source(tmp_path,monkeypatch):
     from types import SimpleNamespace
-    from c_ept import run_s4a as r
+    from c_ept.workflows import run_s4a as r
     root=tmp_path/'runs'; root.mkdir()
     source=root/'s3'; source.mkdir()
     monkeypatch.setattr(r,'APPROVED_RUNS_ROOT',root)
@@ -358,7 +361,7 @@ def test_resume_cannot_create_lock_inside_requested_source(tmp_path,monkeypatch)
 
 
 def test_projection_does_not_scale_checkpoint_io_by_rows_or_double_count_components():
-    from c_ept import run_s4a as r
+    from c_ept.workflows import run_s4a as r
     fitted={'size':'S','device':'cpu','recovered':False,'resumed':False,'epochs_run':2,
             'epoch_seconds':[10.,10.],'whole_call_seconds':28.,'proxy_work_items':10,'full_work_items':40,
             'step_seconds':[1000.,1000.],
@@ -375,7 +378,8 @@ def test_projection_does_not_scale_checkpoint_io_by_rows_or_double_count_compone
                                   'flat_decoy_prices', 'flat_decoy_rules'])
 def test_input_preflight_builds_scales_expectations_from_requested_records(tmp_path,case):
     from types import SimpleNamespace
-    from c_ept import run_s4a as r,run_s3,runlog
+    from c_ept.workflows import run_s4a as r, run_s3
+    from c_ept import runlog
     root=tmp_path
     def put(path,doc):
         path.parent.mkdir(parents=True,exist_ok=True)
@@ -450,14 +454,14 @@ def test_input_preflight_builds_scales_expectations_from_requested_records(tmp_p
 
 
 def test_store_preflight_refuses_incomplete_manifest_without_payload_read(tmp_path):
-    from c_ept import run_s4a as r
+    from c_ept.workflows import run_s4a as r
     (tmp_path/'STORE.json').write_text(json.dumps({'complete':False,'files':{}}))
     with pytest.raises(RuntimeRefused,match='complete'):
         r._store_metadata(tmp_path)
 
 
 def test_checkpoint_projection_component_stays_invariant_when_row_ratio_changes():
-    from c_ept import run_s4a as r
+    from c_ept.workflows import run_s4a as r
     for ratio in (1.,4.):
         with_io=r.project_cost(10.,4.,ratio,10,24,checkpoint_io_seconds=2.)
         without_io=r.project_cost(10.,4.,ratio,10,24)
@@ -467,7 +471,7 @@ def test_checkpoint_projection_component_stays_invariant_when_row_ratio_changes(
 @pytest.mark.parametrize('target', ['terrain_catalog','s1_resume','s2_resume','s3_resume','s3a_resume','price_catalog','rules_catalog','separate_terrain_catalog','separate_labels_catalog'])
 def test_readonly_producer_and_separate_input_trees_refuse_write_targets(tmp_path,monkeypatch,target):
     from types import SimpleNamespace
-    from c_ept import run_s4a as r
+    from c_ept.workflows import run_s4a as r
     root=tmp_path/'runs'; root.mkdir()
     paths={'s1':root/'source1/s1','s2':root/'source2/s2','s3':root/'source3',
            's1_producer':root/'source1','s2_producer':root/'source2','s3a':root/'source-price',
@@ -493,7 +497,7 @@ def test_readonly_producer_and_separate_input_trees_refuse_write_targets(tmp_pat
 
 @pytest.mark.parametrize('failure_type',[RuntimeRefused,ValueError,OSError])
 def test_main_post_process_failure_records_actual_declared_return(tmp_path,monkeypatch,failure_type):
-    from c_ept import run_s4a as r,run_s1
+    from c_ept.workflows import run_s4a as r, run_s1
     root=tmp_path/'runs'; root.mkdir()
     meta={'paths':{'s1':str(root/'source1/s1'),'s2':str(root/'source2/s2'),'s3':str(root/'source3')}}
     monkeypatch.setattr(r,'APPROVED_RUNS_ROOT',root)

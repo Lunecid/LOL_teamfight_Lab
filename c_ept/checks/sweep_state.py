@@ -56,9 +56,10 @@ from pathlib import Path
 
 import numpy as np
 
-from c_ept import reader, state
+from c_ept.data import reader
+from c_ept.domain import state
 from c_ept.checks import common
-from c_ept.units import event_xy
+from c_ept.domain.units import event_xy
 
 SCRIPT = 'c_ept.checks.sweep_state'
 CHUNK = 100                  # matches per task of the pool
@@ -223,7 +224,7 @@ def main(argv=None) -> int:
     ap.add_argument('--sample', type=int, help='read N matches drawn at random (see --seed) instead of all')
     ap.add_argument('--seed', type=int, default=0, help='seed of the --sample draw (default 0)')
     args = common.parse(ap, argv)
-    from c_ept import run_s1                                  # inside the function: a view builder never imports the S1 runner chain
+    from c_ept.workflows import run_s1                                  # inside the function: a view builder never imports the S1 runner chain
     try:
         run_s1.require_no_strata()                            # E6: before any raw file is read and before the pool starts
     except run_s1.StrataRunning as e:

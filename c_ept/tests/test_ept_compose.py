@@ -3,8 +3,9 @@ import inspect
 import numpy as np
 import pytest
 import torch
-from c_ept import compose, features
-from c_ept.heads import ComposerHeads
+from c_ept.valuation import compose
+from c_ept.preprocessing import features
+from c_ept.models.heads import ComposerHeads
 from c_ept.ept import data, encoder, heads
 from c_ept.ept.compose_heads import EPTComposerHeads, MAX_HANDLE
 from c_ept.tests.ept_toys import toy_static
@@ -13,8 +14,8 @@ from c_ept.tests.ept_toys import toy_static
 def build_compose_world(root):
     """Complete EPT tokens on the value toy, including objective history for real Composer."""
     from types import SimpleNamespace
-    from c_ept import tokens
-    from c_ept.store_core import Store
+    from c_ept.preprocessing import tokens
+    from c_ept.data.store_core import Store
     from c_ept.tests.s3_toys import build_value_s1, build_toy_s2, _put
     from c_ept.tests.ept_toys import random_x, DTYPES
     s1 = build_value_s1(root / 's1')

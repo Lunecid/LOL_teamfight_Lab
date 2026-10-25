@@ -5,7 +5,8 @@ import numpy as np
 import pytest
 
 from c_ept import config as C
-from c_ept import reader, targets, units
+from c_ept.data import reader
+from c_ept.domain import targets, units
 from c_ept.tests import synth
 from c_ept.tests.synth import TEAM, kt
 

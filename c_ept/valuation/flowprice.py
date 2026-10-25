@@ -1,113 +1,29 @@
-r"""D7: the minute gold-lead panel, the event table and the window table (part 1), then the estimators of the flow price and of the
-immediate value, the match bootstrap, the price table and the ``flowprice`` command line (part 2, from "Estimators" below).
+r"""
+Objective Economic Value & Flow Price Estimator / 오브젝트 경제적 가치(흐름 가격) 및 즉시 가치 추정기
 
-Minute panel. ``lead_series(s1, m)`` gives, for the regular frames k = 0 .. F - 1 of match row m, the frame times and
-lead[k] = (sum of totalGold of the blue team) - (sum of totalGold of the red team); the teams come from ``matches/team``. Only the
-regular frames are there: S1 keeps the gold of the regular frames and the positions of the game-end frame (``reader.py``), so nothing is
-known about the gold at the game end (ruling R5). The minute k of a time t is the smallest k with t <= ts[k], that is ts[k-1] < t <= ts[k]
-(a time on a frame time belongs to the minute that frame ends), and F for a time after the last regular frame. The change of minute k is
-lead[k] - lead[k-1]. A match that lacks totalGold in a regular frame is refused (ValueError naming the match row and the count): real
-timelines have it everywhere, and a gap would otherwise turn into a made-up number.
+[English]
+Estimates the monetary (gold) equivalent value of competitive objectives (dragons, barons, heralds,
+turret tiers, inhibitors, plates) from match outcome panel data:
+  1. Minute Gold-Lead Panel: Tracks total gold differentials (Blue - Red) across regular frames.
+  2. Stacked Event Study (`flow_stats`, relative minutes -4 to +2):
+       - Measures cumulative gold lead changes after objective takedowns relative to the event minute.
+       - Implements Frisch-Waugh-Lovell demeaning to eliminate event fixed effects.
+       - Flow Price (p): Cumulative post-event differential minus pre-trend baseline.
+  3. Window Regression (`window_stats`):
+       - Regresses one-minute lead changes on objective takedowns (treat), combat gold (co), and game state (ctrl).
+       - Immediate Value (theta_psi): Marginal gold impact of each objective within that minute.
+  4. Block Bootstrap: Resamples whole matches to compute 95% confidence intervals and pre-trend validity.
 
-Event table. ``event_table`` has one row per objective with a known group and a known taker (``config.O_KINDS``, a tower by its tier
-``objectives/sub``; the rule of ``targets._counted`` plus a known tier). Objectives without a group or a taker are left out and counted in
-``n_unknown``. For an event in minute k and relative minute r = -4 .. +2 (``REL_MINUTES``):
-
-    y[r]      lead[k+r] - lead[k+r-1], the change of that minute, with the sign of the taker (+1 when blue took the objective, -1 when red
-              did), so that it reads as the gain of the team that got the objective
-    co[r, :]  ``CO_NAMES``: the kill gold of the minute, then the objectives of each group in it, all with the sign of the taker: (what the
-              taker's team got) - (what the other team got) in (ts[k+r-1], ts[k+r]]. Kill gold = bounty + shutdown bounty of the kills by a
-              champion; a kill without a champion killer (an execution) has no team and adds nothing. The event itself is left out of its
-              own minute; a second objective of the same group or of another group in that minute is counted, and is an event of its own.
-
-The window of an event is complete when k - 5 >= 0 and k + 2 <= F - 1 (all of lead[k-5] .. lead[k+2] exist). An event with an incomplete
-window stays in the table with ``complete`` False and ``y`` and ``co`` NaN: it is left out of the estimate and counted by group
-(``EventTable.counts_by_group``), never filled with zeros. (A zero ``co`` would look like "no kill, no objective in those minutes", which is
-not known.)
-
-Window table. One row per frame-clock row (``frame_rows``: regular frame k >= 2 with ts[k] < T - 30 s) of the matches of the asked roles,
-whose window is the minute after the frame, (ts[k], ts[k+1]]. A row whose frame k + 1 is not a regular frame (the last regular frame) is
-dropped and counted in ``n_dropped_last``, and the objectives that fall in no kept window are counted by group in ``n_obj_unwindowed``
-(ruling R5). ``y`` = lead[k+1] - lead[k] (blue sign), ``treat`` the objectives of each group in the window (blue - red), ``co`` the kill
-gold, kill count and assist count of the window (blue - red; an assist is a participant 1-10 in ``kills/amask``). ``ctrl``
-(``CTRL_NAMES``) holds the state at the start of the window: lead[k] times the phase indicator of the frame time (``PHASE_EDGES_S``, the
-last bin open), the 8 phase indicators, the momentum lead[k] - lead[k-1], the champion-kill difference up to ts[k] and, from the S2
-frame-clock view of the row, the blue - red differences of the objective state and the buff indicators.
-
-Roles. Only FIT, STOP and DEV are read (``S3_ROLES``); TEST and EXTERNAL are refused as holdout roles and any other role as not used, before
-any array is read. The S2 store is read through ``views/src`` == 0 and ``views/src_index`` == the global frame-row number; the other views
-(M3 and M4 event views) are never used, and S1 and S2 are checked against each other (match, reference time and frame number of every view).
-Messages carry match row numbers and counts, never a match key; ``matches/key`` is not read.
-
-Estimators (part 2). Both regressions are fitted from per-match sufficient statistics (``MatchStats``: X'X, X'y and the number of rows or
-events of every match). A match bootstrap is then a weighted sum of small matrices per replicate, not a refit on 10^6 rows, and the weights
-of a replicate are the only thing that changes.
-
-    flow price     ``flow_stats(event_table, group)``. The complete events of one group, stacked:
-                       y[e, r] = alpha_e + beta_r + gamma . co[e, r] + noise,    r = -4 .. +2,  beta_{-1} = 0,
-                   with a free level alpha_e for every event (the event fixed effect of P2: it takes out everything that is constant inside
-                   an event, seen or unseen). It is fitted in the demeaned form: each event's mean over its seven rows is subtracted from y
-                   and from every column (Frisch-Waugh-Lovell, which gives exactly the coefficients of the regression on one dummy per
-                   event). The columns left are the six relative-minute indicators (r != -1) and 13 ``co`` columns: d = 19. ``flow_beta``
-                   puts the 0 of r = -1 back, giving the seven beta. The price p = sum_{r=0..2} beta_r - 3 mean(beta_{-4..-1}) and the
-                   pre-trend zeta = (beta_{-2} + beta_{-1}) - (beta_{-4} + beta_{-3}) are contrasts (their weights add up to 0), so
-                   the choice of r = -1 as the reference does not move them. Only complete events enter; an incomplete one (NaN) is
-                   counted, not filled (``price_table``: ``n_excluded``).
-    immediate      ``window_stats(window_table)``. One regression of y = lead[k+1] - lead[k] on [treat (12), co (3), ctrl (33)], d = 48
-                   and no intercept: the eight phase indicators of ``ctrl`` add up to 1 in every row and play that part. The coefficient of
-                   treat_psi is the immediate value of group psi (P1); that of the kill gold of the window is ``kill_gold_coef``.
-
-``solve(stats, w)`` solves the normal equations for match weights ``w`` (all 1 if None). The system is equilibrated first (each column
-scaled to a unit diagonal), because the columns differ by 10^6 in scale (a lead times a phase against an indicator). A column with no
-variation in the weighted sample (an exactly zero diagonal: the column of the group itself in a group that cannot happen twice in a
-minute, a phase that does not occur) has no estimable coefficient: NaN, and the others are estimated without it. A system whose other
-columns are collinear (the equilibrated matrix is singular to double precision) is not estimable: all NaN. Nothing is regularised and
-nothing is filled.
-
-``bootstrap(stats, B, seed)`` resamples whole matches: replicate j has the weights ``default_rng(seed).multinomial(M, 1/M)`` (the j-th
-draw of one stream, M the number of matches in ``stats``), solved from sum_u w_u X'X_u and sum_u w_u X'y_u. A singular replicate is a row
-of NaN and is counted (``singular_count``). ``price_table`` computes the price and the pre-trend again on every replicate and takes the
-percentile interval (2.5, 97.5) of the finite ones; it never takes the price of the interval ends of beta.
-
-Price table. For every group: the flow fit (beta, price, pre-trend with their intervals), ``adopted`` = the interval of the pre-trend
-contains 0, the immediate value with its interval, and the value used: the flow price if the group is not in ``FIXED_IMMEDIATE``, its
-pre-trend is adopted and the flow fit is estimable, else the immediate value. A group whose flow fit is not estimable keeps its counts and
-gets None for the flow values; the other groups go on. ``flow_rank`` and ``window_rank`` say how many columns of a fit vary and what rank
-they have (``rank_of``): they differ when columns are collinear, which is why a fit is not estimable. ``n_events`` and ``n_excluded`` are
-the complete and the incomplete events of the group, ``n_obj_unwindowed`` the objectives that fall in no kept window (ruling R5) with
-their share of the group's objectives.
-
-Command line. ``python -m c_ept.flowprice --s1 <S1 run> --s2 <S2 run> [--run <s3a run>]`` checks E6 first, reads the FIT matches of the
-two stores, writes ``<s3a run>\prices\PRICES.json`` (atomically, never over an existing one) and records the run in RUN.json and in the
-run index.
-
-방법에서의 위치. 이 모듈은 오브젝트 하나가 가져간 팀의 골드 우위에 뒤 흐름으로 준 효과를 골드로 환산한 값을 FIT 경기에서 추정한다: 쌓인 사건 연구로 구하는 흐름 가격 p와, 그것을 쓸 수 없는 묶음에 쓰는
-즉시값 θ_ψ이다(설계서 8.1절, 계획 P1·P2, 결정 D7). 먼저 분마다의 골드 우위 lead를 만들고(part 1), 오브젝트 사건마다 사건이 든 분을 0으로 둔 상대 분 r = −4, …, +2의 우위 변화를 쌓은 사건 표와 분 프레임
-행마다 그 뒤 한 분의 우위 변화와 오브젝트 수를 담은 창 표를 만든다. 그다음(part 2) 두 회귀를 경기별 충분 통계량으로 맞추고 경기를 통째로 다시 뽑는 부트스트랩으로 구간을 내며, 묶음마다 쓸 값을 PRICES.json의
-value로 정한다. 이 값이 f₀의 오브젝트 몫이 되고 합성기의 가격이 된다((VAL-3)).
-
-용어. 정규 프레임: 경기 상태를 1분마다 찍은 기록의 프레임이고 시각이 ts[k]이며, 분 k는 ts[k−1] < t ≤ ts[k]인 시각 t가 드는 한 분이다. 사건: 묶음과 가져간 팀을 아는 오브젝트 하나이다.
-묶음 ψ: 가격을 매기는 오브젝트의 12가지 묶음이다(dragon, elder, grubs, herald, baron, atakhan, 포탑 4단계, inhibitor, plate). 가져간 팀의 부호 σ: 파랑이 가져가면 +1,
-빨강이면 −1이다. 창이 완전하다: 사건 분 k에서 정규 프레임 k − 5 … k + 2가 모두 있다. 분 프레임: 정규 프레임 가운데 번호가 2 이상이고 시각이 경기 끝 30초 전보다 이른(ts[k] < T − 30 s) 것이며 t₀는 그 시각이고, 창 표의 한 행이다(설계서 11절 8).
-
-식 목록. 식 번호는 (모듈 약어-번호)이고 식과 기호는 docs/superpowers/notes/equation-index.md에 있다. 회귀의 오차는 기호 없이 "오차"라 쓴다. 앞 추세는 ζ, 시기 번호는 ph, 묶음 번호는 ψ이다.
-    (FLOW-1)   분 골드 우위       lead[k] = Σ_{참가자} σ(팀)·totalGold[k],   시각 t가 든 분 k(t) = min{k : t ≤ ts[k]}
-    (FLOW-2)   사건 행            y[e, r] = σ_e·(lead[k_e + r] − lead[k_e + r − 1]),   co[e, r]: 같은 분의 다른 사건
-    (FLOW-3)   창 행              y_i = lead[k_i + 1] − lead[k_i],   treat_i, co_i, ctrl_i
-    (FLOW-4)   쌓인 사건 연구     y[e, r] = α_e + β_r + γ·co[e, r] + 오차,   β_{−1} = 0       (사건 안 평균을 뺀 형태로 맞춘다)
-    (FLOW-5)   즉시값 회귀        y_i = Σ_ψ θ_ψ·treat_iψ + (같은 분의 킬) + (창 시작 상태) + 오차,   절편 없음
-    (FLOW-6)   정규방정식의 해    (Σ_u w_u·X_u'X_u)·θ = Σ_u w_u·X_u'y_u       (열 평형화; 변하지 않는 열은 NaN)
-    (FLOW-7)   경기 부트스트랩    θ*_j = (FLOW-6)의 해(w = d_j),   d_j ~ Multinomial(M; 1/M, …, 1/M)   (j = 1, …, B)
-    (FLOW-8)   흐름 가격          p = Σ_{r=0}^{2} β_r − 3·평균(β_{−4}, …, β_{−1})
-    (FLOW-9)   앞 추세            ζ = (β_{−2} + β_{−1}) − (β_{−4} + β_{−3})
-    (FLOW-10)  채택과 쓰는 값     채택 ⇔ ζ의 구간 ∋ 0;   value = p (흐름) 또는 θ_ψ (즉시값)
-
-공통 가정.
-    (가) 정규 프레임만(판정 R5). 경기 끝 프레임의 골드는 S1에 없어 알 수 없으므로 정규 프레임만 쓰고, 다음 정규 프레임이 없는 창 행은 빼서 센다.
-    (나) 가져간 팀의 부호. 사건 표의 y와 co에는 σ_e를 곱해 파랑이 가져간 사건과 빨강이 가져간 사건을 가져간 팀의 이득으로 합치고, 창 표는 파랑 − 빨강의 부호를 그대로 쓴다.
-    (다) 경기 단위. 같은 경기의 행은 같은 흐름을 공유해 서로 의존하므로 다른 경기끼리만 독립이라고 가정하고 구간은 경기를 통째로 다시 뽑아 만든다
-         (설계서 8.1절, 계획 전역 제약의 D7 항). 경기별 합은 그 재표본을 재적합 없이 계산하는 수단이며 점추정은 모든 행을 쓴 최소제곱과 같다.
-    (라) 읽는 경기. 표를 만드는 함수는 FIT, STOP, DEV를 받고 홀드아웃 역할과 S3가 쓰지 않는 역할은 읽기 전에 거부하며, 명령줄은 FIT 경기만 읽는다(계획 전역 제약의 분할과 D7 항).
+[한국어 설명]
+경기 타임라인 패널 데이터로부터 주요 오브젝트(용, 바론, 전령, 타워 티어별, 억제기, 포탑 방패)의 경제적 가치를 추정합니다:
+  1. 분 단위 골드 우위 패널(`lead_series`): 정규 프레임 시점마다 블루팀과 레드팀의 총 골드 격차 시계열 추적.
+  2. 누적 사건 연구(Stacked Event Study, 상대 분 -4분 ~ +2분):
+       - 오브젝트 획득 시점 전후로 팀의 골드 우위 흐름 변화를 추정.
+       - 사건 고정 효과(Event Fixed Effects)를 Frisch-Waugh-Lovell 평균 차분 기법으로 소거.
+       - 흐름 가격(Flow Price, $p$): 사전 추세(Pre-trend)가 0을 포함하여 통계적으로 타당한 경우 채택되는 장기 가치.
+  3. 창 회귀 분석(Window Regression):
+       - 분 단위 골드 우위 변화분을 오브젝트 획득 수, 전투 킬 골드, 시기별 통제 변수에 대해 회귀 분석하여 즉시 가치($\theta_\psi$) 산출.
+  4. 경기 단위 부트스트랩: 경기 전체를 단위로 재표본 추출하여 95% 신뢰구간 및 통계적 유의성을 검정.
 """
 # Ref: docs/superpowers/specs/2026-10-20-c-ept-design.md section 8.1 (D7: relative minutes -4 .. +2, controls, the immediate value as the
 #      coefficient of a minute window regression, tower tiers) and section 11, items 16 and 17 (the tier column `sub`; objectives without a
@@ -141,9 +57,9 @@ from pathlib import Path
 import numpy as np
 
 from c_ept import config as C
-from c_ept import reader
-from c_ept.casts import narrow
-from c_ept.units import BLUE, RED, _ALL_PIDS, _POPCOUNT, _is_pid
+from c_ept.data import reader
+from c_ept.data.casts import narrow
+from c_ept.domain.units import BLUE, RED, _ALL_PIDS, _POPCOUNT, _is_pid
 
 # ---- names and constants ---------------------------------------------------------------------------------------------------------
 GROUPS = ('dragon', 'elder', 'grubs', 'herald', 'baron', 'atakhan', 'tower_outer', 'tower_inner', 'tower_base', 'tower_nexus', 'inhibitor',
@@ -534,7 +450,7 @@ def _summary_plan() -> tuple:
     """``(differences, buffs, columns)`` of the S2 summary that the controls read: for each of ``_SUMMARY_DIFFS`` the column numbers of its
     blue and its red parts, for each buff the columns of its blue and red seconds, and the sorted set of all of them. Imports ``tokens``
     here, so that a caller of the event table does not load the S2 modules."""
-    from c_ept import tokens
+    from c_ept.preprocessing import tokens
     index = {name: i for i, name in enumerate(tokens.SUMMARY)}
 
     def column(name):
@@ -1301,7 +1217,7 @@ def _run_name(path) -> str:
 def _open_s2(path, verify: bool):
     """The S2 store of an S2 run folder, or of the store folder itself: ValueError / FileNotFoundError unless it is complete (and, with
     ``verify``, every file has its recorded SHA-256)."""
-    from c_ept import store_core
+    from c_ept.data import store_core
     path = Path(path)
     root = path if (path / 'STORE.json').is_file() else path / S2_DIR
     if not (root / 'STORE.json').is_file():
@@ -1316,8 +1232,9 @@ def _open_s2(path, verify: bool):
 
 def _write_prices(a, run: Path, s1, s2) -> int:
     """The part of the command that runs with the lock on ``run`` held (see ``main``)."""
-    from c_ept import runlog, store_core
-    from c_ept.run_s1 import StrataRunning, _PeakMemory, require_no_strata          # here and not at module level (the S1 chain)
+    from c_ept import runlog
+    from c_ept.data import store_core
+    from c_ept.workflows.run_s1 import StrataRunning, _PeakMemory, require_no_strata          # here and not at module level (the S1 chain)
     prices = run / 'prices' / 'PRICES.json'
     if prices.exists():
         return _refuse(f'{prices} exists: a run folder is never edited, so PRICES.json is not overwritten. Give another --run, or none.')
@@ -1378,7 +1295,7 @@ def main(argv=None) -> int:
     이미 있는 PRICES.json은 덮어쓰지 않는다.
     """
     from c_ept import runlog
-    from c_ept.run_s1 import StrataRunning, load_s1, require_no_strata              # here and not at module level (the S1 chain)
+    from c_ept.workflows.run_s1 import StrataRunning, load_s1, require_no_strata              # here and not at module level (the S1 chain)
     ap = argparse.ArgumentParser(prog='python -m c_ept.flowprice',
                                  description='S3a: the flow prices and the immediate values of the FIT matches -> prices\\PRICES.json.')
     ap.add_argument('--s1', type=Path, required=True, help='the S1 run folder (or its s1 store folder); read only')

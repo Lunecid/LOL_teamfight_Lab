@@ -1,0 +1,86 @@
+{
+  "schema": "ept-comparison-operator-v1",
+  "profile": "matched25_ept_b1_n2_v1",
+  "source": "C:/Users/todtj/.codex/worktrees/REVIEWED_COMPARISON/LOL_teamfight",
+  "source_commit": null,
+  "source_manifest": "C:/Users/todtj/.codex/worktrees/REVIEWED_COMPARISON/LOL_teamfight/harness/results/EPT-T008-source-freeze.json",
+  "source_manifest_sha256": null,
+  "python": "C:/Users/todtj/anaconda3/python.exe",
+  "output": "D:/LOL_Data/runs/20261025_c_ept_matched25_1",
+  "inputs": {
+    "s1": {
+      "root": "D:/LOL_Data/runs/REPLACE_S1",
+      "files": {
+        "STORE.json": null
+      }
+    },
+    "s2": {
+      "root": "D:/LOL_Data/runs/REPLACE_S2",
+      "files": {
+        "STORE.json": null
+      }
+    },
+    "labels": {
+      "root": "D:/LOL_Data/runs/REPLACE_LABELS",
+      "files": {
+        "STORE.json": null
+      }
+    },
+    "terrain": {
+      "root": "D:/LOL_Data/runs/REPLACE_S2/terrain",
+      "files": {
+        "TERRAIN.json": null,
+        "terrain.npz": null,
+        "geodesic.npy": null
+      }
+    },
+    "s3": {
+      "root": "D:/LOL_Data/runs/REPLACE_S3",
+      "files": {
+        "RUN.json": null,
+        "STAGES.json": null,
+        "B0_SCALES.json": null
+      }
+    },
+    "prices": {
+      "root": "D:/LOL_Data/runs/REPLACE_PRICES/prices",
+      "files": {
+        "PRICES.json": null
+      }
+    }
+  },
+  "settings": {
+    "share": 0.25,
+    "selection_seed": 20261022,
+    "neural_seed": 20261022,
+    "b1_seed": 1,
+    "batch_size": 32,
+    "max_epochs": 30,
+    "patience": 2,
+    "lr": 0.001,
+    "weight_decay": 0.01,
+    "warmup_steps": 10,
+    "dtype": "float32",
+    "tf32": false,
+    "amp": false,
+    "native_threads": 8,
+    "mc_draws": 1000,
+    "mc_seed": 20261022,
+    "bootstrap": 2000,
+    "bootstrap_seed": 20261022,
+    "prefetch": 2,
+    "n2_hidden": 512
+  },
+  "limits": {
+    "total_seconds": 374400,
+    "prepare_seconds": 14400,
+    "fit_seconds": 259200,
+    "evaluate_seconds": 86400,
+    "finalize_seconds": 14400,
+    "per_fit_seconds": 86400,
+    "per_evaluate_seconds": 28800,
+    "memory_bytes": 42949672960
+  },
+  "expected_scale_provenance": {},
+  "execution_authorized": false
+}

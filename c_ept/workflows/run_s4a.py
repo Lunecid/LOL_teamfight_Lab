@@ -35,7 +35,7 @@ import sys
 import time
 
 from c_ept import __path__ as _package_path
-from c_ept.s4a_runtime import RuntimeRefused, prepare_native_runtime, validate_e6_probe
+from c_ept.workflows.s4a_runtime import RuntimeRefused, prepare_native_runtime, validate_e6_probe
 
 OPERATOR_API_VERSION = 1
 RUN_SCHEMA = 's4a_run_v1'
@@ -83,7 +83,7 @@ def _read(path):
 
 
 def _write(path, obj):
-    from c_ept.store_core import write_atomic
+    from c_ept.data.store_core import write_atomic
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     write_atomic(path, json.dumps(obj, sort_keys=True, indent=2, allow_nan=False) + '\n')
@@ -173,7 +173,7 @@ def project_cost(epoch_seconds, fixed_seconds, row_ratio, epochs, fits, *, check
 
 def verify_resume(manifest, identity):
     """Refuse schema/config/args/code/runtime/input drift before any resume writes."""
-    from c_ept.run_s3 import check_resume_code
+    from c_ept.workflows.run_s3 import check_resume_code
     if manifest.get('schema') != RUN_SCHEMA or manifest.get('stage') != 's4a' or manifest.get('operator_api_version') != OPERATOR_API_VERSION:
         raise RuntimeRefused('unsupported S4a RUN schema/API')
     check_resume_code(manifest, identity['code'])
@@ -221,7 +221,7 @@ def _model_hashes(folder, json_name, npz_name, outputs, rel):
 
 def inspect_inputs(args):
     """Verify requested metadata and every model-file hash; do not verify raw payload stores."""
-    from c_ept import run_s3
+    from c_ept.workflows import run_s3
     s3 = Path(args.s3).resolve()
     if not s3.is_dir():
         s3 = Path(args.runs_root) / args.s3
@@ -368,8 +368,9 @@ def main(argv=None):
 
 def _load_inputs(meta):
     from types import SimpleNamespace
-    from c_ept import value, terrain
-    from c_ept.store_core import Store
+    from c_ept.valuation import value
+    from c_ept.preprocessing import terrain
+    from c_ept.data.store_core import Store
     from c_ept.ept import encoder
     paths = meta['paths']
     labels = Store(paths['labels'])
@@ -496,7 +497,7 @@ def _train_stage(run, args, bundle, stats, factors, proxy, size, device, check):
 
 def _dev_selection(bundle, args):
     import numpy as np
-    from c_ept import compose
+    from c_ept.valuation import compose
     rows = compose.row_table(bundle.s1, bundle.s2, ('DEV',))
     if not len(rows):
         raise RuntimeRefused('DEV has no frame-clock rows')
@@ -506,7 +507,7 @@ def _dev_selection(bundle, args):
 
 def _inference_stage(run, args, bundle, stats, trains, check, bounded, composition=False):
     import torch
-    from c_ept import compose, towertier
+    from c_ept.valuation import compose, towertier
     from c_ept.ept.compose_heads import EPTComposerHeads
     rows, idx = _dev_selection(bundle, args)
     records = []
@@ -605,7 +606,8 @@ def _finalize_cost(run, manifest, cost):
 
 def execute(args, policy):
     """Run verified stages after native bootstrap; caller uses main for supported CLI."""
-    from c_ept import runlog, run_s3, run_s1
+    from c_ept import runlog
+    from c_ept.workflows import run_s3, run_s1
     from c_ept.runtime import E6Guard
     from c_ept.ept import data, train, scales
     normal, operator_digest = _normal_args(args)
@@ -662,7 +664,7 @@ def execute(args, policy):
                     source = Path(meta['paths']['s3'])/scales.SCALES_NAME
                     if source.exists():
                         scales.load_scales(source, expected_provenance=meta['expected_provenance'])
-                        from c_ept.store_core import write_atomic
+                        from c_ept.data.store_core import write_atomic
                         write_atomic(path, source.read_bytes())
                     else:
                         scales.b0_scales(meta['paths']['s3'],out=run,runs_root=args.runs_root,check=check)

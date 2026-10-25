@@ -12,8 +12,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from c_ept import heads
-from c_ept.heads import ComposerHeads
+from c_ept.models import heads
+from c_ept.models.heads import ComposerHeads
 from c_ept.tests.conftest import all_imports
 
 SOURCE = Path(heads.__file__)
@@ -88,7 +88,9 @@ def test_the_output_widths_are_the_ones_of_the_ruling():
 
 
 def test_the_output_widths_agree_with_the_other_modules():
-    from c_ept import features, nll, targets, units
+    from c_ept.preprocessing import features
+    from c_ept.models import nll
+    from c_ept.domain import targets, units
     assert heads.OUTPUT_WIDTHS['zone_prob'] == (features.N_ZONES,)
     assert heads.OUTPUT_WIDTHS['size_prob'] == (len(units.SIZE_NAMES),)
     assert heads.OUTPUT_WIDTHS['gold_prob'] == (2, nll.N_GOLD_BINS)

@@ -98,7 +98,7 @@ from collections.abc import Mapping
 
 import numpy as np
 
-from c_ept import nll
+from c_ept.models import nll
 
 # ---- the pre-registered thresholds (P7 and P8); locked before any DEV result exists ------------------------------------------------------
 OE_BAND = (0.95, 1.05)           # (i)  the 95% interval of observed / expected must lie inside

@@ -1,50 +1,22 @@
-r"""Format layer of the chunked data store: arrays, the STORE.json manifest, atomic writes and the block plan.
+r"""
+Chunked Data Store Format Layer / 청크형 대용량 데이터 저장소 포맷 및 원자적 영속화 계층
 
-Vendored from the r2 store (``common_training_r2``), format layer only. A store is a folder with one ``.npy`` per array (created with
-``np.lib.format.open_memmap``, read as memmap) and the manifest ``STORE.json``: array shapes and dtypes, the blocks each stage has
-finished and, after ``finalize``, the SHA-256 of every file. Writers put rows into their own memmap views and flush them; the parent
-then calls ``mark_done``, which fsyncs the files it is given first and records the block second, so a mark never gets ahead of those
-files. A block without a mark is written again from the start when a run is resumed. ``block_plan`` cuts only between matches; when
-every row is computed from its own match alone, the stored bytes then do not depend on the block size or the number of workers (design
-4.5). They do not depend on restarts either, but only for the same block plan: ``done()`` is keyed by the block index, so the marks of
-one plan point at other rows under another plan. A resumed run must use the same ``block_matches`` and the same selection.
+[English]
+This module manages low-level storage for large-scale match dataset arrays (S1 and S2 stores):
+  - Storage Layout: Directory containing `.npy` memory-mapped arrays and a `STORE.json` manifest.
+  - Fault Tolerance & Resumability: Writers populate memmap slices and flush them; the orchestrator
+    invokes `mark_done`, which fsyncs files to disk before committing block indices in `STORE.json`.
+  - Determinism (`block_plan`): Data is partitioned strictly along match boundaries so that array
+    layouts are completely invariant to worker concurrency or block sizes.
+  - Integrity Verification (`Store.verify`): Computes SHA-256 hashes across all stored arrays upon
+    finalization and verifies them against the recorded manifest.
 
-Not vendored: everything that knows the r2 data (item COO tables, observed and x arrays, meta, adapter, records, views, team swap).
-
-Deliberate deviations from r2 (everything else is r2's logic, only reformatted; ``put_rows`` and ``put_at`` share one private check):
-    1. ``block_plan`` accepts only an int of at least 1 as the block size (``operator.index``): a bool, a float or a string raises
-       TypeError, a number below 1 raises ValueError. In r2 a size of 0 gave a bare slice error and a negative size a plan that
-       silently dropped rows.
-    2. ``Store.hashes`` takes any iterable of files. In r2 a generator came back as an empty dict.
-    3. The no-cast check of ``put_rows`` and ``put_at`` raises AssertionError explicitly instead of using ``assert``, so ``python -O``
-       cannot switch it off. The exception and its message are the same.
-
-Source files (read only, never imported or edited here), with their SHA-256 at the time of vendoring:
-    D:\LOL_Data\runs\20261019_r2_store_impl_1\dev\common_training_r2\store.py
-        e6a1c1c787f9f4e2f5cc28d7f46fd18853e0c40da2eb2d552ad29fcd8a97aea8
-    D:\LOL_Data\runs\20261019_r2_store_impl_1\dev\common_training_r2\common.py
-        3b8e3df4a141930230ca3c6ee1dc0f516fc284240a3092847dfec89ae0bdcab8
-vendored 2026-10-20; r2 files unchanged
-
-방법에서의 위치. 이 모듈은 S1·S2 저장소가 함께 쓰는 형식 층이다: 배열마다 .npy 파일 하나, 매니페스트 STORE.json, 원자적 쓰기, 경기 경계로 자르는 블록 계획이다(저장소 설계 4.1절,
-S1–S2 계획 Task 7). 값은 계산하지 않고 값이 어디에 놓이고 언제 끝났다고 기록되는지만 정한다. 모든 행이 자기 경기만으로 계산되면 블록 크기와 작업자 수와 상관없이, 같은 블록
-계획으로 이어하면 재시작과도 상관없이 같은 자리에 같은 바이트가 쓰이며(저장소 설계 4.5절), 이 층은 블록을 경기 경계에서만 자르고 완료 표시를 파일 뒤에 남겨 그 조건을 지킨다.
-
-용어. 블록: 연속한 경기 묶음의 행 구간 [시작, 끝)이다. 매니페스트: 배열의 모양과 자료형, 단계 상태, 끝난 블록의 번호, 끝난 뒤 파일마다의 SHA-256을 담은 STORE.json이다.
-완료 표시: 매니페스트에 적힌 단계별 끝난 블록 번호이다.
-
-식 목록. 식 번호는 (모듈 약어-번호) 꼴이며 식과 기호는 docs/superpowers/notes/equation-index.md의 식 색인과 기호 등록부에 올라 있다.
-    (STO-1)  블록 계획    블록 k = [start_{k·block_matches}, start_{min((k+1)·block_matches, M)}),   start_M = N
-                          k = 0, 1, …, ⌈M / block_matches⌉ − 1
-    (STO-2)  여유 공간    free ≥ margin·nbytes이어야 쓴다   (margin의 기본값은 1.1)
-    (STO-3)  파일 해시    h(file) = SHA-256(file의 바이트)   (소문자 16진수)
-    (STO-4)  저장소 검증  통과 ⇔ 완료 표시가 있고 기록된 {파일: h}가 지금의 {파일: h}와 같다
-
-공통 가정.
-    (가) 한 경기의 행은 연달아 놓인다. 코드는 이웃한 행의 경기 번호만 비교하므로 떨어져 있으면 따로 센다(저장소 설계 4.1절).
-    (나) 완료 표시는 표시와 함께 넘긴 파일을 fsync한 뒤에만 남긴다. 그래서 표시가 그 파일들보다 앞서지 않고, 표시 없는 블록은 처음부터 다시 쓴다(저장소 설계 4.6절).
-    (다) 완료 표시는 블록 계획의 번호이므로 같은 계획에서만 같은 행을 가리킨다. 이어하기는 같은 block_matches와 같은 선택을 써야 하며 이 층은 그것을 검사하지 않는다.
-    (라) 끝난 저장소의 파일을 읽기 전용으로 잠그지는 않는다. 파일이 바뀌었는지는 (STO-4)가 요약값으로 알아낼 뿐이다.
+[한국어 설명]
+대규모 리그 오브 레전드 경기 데이터를 디스크 상에서 안전하고 고성능으로 다루기 위한 청크형 데이터 저장소 계층입니다:
+  - 저장 구조: 배열별 `.npy` 파일(메모리 맵 `memmap` 기반)과 `STORE.json` 메타데이터 매니페스트.
+  - 중단 재개(Resume) 및 안정성: 각 프로세스가 담당 청크를 기록한 뒤 `mark_done`을 통해 디스크에 `fsync`하고 블록 완료 상태를 기록.
+  - 결정론적 블록 분할(`block_plan`): 경기가 쪼개지지 않도록 경기 경계에서만 블록을 분할하여 병렬 워커 수나 블록 크기에 무관하게 항상 동일한 바이트 배치 보장.
+  - 무결성 검증(`verify`): 완료 시점의 모든 `.npy` 파일에 대한 SHA-256 해시를 기록하고 이후 위변조 및 누락 여부를 검증.
 """
 # Ref: D:\LOL_Data\runs\20261019_r2_store_impl_1\dev\common_training_r2\store.py (block_plan, require_free_bytes, fsync_file, Store) and
 #      common.py (write_atomic, sha): the vendored source; its SHA-256 values are in the header above.
@@ -106,32 +78,20 @@ def write_atomic(path, data) -> None:
 
 
 def block_plan(match_id, block_matches) -> list[tuple[int, int]]:
-    """Row ranges [start, end) in selection order; every block holds at most block_matches whole matches.
+    """
+    Match-Boundary Block Partitioning / 경기 경계 기반 결정론적 블록 분할
 
-    ``match_id`` has one entry per row and the rows of a match are consecutive; a cut falls only where the match changes.
-    ``block_matches`` is an int of at least 1: a bool, a float or a string raises TypeError, a smaller number raises ValueError.
+    [English]
+    Computes [start, end) index ranges for chunked parallel processing:
+      - Rows belonging to the same match are guaranteed to stay within the same block.
+      - Each block contains at most `block_matches` consecutive matches.
+      - Independent of worker count, ensuring bit-for-bit reproducibility.
 
-    수식
-    ----
-    (STO-1)  블록 k = [start_{k·block_matches}, start_{min((k+1)·block_matches, M)}),   k = 0, 1, …, ⌈M / block_matches⌉ − 1
-             0 = start_0 < start_1 < … < start_{M−1}은 경기 번호가 바뀌는 행(처음 행 포함)이고, start_M = N이다.
-
-      기호          | 뜻                                     | 단위 | 범위        | 코드 변수
-      N             | 행의 수                                | 행   | ≥ 0         | len(match_id)
-      M             | 경기 번호가 같은 행이 이어진 묶음의 수 | 경기 | ≥ 1 (N ≥ 1) | np.flatnonzero(…)의 길이
-      start_u       | u번째 묶음의 첫 행                     | 행   | 0, …, N − 1 | np.flatnonzero(…)[u]
-      block_matches | 한 블록에 담는 경기의 최대 수          | 경기 | ≥ 1         | block_matches (본문의 지역 변수 k)
-      k             | 블록 번호                              | —    | 0, 1, …     | 반환 목록의 위치
-
-    해석
-    ----
-    식 (STO-1)은 경기 묶음을 block_matches개씩 끊어 한 블록으로 하고 마지막 블록만 그보다 짧을 수 있다. 경계가 늘 경기가 바뀌는 행이어서 한 경기가 두 블록에 걸치지 않으므로, 경기마다
-    따로 계산한 값은 블록 크기에 상관없이 같은 행에 놓인다(저장소 설계 4.5절). 행이 없으면 블록도 없고(빈 목록), 이웃한 행의 경기 번호만 비교하므로 같은 경기의 행이 떨어져 있으면
-    따로 센다(공통 가정 (가)).
-
-    근거
-    ----
-    저장소 설계 4.1절(블록은 경기 경계), 4.5절(블록 크기가 값을 바꾸지 않음), S1–S2 계획 Task 7(block_plan).
+    [한국어 설명]
+    병렬 데이터 처리를 위해 행 인덱스를 [시작, 끝) 구간의 블록으로 분할합니다:
+      - 동일한 경기에 속한 행들은 절대 두 블록으로 나뉘지 않고 동일 블록에 보존됩니다.
+      - 각 블록은 최대 `block_matches`개의 연속된 경기들을 포함합니다.
+      - 워커 스레드/프로세스 수와 무관하게 항상 일관된 파일 레이아웃을 생성합니다.
     """
     if isinstance(block_matches, (bool, np.bool_)):
         raise TypeError(f'block_matches must be an int, not {type(block_matches).__name__}')
@@ -190,11 +150,24 @@ def fsync_file(path) -> None:
 
 
 class Store:
-    """A folder of ``.npy`` arrays and the manifest ``STORE.json`` (name ``a/b`` is the file ``<root>/a/b.npy``).
+    """
+    Chunked Memory-Mapped Array Store / 청크형 메모리 매핑 배열 저장소 관리자
 
-    Writers flush their own memmap views; ``mark_done`` then fsyncs the files and records the block, in that order.
-    Several processes must not save the manifest: each Store keeps it in memory and rewrites the whole file. The parent alone calls
-    ``allocate``, ``mark_done``, ``set_stage`` and ``finalize``; workers only write rows (``put_rows``, ``put_at``) of their own blocks.
+    [English]
+    Manages `.npy` memory-mapped arrays and their JSON manifest:
+      - `allocate(name, shape, dtype)`: Creates or maps existing `.npy` array files.
+      - `put_rows(start, arrays)`: Writes array blocks into memory-mapped regions with strict dtype checks.
+      - `mark_done(stage, block, names)`: Fsyncs written files before recording completed blocks in STORE.json.
+      - `finalize()`: Computes cryptographic SHA-256 signatures for all files and locks manifest.
+      - `verify()`: Audits files against stored manifest hashes.
+
+    [한국어 설명]
+    `.npy` 메모리 맵(memmap) 파일들과 메타데이터 매니페스트(`STORE.json`)를 관리합니다:
+      - `allocate`: 배열 파일 사전 생성 및 열기 (자료형/형태 일치 검증).
+      - `put_rows`: 지정된 행 구간에 넘파이 배열 데이터를 복사하고 디스크에 flush.
+      - `mark_done`: 파일 fsync 완료 후 매니페스트에 완료 블록 번호를 기록 (트랜잭션 안전성).
+      - `finalize`: 모든 저장 파일의 SHA-256 해시를 기록하고 완료 표기.
+      - `verify`: 기록된 해시와 현재 파일 상태를 대조하여 무결성 검증.
     """
 
     def __init__(self, root):

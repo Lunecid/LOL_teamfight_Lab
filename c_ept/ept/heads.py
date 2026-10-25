@@ -74,10 +74,11 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from c_ept import terrain, units
+from c_ept.preprocessing import terrain
+from c_ept.domain import units
 from c_ept.ept import data
 from c_ept.ept.encoder import Encoded, EncoderConfig, EPTEncoder, token_layout
-from c_ept.head_rows import HEAD_NAMES, MIX, N_CELLS, N_GOLD, N_K, N_LAYER, N_M, N_Q, N_SIZE, N_ZONE
+from c_ept.data.head_rows import HEAD_NAMES, MIX, N_CELLS, N_GOLD, N_K, N_LAYER, N_M, N_Q, N_SIZE, N_ZONE
 
 N_PAIR_MARKS = units.EXEC_MARK0                      # marks 0-49 are pairs (killer team, killer slot, victim slot); 50 and 51 are executions
 N_TEAMS, N_SLOTS = 2, N_SIZE * 2 * N_LAYER           # the teams of K and O; the (size, team, kill layer) places of the gold law

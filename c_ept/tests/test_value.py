@@ -27,10 +27,15 @@ import numpy as np
 import pytest
 
 from c_ept import config as C
-from c_ept import flowprice, frame_rows, reader, rulepay, run_s1, targets, units, value
-from c_ept.store_core import Store
+from c_ept.valuation import flowprice
+from c_ept.data import frame_rows, reader
+from c_ept.valuation import rulepay
+from c_ept.workflows import run_s1
+from c_ept.domain import targets, units
+from c_ept.valuation import value
+from c_ept.data.store_core import Store
 from c_ept.tests import synth
-from c_ept.tests.conftest import empty_process_list, module_level_imports
+from c_ept.tests.conftest import PROTECTED_IMPORT_PRELUDE, empty_process_list, import_watch_names, module_level_imports
 from c_ept.tests.s3_toys import (   # noqa: F401  (the fixtures are imported by ruling R1)
     KEY_PREFIX, TOY_ROW_OFF, TOY_EXEC_U, TOY_DRAW_U, TOY_F0, TOY_F0_CONV, TOY_F0_UNIT, TOY_GOLD, TOY_GOLD_BIN3_MEAN, TOY_GOLD_BINS,
     TOY_GOLD_OVERFLOW_MEAN, TOY_KILL_COUNTS, TOY_KILL_GOLD_TOTAL, TOY_LEVEL_AFTER_UP, TOY_LEVELS, TOY_N_KILLS, TOY_N_OBJECTIVES,
@@ -1365,22 +1370,24 @@ def test_random_labels_survive_a_round_trip_through_the_store(random_world, tmp_
 # ---- how the module is imported ----------------------------------------------------------------------------------------------------------
 def test_no_module_level_import_reaches_the_s1_runner():
     imports = module_level_imports(Path(value.__file__))
-    chain = ('c_ept.run_s1', 'c_ept.run_s2', 'c_ept.store_build', 'c_ept.cohort', 'c_ept.runlog')
+    chain = import_watch_names(('c_ept.run_s1', 'c_ept.run_s2', 'c_ept.store_build', 'c_ept.cohort', 'c_ept.runlog'))
     assert not [i for i in imports if i in chain or i.startswith(chain)], sorted(imports)
 
 
 def test_the_e6_guard_is_imported_inside_kill_levels():
     tree = ast.parse(Path(value.__file__).read_text(encoding='utf-8'))
     fn = next(n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == 'kill_levels')
-    inner = [n for n in ast.walk(fn) if isinstance(n, ast.ImportFrom) and n.module == 'c_ept' and any(a.name == 'run_s1' for a in n.names)]
+    inner = [n for n in ast.walk(fn) if isinstance(n, ast.ImportFrom) and n.module == 'c_ept.workflows' and any(a.name == 'run_s1' for a in n.names)]
     assert inner
     guard = [n for n in ast.walk(fn) if isinstance(n, ast.Attribute) and n.attr == 'require_no_strata']
     assert guard
 
 
-def test_importing_the_module_loads_no_s1_module():
-    code = ('import sys, c_ept.value\n'
-            'names = ("c_ept.run_s1", "c_ept.cohort", "c_ept.store_build", "c_ept.runlog", "c_ept.run_s2")\n'
+@pytest.mark.parametrize('module', ['c_ept.value', 'c_ept.valuation.value'])
+def test_importing_the_module_loads_no_s1_module(module):
+    chain = import_watch_names(('c_ept.run_s1', 'c_ept.cohort', 'c_ept.store_build', 'c_ept.runlog', 'c_ept.run_s2'))
+    code = (PROTECTED_IMPORT_PRELUDE + f'import sys, {module}\n'
+            f'names = {chain!r}\n'
             'print(sorted(m for m in names if m in sys.modules))')
     done = subprocess.run([sys.executable, '-B', '-c', code], cwd=REPO, capture_output=True, text=True, timeout=300)
     assert done.returncode == 0 and done.stdout.strip() == '[]', done.stderr[-500:]

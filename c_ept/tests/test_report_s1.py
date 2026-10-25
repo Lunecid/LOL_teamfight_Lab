@@ -7,8 +7,8 @@ import numpy as np
 import pytest
 
 from c_ept import config as C
-from c_ept import report_s1 as R
-from c_ept import run_s1
+from c_ept.reporting import report_s1 as R
+from c_ept.workflows import run_s1
 from c_ept.tests import synth
 from c_ept.tests.conftest import empty_process_list
 

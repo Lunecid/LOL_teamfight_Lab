@@ -1,46 +1,24 @@
-r"""S1 runner: the cached matches of the patches 15.18-15.21 -> one S1 store (engagement units, targets, rows) under ``<run>\s1``.
+r"""
+S1 Dataset Store Runner & Assembler / S1 교전 및 정답 데이터셋 파이프라인 오케스트레이터
 
-``extract_match`` turns one match into its share of every S1 table with local indices (a unit number counts inside the match). The
-runner cuts the ordered match list into blocks of whole matches (``store_core.block_plan``), extracts a block with a process pool
-(``Pool.map`` keeps the order) and writes the block's tables to ``<run>\s1_blocks\b<0000>.npz``, outside the store root. After the last
-block ``assemble`` sizes every array from the block counts, turns the local indices into global ones (the offsets of ``matches/*_off``)
-and writes the rows with ``Store.put_rows``; ``finalize`` then hashes the arrays. Every row depends on its own match alone and the blocks
-are joined in match order, so the stored bytes do not depend on the block size, the worker count or restarts.
+[English]
+Transforms raw cached match files (patches 15.18-15.21) into the structured S1 store (<run>\s1):
+  - Pipeline Execution:
+      1. Extraction (`extract_match`): Segments each match into engagement units, attribution targets
+         (K combat stats, O objective takedowns, 60s conversions), frame question rows, and onset events.
+      2. Chunked Parallel Blocks: Matches are processed in blocks via multi-processing pools,
+         saving temporary block archives (`s1_blocks\b<xxxx>.npz`).
+      3. Assembly (`assemble`): Maps local match-level indices to global array offsets and flushes
+         them sequentially into memory-mapped `.npy` tables with deterministic row layouts.
+      4. Verification & Finalization: Computes SHA-256 signatures for all arrays in `STORE.json`.
 
-Index rules of the assembly (-1 means none and stays -1):
-    kills/unit, units/kill0, onsets/row, onsets/unit, event_rows/unit    plus the global start of the match in the table they point into
-    objectives/unit, objectives/conv_unit, event_rows/frame_row          the same, but only where the value is >= 0
-    units/match, frame_rows/match                                        the global match index (written by the assembly)
-    event_rows/frame_k                                                   stays local: it indexes that match's own frames
-
-Resume safety. The first run saves the block plan in STORE.json (``block_matches`` and ``plan_sha256``, the SHA-256 of the ordered
-(patch, key, macro) list); a restart with another block size or another list is refused, because the format layer cannot see a
-mismatched resume. Wall time, memory and the counts go to RUN.json through ``runlog.amend_manifest`` and never to STORE.json, which is
-therefore the only file of the store that depends on the block plan (leave it out when comparing two stores).
-
-Match list. The macro role of a match is the cohort split's alone. Before anything is written ``verify_roles`` recomputes it with
-``cohort.role_of`` for every listed (patch, key) and refuses a list that names a match twice or whose roles differ (``MatchListError``:
-``DuplicateMatch``, ``RoleMismatch``), so ``matches/role`` is never taken on trust from the caller. ``run_s1``, ``build_store`` and
-``golden`` take the role function as a parameter the way they take ``records`` (tests with synthetic keys answer for the split).
-
-Privacy. A match key is written only to ``matches/key`` of the store. Messages, REJECTS.json (counts by patch and code) and GOLDEN.json
-(hashes) carry no key.
-
-
-방법에서의 위치. 이 모듈은 한 경기의 교전·정답·질문 행을 추출하고 경기 순서대로 S1 저장소에 조립한다.
-교전은 연결된 킬 묶음이고, 발생 행은 분 프레임 뒤의 첫 킬을 세는 질문이며 사건 행은 교전별 예측 기준이다.
-입력은 순서 있는 경기·패치·역할 목록과 판독 함수이고, 출력은 S1 배열·거부 집계·실행 기록이다.
-식 목록.
-    (RUN1-1) 경기별 행 수의 누적 오프셋과 지역 참조의 전역 참조 변환.
-    (RUN1-2) 순차 관측한 프로세스 트리 메모리 합의 최대와 GiB 기록.
-    (RUN1-3) 요청·저장·거부 회계와 기록 시간·저장 바이트.
-공통 가정. 배열의 경기·행·프레임 번호는 0부터 시작하며 참가자 ID와 구분한다.
-패치·역할은 설정 목록의 0부터 시작하는 색인이고, 모든 저장 시각·노출은 ms이다.
-정답 계산은 각 소유 모듈의 식을 재사용하며, 이 모듈은 열 형식과 참조·집계의 일관성을 검사한다.
-float32 열은 narrow를 통과해도 실수의 정밀도 감소가 가능하며 비트 보존을 뜻하지 않는다(casts.narrow).
-블록 재개는 같은 목록·블록 크기를 요구하지만 코드 버전의 동일성을 비교하는 검사는 아니다(Task 8a 재개 안전).
-메모리는 관측 시점 사이의 진짜 최대치를 보장하지 않는다(Task 8a 실행 기록).
-기존 완료 저장소의 조기 반환은 결과 기록과 끝의 요청 회계를 다시 수행하지 않는다(Task 8).
+[한국어 설명]
+원천 매치 타임라인 데이터(15.18~15.21 패치)로부터 교전, 킬/오브젝트 성과, 질문 행을 추출하여 S1 저장소(`<run>\s1`)를 구축합니다:
+  - 전체 파이프라인 단계:
+      1. 개별 경기 추출(`extract_match`): 시공간 클러스터링으로 교전 단위(`units`) 분할, 킬 성과(`K`), 오브젝트 귀속(`O`), 사후 60초 전환(`conv`), 분 단위 질문 행(`frame_rows`), 교전 발생 매칭(`onsets`) 생성.
+      2. 경기 블록 병렬 처리: 경기 단위 블록을 멀티프로세싱 워커로 분산 처리하여 임시 블록 파일(`s1_blocks/b<xxxx>.npz`)에 보관.
+      3. 전역 조립(`assemble`): 경기 내 상대 인덱스를 스토어 전체의 전역 오프셋으로 변환하여 최종 `.npy` memmap 테이블들에 순차 기록.
+      4. 무결성 검증 및 최종화: 모든 테이블의 SHA-256 해시를 계산하여 `STORE.json`에 기록.
 """
 # Ref: docs/superpowers/specs/2026-10-20-c-ept-design.md sections 3-4 and 11 (tables of the S1 store: units, targets K / O / conversions,
 #      frame-clock rows, onsets, event-clock rows) and docs/superpowers/plans/2026-10-20-c-ept-s1-s2.md (S1 arrays, task 8).
@@ -70,10 +48,14 @@ except ImportError:      # the peak memory is then not recorded
     psutil = None
 
 from c_ept import config as C
-from c_ept import cohort, event_rows, frame_rows, reader, runlog, store_core, targets, units
-from c_ept.casts import narrow      # also re-exported: callers and tests use run_s1.narrow
-from c_ept.reader import MatchFormatError, MatchRejected
-from c_ept.store_core import Store
+from c_ept import cohort
+from c_ept.data import event_rows, frame_rows, reader
+from c_ept import runlog
+from c_ept.data import store_core
+from c_ept.domain import targets, units
+from c_ept.data.casts import narrow      # also re-exported: callers and tests use run_s1.narrow
+from c_ept.data.reader import MatchFormatError, MatchRejected
+from c_ept.data.store_core import Store
 
 S1_PATCHES = C.PATCHES[:4]                 # 15.18-15.21; the holdout patch 15.22 and the external patch 16.13 are never opened here
 REFUSED_ROLES = ('TEST', 'EXTERNAL')       # macro roles that S1 never extracts

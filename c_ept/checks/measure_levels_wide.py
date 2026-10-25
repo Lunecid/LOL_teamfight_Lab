@@ -32,7 +32,7 @@ from collections import Counter
 
 import numpy as np
 
-from c_ept import run_s1
+from c_ept.workflows import run_s1
 from c_ept.checks import common
 
 SCRIPT = 'c_ept.checks.measure_levels_wide'

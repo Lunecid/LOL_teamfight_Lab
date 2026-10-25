@@ -25,9 +25,12 @@ import numpy as np
 import pytest
 from sklearn.linear_model import LogisticRegression
 
-from c_ept import baselines_b0, features, head_rows, heads, nll
+from c_ept.models import baselines_b0
+from c_ept.preprocessing import features
+from c_ept.data import head_rows
+from c_ept.models import heads, nll
 from c_ept import config as C
-from c_ept.store_core import Store
+from c_ept.data.store_core import Store
 from c_ept.tests.conftest import all_imports, module_level_imports
 from c_ept.tests.s3_toys import KEY_PREFIX, WORLD_ZERO_CELL, heads_world  # noqa: F401  (the fixture is imported by ruling R1)
 
@@ -957,7 +960,7 @@ def test_the_window_head_gives_the_bin_q_the_coefficients_of_the_window_q_div_6(
 def test_the_window_form_calibrates_the_60_s_counts_where_one_coefficient_vector_does_not():
     """The B2-a claim, in sample: with a state effect that is strong in the first minute and weak after it, one coefficient vector
     under-reaches in the first minute (the slope of observed on expected 60 s counts is far above 1) and the window form does not."""
-    from c_ept import gate_s3
+    from c_ept.checks import gate_s3
     w = window_world(seed=7, n_rows=6_000)
     window = fit_window_head(w)
     single = PlainRate().fit(w.X, w.cell_y, w.cell_e, n_numeric=K_WORLD, blocks=(Q_BLOCK,))
@@ -1258,7 +1261,7 @@ class World:
         return self._b0[(src, index)]
 
     def zone(self, u):
-        from c_ept import terrain
+        from c_ept.preprocessing import terrain
         k = self.kill0[u]
         return -1 if self.kmiss[k] else int(terrain.zone_of(self.kx[k], self.ky[k]))
 
@@ -2463,6 +2466,10 @@ def test_the_module_imports_no_runner_no_cohort_no_raw_reader_no_value_at_module
     imported = module_level_imports(SOURCE)
     forbidden = {'c_ept.run_s1', 'c_ept.run_s2', 'c_ept.cohort', 'c_ept.runlog', 'c_ept.terrain', 'c_ept.store_build', 'c_ept.reader',
                  'c_ept.tokens', 'c_ept.value', 'c_ept.compose', 'c_ept.units', 'c_ept.targets', 'c_ept.towertier'}
+    forbidden |= {'c_ept.workflows.run_s1', 'c_ept.workflows.run_s2', 'c_ept.preprocessing.terrain',
+                  'c_ept.data.store_build', 'c_ept.data.reader', 'c_ept.preprocessing.tokens',
+                  'c_ept.valuation.value', 'c_ept.valuation.compose', 'c_ept.domain.units',
+                  'c_ept.domain.targets', 'c_ept.valuation.towertier'}
     assert not imported & forbidden, imported & forbidden
 
 

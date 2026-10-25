@@ -39,26 +39,22 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from c_ept import (
-    baselines_b0,
-    baselines_b1,
-    compose,
-    features,
-    flowprice,
-    gate_s3,
-    nll,
-    rulepay,
-    run_s1,
-    run_s3,
-    runlog,
-    store_core,
-    towertier,
-    value,
-)
+from c_ept.models import baselines_b0, baselines_b1
+from c_ept.valuation import compose
+from c_ept.preprocessing import features
+from c_ept.valuation import flowprice
+from c_ept.checks import gate_s3
+from c_ept.models import nll
+from c_ept.valuation import rulepay
+from c_ept.workflows import run_s1, run_s3
+from c_ept import runlog
+from c_ept.data import store_core
+from c_ept.valuation import towertier, value
 from c_ept import config as C
-from c_ept.store_core import Store
+from c_ept.data.store_core import Store
 from c_ept.tests import s3_toys, synth
-from c_ept.tests.conftest import all_imports, empty_process_list, module_level_imports
+from c_ept.tests.conftest import (PROTECTED_IMPORT_PRELUDE, all_imports, empty_process_list,
+                                  import_watch_names, module_level_imports)
 from c_ept.tests.s3_toys import (  # noqa: F401  (the fixtures are imported by ruling R1)
     KEY_PREFIX,
     TOY_ONSET_BINS,
@@ -129,7 +125,7 @@ def build_run_s2(root: Path, s1, seed: int = 7) -> Store:
     t0 = np.concatenate([g('frame_rows/t0'), g('event_rows/t0')])
     frame_k = np.concatenate([g('frame_rows/k'), g('event_rows/frame_k')])
     rng = np.random.default_rng(seed)
-    from c_ept import tokens
+    from c_ept.preprocessing import tokens
     n_views = n_frame + n_event
     order = rng.permutation(n_views)
     s2 = Store(root)
@@ -2768,7 +2764,7 @@ def test_the_tower_diagnostic_with_no_tower_in_a_window_reports_nothing_and_coun
 
 
 def test_the_score_summary_of_a_head_is_the_match_weighted_mean_with_its_interval_and_the_rows_left_out():
-    from c_ept.head_rows import HeadScores
+    from c_ept.data.head_rows import HeadScores
     scores = HeadScores(nll=np.array([1.0, 3.0, 2.0, 2.0]), match=np.array([0, 0, 1, 1]), row=np.array([0, 0, 1, 2]), n_unscored=5)
     got = run_s3.score_summary(scores, B=100, seed=2)
     assert got['n_rows'] == 3 and got['n_design_rows'] == 4 and got['n_unscored'] == 5
@@ -2848,8 +2844,10 @@ def test_a_label_store_that_was_changed_is_refused_by_the_stages_that_read_it(e2
 # the structure of the module: what it imports, how it starts, the command line as a process
 # =====================================================================================================================================
 LIGHT_C_EPT = {'c_ept', 'c_ept.config', 'c_ept.features', 'c_ept.nll', 'c_ept.runlog', 'c_ept.store_core', 'c_ept.runtime'}
+LIGHT_C_EPT |= {'c_ept.preprocessing', 'c_ept.preprocessing.features',
+               'c_ept.models', 'c_ept.models.nll', 'c_ept.data', 'c_ept.data.store_core'}
 MODEL_LIBRARIES = {'lightgbm', 'sklearn', 'torch', 'pandas', 'joblib', 'pickle', 'psycopg', 'psycopg2', 'numba'}
-STAGE_MODULES = (
+STAGE_MODULES = import_watch_names((
     'c_ept.run_s1',
     'c_ept.run_s2',
     'c_ept.cohort',
@@ -2864,7 +2862,7 @@ STAGE_MODULES = (
     'c_ept.heads',
     'c_ept.head_rows',
     'c_ept.report_s2',
-)
+))
 
 
 def run_module(*args, timeout=180):
@@ -2888,13 +2886,14 @@ def test_the_s1_runner_is_imported_inside_functions_only_and_no_reader_cohort_or
     assert not {n for n in all_imports(SOURCE) if any(w in n for w in ('pickle', 'joblib', 'dill', 'shelve', 'marshal'))}
 
 
-def test_importing_the_module_loads_no_stage_module_no_s1_runner_and_no_model_library():
-    code = ('import json, sys\n'
-            'import c_ept.run_s3\n'
+@pytest.mark.parametrize('module', ['c_ept.run_s3', 'c_ept.workflows.run_s3'])
+def test_importing_the_module_loads_no_stage_module_no_s1_runner_and_no_model_library(module):
+    code = (PROTECTED_IMPORT_PRELUDE + 'import json, sys\n'
+            f'import {module}\n'
             f'stage = {list(STAGE_MODULES)!r}\n'
             f'libraries = {sorted(MODEL_LIBRARIES - {"pickle"})!r}\n'                          # numpy itself imports pickle
             'print(json.dumps(sorted(m for m in sys.modules if m in stage or m.split(".")[0] in libraries)))\n')
-    proc = subprocess.run([sys.executable, '-c', code], cwd=REPO, capture_output=True, text=True, encoding='utf-8', errors='replace',
+    proc = subprocess.run([sys.executable, '-B', '-c', code], cwd=REPO, capture_output=True, text=True, encoding='utf-8', errors='replace',
                           timeout=180, check=False)
     assert proc.returncode == 0, proc.stderr[-400:]
     assert json.loads(proc.stdout.strip().splitlines()[-1]) == []

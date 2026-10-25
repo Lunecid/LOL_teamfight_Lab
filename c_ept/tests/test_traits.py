@@ -19,13 +19,17 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from c_ept import casts
+from c_ept.data import casts
 from c_ept import config as C
-from c_ept import legacy, reader, run_s1, traits
+from c_ept import legacy
+from c_ept.data import reader
+from c_ept.workflows import run_s1
+from c_ept.preprocessing import traits
 from c_ept.checks import common, explain_mismatch, measure_levels, measure_levels_wide, sweep_s1
-from c_ept.reader import MatchFormatError
+from c_ept.data.reader import MatchFormatError
 from c_ept.tests import synth
-from c_ept.tests.conftest import UnreadableTestFile, golden_folder, read_json
+from c_ept.tests.conftest import (PROTECTED_IMPORT_PRELUDE, UnreadableTestFile,
+                                  golden_folder, import_watch_names, read_json)
 
 COL = {name: i for i, name in enumerate(traits.TRAIT_NAMES)}
 
@@ -126,25 +130,31 @@ def test_growth_formula_works_on_arrays_and_refuses_levels_outside_1_to_18():
 # ---- the cast rule and the weight of the import ------------------------------------------------------------------------------------
 def modules_after(statement: str) -> list:
     """The c_ept and gameplay modules that a fresh interpreter has loaded after ``statement`` (run in the repository folder)."""
-    code = f"import sys; {statement}; print(sorted(m for m in sys.modules if m.split('.')[0] in ('c_ept', 'gameplay')))"
+    code = PROTECTED_IMPORT_PRELUDE + f"import sys; {statement}; print(sorted(m for m in sys.modules if m.split('.')[0] in ('c_ept', 'gameplay')))"
     r = subprocess.run([sys.executable, '-B', '-c', code], cwd=Path(C.__file__).parents[1], capture_output=True, text=True,
                        encoding='utf-8')
     assert r.returncode == 0, r.stderr
     return ast.literal_eval(r.stdout.strip())
 
 
-def test_importing_traits_loads_neither_the_legacy_modules_nor_the_s1_runner():
+@pytest.mark.parametrize('statement', ['from c_ept import traits', 'from c_ept.preprocessing import traits'])
+def test_importing_traits_loads_neither_the_legacy_modules_nor_the_s1_runner(statement):
     """The pins are checked and LEGACY is imported on the first call, not at import: every worker of a view builder imports traits.
     The cast rule comes from ``c_ept.casts``, which does not pull in the S1 runner either."""
-    loaded = modules_after('from c_ept import traits')
-    assert 'c_ept.traits' in loaded and 'c_ept.casts' in loaded
-    assert 'c_ept.run_s1' not in loaded and not [m for m in loaded if m.startswith('gameplay')]
+    loaded = modules_after(statement)
+    assert {'c_ept.preprocessing.traits', 'c_ept.data.casts'} <= set(loaded)
+    if statement == 'from c_ept import traits':
+        assert 'c_ept.traits' in loaded
+    assert not set(import_watch_names(('c_ept.run_s1',))) & set(loaded)
+    assert not [m for m in loaded if m.startswith('gameplay')]
 
 
 def test_the_cast_rule_has_a_module_of_its_own_and_the_runner_re_exports_it():
     """``narrow(name, a, dtype)`` (S1 and S2 casts) lives in c_ept.casts, which loads nothing of c_ept but itself; run_s1 and traits use
     that same function, so the callers and tests that say ``run_s1.narrow`` keep working."""
-    assert modules_after('import c_ept.casts') == ['c_ept', 'c_ept.casts']
+    assert set(modules_after('import c_ept.casts')) <= {'c_ept', 'c_ept.casts', 'c_ept.data', 'c_ept.data.casts'}
+    assert modules_after('import c_ept.casts') == ['c_ept', 'c_ept.casts', 'c_ept.data', 'c_ept.data.casts']
+    assert modules_after('import c_ept.data.casts') == ['c_ept', 'c_ept.data', 'c_ept.data.casts']
     assert run_s1.narrow is casts.narrow and traits.narrow is casts.narrow
     assert list(inspect.signature(casts.narrow).parameters) == ['name', 'a', 'dtype']
     tree = ast.parse(Path(casts.__file__).read_text(encoding='utf-8'))

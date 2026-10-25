@@ -9,8 +9,9 @@ import numpy as np
 import pytest
 
 from c_ept import config as C
-from c_ept import event_rows, frame_rows, units
-from c_ept.frame_rows import FIRST_ROW_FRAME
+from c_ept.data import event_rows, frame_rows
+from c_ept.domain import units
+from c_ept.data.frame_rows import FIRST_ROW_FRAME
 from c_ept.tests import synth
 
 M3, M4 = 1, 2                      # the kind codes of the contract, written out so that the tests do not read them from the module

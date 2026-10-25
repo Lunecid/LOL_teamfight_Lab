@@ -1,135 +1,26 @@
-r"""S2 builder: the model inputs ("views") of every S1 frame-clock row and event row -> the S2 store ``<run>\s2``.
+r"""
+S2 Store Builder / 다차원 텐서 뷰(View) 병렬 대용량 저장소(S2) 구축기
 
-A view is what ``tokens.build_view(ctx, ref_ms, frame_k)`` makes of one match at a reference time. The builder gives one view to every
-row of the S1 store of the listed matches, in the order match, then its frame-clock rows (``frame_rows``, source 0, reference time =
-frame time t0), then its event rows (``event_rows``, source 1 = M3 at the first kill f, source 2 = M4 at delta) exactly as S1 stored them,
-that is by (unit, kind), so that M3 and M4 rows interleave per unit. The table that fixes this (``view_table``) has one row per view:
+[English]
+Builds the complete S2 feature store (<run>\s2) containing neural network input views:
+  - View Layout: Each S1 frame-clock row (src 0 at regular frame time t0) and event row (src 1 = M3 at
+    first kill f; src 2 = M4 at engagement end delta) receives a single precomputed multi-modal view.
+  - Chunked Multi-Processing: Matches are split into discrete blocks of whole matches (store_core.block_plan).
+    Worker processes compute views using `tokens.build_view`, returning ndarray dictionaries.
+  - Parent-Worker Isolation: Only the main parent process allocates `.npy` memmap files, flushes writes,
+    and updates `STORE.json` with cryptographic SHA-256 signatures upon completion.
+  - Fault-Tolerant Resumption: Rigorously verifies S1 dataset signatures, terrain parameters, and block
+    plans before resuming partially built stores, preventing partial or corrupt states.
 
-    src i1        0 frame-clock row, 1 M3 event row, 2 M4 event row
-    src_index i4  the row in ``frame_rows`` (src 0) or in ``event_rows`` (src 1, 2): a global S1 row number
-    match i4      the S1 match row (the number in the list given to ``build_s2``)
-    ref i8        reference time in ms: the frame time for src 0, f or delta for src 1, 2
-    t0 i8         time of the frame the view takes its frame values from (``frame_ts[frame_k]``)
-    frame_k i2    the regular frame of that match: the frame itself for src 0, the last frame strictly before ref for src 1, 2 (the S1
-                  contract of ``event_rows``; ``tokens.build_view`` refuses a frame that is stale)
-
-Store layout. The arrays are ``views/<column>`` (the six columns above, 27 bytes per view) and ``x/<key>`` for every key of
-``tokens.VIEW_SPEC`` (shape ``(N, *shape)``, the dtype of the spec; the scalar keys are ``(N,)``), N the number of views. The names, shapes
-and dtypes are derived from ``VIEW_SPEC`` when the build starts and are never written out here; STORE.json holds them as
-``{'shape': [...], 'dtype': '<f4'}``. The store root holds nothing but the ``.npy`` files and STORE.json.
-
-Masked views (D1). The M3 and M4 views at t0 (the masked inputs of the onsets) are not stored. The input of the onset i of the S1 store
-(``onsets/row[i]``, ``onsets/unit[i]``, ``onsets/bin[i]``) is the view of the frame-clock row ``onsets/row[i]`` at its reference time t0:
-the S2 view v with ``views/src[v] == 0`` and ``views/src_index[v] == onsets/row[i]``. RUN.json says the same in ``masked_views``.
-
-Blocks and fixed offsets. The ordered list of S1 match rows is cut into blocks of ``block_matches`` whole matches
-(``store_core.block_plan``). The view table fixes the row range of every match and block before any view is built, so a block is written
-at its own rows (``Store.put_rows``) and the stored bytes depend on neither the worker count, nor the block size, nor restarts; the
-stores are compared with ``Store.hashes(Store.stored_files())``, which leaves out STORE.json (it records the plan). Blocks are written in
-block order. At most ``workers`` blocks are in flight: a worker process builds one block (it reads each match of the block with
-``records(key, patch)`` once, makes one ``MatchContext`` and the views of that match) and returns plain numpy arrays; only the parent
-process allocates, writes, marks (``mark_done``), saves the stage and finalizes (the rule of ``store_core``). On an error the blocks in
-flight are cancelled, which stops only a block that has not started: a block that is running finishes before the pool shuts down, and its
-result is dropped (nothing of it is written).
-
-Resume safety. The first run saves in STORE.json (stage ``views``) the block size, the plan hash ``runlog.sha256_json({'s1_files_sha256':
-<hash of the files map of the S1 STORE.json>, 'matches': <the list>})``, the hash of the terrain files and of the view layout; a resume
-with any of them different is refused with ValueError before anything is written (the format layer cannot see a mismatched resume). A
-store that is complete is returned as it is. ``stop_after_block=k`` simulates a power cut: StopRequested is raised after the rows of
-block k are written and before its mark, so a resume builds that block again. These guards keep a resume honest:
-
-- Every block must be marked before ``finalize``: a loop that ends with a block unmarked (a block that was skipped) stops with
-  RuntimeError ("not marked") and the store is not called complete.
-- After the arrays are allocated, STORE.json must list exactly the arrays of the layout, in plain form. An array whose file a power cut
-  left without its entry (``Store.allocate`` opens such a file and does not list it; it has checked shape and dtype) is listed again; an
-  unlisted file that cannot be opened (0 bytes or half a header, from a cut during its creation) is created again; any other
-  difference, and a LISTED file that cannot be opened, is a ValueError or an OSError, before a block is built.
-- A complete store whose RUN.json has no ``s2_result`` (a power cut between ``finalize`` and the run record) gets the record from the
-  next call, built from the stage (``recovered`` is true; no match is read; its ``code_state_at_end`` is that of the last call on
-  record, which built the store); the call after that changes nothing. A store without any RUN.json (deleted, or a run folder copied
-  without it) is refused: RUN.json is written before STORE.json exists, and a new one would claim this call's commit, GPU and plan.
-- Every call that does work adds a record to the stage (``calls``: workers, allocate_s, views_s, matches_built, blocks_built,
-  memory_samples, peak_private_bytes {tree, main, worker}, code_commit, code_dirty, warnings) and updates it after every block, so a resumed
-  build keeps the peaks, times and match counts of the calls before it (an interrupted call counts up to its last finished block; the
-  counters are raised before the block is marked, so the save of the mark carries them).
-- One build per run folder: ``<run>\S2_BUILD.lock`` (``O_EXCL``, outside the store root) is held for the whole call. A second build or
-  resume refuses (``RunLocked``) while it exists; a lock that a power cut left behind is deleted by the user, never by the builder.
-- A model server (Strata) that starts while the build runs stops it cleanly after a finished block (E6 is checked again between blocks).
-
-Three warnings, never refusals: one ``WARNING:`` line on stderr, the text kept in the call record and in ``s2_result.warnings``, when the
-terrain was built from another S1 run than the one consumed (``terrain.built_from_this_s1`` is false), when a resume runs on other code
-(the commit or the dirty flag differs from the ones RUN.json holds from the first call; both are recorded), and when an unlisted array
-file that could not be opened was created again.
-
-The terrain must have been built with the parameters of this code. A terrain whose files match its own TERRAIN.json passes
-``Terrain.verify`` whatever it was built with; so TERRAIN.json must record the ``grid`` (cells, cell_u, histogram_cells, histogram_u,
-min_count) and the ``zone_rules`` that ``terrain`` holds now (``terrain_parameter_problems``), or the build is refused before anything is
-written. The terrain of the first smoke run (min_count 5, before the gate S2G-2 made it 150) is refused. The grid record is copied into
-RUN.json ``terrain.grid``.
-
-No hindsight [S2-11]. A worker is given, per match, the key, the patch and the (ref, frame_k) pairs of its views, and nothing else of S1:
-no target (K, O, conversions, delta), no unit, no onset. The parent reads from the S1 store only what the view table and the match
-identities need (``matches/key, patch, role, row_off, event_off``, ``frame_rows/k, t0, match``, ``event_rows/kind, ref, frame_k, t0``). The
-views are built from ``records(key, patch)`` (``reader.read_match`` with its default root), the terrain and the LEGACY rules. A holdout
-match (role TEST or EXTERNAL, patch 15.22 or 16.13) is refused before anything is read, and no holdout switch is ever passed on.
-
-Errors are never skipped: a match that cannot be read or built stops the run before its block is written (S1 accepted every match of
-the store, so a skipped match would leave S1 rows without views). Errors raised in a worker stay free of the match key (the message names
-the S1 match row and the patch). The worker reads ``tokens.VIEW_SPEC`` itself: it is a read-only mapping and cannot be pickled.
-
-Provenance. RUN.json (``runlog.write_manifest`` at the start, ``runlog.amend_manifest`` at the end) records the S1 run name and the
-SHA-256 of its STORE.json files map (``runlog.sha256_json``), the SHA-256 of terrain.npz, geodesic.npy and TERRAIN.json, the code commit
-and dirty flag (``runlog.code_state``), and in ``s2_result`` the wall time, the peak private memory of the whole process tree (the value of
-the 48 GiB gate), of this process and of the largest single worker, the bytes per view (the x arrays, the views table and their total)
-and the number of views by source. No match key, puuid or player name is written anywhere. The layout of RUN.json, besides the fields
-that ``runlog.write_manifest`` always adds (``stage``, ``run``, ``created``, ``code_commit``, ``code_dirty``, ``gpu`` at the start of the
-build, ``strata_running``, ...):
-
-    args          workers, block_matches, n_matches, plan_sha256 of the first call, and ``info``: the dict the caller gave (the command
-                  line: macros, limit), kept under its own key so that it cannot overwrite a computed field
-    s1            run (name of the S1 run folder), files_sha256
-    terrain       sha256 {terrain.npz, geodesic.npy, TERRAIN.json}, s1_run and s1_files_sha256 as TERRAIN.json says, built_from_this_s1
-                  (whether that S1 hash is the one consumed here: recorded and warned about, not enforced), grid (the grid record of
-                  TERRAIN.json: cells, cell_u, histogram_cells, histogram_u, min_count; it equals the constants of this code)
-    masked_views  where the masked M3 and M4 inputs are (D1, see above)
-    s2_result     complete, wall_s, stage_s {allocate, views, finalize}, peak_private_gib (whole process tree), peak_private_main_gib,
-                  peak_private_worker_gib (None when no pool ran), memory_samples, workers (of the last call), block_matches, n_blocks,
-                  blocks_resumed (the blocks done before the last call), matches, matches_built, seconds_per_match (views stage over the
-                  matches built), views, views_by_src {frame_clock, M3, M4}, x_bytes_per_view, views_bytes_per_view (27), bytes_per_view
-                  (their total), store_files and store_bytes (the stored arrays, ``Store.stored_files()``: STORE.json is left out as in the
-                  store hashes, so they are the same for every build of one plan and for a repaired record),
-                  code_state_at_end {code_commit, code_dirty} (the state at the end of the call
-                  that ended the build, or, in a repaired record, that of the last call on record; the top-level code_commit is the
-                  first call's), and since fix round 1: calls, per_call [{workers, wall_s, allocate_s, views_s, matches_built,
-                  blocks_built, memory_samples, peak_private_gib, peak_private_main_gib, peak_private_worker_gib, code_commit, code_dirty,
-                  warnings}], warnings, recovered. The peaks are the maxima over all calls, wall_s, stage_s, memory_samples and
-                  matches_built the sums (finalize: that of the call that finalized, None in a repaired record), so a resumed build
-                  reports the whole build and not its last call.
-
-This module imports ``c_ept.run_s1`` only inside ``build_s2``: a spawned worker imports this module, and the runner chain
-(targets, event rows, frame rows, the cohort split) has no place in it.
-
-방법에서의 위치. 이 모듈은 S1 저장소의 프레임 시계 행과 사건 행마다 모형 입력 보기(view) 하나를 만들어 S2 저장소 <run>\s2에 쓴다(설계서 4절, S1–S2 계획 Task 13). 보기는 경기 하나를
-기준 시각 하나에서 본 입력 한 벌이다: 프레임 시계 행은 분 프레임 t₀에서, 사건 행은 교전의 첫 킬 f(M3)와 교전 끝 δ(M4)에서 만든다. 보기 표(view_table)가 경기와 블록마다 행 구간을
-보기를 만들기 전에 정하므로 값은 작업자 수, 블록 크기, 재시작과 상관없이 같은 행에 놓이고, 쓰기와 완료 표시와 최종화는 부모 프로세스만 한다. 이어하기는 저장된 계획이 같을 때만
-허용하며 어긋나면 저장소와 RUN.json에 쓰기 전에 거부한다.
-
-용어. 보기: 경기 하나를 기준 시각 하나에서 본 입력 한 벌(tokens.build_view의 결과)이다. 분 프레임: 경기 상태를 1분마다 찍은 기록이고 t₀는 그 시각이다. 교전: 같은 경기에서 15초와 2,000
-지도 단위 이내로 이어진 킬의 묶음이며 f는 첫 킬의 시각, δ는 교전 끝이다. 블록: 연속한 경기 묶음의 보기 구간이다.
-
-식 목록. 식 번호는 (모듈 약어-번호) 꼴이며 식과 기호는 docs/superpowers/notes/equation-index.md의 식 색인과 기호 등록부에 올라 있다. u는 목록에서 경기의 위치, v는 보기, k는 블록이다.
-    (BLD-1)  보기 표          N_u = frame_u + event_u,   first_u = Σ_{u'<u} N_{u'},   N = Σ_u N_u   (경기 u의 보기는 first_u 이상 first_{u+1} 미만)
-    (BLD-2)  배열과 바이트     shape(views/열) = (N,),   shape(x/키) = (N, 키의 모양),   bytes_per_view = Σ_키 크기 + Σ_열 itemsize
-    (BLD-3)  계획 해시         plan_sha = SHA({S1 파일 표의 해시, 경기 목록}),   SHA(x) = SHA-256(x의 정렬된 간결 JSON)
-    (BLD-4)  진행 중인 블록    진행 중인 블록 수 ≤ workers,   그 배열 바이트 ≤ workers·max_k N_k·x_bytes_per_view
-    (BLD-5)  메모리 최대       tree = max_{표본} Σ_{p∈트리} used_p,   main = max_{표본} used_본체,   worker = max_{표본} max_{p∈자식} used_p
-    (BLD-6)  호출 기록 합산    최대치는 모든 호출의 최댓값, 시간과 경기 수는 합,   wall_s = round(Σ_{call} allocate_s + Σ_{call} views_s + (finalize_s 또는 0), 1)
-
-공통 가정.
-    (가) 작업자는 경기 키와 패치와 보기마다의 (ref, frame_k)만 받고 S1의 정답, 교전, 발생은 받지 않는다(S1–S2 판정 S2-11).
-    (나) 홀드아웃 경기(역할 TEST, EXTERNAL; 패치 15.22, 16.13)는 읽기 전에 거부한다(S1–S2 판정 S2-7). 역할은 분할 모듈의 bucket()과 roles()가 정해 S1 저장소에
-         적은 값이다(S1–S2 계획 전역 제약의 분할).
-    (다) 메모리는 상한을 강제하지 않고 표본 추출한 최대치만 기록한다. 그 값을 한도(S1–S2 계획 전역 제약의 최대 private 메모리)와 맞대는 일은 S2 관문의 몫이다.
+[한국어 설명]
+S1 정규 프레임 행과 교전 사건 행들로부터 신경망 입력용 다차원 상태 뷰(View)를 대량 생성하여 S2 스토어(`<run>\s2`)에 병렬로 기록합니다:
+  - 뷰 구성:
+      * src 0: 분 단위 정규 프레임 시점($t_0$) 관측 뷰.
+      * src 1: 교전 첫 킬 발생 시점($f$, M3 헤드 입력) 관측 뷰.
+      * src 2: 교전 종료 시점($\delta$, M4 헤드 입력) 관측 뷰.
+  - 안전한 병렬화: 경기가 쪼개지지 않도록 경기 단위 블록으로 분할하여 워커 프로세스들에 배분.
+  - 원자적 영속화: 자식 프로세스는 순수 넘파이 배열만 반환하며, 메인 부모 프로세스만이 `.npy` memmap 할당, fsync 쓰기, `STORE.json` 체크포인트 기록을 수행.
+  - 무결성 및 중단 재개(Resume): 실행 중단 시 이미 기록된 블록을 건너뛰고 안전하게 재개하며, 지형 파일 해시 및 S1 데이터셋 무결성을 엄격히 사전 검증.
 """
 # Ref: docs/superpowers/specs/2026-10-20-c-ept-design.md section 4 (frame clock and event clock: one view per frame-clock row and per
 #      open event row; masked M3 and M4 inputs are the frame-clock views of the onsets, decision D1) and section 11 item 8 (the frame of
@@ -161,9 +52,12 @@ except ImportError:      # the peak memory is then not recorded
     psutil = None
 
 from c_ept import config as C
-from c_ept import reader, runlog, store_core, terrain, tokens
-from c_ept.casts import narrow
-from c_ept.store_core import Store
+from c_ept.data import reader
+from c_ept import runlog
+from c_ept.data import store_core
+from c_ept.preprocessing import terrain, tokens
+from c_ept.data.casts import narrow
+from c_ept.data.store_core import Store
 
 STORE_DIR = 's2'                                   # under the run folder
 SRC_FRAME, SRC_M3, SRC_M4 = 0, 1, 2                # the values of views/src
@@ -990,7 +884,7 @@ def build_s2(s1_run, terrain_path, matches, run, workers: int = 8, block_matches
     ----
     S1–S2 판정 S2-2·R13-b(저장된 계획, 쓰기 전 거부), R13-n(계획 해시), S2-3(작업자 수와 상관없는 해시), S2-5(출처 기록), 저장소 설계 4.6절(입력 해시가 다르면 이어하기 거부).
     """
-    from c_ept.run_s1 import StrataRunning, load_s1, require_no_strata          # here, not at module level: a spawned worker imports us (R13-a)
+    from c_ept.workflows.run_s1 import StrataRunning, load_s1, require_no_strata          # here, not at module level: a spawned worker imports us (R13-a)
     rows = _match_rows(matches)
     _check_workers(workers)
     plan = store_core.block_plan(np.arange(len(rows)), block_matches)

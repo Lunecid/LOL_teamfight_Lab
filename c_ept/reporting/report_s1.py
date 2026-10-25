@@ -81,8 +81,12 @@ from pathlib import Path
 import numpy as np
 
 from c_ept import config as C
-from c_ept import event_rows, run_s1, runlog, store_core, targets, units
-from c_ept.store_core import Store
+from c_ept.data import event_rows
+from c_ept.workflows import run_s1
+from c_ept import runlog
+from c_ept.data import store_core
+from c_ept.domain import targets, units
+from c_ept.data.store_core import Store
 
 PROTO_DIR = Path(r'D:\LOL_Data\runs\20261019_link_rule_fit_1')     # the prototype folder (read only)
 BIG = 1 << 31                  # larger than any time in ms: key = match * BIG + time orders (match, time) in one sorted array

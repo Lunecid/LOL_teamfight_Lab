@@ -1,7 +1,8 @@
 """Synthetic public API and compatibility regressions; no store payloads."""
 import numpy as np
 import pytest
-from c_ept import features, symmetry
+from c_ept.preprocessing import features
+from c_ept.domain import symmetry
 
 def test_public_names_keep_legacy_identity():
     assert features.view_index is features._view_index

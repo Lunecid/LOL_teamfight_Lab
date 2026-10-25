@@ -14,7 +14,11 @@ import pytest
 
 from c_ept import cohort
 from c_ept import config as C
-from c_ept import event_rows, frame_rows, reader, run_s1, runlog, store_core, units
+from c_ept.data import event_rows, frame_rows, reader
+from c_ept.workflows import run_s1
+from c_ept import runlog
+from c_ept.data import store_core
+from c_ept.domain import units
 from c_ept.tests import synth
 
 # The store of the 8a rulings (name -> (dtype, shape after the row axis)), written out here and not read from run_s1.

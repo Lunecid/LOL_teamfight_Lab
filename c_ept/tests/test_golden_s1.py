@@ -21,8 +21,10 @@ import shutil
 import numpy as np
 import pytest
 
-from c_ept import cohort, report_s1, run_s1
-from c_ept.store_core import Store
+from c_ept import cohort
+from c_ept.reporting import report_s1
+from c_ept.workflows import run_s1
+from c_ept.data.store_core import Store
 from c_ept.tests.conftest import golden_folder
 
 RUN = os.environ.get('C_EPT_S1_RUN')

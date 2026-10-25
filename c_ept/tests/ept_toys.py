@@ -42,8 +42,10 @@ import pytest
 import torch
 
 from c_ept import config as C
-from c_ept import features, state, terrain, tokens, traits
-from c_ept.store_core import Store
+from c_ept.preprocessing import features
+from c_ept.domain import state
+from c_ept.preprocessing import terrain, tokens, traits
+from c_ept.data.store_core import Store
 from c_ept.tests.s3_toys import WORLD_ROLES, WORLD_SEED, HeadsWorld, _put, build_heads_world
 
 EPT_EVENTS, EPT_EDGES = 128, 128

@@ -23,14 +23,17 @@ import numpy as np
 import pytest
 
 from c_ept import config as C
-from c_ept import run_s1, runlog, store_core, terrain
-from c_ept.tests.conftest import PROTO, module_level_imports
+from c_ept.workflows import run_s1
+from c_ept import runlog
+from c_ept.data import store_core
+from c_ept.preprocessing import terrain
+from c_ept.tests.conftest import PROTECTED_IMPORT_PRELUDE, PROTO, import_watch_names, module_level_imports
 
 REPO = Path(C.__file__).parents[1]
 N = 75
 OPEN = np.ones((N, N), bool)
 ZERO100 = np.zeros((150, 150))
-S1_MODULES = ('c_ept.targets', 'c_ept.event_rows', 'c_ept.frame_rows', 'c_ept.store_core', 'c_ept.run_s1')    # what a worker must not load
+S1_MODULES = import_watch_names(('c_ept.targets', 'c_ept.event_rows', 'c_ept.frame_rows', 'c_ept.store_core', 'c_ept.run_s1'))
 NAN = float('nan')
 DIAG = 200 * 2 ** 0.5                                                                                         # one diagonal step
 
@@ -967,10 +970,11 @@ def test_no_module_level_import_reaches_the_s1_runner_or_store():
     assert not module_level_imports(Path(terrain.__file__)) & set(S1_MODULES)
 
 
-def test_importing_terrain_loads_no_s1_module():
+@pytest.mark.parametrize('module', ['c_ept.terrain', 'c_ept.preprocessing.terrain'])
+def test_importing_terrain_loads_no_s1_module(module):
     """A fresh interpreter: a worker that loads the terrain never pulls in the S1 runner chain (the runner is imported inside
     ``build_terrain`` only)."""
-    code = f'import sys, c_ept.terrain; sys.stdout.write(",".join(m for m in {S1_MODULES!r} if m in sys.modules))'
+    code = PROTECTED_IMPORT_PRELUDE + f'import sys, {module}; sys.stdout.write(",".join(m for m in {S1_MODULES!r} if m in sys.modules))'
     r = subprocess.run([sys.executable, '-B', '-c', code], cwd=REPO, capture_output=True, text=True, encoding='utf-8')
     assert (r.returncode, r.stdout, r.stderr) == (0, '', '')
 

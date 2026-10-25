@@ -22,3 +22,10 @@
 ## GPU 우선 실행 승인 반영
 
 2026-10-24 저자가 GPU 비용 측정을 새 실행 폴더에서 진행하도록 승인했다. 이 문서의 미지원 상태는 v1 당시 상태이며, 검토된 v2 gpu_cost profile로 S/M CUDA를 측정한다. [추가 실행 계약](superpowers/plans/2026-10-24-task8-gpu-cost.md)이 현재 범위다. IDE 폴더 LOL_teamfight_new-c-ept-s4는 저자의 요청으로 최신 구조를 적용한 개발 복사본이며, 보존된 로컬 주석 때문에 실제 측정에는 별도의 깨끗한 checkout을 사용한다.
+
+
+## 2026-10-25 현재 상태와 다음 계획
+
+위의 실패·미완료 표현은 이전 CPU run의 당시 상태다. 이후 새 GPU run `20261025_c_ept_s4a_1`(f867a51)은 7/7·exit0으로 완료됐고 감시도 종료됐다. GPU 비용 프로필 완료와 CPU 포함 전체 격자를 구분하며 M CPU는 미측정이다. G-S4a에서 저자 결정을 기다리는 경계는 유지한다.
+
+현재 작업은 [EPT-T001](../harness/tasks/EPT-T001-epoch-loss-logging.md)의 에폭별 FIT/STOP 손실 기록 보완·합성 검증·독립 검토다. 다음 실제 학습은 [얼리 스톱 설정 및 실행 전 계획](EPT_NEXT_TRAINING_PLAN_KO.md)을 검토·확정한 뒤 별도 관문을 따른다. 이 문서나 테스트 실행을 Start 승인으로 해석하지 않는다.

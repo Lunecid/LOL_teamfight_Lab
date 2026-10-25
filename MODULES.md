@@ -18,7 +18,7 @@ of its calculations.
 | [`c_ept/domain/`](c_ept/domain/) | Engagement units, targets, state and symmetry transformations. |
 | [`c_ept/valuation/`](c_ept/valuation/) | Prices, reward rules, tower tiers and value composition. |
 | [`c_ept/models/`](c_ept/models/) | Baselines, prediction heads and negative log-likelihood calculations. |
-| [`c_ept/ept/`](c_ept/ept/) | EPT encoder, heads, loss, training step, checkpoints and training orchestration. |
+| [`c_ept/ept/`](c_ept/ept/) | EPT encoder, heads, loss, training step, checkpoints, epoch scalar metadata and training orchestration. |
 | [`c_ept/runtime/`](c_ept/runtime/) | Resource observations and execution support. |
 | [`c_ept/checks/`](c_ept/checks/) | Contract checks used by the research workflow. |
 | [`c_ept/workflows/`](c_ept/workflows/) | Stage runners, the manual cost operator and its lightweight startup policy. |
@@ -78,3 +78,7 @@ code revision; existing run hashes are not automatically valid for this tree.
 Short package descriptions were drafted by Gemini through OpenCodex and reviewed
 against the actual file mappings. See the project guides for the exact moves and
 compatibility details.
+
+## Single EPT pilot
+
+[Protocol](docs/EPT_SINGLE_PILOT_KO.md) · [task contract](harness/tasks/EPT-T002-single-pilot.md). The dedicated `c_ept/workflows/training_operator.py` and `run_training.py` compose existing scientific primitives; `run_ept_training.ps1` is their operator entry. Controller and scalar-only reporting live in `tools/ept_training_controller.py` and `tools/ept_training_monitor.py`; `tools/ept_training_job.py` provides launch-owned Windows descendant containment.

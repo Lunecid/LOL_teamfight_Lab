@@ -1,79 +1,47 @@
-r"""Labels of the C model: the victim level of every kill, f0 of every engagement unit, V_start of every frame-clock row, the winner, the
-accounting identity and the S3 label store (stage S3 Task 4).
+r"""[모듈 개요 및 하네스 위치]
+이 모듈은 교전 모형의 지도학습용 정답 타깃 라벨(f₀ 교전 단위 가치, f_{0,conv} 사후 60초 전환 가치,
+승자 W, 확실한 승패 여부, 31개 킬 골드 구간, V_start 미래 누적 가치)을 생성하고
+경제적/오브젝트 보존 회계 항등식을 전수 검증하는 핵심 정답 생성 및 평가 모듈이다 (stage S3 Task 4).
 
-f0 prices an engagement in gold, blue minus red. A unit has two parts, kept apart so that the model's pieces can be scored apart:
+A. 하네스 및 파이프라인 내 위치:
+   - S1 저장소의 원시 사건(킬, 오브젝트, 프레임)과 가격표(PRICES.json), 공식 게임 보상 규칙(rulepay)을
+     결합하여 각 교전의 최종 경제적 순 골드 가치를 라벨링한다.
+   - S3 평가 및 EPT/B0/B1 모델 학습의 기준 정답(Ground Truth)을 생성하여 `labels/` 스토어에 기록한다.
+   - 엄격한 보존 회계(accounting, 판정 R11): 귀속 오브젝트 + 전환 오브젝트 + 미귀속 잔여 = 전체 오브젝트
+     항등식이 단 1개의 오차도 없이 성립함을 전수 검증한다 (`max_abs_error == 0`).
 
-    kill gold   per team, the gold of the kills whose killer is a champion: the recorded bounty, the recorded shutdown bounty and the
-                assist pool (``rulepay.assist_pools``, decision P3: min(0.5 bounty, 0.5 base(victim level)) mult(t) when at least one
-                champion assisted; the shutdown bounty is not part of the pool). A kill without a champion killer (an execution) pays no
-                team and no pool: its gold is 0. The victim level at the kill comes from ``kill_levels`` (the LEVEL_UP events at or
-                before the kill ms; a LEVEL_UP on the ms itself counts, as in ``traits.LevelIndex`` and ``state``).
-    objectives  the objectives attributed to the unit (``objectives/unit``, G3), each worth the price of its group (``flowprice.GROUPS``;
-                a tower by its tier) for the team that took it. No rule payout is added to a flow price (D4).
+B. 모듈 아키텍처 및 8대 블록 구성:
+   - 블록 1: 전역 상수 및 설정 (GOLD_EDGES: 100골드 간격 31구간, SURE_F0: |f₀| ≥ 150)
+   - 블록 2: 가격표 로드 및 오브젝트 단가 매핑 (load_prices, object_price)
+   - 블록 3: 킬 골드 구간 분할 및 승자 판정 (gold_bin, winner_of, gold_bin_means; 식 VAL-1, VAL-2)
+   - 블록 4: 피해자 레벨 인덱싱 및 어시스트 풀 연동 (kill_levels, kill_levels_for_record)
+   - 블록 5: 교전 단위 가치 산출 엔진 (UnitValues, unit_values; 식 VAL-4, VAL-5)
+   - 블록 6: 향후 예측 시계별 누적 가치 계산 (v_start; H = 30, 60, 90, 120, 180s; 식 VAL-6)
+   - 블록 7: 엄밀한 경제/오브젝트 보존 회계 감사 (accounting; 판정 R11, 식 VAL-7 ~ VAL-9)
+   - 블록 8: 정답 라벨 저장소 원자적 파일 직렬화 (write_labels)
 
-``unit_values`` gives ``kill_gold``, ``obj_value`` (attributed) and ``conv_value`` (the objectives converted to the unit,
-``objectives/conv_unit``, G4), each (n_units, 2) in the order blue, red; ``f0_unit`` = (kill_gold + obj_value) of blue minus red's and
-``f0_conv`` = conv_value of blue minus red's. An objective without a known group (another monster or building, a tower without a tier) is
-worth 0, and one without a known taker is in no unit and no conversion. One of an unknown kind or taker is "rest" (S1 attributes it
-nowhere); a tower without a tier is attributed or converted like any tower, at price 0. ``accounting`` counts both.
+C. 경제적 가치 정의 및 회계 체계:
+   1) 킬 골드 (Kill Gold): 기록된 기본 현상금 + 제압 골드(shutdown) + rulepay 기반 어시스트 풀 (처형은 0골드).
+   2) 귀속 오브젝트 가치 (Attributed Objective Value): 교전 중 획득된 오브젝트의 경제적 가치 (흐름 가격 또는 즉시 가치).
+   3) 교전 단위 가치 f₀(unit) = (Blue 킬골드 − Red 킬골드) + (Blue 귀속오브젝트가치 − Red 귀속오브젝트가치)
+   4) 사후 60초 전환 가치 f₀(conv) = 교전 종료 후 60초 이내에 획득된 오브젝트들의 순 가치.
+   5) 승자 판정: W = sign(round(f₀, 6)), 유의미한 승패: |f₀| ≥ 150.
+   6) V_start(t₀, H) = t₀ 시점 이후 H초 내에 시작하는 모든 교전들의 (f₀ + f_{0,conv}) 총합.
 
-Winner (ruling R12). ``winner_of``: W = sign of ``f0_unit`` rounded to 1e-6 gold; 0 is a draw; the sure stratum is |f0_unit| >= 150 on the
-same rounded value. The rounding makes a sum such as 0.1 + 0.2 - 0.3 a draw. The conversions are not in the winner.
+D. 핵심 수식 (VAL-1 ~ VAL-9):
+   (VAL-1)  골드 구간        b = min(⌊g / 100⌋, 30)   (g = 킬 골드; 0~3000골드 100단위 + 초과 30번 구간)
+   (VAL-2)  승자 및 확실층   W = sign(⌊f₀ · 10⁶⌉ / 10⁶),   sure = 1[|f₀| ≥ 150]
+   (VAL-3)  오브젝트 단가    price_c = price_table[group(c)]
+   (VAL-4)  교전 단위 가치   f₀ = g_blue − g_red + Σ_c sign_c · price_c · O_c
+   (VAL-5)  전환 가치        f_{0,conv} = Σ_c sign_c · price_c · conversions_c
+   (VAL-6)  누적 교전 가치   V_start(t₀, H) = Σ_{unit ∈ (t₀, t₀+H]} (f₀ + f_{0,conv})
+   (VAL-7)  오브젝트 보존    O_total = O_attributed + O_converted + O_rest  (오차 0 필수)
+   (VAL-8)  전투 통계 보존   K_total = K_attributed + K_rest
+   (VAL-9)  경제 가치 보존   Value_total = Value_attributed + Value_converted + Value_rest
 
-Gold bins (decision P4). The kill gold of a team in a unit falls into one of 31 bins: floor(gold / 100) for 0 .. 2,999 and the open bin 30
-for 3,000 and more. A team without a kill in the unit has bin -1 (no gold category); a team with a kill and 0 gold has bin 0. The
-representative of a bin for the composition is the mean of the FIT team entries in it (``gold_bin_means``: this reproduces the FIT sum);
-an empty bin takes the middle of its range (100 b + 50, and 3,000 for the open bin) and is listed in ``GoldReps.fallback``.
-
-Valued units. Stage S3 values the matches of ``LABEL_ROLES`` = FIT, STOP and DEV (``flowprice.S3_ROLES``). The units of every other match
-that the S1 store holds have NaN in the float labels, winner 0, sure False, gold bin -1 and ``valued`` False, and the frame rows of such a
-match have a NaN V_start. ``kill_levels`` returns -1 for the kills of a match outside the asked roles (and of a match that could not be
-read); ``unit_values`` refuses a kill with level -1 in a valued match (ruling R12), so a missing level is never turned into a gold figure.
-
-V_start. Per frame-clock row (match, t0, hi): the sum of f0_unit + f0_conv over the in-scope units of the match whose first kill f lies in
-(t0, min(t0 + H, hi)], for each horizon H (``config.EVAL_H_MS``). It is computed from the units and the rows alone, by a search on the
-sorted first-kill times, and must equal the sum over the ``onsets`` of the row with bin < H / 10 s (a test pins this). The aftermath of a
-unit counts whole, also where it runs past t0 + H.
-
-Accounting (ruling R11). ``accounting`` checks the two identities of the design at the level of counts, where they are exact:
-    objectives   per (match, group, taker): attributed + converted + rest = all   (no objective is in two places)
-    kills        per (match, team): the champion kills in units = all champion kills
-and, as a cross-check of the labels against the S1 store, the champion kills and the attributed and converted objectives of every unit
-against the S1 columns ``units/K``, ``units/O`` and ``units/conv``. ``max_abs_error`` is the largest difference of all of these and must
-be 0. ``max_abs_value_error`` is the same two identities in gold (summed with ``math.fsum``), a diagnostic: floating-point sums over
-different groupings are not associative, so it is not asked to be exactly 0. Per-match and total figures are returned.
-
-Label store (``write_labels``). A ``store_core.Store`` with ``labels/{kill_gold, obj_value, conv_value, f0_unit, f0_conv, winner, sure,
-gold_bin, v_start, gold_reps}`` in the S1 row order of the units and of the frame rows, and ``LABELS.json``, which holds the provenance dict
-that the caller gives and nothing else. Never an existing store.
-
-Raw reads (``kill_levels``) go through ``reader.read_match`` only and check E6 first (``run_s1`` is imported inside the function, not at
-module level); an unreadable file is counted, not an error, and no message holds a match key.
-
-방법에서의 위치. 이 모듈은 교전 과정 모형의 정답 쪽을 계산한다: 킬마다 피해자의 레벨, 교전 단위 하나의 골드 가치 f₀와 전환의 가치, 분 프레임 행마다 V_start(t₀, H), 승자, 골드 구간과 구간
-대표값, 회계 항등식의 검사, 이 값들의 저장소이다(계획 Task 4, 설계서 3.4절·8절). 합성기가 내는 발생의 가치 f₀(K, O) + f₀(전환)((COMP-4))과 이 정답이 같은 골드 척도이도록 같은 가격표와 같은 킬 골드의 정의를 쓴다(합성이 쓰는 골드 구간 대표값은 이 킬 골드의 FIT 평균이다, (VAL-7)).
-
-용어. 분 프레임: 경기 상태를 1분마다 찍은 기록이고 t₀는 그 시각이다. 교전: 같은 경기에서 15초와 2,000 지도 단위 이내로 이어진 킬의 묶음이고, 교전 단위는 S1 교전 표의 한 행이며 첫 킬의 시각이
-f이다. 킬 골드 g: 기록 bounty, shutdown bounty, 도움 풀의 합이다(계획 P3). 묶음 ψ: 가격을 매기는 오브젝트의 12가지 묶음이다(flowprice.GROUPS; 포탑은 단계마다 하나). 귀속·전환·나머지: 오브젝트 하나는
-교전에 귀속되거나(O) 교전 뒤 60초 안의 전환으로 붙거나 어느 쪽도 아닌 나머지이다(설계서 3.3절 D4). 값이 매겨진 경기: 역할이 FIT, STOP, DEV인 경기이다. 범위 안 교전: 첫 킬이 2분 이후이고
-경기 끝 30초 전까지인 교전(`units/in_scope`)이다.
-
-식 목록. 식 번호는 (모듈 약어-번호)이고 식과 기호는 docs/superpowers/notes/equation-index.md에 있다. i는 교전 단위, t는 팀(blue, red)이다.
-    (VAL-1)  피해자 레벨     lvl(킬) = max(1, 킬 시각까지(같은 ms 포함) 피해자가 올린 LEVEL_UP 레벨의 최댓값)
-    (VAL-2)  팀의 킬 골드    g_it = Σ_{킬 ∈ (i, t)} (bounty + shutdown + pool),   k_it = 그 킬의 수
-    (VAL-3)  오브젝트 값     obj_it = Σ_{귀속 오브젝트 ∈ (i, t)} price_ψ,   conv_it = Σ_{전환 오브젝트 ∈ (i, t)} price_ψ
-    (VAL-4)  교전의 f₀       f₀_i = (g_{i,blue} + obj_{i,blue}) − (g_{i,red} + obj_{i,red}),   f₀conv_i = conv_{i,blue} − conv_{i,red}
-    (VAL-5)  승자            W_i = sign(round(f₀_i, 6)),   확실한 승패 ⇔ |round(f₀_i, 6)| ≥ 150
-    (VAL-6)  골드 구간       b = min(⌊g / 100⌋, 30)
-    (VAL-7)  구간 대표값     rep_b = 구간 b에 든 팀 항목의 킬 골드 평균 (항목이 없으면 구간의 가운데, 열린 구간은 3,000)
-    (VAL-8)  V_start         V_start(u, t₀, H) = Σ_{i: 경기 u의 범위 안 교전, t₀ < f_i ≤ min(t₀ + H, hi)} (f₀_i + f₀conv_i)
-    (VAL-9)  회계 항등식     귀속 + 전환 + 나머지 = 전체,   챔피언 킬의 합 = 교전 단위의 킬 합   (개수는 정확히, 골드는 반올림 오차만)
-
-공통 가정.
-    (가) 값이 매겨진 경기만 값을 가진다. 그 밖의 경기의 교전은 값이 NaN이고, 피해자 레벨이 없는 킬이 값이 매겨진 경기에 있으면 골드를 만들지 않고 거부한다(판정 R12).
-    (나) 회계. 귀속 + 전환 + 나머지 = 전체는 개수 수준에서 정확히 맞고(판정 R11) 골드 수준은 반올림 오차만 허용한다(판정 R48). f₀의 오브젝트 몫은 가격표의 값뿐이며 규칙 지급액을 더하지
-         않는다(설계서 3.4절 D4). 한 오브젝트가 두 곳에 있는 자료는 회계 검사((VAL-9))가 0이 아닌 오차로 알린다.
-    (다) 가격. 오브젝트 하나의 값은 그 묶음의 가격(포탑은 단계 가격)이다. 묶음을 모르는 오브젝트의 값은 0이고 가져간 팀을 모르는 오브젝트는 어느 팀의 값에도 더하지 않으며, 회계 검사((VAL-9))가 이를 센다.
+E. 하네스 제약 및 무결성 보장:
+   - 엄격한 인과성(Causality): t₀ 시점 평가에 미래 정보 누설 차단.
+   - 단일 진실 공급원(Single Source of Truth): rulepay 및 flowprice 가격표의 SHA-256 검증.
 """
 # Ref: docs/superpowers/plans/2026-10-21-c-ept-s3.md decisions P3 (kill gold = bounty + shutdown + assist pool, executions pay nothing, no
 #      rule payout added to a flow price) and P4 (K = kills and kill gold, 31 gold bins, bin means from FIT as representatives), Task 4, and
@@ -98,9 +66,14 @@ from typing import NamedTuple
 import numpy as np
 
 from c_ept import config as C
-from c_ept import flowprice, reader, rulepay, store_core, traits, units
-from c_ept.casts import narrow
-from c_ept.units import BLUE, RED, _ALL_PIDS, _POPCOUNT, _is_pid
+from c_ept.valuation import flowprice
+from c_ept.data import reader
+from c_ept.valuation import rulepay
+from c_ept.data import store_core
+from c_ept.preprocessing import traits
+from c_ept.domain import units
+from c_ept.data.casts import narrow
+from c_ept.domain.units import BLUE, RED, _ALL_PIDS, _POPCOUNT, _is_pid
 
 LABEL_ROLES = flowprice.S3_ROLES                       # FIT, STOP, DEV: the matches stage S3 values
 N_GOLD_BINS = 31
@@ -123,7 +96,9 @@ def _wbincount(index: np.ndarray, *, weights: np.ndarray, minlength: int) -> np.
     return np.bincount(index, weights=weights, minlength=minlength).astype(np.float64)
 
 
-# ---- the price table -----------------------------------------------------------------------------------------------------------------
+# =============================================================================
+# 블록 2: 가격표 로드 및 오브젝트 단가 매핑 (식 VAL-3)
+# =============================================================================
 def load_prices(path) -> dict[str, float]:
     """The price of each group, ``{group: value}`` in the order of ``flowprice.GROUPS``, from a ``PRICES.json`` of the s3a run.
 
@@ -173,7 +148,9 @@ def object_price(kind, sub, prices) -> np.ndarray:
     return np.where(group >= 0, table[np.clip(group, 0, _N_GROUPS - 1)], 0.0)
 
 
-# ---- gold bins, winner -------------------------------------------------------------------------------------------------------------------
+# =============================================================================
+# 블록 3: 킬 골드 구간 분할 및 승자 판정 (식 VAL-1, VAL-2)
+# =============================================================================
 def gold_bin(gold) -> np.ndarray:
     """The bin (int8, 0 .. 30) of kill gold: floor(gold / 100), the open bin 30 for 3,000 and more. ValueError for gold that is negative or
     not finite (nothing is clipped into a bin).
@@ -306,7 +283,9 @@ def gold_bin_means(uv: 'UnitValues', units) -> GoldReps:
     return GoldReps(means, tuple(fallback))
 
 
-# ---- the victim level of a kill ---------------------------------------------------------------------------------------------------------
+# =============================================================================
+# 블록 4: 피해자 레벨 인덱싱 및 어시스트 풀 연동
+# =============================================================================
 def _record_kill_levels(rec) -> tuple:
     """``(kill table, victim levels)`` of one record: the kills as S1 stores them and, per kill, the level of its victim at the kill ms.
 
@@ -377,7 +356,7 @@ def _level_task(item, records):
         text = ''
     # The helpers of the S2 build (the chain text, the key and its game id, the scrub). Imported here and not at module level: only a worker
     # that has met an unexpected error needs them, and ``store_build`` is the heavy end of the S2 chain (E6, see ``kill_levels``).
-    from c_ept import store_build
+    from c_ept.data import store_build
     if any(part in store_build._chain_text(caught) for part in store_build._key_parts(key)):
         raise ValueError(f'{type(caught).__name__}: {store_build._scrub(text, key)} (match row {row}, patch {patch})') from None
     raise caught
@@ -398,7 +377,7 @@ def kill_levels(s1, roles=LABEL_ROLES, workers: int = 8, *, records=reader.read_
     """
     codes = flowprice._role_codes(roles)
     _check_workers(workers)
-    from c_ept import run_s1                      # inside the function: no module-level path to the S1 runner (E6)
+    from c_ept.workflows import run_s1                      # inside the function: no module-level path to the S1 runner (E6)
     run_s1.require_no_strata()
     role = np.asarray(s1.array('matches/role'))
     patch = np.asarray(s1.array('matches/patch'), dtype=np.int64)
@@ -429,7 +408,9 @@ def kill_levels(s1, roles=LABEL_ROLES, workers: int = 8, *, records=reader.read_
     return out
 
 
-# ---- the labels of the units -------------------------------------------------------------------------------------------------------------
+# =============================================================================
+# 블록 5: 교전 단위 가치 산출 엔진 (UnitValues, unit_values; 식 VAL-4, VAL-5)
+# =============================================================================
 @dataclass(frozen=True, eq=False)
 class UnitValues:
     """The labels of the units of an S1 store, in S1 unit order (blue first in every pair); see the module text.
@@ -643,7 +624,9 @@ def unit_values(s1, prices, rules, kill_levels, roles=LABEL_ROLES) -> UnitValues
     return out
 
 
-# ---- V_start ---------------------------------------------------------------------------------------------------------------------------
+# =============================================================================
+# 블록 6: 향후 예측 시계별 누적 가치 계산 (v_start; 식 VAL-6)
+# =============================================================================
 def _check_uv(s1, uv: UnitValues) -> int:
     """The number of units; ValueError if the labels do not have the S1 store's units and matches."""
     n_units, n_matches = len(s1.array('units/match')), len(s1.array('matches/role'))
@@ -726,7 +709,9 @@ def v_start(s1, uv: UnitValues, horizons_ms=C.EVAL_H_MS) -> np.ndarray:
     return out
 
 
-# ---- the accounting identity (ruling R11) ----------------------------------------------------------------------------------------------
+# =============================================================================
+# 블록 7: 엄밀한 경제/오브젝트 보존 회계 감사 (accounting; 판정 R11, 식 VAL-7 ~ VAL-9)
+# =============================================================================
 def _objective_identity(s1, obj: _Objectives, valued_obj, match_valued, unit_match, valued_unit) -> dict:
     """The objective identity per (match, group, taker) in counts, and the labels against the cells ``units/O`` and ``units/conv`` of S1.
 
@@ -890,7 +875,9 @@ def accounting(s1, uv: UnitValues, prices, rules, kill_levels, roles=LABEL_ROLES
                       'kill_gold_error': gold['kill_gold_error'], 'objective_value_error': gold['objective_value_error']}}
 
 
-# ---- the label store ---------------------------------------------------------------------------------------------------------------------
+# =============================================================================
+# 블록 8: 정답 라벨 저장소 원자적 파일 직렬화 (write_labels)
+# =============================================================================
 def write_labels(out_dir, s1, uv: UnitValues, v_start, gold_reps, provenance) -> Path:
     """Write the labels as a finalized ``store_core.Store`` at ``out_dir`` and return that folder.
 

@@ -68,9 +68,13 @@ import numpy as np
 import torch
 
 from c_ept import config as C
-from c_ept import features, head_rows, runlog, symmetry, terrain, tokens
-from c_ept.casts import narrow
-from c_ept.store_core import write_atomic
+from c_ept.preprocessing import features
+from c_ept.data import head_rows
+from c_ept import runlog
+from c_ept.domain import symmetry
+from c_ept.preprocessing import terrain, tokens
+from c_ept.data.casts import narrow
+from c_ept.data.store_core import write_atomic
 
 # ---- the columns -----------------------------------------------------------------------------------------------------------------------
 W = float(C.W)                                   # the rotation constant: (x, y) -> (W - x, W - y)
@@ -376,11 +380,12 @@ DEFAULT_ROLES = MappingProxyType({'fit': 'FIT'})
 _CHUNK = 1 << 12                                 # views read at a time by ``fit_stats`` (4,096 x about 8 KB)
 
 
-def fit_stats(s1, s2, roles: Mapping = DEFAULT_ROLES) -> Stats:
+def fit_stats(s1, s2, roles: Mapping = DEFAULT_ROLES, *, matches=None, check=None) -> Stats:
     """The standardisation statistics of the EPT inputs, computed on the FIT views of the S2 store ``s2`` only.
 
     ``roles`` must be ``{'fit': 'FIT'}`` (the default): the statistics are those of FIT and of nothing else (ruling R14), and any other
-    role, key or extra entry is a ValueError before an array is read. The FIT views are the views of every FIT match, all three sources
+    role, key or extra entry is a ValueError before an array is read. Optional ``matches`` selects validated FIT match indices;
+    optional ``check`` runs before reads and per chunk. By default all FIT views are used, all three sources
     (frame clock, M3 and M4 views, ``features.split_views``). The cells that are NaN are not counted. Reads the arrays of ``_READ`` in
     chunks of ``_CHUNK`` views, so the 18.7 GiB store is never in memory. ValueError for no FIT view, and for the cells that
     ``_check_cells`` refuses.
@@ -427,13 +432,21 @@ def fit_stats(s1, s2, roles: Mapping = DEFAULT_ROLES) -> Stats:
     """
     if not isinstance(roles, Mapping) or dict(roles) != dict(DEFAULT_ROLES):
         raise ValueError(f"the normalisation statistics are computed on FIT only: roles must be {{'fit': 'FIT'}}, not {roles!r}")
+    if check is not None:
+        check()
     layout = _layout(s2)
-    fit = np.flatnonzero(features.split_views(s1, s2, 'FIT'))
+    fit_mask = features.split_views(s1, s2, 'FIT')
+    if matches is not None:
+        selected = features.checked_matches(s1, 'FIT', matches)
+        fit_mask &= np.isin(np.asarray(s2.array('views/match')), selected)
+    fit = np.flatnonzero(fit_mask)
     if fit.size == 0:
         raise ValueError('there is no FIT view to compute the statistics on')
     acc = {'players_num': _Moments(len(PLAYER_COLUMNS)), 'summary': _Moments(len(SUMMARY_COLUMNS)), 'landmarks': _Moments(2),
            'geo_pp': _Moments(1), 'geo_pl': _Moments(1), 'ev_dt': _Moments(1), 'ev_gold': _Moments(1), 'ev_xy': _Moments(2)}
     for lo in range(0, len(fit), _CHUNK):
+        if check is not None:
+            check()
         a = _read_checked(s2, fit[lo:lo + _CHUNK], layout)
         valid = np.arange(layout.events)[None, :] < a['ev_n'][:, None]
         acc['players_num'].add(a['players_num'].reshape(-1, len(PLAYER_COLUMNS)))
@@ -883,11 +896,11 @@ def _no_features(s2, views) -> np.ndarray:
     return np.zeros((len(views), 1), dtype=np.float32)
 
 
-def ept_head_rows(s1, s2, labels, role: str) -> head_rows.HeadRows:
+def ept_head_rows(s1, s2, labels, role: str, *, matches=None) -> head_rows.HeadRows:
     """``head_rows.HeadRows`` of the matches of ``role`` (FIT, STOP or DEV; ValueError for any other role, before an array is read) whose
     rows and targets are those of the baselines B0 and B1 (ruling R18) and whose feature rows are empty: the EPT takes the view numbers
     of ``HeadRows.view_numbers`` and reads the views with ``ViewTensors``."""
-    return head_rows.HeadRows(s1, s2, labels, role, _no_features)
+    return head_rows.HeadRows(s1, s2, labels, role, _no_features, matches=matches)
 
 
 def _typed(fields: dict) -> dict:

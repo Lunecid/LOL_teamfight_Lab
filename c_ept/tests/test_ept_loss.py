@@ -29,7 +29,10 @@ import numpy as np
 import pytest
 import torch
 
-from c_ept import head_rows, nll, runlog, store_core
+from c_ept.data import head_rows
+from c_ept.models import nll
+from c_ept import runlog
+from c_ept.data import store_core
 from c_ept.ept import data, encoder, heads, loss
 from c_ept.tests.conftest import all_imports, module_level_imports
 from c_ept.tests.ept_toys import build_ept_world, encoder_batch, toy_static
@@ -863,7 +866,7 @@ def write_toy_run(runs, s1, s2, labels, b0, names):
                 's1': {'run': names.s1, 'files_sha256': runlog.sha256_json(s1.manifest['files'])},
                 's2': {'run': names.s2, 'files_sha256': runlog.sha256_json(s2.manifest['files'])}}
     (run / 'RUN.json').write_text(json.dumps(manifest), encoding='utf-8')
-    from c_ept import run_s3
+    from c_ept.workflows import run_s3
     ledger = run_s3.Ledger(run)
     ledger.doc['stages']['fit'] = {'complete': True, 'outputs': {'fit/b0/b0_heads.json': store_core.sha(run / 'fit' / 'b0' / 'b0_heads.json')}}
     ledger.doc['stages']['labels'] = {'complete': True, 'outputs': {'labels/store/': run_s3.identity(run, 'labels/store/')}}
@@ -877,7 +880,7 @@ def toy_run(heads_world, tmp_path_factory):                                     
     heads fitted on its FIT matches (``fit/b0``), RUN.json and STAGES.json with the hashes of the model JSON and of the label store."""
     from sklearn.exceptions import ConvergenceWarning
 
-    from c_ept import baselines_b0
+    from c_ept.models import baselines_b0
     runs = tmp_path_factory.mktemp('b0_scales_runs') / 'runs'
     names = SimpleNamespace(s1='20261020_c_ept_s1_1', s2='20261021_c_ept_s2_3', s3='20261022_c_ept_s3_3')
     with warnings.catch_warnings():
@@ -925,7 +928,7 @@ def test_b0_scales_are_computed_on_fit_rows_and_hashed(toy_run, tmp_path, monkey
     arrays of ``fit/b0``); the scale of a head is the mean of the B0 NLL over the FIT rows of that head, computed here again from
     ``B0Heads.nll``; B0 is asked for the role FIT only, masked and open (STOP and DEV rows are never scored: the first column of the data
     rules). No key is written."""
-    from c_ept import baselines_b0
+    from c_ept.models import baselines_b0
     from c_ept.ept import scales
     asked = []
     real = baselines_b0.B0Heads.nll
@@ -986,8 +989,8 @@ def unobserved_frame_worlds(toy_run, tmp_path_factory):
     ``without_frame``: the same arrays with one change: the frame row B belongs to the STOP match (its ``frame_rows/match`` and the ``views/match`` of its
     frame-clock view), so it is not a FIT row. B keeps its zero exposure, so only the role of B differs. The labels and the B0 heads (fitted on the
     full heads world) are shared; nothing is fitted on these tiny worlds."""
-    from c_ept import frame_rows as frame_rows_mod
-    from c_ept.store_core import Store
+    from c_ept.data import frame_rows as frame_rows_mod
+    from c_ept.data.store_core import Store
     from c_ept.tests import s3_toys
     root = tmp_path_factory.mktemp('unobserved_frame')
     real_times, real_rows, real_onsets = s3_toys.frame_times, frame_rows_mod.frame_rows, frame_rows_mod.onsets
@@ -1296,7 +1299,7 @@ def test_the_units_of_the_counts_follow_the_block(toy_run, tmp_path):
 def test_a_written_artifact_is_read_back_only_with_the_sources_of_its_own_run(toy_run, tmp_path):
     """The expected sources are built here from the run folder (RUN.json, the ledger, the model files), not from the artifact; the artifact of
     this run is accepted and the same artifact against another recorded source is refused."""
-    from c_ept import run_s3
+    from c_ept.workflows import run_s3
     from c_ept.ept import scales
     scales.b0_scales(toy_run.run, tmp_path, runs_root=toy_run.runs)
     run_doc = json.loads((toy_run.run / 'RUN.json').read_text(encoding='utf-8'))
@@ -1328,7 +1331,7 @@ def test_partial_and_empty_exposure_in_the_counts_of_m2rate():
 def test_the_command_line_refuses_while_strata_runs_and_otherwise_writes_the_file(toy_run, tmp_path, monkeypatch, capsys):
     """E6 for the one-off computation: with a model server running the command refuses (exit code 2, nothing written); otherwise it writes the
     file and prints the scales (counts and numbers, never a key)."""
-    from c_ept import run_s1
+    from c_ept.workflows import run_s1
     from c_ept.ept import scales
     args = ['--s3', str(toy_run.run), '--out', str(tmp_path / 'out'), '--runs-root', str(toy_run.runs)]
 

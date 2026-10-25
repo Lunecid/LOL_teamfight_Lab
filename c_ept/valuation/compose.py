@@ -1,111 +1,58 @@
-r"""The composition of V_start from the heads at t0 (stage S3 Task 9; decisions P4, P6, P10; Review Focus 3).
+r"""[모듈 개요 및 하네스 위치]
+This module evaluates value forecasts using the t0 information plus the censoring time T of the match (decision P10: exposures and conversion windows are cut at T - 30 s and at T; censoring is observation design, not a model input).
 
-The composer is the machine that the gate of stage S3 (D6) tests. It chains the masked heads of one model (M2: occurrence, mark, zone; M3:
-size, kills, kill gold, objects; M4: conversions) into the value of the engagements that start in the first 60, 120 and 180 s after a
-frame-clock row t0, using the t0 information plus the censoring time T of the match (decision P10: exposures and conversion windows are
-cut at T - 30 s and at T; censoring is observation design, not a model input):
+이 모듈은 평가 시점(t₀ 분 프레임)에서 각 머리(heads)가 예측한 조건부 확률법칙들을 연결하여
+향후 예측 시계(H = 60초, 120초, 180초) 동안 발생하는 교전들의 미래 누적 가치 V_start(t₀, H)를
+합성(Composition)하는 핵심 가치 합성 엔진이다 (stage S3 Task 9; 결정 P4, P6, P10; 관문 D6).
 
-    V_start(t0, H) = sum over the onsets with bin q < H / 10 s of  f0(K, O) + f0(conversions)        (blue minus red)
+A. 하네스 및 파이프라인 내 위치:
+   - 교전 발생(M2), 결과(M3), 사후 전환(M4) 머리들을 체이닝하여 교전 순 골드 가치(f₀)를 산출한다.
+   - 두 가지 합성 경로 지원:
+     1) 닫힌 꼴(Closed-Form) 기댓값 계산 (Composer.expect): B0 GLM처럼 M3 및 M4 머리가 K와 O를 조건으로
+        읽지 않는 독립 구조일 때 켐벨 정리(Campbell's theorem)를 통해 해석적 기댓값을 완전 정밀 계산 (식 COMP-6).
+     2) 몬테카를로 모의 시뮬레이션 (Composer.simulate): B1 LightGBM 및 EPT 신경망 모형처럼 사슬의
+        선행 결과(K, O)를 조건부로 반영하는 모든 모형에 대해 S회 복원 표집을 수행하여 평균, 표준편차, 19개 분위수 산출 (식 COMP-1 ~ COMP-4).
+   - 관문 검증(Gate D6): 동일한 머리와 가격 하에서 B0의 몬테카를로 모의 평균과 닫힌 꼴 기댓값의 차이가
+     모의 표준오차 이내로 일치하는지 검증한다 (결정 P7 (iv)).
 
-    one onset      m ~ pi(. | q)  ->  z ~ rho(. | q, m)  ->  s ~ P(. | q, m, z)  ->  kills k_blue, k_red ~ Poisson(kill_rate)  ->
-                   the kill gold of a team with k >= 1 kills: the bin ~ gold_prob(layer = min(k, 6)), worth ``gold_reps[bin]`` (0 without a
-                   kill)  ->  K = (k_blue, k_red, gold_blue, gold_red)  ->  O ~ Poisson(obj_rate(.., K))  ->
-                   conversions ~ Poisson(conv_rate(features.m4_masked_inputs(row_view, q, m, z, K, O)) x conv_exposure_s)
-    value          gold_blue - gold_red + sum over the 18 cells c = 2 kind + taker of  sign_c price_c (O_c + conversions_c),  sign +1 for
-                   blue (taker 0) and -1 for red; ``price`` is the price of the cell's group, and for the two tower cells the expected
-                   price of a predicted tower (``towertier.expected_tower_price`` of the tier law at the tower state of the row, the
-                   victim team 1 - taker, at the time t0 + (q + 0.5) 10 s; the law is asked for each row on its own, twice,
-                   with the 18 bins of that row)
-    onsets         the count in the bin q is Poisson(rate_q x exposure_q), the exposure being ``frame_rows/exposure_ms`` / 1000 s: the
-                   bins after the cut at T - 30 s have exposure 0 and so no onset, in the simulation and in the closed form alike
-    zone           drawn from the ten zones of rho; "no position" (z = -1) is no outcome of rho (it is left out of its fit and counted),
-                   so the heads are asked about the zones 0 .. 9 only
+B. 모듈 아키텍처 및 7대 블록 구성:
+   - 블록 1: 전역 상수 및 설정 (H_SECONDS: 60, 120, 180s, 19개 분위수, 워커 환경 변수)
+   - 블록 2: 전환 노출 시간 계산 (conv_exposure_s; 결정 P10, 식 COMP-5)
+   - 블록 3: 프레임 행 테이블 및 뷰 바인딩 (RowTable, row_table; t₀ 프레임 뷰만 보관)
+   - 블록 4: 결과 데이터 구조 (SimResult, Draws; 모의 표본 및 요약 통계량)
+   - 블록 5: 수치 역변환 및 헬퍼 (_inverse_cdf, _poisson_head, _checked)
+   - 블록 6: 합성기 코어 (Composer; expect, simulate, expected_onsets)
+   - 블록 7: 멀티프로세스 병렬 워커 풀 (ProcessPoolExecutor, E6 스트라타 가드 check 연동)
 
-``row_table(s1, s2, roles)`` makes the table of the rows (``RowTable``) from the frame-clock rows of the roles FIT, STOP and DEV; it holds
-t0 information only: the row, its match, t0, the exposure of the 18 bins, the end of the game T, the number of its frame-clock S2 view
-(``views/src`` 0 and ``views/src_index`` the row: the event views have colliding ``src_index`` numbers and are never taken) and the towers
-destroyed before t0 (``towertier.destroyed_before``, the one route to the tower state). The source of this module names no array of the
-engagements and the composer keeps no store: ``Composer`` binds the heads to the views once (``heads.bind(s2, rows.views)``) and drops
-``s2``.
-Holdout roles (TEST, EXTERNAL) and the roles S3 does not use are refused before any array is read.
+C. 합성 사슬 및 가치 회계 규칙 (식 COMP-3, COMP-4):
+   - 발생 표집: 각 구간 q별 발생 수 n_{jq} ~ Poisson(λ_q · Δ_q)
+   - 단일 발생 사슬:
+     1) 첫 킬 표지 m ~ π(· | q)
+     2) 첫 킬 구역 z ~ ρ(· | q, m) (관측 구역 0 .. 9 중 역변환 표집)
+     3) 교전 규모 s ~ P(· | q, m, z)
+     4) 팀별 킬 수 k_blue, k_red ~ Poisson(kill_rate)
+     5) 킬 골드: k ≥ 1인 팀은 gold_prob(layer = min(k, 6))에서 구간 표집 후 대표 골드 환산, 0킬 팀은 0골드 확정
+     6) K = (k_blue, k_red, gold_blue, gold_red)
+     7) 오브젝트 O ~ Poisson(obj_rate(rows, q, m, z, s, K))
+     8) 전환 수 ~ Poisson(conv_rate(m4_inputs) · conv_exposure_s)
+   - 가치 계산 (식 COMP-4):
+     v = (gold_blue − gold_red) + Σ_c sign_c · price_{qc} · (O_c + conversions_c)
+     (포탑 칸은 towertier.expected_tower_price를 통해 t₀ 시점 상대 기파괴 상태 기준 기대 가격 적용)
 
-``conv_exposure_s(t0_ms, q, T_ms)`` (decision P10): max(0, min(60 s, T - delta_hat)), delta_hat = t0 + (q + 0.5) 10 s + 20 s; the same cut
-as the targets (the conversion window ends with the game), and never the true delta of an engagement.
+D. 핵심 수식 (COMP-1 ~ COMP-8):
+   (COMP-1)  모의 추정량     V_j(H) = Σ_{q<H/10s} Σ_{ι=1}^{n_{jq}} v_{jqι},  V̂(H) = (1/S)·Σ_j V_j(H),  sd(H),  Q_α(H)
+   (COMP-2)  발생 수         n_{jq} ~ Poisson(λ_q · Δ_q)
+   (COMP-3)  한 발생의 사슬  m → z → s → (k_blue, k_red) → 골드 구간 → O → 전환 수 y_c
+   (COMP-4)  발생의 가치     v = g_blue − g_red + Σ_c sign_c · price_{qc} · (O_c + y_c)
+   (COMP-5)  전환 노출       e_q = max(0, min(60s, T − δ̂)),   δ̂ = t₀ + (q + 0.5)·10s + 20s
+   (COMP-6)  닫힌 꼴         E[V(H)] = Σ_{q<H/10s} λ_q · Δ_q · Σ_m π(m | q) · Σ_z ρ(z | q, m) · Σ_s P(s | q, m, z) · v̄(q, m, z, s)
+   (COMP-7)  기대 킬 골드    E[g_t] = Σ_{k=1}^{5} P(k; μ_t) · G_t(k) + P(≥ 6; μ_t) · G_t(6)
+   (COMP-8)  기대 발생 수    E[N(H)] = Σ_{q<H/10s} λ_q · Δ_q
 
-``Composer.expect(idx)`` is the closed form, for head sets with ``analytic_ok`` and neither ``obj_uses_K`` nor ``conv_uses_KO`` (B0; any
-other head set is refused with a ValueError): by the law of the total expectation over a marked Poisson process (Campbell's theorem)
-
-    E[V_H] = sum over q < H / 10 s of  lambda_q Delta_q  sum_m pi(m | q)  sum_z rho(z | q, m)  sum_s P(s | q, m, z)  vbar(q, m, z, s)
-    vbar   = E[gold_blue] - E[gold_red] + sum_c sign_c price_c ( obj_rate_c + conv_rate_c x conv_exposure_s )
-    E[gold_t] = sum_{k = 1 .. 5} P(k) G_t(k) + P(k >= 6) G_t(6),   P(k) = Poisson(mu_t)
-    G_t(xi)   = sum_b gold_prob(layer xi)[t, b] gold_reps[b]
-
-over **all** 18 x 52 x 10 x 4 combinations of a row (a bin without exposure has the weight 0 and is left out: the sum is the same), the
-gold head asked for the six layers; a head is asked ``CALL_ROWS`` (1,024) combinations of one row at a time, so that its outputs stay in
-the cache (measured with B0: 1.4 times faster in one process and 2 times faster on 8 workers than one call with the 37,440 combinations
-of a row; the answer does not depend on it, up to the rounding of a head that calls MKL). The tail P(k >= 6) is the regularised
-incomplete gamma function ``gammainc(6, mu)``, equal to one minus the six terms k = 0 .. 5 but exact for a small mu. The M4 input of
-the closed form is built with K = O = 0 (ignored by the flags).
-
-``Composer.simulate(idx)`` draws S simulations of every row (the chain above) and returns the mean, the standard deviation (n - 1) and the
-19 quantiles 0.05 .. 0.95 of V_H for H = 60, 120 and 180 s; it works for every head set, also those that read K and O (B1).
-``simulate_onsets(row)`` returns the onsets of the S simulations of one row (the raw draws), ``expected_onsets(idx)`` the expected number
-of onsets, sum of rate x exposure, for the three horizons (computed one row at a time, like ``expect`` and ``simulate``, and with
-the same ``block``, ``workers`` and ``check``).
-
-Determinism. The generator of a row is ``numpy.random.default_rng([seed, global row number])``, the global number being the row of the
-S1 store (``RowTable.frame_row``), not its place in a table: the same row gets the same draws in any table that holds it. A row is
-computed on its own: every call of a head, and of the tier law that prices the towers, holds the inputs of one row. The draws of a row
-are, in this order: the Poisson counts of the (S, 18) onsets, (n, 3) uniforms for the mark, the zone and the size, the Poisson kill counts
-(n, 2), (n, 2) uniforms for the gold bins, the Poisson counts of O (n, 18) and of the conversions (n, 18); a category is the first one
-whose cumulative probability exceeds the uniform (inverse transform). So the answer for a row depends on the seed, the row number and
-the inputs of that row (the heads, the prices, the tier model, its own tower state and times) only: not on the other rows asked for,
-the other rows of the table or the block size. A block is the unit of work that is sent to a worker; it has no other effect.
-
-Worker processes. ``workers`` > 1 starts a spawn pool (``ProcessPoolExecutor``) of that many processes (at most one for each block),
-each with a copy of the composer (the heads must be picklable; on Windows the calling script must guard its entry point with
-``if __name__ == '__main__'``) and the environment ``WORKER_ENVIRONMENT`` (one thread, MKL_CBWR=COMPATIBLE). Every block, also a
-single one, runs in a worker, and the calling process computes no value (ruling R30). The answer of a row is then the same bit for
-bit in every worker, for every block size and for every number of workers, which is tested with heads that use no library routine
-(the toys) and with B0 and B1. It is NOT guaranteed to equal the answer of the calling process to the last bit for a head set that
-calls MKL (B0 does, in its matrix products): MKL rounds the same product differently with another thread count or, in its default
-branch, another alignment of the operands (measured: relative differences of 2e-16 .. 5e-15 in ``expect``; the simulation did not
-change in the tests, since a draw changes only if a uniform falls within 1e-16 of a threshold). A run that must be the same bit for bit
-whatever the number of workers starts its main process with the variables of ``WORKER_ENVIRONMENT`` as well.
-
-E6. ``expect``, ``simulate`` and ``expected_onsets`` take ``check``, a function without arguments that is called before each block is
-computed or dispatched (before the first block and between blocks): the runner passes its own guard against a running model server (the
-Strata guard of E6), which it imports itself; this module imports no runner module. A refusal stops the run and dispatches no further
-block.
-
-방법에서의 위치. 이 모듈은 교전 과정 모형(EPT)과 기준 모형이 낸 머리를 이어 붙여 분 프레임의 기준 시각 t₀ 뒤 H초 안에 시작하는 교전들의 가치 V_start(t₀, H)를 합성한다(설계서 3.4절). 합성은 두 길이다. 모의는 발생 수,
-표지, 구역, 규모, 팀별 킬과 킬 골드, 오브젝트, 전환을 머리의 분포에서 차례로 뽑고 발생마다 가치 f₀를 더해 V_start의 표본을 S번 만들며(COMP-1–COMP-4), 닫힌 꼴은 머리가 K와 O를 읽지 않을 때(B0) 같은 기대값을 합으로
-낸다(COMP-6, COMP-7). 두 길은 같은 머리와 같은 가격을 쓰므로 모의 평균과 닫힌 꼴의 차이는 모의 오차뿐이어야 하며, 그 차이가 모의 표준오차의 정해진 배수 안에 드는 행의 비율이 합성 관문의 한 기준이다(계획 P7 (iv)).
-
-용어. 분 프레임: 경기 상태를 1분마다 찍은 기록이고 t₀는 그 시각이다. 교전: 같은 경기에서 15초와 2,000 지도 단위 이내로 이어진 킬의 묶음. 발생: t₀ 행과 그 뒤 구간 q(10초씩 18개)에서 첫 킬이 일어난 교전의 쌍. 표지 m:
-첫 킬의 선제 킬 쌍(킬러 슬롯이 피해자 슬롯을 잡는 방향 쌍 50개)과 처형 2개. 구역 z: 첫 킬이 일어난 규칙 구역(10개). 규모 s: 교전의 킬 크레딧 인원으로 정하는 네 종류. 킬 수 층 ξ: 킬이 하나 이상인 팀의 킬 수를 1–5와 6
-이상으로 나눈 여섯 층. 오브젝트 칸: 오브젝트 종류와 가져간 팀의 쌍마다 하나(18칸, 번호 c = 2·종류 + 팀). 전환: 교전이 끝난 뒤 60초 안에 어느 교전에도 붙지 않은 오브젝트(설계서 3.3절). 머리: 조건부 분포 하나를 예측하는 모형
-부품이고, 가린 머리는 합성기가 줄 수 있는 입력, 곧 t₀ 행의 특징과 사슬에서 앞 단계가 뽑은 값(q, m, z, s, 킬 수 층, 머리에 따라 K와 O)만 읽는다. 가격: 오브젝트 하나가 가져간 팀에 주는 골드 환산값이다(흐름 가격 또는 즉시값;
-포탑은 단계 가격). 킬 골드 g: 기록 bounty, shutdown bounty, 도움 풀의 합이다(계획 P3).
-
-식 목록. 식 번호는 (모듈 약어-번호)이고 식과 기호는 docs/superpowers/notes/equation-index.md에 있다. 식은 t₀ 행 하나의 값이고, j는 모의 번호, t는 팀(파랑, 빨강)이다.
-    (COMP-1)  모의 추정량     V_j(H) = Σ_{q<H/10 s} Σ_{ι=1}^{n_{jq}} v_{jqι},  V̂(H) = (1/S)·Σ_j V_j(H),  sd(H),  Q_α(H)   (α = 0.05, …, 0.95)
-    (COMP-2)  발생 수         n_{jq} ~ Poisson(λ_q·Δ_q)                                              ((HEAD-1)에 모의 번호 j를 붙인 것)
-    (COMP-3)  한 발생의 사슬  m → z → s → (k_blue, k_red) → 골드 구간 → O → 전환 수 y_c            (범주는 역변환 표집 inv(p, U), 개수는 포아송)
-    (COMP-4)  발생의 가치     v = g_blue − g_red + Σ_c sign_c·price_{qc}·(O_c + y_c)       (= f₀(K, O) + f₀(전환); 탑 칸의 가격은 단계 분포의 기대 가격)
-    (COMP-5)  전환 노출       e_q = max(0, min(60 s, T − δ̂)),   δ̂ = t₀ + (q + 0.5)·10 s + 20 s
-    (COMP-6)  닫힌 꼴         E[V(H)] = Σ_{q<H/10 s} λ_q·Δ_q·Σ_m π(m | q)·Σ_z ρ(z | q, m)·Σ_s P(s | q, m, z)·v̄(q, m, z, s)
-    (COMP-7)  기대 킬 골드    E[g_t] = Σ_{k=1}^{5} P(k; μ_t)·G_t(k) + P(≥ 6; μ_t)·G_t(6),   G_t(ξ) = Σ_b gold_prob(ξ)[t, b]·rep_b
-    (COMP-8)  기대 발생 수    E[N(H)] = Σ_{q<H/10 s} λ_q·Δ_q
-
-공통 가정.
-    (가) 회계 항등식. 정답은 오브젝트 하나를 교전 귀속(O), 전환, 나머지 가운데 한 곳에만 넣으며(설계서 3.3절 D4), 개수 수준에서 귀속 + 전환 + 나머지 = 전체가 정확히 맞고(판정 R11), 골드 수준은 반올림 오차만
-         허용한다(판정 R48). (COMP-4)는 같은 분해를 쓰므로 O와 전환을 더하고 g에 도움 풀을 따로 더하지 않는다. 항등식은 정답 쪽(``value.accounting``)이 검사한다.
-    (나) 합성은 t₀ 정보에 경기 끝 T를 더한 것만 쓴다(계획 P10, 설계서 3.4절 D1). 노출과 전환 창을 T에서 자르는 것은 관측 설계이고 모형의 입력이 아니다(COMP-2, COMP-5). 실제 (K, O)와 교전의 끝 δ는 쓰지
-         않으며 머리에 들어가는 K와 O는 앞 단계가 뽑은 값이다(설계서 3.3절 누설 시험 (b), (c)).
-    (다) 한 행의 값은 그 행의 입력만으로 정해진다. 한 발생 안의 단계(표지, 구역, 규모, 팀별 킬과 골드, 오브젝트, 전환)는 앞 단계에서 뽑은 값에 조건부로 차례로 뽑고(COMP-3), 그 값이 주어지면 서로 다른 발생, 두 팀의 킬 수와
-         골드 구간, 오브젝트와 전환의 칸은 서로 독립으로 뽑는다(계획 Task 9의 모의 순서).
-    (라) 닫힌 꼴은 머리가 K와 O를 읽지 않고(계획 P6; B1은 모의로만 쓴다) 팀의 골드 분포가 킬 수 층으로는 자기 팀의 층만 읽고 상대 팀의 층은 읽지 않을 때만 있다(이 골드 성질은 규약이 강제하지 않으며 B0와 B1은 그렇다).
+E. 하네스 제약 및 결정성 보장:
+   - 결정론적 난수열: 각 행의 난수 생성기는 default_rng([seed, global_frame_row])로 초기화되어 워커 수와 블록 크기 무관 동일 재현 보장.
+   - 엄격한 정보 누설 방지: 사건 뷰는 절대 바인딩하지 않으며 오직 t₀ 프레임 뷰만을 바인딩 (규약 A3).
+   - E6 스트라타 가드: 각 연산 블록 디스패치 전 check 콜백을 호출하여 백그라운드 모델 서버 실행 방지.
 """
 # Ref: docs/superpowers/plans/2026-10-21-c-ept-s3.md decisions P4 (the factorisation and the probability families), P6 (the masked heads: M3
 #      objects without K, M4 without K and O in the closed form), P10 (the exposures), the global constraints A3 (t0 information only) and
@@ -134,10 +81,13 @@ import numpy as np
 from scipy.special import gammainc
 
 from c_ept import config as C
-from c_ept import features, flowprice, towertier
-from c_ept.heads import OUTPUT_WIDTHS, ComposerHeads
+from c_ept.preprocessing import features
+from c_ept.valuation import flowprice, towertier
+from c_ept.models.heads import OUTPUT_WIDTHS, ComposerHeads
 
-# ---- constants ---------------------------------------------------------------------------------------------------------------------------
+# =============================================================================
+# 블록 1: 전역 상수 및 설정 (H_SECONDS: 60/120/180s, 분위수, 워커 환경)
+# =============================================================================
 DEFAULT_S = 1000                                     # simulations of a row (the gate of D6 uses 1,000 for B0 and 200 for B1)
 DEFAULT_SEED = 20261021                              # the base seed of stage S3
 DEFAULT_BLOCK = 16                                   # rows in the unit of work that goes to a worker
@@ -166,7 +116,9 @@ if any(name not in flowprice.GROUPS for name in C.O_KINDS if name != 'tower'):
     raise RuntimeError('every kind of object but the tower must be a group of the price table')
 
 
-# ---- the conversion exposure (decision P10) --------------------------------------------------------------------------------------------
+# =============================================================================
+# 블록 2: 전환 노출 시간 계산 (decision P10, 식 COMP-5)
+# =============================================================================
 def conv_exposure_s(t0_ms, q, T_ms):
     """Seconds of conversion window that an onset of the bin ``q`` of a row at ``t0_ms`` can have in a game that ends at ``T_ms``:
     max(0, min(60, (T - delta_hat) / 1000)), delta_hat = t0 + (q + 0.5) x 10 s + 20 s (decision P10). Arguments are numbers or arrays that
@@ -212,7 +164,9 @@ def conv_exposure_s(t0_ms, q, T_ms):
     return float(out) if out.ndim == 0 else out
 
 
-# ---- the table of rows -------------------------------------------------------------------------------------------------------------------
+# =============================================================================
+# 블록 3: 프레임 행 테이블 및 뷰 바인딩 (RowTable, row_table)
+# =============================================================================
 _ROW_FIELDS = (('frame_row', ()), ('match', ()), ('t0_ms', ()), ('exposure_ms', (N_Q,)), ('T_ms', ()), ('views', ()), ('destroyed', (2, 4)))
 
 
@@ -344,7 +298,9 @@ def row_table(s1, s2, roles) -> RowTable:
                     destroyed=destroyed, roles=tuple(r for r in C.ROLES if r in named))
 
 
-# ---- the results -------------------------------------------------------------------------------------------------------------------------
+# =============================================================================
+# 블록 4: 모의 시뮬레이션 결과 구조체 (SimResult, Draws)
+# =============================================================================
 @dataclass(frozen=True, eq=False)
 class SimResult:
     """The simulated V_start of some rows for H = 60, 120 and 180 s: ``mean`` (n, 3), ``sd`` (n, 3; standard deviation with n - 1 of the S
@@ -400,7 +356,9 @@ class Draws:
     value: np.ndarray
 
 
-# ---- helpers -----------------------------------------------------------------------------------------------------------------------------
+# =============================================================================
+# 블록 5: 수치 역변환 및 표집 헬퍼 (_inverse_cdf, _poisson_head)
+# =============================================================================
 def _positive(name: str, value, lo: int = 1) -> int:
     if isinstance(value, bool) or not isinstance(value, numbers.Integral):
         raise TypeError(f'{name} must be an integer, not {type(value).__name__}')
@@ -474,7 +432,9 @@ def _poisson_head(mu: np.ndarray) -> tuple:
     return p, gammainc(float(N_POISSON), mu)
 
 
-# ---- the composer ------------------------------------------------------------------------------------------------------------------------
+# =============================================================================
+# 블록 6: 가치 합성 엔진 코어 (Composer: expect, simulate, expected_onsets)
+# =============================================================================
 class Composer:
     """The value of the engagements after t0 from the masked heads: ``expect`` (closed form), ``simulate`` and ``simulate_onsets``.
 
@@ -923,6 +883,9 @@ def _collect(pending: dict, parts: list) -> None:
 
 
 @contextlib.contextmanager
+# =============================================================================
+# 블록 7: 멀티프로세스 병렬 워커 풀 및 작업 분배기
+# =============================================================================
 def _worker_environment():
     """``WORKER_ENVIRONMENT`` in ``os.environ`` for the length of a ``with`` block (the processes that are spawned inside it inherit it),
     the variables put back as they were afterwards."""

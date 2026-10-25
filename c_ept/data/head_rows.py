@@ -88,8 +88,8 @@ from typing import NamedTuple
 import numpy as np
 
 from c_ept import config as C
-from c_ept import features
-from c_ept import nll as nll_scores
+from c_ept.preprocessing import features
+from c_ept.models import nll as nll_scores
 
 # ---- the heads and their shapes --------------------------------------------------------------------------------------------------------
 KINDS = ('masked', 'open')
@@ -176,12 +176,20 @@ class HeadRows:
     행의 정의는 식 (HR-1)–(HR-4)이고 ``parts``가 그 정의대로 행을 낸다. 역할은 FIT, STOP, DEV만 받으며 홀드아웃 역할(TEST, EXTERNAL)과 S3가 쓰지 않는
     역할은 첫 배열을 읽기 전에 거부한다(계획 전역 제약의 분할)."""
 
-    def __init__(self, s1, s2, labels, role, build: Callable):
+    def __init__(self, s1, s2, labels, role, build: Callable, *, matches=None):
         self.s1, self.s2, self.labels, self.role = s1, s2, labels, role
         self.build = build
         self._frame_in = features.role_mask(s1, 'frame_rows', role)       # refuses a bad role before the first array is read
         self._onset_in = features.role_mask(s1, 'onsets', role)
         self._unit_in = features.role_mask(s1, 'units', role)
+        # Select only after authoritative role validation; global row IDs remain intact.
+        self.matches = None if matches is None else features.checked_matches(s1, role, matches)
+        if self.matches is not None:
+            frame_match = np.asarray(s1.array('frame_rows/match'))
+            onset_row = np.asarray(s1.array('onsets/row')).astype(np.int64)
+            self._frame_in &= np.isin(frame_match, self.matches)
+            self._onset_in &= np.isin(frame_match[onset_row], self.matches)
+            self._unit_in &= np.isin(np.asarray(s1.array('units/match')), self.matches)
         self._cache = {}
 
     # -- reading -------------------------------------------------------------------------------------------------------------------------
@@ -198,8 +206,21 @@ class HeadRows:
         return self._read(self.s1, name)
 
     def _labels(self, name: str) -> np.ndarray:
-        a = self._read(self.labels, name)
         n_units = len(self._unit_in)
+        if self.matches is None:
+            a = self._read(self.labels, name)
+        else:
+            key = (id(self.labels), name)
+            if key not in self._cache:
+                source = self.labels.array(name)
+                if source.shape != (n_units, 2):
+                    raise ValueError(f'{name} must have shape ({n_units}, 2)')
+                selected = np.flatnonzero(self._unit_in)
+                # Preserve global unit IDs while reading selected label values only.
+                a = np.zeros(source.shape, dtype=source.dtype)
+                a[selected] = np.asarray(source[selected])
+                self._cache[key] = a
+            a = self._cache[key]
         if a.shape != (n_units, 2):
             raise ValueError(f'{name} must have shape ({n_units}, 2), one row for each unit of the S1 store, not {a.shape}: '
                              'the labels do not belong to this S1 store')
@@ -284,7 +305,8 @@ class HeadRows:
         return self._once('onsets', make)
 
     def _zones(self) -> np.ndarray:
-        return self._once('zones', lambda: features.unit_zone(self.s1))
+        return self._once('zones', lambda: features.unit_zone(self.s1) if self.matches is None
+                          else features.unit_zone_subset(self.s1, np.flatnonzero(self._unit_in)))
 
     def _kcounts(self, unit) -> np.ndarray:
         return self._s1('units/K')[unit][:, :2].astype(np.int64)

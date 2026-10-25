@@ -17,7 +17,9 @@ import numpy as np
 import pytest
 
 from c_ept import config as C
-from c_ept import state, symmetry, targets, terrain, tokens, units
+from c_ept.domain import state, symmetry, targets
+from c_ept.preprocessing import terrain, tokens
+from c_ept.domain import units
 from c_ept.tests import synth
 from c_ept.tests.view_helpers import (K, NAN, P, REF, differing, frame_at, frames_with, raw_building, raw_elite, raw_item, raw_kill,
                                       raw_level, record, rich_events, views_equal)

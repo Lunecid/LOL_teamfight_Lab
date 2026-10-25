@@ -369,7 +369,7 @@ def test_constant_entry_cost_equal_to_its_scale_makes_each_stop_block_one():
 def test_the_stop_value_is_the_head_scores_mean_of_the_row_values_that_are_entry_means():
     """``HeadScores.per_row`` sums the entries of an evaluation row (S3); the STOP pool divides that sum by the scored entries, so on rows of one entry it is
     ``HeadScores.mean()`` and on the rows below it is ``HeadScores.mean()`` of the entry means."""
-    from c_ept import head_rows
+    from c_ept.data import head_rows
     nll = np.array([2.0, 8.0, 3.0, 1.0, 1.0, 5.0, 7.0])
     match = np.array([1, 1, 1, 2, 2, 2, 2], dtype=np.int64)
     row = np.array([0, 0, 1, 2, 2, 3, 4], dtype=np.int64)
@@ -1013,13 +1013,13 @@ def test_a_checkpoint_has_its_own_folder_with_last_pt_and_a_head_json_that_lists
     assert [meta['epoch'] for meta, _ in checkpoints(folder)] == [1, 2, 3, 4]
     for meta, path in checkpoints(folder):
         assert 'last.pt' in meta['files'] and set(meta['files']) <= {'last.pt', 'best.pt'} and 'head.json' not in meta['files']
-        assert {p.name for p in path.iterdir()} == set(meta['files']) | {'head.json'}
+        assert {p.name for p in path.iterdir()} == set(meta['files']) | {'head.json', 'epoch_metrics.json', 'epoch_metrics.csv'}
         for name, entry in meta['files'].items():
             raw = (path / name).read_bytes()
             assert entry['sha256'] == hashlib.sha256(raw).hexdigest() and entry['bytes'] == len(raw)
     meta, path = checkpoints(folder)[-1]
     assert not list(Path(folder).rglob('*.tmp'))                                  # every temporary name was renamed
-    assert meta['done'] and meta['schema'] == train.SCHEMA and result.head == meta and Path(result.checkpoint_dir) == path
+    assert meta['done'] and meta['schema'] == train.checkpoints.METRICS_SCHEMA and result.head == meta and Path(result.checkpoint_dir) == path
 
 
 def test_files_are_flushed_to_disk_before_a_checkpoint_counts(tmp_path, rows, stats, monkeypatch):
@@ -1163,7 +1163,7 @@ def _child_main(spec: dict) -> None:
     handler, finaliser or flush, with ``os._exit(CUT_EXIT)`` at ``spec['cut']`` of epoch ``spec['epoch']`` (default 2): ``epoch_start`` (the E6 check of that epoch),
     ``between_batches`` (after the first FIT batch of the epoch), ``after_last_pt`` (head.json of the checkpoint with that many epochs done is about to be written) or
     ``after_head`` (it has just been written). Without a cut it runs to the end and saves the result to ``spec['result']``. ``spec['beat']`` sets the heartbeat period."""
-    from c_ept.store_core import Store
+    from c_ept.data.store_core import Store
     folder = Path(spec['world'])
     s1, labels, s2 = Store(folder / 'base' / 's1'), Store(folder / 'base' / 'labels'), Store(folder / 's2')
     stats_ = data.fit_stats(s1, s2)
@@ -1685,7 +1685,7 @@ def test_the_store_identity_is_the_sha256_of_store_json_and_a_changed_store_is_r
 
 
 def test_a_run_reads_no_view_that_only_dev_selects_and_never_verifies_the_store(tmp_path, rows, stats, monkeypatch):
-    from c_ept import store_core
+    from c_ept.data import store_core
     for name in ('verify', 'hashes', 'stored_files'):
         monkeypatch.setattr(store_core.Store, name, lambda *a, **k: (_ for _ in ()).throw(AssertionError('whole-store access')))
     seen, real = [], data.ViewTensors
@@ -1905,7 +1905,7 @@ def test_pending_accounting_and_heartbeat_share_one_clock_sample(tmp_path, monke
 def test_identical_heterogeneous_b0_scores_need_not_give_a_unit_stop_ratio(head, values, matches, rows, expected_scale):
     """Equal per-entry units do not equate FIT entry averaging and STOP evaluation-row/match averaging, even on identical scores."""
     from c_ept.ept.scales import head_scale
-    from c_ept.head_rows import HeadScores
+    from c_ept.data.head_rows import HeadScores
     values, matches, rows = np.array(values), np.array(matches), np.array(rows)
     sizes = np.zeros(3, dtype=np.int64)
     scale, _, _ = head_scale(head, HeadScores(values, matches, rows), sizes)

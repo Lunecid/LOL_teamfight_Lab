@@ -577,7 +577,7 @@ def fresh_operator_repo(tmp_path):
         ' return original(*a,**kw)\n'
         'op.load_config=load\n'
         'code=op.main(sys.argv[1:])\n'
-        'print("PHASEA_RESULT="+json.dumps({"code":code,"runner_loaded":"c_ept.run_s4a" in sys.modules, '
+        'print("PHASEA_RESULT="+json.dumps({"code":code,"runner_loaded":any(n in sys.modules for n in ("c_ept.run_s4a","c_ept.workflows.run_s4a")), '
         '"native_loaded":[x for x in ("numpy","torch","scipy") if x in sys.modules], '
         '"mkl":os.environ.get("MKL_THREADING_LAYER")}))\n'
         'raise SystemExit(code)\n')

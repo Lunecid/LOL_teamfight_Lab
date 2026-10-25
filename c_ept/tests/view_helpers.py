@@ -9,7 +9,8 @@ import dataclasses
 import numpy as np
 
 from c_ept import config as C
-from c_ept import state, tokens, traits
+from c_ept.domain import state
+from c_ept.preprocessing import tokens, traits
 from c_ept.tests import synth
 
 K = 10                          # frame index of the event-clock tests: frame 10 of the synthetic grid is at 600,300 ms

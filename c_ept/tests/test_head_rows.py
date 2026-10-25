@@ -17,7 +17,9 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from c_ept import baselines_b0, features, head_rows
+from c_ept.models import baselines_b0
+from c_ept.preprocessing import features
+from c_ept.data import head_rows
 from c_ept.tests.conftest import all_imports, module_level_imports
 from c_ept.tests.s3_toys import KEY_PREFIX, HeadsOracle, heads_world  # noqa: F401  (the fixture is imported by ruling R1)
 

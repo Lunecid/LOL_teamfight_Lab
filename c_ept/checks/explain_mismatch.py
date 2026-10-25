@@ -31,7 +31,7 @@ frame, so it says nothing about the next frame of any other cell.
 """
 from __future__ import annotations
 
-from c_ept import run_s1
+from c_ept.workflows import run_s1
 from c_ept.checks import common
 
 SCRIPT = 'c_ept.checks.explain_mismatch'

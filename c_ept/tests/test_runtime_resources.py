@@ -7,6 +7,7 @@ import pytest
 
 from c_ept import runtime
 from c_ept.runtime import resources
+from c_ept.tests.conftest import all_imports
 
 
 class Gone(Exception):
@@ -128,10 +129,10 @@ def test_s3_compatibility_adapters_keep_dynamic_monkeypatch_points(monkeypatch):
     sampler = ns['_Sampler']()
     sampler.sample()
     assert (sampler.peak, sampler.peak_upper) == (123, 456)
-    import c_ept
+    from c_ept import workflows
     seen = []
     fake_s1 = SimpleNamespace(require_no_strata=lambda: seen.append(1))
-    monkeypatch.setattr(c_ept, 'run_s1', fake_s1, raising=False)
+    monkeypatch.setattr(workflows, 'run_s1', fake_s1, raising=False)
     guard = ns['_Guard']()
     guard()
     fake_s1.require_no_strata = lambda: seen.append(2)
@@ -147,10 +148,12 @@ def test_training_and_runtime_have_no_runner_import_and_s4_uses_public_apis():
         tree = ast.parse(source)
         imports = [n for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)]
         assert not any(n.module and '.run_s' in n.module for n in imports)
+        assert not any(name.startswith('c_ept.run_s') for name in all_imports(path))
     s4 = (root / 'workflows/run_s4a.py').read_text(encoding='utf-8')
     assert 'checkpoints.latest_checkpoint(folder)' in s4
     assert 'train._latest_checkpoint' not in s4 and 'run_s3._Guard' not in s4
     assert 'from c_ept.run_s3 import _Sampler' not in s4
+    assert not {'c_ept.run_s3._Sampler', 'c_ept.workflows.run_s3._Sampler'} & all_imports(root / 'workflows/run_s4a.py')
 
 
 @pytest.mark.parametrize('used,seconds,blind,metric,refused', [

@@ -25,7 +25,7 @@ Counts of 2026-10-20, run at commit 39195c7 (as a scratch script, then moved her
 """
 from __future__ import annotations
 
-from c_ept import run_s1
+from c_ept.workflows import run_s1
 from c_ept.checks import common
 
 SCRIPT = 'c_ept.checks.measure_levels'

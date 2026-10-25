@@ -63,9 +63,10 @@ try:
 except ImportError:      # the memory is then reported as unavailable (``_memory_sample``)
     psutil = None
 
-from c_ept import terrain, runtime
+from c_ept.preprocessing import terrain
+from c_ept import runtime
 from c_ept.ept import data as ept_data
-from c_ept.ept import encoder, heads, loss, checkpoints, training_step
+from c_ept.ept import encoder, heads, loss, checkpoints, training_step, epoch_metrics
 
 # ---- the operational constants (every one has a name; the contract gives the reasons) ----------------------------------------------------
 PATIENCE = 2                                     # epochs without a new best STOP loss that end the run
@@ -150,8 +151,12 @@ class TrainConfig:
     weight_decay: float
     warmup_steps: int
     patience: int = PATIENCE
+    model_spec: Mapping | None = None
 
     def __post_init__(self):
+        if self.model_spec is not None:
+            from c_ept.comparison.models import validate_model_spec
+            object.__setattr__(self, 'model_spec', validate_model_spec(self.model_spec))
         if not isinstance(self.encoder, encoder.EncoderConfig):
             raise ValueError('encoder must be an EncoderConfig')
         for name in ('lr', 'weight_decay'):
@@ -591,6 +596,9 @@ def _identity(cfg: TrainConfig, data: TrainData, static: np.ndarray, epochs: int
            'fit': _rows_digest(data.fit), 'stop': _rows_digest(data.stop), 's2_store_json_sha256': store_sha,
            'device': str(dev), 'dtype': str(torch.get_default_dtype()), 'deterministic_algorithms': bool(torch.are_deterministic_algorithms_enabled()),
            'threads': int(torch.get_num_threads()), 'torch': torch.__version__}
+    if cfg.model_spec is not None:
+        from c_ept.comparison.models import validate_model_spec
+        doc['model_spec'] = validate_model_spec(cfg.model_spec)
     return json.loads(json.dumps(doc))
 
 
@@ -1065,7 +1073,7 @@ def train(cfg: TrainConfig, data: TrainData, out_dir, *, device, epochs: int, ch
 
 
 def _head_record(loop: dict, identity: dict, static_record: dict, epochs: int, seed: int, done: bool, snap: dict, samples: int) -> dict:
-    return {'schema': SCHEMA, 'epoch': loop['epoch'], 'epochs': epochs, 'seed': seed, 'done': done, 'stopped_early': loop['stopped_early'], 'best_epoch': loop['best_epoch'],
+    return {'schema': checkpoints.METRICS_SCHEMA, 'epoch': loop['epoch'], 'epochs': epochs, 'seed': seed, 'done': done, 'stopped_early': loop['stopped_early'], 'best_epoch': loop['best_epoch'],
             'best': loop['best'], 'identity': identity, 'static': static_record, 'bias_init': loop['bias_init'], 'threads': torch.get_num_threads(), 'seconds': snap['seconds'],
             'caps': {'memory_bytes': MEMORY_CAP_BYTES, 'wall_seconds': WALL_CAP_SECONDS},
             'memory': {'metric': snap['metric'], 'peak_bytes': snap['peak_bytes'], 'peak_upper_bytes': snap['peak_upper_bytes'], 'peak_rss_bytes': snap['peak_rss_bytes'],
@@ -1119,7 +1127,12 @@ def _run(cfg: TrainConfig, data: TrainData, out_dir: Path, device, epochs: int, 
     finished = found is not None and bool(found[1]['done'])
     if not finished:
         ctx.begin(identity_sha, res)                             # from here the call has a pending marker: it ends finalized, or a later call adopts it
-    model = heads.EPT(cfg.encoder, static).to(dev)
+    if cfg.model_spec is None:
+        model = heads.EPT(cfg.encoder, static).to(dev)
+    else:
+        from c_ept.comparison.models import build_model, configure_float32
+        configure_float32()
+        model = build_model(cfg.encoder, static, cfg.model_spec).to(dev)
     optimizer = torch.optim.AdamW(model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
     static_record = {'function': STATIC_FUNCTION, 'shape': list(static.shape), 'channels': list(encoder.STATIC_CHANNELS), 'sha256': identity['static_sha256'],
                      'source': None if data.static_source is None else json.loads(json.dumps(dict(data.static_source)))}
@@ -1140,6 +1153,11 @@ def _run(cfg: TrainConfig, data: TrainData, out_dir: Path, device, epochs: int, 
         loop, best_state = last['loop'], torch.load(io.BytesIO(found[3]), weights_only=True, map_location='cpu')
         if loop['best'] != found[1]['best']:
             raise RuntimeError(f'checkpoint {found[0].name}: the best state in last.pt is not the one that head.json names; not guessing')
+    if found is not None and (not finished or found[1]['schema'] == checkpoints.METRICS_SCHEMA):
+        # Legacy resume exports only real, complete restored loop history in a NEW epoch.
+        restored_history = epoch_metrics.snapshot(loop, found[1])
+        if found[1]['schema'] == checkpoints.METRICS_SCHEMA and restored_history != epoch_metrics.read_snapshot(found[0], found[1]):
+            raise RuntimeError('checkpoint epoch metrics disagree with cumulative loop; not guessing')
     res.boundary()                                               # the preparation and the restore are inside the measured scope
 
     fa = heads.FrameAveraged(model)
@@ -1202,6 +1220,7 @@ def _run(cfg: TrainConfig, data: TrainData, out_dir: Path, device, epochs: int, 
         res.boundary()                                           # the serialised state is in memory: a bound broken here stops before the write
         head = _head_record(loop, identity, static_record, int(epochs), int(seed), done, res.snapshot(), res.sampler.samples)
         head['checkpoint_bytes'] = len(files['last.pt']) + loop['best']['bytes']
+        files.update(epoch_metrics.encode(loop, head))
         checkpoint_start = _component_clock(dev)
         final_folder, final_meta, res.head_sha = _save_checkpoint(out_dir, loop['epoch'], files, head)
         checkpoint_writes.append({'epoch': loop['epoch'], 'seconds': _component_clock(dev) - checkpoint_start})

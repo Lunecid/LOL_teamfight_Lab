@@ -1,0 +1,20 @@
+{
+  "schema": "ept-training-operator-v1",
+  "profile": "s25_early_stop",
+  "python": "C:\\Users\\todtj\\anaconda3\\python.exe",
+  "s1": "D:\\LOL_Data\\runs\\20261020_c_ept_s1_1\\s1",
+  "s2": "D:\\LOL_Data\\runs\\20261021_c_ept_s2_3\\s2",
+  "s3": "D:\\LOL_Data\\runs\\20261022_c_ept_s3_3",
+  "runs_root": "D:\\LOL_Data\\runs",
+  "catalog_db": "D:\\LOL_Data\\catalog\\runs.sqlite",
+  "size": "S",
+  "device": "cuda",
+  "max_epochs": 30,
+  "share": 0.25,
+  "patience": 2,
+  "batch_size": 32,
+  "seed": 20261022,
+  "lr": 0.001,
+  "weight_decay": 0.01,
+  "warmup_steps": 10
+}

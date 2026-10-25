@@ -11,8 +11,11 @@ The visible `c_ept/` root now contains five Python files: `__init__.py`, `config
 | `domain/` | units, targets, state, symmetry | Engagement definitions, targets and symmetry |
 | `valuation/` | flowprice, rulepay, towertier, value, compose | Prices, payouts and composed values |
 | `models/` | baselines_b0, baselines_b1, heads, nll | Baselines and likelihood interfaces |
-| `ept/` | Existing encoder, heads, training and composition modules | Transformer implementation |
-| `workflows/` | run_s1, run_s2, run_s3, run_s4a, s4a_operator, s4a_runtime | Stage orchestration, operator and native startup policy |
+| `models/neural/` | team_set | N2 team-set encoder with shared EPT heads, explicit architecture identity |
+| `ept/` | Encoder, heads, training, checkpoints, epoch_metrics and composition | Transformer and payload-free epoch diagnostics |
+| `evaluation/` | Endpoint adapters, metrics, reporting, guards, read-only stores and runtime | Separately gated DEV diagnostics; no implicit training or evaluation on import |
+| `comparison/` | protocol, data, models, infrastructure, operator, runtime, evaluation, reporting | Separately gated matched25 EPT/B1/N2 pilot; no implicit fit or evaluation |
+| `workflows/` | run_s1, run_s2, run_s3, run_s4a, s4a_operator, s4a_runtime, training_operator, run_training | Frozen cost workflow, separate single-training profile and native startup policy |
 | `reporting/` | report_s1, report_s2, report_s3 | Existing report builders |
 | `checks/` | gate_s3 and existing diagnostic scripts | Stage acceptance and diagnostics |
 | `runtime/` | Existing resources and public exports | Shared resource measurement |
@@ -28,6 +31,13 @@ from c_ept.data.reader import MatchRecord
 from c_ept.workflows import run_s4a
 from c_ept.reporting import report_s3
 ```
+
+Active implementation and ordinary tests also use these physical grouped paths.
+The T005 cleanup migrated the remaining internal legacy imports without changing
+their bound names or numerical bodies. `_compat/` serves external callers,
+historical module entrypoints and the explicit migration tests; it is not an
+internal dependency layer. An unreferenced public re-export, CLI entrypoint or
+serialization name is not automatically dead code.
 
 Existing callers continue to work:
 
@@ -113,3 +123,9 @@ research-data test suite. No live run, training, inference, protected source bod
 raw input, weight payload, commit or push is part of this change. Exact results,
 source audit exceptions and remaining limitations are in
 `work/ept-root-cleanup-result.md`.
+
+Epoch FIT/STOP JSON/CSV diagnostics and the metadata-only reader are documented in [the epoch metrics guide](../docs/EPT_EPOCH_METRICS_KO.md). This is instrumentation, not a change to the loss or early-stopping rule.
+
+## Single pilot workflow (EPT-T002)
+
+`run_ept_training.ps1` provides Check/Start/Status for the separately approved CUDA S 25% early-stop pilot. Its strict profile does not loosen the old two-epoch cost operator. `tools/ept_training_controller.py` supervises one attempt; `tools/ept_training_monitor.py` reads bounded scalar metadata and prepares epoch reports/visuals. See [pilot protocol](../docs/EPT_SINGLE_PILOT_KO.md).

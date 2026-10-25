@@ -1,6 +1,15 @@
 """Agent-free S4a operator. Read-only preflight; runner retains execution authority.
 
+한국어 요약: 자율 에이전트 없는 안전한 S4a 오퍼레이터 (CLI 및 점검 도구).
+읽기 전용 사전 점검(preflight)을 수행하며, 실제 모델 학습 및 실행 권한은 독립 실행기(runner)가 유지합니다.
+
 Uses shared fresh-CLI startup/E6 and the agreed RUN/PROCESS metadata contract.
+신선한 새 프로세스 CLI 시작 정책, E6(모델 서버 프로세스 방지), 그리고 합의된 RUN.json / PROCESS.json 메타데이터 규약을 준수합니다.
+
+주요 기능:
+1. Check: 읽기 전용으로 환경, 패키지 버전, Git 코드 상태, E6 탐지, GPU 메타데이터 및 이전 단계(S1, S2, S3)의 입력을 점검.
+2. Start / Resume: 사전 검증 완료 후 격리된 환경에서 run_s4a 파이프라인 시작 및 중단 지점 재개.
+3. Status: RUN.json 및 PROCESS.json을 읽어 실행의 생존 여부와 단계별 진행률을 확인 (결코 살아있는 상태를 섣불리 단정하지 않음).
 """
 from __future__ import annotations
 import argparse
@@ -18,15 +27,21 @@ import subprocess
 import sys
 
 from c_ept import __path__ as _package_path
-from c_ept.s4a_runtime import RuntimeRefused, prepare_native_runtime, validate_e6_probe
+from c_ept.workflows.s4a_runtime import RuntimeRefused, prepare_native_runtime, validate_e6_probe
 
 ROOT = Path(_package_path[0]).resolve().parent
 RUN_NAME = re.compile(r'^\d{8}_c_ept_s4a_\d+$')
 
 class OperatorError(ValueError):
+    """Exception raised for any operator preflight or metadata validation refusal.
+    오퍼레이터 사전 점검 또는 메타데이터 규약 검증 거부 시 발생하는 예외 클래스입니다.
+    """
     pass
 
 def unique_object(pairs):
+    """JSON object hook preventing duplicate keys.
+    JSON 파싱 중 중복 키(duplicate key)가 발견되면 즉시 ValueError를 발생시키는 훅입니다.
+    """
     result = {}
     for key, value in pairs:
         if key in result:
@@ -35,6 +50,9 @@ def unique_object(pairs):
     return result
 
 def finite_float(value):
+    """JSON float hook enforcing finite numbers (no NaN or Inf).
+    JSON 파싱 중 무한대(Inf)나 결측치(NaN)가 수치로 유입되는 것을 방지합니다.
+    """
     number = float(value)
     if not math.isfinite(number):
         raise ValueError('nonfinite JSON number')
@@ -42,7 +60,12 @@ def finite_float(value):
 
 
 def read_json(path):
-    """Read bounded metadata only; never deserialize Python or model objects."""
+    """Read bounded metadata only; never deserialize Python or model objects.
+
+    안전한 경계 메타데이터 읽기:
+    크기 상한(4 MiB)을 초과하지 않는 파일만 UTF-8-sig로 읽으며, 중복 키나 비유한 수치가 포함된 경우 즉시 OperatorError를 발생시킵니다.
+    임의의 파이썬 객체 역직렬화를 배제하여 보안을 유지합니다.
+    """
     p = Path(path)
     if not p.is_file() or p.stat().st_size > 4 * 1024 * 1024:
         raise OperatorError(f'메타데이터 없음/크기 초과: {p}')
@@ -58,6 +81,13 @@ def read_json(path):
     return data
 
 def load_config(path, *, require_inputs=True):
+    """Load and validate the operator JSON configuration file.
+
+    오퍼레이터 설정 파일 로드 및 유효성 검증:
+    - 스키마 버전(`s4a-operator-v1`) 일치 여부 확인
+    - 필수 경로(`s1`, `s2`, `s3`, `runs_root`, `catalog_db`)의 절대 경로 및 디렉터리 존재 여부 확인
+    - 연구 승인 매개변수 범위(sizes=['S','M'], devices=['cpu','cuda'], epochs=2, share=0.25 등) 엄격 검증
+    """
     c = read_json(path)
     expected = {'schema','python','s1','s2','s3','runs_root','catalog_db','sizes',
                 'devices','epochs','share','dev_sample','task7_integration_verified'}
@@ -101,6 +131,11 @@ def load_config(path, *, require_inputs=True):
     return c
 
 def runtime_check():
+    """Verify exact runtime Python version and package dependencies.
+
+    런타임 환경 일치 검사:
+    `environment/s4a-runtime.json`에 정의된 Python 버전 및 패키지 고정 버전과 현재 환경이 정확히 일치하는지 확인합니다.
+    """
     spec = read_json(ROOT/'environment/s4a-runtime.json')
     problems = []
     if platform.python_version() != spec['python_version']:
@@ -116,6 +151,11 @@ def runtime_check():
         raise OperatorError('; '.join(problems)+'; 자동 설치하지 않습니다')
 
 def code_check():
+    """Verify that git working tree is completely clean and retrieve commit hash.
+
+    Git 코드 청결도 및 커밋 검증:
+    수정되거나 커밋되지 않은 변경 사항(untracked/dirty)이 있는지 확인하고, 검토 완료된 커밋 해시(HEAD)를 반환합니다.
+    """
     env = dict(os.environ, GIT_OPTIONAL_LOCKS='0')
     def git(*args):
         p = subprocess.run(['git','-C',str(ROOT),*args],capture_output=True,
@@ -129,6 +169,11 @@ def code_check():
     return commit
 
 def e6_check():
+    """Run E6 policy probe to ensure no background model servers are running.
+
+    E6 백그라운드 모델 서버 실행 방지 검사:
+    `runlog.strata_check()` 및 `validate_e6_probe()`를 통해 백그라운드 LLM/Strata 프로세스가 실행 측정을 왜곡하지 않는지 확인합니다.
+    """
     # Reuse project policy; None/unknown is a refusal, never just a warning.
     try:
         from c_ept import runlog
@@ -152,6 +197,11 @@ def e6_check():
     return {'running':False}
 
 def gpu_metadata():
+    """Query NVIDIA driver and GPU model metadata without creating CUDA contexts.
+
+    GPU 메타데이터 안전 조회:
+    CUDA 텐서를 직접 생성하거나 초기화하지 않고 `nvidia-smi`를 통해서만 장치명과 드라이버 버전을 읽어옵니다.
+    """
     # NVIDIA query is metadata only; no tensor creation, CUDA kernels or training.
     try:
         result = subprocess.run(['nvidia-smi','--query-gpu=name,driver_version',

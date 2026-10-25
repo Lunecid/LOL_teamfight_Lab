@@ -122,7 +122,6 @@ E6는 실제 실행에서 저장소 읽기 전에 확인하고 단계·작업 �
 from __future__ import annotations
 
 import argparse
-import contextlib
 import datetime as dt
 import gc
 import hashlib
@@ -146,7 +145,11 @@ except ImportError:      # the peak memory is then not recorded
     psutil = None
 
 from c_ept import config as C
-from c_ept import features, nll, runlog, store_core, runtime
+from c_ept.preprocessing import features
+from c_ept.models import nll
+from c_ept import runlog
+from c_ept.data import store_core
+from c_ept import runtime
 
 # ---- the stages and the constants of the run ---------------------------------------------------------------------------------------
 STAGES = ('levels', 'labels', 'fit', 'compose', 'gate')
@@ -274,7 +277,7 @@ def _now() -> str:
 
 def _npz_bytes(arrays: dict) -> bytes:
     """A stored (uncompressed) .npz without time stamps (the writer of the B0 files: the same arrays give the same bytes)."""
-    from c_ept.baselines_b0 import _write_npz_bytes
+    from c_ept.models.baselines_b0 import _write_npz_bytes
     return _write_npz_bytes(arrays)
 
 
@@ -315,7 +318,7 @@ class _Sampler(runtime.ProcessTreeSampler):
 
 
 def _require_no_strata():
-    from c_ept import run_s1
+    from c_ept.workflows import run_s1
     return run_s1.require_no_strata()
 
 
@@ -802,7 +805,7 @@ def stage_levels(ctx: Context) -> dict:
 
     원시 읽기 경로에서 피해자 레벨을 만들고 읽지 못한 파일이 있으면 라벨 단계로 넘기지 않는다(S3 Task12).
     """
-    from c_ept import value
+    from c_ept.valuation import value
     out = ctx.run / 'levels'
     out.mkdir(parents=True, exist_ok=True)
     report = {}
@@ -848,7 +851,7 @@ def stage_labels(ctx: Context) -> dict:
     ----
     S3 계획 Task12(라벨); S3 판정 R11(개수 회계); S3 as-built 회계 항.
     """
-    from c_ept import value
+    from c_ept.valuation import value
     out = ctx.run / 'labels'
     out.mkdir(parents=True, exist_ok=True)
     levels = np.load(ctx.run / 'levels' / 'kill_levels.npy', allow_pickle=False)
@@ -978,13 +981,13 @@ def _model_saved(ctx: Context, folder: Path, json_name: str, root: Path) -> bool
 
 
 def _head_names(kinds=None) -> list:
-    from c_ept.head_rows import HEAD_NAMES, OPEN_HEAD_NAMES
+    from c_ept.data.head_rows import HEAD_NAMES, OPEN_HEAD_NAMES
     return [(kind, name) for kind, names in (('masked', HEAD_NAMES), ('open', OPEN_HEAD_NAMES)) for name in names
             if kinds is None or kind in kinds]
 
 
 def _fit_tier(ctx: Context, out: Path, log: _ProgressLog) -> tuple:
-    from c_ept import towertier
+    from c_ept.valuation import towertier
     folder = out / 'tier'
     if _model_saved(ctx, folder, towertier.JSON_NAME, out):
         model = towertier.TierModel.load(folder)
@@ -999,7 +1002,7 @@ def _fit_tier(ctx: Context, out: Path, log: _ProgressLog) -> tuple:
 
 
 def _fit_b0(ctx: Context, out: Path, log: _ProgressLog, labels, means: np.ndarray) -> tuple:
-    from c_ept import baselines_b0
+    from c_ept.models import baselines_b0
     folder = out / 'b0'
     if _model_saved(ctx, folder, baselines_b0.JSON_NAME, out):
         model = baselines_b0.B0Heads.load(folder)
@@ -1045,7 +1048,7 @@ def _fit_b1(ctx: Context, out: Path, log: _ProgressLog, labels, dropped: tuple) 
     """B1, head by head: every head is saved to ``b1_heads\\<kind>.<name>\\`` (its JSON last) as soon as it is fitted, with the code state
     and the input hash of the stage as its record. A resumed call loads the heads whose JSON is there (RunRefused when the record of one
     is not the identity of this call) and fits the rest; ``b1\\`` is then made from the 13 heads."""
-    from c_ept import baselines_b1
+    from c_ept.models import baselines_b1
     folder = out / 'b1'
     if _model_saved(ctx, folder, baselines_b1.JSON_NAME, out):
         model = baselines_b1.B1Heads.load(folder)
@@ -1087,7 +1090,7 @@ def _fit_b1(ctx: Context, out: Path, log: _ProgressLog, labels, dropped: tuple) 
 
 
 def _fit_b2(ctx: Context, out: Path, log: _ProgressLog, dropped: tuple) -> tuple:
-    from c_ept import baselines_b1
+    from c_ept.models import baselines_b1
     folder = out / 'b2'
     if _model_saved(ctx, folder, baselines_b1.B2_JSON_NAME, out):
         model = baselines_b1.B2.load(folder)
@@ -1150,7 +1153,7 @@ def score_summary(scores, B: int = BOOT_B, seed: int = SEED) -> dict:
 def _dev_predictions(ctx: Context, out: Path, log: _ProgressLog, labels, models: dict) -> dict:
     """The DEV scores of every head of B0 and B1 (masked and open), the M2 expected counts of both on the DEV frame rows and the probability
     that B2 gives: ``DEV_NLL.json`` and ``DEV_PRED.npz``."""
-    from c_ept import compose
+    from c_ept.valuation import compose
     s1, s2, guard = ctx.s1, ctx.s2, ctx.guard
     nll_doc = {}
     with ctx.sampler.scope() as scope:
@@ -1226,7 +1229,7 @@ def subset_rows(rows, keep: np.ndarray):
 
     선택된 행의 순서를 유지하여 합성용 표를 만든다(S3 Task12).
     """
-    from c_ept import compose
+    from c_ept.valuation import compose
     return compose.RowTable(frame_row=rows.frame_row[keep], match=rows.match[keep], t0_ms=rows.t0_ms[keep],
                             exposure_ms=rows.exposure_ms[keep], T_ms=rows.T_ms[keep], views=rows.views[keep],
                             destroyed=rows.destroyed[keep], roles=rows.roles)
@@ -1423,7 +1426,8 @@ def stage_compose(ctx: Context) -> dict:
 
 def _stage_compose(ctx: Context, checks: _GuardWindow) -> dict:
     """식 (RUN3-11)의 해당 항을 계산한다."""
-    from c_ept import baselines_b0, baselines_b1, compose, towertier
+    from c_ept.models import baselines_b0, baselines_b1
+    from c_ept.valuation import compose, towertier
     out = ctx.run / 'compose'
     parts = out / 'parts'
     out.mkdir(parents=True, exist_ok=True)
@@ -1612,7 +1616,7 @@ def tower_pricing_diagnostic(s1, frame_row, match, t0_ms, tier_model, prices, B:
     ----
     S3 계획 Task8·Task12(가격 진단); S3 as-built 열린 항목; (NLL-5).
     """
-    from c_ept import flowprice, towertier
+    from c_ept.valuation import flowprice, towertier
     frame_row, match, t0_ms = (np.asarray(a, dtype=np.int64) for a in (frame_row, match, t0_ms))
     off = np.asarray(s1.array('matches/obj_off')).astype(np.int64)
     t, kind, sub, taker = (np.asarray(s1.array(f'objectives/{n}')) for n in ('t', 'kind', 'sub', 'taker'))
@@ -1690,7 +1694,7 @@ def gate_results(*, match, y60, expected_onsets60, expected_value60, realised_va
     ----
     S3 계획 P7·P8; S3 판정 R26·R27; (GATE-1)~(GATE-7).
     """
-    from c_ept import gate_s3
+    from c_ept.checks import gate_s3
     if (B, seed, S) != (nll.BOOT_B, nll.BOOT_SEED, S_B0) or (BOOT_B, SEED) != (nll.BOOT_B, nll.BOOT_SEED):
         raise StageFailed(f'the gate is pinned to B = {nll.BOOT_B}, the seed {nll.BOOT_SEED} and S = {S_B0}; got B = {B}, seed {seed}, '
                           f'S = {S}')
@@ -1743,7 +1747,7 @@ def stage_gate(ctx: Context) -> dict:
     ----
     S3 계획 Task12(관문 기록); stage_gate(진단 필드).
     """
-    from c_ept import towertier
+    from c_ept.valuation import towertier
     out = ctx.run / 'gate'
     out.mkdir(parents=True, exist_ok=True)
     labels = open_labels(ctx)
@@ -2011,9 +2015,9 @@ def _run_name(path) -> str:
 
 
 def _run(a, records, out) -> int:
-    from c_ept import rulepay, value
-    from c_ept.flowprice import _open_s2
-    from c_ept.run_s1 import StrataRunning, load_s1, require_no_strata
+    from c_ept.valuation import rulepay, value
+    from c_ept.valuation.flowprice import _open_s2
+    from c_ept.workflows.run_s1 import StrataRunning, load_s1, require_no_strata
     requested = _validate(a)
     if a.resume is None:                                          # a new run has no stage complete: the first stage asked for is levels
         problem = prerequisite_problem(requested, ())
@@ -2124,7 +2128,7 @@ def _finish(ctx: Context, ledger: Ledger, a, run: Path, done: dict) -> int:
 
 def _scrub_text(text: str, keys) -> str:
     """``text`` with every match key replaced by <key> and every game id by <id> (the scrub of ``store_build``)."""
-    from c_ept import store_build
+    from c_ept.data import store_build
     for key in keys:
         text = store_build._scrub(text, key)
     return text
@@ -2158,7 +2162,7 @@ def main(argv=None, *, records=None) -> int:
     except Exception:                                             # noqa: BLE001 - the traceback, scrubbed, is the message
         text = traceback.format_exc()
         try:
-            from c_ept.run_s1 import load_s1
+            from c_ept.workflows.run_s1 import load_s1
             keys = np.asarray(load_s1(a.s1, verify=False).array('matches/key')).tolist()
             text = _scrub_text(text, [k.decode('ascii') for k in keys if k])
         except Exception:                                         # noqa: BLE001 - no store to take the keys from: the text goes out as is

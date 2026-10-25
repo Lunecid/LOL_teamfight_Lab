@@ -7,11 +7,17 @@ from pathlib import Path
 import subprocess
 import sys
 import tomllib
+from types import SimpleNamespace
 import unittest
 from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
+HELP_IMPORT_GUARD = """assert not {
+    'numpy', 'torch', 'scipy', 'c_ept.run_s3', 'c_ept.run_s4a',
+    'c_ept.workflows.run_s3', 'c_ept.workflows.run_s4a', 'c_ept.ept.train'
+} & sys.modules.keys()
+"""
 spec = importlib.util.spec_from_file_location(
     "project_boundaries", ROOT / "tools/check_project_boundaries.py")
 boundaries = importlib.util.module_from_spec(spec)
@@ -112,15 +118,21 @@ except SystemExit as exc:
     assert exc.code == 0
 else:
     raise AssertionError('help did not exit')
-assert not {'numpy', 'torch', 'scipy', 'c_ept.run_s3', 'c_ept.run_s4a', 'c_ept.ept.train'} & sys.modules.keys()
-"""
+""" + HELP_IMPORT_GUARD
         result = subprocess.run([sys.executable, "-B", "-c", code, str(ROOT)],
                                 cwd=ROOT / "tools", capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("--action", result.stdout)
 
+    def test_help_import_guard_rejects_each_forbidden_module_independently(self):
+        for name in ('numpy', 'torch', 'scipy', 'c_ept.run_s3', 'c_ept.run_s4a',
+                     'c_ept.workflows.run_s3', 'c_ept.workflows.run_s4a', 'c_ept.ept.train'):
+            with self.subTest(module=name), self.assertRaises(AssertionError):
+                exec(HELP_IMPORT_GUARD, {'sys': SimpleNamespace(modules={name: object()})})
+        exec(HELP_IMPORT_GUARD, {'sys': SimpleNamespace(modules={'pathlib': object()})})
+
     def test_default_check_never_imports_runner(self):
-        from c_ept import s4a_operator as operator
+        from c_ept.workflows import s4a_operator as operator
         with contextlib.ExitStack() as stack:
             prepare = stack.enter_context(mock.patch.object(operator, "prepare_native_runtime", return_value={}))
             stack.enter_context(mock.patch.object(operator, "load_config", return_value={}))
@@ -157,7 +169,7 @@ assert not {'numpy', 'torch', 'c_ept', 'app', 'core', 'studies'} & sys.modules.k
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_default_check_refusal_does_not_train(self):
-        from c_ept import s4a_operator as operator
+        from c_ept.workflows import s4a_operator as operator
         with mock.patch.object(operator, "prepare_native_runtime", return_value={}), \
              mock.patch.object(operator, "load_config", side_effect=operator.OperatorError("missing config")), \
              mock.patch.object(operator.importlib, "import_module", side_effect=AssertionError("runner import")) as importer, \

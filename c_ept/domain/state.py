@@ -84,9 +84,9 @@ import numpy as np
 
 from c_ept import config as C
 from c_ept import legacy
-from c_ept.casts import narrow
-from c_ept.reader import MatchRecord
-from c_ept.units import BLUE, _is_int, event_xy
+from c_ept.data.casts import narrow
+from c_ept.data.reader import MatchRecord
+from c_ept.domain.units import BLUE, _is_int, event_xy
 
 N_PLAYERS = 10
 NAN_FEATURES = ('herald_next_spawn_s', 'atakhan_next_spawn_s', 'voidgrub_next_spawn_s')     # the features LEGACY may give as NaN

@@ -28,10 +28,10 @@ import numpy as np
 import pytest
 
 from c_ept import config as C
-from c_ept import flowprice
-from c_ept.store_core import Store
+from c_ept.valuation import flowprice
+from c_ept.data.store_core import Store
 from c_ept.tests import synth
-from c_ept.tests.conftest import module_level_imports
+from c_ept.tests.conftest import PROTECTED_IMPORT_PRELUDE, import_watch_names, module_level_imports
 from c_ept.tests.s3_toys import (   # noqa: F401  (toy_s1 and toy_s2 are fixtures, imported by ruling R1)
     BLUE5, GROUP_NAMES, JUNK, KEY_PREFIX, KIND_SUB, NOBODY, RED5, SUMMARY_PAIRS, TOY_BETA7, TOY_CAL_BIAS, TOY_CAL_E, TOY_CAL_SLOPE,
     TOY_CAL_V, TOY_CAL_W, TOY_CAL_WSLOPE, TOY_CO_BARON_M0, TOY_CO_DRAGON_M1, TOY_CO_ELDER_M0, TOY_CO_RED_DRAGON, TOY_CTRL_ROWS_M0,
@@ -454,7 +454,7 @@ def test_two_frame_clock_views_for_one_row_are_refused(tmp_path):
 
 
 def test_a_summary_that_is_not_finite_is_refused(tmp_path):
-    from c_ept import tokens
+    from c_ept.preprocessing import tokens
     s1 = build_toy_s1(tmp_path / 's1')
     s2 = build_toy_s2(tmp_path / 's2', s1)
     a = np.load(s2.path('x/summary'), mmap_mode='r+')
@@ -692,7 +692,7 @@ def test_the_random_matches_reach_the_cases_they_are_there_for():
 
 # ---- the real S1 extraction -------------------------------------------------------------------------------------------------------------
 def test_the_toy_s1_equals_the_real_s1_extraction_of_the_same_matches(tmp_path):
-    from c_ept import run_s1
+    from c_ept.workflows import run_s1
     specs = tuple(TOY_MATCHES[i] for i in (0, 1, 3, 4, 5))                                      # the standard team layout
     matches = [('15.18', f'SYN_{i:04d}', spec.role) for i, spec in enumerate(specs)]
     records = {key: toy_record(spec, key) for (_, key, _), spec in zip(matches, specs)}
@@ -1387,20 +1387,23 @@ def test_the_default_probe_is_the_prototype_of_ruling_r4():
 # ---- how the module is imported ----------------------------------------------------------------------------------------------------------
 def test_no_module_level_import_reaches_the_s1_runner():
     imports = module_level_imports(Path(flowprice.__file__))
-    chain = ('c_ept.run_s1', 'c_ept.run_s2', 'c_ept.store_build', 'c_ept.cohort', 'c_ept.targets', 'c_ept.runlog', 'c_ept.store_core')
+    chain = import_watch_names(('c_ept.run_s1', 'c_ept.run_s2', 'c_ept.store_build', 'c_ept.cohort', 'c_ept.targets', 'c_ept.runlog', 'c_ept.store_core'))
     assert not [i for i in imports if i in chain or i.startswith(chain)], sorted(imports)
 
 
 def test_the_e6_guard_is_imported_inside_the_command_line():
     tree = ast.parse(Path(flowprice.__file__).read_text(encoding='utf-8'))
     main = next(n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == 'main')
-    inner = [n for n in ast.walk(main) if isinstance(n, ast.ImportFrom) and n.module == 'c_ept.run_s1']
+    inner = [n for n in ast.walk(main) if isinstance(n, ast.ImportFrom) and n.module == 'c_ept.workflows.run_s1']
     assert inner and any(a.name == 'require_no_strata' for n in inner for a in n.names)
 
 
-def test_importing_the_module_loads_no_s1_module():
-    code = ('import sys, c_ept.flowprice\n'
-            'print(sorted(m for m in ("c_ept.run_s1", "c_ept.cohort", "c_ept.store_build", "c_ept.runlog") if m in sys.modules))')
+@pytest.mark.parametrize('module', ['c_ept.flowprice', 'c_ept.valuation.flowprice'])
+def test_importing_the_module_loads_no_s1_module(module):
+    chain = import_watch_names(('c_ept.run_s1', 'c_ept.run_s2', 'c_ept.store_build', 'c_ept.cohort',
+                                'c_ept.targets', 'c_ept.runlog', 'c_ept.store_core'))
+    code = (PROTECTED_IMPORT_PRELUDE + f'import sys, {module}\n'
+            f'print(sorted(m for m in {chain!r} if m in sys.modules))')
     done = subprocess.run([sys.executable, '-B', '-c', code], cwd=REPO, capture_output=True, text=True, timeout=300)
     assert done.returncode == 0 and done.stdout.strip() == '[]', done.stderr[-500:]
 
@@ -1483,7 +1486,8 @@ def only_run(tmp_path) -> Path:
 
 
 def test_cli_writes_the_prices_and_the_provenance_and_registers_the_run(planted, tmp_path, capsys):
-    from c_ept import runlog, store_core
+    from c_ept import runlog
+    from c_ept.data import store_core
     assert cli(tmp_path, planted) == 0
     run = only_run(tmp_path)
     assert re.fullmatch(r'\d{8}_c_ept_s3a_1', run.name) and run.parent == tmp_path / 'runs'
@@ -1561,7 +1565,7 @@ def test_cli_stops_at_e6_before_a_run_folder_is_made(planted, tmp_path, fake_pro
 
 
 def test_cli_checks_e6_again_between_the_stages_and_stops_cleanly(planted, tmp_path, monkeypatch, capsys):
-    from c_ept import run_s1
+    from c_ept.workflows import run_s1
     real, calls = run_s1.require_no_strata, []
 
     def fails_on_the_fourth_call():
@@ -1591,7 +1595,7 @@ def test_cli_on_the_toy_stores_reads_the_fit_matches_only_and_counts_what_it_lea
 
 
 def test_cli_continues_a_run_after_an_e6_stop_and_refuses_other_stores_b_or_seed_for_it(planted, tmp_path, monkeypatch, capsys):
-    from c_ept import run_s1
+    from c_ept.workflows import run_s1
     real, calls = run_s1.require_no_strata, []
 
     def fails_on_the_fourth_call_only():

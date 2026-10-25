@@ -27,7 +27,8 @@ from pathlib import Path
 import numpy as np
 
 from c_ept import config as C
-from c_ept import reader, traits
+from c_ept.data import reader
+from c_ept.preprocessing import traits
 
 STORE_DIR = 's1'          # the store folder under a run folder (= run_s1.STORE_DIR); the golden lock has the same layout under golden/
 LEVEL_KEYS = ('matches', 'frames', 'cells', 'level_ups', 'level_ups_on_frame_ms', 'mismatch_cells', 'mismatch_lag_by_one_at_frame_ms',

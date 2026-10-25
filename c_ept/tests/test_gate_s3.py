@@ -19,7 +19,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from c_ept import gate_s3, nll
+from c_ept.checks import gate_s3
+from c_ept.models import nll
 from c_ept.tests.s3_toys import TOY_CAL_BIAS, TOY_CAL_E, TOY_CAL_SLOPE, TOY_CAL_V, TOY_CAL_W, TOY_CAL_WSLOPE, TOY_PHI, TOY_PHI_Y
 
 SOURCE = Path(gate_s3.__file__)
@@ -1112,12 +1113,13 @@ def test_the_module_imports_only_numpy_math_and_nll():
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             modules |= {a.name.split('.')[0] for a in node.names}
+            from_c_ept |= {a.name for a in node.names if a.name == 'c_ept' or a.name.startswith('c_ept.')}
         elif isinstance(node, ast.ImportFrom):
             modules.add((node.module or '').split('.')[0])
-            if node.module == 'c_ept':
-                from_c_ept |= {a.name for a in node.names}
+            if node.module == 'c_ept' or (node.module or '').startswith('c_ept.'):
+                from_c_ept |= {f'{node.module}.{a.name}' for a in node.names}
     assert modules <= {'__future__', 'collections', 'math', 'numpy', 'c_ept'}, modules         # collections.abc.Mapping for the results
-    assert from_c_ept == {'nll'}
+    assert from_c_ept == {'c_ept.models.nll'}
 
 
 def test_the_module_reads_no_store_no_file_and_has_no_holdout_switch():

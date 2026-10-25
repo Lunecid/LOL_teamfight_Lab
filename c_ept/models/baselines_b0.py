@@ -1,162 +1,42 @@
-r"""The B0 baseline: time-state GLM heads for M2, M3 and M4, masked and open (stage S3 Task 6).
+r"""B0 베이스라인 모델: M2(발생), M3(교전 결과), M4(전환) 예측을 위한 GLM 헤드 번들 (Stage S3).
 
-B0 is the weakest model that has every head of the composer: each head is a log-linear model of the small time-state table ``features.b0``
-(39 columns: time, phase, gold and level differences, objectives, distances) and of the categories that the head conditions on. It is the
-floor that the LightGBM heads (B1, Task 7) and the later EPT must beat, and the model that makes the expected value of an engagement
-closed-form (decision P6). Everything is fitted on the FIT matches, one row per training row (decision P9), with scikit-learn.
+[1. 모듈 개요 및 하네스 상의 역할]
+- 본 모듈은 EPT(교전 과정 변환기) 및 B1(LightGBM) 모델이 반드시 능가해야 하는 기준선(Floor) 모델 B0를 정의한다.
+- 39차원 시간-상태(time-state) 특징 표(`features.b0`: 시간, 경기 국면, 골드/레벨 차이, 오브젝트 상태, 진영 간 거리)와
+  각 머리가 조건으로 삼는 범주형 변수를 입력으로 하는 로그-선형 일반화선형모형(GLM) 헤드들의 집합이다.
+- 가린 헤드(Masked Heads)는 선형 예측자 표 조회를 통해 닫힌 꼴(closed-form) 기댓값 계산을 지원하여,
+  합성기(Composer)가 수백만 개의 발생(Onset) 행에 대해 빠른 가치 평가를 수행할 수 있게 한다.
+- 모든 모델은 scikit-learn 기반으로 FIT 분할 데이터에 대해 난수 없이 결정론적으로 적합된다.
 
-The heads (the model of decision P4; "masked" = what the composer can give them, "open" = what the S2 event view of the engagement holds)
+[2. 8대 예측 헤드 명세]
+  * M2Rate  (포아송 회귀) : 시간 구간(q)별 초당 첫 킬 발생률 λ (3개 게이트 윈도우 상호작용 반영) [Masked 전용]
+  * M2Mark  (다항 로지스틱) : 첫 킬을 낸 선제 킬 표지 m (52개 클래스: 50개 킬러-피해자 슬롯 쌍 + 2개 처형) [Masked 전용]
+  * M2Zone  (다항 로지스틱) : 첫 킬 발생 위치 z (10개 맵 구역 + 1개 미식별 구역 -1) [Masked 전용]
+  * M3Size  (다항 로지스틱) : 교전 참가 규모 s (4개 규모 클래스: 2v2, 3v3 등)
+  * M3Kills (포아송 회귀) : 교전 결과 양 팀 킬 수 k_blue, k_red (블루/레드 독립 2개 모델)
+  * M3Gold  (다항 로지스틱) : 교전 결과 획득 골드 구간 (팀별 31개 골드 구간, 6개 킬 수 층별 조건부)
+  * M3Obj   (포아송 회귀) : 교전 중 획득 오브젝트 수 (18개 오브젝트 종류/팀별 독립 포아송 셀)
+  * M4Conv  (포아송 회귀) : 교전 종료 후 60초 전환창 내 오브젝트 전환 획득 수 (18개 셀, 노출시간 보정)
 
-    M2Rate   Poisson    first kills per second in a (row, bin) cell, from the b0 row and the bin q, with one coefficient vector
-                         of the b0 row for each gate window (bins 0-5, 6-11, 12-17; G-S3b B2-a, below)    (masked only)
-    M2Mark   52 classes  the mark of the first kill, from the b0 row and q                                (masked only)
-    M2Zone   10 classes  the zone of the first kill, from the b0 row, q and the mark m                    (masked only)
-    M3Size   4 classes   the size class s, from the b0 row, q, m and the zone z
-    M3Kills  2 Poisson   the kills of the blue and of the red team, from the b0 row, q, m, z and s (a model for each team, R19)
-    M3Gold   31 classes  the kill-gold bin of a team with at least one kill, given its kill layer (a model for each team, R19)
-    M3Obj    18 Poisson  the objectives O of each cell, from the b0 row, q, m, z and s (masked: no K, decision P6)
-    M4Conv   18 Poisson  the objectives converted after the engagement, from the b0 row, q, m and z (masked: neither K nor O, P6),
-                         with the exposure of the conversion window
+[3. 데이터 뷰 및 행 구조]
+- Masked (가린 헤드): 합성기가 호출하는 시점(Onset, t0 분 프레임)에서 알 수 있는 사전 정보만 조건으로 사용.
+  - M3Obj는 실제 킬(K)을 읽지 않고, M4Conv는 K와 O를 읽지 않아 결합 확률이 닫힌 꼴로 인수분해됨.
+- Open (열린 헤드): 실제 S2 교전 사건(Event) 관측치를 읽는 사후 평가용 헤드. 실제 크기 s, 실제 킬 K, 실제 오브젝트 O를 조건에 추가.
 
-The rows are those of ``head_rows`` (shared with B1, ruling R18): the masked rows are the onsets (a frame-clock row t0 and a unit with its
-first kill after t0), their b0 row that of the frame-clock S2 view of the onset's row; the open rows are the in-scope units, their b0 row
-that of the S2 event view of the unit (``views/src == 1`` for M3, ``== 2`` for M4). An open M3 head adds the size class s, the open M3Obj
-adds the true K, and the open M4Conv adds the true K and O (K = kills blue, kills red, kill gold blue and red in thousands, the columns of
-``features.m4_masked_inputs``). The masked M4 design is built with that function and keeps [b0, q, m, z]. ``HeadRows`` here is the shared
-class with the b0 feature builder (the FIT means fill a NaN) and the one-hot designs of ``LAYOUTS``.
+[4. 핵심 수식 및 알고리즘 해석]
+- (B0-1) 수치 열 표준화: x̃_h = (x_h - x̄_h) / σ_h (훈련 데이터 기준 평균과 모표준편차로 정규화)
+- (B0-2) 포아송 헤드: λ_c = exp(η_c), 평균 μ_c = e * λ_c (노출시간 e를 오프셋으로 하는 가중 deviance 최소화)
+- (B0-3) 미발생 셀 처리: 훈련 데이터에서 사건이 0건인 셀은 λ_c = 0.5 / Σ e_i (Jeffreys 사전분포 사후 평균) 부여
+- (B0-4) M2Rate 구간별 기울기: log λ_q(x) = γ_q + β_w(q) · x̃ (60s, 120s, 180s 게이트 윈도우 w(q)=⌊q/6⌋별 독립 기울기)
+- (B0-5) 다항 로지스틱 헤드: p_c = softmax(η_c) (L2 능형 규제 다항 분류)
+- (B0-6) 균등 분포 스무딩: p = (1 - 1e-6) * p_model + 1e-6 / C (미발생 클래스에 최소 확률 부여로 NLL 발산 방지)
+- (B0-7) 선형 예측자 표 조회: η_c = γ_c + x̃ · β_c + Σ ω_c[level] (설계 행렬 재생성 없이 사전 계산된 표 조회)
+- (B0-8) 원래 척도 복원: β^raw = β / σ, γ^raw = γ - Σ (β * x̄ / σ)
 
-Designs (``LAYOUTS``, written out by a test against the table of the task brief, less the team column that ruling R19 removed from
-M3Kills and M3Gold). A design is the numeric part (the b0 columns, and K and O for the open heads), standardised, then one-hot blocks that
-are not: q (18 levels), m (52), z (11: the zone -1, "no position", is its own level), s (4) and the kill layer (6: 1 .. 6, six or more).
-Poisson heads drop the lowest level of every block (they have an intercept and a nearly unpenalised fit, so a full block would be
-collinear); the logistic heads keep every level, the ridge penalty identifies them. The numeric columns are standardised with the mean
-and the standard deviation of the head's own training rows, unweighted (a column with one value keeps the scale 1); the one-hot columns
-are not.
-
-The gate windows (G-S3b B2-a; author, 2026-10-22; ruling R36). With one coefficient vector for all 18 bins the first-kill rate reacts too
-little to the state in the first minute: the slope of the observed on the expected counts of the smoke run was 1.159 (0-60 s), 0.883
-(60-120 s) and 0.955 (120-180 s) in sample, on FIT and on DEV alike, and the per-bin slope fell from 3.3 at q = 0 to about 0.6, so the
-form and not the fit was wrong. M2Rate is therefore
-
-    log rate_q(x) = gamma_q + beta_w(q) . x~,      w(q) = q // 6 (``M2_WINDOWS``: the bins 0-5, 6-11, 12-17),
-
-x~ the standardised b0 row (39 columns, one mean and one scale for all the windows, those of the head's own rows) and gamma_q an intercept
-and 17 bin columns as before: 3 x 39 + 17 = 134 columns. The design a caller builds is unchanged ([b0 | q block], ``LAYOUTS``); the head
-makes the interaction itself (the standardised columns times the window indicator, not standardised again). The fit is still one
-scikit-learn Poisson regression with the offset (alpha 1e-6, tolerance 1e-8, 1,000 iterations), so ``n_iter_`` and ``converged_`` have one
-entry. Every bin has an intercept of its own, so the likelihood separates by window; the one joint fit keeps one design, one convergence
-flag and the penalty of the other heads, at the price of state columns that are two thirds zeros. ``rate_bins`` gives the 18 rates of a row
-with the vector of the window of each bin. ``coef_`` and ``intercept_`` are the raw-scale coefficients of the design [state * 1[w = 0],
-state * 1[w = 1], state * 1[w = 2], q block] (the bin columns absorb the window shifts of the intercept). ``state()`` and ``summary()``
-record the windows and the width; a head saved before B2-a has neither and is refused.
-
-The team heads (ruling R19). b0 is a blue-perspective table and the mark m says which team made the first kill, so what raises the kills
-or the gold of one team lowers those of the other. One set of slopes for both teams plus a team term cannot say that: the ratio of the
-two kill rates would be the same number for every input. M3Kills and M3Gold therefore have a model for each team, each with its own
-coefficient for every column, the numeric b0 columns and every one-hot block (the kill layer of the gold head included). M3Kills is one
-Poisson head with two cells, blue and red, on one row per onset: the design is shared and the two cells are independent models, like the
-18 cells of M3Obj. M3Gold holds two multinomial models, ``member(0)`` for the blue and ``member(1)`` for the red team, each fitted on the
-entries of its team with at least one kill; its methods take the team of every row. The side indicator of the global constraints (ruling
-R15) is the identity of the model; in the heads of a single side the intercept is the side term. Neither design has a team column, and
-the outputs of the composer have the shapes they had.
-
-Fits.
-    Poisson   ``PoissonRegressor(alpha=1e-6, max_iter=1000, tol=1e-8)`` on the target y / e with the sample weight e, which is exactly
-              the Poisson deviance with the offset log e (the exposure e in seconds; M3 heads have e = 1). Rows without exposure are left
-              out of the fit and counted. The tolerance is tightened to 1e-8 (ruling R20): scikit-learn stops when the gradient of the MEAN
-              deviance is below 1e-4, and at rates of 0.01 to 0.05 per second (the order of the first-kill rate) that happens after three
-              or four iterations, with coefficients 1e-3 to 4e-3 away from the maximum-likelihood fit (probe on n = 20,000 and 100,000
-              synthetic cells; with 1e-8 the distance is 4e-5 to 6e-5, the rest being the penalty alpha). One model for every cell of O,
-              of the conversions and of the kills (a cell for each team). A cell with no event in the training rows has no
-              maximum-likelihood fit; it gets the constant rate 0.5 / (sum of the exposures), the posterior mean under the Jeffreys
-              prior, is marked ``degenerate_`` and listed in the summary.
-    Logistic  ``LogisticRegression(C=1.0, max_iter=2000, tol=1e-8)`` (multinomial, lbfgs), no sample weights. The same tolerance
-              (ruling R20): the loss is a mean as well, and a probe with 52 classes and 60,000 rows stopped after 64 iterations at the
-              default and needed 314 at 1e-8, the largest probability changing by 0.073. Only the classes that occur in the training
-              rows are fitted; the output is mixed with the uniform law over the full class set (ruling R13)
-
-                  p = (1 - 1e-6) p_model + 1e-6 / C,
-
-              so that a class that never occurred still has the probability 1e-6 / C and every NLL is finite. Training entries with the
-              class -1 (no zone) are left out of the fit and counted in ``n_missing_``.
-    Both      record ``n_iter_`` and ``converged_`` for every cell (ruling R20). The ConvergenceWarning of scikit-learn is captured for
-              each fit; ``converged_`` is False when it fired or when ``n_iter_`` reached the limit, and the head then raises one
-              ConvergenceWarning of its own that names the head and the cell (a design with about as many columns as rows, as the toy
-              tests have, does that). A constant model (a cell without events, a head with one class) counts as converged with 0
-              iterations. ``summary()`` lists both for every head and every cell, for M3Gold for each team.
-
-Public names. Head classes ``M2Rate`` ... ``M4Conv`` (``fit``, ``predict``, ``nll``, ``predict_blocks``), the layouts ``LAYOUTS`` with
-``Block`` and ``Layout``, the row selection ``HeadRows`` / ``HeadData``, the scores ``HeadScores``, the batch ``HeadBatch`` (the last
-three are those of ``head_rows``) and the fitted set ``B0Heads``.
-
-Row-wise scores. ``B0Heads.nll`` evaluates the heads on the rows of a role (DEV) and returns, for each head, the NLL of its rows as
-``HeadScores``: the M2Rate cells are summed to one value per frame row, the two team entries of an onset (M3Gold) to one value per onset
-(``per_row``), the rows without a category (zone -1) and the rows without exposure are not rows of the head's mean and are counted in
-``n_unscored``. The mean is ``nll.weighted_mean`` with the match weights 1/n_u of ``features.match_weights``, the bootstrap
-``nll.match_bootstrap``.
-
-Files. ``B0Heads.save(dir)`` writes ``b0_heads.npz`` (the coefficients, intercepts, standardisation, class lists and the b0 FIT means; a
-stored zip without time stamps, so the same heads give the same bytes) and ``b0_heads.json`` (the design layout and column names of every
-head, the counts, the SHA-256 of the npz). No pickle. ``load`` checks the schema, the SHA-256, the layouts and the head set, and builds
-``masked`` and ``open`` in the order of ``HEAD_NAMES`` and ``OPEN_HEAD_NAMES`` (the JSON itself is sorted), so that a resumed run writes
-its outputs in the order of a fresh run.
-
-The composer. ``B0Heads.composer_heads('masked')`` is an object of the ``heads.ComposerHeads`` protocol: ``bind(s2, views)`` computes the
-b0 rows of the composer's frame-clock views (``features.b0`` with the FIT means; it refuses a view that is not a frame-clock view) and
-every other method reads those rows and the categories it is given, nothing else (A3). The prediction is the closed form of the linear
-predictor (the b0 part times the coefficients
-plus the coefficient of each one-hot level, looked up): it does not build a design matrix, so the composer can ask for millions of rows.
-``analytic_ok`` is True, ``obj_uses_K`` and ``conv_uses_KO`` are False (decision P6).
-
-방법에서의 위치. 이 모듈은 교전 과정 모형(EPT)이 넘어야 할 기준 모형 B0를 계산한다. B0는 머리마다 표준화한 숫자 열(b0 특징)과 그 머리가 조건으로 삼는 범주의 원핫 열로
-선형 예측량 η를 만들고(B0-7), 개수를 예측하는 머리는 η를 로그 발생률로 보는 노출 있는 포아송 회귀(B0-2)로, 범주를 예측하는 머리는 다항 로지스틱 회귀(B0-5)로 맞춘다
-(계획 P4, Task 6). η가 숫자 항과 범주 수준별 계수 표의 합이어서 합성기는 설계 행렬 없이 표를 찾아 값을 내고, 가린 오브젝트 머리가 K를, 가린 전환 머리가 K와 O를
-읽지 않으므로 합성한 가치의 기댓값이 닫힌 꼴이 된다(계획 P6). 점수는 nll 모듈의 (NLL-1)–(NLL-5)를 쓰고 이 모듈은 머리를 맞추고 그 값을 내는 식만 정한다.
-
-용어. 머리: 조건부 분포 하나를 예측하는 모형 부품(M2Rate, M2Mark, M2Zone, M3Size, M3Kills, M3Gold, M3Obj, M4Conv). 분 프레임: 경기 상태를 1분마다 찍은 기록이고
-t₀는 그 시각이다. 교전: 같은 경기에서 15초와 2,000 지도 단위 이내로 이어진 킬의 묶음. 발생: t₀ 행과 그 뒤 구간 q(10초씩
-18개)에서 첫 킬이 일어난 교전의 쌍. 표지 m: 첫 킬의 선제 킬 쌍(킬러 슬롯이 피해자 슬롯을 잡는 방향 쌍 50개)과 처형 2개. 킬 수 층 ξ: 킬이 하나 이상인 팀의 킬 수를 1–5와
-6 이상으로 나눈 여섯 층. 오브젝트 칸: 오브젝트 종류와 가져간 팀의 쌍마다 하나(18칸). 전환 창: 교전이 끝난 뒤 60초. 가린 머리: 합성기가 줄 수 있는 입력(t₀ 행의 특징과 사슬의 앞 단계
-값: 범주 q, m, z, s, 킬 수 층, 머리에 따라 K와 O)만 읽는 머리이고 열린 머리는 교전의 사건 보기를 읽는다(설계서 3.2절·3.3절). 설계 행: 한 머리를 맞추는 배열의 한 행. 칸: 개수 머리가
-한 행 안에서 따로 예측하는 개수. 원핫 블록: 범주 변수 하나를 수준마다 열 하나로 펼친 묶음이며, 포아송 머리의 블록은 기준 수준(가장 낮은 수준)을 열 없이 계수 0으로 두고 분류 머리의
-블록은 모든 수준에 열을 둔다. 창: 발생 구간 6개씩의 세 묶음(0–5, 6–11, 12–17).
-
-식 목록. 식 번호는 (모듈 약어-번호) 꼴이며 식과 기호는 docs/superpowers/notes/equation-index.md의 식 색인과 기호 등록부에 올라 있다. i는 설계 행, c는 한 머리의 출력(포아송
-머리의 칸, 분류 머리의 범주), J는 한 머리의 출력 수(칸의 수, 분류 머리는 훈련에 나온 범주의 수 |A|), C는 범주의 수, h는 숫자 열이다.
-    (B0-1)  표준화             x̃_{ih} = (x_{ih} − x̄_h) / σ_h                        (σ_h = 모표준편차; 값이 하나뿐인 열은 σ_h = 1)
-    (B0-2)  포아송 머리        λ_{ic} = exp(η_{ic}),  μ_{ic} = e_i·λ_{ic};   argmin (1/Σ_i e_i)·Σ_i ℓ_{ic} + (α/2)·‖계수‖²
-                               (ℓ_{ic} = (NLL-1)의 칸 점수; 합은 e_i > 0인 행에 대해서)
-    (B0-3)  사건 없는 칸       Σ_i y_{ic} = 0이면 λ_c = 0.5 / Σ_i e_i                (상수 모형; 제프리스 사전분포의 사후 평균)
-    (B0-4)  M2Rate 창별 기울기  log λ_q(x) = γ_q + β_{w(q)}·x̃,   w(q) = ⌊q / 6⌋            (창 w = 0, 1, 2)
-    (B0-5)  분류 머리          p^model_{ic} = softmax_c(η_{ic}) (c ∈ A);   argmin χ·Σ_i −log p^model_{i,c_i} + ½·‖계수‖²     (A = 훈련에 나온 범주)
-    (B0-6)  균등 분포 섞기     p_{ic} = (1 − ν)·p^model_{ic} + ν / C                  (ν = 1e-6; 판정 R13)
-    (B0-7)  선형 예측량        η_{ic} = γ_c + x̃_i·β_c + Σ_(블록) ω_c[수준]            (표 찾기)
-    (B0-8)  원래 척도의 계수   β^raw_{c,h} = β_{c,h} / σ_h,   γ^raw_c = γ_c − Σ_h β_{c,h}·x̄_h / σ_h
-
-공통 가정.
-    (가) 행마다 같은 무게이고(계획 P9) GLM에는 난수가 없다(계획 전역 제약의 결정성). 표본 가중 e는 오프셋 대신이며 행 가중이 아니다. 표준화는 머리 자신의 FIT 학습 행으로 한다
-         ((B0-1), 판정 R65).
-    (나) 칸마다 독립 모형이다: 오브젝트·전환 칸은 칸마다(계획 P4, Task 6), 두 팀의 킬 수와 골드는 팀마다 모든 열의 계수를 따로 맞춘다. 두 팀이 기울기를 함께 쓰고 팀 항만 두면
-         두 팀 킬 발생률의 비가 모든 입력에서 같아져 관문 P7(ii)가 합성기 대신 설계를 재기 때문이다(판정 R19).
-    (다) 노출은 경기 끝에서 자른 관측 시간이며 입력이 아니다(계획 P10).
+[5. 하네스 수렴 및 검증 계약]
+- 엄격한 기울기 허용오차(tol=1e-8) 적용으로 정확한 최대우도 수렴 보장.
+- scikit-learn 수렴 경고를 포착하여 converged_ 플래그 및 커스텀 경고 발생.
 """
-# Ref: docs/superpowers/plans/2026-10-21-c-ept-s3.md decisions P4 (the factorisation and the probability families), P6 (what the masked M3
-#      object and M4 heads are conditioned on), P9 (equal weight for every training row, seed-free GLMs), P10 (the exposures) and Task 6;
-#      controller rulings R3 (the protocol), R13 (every categorical output is mixed with the uniform law), R15 (the side indicator), R17
-#      (the zone label), R18 (the rows are shared with B1), R19 (a model for each team in the kill and the gold heads), R20 (tolerance
-#      1e-8 in both families, an honest convergence flag) and R36 (G-S3b B2-a: one state coefficient vector for each gate window of M2Rate).
-# Ref: docs/superpowers/specs/2026-10-20-c-ept-design.md sections 3.2–3.3 (the masked and the open heads) and 9 (stage S3: B0 and B1).
-# Ref: Cameron, A. C. and Trivedi, P. K. (2013), "Regression Analysis of Count Data", 2nd ed., Cambridge University Press, chapter 3;
-#      doi:10.1017/CBO9781139013567 (Poisson regression with an exposure: the mean is exposure times rate, the offset is the log exposure);
-#      the equivalence used here is that the Poisson deviance with the offset log e equals the deviance of the target y / e weighted by e.
-# Ref: Hastie, T., Tibshirani, R. and Friedman, J. (2009), "The Elements of Statistical Learning", 2nd ed., Springer,
-#      sections 4.4 and 18.3.2; doi:10.1007/978-0-387-84858-7 (multinomial logistic regression, softmax, L2 penalty).
-# Ref: Liu, D. C. and Nocedal, J. (1989), "On the limited memory BFGS method for large scale optimization", Mathematical Programming 45:
-#      503-528; doi:10.1007/BF01589116 (the lbfgs solver of both fits).
-# Ref: Pedregosa, F. et al. (2011), "Scikit-learn: Machine learning in Python", Journal of Machine Learning Research 12: 2825-2830;
-#      arXiv:1201.0490 (PoissonRegressor, LogisticRegression).
-# Ref: Chen, S. F. and Goodman, J. (1999), "An empirical study of smoothing techniques for language modeling", Computer Speech and Language
-#      13(4): 359-394; doi:10.1006/csla.1999.0128 (interpolation with the uniform distribution, so that no outcome has probability zero).
 from __future__ import annotations
 
 import hashlib
@@ -170,42 +50,57 @@ from typing import NamedTuple
 
 import numpy as np
 
-from c_ept import features, head_rows, heads, store_core
-from c_ept import nll as nll_scores
-from c_ept.casts import narrow
+from c_ept.preprocessing import features
+from c_ept.data import head_rows, store_core
+from c_ept.models import heads, nll as nll_scores
+from c_ept.data.casts import narrow
 # the names of the heads, their shapes, and the rows and scores that B0 and B1 share (ruling R18); ``baselines_b0.HeadData`` etc. stay
-from c_ept.head_rows import (HEAD_NAMES, KINDS, MIX, N_CELLS, N_GOLD, N_K, N_LAYER, N_M, N_Q, N_SIZE, N_ZONE, OPEN_HEAD_NAMES,  # noqa: F401
+from c_ept.data.head_rows import (HEAD_NAMES, KINDS, MIX, N_CELLS, N_GOLD, N_K, N_LAYER, N_M, N_Q, N_SIZE, N_ZONE, OPEN_HEAD_NAMES,  # noqa: F401
                              PREDICT_ALL_WIDTHS, TEAMS, HeadBatch, HeadData, HeadScores)
 
-# ---- the constants of the fits -----------------------------------------------------------------------------------------------------------
-ALPHA = 1e-6                    # PoissonRegressor: the penalty (nearly the maximum-likelihood fit)
-TOL_POISSON = 1e-8              # PoissonRegressor: the gradient tolerance (ruling R20; the default 1e-4 stops far from the optimum)
+# ==========================================================================================================================
+# 1. 모델 적합 하이퍼파라미터 및 하네스 상수 정의
+# ==========================================================================================================================
+# PoissonRegressor: L2 규제 강도 (alpha). 거의 순수 최대우도추정(MLE)에 가깝도록 매우 작은 값(1e-6) 사용
+ALPHA = 1e-6
+# PoissonRegressor: 수렴 판정 기울기 허용오차 (tol). scikit-learn 기본값(1e-4)은 최적점에서 조기 종료되므로 1e-8로 엄격화
+TOL_POISSON = 1e-8
 MAX_ITER_POISSON = 1000
-C_LOGISTIC = 1.0                # LogisticRegression: the inverse penalty
+
+# LogisticRegression: 역정규화 강도 C (1.0) 및 수렴 허용오차 (tol)
+C_LOGISTIC = 1.0
 MAX_ITER_LOGISTIC = 2000
-TOL_LOGISTIC = 1e-8             # LogisticRegression: the gradient tolerance (ruling R20)
-SCHEMA = 'b0_heads_v3'          # v3: M2Rate has a state coefficient vector for each gate window (G-S3b B2-a); v2: a model for each team in
-#                                 the kill and the gold heads (ruling R19), no team column
+TOL_LOGISTIC = 1e-8
+
+# B0 저장 스키마 버전: v3 (M2Rate 게이트 윈도우별 상태 계수 벡터 분리 및 M3Kills/M3Gold 팀별 독립 모델)
+SCHEMA = 'b0_heads_v3'
 NPZ_NAME, JSON_NAME = 'b0_heads.npz', 'b0_heads.json'
 
-N_B0 = features.N_B0            # 39
-_CHUNK = 1 << 16                # rows per step of the column statistics and the in-place standardisation
+N_B0 = features.N_B0            # 39: 기본 시간-상태 특징 수
+_CHUNK = 1 << 16                # 65,536: 통계 계산 및 표준화 시 메모리 절약을 위한 청크 크기
 
-# G-S3b B2-a (author, 2026-10-22; ruling R36): the windows of bins that share one state coefficient vector in M2Rate, w(q) = q // 6. They
-# are the three gate horizons of 60, 120 and 180 s in bins (``config.EVAL_H_MS`` and ``config.BIN_MS``); a test pins that.
+# M2Rate 게이트 윈도우 정의: q 구간(0~17)을 3개 구간([0,6), [6,12), [12,18))으로 분할.
+# 60초, 120초, 180초 관측 지평에 대응하며 각 구간 w(q)마다 독립적인 상태 기울기 계수를 가짐.
 M2_WINDOWS = ((0, 6), (6, 12), (12, 18))
 if [q for lo, hi in M2_WINDOWS for q in range(lo, hi)] != list(range(N_Q)):
     raise RuntimeError('M2_WINDOWS must cover the bins 0 .. N_Q - 1 once, in order')
-_WINDOW_OF_Q = np.repeat(np.arange(len(M2_WINDOWS)), [hi - lo for lo, hi in M2_WINDOWS])        # (18,) the window of every bin
+_WINDOW_OF_Q = np.repeat(np.arange(len(M2_WINDOWS)), [hi - lo for lo, hi in M2_WINDOWS])        # (18,) 각 구간 q의 윈도우 인덱스
 _WINDOW_OF_Q.setflags(write=False)
 
 
-# ---- designs: one-hot blocks and layouts -------------------------------------------------------------------------------------------------
+# ==========================================================================================================================
+# 2. 설계 행렬(Design Matrix) 구조: One-Hot 블록 및 레이아웃 정의
+# ==========================================================================================================================
 class Block(NamedTuple):
-    """A one-hot block of a design: the integer ``name`` takes the values lo .. lo + n - 1; with ``drop_first`` the lowest level is the
-    reference and has no column (n - 1 columns), else every level has one.
+    """범주형 변수의 One-Hot 인코딩 블록 정의.
 
-    범주 변수 하나(q, m, z, s, 킬 수 층 ξ)를 수준마다 열 하나로 펼치는 약속이다. 기준 수준을 둔 블록에서는 그 수준의 계수가 0이다((B0-7))."""
+    - name: 범주 변수명 ('q', 'm', 'z', 's', 'layer')
+    - lo: 최소 정수 코드값 (예: z는 -1, q는 0)
+    - n: 범주 수준(수준의 총 개수)
+    - drop_first: 첫 번째(최소) 수준을 제외할지 여부.
+      - True (포아송): 절편(intercept)이 존재하므로 다중공선성(collinearity) 방지를 위해 기준 수준 계수를 0으로 제외 (n-1개 열).
+      - False (로지스틱): L2 능형 규제가 모든 수준을 식별하므로 전체 수준 열 유지 (n개 열).
+    """
     name: str
     lo: int
     n: int
@@ -213,41 +108,46 @@ class Block(NamedTuple):
 
     @property
     def width(self) -> int:
+        """이 블록이 차지하는 열의 개수."""
         return self.n - (1 if self.drop_first else 0)
 
 
 class Layout(NamedTuple):
-    """The columns of a design: ``n_numeric`` numeric columns (standardised), then the one-hot ``blocks`` in order. ``windows`` (G-S3b B2-a;
-    empty for every head but M2Rate) are the bin windows for which the head repeats the numeric columns: the design that a caller builds is
-    the same, the coefficients of the model have ``model_width`` columns.
+    """헤드별 전체 입력 설계 행렬의 열 구성 레이아웃.
 
-    모형의 열 수는 ``model_width`` = D·max(1, 창 수) + Σ_(블록) width이다(D = ``n_numeric``). 창이 있는 M2Rate만 숫자 열을 창마다 되풀이한다((B0-4))."""
+    - n_numeric: 표준화되는 연속형 수치 열의 개수 (기본 39차원 b0 특징, open 헤드는 추가 K/O 포함).
+    - blocks: 뒤따르는 One-Hot Block들의 튜플.
+    - windows: M2Rate 전용 게이트 윈도우 튜플. (윈도우가 있으면 수치 열이 윈도우 개수만큼 반복됨).
+    """
     n_numeric: int
     blocks: tuple
     windows: tuple = ()
 
     @property
     def width(self) -> int:
-        """The columns of the design that a caller hands to the head."""
+        """호출자가 헤드에 전달하는 원본 설계 행렬의 열 수 [수치열 + 원핫열]."""
         return self.n_numeric + sum(b.width for b in self.blocks)
 
     @property
     def model_width(self) -> int:
-        """The columns of the coefficients of the model: the numeric part once for each window (once without windows), then the blocks."""
+        """실제 내부 모델이 사용하는 계수 벡터의 총 열 수: D * max(1, 윈도우수) + sum(블록 열)."""
         return self.n_numeric * max(1, len(self.windows)) + sum(b.width for b in self.blocks)
 
 
+# 각 범주 변수별 유효 정수 범위: (최소값, 수준 개수)
 _RANGE = {'q': (0, N_Q), 'm': (0, N_M), 'z': (-1, N_ZONE + 1), 's': (0, N_SIZE), 'layer': (1, N_LAYER)}
 
 
 def _blocks(drop: bool, *names: str) -> tuple:
-    """The blocks ``names`` (in that order); ``drop`` says whether their lowest level is the reference."""
+    """지정된 변수 이름 순서대로 Block 튜플 생성. drop은 기준 수준 제외 여부."""
     return tuple(Block(name, *_RANGE[name], drop) for name in names)
 
 
-# 식 (B0-7)의 열이다: 숫자 열 x̃((B0-1)로 표준화한 열) 다음에 원핫 블록의 열이 온다. 열의 표는 계획 Task 6이 정하고, 가린 M3Obj와 M4Conv가 K와 O를 읽지 않는 것은 계획 P6이 정한다.
+# 헤드별 설계 행렬 스키마 정의 (식 B0-7 기준)
+# - masked: 합성기 전용 (Onset 시점 정보만 사용, K/O 누출 방지)
+# - open: 실제 관측 사후 평가용 (실제 K, O 조건 추가)
 LAYOUTS = {
-    ('M2Rate', 'masked'): Layout(N_B0, _blocks(True, 'q'), M2_WINDOWS),           # G-S3b B2-a: a state vector for each window
+    ('M2Rate', 'masked'): Layout(N_B0, _blocks(True, 'q'), M2_WINDOWS),           # 윈도우별 상태 벡터 상호작용
     ('M2Mark', 'masked'): Layout(N_B0, _blocks(False, 'q')),
     ('M2Zone', 'masked'): Layout(N_B0, _blocks(False, 'q', 'm')),
     ('M3Size', 'masked'): Layout(N_B0, _blocks(False, 'q', 'm', 'z')),
@@ -263,8 +163,11 @@ LAYOUTS = {
 }
 
 
+# ==========================================================================================================================
+# 3. 입력 검증, 원핫 인코딩 및 열 이름 생성 유틸리티
+# ==========================================================================================================================
 def _int_codes(name: str, values) -> np.ndarray:
-    """``values`` as an int64 1-d array. TypeError for a dtype that is not an integer (a bool, a float), ValueError for another shape."""
+    """입력 배열을 1차원 int64 배열로 변환 및 정수형 타입 검증."""
     a = np.asarray(values)
     if a.size == 0 and a.ndim <= 1:
         a = a.astype(np.int64)
@@ -276,7 +179,7 @@ def _int_codes(name: str, values) -> np.ndarray:
 
 
 def _level(block: Block, values) -> np.ndarray:
-    """The zero-based level (value - lo) of every entry of ``values`` for ``block``; ValueError outside lo .. lo + n - 1."""
+    """범주형 값을 0부터 시작하는 수준 인덱스(value - lo)로 변환하고 유효 범위를 검사."""
     a = _int_codes(block.name, values)
     if a.size and (a.min() < block.lo or a.max() > block.lo + block.n - 1):
         raise ValueError(f'{block.name} must lie in {block.lo} .. {block.lo + block.n - 1}')
@@ -284,10 +187,13 @@ def _level(block: Block, values) -> np.ndarray:
 
 
 def _design(numeric: np.ndarray, blocks, codes: Mapping) -> np.ndarray:
-    """(n, numeric width + the block widths) float64: ``numeric`` then the one-hot columns of every block of ``blocks`` for the values
-    ``codes[block.name]``. The lowest level of a ``drop_first`` block is all zeros.
+    """수치형 행렬과 One-Hot 범주 블록들을 결합하여 식 (B0-7)의 입력 설계 행렬 [x | One-Hot] 생성.
 
-    (B0-7)의 입력 행렬 [x | 원핫 열]을 만든다."""
+    - numeric: (n, a) 표준화된 연속형 수치 배열
+    - blocks: One-Hot 블록들의 튜플
+    - codes: 변수명 -> 범주값 1차원 배열 매핑
+    - 반환값: (n, a + sum(block.width)) float64 2차원 설계 행렬
+    """
     n, a = numeric.shape
     X = np.zeros((n, a + sum(b.width for b in blocks)))
     X[:, :a] = numeric
@@ -303,10 +209,7 @@ def _design(numeric: np.ndarray, blocks, codes: Mapping) -> np.ndarray:
 
 
 def column_names(layout: Layout, numeric_names=()) -> list:
-    """The names of the columns of the model: ``numeric_names`` (padded with ``x<j>``; for a layout with windows once for each window,
-    prefixed ``w<j>:``), then ``<block>=<value>`` for each one-hot column.
-
-    저장하는 JSON에서 계수의 열이 어느 특징과 수준인지 읽을 수 있게 (B0-7)의 열 순서대로 이름을 붙인다."""
+    """모델 계수 행렬의 각 열에 대응하는 설명적 열 이름 목록 생성 (JSON 직렬화 및 디버깅용)."""
     names = list(numeric_names) + [f'x{j}' for j in range(len(numeric_names), layout.n_numeric)]
     if layout.windows:
         names = [f'w{w}:{name}' for w in range(len(layout.windows)) for name in names]
@@ -315,12 +218,15 @@ def column_names(layout: Layout, numeric_names=()) -> list:
     return names
 
 
-# ---- standardisation ---------------------------------------------------------------------------------------------------------------------
+# ==========================================================================================================================
+# 4. 수치 열 표준화 및 메모리 효율적 2-패스 통계 연산 (식 B0-1)
+# ==========================================================================================================================
 def _column_stats(X: np.ndarray, n: int) -> tuple:
-    """(mean, scale) of the first ``n`` columns of ``X`` over all its rows: the mean and the population standard deviation; a column with
-    one value gets that value as its mean and the scale 1, so that it standardises to zeros. Chunked, two passes.
+    """연속형 수치 열(앞선 n개 열)의 표본 평균과 모표준편차를 청크 단위 2-패스로 계산 (식 B0-1).
 
-    (B0-1)의 x̄_h와 σ_h를 계산한다."""
+    - 분산이 0(단일 상수값)인 열은 scale을 1.0으로 두어 표준화 시 0으로 변환되도록 처리.
+    - 반환: (mean, scale) 각각 형상 (n,)
+    """
     total, low, high = np.zeros(n), np.full(n, np.inf), np.full(n, -np.inf)
     for a in range(0, len(X), _CHUNK):
         block = X[a:a + _CHUNK, :n]
@@ -336,9 +242,7 @@ def _column_stats(X: np.ndarray, n: int) -> tuple:
 
 
 def _standardise_(X: np.ndarray, n: int, mean: np.ndarray, scale: np.ndarray) -> None:
-    """Standardise the first ``n`` columns of ``X`` in place, chunk by chunk.
-
-    (B0-1)의 x̃_{ih}를 제자리에서 계산한다."""
+    """X 행렬의 앞선 n개 수치 열을 제자리(in-place)에서 표준화: (X - mean) / scale (식 B0-1)."""
     for a in range(0, len(X), _CHUNK):
         block = X[a:a + _CHUNK, :n]
         block -= mean
@@ -346,12 +250,14 @@ def _standardise_(X: np.ndarray, n: int, mean: np.ndarray, scale: np.ndarray) ->
 
 
 def _check_finite(X: np.ndarray, what: str = 'X') -> None:
+    """행렬 내에 NaN 또는 무한대(Inf)가 포함되어 있는지 청크 단위로 검증."""
     for a in range(0, len(X), _CHUNK):
         if not np.isfinite(X[a:a + _CHUNK]).all():
             raise ValueError(f'{what} holds a NaN or an infinite value')
 
 
 def _design_matrix(X) -> np.ndarray:
+    """입력 배열이 2차원 실수형 설계 행렬인지 검증하고 float64 ndarray로 변환."""
     A = np.asarray(X)
     if A.dtype.kind not in 'fiub':
         raise TypeError(f'the design must be numeric, not {A.dtype}')
@@ -361,10 +267,11 @@ def _design_matrix(X) -> np.ndarray:
     return A
 
 
-# ---- convergence (ruling R20) ------------------------------------------------------------------------------------------------------------
+# ==========================================================================================================================
+# 5. 모델 최적화 수렴 모니터링 및 경고 처리 (하네스 엄격 수렴 규약)
+# ==========================================================================================================================
 def _fit_recording(model, *args, **kwargs) -> bool:
-    """Fit the scikit-learn ``model`` and say whether it raised a ConvergenceWarning. The warning is captured here (the head raises one of
-    its own that names the head and the cell); any other warning goes on as it was."""
+    """scikit-learn 모델의 fit()을 실행하고 ConvergenceWarning 발생 여부를 감지하여 반환."""
     from sklearn.exceptions import ConvergenceWarning
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter('always')
@@ -379,11 +286,12 @@ def _fit_recording(model, *args, **kwargs) -> bool:
 
 
 def _converged(fired: bool, n_iter: int, limit: int) -> bool:
-    """Ruling R20: a fit has converged when scikit-learn raised no ConvergenceWarning and the iteration limit was not reached."""
+    """경고가 발생하지 않았고 반복 횟수가 상한선 미만일 때만 수렴(True)으로 판정."""
     return (not fired) and n_iter < limit
 
 
 def _warn_not_converged(label: str, cell, n_iter: int, limit: int, fired: bool) -> None:
+    """수렴하지 않은 헤드 및 셀에 대해 상세한 원인과 함께 경고 발생."""
     from sklearn.exceptions import ConvergenceWarning
     where = label if cell is None else f'{label} cell {cell}'
     why = 'scikit-learn raised a ConvergenceWarning' if fired else 'the iteration limit was reached'
@@ -391,14 +299,19 @@ def _warn_not_converged(label: str, cell, n_iter: int, limit: int, fired: bool) 
                   stacklevel=3)
 
 
-# ---- the heads ---------------------------------------------------------------------------------------------------------------------------
+# ==========================================================================================================================
+# 6. 기저 헤드(Base Head) 추상 클래스군: _Head, _PoissonHead, _CategoricalHead
+# ==========================================================================================================================
 class _Head:
-    """What the Poisson and the logistic heads share: the layout, the standardisation, the stored parameters and the two ways to the linear
-    predictor. A head holds ``coef_std_`` (J, d) and ``intercept_std_`` (J,) on the standardised design (J cells, or the classes that
-    occurred), ``mean_`` / ``scale_`` of the numeric columns, and ``blocks_``; ``coef_`` and ``intercept_`` give the same model on the raw
-    design. ``predict(X)`` reads a full design matrix, ``predict_blocks(numeric, **codes)`` the numeric part and the integer codes of the
-    one-hot blocks (the composer's way: a table look-up, no design matrix).
+    """포아송 헤드와 다항 로지스틱 헤드가 공유하는 공통 기저 추상 클래스.
 
+    [역할]
+    - 연속형 수치 열의 표본 표준화 파라미터(mean_, scale_) 관리 (식 B0-1).
+    - 표준화된 계수(coef_std_, intercept_std_)와 원본 척도 복원 계수(coef_, intercept_) 계산 (식 B0-8).
+    - 사전 계산된 One-Hot 계수 테이블(_tables)을 구축하여 합성기(Composer)의 초고속 선형 예측 지원 (식 B0-7).
+    - 두 가지 추론 방식 제공:
+      1) decision(X): (n, d) 2차원 설계 행렬 전체를 곱하는 기본 방식.
+      2) decision_blocks(numeric, **codes): 설계 행렬을 빌드하지 않고 수치 항과 표 조회 합으로 계산하는 닫힌 꼴 방식.
     수식
     ----
     (B0-1)  x̃_{ih} = (x_{ih} − x̄_h) / σ_h,    x̄_h = (1/N)·Σ_i x_{ih},    σ_h = √[(1/N)·Σ_i (x_{ih} − x̄_h)²]        (h = 1, …, D)
@@ -652,9 +565,17 @@ class _Head:
 
 
 class _PoissonHead(_Head):
-    """A Poisson regression with the log link, per second of exposure: the rate of a cell. One model per cell (a column of the target);
-    ``fit(X, Y, e)`` takes the design, the counts (n,) or (n, J) and the exposure in seconds. A target given as a 1-d array makes a head of
-    one cell whose ``coef_`` is a vector; a 2-d target (also with one column) makes ``coef_`` a matrix.
+    """로그 링크 함수와 노출 시간(exposure) 오프셋을 갖는 포아송 회귀 기저 헤드.
+
+    [역할 및 특징]
+    - 단위 노출시간당 사건 발생률(초당 킬 수, 오브젝트 획득률 등)을 추정.
+    - 각 셀(종속변수 열)마다 독립적인 포아송 회귀 모형을 적합(식 B0-2).
+    - 노출시간 e > 0인 유효 행만 학습에 사용하며, e=0인 행은 자동으로 제외 및 기록.
+    - 사건이 전혀 발생하지 않은 셀(degenerate_)은 최대우도추정 불가이므로 Jeffreys 사전분포의 사후 평균 상수 모형(식 B0-3) 적용.
+    - 주요 출력:
+      - rate(X): (n, J) 단위 노출당 추정 발생률 λ = exp(η)
+      - expected(X, exposure_s): (n, J) 기대 발생 횟수 μ = e * λ
+      - nll(X, Y, e): (n,) 또는 (n, J) 포아송 음의 로그우도(NLL) 점수
 
     수식
     ----
@@ -805,8 +726,16 @@ class _PoissonHead(_Head):
 
 
 class _CategoricalHead(_Head):
-    """A multinomial logistic regression over ``N_CLASSES`` classes with the uniform mixing of ruling R13. ``fit(X, y)`` takes the design
-    and the class of every row (0 .. C - 1, or -1 for "no category": left out and counted in ``n_missing_``).
+    """L2 규제와 균등 분포 스무딩 혼합(Uniform Mixing)을 적용한 다항 로지스틱 회귀 기저 헤드.
+
+    [역할 및 특징]
+    - 선제 킬 표지(M2Mark), 맵 구역(M2Zone), 참가 규모(M3Size), 킬 골드 구간(M3Gold) 등의 범주 확률 추정.
+    - 미관측(-1) 범주 행은 학습에서 안전하게 제외하고 결측 건수(n_missing_)로 집계.
+    - 훈련 세트에 미출현한 클래스에 대해서도 NLL이 무한대로 발산하지 않도록 미세한 균등 분포 확률을 혼합(식 B0-6):
+      p = (1 - 1e-6) * p_model + (1e-6 / C)
+    - 주요 출력:
+      - predict(X) / predict_blocks(...): (n, C) 각 클래스별 조건부 사후 확률 (합계 1.0)
+      - nll(X, y): (n,) 실제 관측 클래스 y에 대한 교차 엔트로피 손실 (식 NLL-2)
 
     수식
     ----
@@ -920,17 +849,20 @@ class _CategoricalHead(_Head):
         return out
 
 
+# ==========================================================================================================================
+# 7. 개별 구체 예측 헤드 구현 클래스군: M2Rate, M2Mark, M2Zone, M3Size, M3Kills, M3Gold, M3Obj, M4Conv
+# ==========================================================================================================================
 class M2Rate(_PoissonHead):
-    """The first-kill rate per second of a (row, bin) cell, with a state coefficient vector for each gate window (G-S3b B2-a, ruling R36)
+    """첫 킬 발생률 포아송 헤드: 18개 10초 시간 구간(q=0..17, 0~180초)별 초당 첫 킬 발생률 λ_q 추정.
 
-        log rate_q(x) = gamma_q + beta_w(q) . x~,       w(q) = q // 6,      x~ = (x - mean) / scale.
-
-    The design that ``fit`` and ``predict`` take is [the numeric columns | the q block] (``LAYOUTS``): the q block is one 17-column one-hot
-    block with the bin 0 as its reference level, and nothing else. The head standardises the numeric columns once (``mean_`` and
-    ``scale_`` have one entry for each of them), repeats them once for each window of ``M2_WINDOWS`` (multiplied by the window indicator,
-    not standardised again) and fits one Poisson regression on the 3 D + 17 columns that this makes; ``coef_std_`` is (1, 3 D + 17): the
-    vector of window 0, of window 1, of window 2, then the 17 bin columns. It has one cell, so ``n_iter_`` and ``converged_`` have one
-    entry. ``rate_bins`` gives all 18 bins of a row at once.
+    [역할 및 핵심 알고리즘]
+    - 경기 시작/경과 상태에 따라 교전 시작(첫 킬)이 발생할 위험도(Hazard rate)를 모델링.
+    - 시간 지평에 따른 반응성 차이를 반영하기 위해 3개 게이트 윈도우 w(q)=⌊q/6⌋별로 독립된 상태 계수 벡터 β_w를 갖는 상호작용 설계 (식 B0-4):
+      - 윈도우 0 (q=0..5  : 0~60초)
+      - 윈도우 1 (q=6..11 : 60~120초)
+      - 윈도우 2 (q=12..17: 120~180초)
+    - 주요 메서드:
+      - rate_bins(numeric): (n, 18) 합성기 호출용 - 18개 구간 전체의 발생률 행렬을 고속 일괄 계산.
 
     수식
     ----
@@ -1134,13 +1066,14 @@ class _GoldModel(_CategoricalHead):
 
 
 class M3Gold:
-    """The kill-gold bin of a team with at least one kill, 31 classes, with a multinomial model for each team (ruling R19). ``members`` are
-    the models of the blue and of the red team (categorical heads: R13 mixing, standardisation of their own rows, ``converged_``) and
-    ``member(t)`` that of team t (0 blue, 1 red). ``fit(X, y, team, ...)`` fits each member on the rows of its team; ``predict(X, team)``,
-    ``nll(X, y, team)`` and ``predict_blocks(numeric, team, **codes)`` use the member of the team of each row. A team with no row is an
-    error. Its ``state()`` holds the arrays of both members, prefixed ``blue.`` and ``red.``.
+    """팀별 교전 획득 킬 골드 다항 로지스틱 헤드 번들: 31개 골드 구간, 블루/레드 팀별 독립 모델.
 
-    킬이 하나 이상인 팀의 항목으로만 맞추며(킬이 0인 팀의 골드는 0으로 정해진다; 계획 P4), 입력의 킬 수 층 ξ가 골드 분포의 조건이다. 팀마다 따로 맞추는 이유는
+    [역할 및 설계 이유]
+    - 교전 결과 각 팀이 획득하는 킬 골드 구간(0~30, 31개 클래스)의 조건부 사후 확률 분포를 예측.
+    - 블루 팀(member 0)과 레드 팀(member 1) 각각 독립된 다항 로지스틱 모델(_GoldModel)을 보유:
+      진영 비대칭성 및 제로섬 효과를 반영하기 위해 두 팀의 계수를 완전히 분리하여 학습.
+    - 킬 수 층 ξ = min(max(⌊k⌉, 1), 6) (1~6층)을 추가 조건부 특징으로 입력받음.
+    - 킬이 1 이상인 유효 케이스만 학습에 참여 (킬 0인 팀의 골드는 항상 0으로 확정).
     ``M3Kills``와 같다(판정 R19)."""
     name = 'M3Gold'
     N_CLASSES = N_GOLD
@@ -1367,14 +1300,19 @@ class HeadRows(head_rows.HeadRows):
         return HeadData(X, p.y, p.e, p.match, p.row, layout, p.n_zero_exposure, p.team)
 
 
-# ---- the composer heads ------------------------------------------------------------------------------------------------------------------
+# ==========================================================================================================================
+# 8. 합성기(Composer) 전용 닫힌 꼴(Closed-Form) 초고속 추론 체인
+# ==========================================================================================================================
 class _MaskedChain:
-    """The masked B0 heads as the composer reads them (``heads.ComposerHeads``): closed form (``analytic_ok``), K is not read by the object
-    head and K and O are not read by the conversion head (decision P6).
+    """합성기가 호출하는 가린 헤드(Masked Heads)들의 닫힌 꼴(closed-form) 연결 체인 (heads.ComposerHeads 프로토콜 구현).
 
-    각 방법은 B0의 닫힌 꼴로 (HEAD-1)–(HEAD-4)의 한 고리를 낸다: ``rate``는 (B0-4), ``mark_prob``·``zone_prob``·``size_prob``는 (B0-5)와 (B0-6),
-    ``kill_rate``는 (B0-2), ``gold_prob``는 팀마다 (B0-5)와 (B0-6)(층은 그 팀 자신의 킬 수 층), ``obj_rate``와 ``conv_rate``는 (B0-2)이며, 값은 모두
-    (B0-7)의 표 찾기로 낸다."""
+    [역할 및 최적화 메커니즘]
+    - EPT 평가 파이프라인에서 수백만 건의 발생(Onset) 행에 대해 교전 가치를 합성할 때 사용.
+    - 무거운 2차원 설계 행렬을 매번 생성하지 않고, 사전 구축된 One-Hot 계수 테이블(_tables)에서 단순 슬라이싱/인덱싱 합으로 선형 예측자를 계산:
+      η = γ + x̃·β + ω^q[q] + ω^m[m] + ω^z[z] + ω^s[s]
+    - 이를 통해 초당 수십만 행 이상의 압도적인 평가 속도를 달성.
+    - 정보 누출 방지: M3Obj는 K(킬)를 읽지 않고, M4Conv는 K와 O(오브젝트)를 읽지 않음.
+    """
     feature_kind = 'b0'
     analytic_ok = True
     obj_uses_K = False
@@ -1512,12 +1450,19 @@ def _write_npz_bytes(arrays: Mapping) -> bytes:
     return buffer.getvalue()
 
 
+# ==========================================================================================================================
+# 9. B0 전체 헤드 번들 관리자 (B0Heads)
+# ==========================================================================================================================
 class B0Heads:
-    """The fitted B0 heads: ``masked`` (the eight heads of the composer) and ``open`` (the five M3 and M4 heads), the b0 FIT means that fill
-    the NaN cells of b0 and the role(s) that were fitted on. Use ``B0Heads.fit`` to fit, ``load`` to read, ``save`` to write,
-    ``composer_heads('masked')`` for the composer, ``nll`` to score a role, ``predict_all`` to evaluate the masked heads on a batch.
+    """B0 베이스라인의 전체 예측 헤드(가린 헤드 8종 + 열린 헤드 5종 = 총 13종) 번들 통합 관리자.
 
-    가린 머리 8개와 열린 머리 5개를 한 묶음으로 맞추고, 쓰고, 저장한다. 식은 (B0-1)–(B0-8)이다."""
+    [주요 역할 및 라이프사이클 메서드]
+    - fit(data): FIT 역할 데이터셋에 대해 전체 헤드를 결정론적으로 일괄 학습 (식 B0-1 ~ B0-5).
+    - nll(data): DEV/TEST 데이터셋에 대해 헤드별 손실(NLL) 및 가중 평균 평가 (HeadScores 반환).
+    - composer_heads("masked"): 합성기용 고속 닫힌 꼴 체인(_MaskedChain) 반환.
+    - predict_all(batch): 배치에 대한 전체 184차원 예측치 행렬 일괄 생성.
+    - save(dir) / load(dir): b0_heads.npz 및 b0_heads.json을 통한 원자적 저장 및 무결성 검증 복원.
+    """
 
     def __init__(self, masked: Mapping, open_: Mapping, fit_means, fit_roles=('FIT',)):
         unknown = (set(masked) - set(HEAD_NAMES)) | (set(open_) - set(OPEN_HEAD_NAMES))

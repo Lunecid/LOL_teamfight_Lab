@@ -53,8 +53,8 @@ from collections.abc import Mapping
 
 import torch
 
-from c_ept import head_rows
-from c_ept.head_rows import HEAD_NAMES, N_CELLS, N_GOLD, N_LAYER, N_M, N_Q, N_SIZE, N_ZONE, OPEN_HEAD_NAMES
+from c_ept.data import head_rows
+from c_ept.data.head_rows import HEAD_NAMES, N_CELLS, N_GOLD, N_LAYER, N_M, N_Q, N_SIZE, N_ZONE, OPEN_HEAD_NAMES
 
 BLOCKS = tuple(f'{h}/masked' for h in HEAD_NAMES) + tuple(f'{h}/open' for h in OPEN_HEAD_NAMES)       # the thirteen blocks, in the order of the sum of the loss
 SIZE_NORMALISED = frozenset({'M3Kills', 'M3Gold', 'M3Obj'})     # the experts P(K | s, x) and P(O | K, s, x); not the gate P(s | x)

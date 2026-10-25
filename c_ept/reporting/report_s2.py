@@ -131,9 +131,13 @@ from pathlib import Path
 import numpy as np
 
 from c_ept import config as C
-from c_ept import reader, runlog, state, store_core, terrain, tokens, traits
+from c_ept.data import reader
+from c_ept import runlog
+from c_ept.domain import state
+from c_ept.data import store_core
+from c_ept.preprocessing import terrain, tokens, traits
 from c_ept.checks import sweep_state
-from c_ept.store_core import Store
+from c_ept.data.store_core import Store
 
 LIMIT_PEAK_GIB = 48.0                              # the memory gate: tree-summed peak private memory
 OVERFLOW_LIMIT = Fraction(1, 20)                   # more than 5 % of the views that drop events (or edges) is a finding
@@ -584,7 +588,7 @@ def _measure(s1: Store, table: dict, players, records, smoke: np.ndarray) -> dic
 
     (REP2-13)의 계산·입력 항을 맡는다.
     """
-    from c_ept.run_s1 import require_no_strata         # here, not at module level: a report that reads files only needs no runner chain
+    from c_ept.workflows.run_s1 import require_no_strata         # here, not at module level: a report that reads files only needs no runner chain
     require_no_strata()
     keys, patches = np.asarray(s1.array('matches/key')), np.asarray(s1.array('matches/patch'))
     frame_views = np.flatnonzero(table['src'] == 0)
@@ -1498,7 +1502,7 @@ def main(argv=None) -> int:
         ap.error(f'--raw-fit-matches must be at least 1, got {a.raw_fit_matches}')
     strata_error = ()                               # an empty tuple in an except clause catches nothing
     if not a.no_matches:
-        from c_ept.run_s1 import StrataRunning, require_no_strata     # here: a report that reads files only never needs the runner chain
+        from c_ept.workflows.run_s1 import StrataRunning, require_no_strata     # here: a report that reads files only never needs the runner chain
         strata_error = StrataRunning
         try:
             require_no_strata()                                     # E6: before any raw match is read (the measurement checks it too)

@@ -18,17 +18,19 @@ import numpy as np
 import pytest
 
 from c_ept import config as C
-from c_ept import state, targets, tokens, traits
-from c_ept.reader import MatchFormatError
+from c_ept.domain import state, targets
+from c_ept.preprocessing import tokens, traits
+from c_ept.data.reader import MatchFormatError
 from c_ept.tests import synth
-from c_ept.tests.conftest import all_imports, module_level_imports, package_of
+from c_ept.tests.conftest import (PROTECTED_IMPORT_PRELUDE, all_imports, import_watch_names,
+                                  module_level_imports, package_of)
 from c_ept.tests.view_helpers import (K, LM_XY, NAN, P, REF, S, TYPE, StubTerrain, cut_at, damage, differing, extra_event, frame_at,
                                       frames_with, make_ctx, nan_cells, nan_conditions_broken, nan_outside_allowed, old_total, raw_building,
                                       raw_elite, raw_item, raw_kill, raw_level, raw_plate, raw_ward_kill, raw_ward_placed, record,
                                       rich_events, views_equal)
 
 REPO = Path(C.__file__).parents[1]
-S1_MODULES = ('c_ept.targets', 'c_ept.event_rows', 'c_ept.frame_rows', 'c_ept.store_core', 'c_ept.run_s1')    # what a view must not reach
+S1_MODULES = import_watch_names(('c_ept.targets', 'c_ept.event_rows', 'c_ept.frame_rows', 'c_ept.store_core', 'c_ept.run_s1'))
 
 
 # ---- the oracle: the raw events read in plain loops -------------------------------------------------------------------------------
@@ -993,8 +995,10 @@ def test_the_view_modules_import_no_s1_module(name, scan):
     assert not banned(imported), banned(imported)
 
 
-def test_a_fresh_interpreter_that_imports_the_view_modules_loads_no_s1_module():
-    code = ('import sys\nimport c_ept.tokens, c_ept.symmetry\n'
+@pytest.mark.parametrize('statement', ['import c_ept.tokens, c_ept.symmetry',
+                                       'import c_ept.preprocessing.tokens, c_ept.domain.symmetry'])
+def test_a_fresh_interpreter_that_imports_the_view_modules_loads_no_s1_module(statement):
+    code = (PROTECTED_IMPORT_PRELUDE + f'import sys\n{statement}\n'
             f'print([m for m in {S1_MODULES!r} if m in sys.modules])')
     out = subprocess.run([sys.executable, '-B', '-c', code], capture_output=True, text=True, cwd=REPO, timeout=120)
     assert out.returncode == 0, out.stderr[-300:]

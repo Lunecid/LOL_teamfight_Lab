@@ -33,7 +33,10 @@ import torch
 import torch.nn.functional as F
 
 from c_ept import config as C
-from c_ept import head_rows, symmetry, terrain, tokens, units
+from c_ept.data import head_rows
+from c_ept.domain import symmetry
+from c_ept.preprocessing import terrain, tokens
+from c_ept.domain import units
 from c_ept.ept import data, encoder, heads
 from c_ept.tests.ept_toys import build_ept_world, encoder_batch, toy_static
 

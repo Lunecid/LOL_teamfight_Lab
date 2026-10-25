@@ -24,9 +24,12 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from c_ept import baselines_b0, baselines_b1, features, head_rows, heads, nll
+from c_ept.models import baselines_b0, baselines_b1
+from c_ept.preprocessing import features
+from c_ept.data import head_rows
+from c_ept.models import heads, nll
 from c_ept import config as C
-from c_ept.store_core import Store
+from c_ept.data.store_core import Store
 from c_ept.tests.conftest import all_imports, module_level_imports
 from c_ept.tests.s3_toys import (KEY_PREFIX, TOY_FIRST_ONSET_BIN, TOY_N_POSITIVE, TOY_N_STOP_ROWS,  # noqa: F401
                                  WORLD_ZERO_CELL, HeadsOracle, heads_world)
@@ -1617,7 +1620,7 @@ def test_a_head_saved_without_a_record_has_none(fitted, tmp_path):
 
 
 def test_the_json_of_a_head_is_written_last_so_that_a_cut_save_has_none(fitted, tmp_path, monkeypatch):
-    from c_ept import store_core
+    from c_ept.data import store_core
     written = []
     real = store_core.write_atomic
     monkeypatch.setattr(store_core, 'write_atomic', lambda path, data: (written.append(Path(path).name), real(path, data))[1])
@@ -1676,7 +1679,7 @@ def test_a_set_of_heads_is_saved_and_loaded_by_the_functions_that_save_and_load_
 
 
 def test_the_json_of_a_set_names_the_folder_and_the_hash_of_the_json_of_every_head(fitted, tmp_path):
-    from c_ept import store_core
+    from c_ept.data import store_core
     fitted.save(tmp_path / 'b1')
     doc = json.loads((tmp_path / 'b1' / 'b1_heads.json').read_text(encoding='utf-8'))
     assert doc['schema'] == 'b1_heads_v2'
@@ -2240,9 +2243,15 @@ def test_the_module_imports_no_runner_no_cohort_no_raw_reader_no_value_and_no_ot
     forbidden = {'c_ept.run_s1', 'c_ept.run_s2', 'c_ept.cohort', 'c_ept.runlog', 'c_ept.terrain', 'c_ept.store_build', 'c_ept.reader',
                  'c_ept.tokens', 'c_ept.value', 'c_ept.compose', 'c_ept.units', 'c_ept.targets', 'c_ept.towertier', 'c_ept.baselines_b0',
                  'sklearn'}
+    forbidden |= {'c_ept.workflows.run_s1', 'c_ept.workflows.run_s2', 'c_ept.preprocessing.terrain',
+                  'c_ept.data.store_build', 'c_ept.data.reader', 'c_ept.preprocessing.tokens',
+                  'c_ept.valuation.value', 'c_ept.valuation.compose', 'c_ept.domain.units',
+                  'c_ept.domain.targets', 'c_ept.valuation.towertier', 'c_ept.models.baselines_b0'}
     assert not imported & forbidden, imported & forbidden
-    assert {'lightgbm', 'c_ept.head_rows', 'c_ept.features'} <= imported
-    assert not all_imports(SOURCE) & {'c_ept.run_s1', 'c_ept.run_s2', 'c_ept.reader', 'c_ept.baselines_b0', 'pickle'}
+    assert {'lightgbm', 'c_ept.data.head_rows', 'c_ept.preprocessing.features'} <= imported
+    assert not all_imports(SOURCE) & {'c_ept.run_s1', 'c_ept.run_s2', 'c_ept.reader', 'c_ept.baselines_b0',
+                                    'c_ept.workflows.run_s1', 'c_ept.workflows.run_s2', 'c_ept.data.reader',
+                                    'c_ept.models.baselines_b0', 'pickle'}
 
 
 def test_the_module_names_only_the_arrays_it_is_documented_to_read():

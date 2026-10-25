@@ -38,7 +38,9 @@ from collections import Counter
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
-from c_ept import reader, run_s1, traits
+from c_ept.data import reader
+from c_ept.workflows import run_s1
+from c_ept.preprocessing import traits
 from c_ept.checks import common
 
 SCRIPT = 'c_ept.checks.sweep_s1'

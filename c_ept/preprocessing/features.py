@@ -1,80 +1,44 @@
-r"""Data splits and match weights, the columns to drop, the shared baseline features b0 and b1, and the input of the masked M4 head
-(stage S3 Task 5).
+r"""
+Feature Stores and Baseline Feature Tables / S3 단계 기준 모형 및 분석용 통합 피처 생성 모듈
 
-Splits and weights. ``split_rows(s1, role)`` marks the frame-clock rows of the matches of a role, ``role_mask(s1, table, role)`` the rows of
-any S1 table with a match column (``units``, ``frame_rows``; ``onsets`` through the frame row of each onset) and ``split_views(s1, s2,
-role)`` the views of an S2 store. A role is FIT, STOP or DEV (several may be given); TEST and EXTERNAL are refused as holdout roles and
-CAL, AUDIT and UNUSED as roles stage S3 does not use, before any array is read (``flowprice`` has the one rule). ``match_weights(match)``
-gives every row the weight 1/n_u, n_u the number of the rows passed that belong to its match, so that a match counts once in an average.
+[English]
+This module extracts baseline feature representations (B0, B1) and input matrices for evaluating
+teamfight outcome models (stage S3):
+  1. Data Splits & Match Weights:
+       - `split_rows(s1, role)`, `split_views(s1, s2, role)`, `role_mask(s1, table, role)`:
+         Partition dataset into FIT, STOP, and DEV splits.
+       - `match_weights(match)`: Computes weights w_i = 1 / n_u so that each match has equal unit weight.
+  2. First-Kill Tactical Zone (`unit_zone`):
+       - Identifies the tactical zone (0..9) of the first kill of each engagement unit (-1 if position missing).
+  3. Feature Pruning (`dropped_columns`):
+       - Identifies zero-variance (constant) columns and redundant timestamps (`t_s`) on the FIT split.
+  4. B0 Baseline Feature Table (`b0`, 39 columns):
+       - Compact 39-dim difference vector: game time (min), phase indicators 1..7, player stat diffs (Blue - Red),
+         total alive players, team geodesic distance (min/mean), objective diffs, active buffs, and objective presence.
+       - Missing values are imputed with the column mean across the FIT split (`b0_fit_means`).
+  5. B1 LightGBM Feature Table (`b1`):
+       - Tree-model feature table containing summary columns, team sums/maxima for player features, and distances.
+       - Preserves NaNs as native missing values for gradient boosting trees.
+  6. Masked M4 Head Inputs (`m4_masked_inputs`):
+       - Constructs the conditioning matrix for post-teamfight conversion evaluation:
+         t0 baseline features + onset bin q + first kill mark m + zone z + kill/gold counts K + 18 objective cells O.
 
-The zone label (ruling R17). ``unit_zone(s1)`` gives every engagement unit the zone (``terrain.ZONES`` index 0 .. 9) of the position of
-its first kill (``units/kill0``; ``kills/x``, ``kills/y`` through ``terrain.zone_of``), and -1 where ``kills/pos_missing`` is set. It is
-the label of the zone head rho and the zone input of the M3 and M4 heads; both baselines (B0, B1) use it, so the label exists once. It
-reads those four arrays and nothing else; the b0 and b1 rows below read only the three S2 arrays.
-
-Columns to drop (S2 gate S2G-4). ``dropped_columns(s2, fit_views)``: the summary columns and the player columns whose cells have one value
-in all the views given (the FIT views of the three sources: frame-clock, M3 and M4 views), and ``t_s``, which always equals ``game_time_s``.
-"One value" is the NaN-ignoring minimum equal to the maximum, over all the players of a player column; a column with no value at all counts
-as constant. The result is a tuple of plain names, the summary columns in the order of ``tokens.SUMMARY`` and then the player columns in the
-order of ``tokens.PLAYER_NUM``; the two lists have no name in common. ``fit_views`` has no default, and None or no view is refused (ruling
-R14): an S2 store holds the views of every role (also CAL and AUDIT; store_build never builds the holdout roles) and only the FIT views may
-decide which columns go, so the caller passes ``np.flatnonzero(split_views(s1, s2, 'FIT'))`` (or that mask) and reports the list.
-
-b0, the small time-state table of the B0 heads: 39 columns, ``B0_NAMES``, in this order (blue minus red; the teams are the rows 0-4 and 5-9
-of ``x/players_num``)
-
-    time (8)       game_time_s / 60 (minutes), phase indicators 1 .. 7 of the 8 phases of ``flowprice.PHASE_EDGES_S`` (phase 0, the first,
-                   is the reference and has no column)
-    players (8)    team sums, blue minus red, of totalGold, xp, level, minionsKilled, jungleMinionsKilled, alive, respawn_s, item_gold_owned
-    alive (1)      alive_total: players alive on both teams
-    distance (2)   the minimum and the mean of the geodesic distances between the teams (``x/geo_pp``, the 5 x 5 block blue x red); pairs
-                   with a missing position are left out of both, and a view with no pair left has NaN
-    summary (15)   blue minus red: the four tower tiers, inhibitors down, plates (the three lanes added), dragons, elders, barons, heralds,
-                   atakhans, voidgrubs, has_soul; and the baron and the elder buff, each an indicator, active when ``*_buff_s`` > 0
-    appear (5)     dragon_up, baron_up, herald_up, atakhan_up, voidgrub_up, as the summary has them
-
-The time is the summary column ``game_time_s`` (float32 seconds; its milliseconds, rounded, give the phase, as in the frame clock);
-``level`` is the frame's level column, not ``level_now``, as the brief names it (on an event view the frame is up to a minute old).
-
-No champion, item or patch id is in it, and nothing but ``x/summary``, ``x/players_num`` and ``x/geo_pp`` is read: a b0 row is a function of
-the view alone. A NaN in a b0 column is filled with the mean of that column over the FIT views (ruling R2): ``b0_fit_means(s2,
-fit_views)`` is computed once, from the cells that have a value, and passed to ``b0``; ``b0`` counts the cells it fills in
-``fill_counts`` (an int array of 39 that it adds to). There are no missing-indicator columns, so the width is 39 whatever the data.
-Without the means a b0 row with a NaN is refused, never filled from the views at hand.
-
-b1, the table of the B1 LightGBM heads: ``b1_columns(dropped)`` names the columns, in this order
-
-    the summary columns minus the dropped ones, in the order of ``tokens.SUMMARY``;
-    ``sum_blue_<c>``, ``sum_red_<c>``, ``max_blue_<c>``, ``max_red_<c>`` for each player column c that is not dropped (the sum and the
-    maximum of the five players of the team);
-    ``geo_min``, ``geo_mean`` as in b0.
-
-A NaN stays NaN (LightGBM reads it as missing): the sum or the maximum of a team is NaN when one of its five players has NaN in the column
-(for example a missing position), and nothing is filled.
-
-The masked M4 input. ``m4_masked_inputs(row_view, q, m, z, K, O)`` is the only way to build what the masked M4 head sees (the leakage test
-(a) and decision P6): the features of the t0 row, then q, m and z of the onset, then the kills and the kill gold of the two teams (K =
-kills blue, kills red, gold blue, gold red; the gold in thousands) and the objectives O of the 18 cells, as one float32 matrix.
-``m4_columns(row_names)`` names its columns. The baselines turn q, m and z into one-hot columns (B0) or categories (B1) themselves.
-Everything is read with a chunk of ``_CHUNK`` views at a time, so the 18.7 GiB S2 store is never in memory.
-
-이 모듈은 B0·B1 기준 모형과 가린 M4 머리가 공유하는 입력을 만든다: 역할별 행 선택과 경기 가중, 첫 킬의 구역 값, 분산이 없는 열의 목록, b0·b1 특징 표, 가린 M4 입력 행렬.
-보기(view)는 S2 저장소의 한 행이고 보기 번호는 그 0 기준 행이다. 한 보기의 특징은 그 보기 하나로 정해지며, 팀은 ``x/players_num``의 선수 행 p = 0–4(파랑)와 5–9(빨강)이다.
-교전 단위는 한 교전이고 구역 z는 그 단위의 첫 킬 위치에서 얻는다.
-
-식 목록
-  (FEAT-1) match_weights: 행 가중 w_i = 1 / n_u
-  (FEAT-2) unit_zone: 단위 i의 첫 킬 구역 z_i (위치가 없으면 −1)
-  (FEAT-3) dropped_columns: 열 c를 빼는 조건 = (FIT 보기에서 한 값뿐이거나 값이 없음) ∨ t_s
-  (FEAT-4) b0: 39열 = 시간 8, 선수 합의 차 8, 생존 1, 거리 2, 요약의 차 15, 등장 5
-  (FEAT-5) b0의 거리 열: 파랑 × 빨강 측지 거리의 최솟값과 평균
-  (FEAT-6) b0_fit_means: FIT 보기의 열 평균 mean_c와 결측 칸의 채움
-  (FEAT-7) b1: 요약 열, 팀별 합과 최댓값, 거리 두 열
-  (FEAT-8) m4_masked_inputs: 가린 M4 입력 행 (b0 또는 b1 행, q, m, z, K, O)
-
-공통 가정과 검사. 검사하는 것: 역할 이름(FIT, STOP, DEV 밖은 배열을 읽기 전에 거부); 저장소 배열의 존재와 모양과 보기 수; 경기 번호가 역할 표 안에 있는 것; fit_views가 None이 아니고 비지 않고 범위 안인 것; b0의
-시각이 유한하고 값이 ±∞가 아닌 것; q, m, z의 정수와 범위, K와 O의 유한과 비음수. 검사하지 않는 것: fit_views가 실제 FIT 보기인지(호출자가 split_views로 고르며, 판정 R14는 fit_views를 기본값 없이 요구할
-뿐이고 FIT 보기를 넘기는 일은 러너가 맡는다); dropped가 FIT 보기에서 나온 것인지; K와 O에 참값이 들어갔는지 표본이 들어갔는지; LightGBM 버전.
+[한국어 설명]
+이 모듈은 교전 및 경기 상태 평가를 위한 머신러닝 기준 모형(B0 선형/로지스틱 회귀, B1 LightGBM)의 피처 테이블을 생성합니다:
+  1. 데이터 분할 및 경기 가중치:
+       - 역할(`FIT`, `STOP`, `DEV`)별 행/뷰 마스킹.
+       - 경기별 가중치($w_i = 1/n_u$): 경기 내 행 수에 반비례하여 가중치를 부여, 특정 경기가 전체 평균을 왜곡하지 않도록 균등화.
+  2. 첫 킬 발생 구역(`unit_zone`):
+       - 교전 단위의 첫 번째 킬이 발생한 협곡 전술 구역(0~9) 또는 결측(-1).
+  3. 무분산 열 제거(`dropped_columns`):
+       - FIT 데이터에서 분산이 없는(상수) 열 및 중복 열(`t_s`)을 자동 식별하여 제외.
+  4. B0 선형 회귀 피처 테이블(`b0`, 39차원):
+       - 블루팀 - 레드팀 차분 벡터: 경기 시간, 7개 위상(Phase), 주요 8개 스탯 차이, 생존자 수, 팀 간 측지선 거리, 오브젝트/버프 차이.
+       - 결측치는 FIT 세트의 평균값(`b0_fit_means`)으로 대치.
+  5. B1 트리 피처 테이블(`b1`):
+       - 요약 통계량 및 선수 스탯의 팀별 합계(sum)와 최댓값(max) 분리 보존. 결측치(NaN)는 LightGBM이 직접 처리.
+  6. 가면 M4 입력 행렬(`m4_masked_inputs`):
+       - 교전 직후의 가치 전환(Conversion) 평가를 위한 조건부 결합 행렬 생성.
 """
 # Ref: docs/superpowers/plans/2026-10-21-c-ept-s3.md decisions P4 (K is the kills and the kill gold of the two teams; the 18 cells of O), P6
 #      (B0's masked M4 is conditioned on the t0 row and on q, m, z only, and B0 gets one-hot columns; B1's masked M4 also reads K and O,
@@ -95,8 +59,8 @@ from dataclasses import dataclass
 import numpy as np
 
 from c_ept import config as C
-from c_ept import flowprice
-from c_ept.casts import narrow
+from c_ept.valuation import flowprice
+from c_ept.data.casts import narrow
 
 # ---- the columns of b0 -----------------------------------------------------------------------------------------------------------------
 _PLAYER_DIFFS = ('totalGold', 'xp', 'level', 'minionsKilled', 'jungleMinionsKilled', 'alive', 'respawn_s', 'item_gold_owned')
@@ -151,7 +115,7 @@ class _Plan:
 @functools.lru_cache(maxsize=1)
 def _plan() -> _Plan:
     """The column numbers of b0. Imports ``tokens`` here, so that a caller of the split functions does not load the S2 modules."""
-    from c_ept import tokens
+    from c_ept.preprocessing import tokens
     summary, players = tuple(tokens.SUMMARY), tuple(tokens.PLAYER_NUM)
     both = sorted(set(summary) & set(players))
     if both:
@@ -225,6 +189,24 @@ def split_views(s1, s2, role) -> np.ndarray:
     return _in_roles(np.asarray(s1.array('matches/role')), np.asarray(s2.array('views/match')), codes, 'views/match')
 
 
+def checked_matches(s1, role, matches) -> np.ndarray:
+    """Validate global match indices against authoritative roles before subsetting.
+
+    A role is validated before any store access. No synthetic role codes are used.
+    The sorted result is a copy; callers retain canonical S1/S2 row numbering.
+    """
+    codes = flowprice._role_codes(role)
+    selected = np.asarray(matches)
+    if selected.ndim != 1 or selected.dtype.kind not in 'iu':
+        raise ValueError('matches must be a one-dimensional integer selection')
+    roles = np.asarray(s1.array('matches/role'))
+    if selected.size == 0 or not _in_roles(roles, selected, codes, 'selected matches').all():
+        raise ValueError('selected matches must be nonempty and belong to the requested role')
+    if len(np.unique(selected)) != len(selected):
+        raise ValueError('selected matches must be distinct')
+    return np.sort(selected.astype(np.int64))
+
+
 def match_weights(match) -> np.ndarray:
     """(n,) float64: 1 / n_u for each row, n_u the number of the rows in ``match`` (the match number of every row, integers) that have the
     same match number. The weights of a match add up to 1. TypeError for match numbers that are not integers, ValueError for a shape that
@@ -264,36 +246,33 @@ def match_weights(match) -> np.ndarray:
 
 # ---- the zone label of a unit (ruling R17) -----------------------------------------------------------------------------------------------
 def unit_zone(s1) -> np.ndarray:
-    """(n units,) int8: the zone of the first kill of every unit of the S1 store, an index into ``terrain.ZONES`` (0 .. 9), and -1 where the
-    kill has no position (``kills/pos_missing``; a NaN coordinate is no position either). Units are in the order of the S1 ``units`` table,
-    all roles; select the rows of a role with ``role_mask(s1, 'units', role)``.
-
-    Reads ``units/kill0`` (the global kill number of the first kill of each unit), ``kills/x``, ``kills/y`` and ``kills/pos_missing``.
-    ValueError for a store without one of them (naming it), for arrays of different numbers of kills and for a first kill that is no kill
-    of the store. The ``-1`` is no zone: the heads leave it out of the fit of rho and count it, and give it its own category as an input.
-
-    수식
-    ----
-    (FEAT-2)  z_i = −1 (pos_missing[k₀(i)]),   z_i = zone_of(pos_x(k₀(i)), pos_y(k₀(i))) (그 밖);   zone_of는 (TER-7), 좌표가 NaN이면 −1      (int8)
-
-      기호          | 뜻                                          | 단위 | 범위                  | 코드 변수
-      i             | 단위 번호(0부터, S1 units 표의 행)          | —    | 0, …, 단위 수 − 1     | 반환 배열의 색인
-      k₀(i)         | 단위 i의 첫 킬의 전역 킬 번호(0부터)        | —    | 0, …, 킬 수 − 1       | units/kill0
-      pos_x, pos_y  | 그 킬의 위치 좌표(코드의 kills/x, kills/y)  | u    | 유한 또는 NaN         | kills/x, kills/y
-      pos_missing   | 위치가 없다는 표시                          | —    | 참 또는 거짓          | kills/pos_missing
-      z_i           | 첫 킬의 구역(``terrain.ZONES``의 0 기준 색인) | —  | −1, 0, …, 9           | 반환값
-
-    해석
-    ----
-    식 (FEAT-2)는 단위마다 첫 킬의 구역을 구역 머리 ρ의 정답으로 주고, M3·M4 머리의 구역 입력으로도 준다. 위치가 없는 킬(위치 없음 표시가 참이거나 좌표가 NaN)은
-    구역이 없어 −1이며, 머리는 −1을 ρ의 적합에서 빼고 세며 입력에서는 별도 범주로 둔다(S3 계획 전역 제약 구역 z). 두 기준 모형이 같은 구역 값을 쓰도록 이 값은 한 곳에서만
-    만든다(판정 R17). 결과는 모든 역할의 단위를 담으므로 한 역할의 단위는 역할 마스크로 따로 고른다.
-
-    근거
-    ----
-    S3 판정 R17(첫 킬의 구역, 위치가 없으면 구역 없음); S3 계획 전역 제약 구역 z; 구역 규칙은 (TER-7).
     """
-    from c_ept import terrain       # here, not at module level: the zone rules live in ``terrain``, which imports the run log
+    Engagement Unit Zone Label / 교전 단위의 첫 번째 킬 발생 전술 구역 식별
+
+    [English]
+    Identifies the tactical zone (0..9 in terrain.ZONES) of the first kill of every engagement unit:
+      - Reads `units/kill0`, `kills/x`, `kills/y`, and `kills/pos_missing`.
+      - Returns zone ID (0..9) via `terrain.zone_of(x, y)`.
+      - Returns -1 if the kill has no valid position or coordinates are NaN.
+
+    [한국어 설명]
+    S1 스토어의 모든 교전 단위에 대해 첫 번째 킬이 일어난 소환사의 협곡 전술 구역(0~9)을 구합니다:
+      - `units/kill0` (단위별 첫 킬 인덱스), `kills/x`, `kills/y`, `kills/pos_missing` 조회.
+      - 구역 번호(0~9, `terrain.ZONES`) 반환. 위치 정보가 없거나 결측인 경우 -1 반환.
+    """
+    return _unit_zone(s1)
+
+
+def unit_zone_subset(s1, units) -> np.ndarray:
+    """Global unit-zone array; only selected units' first-kill positions are read.
+
+    Unselected positions are -1 placeholders and are never used as fitted rows.
+    """
+    return _unit_zone(s1, units=units)
+
+
+def _unit_zone(s1, *, units=None) -> np.ndarray:
+    from c_ept.preprocessing import terrain       # here, not at module level: the zone rules live in ``terrain``, which imports the run log
     arrays = {}
     for name in ('units/kill0', 'kills/x', 'kills/y', 'kills/pos_missing'):
         try:
@@ -303,11 +282,18 @@ def unit_zone(s1) -> np.ndarray:
     n_kills = len(arrays['kills/x'])
     if len(arrays['kills/y']) != n_kills or len(arrays['kills/pos_missing']) != n_kills:
         raise ValueError('kills/x, kills/y and kills/pos_missing hold different numbers of kills')
-    kill0 = np.asarray(arrays['units/kill0']).astype(np.int64)
+    selected = None if units is None else view_index(len(arrays['units/kill0']), units)
+    kill0 = np.asarray(arrays['units/kill0'] if selected is None else arrays['units/kill0'][selected]).astype(np.int64)
     if kill0.size and (kill0.min() < 0 or kill0.max() >= n_kills):
         raise ValueError(f'units/kill0 names a kill outside 0 .. {n_kills - 1}')
-    zone = terrain.zone_of(np.asarray(arrays['kills/x'])[kill0], np.asarray(arrays['kills/y'])[kill0])
-    return narrow('unit_zone', np.where(np.asarray(arrays['kills/pos_missing'])[kill0].astype(bool), -1, zone), np.int8)
+    if selected is None:
+        zone = terrain.zone_of(np.asarray(arrays['kills/x'])[kill0], np.asarray(arrays['kills/y'])[kill0])
+        return narrow('unit_zone', np.where(np.asarray(arrays['kills/pos_missing'])[kill0].astype(bool), -1, zone), np.int8)
+    zone = terrain.zone_of(np.asarray(arrays['kills/x'][kill0]), np.asarray(arrays['kills/y'][kill0]))
+    values = narrow('unit_zone', np.where(np.asarray(arrays['kills/pos_missing'][kill0]).astype(bool), -1, zone), np.int8)
+    result = np.full(len(arrays['units/kill0']), -1, dtype=np.int8)
+    result[selected] = values
+    return result
 
 
 # ---- reading the S2 arrays ---------------------------------------------------------------------------------------------------------------
@@ -552,47 +538,28 @@ def _checked_counts(fill_counts):
 
 
 def b0(s2, views, fit_means=None, *, fill_counts=None) -> np.ndarray:
-    """(n, 39) float32: the b0 columns (``B0_NAMES``) of the views ``views`` of the S2 store ``s2`` (view numbers in any order, or a bool
-    mask).
+    """
+    B0 Baseline Feature Matrix (39 columns) / B0 선형 회귀 모형용 39차원 특성 행렬 생성
 
-    ``fit_means``: the (39,) FIT means of ``b0_fit_means``. A NaN cell takes the mean of its column (ruling R2); without ``fit_means`` a
-    view with a NaN cell is refused (ValueError), so that no view is ever filled from the views at hand. ``fill_counts``: an int array
-    of 39 that gets the number of cells filled, per column, added to it (nothing is added if the call fails). Reads ``x/summary``,
-    ``x/players_num`` and ``x/geo_pp`` only. ValueError for a time that is not finite or an infinite value (naming the column).
+    [English]
+    Generates the 39-column difference feature matrix (B0_NAMES) for the requested S2 views:
+      - Columns 0..7: Game time (minutes) and 7 phase indicators.
+      - Columns 8..15: Player stat differences (Blue team sum - Red team sum).
+      - Column 16: Total alive players on both teams.
+      - Columns 17..18: Min and mean geodesic walking distance between Blue and Red champions.
+      - Columns 19..33: Objective score differences (towers, inhibs, plates, dragons, barons, etc.).
+      - Columns 34..38: Up/available indicators for neutral objectives.
+      - Imputation: NaN cells are filled using `fit_means` (the mean of each column on the FIT split).
 
-    수식
-    ----
-    (FEAT-4)  열 0: summary[game_time_s] / 60;   열 1–7: [phase(rint(1000 · summary[game_time_s])) = ph], ph = 1, …, 7
-              열 8–15: Σ_{p=0}^{4} players[p, c] − Σ_{p=5}^{9} players[p, c]
-                (c: totalGold, xp, level, minionsKilled, jungleMinionsKilled, alive, respawn_s, item_gold_owned)
-              열 16: Σ_{p=0}^{9} players[p, alive];   열 17, 18: (FEAT-5)
-              열 19–31: Σ_{blue 열} summary − Σ_{red 열} summary
-                (포탑 4종, inhibs_down, plates(세 레인의 합), dragons, elders, barons, heralds, atakhans, voidgrubs, has_soul)
-              열 32, 33: [blue_<buff>_buff_s > 0] − [red_<buff>_buff_s > 0] (buff = baron, elder; 둘 중 하나가 NaN이면 NaN)
-              열 34–38: summary[dragon_up, baron_up, herald_up, atakhan_up, voidgrub_up]
-    (FEAT-5)  pairs = {(p, p′) : p = 0, …, 4, p′ = 5, …, 9, geo[p, p′]가 NaN이 아님}
-              geo_min = min geo[p, p′],  geo_mean = Σ geo[p, p′] / #pairs;  pairs가 비면 둘 다 NaN
-    (FEAT-6)  채움: 열 c의 NaN 칸 ← mean_c (``b0_fit_means``);  출력은 float32
-
-      기호          | 뜻                                          | 단위   | 범위                   | 코드 변수
-      summary[c]    | x/summary의 열 c(float32를 float64로)       | 열마다 | 유한 또는 NaN          | summary
-      players[p, c] | x/players_num의 선수 행 p, 열 c             | 열마다 | 유한 또는 NaN          | players
-      geo[p, p′]    | x/geo_pp의 두 선수 사이 측지 거리           | u      | ≥ 0 또는 NaN           | geo
-      pairs, geo_min, geo_mean | 파랑 × 빨강 중 거리가 있는 쌍, 최솟값, 평균 | —; u; u | 쌍이 없으면 NaN | have, 열 이름 geo_min, geo_mean
-      phase(t)      | 프레임 시계의 시기 번호(ms에서)             | —      | 0, …, 7                | flowprice.phase_of
-      ph            | 시기 번호(기준인 0은 열이 없음)             | —      | 1, …, 7                | 열 1–7의 번호
-      buff          | 버프 이름                                   | —      | baron, elder           | _BUFFS
-
-    해석
-    ----
-    식 (FEAT-4)는 한 보기를 39열로 줄이며, 선수 값의 팀 합과 요약 값은 파랑 − 빨강의 차이로 두고 시간과 시기 지시자, 두 팀의 생존 합, 거리, 등장 표시는 차이를 내지
-    않는다. 시기 지시자는 시각을 ms로 반올림해 프레임 시계와 같은 규칙으로 정하고, 첫 시기를 기준으로 두어 그 열은 없다. 버프는 남은 초가 양수인 쪽을 활성으로 보고 두
-    팀 지시자의 차이를 낸다. 거리 (FEAT-5)는 위치가 없는 쌍을 두 열에서 모두 빼므로 쌍이 하나도 없으면 NaN이고, 그 칸과 다른 결측 칸은 (FEAT-6)의 FIT 평균을 받는다.
-    결측 표시 열을 두지 않으므로 열의 수는 자료와 무관하게 39이고(판정 R2), 챔피언·아이템·패치 id는 읽지 않는다(설계서 5.3절).
-
-    근거
-    ----
-    S3 판정 R2(고정 폭, FIT 평균, 결측 표시 열 없음), R34(열별 채움 수); S3 계획 Task 5; 설계서 5.3절(챔피언·아이템·패치 id 없음)과 9절(기준 모형 B0).
+    [한국어 설명]
+    요청된 S2 뷰들에 대해 39차원 B0 특성 행렬(`B0_NAMES`)을 계산합니다:
+      - 0~7열: 게임 시간(분) 및 7개 경기 페이즈 원핫 플래그.
+      - 8~15열: 주요 선수 8개 스탯의 팀 간 차분(블루팀 합계 - 레드팀 합계).
+      - 16열: 양 팀 전체 생존자 수.
+      - 17~18열: 양 팀 선수들 간의 최소/평균 최단 보행(측지선) 거리.
+      - 19~33열: 오브젝트 득실 차이(포탑, 억제기, 채굴, 용, 바론 등).
+      - 34~38열: 중립 오브젝트 현재 출현 여부.
+      - 결측치 처리: 결측 셀(NaN)은 `fit_means`(FIT 세트의 열별 평균값)로 대치됩니다.
     """
     means, counts = _checked_means(fit_means), _checked_counts(fill_counts)
     a = _arrays(s2, 'summary', 'players_num', 'geo_pp')
@@ -606,7 +573,7 @@ def b0(s2, views, fit_means=None, *, fill_counts=None) -> np.ndarray:
                 raise ValueError(f'b0: {int(nan.sum())} cell(s) in {int(nan.any(axis=1).sum())} view(s) of this chunk have no value (a '
                                  'missing position leaves no distance): pass fit_means, the FIT mean of every column '
                                  '(features.b0_fit_means)')
-            # (FEAT-6)의 채움: NaN 칸만 FIT 평균으로 바꾸고 센다. 평균이 없으면 위에서 이미 거부했다.
+            # (FEAT-6) imputation: only replace NaNs with FIT split means
             raw = np.where(nan, means[None, :], raw)
             filled += nan.sum(axis=0)
         out[lo:lo + len(raw)] = narrow('b0', raw, np.float32)
@@ -616,7 +583,6 @@ def b0(s2, views, fit_means=None, *, fill_counts=None) -> np.ndarray:
 
 
 # ---- b1 ----------------------------------------------------------------------------------------------------------------------------------
-# (FEAT-7)의 남긴 열을 정한다.
 def _kept(plan: _Plan, dropped) -> tuple:
     """(kept summary column numbers, kept player column numbers) once the names ``dropped`` are left out; ValueError for a name that is no
     column of the view."""
@@ -632,9 +598,7 @@ def _kept(plan: _Plan, dropped) -> tuple:
 
 
 def b1_columns(dropped=()) -> tuple:
-    """The names of the b1 columns when the columns ``dropped`` are left out (see the module text for the order).
-
-    (FEAT-7)의 열 이름을 순서대로 낸다. 모르는 열 이름은 거부한다."""
+    """The names of the b1 columns when the columns ``dropped`` are left out (see the module text for the order)."""
     plan = _plan()
     ks, kp = _kept(plan, dropped)
     players = tuple(plan.player_names[i] for i in kp)
@@ -643,29 +607,22 @@ def b1_columns(dropped=()) -> tuple:
 
 
 def b1(s2, views, dropped) -> np.ndarray:
-    """(n, d) float32 with d = ``len(b1_columns(dropped))``: the b1 columns of the views ``views`` (view numbers in any order, or a bool
-    mask). A NaN stays NaN; nothing is filled. Reads ``x/summary``, ``x/players_num`` and ``x/geo_pp`` only.
+    """
+    B1 LightGBM Baseline Feature Matrix / B1 트리 모델(LightGBM)용 피처 행렬 생성
 
-    수식
-    ----
-    (FEAT-7)  요약 열 c ∈ 남긴 열: summary[c];   남긴 선수 열 c마다: sum_blue_c = Σ_{p=0}^{4} players[p, c],  sum_red_c = Σ_{p=5}^{9} players[p, c],
-              max_blue_c = max_{p=0..4} players[p, c],  max_red_c = max_{p=5..9} players[p, c]
-              마지막 두 열: geo_min, geo_mean (FEAT-5);   float32
+    [English]
+    Generates the feature matrix for LightGBM baseline models (b1_columns):
+      - Retained summary columns (after excluding `dropped`).
+      - Team sums and maxima (sum_blue, sum_red, max_blue, max_red) for retained player stats.
+      - Min and mean geodesic distances between teams.
+      - NaNs are kept untouched (LightGBM natively branches on missing values).
 
-      기호          | 뜻                                          | 단위   | 범위                | 코드 변수
-      c             | 빼지 않은 요약 열 또는 선수 열              | —      | tokens의 열         | ks, kp
-      summary[c]    | x/summary의 열 c                            | 열마다 | 유한 또는 NaN       | summary
-      players[p, c] | x/players_num의 선수 행 p, 열 c             | 열마다 | 유한 또는 NaN       | players
-      d             | 열의 수                                     | 열     | 요약 열 수 + 4 × 선수 열 수 + 2 | len(b1_columns(dropped))
-
-    해석
-    ----
-    식 (FEAT-7)은 선수 열마다 두 팀의 합과 최댓값을 따로 두고(차이로 줄이지 않는다), 요약 열은 그대로 둔다. 선수 다섯 가운데 하나라도 NaN이면 그 팀의 합과 최댓값이
-    NaN이며, LightGBM이 NaN을 결측으로 읽으므로 아무것도 채우지 않는다. 마지막 두 거리 열은 B0 특징의 거리 (FEAT-5)와 같다.
-
-    근거
-    ----
-    S3 계획 Task 5(b1의 열); S2 관문 S2G-4(뺄 열); 설계서 9절(기준 모형 B1); 거리 열은 (FEAT-5).
+    [한국어 설명]
+    LightGBM 기준 모형을 위한 피처 행렬을 생성합니다:
+      - 분산이 없어 제거된 열(`dropped`)을 제외한 잔존 요약 통계량.
+      - 선수 스탯의 블루/레드 팀별 합계(sum) 및 최댓값(max).
+      - 양 팀 간 최소 및 평균 측지선 보행 거리.
+      - 결측치(NaN)는 LightGBM이 직접 처리하므로 대치하지 않고 그대로 유지합니다.
     """
     plan = _plan()
     ks, kp = _kept(plan, dropped)
@@ -711,36 +668,26 @@ def _count_table(name: str, x, n: int, width: int) -> np.ndarray:
 
 
 def m4_masked_inputs(row_view, q, m, z, K, O) -> np.ndarray:
-    """(n, d + 25) float32: the input of the masked M4 head and the only way to build it: ``row_view`` (n, d), the features of the t0 row
-    (b0 or b1, already computed; a NaN stays), then q (the onset bin, 0 .. 17), m (the mark, 0 .. 51), z (the zone, -1 .. 9; -1 = the first
-    kill has no position), K (n, 4) = kills blue, kills red, gold blue, gold red (the raw gold; it is divided by 1,000 here) and O (n, 18)
-    the objectives of the cells 2 kind + taker. ``m4_columns(row_names)`` names the columns. q, m and z are integer arrays; K and O are
-    finite and not negative. TypeError / ValueError otherwise (naming the argument). The arguments are not changed.
+    """
+    Masked M4 Conditioning Matrix Builder / 사후 가치 전환(M4) 평가를 위한 조건부 입력 행렬 조합
 
-    수식
-    ----
-    (FEAT-8)  x_i = ( rv_i (d개), q_i, m_i, z_i, k_blue, k_red, g_blue / 1000, g_red / 1000, O_i (18개) )      (n, d + 25), float32
-              K_i = (k_blue, k_red, g_blue, g_red);   q ∈ {0, …, N_BINS − 1},  m ∈ {0, …, N_MARKS − 1},  z ∈ {−1, 0, …, 9}
+    [English]
+    Builds the conditioning input matrix for the masked M4 model:
+      - `row_view` (n, d): Baseline features of the onset timestamp (b0 or b1).
+      - `q` (n,): Onset temporal bin (0..17, 10s bins within the 3-minute window).
+      - `m` (n,): First-kill mark index (0..51, indicating who died first or execution).
+      - `z` (n,): Tactical zone of the first kill (-1..9).
+      - `K` (n, 4): Raw combat stats (Blue kills, Red kills, Blue gold / 1000, Red gold / 1000).
+      - `O` (n, 18): Post-fight objective outcomes (towers, dragons, barons taken).
 
-      기호         | 뜻                                          | 단위   | 범위                    | 코드 변수
-      rv_i         | t₀ 행의 특징 행(b0 또는 b1, NaN은 그대로)   | 열마다 | 유한 또는 NaN           | row_view
-      q_i, m_i, z_i | 발생 구간, 표지, 첫 킬 구역(수로 넣는다)   | —      | 위 범위                 | q, m, z
-      k_blue, k_red | 파랑·빨강의 킬 수                          | 개     | 유한, ≥ 0               | K[:, 0], K[:, 1]
-      g_blue, g_red | 파랑·빨강의 킬 골드(원값; 1,000으로 나눔)  | 골드   | 유한, ≥ 0               | K[:, 2], K[:, 3]
-      O_i          | 오브젝트 18칸(종류 × 가져간 팀)의 개수      | 개     | 유한, ≥ 0               | O
-      d            | row_view의 열 수                            | 열     | ≥ 0                     | row_view.shape[1]
-
-    해석
-    ----
-    식 (FEAT-8)은 가린 M4 머리가 읽는 값을 한 행렬로 만들며, t₀ 행의 특징 뒤에 앞선 사슬의 값 q, m, z와 K, O를 놓는다. 계획의 전역 제약 인과(A3)는 가린 M4 입력을
-    이 함수로만 만들게 하고, 누설 시험 (a)가 그 경로를 확인한다. 어느 머리가 K, O 열을 읽는지는 머리가 정하며(계획 P6: B0의 가린 M4는 t₀ 행과 q, m, z만 읽는다),
-    이 함수는 호출자가 준 값(학습의 참값이든 합성의 표본이든)을 그대로 넣는다. q, m, z는 원핫이 아니라 수로 넣고 기준 모형이 스스로 원핫이나 범주로 바꾼다. 골드는 천 단위로
-    나누어 개수와 크기를 맞추며, float32로 줄일 때 범위를 검사한다.
-
-    근거
-    ----
-    S3 계획 P4(K는 두 팀의 킬 수와 킬 골드, O는 오브젝트 칸), P6(B0 가린 M4의 조건), Task 5(유일한 경로), Task 7(학습의 K, O는 실제값), 전역 제약 인과(A3)(누설 시험 (a)); 설계서 3.2절(결과 Y의
-    두 부분).
+    [한국어 설명]
+    교전 종료 후의 가치 전환(Post-fight Conversion)을 평가하는 M4 모델의 입력 행렬을 조합합니다:
+      - `row_view`: 교전 시작 시점의 베이스라인 피처 행렬 (`b0` 또는 `b1`).
+      - `q`: 교전 발생 시점의 10초 단위 구간 인덱스 (0~17).
+      - `m`: 첫 킬 사망자 표지 마크 (0~51).
+      - `z`: 첫 킬 발생 전술 구역 (-1~9).
+      - `K`: 양 팀 킬 수 및 킬 골드 (골드는 1,000으로 나누어 정규화).
+      - `O`: 교전 후 획득한 18개 셀의 오브젝트 결과.
     """
     rv = np.asarray(row_view)
     if rv.dtype.kind not in 'fiu':

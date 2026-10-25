@@ -27,7 +27,11 @@ import numpy as np
 import pytest
 from scipy import stats
 
-from c_ept import compose, features, flowprice, heads, towertier
+from c_ept.valuation import compose
+from c_ept.preprocessing import features
+from c_ept.valuation import flowprice
+from c_ept.models import heads
+from c_ept.valuation import towertier
 from c_ept import config as C
 from c_ept.tests.conftest import all_imports, module_level_imports
 from c_ept.tests.s3_toys import (KEY_PREFIX, TOY_B1_LIKE_HEADS, TOY_COMPOSE_PRICES, TOY_EXPECTED_V60, TOY_EXPECTED_V60_CUT,  # noqa: F401
@@ -1492,7 +1496,7 @@ def world_row_table(w, role):
 
 @pytest.fixture(scope='module')
 def b0_composer(heads_world):
-    from c_ept import baselines_b0
+    from c_ept.models import baselines_b0
     fitted = baselines_b0.B0Heads.fit(heads_world.s1, heads_world.s2, heads_world.labels, heads_world.fit_means)
     rows = world_row_table(heads_world, 'DEV')
     return compose.Composer(fitted.composer_heads('masked'), TOY_COMPOSE_PRICES, hand_tier_model(), TOY_GOLD_REPS, rows, heads_world.s2,
@@ -1589,7 +1593,7 @@ B1_SMALL = {'num_leaves': 7, 'min_data_in_leaf': 5, 'num_iterations': 30, 'min_d
 
 @pytest.fixture(scope='module')
 def b1_composer(heads_world):
-    from c_ept import baselines_b1
+    from c_ept.models import baselines_b1
     dropped = features.dropped_columns(heads_world.s2, heads_world.fit_views)
     fitted = baselines_b1.B1Heads.fit(heads_world.s1, heads_world.s2, heads_world.labels, dropped, params=B1_SMALL)
     rows = world_row_table(heads_world, 'DEV')

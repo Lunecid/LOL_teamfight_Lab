@@ -13,7 +13,7 @@ import numpy as np
 import pytest
 
 from c_ept import config as C
-from c_ept import reader
+from c_ept.data import reader
 from c_ept.tests import synth
 from c_ept.tests.conftest import read_json
 
@@ -919,7 +919,7 @@ def test_the_read_error_is_an_os_error_and_neither_a_rejection_nor_a_format_erro
 
 
 def test_a_read_error_stops_the_s1_extraction_instead_of_becoming_a_counted_rejection(tmp_path, monkeypatch):
-    from c_ept import run_s1                  # here: this file needs the S1 runner chain for nothing else
+    from c_ept.workflows import run_s1                  # here: this file needs the S1 runner chain for nothing else
     write_keyed_match(tmp_path)
     monkeypatch.setattr(reader, 'open', failing_open('detail', permission_denied), raising=False)
     with pytest.raises(reader.MatchReadError) as err:           # a MatchRejected would come back as {'reject': code}

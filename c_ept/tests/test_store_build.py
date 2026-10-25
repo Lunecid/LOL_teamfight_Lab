@@ -31,9 +31,14 @@ import numpy as np
 import pytest
 
 from c_ept import config as C
-from c_ept import reader, run_s1, run_s2, runlog, store_build, store_core, terrain, tokens
+from c_ept.data import reader
+from c_ept.workflows import run_s1, run_s2
+from c_ept import runlog
+from c_ept.data import store_build, store_core
+from c_ept.preprocessing import terrain, tokens
 from c_ept.tests import synth
-from c_ept.tests.conftest import empty_process_list
+from c_ept.tests.conftest import (PROTECTED_IMPORT_PRELUDE, empty_process_list,
+                                  import_watch_names, module_level_imports)
 
 REPO = Path(C.__file__).parents[1]
 MACROS = synth.S1_MACROS
@@ -1695,27 +1700,7 @@ def test_frame_times_that_differ_from_s1_stop_the_block_before_it_is_written(s1_
 
 
 # ---- import hygiene (R13-a, R13-g) -------------------------------------------------------------------------------------------------------
-def module_level_imports(path: Path) -> set:
-    """Every module that a statement at module level imports (also inside ``if``/``try``/``with``, not inside a function)."""
-    found = set()
-
-    def visit(body):
-        for node in body:
-            if isinstance(node, ast.Import):
-                found.update(a.name for a in node.names)
-            elif isinstance(node, ast.ImportFrom):
-                found.add(node.module or '')
-                found.update(f'{node.module}.{a.name}' for a in node.names)
-            elif isinstance(node, (ast.If, ast.Try, ast.With)):
-                for part in ('body', 'orelse', 'finalbody'):
-                    visit(getattr(node, part, []))
-                for handler in getattr(node, 'handlers', []):
-                    visit(handler.body)
-    visit(ast.parse(path.read_text(encoding='utf-8')).body)
-    return found
-
-
-S1_CHAIN = ('c_ept.run_s1', 'c_ept.targets', 'c_ept.event_rows', 'c_ept.frame_rows', 'c_ept.cohort')
+S1_CHAIN = import_watch_names(('c_ept.run_s1', 'c_ept.targets', 'c_ept.event_rows', 'c_ept.frame_rows', 'c_ept.cohort'))
 
 
 @pytest.mark.parametrize('name', ['store_build.py', 'run_s2.py'])
@@ -1724,8 +1709,10 @@ def test_no_module_level_import_reaches_the_s1_runner_or_the_s1_targets(name):
     assert not [i for i in imports if i in S1_CHAIN or i.startswith(S1_CHAIN)], sorted(imports)       # a spawned worker imports this module
 
 
-def test_importing_the_builder_and_the_runner_loads_no_s1_module():
-    code = ('import sys, c_ept.store_build, c_ept.run_s2\n'
+@pytest.mark.parametrize('statement', ['import c_ept.store_build, c_ept.run_s2',
+                                       'import c_ept.data.store_build, c_ept.workflows.run_s2'])
+def test_importing_the_builder_and_the_runner_loads_no_s1_module(statement):
+    code = (PROTECTED_IMPORT_PRELUDE + f'import sys\n{statement}\n'
             f'print(sorted(m for m in {S1_CHAIN!r} if m in sys.modules))')
     done = subprocess.run([sys.executable, '-B', '-c', code], cwd=REPO, capture_output=True, text=True, timeout=300)
     assert done.returncode == 0 and done.stdout.strip() == '[]', done.stderr[-500:]
@@ -1734,7 +1721,7 @@ def test_importing_the_builder_and_the_runner_loads_no_s1_module():
 def test_the_e6_guard_is_imported_inside_the_entry_points():
     tree = ast.parse(Path(store_build.__file__).read_text(encoding='utf-8'))
     build_fn = next(n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == 'build_s2')
-    inner = [n for n in ast.walk(build_fn) if isinstance(n, ast.ImportFrom) and n.module == 'c_ept.run_s1']
+    inner = [n for n in ast.walk(build_fn) if isinstance(n, ast.ImportFrom) and n.module == 'c_ept.workflows.run_s1']
     assert inner and any(a.name == 'require_no_strata' for n in inner for a in n.names)
 
 

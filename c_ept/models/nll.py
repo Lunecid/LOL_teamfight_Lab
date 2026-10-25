@@ -1,65 +1,43 @@
-r"""The NLL scores that every baseline and the later EPT share (stage S3 Task 5).
+r"""[모듈 개요 및 하네스 위치]
+이 모듈은 기준 모형(B0, B1)과 본 EPT 신경망 모형이 공유하는 표준화된 음의 로그 우도(NLL) 및
+통계적 평가 지표(가중 평균, 경기 단위 군집 부트스트랩)를 계산하는 핵심 채점 엔진이다 (stage S3 Task 5).
 
-Every head of the model is scored by a negative log-likelihood per cell, in the same probability family for all models, so that the numbers
-of different models can be put side by side (guideline F3; decision P4). This module is that one scoring code: it does not know a model, a
-store or a match key, only arrays.
+A. 하네스 및 파이프라인 내 위치:
+   - 모든 모형의 머리(heads)는 공통된 확률 분포 족(Probability Family)과 구간 분할 하에서
+     칸(cell) 단위 NLL로 채점된다 (지침 F3, 결정 P4). 이를 통해 상이한 아키텍처의 성능 수치를 일대일 직접 비교할 수 있다.
+   - 이 모듈은 특정 모델 구조나 저장소 구조에 종속되지 않고, 오직 순수 넘파이 배열 연산으로 엄밀하게 작동한다.
 
-    poisson(y, rate, exposure)   mu - y log mu + log y!, with mu = rate x exposure (per second x seconds), per cell
-    categorical(idx, prob)       - log prob[i, idx[i]], per row
-    gold(idx, prob)              the same over the 31 gold bins of ``value.gold_bin``
-    weighted_mean(values, w)     sum(w v) / sum(w)
-    match_bootstrap(...)         B replicates of the weighted mean, resampling whole matches
+B. 모듈 블록 구성 및 평가 지표 체계:
+   - 블록 1: 전역 상수 및 설정 (부트스트랩 표본 수, 고정 시드, 31개 골드 구간 등)
+   - 블록 2: 노출(Exposure)을 고려한 포아송 음의 로그 우도 계산 (poisson; 식 NLL-1)
+   - 블록 3: 다중 범주형 및 31구간 킬 골드 음의 로그 우도 계산 (categorical, gold; 식 NLL-2, NLL-3)
+   - 블록 4: 경기 단위 가중 평균 및 군집 부트스트랩 신뢰구간 복제 (weighted_mean, match_bootstrap; 식 NLL-4, NLL-5)
 
-Missing and unobserved cells. A cell that was not observed adds nothing to the likelihood, and the functions say how they know:
+C. 결측치 및 미관측 칸 처리 규약:
+   1) 노출 0 (exposure = 0, poisson):
+      - 경기가 조기 종료되었거나 전환 창이 비어 있어 관측 시간이 0인 칸.
+      - 우도에 아무런 기여를 하지 않으므로 NLL = 0.0을 부여하며, 발생률(rate)은 읽지도 않는다.
+      - 단, 노출이 0인데 사건 개수 y > 0이 기록되어 있다면 명백한 데이터 오류이므로 ValueError를 발생시킨다.
+   2) 결측 범주 (idx = -1, categorical, gold):
+      - 첫 킬의 좌표가 미관측된 구역(zone = -1)이거나, 해당 팀의 킬이 0이어서 킬 골드가 발생하지 않은 경우(gold bin = -1).
+      - 확률표의 해당 행을 읽지 않고 NLL = 0.0을 부여하며, 호출자가 미평가 항목 수를 별도로 집계 보고한다.
+   3) log(y!) 항 포함:
+      - 모형 의존 항은 아니지만, 타 확률 족(예: 음이항 분포)과의 직접 NLL 비교를 위해 엄밀한 확률질량함수 음의 로그를 반환.
+   4) 무한대 손실(+inf) 보존:
+      - 모형이 실제 발생한 사건에 확률 0을 부여한 경우 참 손실값인 +inf를 그대로 반환하며,
+        가중 평균 및 부트스트랩 계산 시 이를 조용히 평균내거나 NaN으로 은폐하지 않고 엄격히 차단한다.
 
-    exposure 0     (``poisson``) The cell covers no time: the game ended first, or the conversion window is empty. Its NLL is 0 whatever
-                   the rate is (the rate is not even read), and a count in it is a data error: ValueError, never a score. In the
-                   composition the same cell has no onset and no conversion (``test_no_onsets_in_zero_exposure_bins``).
-    idx -1         (``categorical``, ``gold``) There is no category: the first kill has no position (zone -1) or the team had no kill
-                   (gold bin -1). Its NLL is 0 and its probability row is not read. The caller counts these cells and reports the count
-                   (``features`` and the heads leave the zone -1 out of the fit of rho and count it).
+D. 핵심 수식 (NLL-1 ~ NLL-5):
+   (NLL-1)  포아송 칸 점수     ℓ_i = μ_i − y_i · log μ_i + log(y_i!),  μ_i = λ_i · e_i   (e_i > 0);     ℓ_i = 0   (e_i = 0)
+   (NLL-2)  범주 칸 점수       ℓ_i = −log p_{i, c_i}   (c_i ≥ 0);     ℓ_i = 0   (c_i = −1)
+   (NLL-3)  킬 골드 구간 점수  (NLL-2)에서 C = 31,  c_i = b_i = min(⌊g_i / 100⌋, 30)
+   (NLL-4)  가중 평균          θ̂ = Σ_i w_i · v_i / Σ_i w_i
+   (NLL-5)  경기 재표본 복제   θ*_j = Σ_u d_ju · ṽ_u / Σ_u d_ju · w̃_u,   d_j ~ Multinomial(M; 1/M, …, 1/M)   (j = 1, …, B)
 
-The ``log y!`` term does not depend on the model but it is in the score, so that the Poisson numbers can be written beside those of another
-family (math-control note 03, section C). A model that gives a count probability 0 has an infinite loss (``+inf``): that is the true value
-of the score and it is returned. ``weighted_mean`` and ``match_bootstrap`` refuse non-finite scores, so an infinite cell is never
-averaged away or turned into a NaN interval without a word.
-
-Averaging. ``weighted_mean`` takes the match weights 1/n_u of ``features.match_weights`` and sums exactly (``math.fsum``): the result does
-not depend on the order of the rows. ``match_bootstrap`` resamples whole matches: replicate j has the match counts of the j-th draw of one
-stream, ``numpy.random.default_rng(seed).multinomial(M, 1/M)`` with M the number of distinct matches (in increasing order of their number),
-and is sum(d_ju ṽ_u) / sum(d_ju w̃_u) with ṽ_u and w̃_u the sums of w v and of w over the rows of match u. The counts depend only on M and the
-seed, so two heads scored on the same matches are resampled alike and their replicates can be paired; replicate j does not depend on B.
-Each replicate is computed on its own with numpy sums (no BLAS call whose kernel depends on the shape of a block). A replicate that draws
-only matches without weight has no mean and is NaN.
-
-방법에서의 위치. 이 모듈은 교전 과정 모형(EPT)과 기준 모형이 예측 대상마다 같은 확률 족과 같은 구간으로 같은 척도의 점수를 받도록(계획
-P4, 지침 F3) 칸 하나의 음의 로그 우도(NLL), 그 경기 가중 평균, 경기를 통째로 다시 뽑는 부트스트랩 복제를 계산한다. 교전 과정 모형은
-교전의 발생(M2), 결과(M3), 교전 직후 오브젝트의 전환(M4)을 따로 예측하며(설계서 3절), 교전은 같은 경기에서 15초와 2,000 지도 단위
-이내로 이어진 킬의 묶음이다(설계서 2절). 행은 한 경기에서 평균에 들어가는 점수 단위 하나(발생률은 분 프레임 행, 그 밖의 대상은 발생
-하나(t₀ 행과 그 뒤 첫 킬이 든 교전의 쌍) 또는 교전 하나)이고, 칸은 한 행 안에서 점수를 매기는 가장 작은 단위이며 범주 점수에서는
-항목이라고도 한다. 발생의 10초 구간별 첫 킬 수, 결과의 팀별 킬 수와 오브젝트 칸, 전환의 칸은 노출을 가진 포아송 점수 (NLL-1)로, 첫 킬
-구역·선제 킬 쌍·교전 규모는 범주 점수 (NLL-2)로, 팀의 킬 골드 구간은 31구간 범주 점수 (NLL-3)으로 평가한다. 구현하는 부분은 설계서
-8절(평가와 판정)과 S3 계획의 Task 5이다.
-
-용어. 분 프레임: 경기 상태를 1분마다 찍은 기록이고 t₀는 그 시각이다. 선제 킬 쌍: 교전의 첫 킬에서 킬러 슬롯이 피해자 슬롯을 잡는 방향
-쌍(50개). 표지 m은 이 50쌍과 처형 2개이다. 전환 창: 교전이 끝난 뒤 60초. 오브젝트 칸: 오브젝트 종류와 가져간 팀의 쌍마다 하나(18칸).
-킬 수 층: 킬이 하나 이상인 팀의 킬 수를 1, 2, 3, 4, 5와 6 이상으로 나눈 여섯 층. 도움 풀: 킬 하나에서 도움에 지급되는 골드(계획 P3).
-킬 골드: 기록 bounty, shutdown bounty, 도움 풀의 합.
-
-식 목록. 식 번호는 (모듈 약어-번호) 꼴이며 식과 기호는 docs/superpowers/notes/equation-index.md의 식 색인과 기호 등록부에 올라 있다.
-    (NLL-1)  포아송 칸 점수     ℓ_i = μ_i − y_i·log μ_i + log(y_i!),  μ_i = λ_i·e_i   (e_i > 0);     ℓ_i = 0   (e_i = 0)
-    (NLL-2)  범주 칸 점수       ℓ_i = −log p_{i,c_i}   (c_i ≥ 0);     ℓ_i = 0   (c_i = −1)
-    (NLL-3)  킬 골드 구간 점수  (NLL-2)에서 C = 31,  c_i = b_i = min(⌊g_i / 100⌋, 30)
-    (NLL-4)  가중 평균          θ̂ = Σ_i w_i·v_i / Σ_i w_i
-    (NLL-5)  경기 재표본 복제   θ*_j = Σ_u d_ju·ṽ_u / Σ_u d_ju·w̃_u,   d_j ~ Multinomial(M; 1/M, …, 1/M)   (j = 1, …, B)
-
-공통 가정.
-    (가) 노출과 검열(계획 P10). 노출 e는 그 칸을 실제로 관측한 시간이며, 경기 끝(발생은 T − 30 s, 전환은 T)에서 잘린 칸은 e가 줄거나
-         0이 된다. 이 절단은 관측 설계(검열)이고 모형의 입력이 아니다. e = 0인 칸은 기대 개수가 0이어서 개수 0의 확률이 1이므로 우도에
-         아무것도 더하지 않으며, 그 칸에 기록된 개수는 자료 오류이다. 범주 −1은 검열이 아니다: 구역의 −1은 기록이 빠진 범주이고,
-         골드의 −1은 킬이 0이어서 골드가 0으로 정해진 팀이다.
-    (나) 경기 가중 1/n_u(계획 P7·P9, 설계서 8절). 같은 경기의 행은 같은 흐름을 공유하므로 경기를 하나의 독립 단위로 보아 경기 u의
-         행마다 1/n_u(n_u는 그 경기의 행 수)를 주고, (NLL-5)는 같은 단위인 경기를 통째로 뽑는다.
+E. 하네스 제약 및 공통 가정:
+   - 경기 가중 1/n_u: 한 경기의 흐름을 공유하는 행들에 1/n_u의 가중치를 부여하여 경기가 단일 관측 단위가 되도록 정규화 (결정 P7, P9).
+   - math.fsum을 사용한 완전 정밀 합산으로 행의 순서에 결과가 흔들리지 않음.
+   - 군집 부트스트랩: 경기를 통째로 복원 추출(Multinomial)하여 동일 시드 하에서 서로 다른 모형 간 쌍체 비교 가능 보장.
 """
 # Ref: docs/superpowers/plans/2026-10-21-c-ept-s3.md decisions P4 (the same probability family and the same bins for every model), P10
 #      (exposure, cut at the game end) and Task 5; math-control note 03 sections C (the NLL with exposure, log y! included, exposure 0 adds
@@ -87,7 +65,14 @@ def _bad(mask) -> int:
     return int(np.count_nonzero(mask))
 
 
-# ---- Poisson with exposure --------------------------------------------------------------------------------------------------------------
+# =============================================================================
+# 블록 1: 전역 상수 및 헬퍼
+# =============================================================================
+# (BOOT_B, BOOT_SEED, N_GOLD_BINS, _ROW_SUM_TOLERANCE, _bad)
+
+# =============================================================================
+# 블록 2: 노출(Exposure)을 고려한 포아송 음의 로그 우도 (NLL-1)
+# =============================================================================
 def poisson(y, rate, exposure) -> np.ndarray:
     """The NLL of counts ``y`` under a Poisson law with mean mu = ``rate`` x ``exposure`` (rate per second, exposure in seconds, or any pair
     of units that multiply to the expected count), one value per cell, float64 and the broadcast shape of the three arguments.
@@ -158,13 +143,18 @@ def poisson(y, rate, exposure) -> np.ndarray:
     return np.where(seen, mu - weighted + gammaln(y + 1.0), 0.0)
 
 
-# ---- categorical and gold ---------------------------------------------------------------------------------------------------------------
+# =============================================================================
+# 블록 3: 범주형 및 31구간 킬 골드 음의 로그 우도 (NLL-2, NLL-3)
+# =============================================================================
 def _category_scores(what: str, idx, prob, width: int | None) -> np.ndarray:
-    """The scores of ``categorical`` and ``gold``, after the checks that ``categorical`` lists: ``-log prob[i, idx[i]]`` for an entry with a
-    category and 0 for ``idx[i]`` = -1. ``what`` names the public function in the messages; ``width`` is the number of columns that
-    ``prob`` must have (None: any number).
+    """[내부 유틸리티]: categorical 및 gold의 공통 로그 우도 계산기.
 
-    식은 (NLL-2)이고 ``gold``가 부르면 C = 31이어서 (NLL-3)이다. 기호와 해석은 ``categorical``에 있다."""
+    [역할]:
+    - 식 (NLL-2) ℓ_i = -log prob[i, idx[i]]를 계산한다 (c_i >= 0).
+    - 결측 범주(idx[i] == -1; 예: 미관측 구역, 0킬 팀의 골드)에 대해서는 우도 기여 없이 0.0을 부여한다.
+    - 확률표의 유효성(모든 원소 유한/비음수, 각 행의 합이 1.0)을 정밀 검증한다.
+    - gold 호출 시 width=31로 고정하여 31개 골드 구간 규격을 강제한다 (식 NLL-3).
+    """
     idx = np.asarray(idx)
     if idx.size == 0 and idx.ndim <= 1:
         idx = idx.astype(np.int64)
@@ -270,11 +260,17 @@ def gold(idx, prob) -> np.ndarray:
     return _category_scores('gold', idx, prob, N_GOLD_BINS)
 
 
-# ---- averages ---------------------------------------------------------------------------------------------------------------------------
+# =============================================================================
+# 블록 4: 경기 가중 평균 및 부트스트랩 신뢰구간 (NLL-4, NLL-5)
+# =============================================================================
 def _scored_rows(what: str, values, w) -> tuple:
-    """``(v, w)``: float64 arrays (no copy when they already are) of ``values`` and ``w`` after the checks that ``weighted_mean`` and
-    ``match_bootstrap`` share (1-d arrays of one length, at least one row, finite scores, finite weights that are not negative);
-    ``what`` names the caller in the messages."""
+    """[내부 유틸리티]: weighted_mean 및 match_bootstrap의 공통 입력 검증기.
+
+    [역할]:
+    - 점수 벡터 values와 가중치 벡터 w가 동일한 길이의 1차원 float64 배열인지 확인한다.
+    - 점수에 NaN 또는 무한대(+inf/-inf)가 없는지 검증한다 (비유한 점수의 조용한 은폐 차단).
+    - 가중치가 음수가 아니고 모두 유한한지 검증한다.
+    """
     v = np.asarray(values, dtype=np.float64)
     w = np.asarray(w, dtype=np.float64)
     if v.ndim != 1 or w.shape != v.shape:
@@ -328,8 +324,7 @@ def weighted_mean(values, w) -> float:
 
 
 def _whole(what: str, x, minimum: int) -> int:
-    """``x`` as a Python int, after checking that it is an integer (not a bool) of at least ``minimum``; ``what`` names it in the
-    message."""
+    """[내부 유틸리티]: 정수 매개변수 타입 및 최솟값 검증기 (bool 제외, int 호환 확인)."""
     if isinstance(x, (bool, np.bool_)) or not isinstance(x, (int, np.integer)):
         raise TypeError(f'match_bootstrap: {what} must be an integer, not {type(x).__name__}')
     if x < minimum:

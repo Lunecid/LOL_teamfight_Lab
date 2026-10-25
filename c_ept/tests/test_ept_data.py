@@ -29,7 +29,12 @@ import pytest
 import torch
 
 from c_ept import config as C
-from c_ept import features, head_rows, runlog, symmetry, terrain, tokens, units
+from c_ept.preprocessing import features
+from c_ept.data import head_rows
+from c_ept import runlog
+from c_ept.domain import symmetry
+from c_ept.preprocessing import terrain, tokens
+from c_ept.domain import units
 from c_ept.ept import data
 from c_ept.tests.ept_toys import (CONSTANT_PLAYER_COLUMN, CONSTANT_SUMMARY, EPT_EDGES, EPT_EVENTS, FIT_CONSTANT_SUMMARY, NO_POSITION_CELL,
                                   PCOL, SCOL, build_ept_world, ept_world, world_view, write_views)  # noqa: F401  (the fixture: ruling R1)

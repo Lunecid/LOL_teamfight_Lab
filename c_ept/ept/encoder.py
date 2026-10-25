@@ -54,7 +54,7 @@ import torch.nn.functional as F
 from torch import nn
 
 from c_ept import config as C
-from c_ept import terrain, tokens
+from c_ept.preprocessing import terrain, tokens
 from c_ept.ept import data
 
 N_PLAYERS, N_LANDMARKS = data.N_PLAYERS, data.N_LANDMARKS

@@ -20,7 +20,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from c_ept import rulepay
+from c_ept.valuation import rulepay
 from c_ept.tests.conftest import module_level_imports
 
 REPO = Path(__file__).resolve().parents[2]

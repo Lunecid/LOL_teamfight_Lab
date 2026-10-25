@@ -49,9 +49,11 @@ from typing import NamedTuple
 import numpy as np
 import pytest
 
-from c_ept import compose, features, towertier
+from c_ept.valuation import compose
+from c_ept.preprocessing import features
+from c_ept.valuation import towertier
 from c_ept import config as C
-from c_ept.store_core import Store
+from c_ept.data.store_core import Store
 from c_ept.tests.s3_toys import (TOY_COMPOSE_PRICES, TOY_GOLD_REPS, KOToyHeads, ToyHeads, build_toy_s2, toy_tier_model,  # noqa: F401
                                  toy_value_s1)
 

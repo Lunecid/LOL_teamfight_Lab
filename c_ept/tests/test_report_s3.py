@@ -30,7 +30,9 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from c_ept import baselines_b0, report_s3, run_s3
+from c_ept.models import baselines_b0
+from c_ept.reporting import report_s3
+from c_ept.workflows import run_s3
 from c_ept import config as C
 from c_ept.tests.conftest import empty_process_list
 from c_ept.tests.s3_toys import TOY_PRICES, random_value_record
@@ -205,7 +207,8 @@ def test_a_window_line_uses_the_gate_bootstrap_by_default_and_says_which_it_used
 
 
 def test_the_first_window_line_equals_the_occurrence_calibration_of_the_gate_on_the_same_rows():
-    from c_ept import features, gate_s3
+    from c_ept.preprocessing import features
+    from c_ept.checks import gate_s3
 
     expected_cum, observed, match, w = window_world([6, 8, 5, 9, 12, 7, 6, 10, 11, 4])
     line = report_s3.window_lines(expected_cum, observed, match, B=100)['windows'][0]
@@ -312,7 +315,7 @@ def test_a_row_on_the_edge_of_two_bins_goes_to_the_upper_bin():
 
 
 def test_the_agreement_by_rate_adds_up_to_the_agreement_of_the_gate():
-    from c_ept import gate_s3
+    from c_ept.checks import gate_s3
 
     rng = np.random.default_rng(3)
     n, S = 500, 200
@@ -887,7 +890,8 @@ def test_leaving_out_the_listed_matches_gives_the_counts_and_the_values_worked_o
 
 
 def test_leaving_out_no_match_gives_the_numbers_of_the_gate_functions_on_all_the_rows():
-    from c_ept import features, gate_s3
+    from c_ept.preprocessing import features
+    from c_ept.checks import gate_s3
 
     out = report_s3.sensitivity_without_smoke(**HAND, listed=[], B=100)
     w = features.match_weights(HAND['match'])
@@ -1067,7 +1071,8 @@ def composition_world(n_matches=14, seed=11, keep_every=3):
 
 
 def test_the_composition_summary_of_b1_is_the_gate_statistics_on_the_sampled_rows_with_b0_on_the_same_rows():
-    from c_ept import features, gate_s3
+    from c_ept.preprocessing import features
+    from c_ept.checks import gate_s3
 
     b0, b1, realized, observed = composition_world()
     out = report_s3.b1_composition(b0, b1, realized, observed, sample='a seeded sample of 500 DEV matches', B=50)
@@ -1267,7 +1272,7 @@ def ask(toy_run, run, **kw):
 
 def toy_keys(toy_run) -> list:
     """The match keys of the toy S1 store (sentinels: ``TOYKEY_nnnn``), read here to look for them in what the report wrote."""
-    from c_ept.run_s1 import load_s1
+    from c_ept.workflows.run_s1 import load_s1
 
     s1 = load_s1(toy_run.s1, verify=False)
     keys = [k.decode('ascii') for k in np.asarray(s1.array('matches/key')).tolist() if k]
@@ -1350,8 +1355,8 @@ def brute_pit(q19, y, w):
 
 
 def test_item_5_the_value_section_holds_the_deciles_and_the_pit_of_h_60_s_for_b0_and_b1(reported, toy_run):
-    from c_ept import features
-    from c_ept.store_core import Store
+    from c_ept.preprocessing import features
+    from c_ept.data.store_core import Store
 
     gate = read_json(toy_run.run / 'gate' / 'GATE.json')['results']['value']
     doc = reported.doc['value_deciles']
@@ -1446,7 +1451,7 @@ def direct_window_lines(s1_path, arrays):
     """The slope and observed / expected of the three windows and the whole 180 s, from the arrays of a compose file and the S1 onsets, with
     numpy only: the onsets of each window are counted by the bin range (not by differences), the expected counts are the differences of the
     cumulative columns, the weights are 1 / n_m, and the slope is the textbook weighted least-squares formula."""
-    from c_ept.run_s1 import load_s1
+    from c_ept.workflows.run_s1 import load_s1
 
     s1 = load_s1(s1_path, verify=False)
     row, bin_ = np.asarray(s1.array('onsets/row')).astype(np.int64), np.asarray(s1.array('onsets/bin')).astype(np.int64)
@@ -1592,7 +1597,7 @@ def test_the_sensitivity_without_the_smoke_matches_says_why_when_the_decision_re
 def fake_smoke_run(root: Path, toy_run, n: int = 12, **changes) -> Path:
     """A run folder that holds just the RUN.json of a smoke run made on the S1 store of the toy run: the smoke block is what
     ``run_s3.select_smoke(S1, n)`` gives (a seeded selection of ceil(0.3 n) DEV matches among others), as the runner writes it."""
-    from c_ept.run_s1 import load_s1
+    from c_ept.workflows.run_s1 import load_s1
 
     store = load_s1(toy_run.s1, verify=False)
     selection = run_s3.select_smoke(store, n)
@@ -1644,7 +1649,7 @@ def test_carry_3_leaving_out_the_smoke_dev_matches_drops_exactly_those_rows_and_
     assert sens['occurrence']['oe'] == pytest.approx(np.sum(w * y) / np.sum(w * x), rel=1e-12)
     assert sens['occurrence']['slope'] == pytest.approx(direct_line(x, y, w)[0], rel=1e-9)
     assert sens['occurrence']['n_rows'] == int(keep.sum()) and sens['occurrence']['n_matches'] == 8 - n_in
-    from c_ept.store_core import Store
+    from c_ept.data.store_core import Store
 
     labels = Store(toy_run.run / 'labels' / 'store')
     realized = np.asarray(labels.array('labels/v_start'))[b0['frame_row'], 0][keep]
@@ -1729,7 +1734,8 @@ def test_the_d7_figure_draws_a_group_whose_flow_fit_is_not_estimable():
 
 
 def test_the_deciles_figures_draw_bins_that_are_empty_and_a_brier_interval_that_could_not_be_computed():
-    from c_ept import features, gate_s3
+    from c_ept.preprocessing import features
+    from c_ept.checks import gate_s3
 
     rng = np.random.default_rng(8)
     n, match = 120, np.repeat(np.arange(12), 10)
@@ -2025,7 +2031,7 @@ def test_the_report_module_imports_nothing_that_reads_a_raw_match_or_the_cohort_
 
 def test_the_gate_constants_of_the_report_are_those_of_the_gate_and_the_cli_name_the_options():
     assert (report_s3.BOOT_B, report_s3.SEED) == (2000, 20261021) == (run_s3.BOOT_B, run_s3.SEED)
-    from c_ept import nll
+    from c_ept.models import nll
 
     assert (nll.BOOT_B, nll.BOOT_SEED) == (2000, 20261021)
 
@@ -2332,7 +2338,7 @@ def calibrated_mc_world(n_matches=60, rows=20, S=100, seed=5):
     """``(mc_mean, mc_sd, S, realized, match, w)`` of a model that is exactly right and known only through a Monte Carlo mean of S draws:
     the mean is the truth plus the error sd / sqrt(S) of a mean of S draws of sd 800 (80 gold), and the realized value is the truth plus a
     noise of 50 gold. The slope of the realized value on the mean is the reliability var(truth) / var(mean) = 10,000 / 16,400 = 0.61."""
-    from c_ept import features
+    from c_ept.preprocessing import features
 
     rng = np.random.default_rng(seed)
     match = np.repeat(np.arange(n_matches), rows)
@@ -2365,7 +2371,7 @@ def test_a_calibrated_monte_carlo_line_has_no_band_flag_and_reads_one_against_it
 
 
 def test_the_slope_ratio_is_none_when_the_reference_slope_is_not_positive():
-    from c_ept import features
+    from c_ept.preprocessing import features
 
     rng = np.random.default_rng(7)
     match, x = np.repeat(np.arange(8), 5), rng.normal(0.0, 1.0, 40)
@@ -2492,7 +2498,7 @@ def test_a_call_that_was_killed_is_reported_as_unfinished_and_is_no_case_for_the
 
 # -- item 11: the compose module text
 def test_the_compose_module_text_names_the_censoring_time_beside_the_t0_information_of_decision_p10():
-    from c_ept import compose
+    from c_ept.valuation import compose
 
     text = ' '.join(compose.__doc__.split())
     assert 'using the t0 information plus the censoring time T of the match (decision P10:' in text

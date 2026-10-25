@@ -43,7 +43,9 @@ from pathlib import Path
 import numpy as np
 
 from c_ept import config as C
-from c_ept import runlog, store_build, terrain
+from c_ept import runlog
+from c_ept.data import store_build
+from c_ept.preprocessing import terrain
 
 
 def _refuse(message: str) -> int:
@@ -68,7 +70,7 @@ def _resume_hint(a, run: Path, terrain_path: Path) -> str:
 def main(argv=None) -> int:
     """S1–S2 계획 Task 13과 판정 R60에 따라 지형 선택·재개 조건을 검사하고 빌더에 넘긴다.
     완료 결과가 기록된 실행만 색인에 등록하며, 이 함수의 사전 검사만으로 모든 빌더 검사가 끝난 것은 아니다."""
-    from c_ept.run_s1 import StrataRunning, load_s1, require_no_strata       # here and not at module level (store_build says why)
+    from c_ept.workflows.run_s1 import StrataRunning, load_s1, require_no_strata       # here and not at module level (store_build says why)
     ap = argparse.ArgumentParser(prog='python -m c_ept.run_s2', description='S2: the views of an S1 run -> one S2 store.')
     ap.add_argument('--s1', type=Path, required=True, help='the S1 run folder (or its s1 store folder); read only')
     ap.add_argument('--macros', nargs='+', required=True, metavar='ROLE',

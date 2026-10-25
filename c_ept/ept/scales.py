@@ -41,9 +41,10 @@ from pathlib import Path
 import numpy as np
 
 from c_ept import config as C
-from c_ept import runlog, store_core
+from c_ept import runlog
+from c_ept.data import store_core
 from c_ept.ept import loss
-from c_ept.head_rows import HEAD_NAMES
+from c_ept.data.head_rows import HEAD_NAMES
 
 SCALES_NAME = 'B0_SCALES.json'
 SCHEMA = 'b0_scales_v1'
@@ -133,8 +134,8 @@ def _run_record(run_s3, runs_root) -> tuple:
 
 def _open_inputs(run: Path, doc: dict, runs_root) -> tuple:
     """The S1 and S2 stores of ``doc`` (opened by name under ``runs_root``) and the label store of the run, each checked against the hash that the run recorded."""
-    from c_ept.flowprice import _open_s2
-    from c_ept.run_s1 import load_s1
+    from c_ept.valuation.flowprice import _open_s2
+    from c_ept.workflows.run_s1 import load_s1
     stores = []
     for label, opener in (('S1', load_s1), ('S2', _open_s2)):
         record = doc.get(label.lower()) or {}
@@ -148,7 +149,7 @@ def _open_inputs(run: Path, doc: dict, runs_root) -> tuple:
 
 
 def _open_labels(run: Path, ledger):
-    from c_ept import run_s3 as s3_runner
+    from c_ept.workflows import run_s3 as s3_runner
     recorded = ((ledger.stage('labels') or {}).get('outputs') or {}).get('labels/store/')
     if not (run / 'labels' / 'store' / 'STORE.json').is_file() or not (ledger.stage('labels') or {}).get('complete'):
         raise ValueError(f'the label store of {run.name} is not complete')
@@ -171,8 +172,8 @@ def b0_scales(run_s3, out=None, *, runs_root=C.RUNS_ROOT, check=None) -> dict:
 
     해석: 식은 ``head_scale``가 계산한다. 이 함수는 기록된 파일만 읽도록 모형·저장소·라벨의 해시를 대조하고, 역할을 FIT로 고정해 열세 척도를 모아 해시와 함께 한 번 쓴다.
     """
-    from c_ept import baselines_b0
-    from c_ept import run_s3 as s3_runner
+    from c_ept.models import baselines_b0
+    from c_ept.workflows import run_s3 as s3_runner
     tick = check if check is not None else (lambda: None)
     tick()
     path = None if out is None else Path(out) / SCALES_NAME
@@ -302,7 +303,7 @@ def main(argv=None) -> int:
     ap.add_argument('--out', type=Path, required=True, help='the folder that gets B0_SCALES.json')
     ap.add_argument('--runs-root', type=Path, default=C.RUNS_ROOT)
     a = ap.parse_args(argv)
-    from c_ept import run_s1
+    from c_ept.workflows import run_s1
     try:
         scale = b0_scales(a.s3, a.out, runs_root=a.runs_root, check=run_s1.require_no_strata)         # E6: the check is the first call of ``b0_scales``, before anything is read
     except run_s1.StrataRunning as e:

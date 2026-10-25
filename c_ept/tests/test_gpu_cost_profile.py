@@ -180,7 +180,7 @@ def test_profile_is_bound_in_digest():
 def test_real_runner_parse_and_resume_identity_remain_strict(monkeypatch, drift):
     # Import-only runner definitions: never main, stores, source verification or tensors.
     runner = load_module('gpu_profile_runner', 'c_ept/workflows/run_s4a.py')
-    monkeypatch.setitem(sys.modules, 'c_ept.run_s3', types.SimpleNamespace(
+    monkeypatch.setitem(sys.modules, 'c_ept.workflows.run_s3', types.SimpleNamespace(
         check_resume_code=lambda manifest, code: None))  # isolate config/identity guard
     config = example()
     digest = op.config_digest(config)

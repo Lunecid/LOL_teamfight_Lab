@@ -33,7 +33,7 @@ import pytest
 import torch
 
 from c_ept import config as C
-from c_ept import terrain, tokens
+from c_ept.preprocessing import terrain, tokens
 from c_ept.ept import data, encoder
 from c_ept.tests.ept_toys import build_ept_world, encoder_batch, toy_static
 

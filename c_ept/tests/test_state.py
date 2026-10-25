@@ -4,7 +4,6 @@ The synthetic tests build matches with ``synth.make_record`` and check hand-made
 of LEGACY's tables for the patches 15.18 and 16.13). The golden tests (``golden_records``, the 20 real matches of the S1 golden lock) run
 only with ``C_EPT_S1_RUN`` set; their messages carry the position of the match in the golden list, never its key. Run with ``--tb=short``.
 """
-import ast
 import dataclasses
 import functools
 import json
@@ -17,18 +16,20 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from c_ept import casts
+from c_ept.data import casts
 from c_ept import config as C
-from c_ept import legacy, state
+from c_ept import legacy
+from c_ept.domain import state
 from c_ept.checks import common, sweep_state
 from c_ept.tests import synth
-from c_ept.tests.conftest import read_json
+from c_ept.tests.conftest import (PROTECTED_IMPORT_PRELUDE, import_watch_names,
+                                  module_level_imports, read_json)
 
 REPO = Path(C.__file__).parents[1]
 COL = {name: i for i, name in enumerate(state.OBJ_STATE_NAMES)}
 BUILDINGS = 28                       # the first 28 landmarks are the buildings of the map file, the last 6 the nests
 NEST_KINDS = ('dragon', 'baron', 'herald', 'grubs', 'atakhan', 'atakhan')
-S1_MODULES = ('c_ept.targets', 'c_ept.event_rows', 'c_ept.frame_rows', 'c_ept.store_core', 'c_ept.run_s1')    # what a view must not reach
+S1_MODULES = import_watch_names(('c_ept.targets', 'c_ept.event_rows', 'c_ept.frame_rows', 'c_ept.store_core', 'c_ept.run_s1'))
 
 
 # ---- helpers: the anchors of the map file, building and monster events, the landmark state ------------------------------------------
@@ -594,33 +595,12 @@ def test_the_index_gives_what_the_functions_give():
 
 
 # ---- what the module reaches (R10-g, R10-h) ------------------------------------------------------------------------------------------
-def module_level_imports(path: Path) -> set:
-    """Every module a statement at module level (also inside ``if``/``try``, not inside a function) imports, and ``module.name`` for
-    ``from module import name`` (``from c_ept import run_s1`` is ``c_ept.run_s1``)."""
-    found = set()
-
-    def visit(body):
-        for node in body:
-            if isinstance(node, ast.Import):
-                found.update(a.name for a in node.names)
-            elif isinstance(node, ast.ImportFrom):
-                found.add(node.module or '')
-                found.update(f'{node.module}.{a.name}' for a in node.names)
-            elif isinstance(node, (ast.If, ast.Try, ast.With)):
-                for part in ('body', 'orelse', 'finalbody'):
-                    visit(getattr(node, part, []))
-                for handler in getattr(node, 'handlers', []):
-                    visit(handler.body)
-    visit(ast.parse(path.read_text(encoding='utf-8')).body)
-    return found
-
-
 def test_the_import_scan_sees_a_module_level_import_and_not_one_inside_a_function(tmp_path):
     src = ('import sys\nfrom c_ept import run_s1\nif True:\n    from c_ept.targets import x\n\n'
            'def main():\n    from c_ept import store_core\n')
     f = tmp_path / 'm.py'
     f.write_text(src, encoding='utf-8')
-    got = module_level_imports(f)
+    got = module_level_imports(f, 'c_ept')
     assert {'c_ept.run_s1', 'c_ept.targets'} <= got and 'c_ept.store_core' not in got
     assert got & set(S1_MODULES) == {'c_ept.run_s1', 'c_ept.targets'}
 
@@ -633,8 +613,8 @@ def test_no_module_level_import_reaches_an_s1_target_store_or_the_s1_runner(modu
 def test_importing_the_state_module_loads_no_s1_module():
     """A fresh interpreter: ``c_ept.state`` and the sweep script load none of the S1 modules (not even through another module), so a
     view-builder worker never pulls in the S1 runner chain (R10-h) and the state has no way to the S1 targets (R10-g)."""
-    for name in ('c_ept.state', 'c_ept.checks.sweep_state'):
-        code = f'import sys, {name}; sys.stdout.write(",".join(m for m in {S1_MODULES!r} if m in sys.modules))'
+    for name in ('c_ept.state', 'c_ept.domain.state', 'c_ept.checks.sweep_state'):
+        code = PROTECTED_IMPORT_PRELUDE + f'import sys, {name}; sys.stdout.write(",".join(m for m in {S1_MODULES!r} if m in sys.modules))'
         r = subprocess.run([sys.executable, '-B', '-c', code], cwd=REPO, capture_output=True, text=True, encoding='utf-8')
         assert (r.returncode, r.stdout, r.stderr) == (0, '', ''), name
 

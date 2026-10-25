@@ -75,9 +75,9 @@ import numpy as np
 import pytest
 
 from c_ept import config as C
-from c_ept import flowprice
-from c_ept import frame_rows as frame_rows_mod
-from c_ept.store_core import Store
+from c_ept.valuation import flowprice
+from c_ept.data import frame_rows as frame_rows_mod
+from c_ept.data.store_core import Store
 from c_ept.tests import synth
 
 BLUE, RED, NOBODY = 0, 1, -1                       # objectives/taker
@@ -353,7 +353,7 @@ def build_toy_s2(root, s1: Store, events_per_match: int = 2, values=None, featur
     ``features`` True adds what the baseline features of stage S3 Task 5 read (see "the feature arrays of the toy S2" at the end of this
     file): ``x/players_num`` and ``x/geo_pp`` for every view, and in the frame-clock views the summary cells of ``toy_feature_summary``.
     The event views stay ``JUNK`` in every summary column. The toy missing positions (``TOY_MISSING``) are meant for the default toy."""
-    from c_ept import tokens                                       # the column names of the summary; loads the hash-pinned LEGACY modules
+    from c_ept.preprocessing import tokens                                       # the column names of the summary; loads the hash-pinned LEGACY modules
     index = {name: i for i, name in enumerate(tokens.SUMMARY)}
     row_off = np.asarray(s1.array('matches/row_off'))
     frame_k, frame_t0 = np.asarray(s1.array('frame_rows/k')), np.asarray(s1.array('frame_rows/t0'))
@@ -916,7 +916,7 @@ def build_value_s1(root, matches=None, records=None, work=None) -> Store:
     """The S1 store of the value toys (default) or of any ``matches`` list with its ``records`` function, made by the real extraction
     (``run_s1.build_store``, one worker, E6 answered with an empty process list) under ``root``, loaded and verified. The block files go
     to ``work`` (default: a folder next to ``root``)."""
-    from c_ept import run_s1
+    from c_ept.workflows import run_s1
     from c_ept.tests.conftest import empty_process_list
     matches = value_toy_matches() if matches is None else list(matches)
     records = value_toy_records if records is None else records
@@ -994,7 +994,7 @@ def toy_prices():
 @pytest.fixture(scope='module')
 def toy_rules():
     """The built-in rules of decision P3."""
-    from c_ept import rulepay
+    from c_ept.valuation import rulepay
     return rulepay.P3_RULES
 
 
@@ -1012,7 +1012,7 @@ def toy_value_s1(tmp_path_factory):
 @pytest.fixture(scope='module')
 def toy_uv(toy_value_s1, toy_prices, toy_rules):
     """``value.unit_values`` of the value toys with ``TOY_LEVELS``."""
-    from c_ept import value
+    from c_ept.valuation import value
     return value.unit_values(toy_value_s1, toy_prices, toy_rules, TOY_LEVELS)
 
 
@@ -1091,7 +1091,7 @@ def toy_players(n_views: int) -> np.ndarray:
     (v (c + 3) + p (c mod 7 + 1) + c) mod 17, a whole number 0 .. 16 (exact in float32), so that every column varies with the player
     (the multiplier of p is 1 .. 7, never a multiple of 17). ``TOY_CONSTANT_PLAYER_COLUMN`` is 0 instead, and the players of
     ``TOY_MISSING`` have NaN in x, y and wall_fraction."""
-    from c_ept import tokens
+    from c_ept.preprocessing import tokens
     column = {name: i for i, name in enumerate(tokens.PLAYER_NUM)}
     v, p, c = np.ogrid[:n_views, :10, :len(tokens.PLAYER_NUM)]
     a = ((v * (c + 3) + p * (c % 7 + 1) + c) % 17).astype(np.float32)
@@ -1127,7 +1127,7 @@ def toy_feature_summary(row: int, ref_ms: int, fit: bool) -> dict:
 
 def blank_feature_arrays(n: int) -> tuple:
     """(summary (n, 107) f4, players_num (n, 10, 81) f4, geo_pp (n, 10, 10) f2), all zero: the starting point of a hand-made store."""
-    from c_ept import tokens
+    from c_ept.preprocessing import tokens
     return (np.zeros((n, len(tokens.SUMMARY)), np.float32), np.zeros((n, 10, len(tokens.PLAYER_NUM)), np.float32),
             np.zeros((n, 10, 10), np.float16))
 
@@ -1178,7 +1178,8 @@ class HeadsWorld:
 
 def _world_match(rng, role: str) -> dict:
     """The arrays of one made-up match with local indices (a unit, row, kill or event number counts inside the match)."""
-    from c_ept import event_rows as event_rows_mod, value
+    from c_ept.data import event_rows as event_rows_mod
+    from c_ept.valuation import value
     T = int(rng.integers(5_600, 9_000)) * 100
     ts = np.array(frame_times((T - 301) // 60_000 + 1), dtype=np.int64)
     rec = types.SimpleNamespace(frame_ts=ts, T_ms=T)
@@ -1221,7 +1222,7 @@ def _world_match(rng, role: str) -> dict:
 
 def build_heads_world(root, seed: int = WORLD_SEED, roles=WORLD_ROLES) -> HeadsWorld:
     """The S1, S2 and label stores of the heads world under ``root`` (three folders), complete; see the section text above."""
-    from c_ept import features, tokens
+    from c_ept.preprocessing import features, tokens
     rng = np.random.default_rng(seed)
     root = Path(root)
     cols = collections.defaultdict(list)
@@ -1333,7 +1334,7 @@ class HeadsOracle:
         return hits[0]
 
     def zone(self, u):
-        from c_ept import terrain
+        from c_ept.preprocessing import terrain
         k = self.kill0[u]
         return -1 if self.kmiss[k] else int(terrain.zone_of(self.kx[k], self.ky[k]))
 
@@ -1713,7 +1714,7 @@ def toy_row_table(specs=TOY_ROW_SPECS, destroyed=None, frame_row=None):
     one of ``frame_rows.frame_rows`` (the window (t0, min(t0 + 180 s, T - 30 s)] cut into 10 s bins), the match of row i is i // 2, the
     frame row is i (or ``frame_row``, the global numbers of the rows) and the view is 100 + i (a number that is not the row number).
     ``destroyed`` (n, 2, 4): the tower state, default no tower."""
-    from c_ept import compose
+    from c_ept.valuation import compose
     t0 = np.array([round(1000 * a) for a, _ in specs], dtype=np.int64)
     T = np.array([round(1000 * b) for _, b in specs], dtype=np.int64)
     hi = np.minimum(t0 + C.H_OCC_MS, T - C.END_CUT_MS)
@@ -1732,7 +1733,7 @@ def rows_with_zero_tail_from_bin(b: int, t0s=(1000.0, 1300.0, 1700.0)):
 
 def toy_tier_model():
     """A tier law of one tier (the outer tower, always): with every tower tier at 400 the expected tower price is 400 whatever the state."""
-    from c_ept import towertier
+    from c_ept.valuation import towertier
     k = towertier.N_FEATURES
     return towertier.TierModel([0], np.zeros((1, k)), np.zeros(1), np.zeros(k), np.ones(k))
 
@@ -1740,7 +1741,7 @@ def toy_tier_model():
 def toy_composer(S: int = 1000, seed: int = 20261021, rows=None, heads=None, prices=None, tier_model=None, gold_reps=None, s2=None):
     """A ``compose.Composer`` on the toy rows (``toy_row_table()``), the heads of note 03 (``ToyHeads()``), the toy prices, the toy tier law
     and the gold representatives 100 b; every part can be replaced."""
-    from c_ept import compose
+    from c_ept.valuation import compose
     return compose.Composer(ToyHeads() if heads is None else heads, TOY_COMPOSE_PRICES if prices is None else prices,
                             toy_tier_model() if tier_model is None else tier_model, TOY_GOLD_REPS if gold_reps is None else gold_reps,
                             toy_row_table() if rows is None else rows, s2, S=S, seed=seed)

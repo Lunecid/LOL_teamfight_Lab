@@ -1,67 +1,43 @@
-r"""The head interface that the composer reads (stage S3 Task 6, ruling R3).
+r"""[모듈 개요 및 하네스 위치]
+이 모듈은 교전 과정 모형(EPT)과 기준 모형(B0, B1)이 예측하는 조건부 확률법칙(머리, heads)을
+합성기(composer, stage S3 Task 9)가 동일한 인터페이스로 호출할 수 있도록 규정하는 핵심 입출력 프로토콜이다 (판정 R3).
 
-A *head* is one conditional law of the model: the rate of the first kills in a bin (M2), the mark and the zone of an engagement (M2), its
-size, its kills, its kill gold and its objectives (M3), and the objectives converted after it (M4). The composer (``compose``, Task 9)
-draws an engagement from these laws, or computes their expectation, and it must not care which model sits behind them. The B0 GLMs
-(``baselines_b0``, Task 6), the B1 LightGBM boosters (``baselines_b1``, Task 7) and the later EPT all implement ``ComposerHeads`` and
-``compose`` imports it from here (and re-exports it).
+A. 하네스 및 파이프라인 내 위치:
+   - 교전 발생(M2), 교전 결과(M3), 교전 후 전환(M4) 사슬의 각 단계별 조건부 확률법칙을 추상화한다.
+   - B0 GLM (baselines_b0, Task 6), B1 LightGBM (baselines_b1, Task 7), 그리고 본 EPT 신경망 모형 모두
+     이 ComposerHeads 프로토콜을 구현하여 합성기에 전달된다.
+   - 합성기는 뒤에 어떤 모형이 있는지 인식할 필요 없이 오직 이 규약에 정의된 메서드만을 호출하여
+     모의 시뮬레이션을 수행하거나 기댓값을 계산한다.
 
-Rows. ``bind(s2, views)`` computes and keeps the row features of the composer's t0 frame-clock views, in the order in which the views are
-given (``views``: view numbers of the S2 store, or a bool mask over them); every other method takes ``rows``, an int array (n,) that
-indexes those bound rows, and the categories of an onset as int arrays (n,): ``q`` the occurrence bin (0 .. 17), ``m`` the mark of the
-first kill (0 .. 51), ``z`` the zone of the first kill (-1 .. 9; -1 = no position), ``s`` the size class (0 .. 3). ``row_view(rows)`` gives
-the bound features back, so that the composer builds the M4 input with ``features.m4_masked_inputs(heads.row_view(rows), q, m, z, K, O)``
-and passes it to ``conv_rate``; the heads never see anything but what the composer hands them (decision P6: the masked M3 object head
-does not get K, the masked M4 head gets neither K nor O).
+B. 데이터 바인딩 및 행(Row) 인덱싱 규약:
+   - bind(s2, views): 합성기가 평가 대상 시점인 t₀ 분 프레임(frame-clock) 뷰의 행 특징을 계산하여 내부 보관한다.
+   - 이후 모든 메서드는 bound 행들의 정수 인덱스 배열 rows (n,)와 발생 사슬 범주들을 입력받아 확률/평균을 반환한다.
+   - row_view(rows): M4 전환 머리 입력 행렬을 구성하기 위해 bound 특징을 반환한다.
+   - 가린 머리(masked heads) 제약: 합성기가 넘겨주는 사슬의 선행 정보만을 조건으로 취하며, 미래 사건이나
+     누설 가능성이 있는 정보는 배제된다 (판정 P6).
 
-Outputs, one row per input row (the last dimensions are in ``OUTPUT_WIDTHS``)
+C. 출력 텐서 규격 (OUTPUT_WIDTHS):
+   - rate(rows)                         : (n, 18)    초당 첫 킬 발생률 (구간 0~17)
+   - mark_prob(rows, q)                 : (n, 52)    첫 킬 표지(선제킬 쌍 50개 + 처형 2개) 확률분포 (합=1)
+   - zone_prob(rows, q, m)              : (n, 10)    첫 킬 구역 확률분포 (합=1, 구역 0~9)
+   - size_prob(rows, q, m, z)           : (n, 4)     교전 규모 범주 확률분포 (합=1, 규모 0~3)
+   - kill_rate(rows, q, m, z, s)        : (n, 2)     팀별(Blue, Red) 평균 킬 수 (Poisson 평균)
+   - gold_prob(rows, q, m, z, s, layer) : (n, 2, 31) 킬 수 층(layer 1~6) 조건부 팀별 킬 골드 구간(0~30) 확률분포
+   - obj_rate(rows, q, m, z, s, K)      : (n, 18)    18개 오브젝트 칸별 기대 획득 수 (Poisson 평균)
+   - conv_rate(m4_inputs)               : (n, 18)    18개 오브젝트 칸별 초당 전환율 (Poisson 발생률)
 
-    rate(rows)                           (n, 18)      the first-kill rate of each bin, per second
-    mark_prob(rows, q)                   (n, 52)      the law of the mark, rows add up to 1
-    zone_prob(rows, q, m)                (n, 10)      the law of the zone
-    size_prob(rows, q, m, z)             (n, 4)       the law of the size class
-    kill_rate(rows, q, m, z, s)          (n, 2)       the mean number of kills of the blue and of the red team (Poisson)
-    gold_prob(rows, q, m, z, s, layer)   (n, 2, 31)   the law of the kill-gold bin of each team given its kill layer; ``layer`` is (n, 2)
-                                                      with values 1 .. 6 (the kills of the team, 6 = six or more)
-    obj_rate(rows, q, m, z, s, K)        (n, 18)      the expected objectives of each cell; ``K`` is (n, 4) = kills blue, kills red,
-                                                      kill gold blue, kill gold red (raw gold); a head with ``obj_uses_K`` False ignores it
-    conv_rate(m4_inputs)                 (n, 18)      the conversion rate of each cell, per second; ``m4_inputs`` is the matrix of
-                                                      ``features.m4_masked_inputs``; a head with ``conv_uses_KO`` False ignores K and O
+D. 핵심 수식 (HEAD-1 ~ HEAD-5):
+   (HEAD-1)  n_q ~ Poisson(λ_q · Δ_q)                                 구간 q의 발생 수 (λ_q = rate[:, q], Δ_q = 노출 시간(초))
+   (HEAD-2)  P(m, z, s | q) = π(m | q) · ρ(z | q, m) · P(s | q, m, z)   표지·구역·규모 조건부 사슬
+   (HEAD-3)  k_blue ~ Poisson(μ_blue),  k_red ~ Poisson(μ_red)        팀별 킬 수 포아송 기댓값
+             킬 k ≥ 1인 팀의 골드 구간 ~ gold_prob(layer = min(k, 6)); k = 0이면 골드 0 확정
+   (HEAD-4)  O_c ~ Poisson(μ_c);  c칸 전환 수 ~ Poisson(λ_c · e)      오브젝트 및 전환 포아송 분포
+   (HEAD-5)  p = (1 − ν) · p_model + ν / C,   ν = 1e-6                 범주 출력 균등 분포 섞기 (판정 R13, NLL 무한대 방지)
 
-Every categorical output is a full-width probability row that is strictly positive (ruling R13: p = (1 - 1e-6) p_model + 1e-6 / C).
-
-Flags. ``feature_kind`` names the row features ('b0' or 'b1'). ``analytic_ok`` is True when the heads make the expectation of the value
-of an engagement closed (B0: the masked M3 object head does not read K and the masked M4 head reads neither K nor O); the gate then
-checks the simulation against the closed form (decision P6). ``obj_uses_K`` and ``conv_uses_KO`` say whether ``obj_rate`` reads K and
-``conv_rate`` reads K and O.
-
-방법에서의 위치. 이 모듈은 교전 과정 모형(EPT)이 예측하는 조건부 분포 하나하나(머리)를 합성기가 같은 호출로 받도록 입출력 규약을 정한다. 기준 모형 B0와 B1은
-이 규약을 따르고(판정 R3) 이후의 EPT는 S4a 계획 Q9의 어댑터로 따르므로 합성기는 어느 모형이 뒤에 있는지 모른다. 교전은 같은 경기에서 15초와 2,000 지도 단위 이내로
-이어진 킬의 묶음이고(설계서 2절), 발생은 분 프레임의 기준 시각 t₀ 뒤 구간 q에서 한 교전의 첫 킬이 일어난 것이다. 설계서 3절은 한 발생을 표지 m과 구역 z(3.1절),
-규모 s, 팀별 킬 K, 오브젝트 칸별 개수 O(3.2절의 분해 P(s)·P(K | s)·P(O | K, s); 계획 P4), 전환(3.3절)의 차례로 쪼개고, 머리 하나가 이 차례의 한 고리를 맡는다.
-이 규약은 t₀ 행에 묶인 가린 머리만 다룬다
-(``bind``가 합성기의 t₀ 분 프레임 보기를 묶는다). 이 모듈은 분포를 계산하지 않고 분포가 오가는 모양과 그 조건만 정한다.
-
-용어. 분 프레임: 경기 상태를 1분마다 찍은 기록이고 t₀는 그 시각이다. 구간 q: t₀ 뒤 10초씩 18개(0–17). 표지 m: 첫 킬의 선제 킬 쌍(킬러 슬롯이 피해자
-슬롯을 잡는 방향 쌍 50개)과 처형 2개를 합친 52가지. 킬 수 층: 킬이 하나 이상인 팀의 킬 수를 1–5와 6 이상으로 나눈 여섯 층. 오브젝트 칸: 오브젝트 종류와
-가져간 팀의 쌍마다 하나(18칸). 전환: 교전이 끝난 뒤 60초 안에 어느 교전에도 붙지 않은 오브젝트(설계서 3.3절). 가린 머리: 합성기가 줄 수 있는 입력(t₀ 행의 특징과
-사슬의 앞 단계 값: 범주 q, m, z, s, 킬 수 층, 머리에 따라 K와 O)만 읽는 머리이고, 열린 머리는 교전의 사건 보기를 읽는다(설계서 3.2절·3.3절).
-
-식 목록. 구간의 발생 수와 한 발생의 사슬이다. 식 번호는 (모듈 약어-번호) 꼴이며 식과 기호는 docs/superpowers/notes/equation-index.md의 식 색인과
-기호 등록부에 올라 있다.
-    (HEAD-1)  n_q ~ Poisson(λ_q·Δ_q)                                  구간 q의 발생 수 (λ_q = ``rate``의 q열, Δ_q = 노출(초))
-    (HEAD-2)  P(m, z, s | q) = π(m | q)·ρ(z | q, m)·P(s | q, m, z)      표지·구역·규모 (``mark_prob``, ``zone_prob``, ``size_prob``)
-    (HEAD-3)  k_blue ~ Poisson(μ_blue),  k_red ~ Poisson(μ_red)         팀별 킬 수 (μ = ``kill_rate``)
-              킬이 k ≥ 1인 팀의 골드 구간 ~ ``gold_prob``(킬 수 층 ξ = min(k, 6));  k = 0이면 골드 0
-    (HEAD-4)  O_c ~ Poisson(μ_c);  c칸의 전환 수 ~ Poisson(λ_c·e)       (μ_c = ``obj_rate``, λ_c = ``conv_rate``의 초당 값, e = 전환 노출(초))
-    (HEAD-5)  p = (1 − ν)·p^model + ν / C,   ν = 1e-6                   범주 출력의 섞기(C = 범주의 수; 판정 R13)
-
-공통 가정.
-    (가) 개수는 포아송이다. 발생 수는 설계서 3.1절, 팀별 킬 수와 오브젝트 칸은 계획 P4, 전환 칸은 계획 전역 제약의 확률 족을 따른다.
-    (나) 한 발생의 각 단계는 사슬의 앞 단계 값에 조건부이다(설계서 3절의 분해 P(s)·P(K | s)·P(O | K, s), 계획 P4). 어느 값을 읽는지는 모형이 정하며 B0의 가린 오브젝트·전환
-         머리는 K와 O를 읽지 않는다(계획 P6). 서로 다른 발생과 두 팀의 킬 수는 입력이 주어지면 독립으로 뽑는다(합성기의 모의가 그렇게 뽑는다).
-    (다) 발생률과 전환율은 초당 값이다. 노출은 경기 끝에서 자른 관측 시간이며 모형의 입력이 아니어서 호출한 쪽이 곱한다(계획 P10).
-    (라) (HEAD-5)로 확률이 0인 범주가 없으므로 범주 점수 (NLL-2)와 (NLL-3)이 유한하다(판정 R13).
+E. 하네스 제약 및 공통 가정:
+   - 모든 범주형 출력은 전폭(full-width) 확률 벡터이며 strictly positive이다 (HEAD-5 적용).
+   - analytic_ok 플래그: B0와 같이 모형이 닫힌 꼴(closed-form) 가치 기댓값을 제공할 수 있는지 표시 (B0: True, B1/EPT: False).
+   - obj_uses_K 및 conv_uses_KO: M3 오브젝트 및 M4 전환 머리가 K와 O를 조건부로 받는지 여부 명시.
 """
 # Ref: docs/superpowers/plans/2026-10-21-c-ept-s3.md decisions P4 (the factorisation P(s) P(K | s) P(O | K, s) and the probability family),
 #      P6 (what the masked heads are conditioned on) and Task 9 (the composer); controller ruling R3 (this module) and R13 (full-width,
@@ -74,83 +50,200 @@ import numpy as np
 
 from c_ept import config as C
 
-FEATURE_KINDS = ('b0', 'b1')
-# the last dimensions of the outputs of the methods; the zone, size, gold and cell counts are checked against ``features``, ``units``,
-# ``nll`` and ``targets`` by a test (this module imports none of them, so that every head module can import it)
-OUTPUT_WIDTHS = {'rate': (C.N_BINS,), 'mark_prob': (C.N_MARKS,), 'zone_prob': (10,), 'size_prob': (4,), 'kill_rate': (2,),
-                 'gold_prob': (2, 31), 'obj_rate': (2 * len(C.O_KINDS),), 'conv_rate': (2 * len(C.O_KINDS),)}
+# =============================================================================
+# 블록 1: 전역 상수 및 출력 형상 규격 (OUTPUT_WIDTHS)
+# =============================================================================
 
+# 지원하는 특징 규격 ('b0': 39개 열, 'b1': 요약 통계량 포함 열)
+FEATURE_KINDS = ('b0', 'b1')
+
+# 각 머리별 반환 배열의 마지막 차원 크기 규약.
+# 단위 테스트에 의해 units, nll, features, targets 모듈의 상수와 일치함이 검증됨.
+OUTPUT_WIDTHS = {
+    'rate': (C.N_BINS,),                 # (18,) 10초 간격 18개 발생 구간
+    'mark_prob': (C.N_MARKS,),           # (52,) 선제 킬 쌍 50개 + 처형 2개
+    'zone_prob': (10,),                  # (10,) 구역 0 .. 9 (관측 구역)
+    'size_prob': (4,),                   # (4,) 소/중/대/초대형 교전 규모 0 .. 3
+    'kill_rate': (2,),                   # (2,) Blue, Red 팀별 평균 킬 수
+    'gold_prob': (2, 31),                # (2, 31) Blue, Red 팀별 31개 킬 골드 구간
+    'obj_rate': (2 * len(C.O_KINDS),),   # (18,) 9종 오브젝트 x 2개 팀 = 18개 칸
+    'conv_rate': (2 * len(C.O_KINDS),),  # (18,) 18개 오브젝트 칸 초당 전환율
+}
+
+
+# =============================================================================
+# 블록 2: 합성기 연동 ComposerHeads 프로토콜 정의
+# =============================================================================
 
 @runtime_checkable
 class ComposerHeads(Protocol):
-    """The heads of one model as the composer reads them (see the module text for the shapes).
+    """합성기(Composer)가 교전 발생 및 결과를 순차 모의/평가하기 위해 읽는 통합 머리 인터페이스.
 
-    ``isinstance(x, ComposerHeads)`` is True for an object that has all the members (the check is by name, not by signature).
-
-    방법 하나가 사슬의 한 고리이다: ``rate``는 (HEAD-1), ``mark_prob``·``zone_prob``·``size_prob``는 (HEAD-2), ``kill_rate``·``gold_prob``는 (HEAD-3),
-    ``obj_rate``·``conv_rate``는 (HEAD-4)이다. 이름만 검사하므로 출력의 모양과 확률의 합은 이 규약이 검사하지 않는다."""
-    feature_kind: str
-    analytic_ok: bool
-    obj_uses_K: bool
-    conv_uses_KO: bool
+    [프로토콜 역할]:
+    - isinstance(x, ComposerHeads)를 통해 런타임에 모형 구현체의 규약 충족 여부를 검증한다.
+    - B0 GLM, B1 LightGBM, EPT 신경망 모형이 모두 이 프로토콜을 구현하여 동일 규격으로 연동된다.
+    - 식 (HEAD-1) ~ (HEAD-4)의 사슬을 단계별 조건부 호출로 분해하여 계산한다.
+    """
+    feature_kind: str      # 사용 중인 행 특징 종류 ('b0' 또는 'b1')
+    analytic_ok: bool       # 닫힌 꼴(closed-form) 교전 가치 계산 가능 여부 (B0: True, B1/EPT: False)
+    obj_uses_K: bool        # M3 오브젝트 머리가 킬 결과 K를 조건으로 받는지 여부
+    conv_uses_KO: bool      # M4 전환 머리가 K와 O를 조건으로 받는지 여부
 
     def bind(self, s2, views) -> None:
-        """Compute and keep the row features of the t0 frame-clock views ``views`` (numbers of S2 views, or a bool mask), in that order.
+        """평가 대상인 t₀ 분 프레임(frame-clock) 뷰들을 내부 행 특징으로 계산하여 바인딩한다.
 
-        사슬 전체의 입력인 t₀ 행의 특징을 한 번 계산해 둔다. 사건 보기는 첫 킬이나 교전 끝까지의 사건을 담으므로 가린 머리가 읽어서는 안 된다(설계서 10절 A3)."""
+        [역할]:
+        - 합성기가 한 번 바인딩해 두고 이후의 다단계 사슬(rate -> mark -> zone -> size ...)에서
+          행 인덱스 `rows`만으로 특징을 재사용하도록 캐싱한다.
+        - 가린 머리(masked heads)의 정보 누설을 방지하기 위해 사건 뷰가 아닌 분 프레임 뷰만 읽는다.
+
+        [입력]:
+        - s2: S2 저장소 객체 (c_ept.store_core.Store)
+        - views: 바인딩할 S2 프레임 뷰 번호 리스트 또는 bool 마스크
+        """
         ...
 
     def row_view(self, rows) -> np.ndarray:
-        """(n, d) the bound row features of ``rows`` (int array (n,) into the bound views).
+        """바인딩된 t₀ 행들의 원시 특징 배열을 반환한다.
 
-        합성기가 전환 머리의 입력을 만들 때 ``features.m4_masked_inputs``에 넘기는 값이다(설계서 3.3절 누설 시험 (a))."""
+        [역할]:
+        - 합성기가 M4 전환 머리의 입력 행렬(features.m4_masked_inputs)을 구성할 때 호출한다.
+
+        [입력]:
+        - rows: 바인딩된 뷰 내 행 위치를 가리키는 정수 인덱스 배열 (n,)
+
+        [출력]:
+        - (n, d) float32 행 특징 행렬 (b0: d=39, b1: d=440 등)
+        """
         ...
 
     def rate(self, rows) -> np.ndarray:
-        """(n, 18) the rate of the first kills of each occurrence bin, per second.
+        """구간 q (0 .. 17)별 첫 킬의 초당 발생률 λ_q를 반환한다.
 
-        식 (HEAD-1)의 λ_q를 18구간 모두에 낸다."""
+        [역할]:
+        - 식 (HEAD-1) n_q ~ Poisson(λ_q · Δ_q)의 발생률 모수를 18개 구간 전체에 대해 계산.
+
+        [입력]:
+        - rows: (n,) 바인딩된 프레임 행 인덱스
+
+        [출력]:
+        - (n, 18) float64: 각 구간의 초당 첫 킬 발생률 (≥ 0)
+        """
         ...
 
     def mark_prob(self, rows, q) -> np.ndarray:
-        """(n, 52) the law of the mark of the first kill given the row and the bin q.
+        """주어진 구간 q에서 발생한 첫 킬의 표지 m (0 .. 51)에 대한 조건부 확률분포를 반환한다.
 
-        식 (HEAD-2)의 π(m | q)이다. 조건은 t₀ 행과 구간 q뿐이다."""
+        [역할]:
+        - 식 (HEAD-2)의 π(m | q) 계산. 선제 킬 50방향 쌍 + 처형 2개 = 총 52개 범주.
+
+        [입력]:
+        - rows: (n,) 바인딩된 프레임 행 인덱스
+        - q: (n,) 발생 구간 인덱스 (0 .. 17)
+
+        [출력]:
+        - (n, 52) float64: 합이 1인 확률분포 (HEAD-5 균등 섞기 적용, strictly positive)
+        """
         ...
 
     def zone_prob(self, rows, q, m) -> np.ndarray:
-        """(n, 10) the law of the zone of the first kill given the row, q and the mark m.
+        """주어진 구간 q와 표지 m에 조건부인 첫 킬 구역 z (0 .. 9)의 확률분포를 반환한다.
 
-        식 (HEAD-2)의 ρ(z | q, m)이다. 구역이 관측되지 않은 첫 킬(z = −1)은 이 분포의 결과가 아니어서 구역 10개만 낸다(계획 전역 제약의 구역 z).
-        합성에서 이런 발생을 어떻게 다룰지는 S8에서 정한다."""
+        [역할]:
+        - 식 (HEAD-2)의 ρ(z | q, m) 계산. 관측 구역 10개에 대한 조건부 확률.
+        - 위치 미관측(z = -1)은 이 분포의 결과가 아니며 관측된 10개 구역에 대해서만 합이 1로 정규화됨.
+
+        [입력]:
+        - rows: (n,) 바인딩된 프레임 행 인덱스
+        - q: (n,) 발생 구간 인덱스 (0 .. 17)
+        - m: (n,) 첫 킬 표지 인덱스 (0 .. 51)
+
+        [출력]:
+        - (n, 10) float64: 합이 1인 구역 확률분포 (HEAD-5 적용)
+        """
         ...
 
     def size_prob(self, rows, q, m, z) -> np.ndarray:
-        """(n, 4) the law of the size class given the row, q, m and the zone z (-1 = no position).
+        """주어진 q, m, z에 조건부인 교전 규모 s (0 .. 3)의 확률분포를 반환한다.
 
-        식 (HEAD-2)의 P(s | q, m, z)이다. 입력에서 구역이 관측되지 않은 경우(z = −1)는 한 수준으로 읽는다(계획 전역 제약의 구역 z)."""
+        [역할]:
+        - 식 (HEAD-2)의 P(s | q, m, z) 계산.
+        - 구역 미관측(z = -1)은 전용 수준(level 0)으로 매핑되어 안전하게 처리됨.
+
+        [입력]:
+        - rows: (n,) 바인딩된 프레임 행 인덱스
+        - q: (n,) 발생 구간 인덱스 (0 .. 17)
+        - m: (n,) 첫 킬 표지 인덱스 (0 .. 51)
+        - z: (n,) 첫 킬 구역 인덱스 (-1 .. 9)
+
+        [출력]:
+        - (n, 4) float64: 규모 s (0: 1킬, 1: 2킬, 2: 3~4킬, 3: 5킬 이상) 확률분포 (합=1)
+        """
         ...
 
     def kill_rate(self, rows, q, m, z, s) -> np.ndarray:
-        """(n, 2) the mean number of kills of the blue team and of the red team given the row, q, m, z and the size class s.
+        """주어진 q, m, z, s에 조건부인 Blue 및 Red 팀의 기대 킬 수 (μ_blue, μ_red)를 반환한다.
 
-        식 (HEAD-3)의 포아송 평균 μ_blue, μ_red를 한 호출에 낸다. 규모 s는 팀별 킬 수의 조건이다."""
+        [역할]:
+        - 식 (HEAD-3) k_blue ~ Poisson(μ_blue), k_red ~ Poisson(μ_red)의 포아송 기댓값 계산.
+
+        [입력]:
+        - rows: (n,) 바인딩된 프레임 행 인덱스
+        - q: (n,) 발생 구간 (0 .. 17)
+        - m: (n,) 첫 킬 표지 (0 .. 51)
+        - z: (n,) 첫 킬 구역 (-1 .. 9)
+        - s: (n,) 교전 규모 (0 .. 3)
+
+        [출력]:
+        - (n, 2) float64: [Blue 기대 킬 수, Red 기대 킬 수] (각 값 ≥ 0)
+        """
         ...
 
     def gold_prob(self, rows, q, m, z, s, layer) -> np.ndarray:
-        """(n, 2, 31) the law of the kill-gold bin of each team; ``layer`` (n, 2), values 1 .. 6, is the kill layer of each team.
+        """킬 수 층(layer)에 조건부인 각 팀의 킬 골드 구간(0 .. 30) 확률분포를 반환한다.
 
-        식 (HEAD-3)의 골드 구간 분포이다. 팀마다 자기 킬 수 층으로 읽는다(계획 P4)."""
+        [역할]:
+        - 식 (HEAD-3)의 gold_prob 계산. 킬이 k ≥ 1인 팀에 대해 31개 골드 구간의 확률을 예측.
+        - layer: 팀별 킬 수 층 (1 .. 6, 6 = 6킬 이상). k = 0인 팀은 골드 0 확정이므로 호출 제외됨.
+
+        [입력]:
+        - rows: (n,) 바인딩된 프레임 행 인덱스
+        - q, m, z, s: (n,) 발생 사슬 조건
+        - layer: (n, 2) 각 팀의 킬 수 층 (1 .. 6)
+
+        [출력]:
+        - (n, 2, 31) float64: [Blue 31구간 확률, Red 31구간 확률] (각 행 합=1, HEAD-5 적용)
+        """
         ...
 
     def obj_rate(self, rows, q, m, z, s, K) -> np.ndarray:
-        """(n, 18) the expected number of objectives of each cell; ``K`` is (n, 4): kills blue, kills red, gold blue, gold red.
+        """교전 중 획득되는 18개 오브젝트 칸별 기대 획득 수 μ_c를 반환한다.
 
-        식 (HEAD-4)의 포아송 평균 μ_c이다. 개수의 평균이어서 노출을 곱하지 않는다(M3 머리의 노출은 1, head_rows 모듈 글)."""
+        [역할]:
+        - 식 (HEAD-4) O_c ~ Poisson(μ_c)의 포아송 기댓값 계산 (노출 시간 없는 개수 자체의 기댓값).
+        - obj_uses_K가 False인 모형(B0)은 K를 무시하고, True인 모형(B1, EPT)은 K를 조건으로 반영함.
+
+        [입력]:
+        - rows: (n,) 바인딩된 프레임 행 인덱스
+        - q, m, z, s: (n,) 발생 사슬 조건
+        - K: (n, 4) float64: [Blue 킬 수, Red 킬 수, Blue 킬 골드(원수치), Red 킬 골드(원수치)]
+
+        [출력]:
+        - (n, 18) float64: 18개 오브젝트 칸별 기대 획득 수 (≥ 0)
+        """
         ...
 
     def conv_rate(self, m4_inputs) -> np.ndarray:
-        """(n, 18) the rate of the objectives converted in each cell, per second, from the input of ``features.m4_masked_inputs``.
+        """교전 종료 후 전환 창(60초) 동안 획득되는 18개 오브젝트 칸별 초당 전환율 λ_c를 반환한다.
 
-        식 (HEAD-4)의 전환율 λ_c이다."""
+        [역할]:
+        - 식 (HEAD-4) 전환 수 ~ Poisson(λ_c · e)의 초당 발생률 모수 계산.
+        - features.m4_masked_inputs로 구성된 가린 M4 입력 행렬을 직접 전달받아 추론 수행.
+
+        [입력]:
+        - m4_inputs: (n, d_m4) float32 행렬 (t₀ 특징, q, m, z, K, O 결합)
+
+        [출력]:
+        - (n, 18) float64: 18개 오브젝트 칸별 초당 전환율 (≥ 0)
+        """
         ...

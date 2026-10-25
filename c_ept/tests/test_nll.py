@@ -15,7 +15,9 @@ import numpy as np
 import pytest
 from scipy import stats
 
-from c_ept import flowprice, nll, value
+from c_ept.valuation import flowprice
+from c_ept.models import nll
+from c_ept.valuation import value
 from c_ept.tests.s3_toys import TOY_CAL_W, TOY_EXP, TOY_GOLD, TOY_GOLD_BINS, TOY_POISSON_NLL, TOY_RATE, TOY_Y
 
 SOURCE = Path(nll.__file__)

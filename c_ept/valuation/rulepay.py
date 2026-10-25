@@ -1,65 +1,25 @@
-r"""Rule payouts for the f0 label: the base bounty by level and the assist pool of a kill (stage S3 Task 3, decision P3).
+r"""
+Game Rule-Based Kill & Assist Payouts / LoL 게임 공식 규칙 기반 킬 및 어시스트 골드 풀 산출기
 
-f0 prices a fight in gold. Its kill part is the gold of the kills: the recorded bounty and the recorded shutdown bounty, which the timeline
-holds (``kills/bounty``, ``kills/shutdown``), and the assist pool, which it does not hold and which this module works out from the rules
-of the game. The caller adds ``bounty + shutdown + pool``.
+[English]
+Computes exact in-game gold rewards for champion kills and assists to label economic fight outcomes (f0):
+  - Motivation: Riot Timeline files record the killer's bounty and shutdown bounty, but omit the assist pool
+    distributed to teammates. This module reconstructs the assist pool from official game mechanics.
+  - Formula (patches 15.18 - 15.22):
+      pool = min(pool_share * recorded_bounty, cap_share * base(victim_level)) * mult(t)
+        * pool_share = cap_share = 0.5 (50% bounty share capped at 50% base bounty).
+        * mult(t): Early-game scaling: 0.5 until 90s, ramping linearly to 1.0 at 210s.
+        * base(level): 300g (levels 1-6), increasing by +10g per level up to 420g at level 18.
+  - Rule Verification (`RuleTable`): Manages verified parameter schemas across patch ranges (RULE_PAYOUTS.json).
 
-The pool of one kill (decision P3, approved on 2026-10-21; patches 15.18-15.22):
-
-    pool = min(pool_share x recorded bounty, cap_share x base(victim level)) x mult(t)      when n_assisters >= 1, else 0
-    mult(t) = start + (end - start) x clip((t / 1000 - flat_until_s) / (full_at_s - flat_until_s), 0, 1)        t in ms of game time
-
-with pool_share = cap_share = 0.5, mult = 0.5 until 90 s and linear to 1.0 at 210 s. The base bounty is 300 for levels 1-6, 10 more per
-level from level 7, and 420 at level 18. The pool is the total over all assisters (each of them gets an equal share), so the number of
-assisters decides only whether a pool exists. The shutdown bounty is not part of the pool: it is a bonus for the killer (official notes
-14.21), and it is not an argument here. There is no First Blood gold in 15.18-15.22. An execution (a kill without a champion killer) pays
-nothing and has no assisters; this module does not know about killers, so the caller gives such a kill no pool (Task 4).
-
-``RuleTable`` holds the values of four rules of the checked table ``RULE_PAYOUTS.json`` (schema ``rule_payouts_v2``, written by the s3a
-source check) per patch range: ``F0_RULES`` = the base bounty (``by_level``), the assist pool (``pool_share``, ``cap_share_of_base``), the
-early-game multiplier (``flat_until_s``, ``full_at_s``, ``start_multiplier``, ``end_multiplier``) and the First Blood bonus
-(``killer_bonus``, ``assist_pool_bonus``). The other rules of the file (object gold, used only by the sensitivity runs) are not read, so
-their status does not matter here.
-
-``RuleTable.load(path, patches=None)`` refuses a table that f0 cannot trust (every refusal is a ValueError):
-
-    - an f0 rule that is missing, or an entry of it whose ``status`` is not ``verified`` (``documented`` and ``unknown`` are refused);
-    - an entry whose numbers cannot be a payout (a level list that is not 18 whole positive amounts, a share outside (0, 1], a ramp that
-      does not end after it starts, a multiplier outside [0, 1], a missing or non-numeric field), and two entries of one rule that cover
-      the same patch (checked on every entry of the file, whether it is read or not);
-    - an ``assist_pool_bonus`` other than 0 (First Blood gold that the pool formula has no term for: the module fails closed instead of
-      pricing the pool wrongly);
-    - values for any served patch in 15.18-15.22 that differ from ``P3_RULES``, the built-in copy of the approved decision. The file and the
-      decision must say the same thing; this check keeps one source of truth.
-
-By default every f0 entry of the file must be verified, and the table serves every patch that all four rules have an entry for.
-``patches`` makes the table serve exactly the asked patches (each of which must be covered by all four rules) and no others, however
-wide the entries that cover them are. Only the entries that cover an asked patch are read, so a patch that has no verified rules yet
-(16.13: the First Blood share of the assist pool is unknown) does not refuse the patches that do. Two entries of one rule must not
-cover the same patch; this is checked on every entry of the file, read or not, so the file is refused whatever patches are asked for.
-The agreement with P3 is checked on the patches the table serves. Any patch that is not served raises ValueError when it is priced.
-
-The functions price with ``P3_RULES`` (the five patches 15.18-15.22) unless a loaded table is passed as ``rules=``; the table then replaces
-the built-in rules, it does not add to them. Patch ranges are compared as numbers (15.9 comes before 15.18). Nothing here reads a match,
-a store or a run folder, and no message holds an input value: a patch string could be anything, so a bad one is not echoed.
-
-방법에서의 위치. 이 모듈은 골드 단위 가치 f₀의 킬 몫인 킬 골드 가운데 타임라인에 없는 도움 풀을 게임 규칙에서 계산한다(계획 P3, Task 3; 설계서 8절). 도움 풀의 입력인
-피해자 레벨별 기본 현상금과 초반 배수는 출처를 검증한 규칙표(RULE_PAYOUTS.json)에서 읽고, 15.18–15.22는 승인된 결정 P3의 값을 내장한다. 킬 골드는 호출한 쪽이 기록 bounty,
-기록 shutdown bounty, 이 풀을 한 번씩 더한 것이다((VAL-2)). 이 모듈은 경기, 저장소, 경기 키를 읽지 않고 배열과 규칙표만 안다.
-
-용어. 킬 골드: 킬 하나에서 지급되는 골드이며 기록 bounty, 기록 shutdown bounty, 도움 풀의 합이다(팀의 킬 골드 g는 이 값의 합이다). 도움 풀: 도움 참가자 전체에게 지급되는
-골드의 합계이다. 기본 현상금: 피해자 레벨에서 정해지는 bounty의 기준값이다. 초반 배수: 경기 초반에 도움 풀을 줄이는 계수이다. 처형: 킬러가 챔피언이 아닌 킬이다.
-
-식 목록. 식 번호는 (모듈 약어-번호) 꼴이며 식과 기호는 docs/superpowers/notes/equation-index.md의 식 색인과 기호 등록부에 올라 있다.
-    (PAY-1)  기본 현상금   base(lvl) = by_level[lvl − 1]   (lvl = 1, …, 18; 내장 P3 표는 300 + 10·max(0, lvl − 6))
-    (PAY-2)  초반 배수     mult(t) = start + (end − start)·clip((t/1000 − t_flat) / (t_full − t_flat), 0, 1)
-    (PAY-3)  도움 풀       pool = min(share·bounty, cap·base(lvl))·mult(t)   (도움 참가자가 1명 이상),   pool = 0   (도움 참가자가 없을 때)
-
-공통 가정.
-    (가) 도움 풀은 도움 참가자 전체의 합계이다. 참가자 수는 풀이 있는지만 정하고 크기를 바꾸지 않으며, 풀은 킬 골드에 한 번만 들어간다(계획 P3; 기호 등록부의 g, f₀).
-    (나) shutdown bounty는 킬러의 보너스여서 풀에 들어가지 않고 인자도 아니다. 이 모듈은 킬러를 모르므로 처형에 풀을 주지 않는 일은 호출한 쪽이 맡는다(계획 P3, Task 4).
-    (다) 값은 검증된 규칙표에서만 온다. 외부 규칙표를 읽을 때 patches가 없으면 모든 f₀ 항목의 상태를 검사하고, patches를 지정하면 요청 패치를 덮는 항목의 상태만 검사한다.
-         표가 제공하는 15.18–15.22 패치의 값은 P3와 같아야 하며, 제공하지 않는 패치의 가격 계산은 거부한다(판정 R8, R10).
+[한국어 설명]
+교전의 경제적 가치 평가($f_0$)를 위해 공식 롤 게임 메커니즘을 바탕으로 킬 및 어시스트 보상 골드를 산출합니다:
+  - 목적: 라이엇 타임라인에는 킬러가 획득한 기본 현상금(bounty)과 제압 골드(shutdown bounty)만 기록되어 있고, 어시스트 소환사들에게 분배된 골드 풀은 누락되어 있습니다.
+  - 어시스트 풀 계산 수식 (15.18 ~ 15.22 패치):
+      $\text{pool} = \min(0.5 \times \text{bounty}, 0.5 \times \text{base}(\text{피해자 레벨})) \times \text{mult}(t)$
+        * 초반 감쇠 배수 $\text{mult}(t)$: 90초까지 0.5배, 이후 210초까지 1.0배로 선형 증가.
+        * 피해자 레벨별 기본 현상금 $\text{base}(\text{level})$: 1~6레벨 300골드, 7레벨부터 레벨당 +10골드씩 증가하여 18레벨에 최대 420골드.
+  - 규칙표 관리(`RuleTable`): 패치별 게임 변경사항을 엄격히 검증하여 신뢰성 있는 보상 테이블(`RULE_PAYOUTS.json`) 제공.
 """
 # Ref: docs/superpowers/plans/2026-10-21-c-ept-s3.md decision P3 (the assist pool of a kill), Task 3, and the rulings R7 and R8 of the S3
 #      ledger (the built-in P3 rules; the loader refuses a table that disagrees with them).

@@ -1,0 +1,22 @@
+{
+  "schema": "ept-dev-evaluation-v1",
+  "source": "C:/Users/todtj/.codex/worktrees/ept-dev-evaluation/LOL_teamfight",
+  "training_source": "C:/Users/todtj/.codex/worktrees/ept-s25-pilot/LOL_teamfight",
+  "training_control": "D:/LOL_Data/runs/ept_s25_pilot_control_20261025_1",
+  "training_run": "D:/LOL_Data/runs/20261025_c_ept_ept_pilot_1",
+  "s1": "REPLACE_FROM_PARENT_RUN_IDENTITY_INPUTS_PATHS_S1",
+  "s2": "REPLACE_FROM_PARENT_RUN_IDENTITY_INPUTS_PATHS_S2",
+  "s3": "D:/LOL_Data/runs/20261022_c_ept_s3_3",
+  "output": "D:/LOL_Data/runs/ept_dev_s25_best_1",
+  "reviewed_commit": "REPLACE_WITH_REVIEWED_CLEAN_EVALUATOR_COMMIT",
+  "definitions_sha256": "REPLACE_WITH_FROZEN_DEFINITIONS_SHA256",
+  "final_audit_sha256": "REPLACE_AFTER_PARENT_FINAL_AUDIT",
+  "final_report_sha256": "REPLACE_AFTER_PARENT_FINAL_REPORT",
+  "device": "cuda",
+  "batch_size": 32,
+  "seed": 20261022,
+  "bootstrap": 2000,
+  "draws": 1000,
+  "role": "DEV",
+  "native_threads": 8
+}

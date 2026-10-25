@@ -1,119 +1,51 @@
-r"""The B1 baseline: LightGBM heads for M2, M3 and M4, masked and open, and the B2 next-minute onset classifier (stage S3 Task 7).
+r"""[모듈 개요 및 하네스 위치]
+이 모듈은 교전 과정 모형(EPT)이 넘어서야 할 1차 고성능 기준선인 B1 그래디언트 부스팅 트리(LightGBM)
+앙상블 및 다음 1분 발생 이진 분류기(B2)를 구현한다 (stage S3 Task 7).
 
-B1 has the heads of B0 (same names, same masked and open kinds, same composer protocol, same rows and targets from ``head_rows``,
-ruling R18) but each head is a gradient-boosted tree model of the b1 table (``features.b1``: the summary columns, the sums and maxima of
-the players of each team, the distances; no champion, item or patch id; a NaN stays NaN and LightGBM reads it as missing) instead of a
-log-linear model of the 39 columns of b0. The categories of the head (q, m, z, s and the kill layer) are LightGBM categorical features.
-B1 is the floor above B0 that the EPT has to beat; it is also the composer's second set of heads (decision P6).
+A. 하네스 및 파이프라인 내 위치:
+   - B0(baselines_b0, Task 6)와 동일한 머리 이름, 동일한 가린 및 열린 구조, 동일한 ComposerHeads 프로토콜,
+     동일한 head_rows 데이터 행 규격을 공유한다 (판정 R18).
+   - B0가 39개 원시 열의 로그 선형 및 다항 로짓 GLM인 반면, B1은 요약 통계량·팀 합계/최댓값·거리 등이 포함된
+     b1 특징 테이블(features.b1, 약 440개 열)을 기반으로 LightGBM 부스팅 트리를 학습한다.
+   - B1은 EPT가 넘어야 하는 정량적 하한선(floor)이자, 합성기(composer)의 2차 평가 기준선이다 (결정 P6).
 
-The heads (masked = what the composer can give them, open = what the S2 event view of the engagement holds)
+B. 모듈 아키텍처 및 11대 블록 구성:
+   - 블록 1: 전역 상수 및 고정 하이퍼파라미터 (FIXED_PARAMS, seed=1, 결정 P9)
+   - 블록 2: 설계 행렬(Design Matrix) 슬롯 및 레이아웃 (SLOTS, Layout, make_layout; 식 B1-1)
+   - 블록 3: 설계 행렬 및 범주형 열 유효성 검증 유틸리티 (_design_matrix, _check_categorical)
+   - 블록 4: 부스팅 기저 클래스 (_Boosted) 및 조기 종료 (early stopping; 식 B1-5)
+   - 블록 5: 포아송 부스팅 헤드 (_PoissonBoosted; 식 B1-2, B1-3 오프셋 및 제프리스 복구)
+   - 블록 6: 다중 분류 부스팅 헤드 (_CategoricalBoosted; 식 B1-4 소프트맥스 및 균등 섞기)
+   - 블록 7: 8대 개별 헤드 (M2Rate, M2Mark, M2Zone, M3Size, M3Kills, M3Gold, M3Obj, M4Conv)
+   - 블록 8: 훈련 및 평가용 행 집합 추출기 (HeadRows)
+   - 블록 9: B2 다음 1분 발생 이진 분류기 (B2Boosted, B2Rows; 식 B1-6 ~ B1-8)
+   - 블록 10: 합성기 연동 프로토콜 어댑터 (_MaskedChain, ComposerHeads 구현)
+   - 블록 11: 헤드 번들 및 파일 직렬화 엔진 (B1Heads, save_head, load_head; JSON + model text)
 
-    M2Rate   Poisson    first kills per second in a (row, bin) cell, from the b1 row and the bin q            (masked only)
-    M2Mark   52 classes  the mark of the first kill, from the b1 row and q                                     (masked only)
-    M2Zone   10 classes  the zone of the first kill, from the b1 row, q and the mark m                         (masked only)
-    M3Size   4 classes   the size class s, from the b1 row, q, m and the zone z
-    M3Kills  2 Poisson   the kills of the blue and of the red team, from the b1 row, q, m, z and s (a model for each team, R19)
-    M3Gold   31 classes  the kill-gold bin of a team with at least one kill, given its kill layer (a model for each team, R19)
-    M3Obj    18 Poisson  the objectives O of each cell, from the b1 row, q, m, z, s and K (masked: the TRUE K in training, the sampled K in
-                         the composition: decision P6 conditions B1 on K, as the factorisation P(O | K, s) of the spec does)
-    M4Conv   18 Poisson  the objectives converted after the engagement, from ``features.m4_masked_inputs`` (the b1 row, q, m, z, K and O:
-                         masked: the TRUE K and O in training), with the exposure of the conversion window
+C. 설계 행렬(Design Matrix) 슬롯 및 텐서 규격 (식 B1-1):
+   - M2Rate  : [b1 feat, q]                            -> (n, 18) 포아송 초당 첫 킬 발생률
+   - M2Mark  : [b1 feat, q]                            -> (n, 52) 52개 표지 다중 분류 확률
+   - M2Zone  : [b1 feat, q, m]                         -> (n, 10) 10개 구역 다중 분류 확률
+   - M3Size  : [b1 feat, q, m, z]                      -> (n, 4) 4개 규모 범주 확률
+   - M3Kills : [b1 feat, q, m, z, s]                   -> (n, 2) Blue 및 Red 기대 킬 수 (포아송)
+   - M3Gold  : [b1 feat, q, m, z, s, layer]            -> (n, 2, 31) 31개 킬 골드 구간 확률
+   - M3Obj   : [b1 feat, K, q, m, z, s]                -> (n, 18) 18개 오브젝트 칸별 기대치 (포아송)
+   - M4Conv  : [b1 feat, q, m, z, K, O]                -> (n, 18) 18개 오브젝트 칸 초당 전환율
 
-Designs (``SLOTS``). A design is a float32 matrix: the b1 columns (``feat``), the K block (kills blue, kills red, kill gold blue and red
-in thousands, the columns of the masked M4 input), the O block (18 objective counts) and one column for each category, in the order of
-the table ``SLOTS``. q, m, z, s and the layer are LightGBM categorical columns (values 0 .. n - 1: the zone is shifted by one, so that "no
-position" (-1) is the level 0 of its own, as B0 has it; the layer 1 .. 6 is shifted to 0 .. 5). One function (``_assemble``) makes the
-design from the pieces, for the training rows, for the composer and for ``predict_blocks``, so the three cannot drift apart. The design of
-the masked M4 head IS the matrix that ``features.m4_masked_inputs`` returns (with the zone shifted by one): the training rows are built by
-that function from the true K and O (the leakage test (a) and the Task 6 reviewer's deferred point), and the composer hands the heads the
-matrix it built with the same function.
+D. 핵심 수식 (B1-1 ~ B1-8):
+   (B1-1)  설계 행        x_i = [b1 열 | K 블록 | O 블록 | 범주 열 q, m, z + 1, s, ξ − 1]
+   (B1-2)  포아송 부스팅  log μ_{ic} = log e_i + γ_c + F_c(x_i),   γ_c = log(Σ_i y_{ic} / Σ_i e_i)
+   (B1-3)  사건 없는 칸   Σ_i y_{ic} = 0이면 나무 없이 λ_c = 0.5 / Σ_i e_i (제프리스 사전분포 사후평균)
+   (B1-4)  분류 부스팅    p^model_{ic} = softmax_{c∈A}(F_c(x_i)),   p_{ic} = (1 − ν) · p^model_{ic} + ν / C
+   (B1-5)  조기 종료      R̂ = argmin_{R ≤ R_run} Loss_stop(R) (STOP 행 기준 인내 50 라운드)
+   (B1-6)  B2 목표        y_i = 1[Σ_{q=0}^{5} n_q ≥ 1] (프레임 행 기준 향후 60초 내 발생 여부)
+   (B1-7)  B2 확률        p_i = (1 − ν) · p^model_i + ν / 2,   p^model_i = 1 / (1 + exp(−F(x_i)))
+   (B1-8)  B2 점수        ℓ_i = −log p_i (y_i = 1), −log(1 − p_i) (y_i = 0);   Brier = (p_i − y_i)²
 
-Fits (decision P9: equal weight for every training row, seed 1, no search; the search is S6 and the three seeds S7)
-
-    parameters   num_leaves 63, learning_rate 0.1, min_data_in_leaf 200, feature_fraction 0.8, bagging_fraction 1.0, lambda_l2 1.0,
-                 max_bin 255, deterministic, force_row_wise, 8 threads, seed 1 (``FIXED_PARAMS``); at most 1,000 rounds; early stopping
-                 after 50 rounds without improvement on the STOP rows of the same kind (STOP frame rows for M2Rate and B2, STOP onsets for
-                 the masked M3 and M4 heads, STOP units for the open heads). The model keeps the rounds up to the best one; ``summary()``
-                 gives ``best_iteration`` (the rounds kept) and ``num_trees`` of every model, and ``rounds_run``. ``params`` of a head
-                 override these (the tests do; the runner does not), the rounds as ``num_iterations`` and the patience as
-                 ``early_stopping_round``.
-    Poisson      objective ``poisson``, metric ``poisson``; one booster for each cell of the target (the 18 cells of O and of the
-                 conversions, the two teams of M3Kills). The exposure is the offset: ``init_score = log(exposure in seconds) + gamma`` with
-                 gamma = log(sum of the counts / sum of the exposures) of the cell, so that the trees start at the average rate (LightGBM
-                 does not boost from the average when it is given an init score). The model gives the rate per second exp(raw + gamma); a
-                 prediction needs no exposure and ``expected`` multiplies it by one. Rows without exposure are left out of the fit and
-                 counted. A cell with no event in the training rows has no maximum-likelihood fit and no booster: it gets the constant
-                 rate 0.5 / (sum of the exposures), the posterior mean under the Jeffreys prior (the B0 convention, ruling R22).
-    multiclass   objective ``multiclass`` over the classes that occur in the training rows (a dense numbering); the output is the softmax
-                 put on the full class set and mixed with the uniform law, p = (1 - 1e-6) p_model + 1e-6 / C (ruling R13), so that a class
-                 that never occurred has the probability 1e-6 / C and every NLL is finite. A training entry with the class -1 (no zone) is
-                 left out of the fit and counted in ``n_missing_``; a validation row of a class the training rows lack cannot be scored by
-                 the booster and is left out of the early stopping (counted in ``n_valid_unseen_``). One class: the constant model.
-    binary       B2: objective ``binary``; the output is mixed with the uniform law over {0, 1} as the others (ruling R13).
-    One cell at a time. The design is built once for a head and the LightGBM Dataset (the binned matrix) once for all the cells of the
-    head (only the label and the init score change from cell to cell), and one booster is trained at a time; ``B1Heads.fit`` fits one head
-    at a time (``fit_head``, which a runner can call head by head) and drops its rows before the next. The M2Rate design is the largest,
-    8.2 M rows x about 440 float32 columns, 14 GiB. The float32 design is handed to the head in a ``_Design`` and let go as soon as
-    LightGBM has binned it (the binned matrix is a quarter of its size), so that the long training runs on the binned matrix alone; the
-    peak of the memory is the construction of the Dataset, where the design and LightGBM's own structures are there together.
-
-The teams (ruling R19). M3Kills is one Poisson head with two cells, blue and red: one LightGBM booster for each team on one row per onset,
-as the 18 cells of M3Obj. M3Gold holds two multiclass models, ``member(0)`` for the blue and ``member(1)`` for the red team, each fitted
-on the entries of its team with at least one kill; its methods take the team of every row. Neither design has a team column.
-
-Row-wise scores. ``B1Heads.nll`` evaluates the heads on the rows of a role (DEV) and returns, for each head, the NLL of its rows as
-``HeadScores``: the M2Rate cells are summed to one value per frame row, the two team entries of an onset (M3Gold) to one value per onset,
-the rows without a category (zone -1) and the cells without exposure are not rows of the head's mean and are counted in ``n_unscored``
-(ruling R22; a cell without exposure adds 0 to the NLL).
-
-B2. The next-minute onset classifier: a binary LightGBM model of the b1 row of a frame-clock row, whose target is "at least one onset in
-the bins 0 .. 5 of the row" (decision P5: at least one first kill within 60 s, the event that M2 gives a probability to). The rows are the
-frame rows of the role, nothing else; ``b2_target`` is the target, ``valid_rows`` the early-stopping rows (the STOP frame rows).
-
-Files. One head is saved on its own by ``save_head`` (and read by ``load_head``, ``read_head_record``): a folder with one text file for each
-booster (the ``model_to_string`` text of LightGBM, UTF-8) and ``head.json`` (the schema, the LightGBM version, the kind and name, the layout
-and the counts of the head, the file name and the SHA-256 of every text, and a ``record`` that the caller keeps with the head), written
-LAST, so that a folder without it is a save that was cut. The runner checkpoints every head this way as soon as it is fitted (G-S3b B3).
-``B1Heads.save(dir)`` writes the folder of every head into ``models/<kind>.<name>/`` with ``save_head`` and then ``b1_heads.json`` (the
-schema, the LightGBM version, the dropped columns and the column names, the parameters, and for every head its layout and counts, the
-files with their SHA-256, its folder and the SHA-256 of its ``head.json``). No pickle. The same heads give the same bytes. ``load`` checks
-the schema, the layout of every head against the dropped columns and the head set, reads every head with ``load_head`` (which checks the
-SHA-256 of every file), builds ``masked`` and ``open`` in the order of ``HEAD_NAMES`` and ``OPEN_HEAD_NAMES`` (the JSON itself is
-sorted), and gives predictions bit-identical to the fitted heads.
-
-The composer. ``B1Heads.composer_heads('masked')`` is an object of the ``heads.ComposerHeads`` protocol: ``bind(s2, views)`` computes the b1
-rows of the composer's frame-clock views (it refuses a view that is not a frame-clock view, as B0) and the other methods build the
-designs of the rows and categories they are given and ask the boosters. ``analytic_ok`` is False (a tree model has no closed form for the
-expected value of an engagement: the gate checks the simulation only), ``obj_uses_K`` and ``conv_uses_KO`` are True (decision P6).
-
-방법에서의 위치. 이 모듈은 교전 과정 모형(EPT)이 넘어야 할 기준 모형 B1을 계산한다. B1은 B0와 같은 머리, 같은 행, 같은 목표를 쓰되(판정 R18) 머리마다 b1 특징(가린 머리는 t₀ 행, 열린 머리는 교전의 사건 보기)과 그 머리가
-조건으로 삼는 범주, K, O를 한 행의 입력으로 이어 붙이고(B1-1) 그 위에 그래디언트 부스팅 나무를 쌓는다. 개수를 예측하는 머리는 노출의 로그를 오프셋으로 둔 포아송 목적함수(B1-2, B1-3)로, 범주를 예측하는 머리는 다중 분류 로그
-손실(B1-4)로 맞추며, 나무를 몇 그루 쌓을지는 STOP 행의 손실이 정한다(B1-5). 두 목적함수는 점수 (NLL-1), (NLL-2)(골드 머리는 (NLL-3))와 같은 확률 족의 음의 로그 우도이므로 B0, EPT의 점수와 그대로
-맞대어진다(계획 P4). 이 밖에 앞 60초 안에 교전의 첫 킬이 하나 이상 있는지 맞히는 이진 분류기 B2를 둔다(B1-6–B1-8; 계획 P5). 행은 (HR-1)–(HR-5), 머리의 규약은 (HEAD-1)–(HEAD-5), B0의 식은
-(B0-2)–(B0-6)이다.
-
-용어. 머리: 조건부 분포 하나를 예측하는 모형 부품. 가린 머리: 합성기가 줄 수 있는 입력, 곧 t₀ 행의 특징과 사슬에서 앞 단계가 낸 값(q, m, z, s, 킬 수 층, 머리에 따라 K와 O)만 읽는 머리이다. 훈련에서는 K와 O에 실제 값을
-넣고 합성에서는 앞 단계의 표본 값을 넣으며, 열린 머리는 교전의 사건 보기를 읽는다(설계서 3.2절, 3.3절). 분 프레임: 경기 상태를 1분마다 찍은 기록이고 t₀는 그 시각이다. 교전: 같은 경기에서 15초와 2,000 지도 단위 이내로 이어진
-킬의 묶음. 발생: t₀ 행과 그 뒤 구간 q(10초씩 18개)에서 첫 킬이 일어난 교전의 쌍. 표지 m: 첫 킬의 선제 킬 쌍(킬러 슬롯이 피해자 슬롯을 잡는 방향 쌍 50개)과 처형 2개. 킬 수 층 ξ: 킬이 하나 이상인 팀의 킬 수를 1–5와
-6 이상으로 나눈 여섯 층. 오브젝트 칸: 오브젝트 종류와 가져간 팀의 쌍마다 하나(18칸). 전환 창: 교전이 끝난 뒤 60초. 설계 행: 한 머리를 맞추는 배열의 한 행이다.
-
-식 목록. 식 번호는 (모듈 약어-번호)이고 식과 기호는 docs/superpowers/notes/equation-index.md에 있다. i는 설계 행, c는 한 머리의 출력(포아송 머리에서는 한 행 안에서 따로 예측하는 개수인 칸, 분류 머리에서는
-범주), J는 출력의 수(분류 머리에서는 훈련에 나온 범주의 수 |A|), d는 b1 열의 수, F는 부스터가 낸 나무 합(원점수)이며, B2의 행 i는 프레임 행이다.
-    (B1-1)  설계 행        x_i = [b1 열 x_{i1}, …, x_{id} | K 블록 | O 블록 | 범주 열 q, m, z + 1, s, ξ − 1]      (머리마다 SLOTS가 적은 조각만, SLOTS의 순서로)
-    (B1-2)  포아송 부스팅  log μ_{ic} = log e_i + γ_c + F_c(x_i),   γ_c = log(Σ_i y_{ic} / Σ_i e_i)      (F_c는 Loss_c를 낮추는 나무의 합; 합은 e_i > 0인 행)
-    (B1-3)  사건 없는 칸   Σ_i y_{ic} = 0이면 나무 없이 λ_c = 0.5 / Σ_i e_i                                                  ((B0-3)과 같다)
-    (B1-4)  분류 부스팅    p^model_{ic} = softmax_{c∈A}(F_c(x_i)),   p_{ic} = (1 − ν)·p^model_{ic} + ν / C   (F는 Loss를 낮추는 나무의 합; A = 훈련에 나온 범주)
-    (B1-5)  조기 종료      R̂ = argmin_{R ≤ R_run} Loss_stop(R)      (STOP 행의 손실이 인내 라운드 수(계획 P9) 동안 낮아지지 않으면 멈추고 R̂ 라운드까지만 남긴다)
-    (B1-6)  B2 목표        y_i = 1[Σ_{q=0}^{5} n_q ≥ 1]                                        (프레임 행 i의 앞 60초 안에 발생이 하나 이상)
-    (B1-7)  B2 확률        p_i = (1 − ν)·p^model_{i} + ν / 2,   p^model_{i} = 1 / (1 + exp(−F(x_i)))
-    (B1-8)  B2 점수        ℓ_i = −log p_i (y_i = 1), −log(1 − p_i) (y_i = 0);   Brier (p_i − y_i)²   ((NLL-2)에서 C = 2, c_i = y_i)
-
-공통 가정.
-    (가) 행마다 같은 무게이고 시드 하나, 탐색 없이 고정한 모수이다(계획 P9). 결정적 설정과 고정 시드를 쓰므로 같은 입력의 적합은 같은 머리를 낸다(계획 전역 제약의 결정성; 시험이 확인한다).
-    (나) 노출은 경기 끝에서 자른 관측 시간이며 입력이 아니라 오프셋이다(계획 P10, 판정 R23). 노출이 0인 행과 위치 없음(z = −1)인 항목은 적합에서 빼고(계획 전역 제약의 확률 족, 구역 z) 그 수를 센다(판정 R22).
-         노출이 0인 행에 개수가 있으면 (NLL-1)이 받지 않는 자료여서 거부한다.
-    (다) 가린 오브젝트 머리는 K를, 가린 전환 머리는 K와 O를 조건으로 읽는다(계획 P6). 학습에서는 실제 값을, 합성에서는 표본 값을 넣는다.
-    (라) 킬과 골드 머리는 팀마다 모델 하나이고(판정 R19), 모든 범주 출력은 균등 분포를 섞어 확률 0이 없다(판정 R13).
+E. 하네스 제약 및 결정성 보장:
+   - 고정 하이퍼파라미터(결정 P9): seed=1, deterministic=True, force_row_wise=True, 8 스레드 고정.
+   - 단일 칸 및 헤드 단위 메모리 최적화: _Design 객체를 통해 float32 행렬을 전달하고 LightGBM이 binning하는 즉시 메모리를 해제.
+   - 엄격한 직렬화: pickle 및 joblib 대신 UTF-8 텍스트(model_to_string)와 SHA-256 체크섬 JSON 사용.
 """
 # Ref: docs/superpowers/plans/2026-10-21-c-ept-s3.md decisions P4 (the factorisation and the probability families), P5 (the target of B2),
 #      P6 (the masked M3 object and M4 heads of B1 are conditioned on K and on K and O), P8 (the overdispersion test uses the B1 M2 rate),
@@ -150,14 +82,17 @@ import numpy as np
 from scipy.special import expit
 
 from c_ept import config as C
-from c_ept import features, head_rows, heads, store_core
-from c_ept import nll as nll_scores
-from c_ept.casts import narrow
+from c_ept.preprocessing import features
+from c_ept.data import head_rows, store_core
+from c_ept.models import heads, nll as nll_scores
+from c_ept.data.casts import narrow
 # the names of the heads, their shapes, and the rows and scores that B0 and B1 share (ruling R18)
-from c_ept.head_rows import (HEAD_NAMES, KINDS, MIX, N_CELLS, N_GOLD, N_K, N_LAYER, N_M, N_Q, N_SIZE, N_ZONE, OPEN_HEAD_NAMES,  # noqa: F401
+from c_ept.data.head_rows import (HEAD_NAMES, KINDS, MIX, N_CELLS, N_GOLD, N_K, N_LAYER, N_M, N_Q, N_SIZE, N_ZONE, OPEN_HEAD_NAMES,  # noqa: F401
                              PREDICT_ALL_WIDTHS, TEAMS, HeadBatch, HeadData, HeadScores)
 
-# ---- the constants of the fits (decision P9) ---------------------------------------------------------------------------------------------
+# =============================================================================
+# 블록 1: 전역 상수 및 고정 하이퍼파라미터 (decision P9)
+# =============================================================================
 FIXED_PARAMS = {'num_leaves': 63, 'learning_rate': 0.1, 'min_data_in_leaf': 200, 'feature_fraction': 0.8, 'bagging_fraction': 1.0,
                 'lambda_l2': 1.0, 'max_bin': 255, 'deterministic': True, 'force_row_wise': True, 'num_threads': 8, 'seed': 1,
                 'verbosity': -1}
@@ -173,7 +108,9 @@ _CHUNK = 1 << 16                  # rows per step of the design fill and of the 
 _PREDICT_CHUNK = 1 << 18          # design rows per call of the composer's boosters
 
 
-# ---- the designs -------------------------------------------------------------------------------------------------------------------------
+# =============================================================================
+# 블록 2: 설계 행렬(Design Matrix) 슬롯 및 레이아웃 (식 B1-1)
+# =============================================================================
 # the pieces of a design, in the order of its columns. 'feat' is the b1 row, 'K' the 4 columns kills blue, kills red, kill gold blue and
 # red in thousands, 'O' the 18 objective counts; q m z s layer one categorical column each.
 # 식 (B1-1)의 x_i는 이 조각을 이 순서로 이은 행이다. 머리가 K와 O를 읽는지는 계획 P6이 정한다.
@@ -374,7 +311,9 @@ class _Design:
         return X
 
 
-# ---- the checks of a design matrix -------------------------------------------------------------------------------------------------------
+# =============================================================================
+# 블록 3: 설계 행렬 및 범주형 열 검증 유틸리티
+# =============================================================================
 def _design_matrix(X) -> np.ndarray:
     """The design as a float32 C-contiguous 2-d array (no copy when it is one already). A NaN stays (LightGBM reads it as missing); an
     infinite value is refused. TypeError for a dtype that is not numeric, ValueError for a shape without rows or columns."""
@@ -426,7 +365,9 @@ def _split_params(params) -> tuple:
     return p, int(rounds), int(patience)
 
 
-# ---- the heads ---------------------------------------------------------------------------------------------------------------------------
+# =============================================================================
+# 블록 4: 부스팅 기저 클래스 (_Boosted) 및 조기 종료 (식 B1-5)
+# =============================================================================
 class _Boosted:
     """What the boosted heads share: the parameters, the layout, one LightGBM booster for each cell and the files. A head holds
     ``boosters_`` (one per cell; None for a cell that has no booster), ``info_`` (one dict per cell: best_iteration, num_trees,
@@ -625,6 +566,9 @@ def _no_booster_info() -> dict:
     return {'best_iteration': 0, 'num_trees': 0, 'rounds_run': 0, 'stopped_early': False, 'best_score': None}
 
 
+# =============================================================================
+# 블록 5: 포아송 부스팅 헤드 (_PoissonBoosted: 식 B1-2, B1-3)
+# =============================================================================
 class _PoissonBoosted(_Boosted):
     """A Poisson boosted model with the log link, per second of exposure: the rate of a cell. One booster per cell (a column of the
     target); ``fit(X, Y, e)`` takes the design, the counts (n,) or (n, J) and the exposure in seconds. A target given as a 1-d array makes
@@ -819,6 +763,9 @@ class _PoissonBoosted(_Boosted):
         return out
 
 
+# =============================================================================
+# 블록 6: 다중 분류 부스팅 헤드 (_CategoricalBoosted: 식 B1-4)
+# =============================================================================
 class _CategoricalBoosted(_Boosted):
     """A multiclass boosted model over ``N_CLASSES`` classes with the uniform mixing of ruling R13. ``fit(X, y)`` takes the design and the
     class of every row (0 .. C - 1, or -1 for "no category": left out and counted in ``n_missing_``).
@@ -965,6 +912,9 @@ class _CategoricalBoosted(_Boosted):
         return out
 
 
+# =============================================================================
+# 블록 7: 8대 개별 헤드 (M2Rate, M2Mark, M2Zone, M3Size, M3Kills, M3Gold, M3Obj, M4Conv)
+# =============================================================================
 class M2Rate(_PoissonBoosted):
     """The first-kill rate per second of a (row, bin) cell: the design is [b1 row, q].
 
@@ -1189,7 +1139,9 @@ if tuple(HEAD_CLASSES) != HEAD_NAMES or not set(OPEN_HEAD_NAMES) <= set(HEAD_NAM
     raise RuntimeError('the head classes, HEAD_NAMES and the designs differ')
 
 
-# ---- the training and scoring rows -------------------------------------------------------------------------------------------------------
+# =============================================================================
+# 블록 8: 훈련 및 평가용 행 집합 추출기 (HeadRows)
+# =============================================================================
 class HeadRows(head_rows.HeadRows):
     """The rows that the B1 heads are trained or scored on, for the matches of one role of an (S1, S2, labels) triple: the rows of
     ``head_rows.HeadRows`` with the b1 features without the columns ``dropped`` (``features.dropped_columns``, from the FIT views).
@@ -1200,10 +1152,10 @@ class HeadRows(head_rows.HeadRows):
 
     행의 정의는 (HR-1)–(HR-4)이고, 이 클래스는 거기에 b1 특징(결측 칸은 NaN으로 둔다)과 SLOTS의 설계를 얹는다(판정 R18)."""
 
-    def __init__(self, s1, s2, labels, dropped, role):
+    def __init__(self, s1, s2, labels, dropped, role, *, matches=None):
         self.dropped = tuple(dropped) if not isinstance(dropped, str) else dropped
         self.columns = features.b1_columns(self.dropped)                       # refuses a string and a name that is no column
-        super().__init__(s1, s2, labels, role, lambda store, views: features.b1(store, views, self.dropped))
+        super().__init__(s1, s2, labels, role, lambda store, views: features.b1(store, views, self.dropped), matches=matches)
 
     def data(self, head: str, kind: str) -> HeadData:
         """The rows of the head ``head`` ('M2Rate', ... 'M4Conv') of ``kind`` ('masked' or 'open'), see ``HeadData``. ValueError for a head
@@ -1221,7 +1173,9 @@ class HeadRows(head_rows.HeadRows):
         return HeadData(X, p.y, p.e, p.match, p.row, layout, p.n_zero_exposure, p.team)
 
 
-# ---- the early-stopping rows and the target of B2 ---------------------------------------------------------------------------------------
+# =============================================================================
+# 블록 9: B2 다음 1분 발생 이진 분류기 (식 B1-6 ~ B1-8)
+# =============================================================================
 def valid_rows(s1, role='STOP') -> np.ndarray:
     """(n frame rows,) bool: the frame rows of the matches of ``role`` (the STOP role, as the early stopping of B2 and M2Rate reads only
     these). The other heads read the STOP onsets or units through ``HeadRows(..., 'STOP')``.
@@ -1520,7 +1474,9 @@ def _fit_stop_roles(roles) -> tuple:
     return roles['fit'], roles['stop']
 
 
-# ---- the composer heads ------------------------------------------------------------------------------------------------------------------
+# =============================================================================
+# 블록 10: 합성기 연동 프로토콜 어댑터 (_MaskedChain, ComposerHeads 구현)
+# =============================================================================
 class _MaskedChain:
     """The masked B1 heads as the composer reads them (``heads.ComposerHeads``): no closed form (``analytic_ok`` False), K is read by the
     object head and K and O by the conversion head (decision P6).
@@ -1671,7 +1627,9 @@ class _MaskedChain:
         return np.concatenate(out) if out else np.empty((0, N_CELLS))
 
 
-# ---- the fitted set ----------------------------------------------------------------------------------------------------------------------
+# =============================================================================
+# 블록 11: 헤드 번들 및 직렬화 엔진 (B1Heads, save_head, load_head)
+# =============================================================================
 def fit_head(fit_rows: HeadRows, stop_rows: HeadRows, name: str, kind: str, *, params=None, check=None):
     """Fit the head ``name`` of ``kind`` on the rows of ``fit_rows`` with the early stopping on the rows of ``stop_rows`` (both
     ``HeadRows`` of this module, with the same dropped columns). The design is built, fitted and dropped, so that the memory is that of
