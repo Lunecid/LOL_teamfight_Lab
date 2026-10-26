@@ -2,7 +2,9 @@
 
 Nothing runs at import. The match lists are read with numpy from the arrays ``matches/key``, ``matches/patch`` and ``matches/role`` of an S1
 store (the store of the run, or the golden lock, which has the same layout); the keys stay in memory and are never printed or written. Raw
-matches are read only through ``reader.read_match`` with its default root.
+matches are read only through ``reader.read_match`` with its default root. A QA check (``sample_matches``, ``sweep_s1``, ``sweep_state``)
+reads only the matches of the roles in ``QA_ROLES`` = FIT, STOP, DEV (decision B21 of the S4b preparation): the matches of TEST, CAL,
+AUDIT, EXTERNAL and UNUSED are neither listed nor read, and ``qa_roles`` refuses a request for any of them.
 
 
 방법에서의 위치. 이 모듈은 진단에 쓰는 S1 목록 선택과 레벨 시계 대조·출력을 공통화한다.
@@ -31,6 +33,8 @@ from c_ept.data import reader
 from c_ept.preprocessing import traits
 
 STORE_DIR = 's1'          # the store folder under a run folder (= run_s1.STORE_DIR); the golden lock has the same layout under golden/
+QA_ROLES = ('FIT', 'STOP', 'DEV')   # the only roles a QA check reads (B21); TEST, CAL, AUDIT, EXTERNAL and UNUSED are never read
+ALL_ROLES = 'all'                   # the named argument of s1_matches that lists every role (not for a QA check)
 LEVEL_KEYS = ('matches', 'frames', 'cells', 'level_ups', 'level_ups_on_frame_ms', 'mismatch_cells', 'mismatch_lag_by_one_at_frame_ms',
               'mismatch_other')
 LAG, OTHER = 'lag_by_one_at_frame_ms', 'other'      # the two causes of a difference between the level clock and a frame
@@ -46,42 +50,103 @@ def run_folder(path) -> Path:
     return path.parent if (path / 'STORE.json').is_file() else path
 
 
-def _matches(d: Path) -> list:
-    """``(key, patch, macro role)`` for each row of the arrays key, patch and role in ``d``, the ``matches`` folder of a store."""
+def qa_roles(roles=None) -> tuple:
+    """``roles`` (default ``QA_ROLES``) as a tuple, after a check that every one is in ``QA_ROLES``: a QA check never asks for TEST, CAL,
+    AUDIT, EXTERNAL or UNUSED. A bare string, an empty choice or a role outside ``QA_ROLES`` is an error that names the role and never a key.
+
+    수식
+    ----
+    (QA-1) 허용 역할 R_qa = {FIT, STOP, DEV}; 요청 R_req는 R_req ≠ ∅ 이고 R_req ⊆ R_qa 일 때만 받는다.
+
+    기호 | 뜻 | 단위 | 범위 | 코드 변수
+    R_qa | 품질 점검(QA)이 읽을 수 있는 역할의 집합 | — | 세 역할 | QA_ROLES
+    R_req | 호출자가 요청한 역할의 집합 | — | 비어 있지 않은 부분집합이어야 함 | roles
+
+    해석
+    ----
+    식 (QA-1)은 결정 B21의 문턱이다. 점검 도구가 교정(CAL)·감사(AUDIT)·시험(TEST) 표본의 원시 기록을 열어 보면 그 표본이
+    더는 봉인 상태가 아니므로, 도구가 실수로 그런 역할을 요청하는 일 자체를 입구에서 막는다. 문자열 하나를 넘기면 글자마다 역할로
+    읽히는 사고가 나므로 따로 거부한다.
+
+    근거
+    ----
+    S4b 준비 계획 B21(QA 점검이 CAL·AUDIT 원시 기록을 읽는다, A4 Q6), Task M15.
+    """
+    if roles is None:
+        return QA_ROLES
+    if isinstance(roles, (str, bytes)) or not hasattr(roles, '__iter__'):
+        raise TypeError(f'roles must be a sequence of role names taken from QA_ROLES {QA_ROLES}, not a single string')
+    roles = tuple(roles)
+    outside = [r for r in roles if not isinstance(r, str) or r not in QA_ROLES]
+    if not roles or outside:
+        raise ValueError(f'a QA check reads only the roles of QA_ROLES {QA_ROLES}; refused: '
+                         f'{[str(r) for r in outside] if outside else "no role at all"}')
+    return roles
+
+
+def _matches(d: Path, roles=None) -> list:
+    """``(key, patch, macro role)`` for each row of the arrays key, patch and role in ``d``, the ``matches`` folder of a store; with
+    ``roles`` (a tuple of role names), only the rows of those roles. The role array is read first; the keys of the other rows are never
+    decoded and never copied into Python objects (the key array is memory-mapped and only the selected rows are copied). The bytes of
+    the other keys are in the file, and the operating system may page some of them in with their neighbours; nothing reads them."""
     names = ('key', 'patch', 'role')
     if not all((d / f'{n}.npy').is_file() for n in names):
         raise FileNotFoundError(f'no S1 store arrays (key, patch, role) under {d}')
-    key, patch, role = (np.load(d / f'{n}.npy').tolist() for n in names)
-    return [(k.decode('ascii'), C.PATCHES[p], C.ROLES[r]) for k, p, r in zip(key, patch, role)]
+    if roles is None:
+        key, patch, role = (np.load(d / f'{n}.npy').tolist() for n in names)
+        return [(k.decode('ascii'), C.PATCHES[p], C.ROLES[r]) for k, p, r in zip(key, patch, role)]
+    patch, role = np.load(d / 'patch.npy'), np.load(d / 'role.npy')
+    mask = np.isin(role, [C.ROLES.index(r) for r in roles])
+    key = np.load(d / 'key.npy', mmap_mode='r')
+    picked = np.array(key[mask])                                   # a copy of the rows asked for; the mapping is dropped below
+    del key
+    return [(k.decode('ascii'), C.PATCHES[p], C.ROLES[r]) for k, p, r in zip(picked.tolist(), patch[mask].tolist(), role[mask].tolist())]
 
 
-def s1_matches(run) -> list:
-    """Every match of the S1 store of ``run`` as ``(key, patch, macro role)``, in the store's order.
+def s1_matches(run, roles=QA_ROLES) -> list:
+    """The matches of the S1 store of ``run`` as ``(key, patch, macro role)``, in the store's order, of the roles in ``roles``: by default
+    ``QA_ROLES`` (FIT, STOP, DEV), and any subset of them (checked by ``qa_roles``; another role is a ValueError). The matches of every role
+    are listed only for ``roles=ALL_ROLES`` (the string ``'all'``), a named argument for a builder that must see all of them and is not
+    a QA check; no QA script passes it.
 
     S1–S2 판정 R37의 진단 대상 목록을 저장 순서대로 읽으며, 이 함수는 역할을 다시 계산하지 않는다.
+    결정 B21: 기본값은 QA 역할이다. 다른 역할의 경기는 키를 해독하거나 Python 객체로 옮기지 않는다(키 배열의 바이트는 파일과 함께
+    메모리에 대응되어 올 수 있으나 읽거나 복사하지 않는다). 모든 역할은 roles='all'로만 얻고, QA_ROLES 밖의 역할 이름은 오류이다.
     """
-    return _matches(run_folder(run) / STORE_DIR / 'matches')
+    d = run_folder(run) / STORE_DIR / 'matches'
+    return _matches(d, None) if isinstance(roles, str) and roles == ALL_ROLES else _matches(d, qa_roles(roles))
 
 
 def golden_matches(run, golden_dir=None) -> list:
-    """The matches of the golden lock of ``run`` (``<run>/golden``, or ``golden_dir``), in the lock's order.
+    """The matches of the golden lock of ``run`` (``<run>/golden``, or ``golden_dir``), in the lock's order. A lock row whose role is not
+    in ``QA_ROLES`` is a ValueError that names the role and never a key: ``measure_levels`` reads every match of the lock, and ``--golden-dir``
+    accepts any lock. The default lock (the first 20 FIT matches of 15.18) is returned unchanged.
 
     S1–S2 판정 R37의 기준값 진단 목록을 선택한 잠금 폴더에서 읽는다.
+    결정 B21(검토 I2): 잠금에 QA 역할(FIT·STOP·DEV) 밖의 경기가 있으면 원시 기록을 열기 전에 오류로 멈춘다. 기본 잠금은 FIT뿐이므로 결과가 같다.
     """
     base = Path(golden_dir) if golden_dir is not None else run_folder(run) / 'golden'
-    return _matches(base / STORE_DIR / 'matches')
+    rows = _matches(base / STORE_DIR / 'matches', None)
+    outside = sorted({role for _, _, role in rows if role not in QA_ROLES})
+    if outside:
+        raise ValueError(f'the golden lock lists matches of the roles {outside}; a QA check reads only the roles of QA_ROLES {QA_ROLES}')
+    return rows
 
 
-def sample_matches(run, fit: int = 40, other: int = 20) -> list:
-    """The first ``fit`` FIT matches and the first ``other`` matches of every other role, per patch, by sorted key; the patches in the
-    order of ``config.PATCHES`` and the roles in the order of ``config.ROLES``. The S1 store gives 200 matches for 40 and 20.
+def sample_matches(run, fit: int = 40, other: int = 20, roles=None) -> list:
+    """The first ``fit`` FIT matches and the first ``other`` matches of every other role of ``roles``, per patch, by sorted key; the
+    patches in the order of ``config.PATCHES`` and the roles in the order of ``config.ROLES``. ``roles`` is ``QA_ROLES`` (FIT, STOP,
+    DEV) by default and may name fewer of them; a role outside ``QA_ROLES`` (TEST, CAL, AUDIT, EXTERNAL, UNUSED) is a ``ValueError``
+    (``qa_roles``), and the keys of those matches are not decoded.
 
     S1–S2 판정 R37의 표본 진단용으로 패치·역할별 정렬 목록 앞부분을 고르며 무작위 표본은 아니다.
+    결정 B21: 표본은 QA 역할(FIT·STOP·DEV)에서만 뽑는다. 이전에는 CAL·AUDIT 등 다른 모든 역할이 `other`개씩 들어 있었다.
     """
+    roles = qa_roles(roles)
     groups: dict = {}
-    for key, patch, macro in s1_matches(run):
+    for key, patch, macro in s1_matches(run, roles):
         groups.setdefault((patch, macro), []).append(key)
-    return [(key, patch, macro) for patch in C.PATCHES for macro in C.ROLES
+    return [(key, patch, macro) for patch in C.PATCHES for macro in C.ROLES if macro in roles
             for key in sorted(groups.get((patch, macro), ()))[:fit if macro == 'FIT' else other]]
 
 

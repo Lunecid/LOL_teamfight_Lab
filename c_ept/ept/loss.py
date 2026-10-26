@@ -34,8 +34,19 @@ B0 평균은 ``scales.py``가 잰다.
 
 입력과 출력
 
-    head_nll(head, out, target, exposure=None) → (n,) float64 행 점수      scored_rows(head, target, exposure=None) → (n,) bool, 평균에 드는 행
+    head_nll(head, out, target, exposure=None, *, kill_law='poisson') → (n,) float64 행 점수      scored_rows(head, target, exposure=None) → (n,) bool, 평균에 드는 행
+    (kill_law='shifted'는 M3Kills의 이동 법칙 (LOSS-1k)이다: 첫 킬 팀의 킬 수가 1 + N_d, 결정 D5. 기본값은 옛 점수와 비트까지 같다.)
     head_losses(nlls, targets) → {블록: 머리의 평균}                         total_loss(nlls, scales, targets) → 0차원 float64, (LOSS-4)
+
+믿는 걸음 (S4b 속도 개선 SPD 항목 3, 결정 D32; ``step_guard``, ``batch_prep``)
+
+    · 이 모듈의 점검은 두 가지다. 자료 점검(범주·색인의 범위, 개수의 유한성과 정수성, 노출의 유한성과 부호)은 배치만의 함수이고, 모형 점검(칸의 평균이 음수이거나 유한하지 않다, 로그 법칙이 NaN이거나 1로
+      합하지 않는다)은 모형이 낸 값의 함수이다. 이전에는 둘 다 걸음 안에서 장치의 값을 읽어 와(``int(t.min())``, ``bool(...any())``) 점검했고, 읽을 때마다 장치의 대기열이 비기를 기다렸다.
+    · ``step_guard.trust(...)`` 안(믿는 걸음: 배치가 CPU에서 ``batch_prep.Preparation``으로 같은 함수로 점검을 마쳤다)에서는 자료 점검의 읽기를 건너뛰고(형·모양 점검은 읽기가 없으므로 그대로), 모형 점검은
+      칸 수를 0차원 텐서로 ``StepGuards``에 미뤄 두었다가 걸음이 손실의 유한성과 함께 한 번에 읽는다(``training_step.optimize_batch``, 역전파 앞). 막히는 조건·오류의 종류·문구(칸 수 포함)·순서는 그대로이다.
+      믿는 범위 밖(STOP 평가, 직접 부르는 쪽, 시험)은 모든 점검이 이전과 같이 즉시 일어난다. 점검을 모두 건너뛰는 것이 아니다: 건너뛰는 것은 CPU에서 같은 점검을 이미 통과한 자료의 읽기뿐이다.
+    · ``counting_plan``은 평균에 드는 행의 번호 목록을 CPU에서 한 번 만들고, 믿는 걸음의 ``head_losses``는 불리언 마스크 ``rows[mask]`` 대신 ``rows.index_select(0, 목록)``으로 평균한다 (같은 원소, 같은 순서,
+      같은 모양의 연속 텐서이므로 평균과 기울기가 비트까지 같다; 마스크는 몇 행인지 알려면 장치를 기다려야 한다).
 """
 # Ref: docs/superpowers/specs/2026-10-20-c-ept-design.md sections 7 (the loss: NLL of each head divided by the NLL of B0, equal weights, M3 normalised by size),
 #      8 (the scores) and 3.2 (each expert is trained on the units of its size, the loss is normalised by size).
@@ -55,6 +66,8 @@ import torch
 
 from c_ept.data import head_rows
 from c_ept.data.head_rows import HEAD_NAMES, N_CELLS, N_GOLD, N_LAYER, N_M, N_Q, N_SIZE, N_ZONE, OPEN_HEAD_NAMES
+from c_ept.ept import step_guard
+from c_ept.models import killlaw
 
 BLOCKS = tuple(f'{h}/masked' for h in HEAD_NAMES) + tuple(f'{h}/open' for h in OPEN_HEAD_NAMES)       # the thirteen blocks, in the order of the sum of the loss
 SIZE_NORMALISED = frozenset({'M3Kills', 'M3Gold', 'M3Obj'})     # the experts P(K | s, x) and P(O | K, s, x); not the gate P(s | x)
@@ -69,6 +82,9 @@ _CATEGORIES = {'M2Mark': N_M, 'M2Zone': N_ZONE, 'M3Size': N_SIZE, 'M3Gold': N_GO
 _INDEX = {'M2Mark': {'q': (0, N_Q - 1)}, 'M2Zone': {'q': (0, N_Q - 1), 'm': (0, N_M - 1)}, 'M3Kills': {'s': (0, N_SIZE - 1)},
           'M3Gold': {'s': (0, N_SIZE - 1), 'team': (0, 1), 'layer': (1, N_LAYER)}}                  # the fields that pick the cell of a row, with their range
 _INT_DTYPES = (torch.int8, torch.int16, torch.int32, torch.int64)         # an index or a category: not uint8 (a mask) and not bool
+MEAN_MESSAGE = '{} observed cell(s) have a mean that is negative or not finite'      # the text of the model check of the rates, with the count of the cells where it goes
+PLAN_PREFIX = 'plan/'                                                        # the keys of the index lists that `counting_plan` makes (`batch_prep`); no field of a block starts so
+PLAN_NAMES = ('counted',) + tuple(f'size{k}' for k in range(N_SIZE))      # the lists of a block: the rows that count, and for the three experts the rows of each size
 
 
 # ---- blocks ----------------------------------------------------------------------------------------------------------------------------------
@@ -116,7 +132,7 @@ def _index(name: str, t: torch.Tensor, n: int, low: int, high: int, like: torch.
         raise TypeError(f'{name} must be an integer tensor (not uint8 or bool), not {t.dtype}')
     if tuple(t.shape) != (n,):
         raise ValueError(f'{name} must have the shape ({n},), one number for each row, not {tuple(t.shape)}')
-    if n and (int(t.min()) < low or int(t.max()) > high):
+    if n and not step_guard.trusted() and (int(t.min()) < low or int(t.max()) > high):      # a trusted step: the CPU made this check (`batch_prep`)
         raise ValueError(f'{what or name} must lie in {low} .. {high}')
     return t.to(device=like.device, dtype=torch.long)
 
@@ -127,9 +143,10 @@ def _counts(head: str, y: torch.Tensor, n: int, like: torch.Tensor) -> torch.Ten
     if y.dtype == torch.bool or tuple(y.shape) != (n, width):
         raise ValueError(f'y of {head} must be a number tensor of shape ({n}, {width}), the counts of the cells, not {y.dtype} {tuple(y.shape)}')
     y = y.to(device=like.device, dtype=torch.float64)
-    bad = ~torch.isfinite(y) | (y < 0) | (y != torch.floor(y))
-    if bool(bad.any()):
-        raise ValueError(f'{int(bad.sum())} count(s) of {head} are not non-negative whole numbers')
+    if not step_guard.trusted():
+        bad = ~torch.isfinite(y) | (y < 0) | (y != torch.floor(y))
+        if bool(bad.any()):
+            raise ValueError(f'{int(bad.sum())} count(s) of {head} are not non-negative whole numbers')
     return y
 
 
@@ -142,7 +159,7 @@ def _exposure(e, n: int, width: int, like: torch.Tensor) -> torch.Tensor:
         e = e[:, None].expand(n, width)
     elif tuple(e.shape) != (n, width):
         raise ValueError(f'the exposure of M2Rate must be a number, a tensor of shape ({n},) or one of shape ({n}, {width}), not {tuple(e.shape)}')
-    if not bool(torch.isfinite(e).all()) or bool((e < 0).any()):
+    if not step_guard.trusted() and (not bool(torch.isfinite(e).all()) or bool((e < 0).any())):
         raise ValueError('the exposure must be finite and not negative')
     return e
 
@@ -155,7 +172,7 @@ def _window(e, n: int, like: torch.Tensor) -> torch.Tensor:
     elif tuple(e.shape) != (n,):
         raise ValueError(f'the exposure of M4Conv is the conversion window: a number or a tensor of shape ({n},), one value for each row, '
                          f'not shape {tuple(e.shape)} (ruling R-S4a-11)')
-    if not bool(torch.isfinite(e).all()) or bool((e < 0).any()):
+    if not step_guard.trusted() and (not bool(torch.isfinite(e).all()) or bool((e < 0).any())):
         raise ValueError('the exposure must be finite and not negative')
     return e
 
@@ -171,11 +188,15 @@ def _rows_of(head: str, target: Mapping) -> int:
 def _poisson_cells(mu: torch.Tensor, y: torch.Tensor, seen: torch.Tensor) -> torch.Tensor:
     """Computes (LOSS-1) for the cells: ``mu`` (n, cells) float64 means, ``y`` float64 counts, ``seen`` bool (cells with exposure); the cell scores, 0 where not seen."""
     bad = seen & ~(torch.isfinite(mu) & (mu >= 0))
-    if bool(bad.any()):
-        raise ValueError(f'{int(bad.sum())} observed cell(s) have a mean that is negative or not finite')
-    bad = ~seen & (y > 0)
-    if bool(bad.any()):
-        raise ValueError(f'{int(bad.sum())} cell(s) have a count but no exposure')
+    guards = step_guard.current()
+    if guards is not None:                                                                  # a trusted step: the model check is deferred, the data check was made on the CPU
+        guards.defer(bad.sum(), MEAN_MESSAGE)
+    else:
+        if bool(bad.any()):
+            raise ValueError(MEAN_MESSAGE.format(int(bad.sum())))
+        bad = ~seen & (y > 0)
+        if bool(bad.any()):
+            raise ValueError(f'{int(bad.sum())} cell(s) have a count but no exposure')
     # The logarithm is taken only where the cell is observed and y > 0 (0 log 0 = 0; a count with the mean 0 has the score +infinity), so the junk mean of a cell that is
     # not observed (NaN, infinity, a negative number) meets no logarithm, whose gradient could turn it into NaN. The only operation that still sees it is the subtraction,
     # whose derivative is the constant 1, and the final ``where`` gives the cell the score 0 and the gradient 0.
@@ -184,10 +205,40 @@ def _poisson_cells(mu: torch.Tensor, y: torch.Tensor, seen: torch.Tensor) -> tor
     return torch.where(seen, cell, torch.zeros_like(cell))
 
 
+def _first_team(target: Mapping, n: int, like: torch.Tensor) -> torch.Tensor:
+    """(n,) long: the first-kill team d (0 blue, 1 red, −1 an execution) of the rows of an M3Kills block under the shifted kill law: the field ``d`` of an open block, or
+    the team of the mark ``m`` of a masked block (``killlaw.torch_first_team``). ValueError when the target has neither.
+
+    (LOSS-1k)의 d_i를 구한다. 마스크 행은 표지에서(표지 m = 0 … 49의 팀 m // 25, 처형 50, 51은 −1), 열린 행은 행을 만들 때 적은 필드에서 얻는다."""
+    if 'd' in target:
+        return _index('d', _field('M3Kills', target, 'd'), n, -1, 1, like, what='the first-kill team d')
+    if 'm' in target:
+        return killlaw.torch_first_team(_index('m', _field('M3Kills', target, 'm'), n, 0, N_M - 1, like, what='the mark m'), check_range=not step_guard.trusted())
+    raise ValueError("M3Kills under the shifted kill law needs the field 'm' (masked rows: the mark) or 'd' (open rows: the first-kill team) in its target")
+
+
+def _shifted_kill_rows(mu: torch.Tensor, y: torch.Tensor, d: torch.Tensor) -> torch.Tensor:
+    """(LOSS-1k) for the rows: ``mu`` (n, 2) float64 rates, ``y`` (n, 2) float64 counts, ``d`` (n,) the first team; the row scores, +∞ for a first team without a kill.
+
+    해석: 셀 점수는 ``killlaw.torch_logpmf``의 음수이고 `_poisson_cells`와 같은 연산이어서(처형 행은 비트까지 같다) 불가능한 칸만 +∞이다. 평균이 음수이거나 유한하지 않은 칸은 거부한다."""
+    bad = ~(torch.isfinite(mu) & (mu >= 0))
+    guards = step_guard.current()
+    if guards is not None:                                                                  # a trusted step: the model check is deferred (one read for the step)
+        guards.defer(bad.sum(), MEAN_MESSAGE)
+    elif bool(bad.any()):
+        raise ValueError(MEAN_MESSAGE.format(int(bad.sum())))
+    return (-killlaw.torch_logpmf(y, mu, d, 'shifted', check_range=guards is None)).sum(-1)
+
+
 def _category_rows(head: str, rows: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     """Computes (LOSS-2) for the rows: ``rows`` (n, C) the log laws that the rows read, ``y`` int64 categories (-1: none); the row scores, 0 for -1."""
     used = y >= 0
-    if bool(used.any()):
+    guards = step_guard.current()
+    if guards is not None:                                                                  # a trusted step: the two model checks are deferred, in their order, over the rows that are read
+        law = rows.detach()
+        guards.defer(((torch.isnan(law) | (law == float('inf'))).any(-1) & used).sum(), f'a log law of {head} holds NaN or +infinity in a row that is read')
+        guards.defer((((law.double().exp().sum(-1) - 1.0).abs() > ROW_SUM_TOLERANCE) & used).sum(), f'a log law of {head} does not add up to 1 (to within {ROW_SUM_TOLERANCE:g})')
+    elif bool(used.any()):
         law = rows[used]
         if bool((torch.isnan(law) | (law == float('inf'))).any()):
             raise ValueError(f'a log law of {head} holds NaN or +infinity in a row that is read')
@@ -197,7 +248,7 @@ def _category_rows(head: str, rows: torch.Tensor, y: torch.Tensor) -> torch.Tens
     return torch.where(used, -picked, torch.zeros_like(picked)) + 0.0                                         # -0.0 (a certain outcome) becomes 0.0, as in ``nll``
 
 
-def head_nll(head: str, out: torch.Tensor, target, exposure=None) -> torch.Tensor:
+def head_nll(head: str, out: torch.Tensor, target, exposure=None, *, kill_law: str = 'poisson') -> torch.Tensor:
     """The NLL of the rows of ``head``: (n,) float64, one value for each row, equal to the numpy score of ``nll.py`` on the same rows.
 
     ``head``: a name of ``head_rows.HEAD_NAMES``. ``out``: the output of the head for the n rows, a floating tensor of the shape in the table of the module text (one row
@@ -208,11 +259,18 @@ def head_nll(head: str, out: torch.Tensor, target, exposure=None) -> torch.Tenso
     whose mean is negative or not finite, a log law that holds NaN or does not add up to 1, and an exposure that is not finite or is negative; TypeError for a category or index
     that is not an integer tensor.
 
+    ``kill_law`` (S4b preparation M1, decision D5) is the kill law of the M3Kills rows and changes no other head: ``'poisson'`` (the default) is the score of every earlier run,
+    bit for bit; ``'shifted'`` scores the count of the first-kill team d as 1 + N_d with N_d ~ Poisson(out[s, d]) and the other team as a plain Poisson count (``killlaw``). The
+    first team comes from the field ``m`` (a masked block: ``d = m // 25``, −1 for an execution) or ``d`` (an open block of the shifted rows); a row whose first team has no
+    kill has the probability 0 and the score +∞ (the rows refuse such a unit before they reach the loss), and ValueError if neither field is in the target.
+
     수식
     ----
     (LOSS-1)  ℓ_{i,c} = μ_{i,c} − y_{i,c} · log μ_{i,c} + log(y_{i,c}!)    (e_{i,c} > 0),    ℓ_{i,c} = 0    (e_{i,c} = 0),    ℓ_i = Σ_c ℓ_{i,c}
     (LOSS-2)  ℓ_i = −log p_{i,c_i}    (c_i ≥ 0),    ℓ_i = 0    (c_i = −1)
     (LOSS-1)은 ``nll``의 (NLL-1), (LOSS-2)는 (NLL-2)·(NLL-3)와 같은 점수이다. 포아송 머리의 μ는 머리가 낸 값 그대로이다 (노출을 다시 곱하지 않는다).
+    (LOSS-1k) M3Kills, 이동 법칙:   ℓ_{i,t} = r_{i,t} − (y_{i,t} − 1[t = d_i]) · log r_{i,t} + log((y_{i,t} − 1[t = d_i])!),   r_{i,t} = out[i, s_i, t]
+              (y_{i,d_i} = 0이면 ℓ_{i,d_i} = +∞) ;   d_i = m_i // 25 (m_i ≤ 49) 또는 −1 (m_i = 50, 51) ;   ℓ_i = Σ_t ℓ_{i,t}
 
       기호      | 뜻                                                  | 단위             | 범위                   | 코드 변수
       ℓ_i       | 행 i의 점수 (그 행의 칸 점수의 합)                  | nat              | ≥ 0 (확률 0이면 +∞)    | 반환값[i]
@@ -221,17 +279,22 @@ def head_nll(head: str, out: torch.Tensor, target, exposure=None) -> torch.Tenso
       μ_{i,c}   | 칸 c의 기대 개수 λ·e (M3는 노출 1)                  | 개               | ≥ 0                    | out
       e_{i,c}   | 칸 c의 노출 (M4Conv는 행마다 한 값)                 | s                | ≥ 0                    | exposure
       c_i, p_{i,c} | 행 i의 실제 범주 번호 (−1은 범주 없음), 그 칸의 확률 | —            | −1, 0, …, C − 1; [0, 1] | target['y'], exp(읽은 로그 법칙)
+      r_{i,t}, d_i | 이동 법칙에서 팀 t의 율(d 칸은 초과분 N_d의 평균 λ_d, 다른 칸은 킬 수의 평균 μ), 행 i의 첫 킬 팀 | 개, — | ≥ 0; −1, 0, 1 | out[i, s_i], killlaw.torch_first_team
 
     해석
     ----
     점수는 머리가 낸 법칙에서 정답이 나올 확률의 음의 로그이고, 로그 점수는 엄격한 적정 점수이므로 기대 손실은 머리가 참 조건부 법칙을 낼 때 가장 작다.
     모형과 무관한 log y!까지 넣어 B0·B1의 점수와 같은 수이다 (계획 P4). 노출이 0인 칸은 관측하지 않은 칸이므로 0이고 μ를 읽지 않으며 기울기도 없다 (계획 P10, 검토 초점 4).
     범주 −1(구역이 없는 첫 킬, 킬이 없는 팀의 골드)도 0이고 그 행의 법칙을 읽지 않는다. 관측한 칸에서 μ = 0인데 y > 0이거나 정답 범주의 확률이 0이면 참값 +∞를 그대로 돌려준다.
+    이동 법칙 (LOSS-1k)는 첫 킬 팀의 칸에서 센 개수에서 1을 뺀 초과분에 포아송 점수를 매기고 다른 팀과 처형으로 시작한 교전은 옛 점수 그대로이다. 머리의 출력은 같은 모양이고
+    d 칸의 값만 뜻이 λ_d로 바뀐다. 프레임 평균은 맞바꾼 틀의 출력을 같은 팀의 칸으로 되돌려 평균하므로(d도 같이 맞바뀐다) 이 점수가 읽는 칸이 틀 사이에서 어긋나지 않는다.
 
     근거
     ----
     계획 P4 (같은 확률 족), P10 (노출), Q12·검토 초점 4 (노출 0 칸), 판정 R-S4a-10 (μ = λ·e), R13 (섞은 법칙), 검산 노트 04 A절, Ref: Gneiting and Raftery 2007 (로그 점수는 적정 점수).
+    저자 결정 D5 (이동 법칙 1 + N_d).
     """
+    killlaw.check_law(kill_law)
     _check_head(head)
     target = _fields(target)
     n = _rows_of(head, target)
@@ -260,6 +323,8 @@ def head_nll(head: str, out: torch.Tensor, target, exposure=None) -> torch.Tenso
             if exposure is not None:
                 raise ValueError(f'{head} has the exposure 1: it takes no exposure')
             seen = torch.ones_like(mu, dtype=torch.bool)
+        if head == 'M3Kills' and kill_law == 'shifted':
+            return _shifted_kill_rows(mu, y, _first_team(target, n, out))
         return _poisson_cells(mu, y, seen).sum(-1)
     if exposure is not None:
         raise ValueError(f'{head} is a category head: it has no exposure')
@@ -267,7 +332,7 @@ def head_nll(head: str, out: torch.Tensor, target, exposure=None) -> torch.Tenso
         raise TypeError(f'the category numbers y of {head} must be an integer tensor, not {y.dtype}')
     if tuple(y.shape) != (n,):
         raise ValueError(f'y of {head} must have the shape ({n},), one category for each row, not {tuple(y.shape)}')
-    if n and (int(y.min()) < -1 or int(y.max()) >= _CATEGORIES[head]):
+    if n and not step_guard.trusted() and (int(y.min()) < -1 or int(y.max()) >= _CATEGORIES[head]):
         raise ValueError(f'the category numbers of {head} must lie in -1 .. {_CATEGORIES[head] - 1}: {int(((y < -1) | (y >= _CATEGORIES[head])).sum())} category number(s) '
                          'lie outside')
     y = y.to(device=out.device, dtype=torch.long)
@@ -313,6 +378,35 @@ def scored_rows(head: str, target, exposure=None) -> torch.Tensor:
 
 
 # ---- the mean of a head and the sum of the heads -------------------------------------------------------------------------------------------------
+def plan_key(head: str, kind: str, name: str) -> str:
+    """The key of the list ``name`` (one of ``PLAN_NAMES``) of the block ``(head, kind)`` in a prepared batch: ``'plan/<head>/<kind>/<name>'``."""
+    return f'{PLAN_PREFIX}{block_key(head, kind)}/{name}'
+
+
+def counting_plan(head: str, kind: str, target) -> dict:
+    """``{plan_key: int64 (m,) tensor}``, the index lists of one block (S4b speed-ups item 3, D32): ``'counted'`` = the rows that count in the mean of the block, ascending (``nonzero`` of ``scored_rows``), and for
+    the three size-normalised experts ``'size0'`` .. ``'size3'`` = the counted rows of each size, ascending. ``head_losses`` of a trusted step averages ``rows.index_select(0, list)`` instead of the boolean mask
+    ``rows[mask]`` (``batch_prep``, (SPD-3)).
+
+    해석: 마스크로 행을 고르려면 장치가 몇 행인지 알려 줘야(``nonzero``) 해서 걸음이 멈춘다. 같은 행의 번호를 CPU에서 한 번 구해 두면 평균은 같은 원소를 같은 순서로 모은 연속 텐서의 평균이어서 값이 같다."""
+    target = _fields(target)
+    counted = scored_rows(head, target)
+    plan = {plan_key(head, kind, 'counted'): counted.nonzero().reshape(-1)}
+    if head in SIZE_NORMALISED:
+        size = _field(head, target, 's')
+        for k in range(N_SIZE):
+            plan[plan_key(head, kind, f'size{k}')] = (counted & (size == k)).nonzero().reshape(-1)
+    return plan
+
+
+def _plan_of(key: str, target: Mapping):
+    """``{name: list}`` of the lists of the block ``key`` that its target carries (``train.score_blocks`` copies them from the prepared batch), or None when it carries none (the step then uses the masks)."""
+    head, kind = split_key(key)
+    names = PLAN_NAMES if head in SIZE_NORMALISED else PLAN_NAMES[:1]
+    found = {name: target.get(plan_key(head, kind, name)) for name in names}
+    return found if all(v is not None for v in found.values()) else None
+
+
 def head_losses(nlls: Mapping, targets: Mapping) -> dict:
     """``{block: the mean ℓ̄_head of the block}`` (0-d float64 tensors) of the row scores ``nlls`` = ``{block: (n,) scores of head_nll}``; ``targets`` = ``{block: its block fields}``
     (the field ``s`` for the three experts, ``y`` for a category head, ``e`` for M2Rate and M4Conv). A block without a row that counts is left out of the result. ValueError for
@@ -347,6 +441,18 @@ def head_losses(nlls: Mapping, targets: Mapping) -> dict:
         if not isinstance(rows, torch.Tensor) or rows.ndim != 1:
             raise ValueError(f'the scores of the block {key} must be a tensor of shape (rows,)')
         target = _fields(targets[key])
+        plan = _plan_of(key, target) if step_guard.trusted() else None
+        if plan is not None:                                                                  # a trusted step: the lists of the rows that count, made once on the CPU (SPD-3)
+            if int(target['y'].shape[0]) != int(rows.shape[0]):
+                raise ValueError(f'the block {key} has {rows.shape[0]} scores but its target has {int(target["y"].shape[0])} rows (shape)')
+            rows = rows.to(torch.float64)
+            if head in SIZE_NORMALISED:
+                means = [rows.index_select(0, plan[f'size{k}']).mean() for k in range(N_SIZE) if plan[f'size{k}'].numel()]
+                if means:
+                    out[key] = torch.stack(means).mean()
+            elif plan['counted'].numel():
+                out[key] = rows.index_select(0, plan['counted']).mean()
+            continue
         counted = _scored(head, target, None, int(rows.shape[0]))
         if counted.shape != rows.shape:
             raise ValueError(f'the block {key} has {rows.shape[0]} scores but its target has {counted.shape[0]} rows (shape)')

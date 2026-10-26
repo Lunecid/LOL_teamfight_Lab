@@ -33,9 +33,10 @@ import re
 import subprocess
 import sys
 import time
+import traceback
 
 from c_ept import __path__ as _package_path
-from c_ept.workflows.s4a_runtime import RuntimeRefused, prepare_native_runtime, validate_e6_probe
+from c_ept.workflows.s4a_runtime import EXCEPTION_TYPE_PATTERN, RuntimeRefused, prepare_native_runtime, validate_e6_probe
 
 OPERATOR_API_VERSION = 1
 RUN_SCHEMA = 's4a_run_v1'
@@ -181,13 +182,25 @@ def verify_resume(manifest, identity):
         raise RuntimeRefused('resume effective args/code/runtime/input/operator config identity differs')
 
 
-def _process_record(run, manifest, state, outcome=None, exit_code=None):
+def _process_record(run, manifest, state, outcome=None, exit_code=None, exception_type=None):
+    """The PROCESS.json record. ``exception_type`` (the class name of the exception that ended a failed run) is an additive field: it is
+    written only when given and only when the name matches ``s4a_runtime.EXCEPTION_TYPE_PATTERN``, the form that the PROCESS validators accept.
+    So a running or finished record keeps exactly its earlier field set, and a class name of another form (non-ASCII, dotted, longer than 128
+    characters) leaves the field out instead of turning a recorded failure into a metadata refusal.
+
+    해석: 같은 종료 코드(2)가 정책 거부와 계산 오류에 모두 쓰이므로, 실패한 실행의 예외 클래스 이름을 따로 남겨 기록만으로 둘을 가른다.
+    실행 정체성에는 들어가지 않는 기록 필드이다(이어하기 판정은 바뀌지 않는다). 이름이 검사기가 받는 형식(EXCEPTION_TYPE_PATTERN)이 아니면
+    필드만 빼고 실패 기록은 그대로 남긴다. 이름 하나를 못 적는 편이, 실패 기록 전체를 읽지 못하게 되는 것보다 낫다.
+    """
     import psutil
-    return {'schema': PROCESS_SCHEMA, 'operator_api_version': OPERATOR_API_VERSION,
-            'run_path': str(Path(run).resolve()), 'run_identity_sha256': manifest['run_identity_sha256'],
-            'code_commit': manifest['code_commit'], 'operator_config_sha256': manifest['identity']['operator_config_sha256'],
-            'pid': os.getpid(), 'create_time': psutil.Process().create_time(), 'state': state,
-            'outcome': outcome, 'exit_code': exit_code, 'updated_at': dt.datetime.now(dt.timezone.utc).isoformat()}
+    record = {'schema': PROCESS_SCHEMA, 'operator_api_version': OPERATOR_API_VERSION,
+              'run_path': str(Path(run).resolve()), 'run_identity_sha256': manifest['run_identity_sha256'],
+              'code_commit': manifest['code_commit'], 'operator_config_sha256': manifest['identity']['operator_config_sha256'],
+              'pid': os.getpid(), 'create_time': psutil.Process().create_time(), 'state': state,
+              'outcome': outcome, 'exit_code': exit_code, 'updated_at': dt.datetime.now(dt.timezone.utc).isoformat()}
+    if exception_type is not None and re.fullmatch(EXCEPTION_TYPE_PATTERN, exception_type):
+        record['exception_type'] = exception_type
+    return record
 
 
 def _store_dir(path, kind):
@@ -219,6 +232,29 @@ def _model_hashes(folder, json_name, npz_name, outputs, rel):
     return {f'{rel}/{json_name}': meta_sha, f'{rel}/{npz_name}': array_sha}
 
 
+def _require_build_terrain(s2_doc, terrain_sha):
+    """Refuse unless the terrain folder next to the S2 store is the terrain that built the store's views.
+
+    ``s2_doc`` is the parsed STORE.json of the S2 store; ``terrain_sha`` maps TERRAIN.json, terrain.npz and geodesic.npy to the SHA-256 of
+    the file in the folder now. The build (``store_build.build_s2``) records ``stages.views.terrain_sha256`` in that STORE.json as
+    ``runlog.sha256_json`` of the same three file hashes, and this check uses the same function on the folder as it is now.
+
+    해석: S2 보기는 빌드 때 쓴 지형(보행 격자, 측지 거리표)으로 만든 값이다. 학습이 읽는 정적 채널과 측지 편향은 지금 폴더의 지형에서 나오므로,
+    폴더가 다시 만들어졌거나 바뀌었다면 보기와 다른 지형으로 학습하게 된다. 빌드 기록이 없거나 형식이 틀려도 같은 이유로 거부하며
+    기록이 없는 저장소를 통과시키지 않는다(추측하지 않는다). 수치식이 아니므로 새 식 번호를 만들지 않는다.
+    근거: EPT-T010 영역 5 발견 A5-F10, 설계서 5.3절·9절, R-S4a-18.
+    """
+    from c_ept import runlog
+    views = s2_doc.get('stages', {}).get('views') if isinstance(s2_doc.get('stages'), dict) else None
+    built = views.get('terrain_sha256') if isinstance(views, dict) else None
+    if built is None:
+        raise RuntimeRefused('S2 store records no terrain hash (STORE.json stages.views.terrain_sha256), so the terrain folder cannot be checked against its build')
+    if not isinstance(built, str) or not re.fullmatch('[0-9a-f]{64}', built):
+        raise RuntimeRefused('S2 store records no valid terrain hash (STORE.json stages.views.terrain_sha256 is not 64 lower-case hex digits), so the terrain folder cannot be checked against its build')
+    if runlog.sha256_json(terrain_sha) != built:
+        raise RuntimeRefused('terrain folder differs from the terrain that built the S2 views (terrain_sha256 in the S2 STORE.json)')
+
+
 def inspect_inputs(args):
     """Verify requested metadata and every model-file hash; do not verify raw payload stores."""
     from c_ept.workflows import run_s3
@@ -231,14 +267,14 @@ def inspect_inputs(args):
     ledger = run_s3.Ledger(s3)
     if not ledger.complete('fit') or not ledger.complete('labels'):
         raise RuntimeRefused('S3 fit/label stages incomplete')
-    stores, producers, record = {}, {}, {'s3_run': s3.name}
+    stores, producers, record, store_docs = {}, {}, {'s3_run': s3.name}, {}
     for name in ('s1', 's2'):
         supplied = Path(getattr(args, name))
         if not supplied.is_absolute() and not supplied.exists():
             supplied = Path(args.runs_root) / supplied
         store = _store_dir(supplied, name)
         expected_store = _store_dir(Path(args.runs_root) / doc[name]['run'], name)
-        _, sha = _store_metadata(store)
+        store_docs[name], sha = _store_metadata(store)
         if store.resolve() != expected_store.resolve() or sha != doc[name]['files_sha256']:
             raise RuntimeRefused('requested store differs from verified S3 input identity')
         stores[name] = str(store)
@@ -264,6 +300,7 @@ def inspect_inputs(args):
         raise RuntimeRefused('rules identity differs from S3/labels')
     terrain_path = Path(stores['s2']).parent / 'terrain'
     terrain_sha = {name: _sha(terrain_path / name) for name in ('TERRAIN.json', 'terrain.npz', 'geodesic.npy')}
+    _require_build_terrain(store_docs['s2'], terrain_sha)
     return {'paths': {**stores, **producers, 's3': str(s3), 's3a': str(s3a.resolve()), 'labels': str(labels), 'terrain': str(terrain_path), 'prices': str(s3a / 'prices' / 'PRICES.json'), 'rules': str(s3a / 'rules' / 'RULE_PAYOUTS.json')},
             'expected_provenance': record, 'tier_files_sha256': tier, 'terrain_files_sha256': terrain_sha,
             'source_json_sha256': {name: _sha(path) for name, path in (('S3RUN', s3/'RUN.json'), ('S3STAGES', s3/'STAGES.json'), ('S1STORE',Path(stores['s1'])/'STORE.json'), ('S2STORE',Path(stores['s2'])/'STORE.json'))},
@@ -336,6 +373,41 @@ def _runtime_fingerprint(policy):
             'cuda_visible_devices': os.environ.get('CUDA_VISIBLE_DEVICES')}
 
 
+def provenance_record():
+    """Record-only provenance that the S4a and T002 manifests lacked. ``runlog.write_manifest`` keeps the decision-record hash (``spec_sha256``)
+    and the GPU name and memory (``gpu``) in the RUN.json of S1-S3, but no driver; this record adds the hash and the GPU name and driver.
+
+    Returns ``{'spec_sha256': ..., 'gpu_devices': ...}``. ``spec_sha256`` is what ``config.check_spec()`` returns, the SHA-256 of the decision
+    record after the code constants were checked against it. ``gpu_devices`` is a list of ``{'name', 'driver_version'}``, one per line of the
+    operator's nvidia-smi query (``s4a_operator.gpu_metadata``). A value that cannot be established is None, never a guess: an unreadable or
+    mismatching decision record, no nvidia-smi or no GPU, a line that does not read ``name, driver``.
+
+    해석: S1–S3 매니페스트는 결정 기록 해시(spec_sha256)와 GPU 이름·메모리(gpu)를 담지만 드라이버는 담지 않고, S4a·T002 매니페스트에는 앞의 둘이
+    모두 없었다. 이 기록은 결정 기록 해시와 GPU 이름·드라이버를 더한다.
+    기록 필드일 뿐이므로 실행 정체성(identity)에도, 이어하기 동등 검사에도 넣지 않는다. 그래서 이 값이 없거나 이어하기 때 다르게 나와도
+    이어하기 판정은 바뀌지 않는다. 확인하지 못한 값은 추측하지 않고 null로 남기며, 결정 기록 불일치는 조용히 지나가지 않도록 stderr에 한 줄 남긴다. 수치식이 아니다.
+    근거: EPT-T010 영역 5 발견 A5-F4, 설계서 9절(실행 기록), 지침 A6a(GPU 실행은 장치와 드라이버를 기록한다).
+    """
+    from c_ept import config as C
+    # No failure of this probe may end a run (the T002 pilot has one attempt), so every error is caught and leaves the value None.
+    try:
+        spec = C.check_spec()
+    except Exception as err:                                      # noqa: BLE001 - unreadable record, JSON error, SpecMismatch, ...
+        print(f'Run provenance: the decision-record hash is not recorded ({type(err).__name__}: {err})', file=sys.stderr)
+        spec = None
+    try:
+        from c_ept.workflows import s4a_operator
+        devices = []
+        for line in s4a_operator.gpu_metadata():
+            name, comma, driver = line.rpartition(',')
+            if not (comma and name.strip() and driver.strip()):
+                raise ValueError('nvidia-smi line is not "name, driver"')
+            devices.append({'name': name.strip(), 'driver_version': driver.strip()})
+    except Exception:                                             # noqa: BLE001 - no nvidia-smi or GPU (OperatorError) or a garbled line
+        devices = []
+    return {'spec_sha256': spec, 'gpu_devices': devices or None}
+
+
 def _e6(guard):
     try:
         guard()
@@ -353,14 +425,74 @@ def _failure_exit_code(error):
     return 130 if isinstance(error, KeyboardInterrupt) else 2 if isinstance(error, _REFUSAL_ERRORS) else 1
 
 
+def _match_keys(s1, runs_root=None):
+    """The match keys of the S1 store at ``s1`` as text, or None when they cannot be loaded; it never raises (a diagnostic must not fail).
+
+    ``s1`` is a run folder or its ``s1`` store folder, as ``--s1`` takes it; a relative name that does not exist is read under ``runs_root``.
+    해석: 오류 문구를 가리려고 S1 저장소의 경기 키 배열 하나만 읽는다. 읽지 못하면 None을 돌려주고 호출자가 그 사실을 문구에 밝힌다.
+    """
+    try:
+        import numpy as np
+        from c_ept.workflows import run_s1
+        path = Path(s1)
+        if runs_root is not None and not path.is_absolute() and not path.exists():
+            path = Path(runs_root) / path
+        store = run_s1.load_s1(path, verify=False)
+        keys = [k.decode('ascii') for k in np.asarray(store.array('matches/key')).tolist() if k]
+        del store
+        return keys
+    except Exception:                                             # noqa: BLE001 - no store to take the keys from
+        return None
+
+
+def failure_report(label, error, guard_types, *, s1=None, runs_root=None):
+    """The text that a runner prints on stderr for one caught failure. The caller keeps the exit code and the refusal classification.
+
+    A guard refusal (``error`` is one of ``guard_types``) keeps its one line ``<label>: <message>``, exactly as before. Any other exception
+    prints that line, then its class name and its traceback, with every match key of the S1 store at ``s1`` replaced by <key> and the game
+    id inside it by <id> (the rule of ``run_s3._scrub_text``, which ``run_s3.main`` applies to its own tracebacks). ``s1=None`` is for a
+    metadata-only caller that loads no match data, so there is nothing to remove. When the keys cannot be loaded the text says so at its end.
+
+    Which exceptions reach this function is each caller's choice, and it is unchanged. The S4a runner and the T002 runner catch the guard types
+    plus ValueError and OSError (a NumPy ValueError is an example); these keep exit 2 and get the class name and the scrubbed traceback. Any other
+    exception (a RuntimeError such as a CUDA out-of-memory error or ``train.ResourceBoundError``, a KeyError, a TypeError, an IndexError, an
+    AttributeError, an AssertionError, a MemoryError, a ``subprocess.TimeoutExpired``) is not caught there: it ends with exit 1 and Python's own
+    traceback, which is NOT scrubbed. The comparison operator also catches RuntimeError and KeyError (exit 2, scrubbed in a worker).
+
+    해석: 정책 거부는 의도한 거부이므로 한 줄로 충분하다. 실행기가 잡는 그 밖의 예외(S4a·T002는 NumPy ValueError와 OSError, 비교 오퍼레이터는
+    RuntimeError·KeyError까지)는 같은 종료 코드(2)를 받더라도 버그일 수 있어, 클래스 이름과 traceback을 남겨 다시 돌리지 않고도 원인을 볼 수 있게
+    한다. traceback에는 경기 키가 들어갈 수 있으므로 run_s3.main과 같은 가림 규칙을 쓴다. 키를 읽지 못하면 가리지 못했다는 사실을 문구 끝에 적어,
+    가리지 않은 문구를 가린 문구로 오해하지 않게 한다. S4a·T002에서 잡히지 않은 예외(CUDA 메모리 부족 같은 RuntimeError, KeyError, TypeError 등 무엇이든)는
+    종료 코드 1과 파이썬 기본 traceback으로 끝나며 이 traceback은 가려지지 않는다(분류와 종료 코드는 이전 그대로이고, 바꾸려면 저자 결정이 필요하다).
+    근거: EPT-T010 영역 5 발견 A5-F8 (예외 분류가 계산 오류의 traceback을 숨김). 수치식이 아니므로 새 식 번호를 만들지 않는다.
+    """
+    message = f'{label}: {error}'
+    if isinstance(error, guard_types):
+        return message
+    detail = ''.join(traceback.format_exception(type(error), error, error.__traceback__))
+    text = f'{message}\n{type(error).__name__} is not a guard refusal; the exit code is unchanged. Traceback:\n{detail}'
+    if s1 is None:
+        return text
+    keys = _match_keys(s1, runs_root)
+    if keys is not None:
+        try:
+            from c_ept.workflows import run_s3
+            return run_s3._scrub_text(text, keys)
+        except Exception:                                         # noqa: BLE001 - fall through to the unscrubbed notice
+            pass
+    return text + '(the S1 match keys could not be loaded, so none was removed from this text)\n'
+
+
 def main(argv=None):
     """One foreground CLI path shared by direct -m and operator; returns exit status."""
+    args = None
     try:
         policy = prepare_native_runtime()
         args = _parser().parse_args(argv)
         return execute(args, policy)
     except _REFUSAL_ERRORS as err:
-        print(f'S4a refused: {err}', file=sys.stderr)
+        print(failure_report('S4a refused', err, (RuntimeRefused,), s1=getattr(args, 's1', None),
+                             runs_root=getattr(args, 'runs_root', None)), file=sys.stderr)
         return _failure_exit_code(err)
 
 
@@ -651,7 +783,8 @@ def execute(args, policy):
             manifest = {'schema':RUN_SCHEMA,'stage':'s4a','operator_api_version':1,'code_commit':code['code_commit'],
                         'code_dirty':False,'created':dt.datetime.now(dt.timezone.utc).isoformat(),'identity':identity,
                         'run_identity_sha256':_digest(identity),'operator_config_sha256':operator_digest,'runtime':runtime,
-                        'stages':stages,'results':{},'stats_population':'whole FIT; train/STOP proxy25% default'}
+                        'stages':stages,'results':{},'stats_population':'whole FIT; train/STOP proxy25% default',
+                        **provenance_record()}      # record fields beside the identity, never inside it (A5-F4)
             _write(run/'RUN.json', manifest)
         ledger = run_s3.Ledger(run)
         _write(run/'PROCESS.json',_process_record(run,manifest,'running'))
@@ -703,7 +836,7 @@ def execute(args, policy):
             runlog.register(run,manifest,Path(args.catalog_db))
             _write(run/'PROCESS.json',_process_record(run,manifest,'finished','completed',0))
         except BaseException as err:
-            _write(run/'PROCESS.json',_process_record(run,manifest,'failed','failed',_failure_exit_code(err)))
+            _write(run/'PROCESS.json',_process_record(run,manifest,'failed','failed',_failure_exit_code(err),type(err).__name__))
             raise
     print(json.dumps({'run':str(run),'cost':str(run/'COST.json'),'schema':COST_SCHEMA}))
     return 0

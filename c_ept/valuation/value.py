@@ -12,12 +12,12 @@ A. 하네스 및 파이프라인 내 위치:
 
 B. 모듈 아키텍처 및 8대 블록 구성:
    - 블록 1: 전역 상수 및 설정 (GOLD_EDGES: 100골드 간격 31구간, SURE_F0: |f₀| ≥ 150)
-   - 블록 2: 가격표 로드 및 오브젝트 단가 매핑 (load_prices, object_price)
-   - 블록 3: 킬 골드 구간 분할 및 승자 판정 (gold_bin, winner_of, gold_bin_means; 식 VAL-1, VAL-2)
-   - 블록 4: 피해자 레벨 인덱싱 및 어시스트 풀 연동 (kill_levels, kill_levels_for_record)
-   - 블록 5: 교전 단위 가치 산출 엔진 (UnitValues, unit_values; 식 VAL-4, VAL-5)
-   - 블록 6: 향후 예측 시계별 누적 가치 계산 (v_start; H = 30, 60, 90, 120, 180s; 식 VAL-6)
-   - 블록 7: 엄밀한 경제/오브젝트 보존 회계 감사 (accounting; 판정 R11, 식 VAL-7 ~ VAL-9)
+   - 블록 2: 가격표 로드 및 오브젝트 단가 매핑 (load_prices, load_flow_prices, object_price; 식 VAL-3)
+   - 블록 3: 킬 골드 구간 분할 및 승자 판정 (gold_bin, winner_of, winner_truth, gold_bin_means, fit_gold_bin_means, gold_reps_sha256; 식 VAL-5 ~ VAL-7)
+   - 블록 4: 피해자 레벨 인덱싱 및 어시스트 풀 연동 (kill_levels, kill_levels_for_record; 식 VAL-1)
+   - 블록 5: 교전 단위 가치 산출 엔진 (UnitValues, unit_values, reprice_units; 식 VAL-2 ~ VAL-6)
+   - 블록 6: 향후 예측 시계별 누적 가치 계산 (v_start; H = 60, 120, 180s = config.EVAL_H_MS; 식 VAL-8)
+   - 블록 7: 엄밀한 경제/오브젝트 보존 회계 감사 (accounting; 판정 R11, 식 VAL-9)
    - 블록 8: 정답 라벨 저장소 원자적 파일 직렬화 (write_labels)
 
 C. 경제적 가치 정의 및 회계 체계:
@@ -28,16 +28,18 @@ C. 경제적 가치 정의 및 회계 체계:
    5) 승자 판정: W = sign(round(f₀, 6)), 유의미한 승패: |f₀| ≥ 150.
    6) V_start(t₀, H) = t₀ 시점 이후 H초 내에 시작하는 모든 교전들의 (f₀ + f_{0,conv}) 총합.
 
-D. 핵심 수식 (VAL-1 ~ VAL-9):
-   (VAL-1)  골드 구간        b = min(⌊g / 100⌋, 30)   (g = 킬 골드; 0~3000골드 100단위 + 초과 30번 구간)
-   (VAL-2)  승자 및 확실층   W = sign(⌊f₀ · 10⁶⌉ / 10⁶),   sure = 1[|f₀| ≥ 150]
-   (VAL-3)  오브젝트 단가    price_c = price_table[group(c)]
-   (VAL-4)  교전 단위 가치   f₀ = g_blue − g_red + Σ_c sign_c · price_c · O_c
-   (VAL-5)  전환 가치        f_{0,conv} = Σ_c sign_c · price_c · conversions_c
-   (VAL-6)  누적 교전 가치   V_start(t₀, H) = Σ_{unit ∈ (t₀, t₀+H]} (f₀ + f_{0,conv})
-   (VAL-7)  오브젝트 보존    O_total = O_attributed + O_converted + O_rest  (오차 0 필수)
-   (VAL-8)  전투 통계 보존   K_total = K_attributed + K_rest
-   (VAL-9)  경제 가치 보존   Value_total = Value_attributed + Value_converted + Value_rest
+D. 핵심 수식 (VAL-1 ~ VAL-9; 번호와 뜻은 수식 등록부(equation-index)와 각 함수 docstring의 번호와 같다):
+   (VAL-1)  피해자 레벨      lvl(킬) = max({1} ∪ {L : 피해자의 LEVEL_UP이 올린 레벨 L, 그 시각 ≤ 킬 시각})
+   (VAL-2)  킬 골드          g_it = Σ_{킬 ∈ (i, t)} (bounty + shutdown + pool),   k_it = #{킬 ∈ (i, t)}   (처형은 0골드)
+   (VAL-3)  오브젝트 가격    obj_it = Σ_{귀속 오브젝트 ∈ (i, t)} price_ψ,   conv_it = Σ_{전환 오브젝트 ∈ (i, t)} price_ψ   (price_ψ = 가격표[묶음 ψ])
+   (VAL-4)  교전 단위 가치   f₀_i = (g_{i,blue} + obj_{i,blue}) − (g_{i,red} + obj_{i,red}),   f₀conv_i = conv_{i,blue} − conv_{i,red}
+   (VAL-5)  승자 및 확실층   W_i = sign(round(f₀_i, 6)),   확실한 승패 ⇔ |round(f₀_i, 6)| ≥ 150
+            평가의 승자 참값  winner_truth: 규칙 'gold'는 f₀_i 그대로, 규칙 'binned'는 골드 항을 구간 대표값 rep_b (VAL-7)로 바꾼 f_i (결정 D5 규칙 (i)); 승자 = f의 부호
+   (VAL-6)  골드 구간        b = min(⌊g / 100⌋, 30)   (g = 킬 골드; 0~2,999골드 100단위 30구간 + 3,000 이상 열린 30번 구간)
+   (VAL-7)  구간 대표값      rep_b = 구간 b에 든 팀 항목 킬 골드의 평균   (항목이 없으면 100·b + 50, b = 30이면 3,000)
+            항목을 모으는 단위: population 'all'(기본값, 고른 단위 전부) 또는 'in_scope'(그 가운데 범위 안 단위만; 결정 D21 B16)
+   (VAL-8)  누적 교전 가치   V_start(u, t₀, H) = Σ_{i: t₀ < f_i ≤ min(t₀ + H, hi)} (f₀_i + f₀conv_i)   (H ∈ config.EVAL_H_MS = 60, 120, 180 s)
+   (VAL-9)  보존 회계        귀속 + 전환 + 나머지 = 전체 (오브젝트 개수), 챔피언 킬의 합 = 교전 단위의 킬 합 (개수는 오차 0), 금액은 반올림 오차만
 
 E. 하네스 제약 및 무결성 보장:
    - 엄격한 인과성(Causality): t₀ 시점 평가에 미래 정보 누설 차단.
@@ -51,9 +53,17 @@ E. 하네스 제약 및 무결성 보장:
 #      item 17 (an objective without a known kind or taker is counted as rest).
 # Ref: LEGACY gameplay/event_survival.py::death_intervals (the level of a victim at its kill: the highest LEVEL_UP at or before the kill ms,
 #      as in c_ept.state), through c_ept.traits.LevelIndex.
+# Ref: harness/decisions.md D5 (2026-10-25, tie rule (i): the truth side of the winner endpoint is computed on the same discretized variable as the
+#      models, the gold_bin representative values) and the review finding A4-F4 (harness/reviews/EPT-T010-area-4.md), for ``winner_truth``.
+# Ref: harness/decisions.md D21 (2026-10-26, B16: the K-conditioned heads are trained on the representatives of the observed gold bin, and the representatives come from the
+#      in-scope FIT units), D12 (target definitions on the whole FIT) and the review finding A3-F4 (harness/reviews/EPT-T010-area-3.md), for ``gold_bin_means(population=...)``
+#      and ``fit_gold_bin_means``.
+# Ref: harness/decisions.md D19 (2026-10-25, B12: the primary f0 keeps the G-S3a prices; the pre-registered sensitivity "all flow prices" prices every group by its flow price except the base and nexus
+#      towers and the inhibitors, which keep the immediate value), for ``load_flow_prices`` and ``reprice_units``; docs/superpowers/plans/2026-10-26-c-ept-s4b-prep.md Task M13.
 from __future__ import annotations
 
 import functools
+import hashlib
 import json
 import math
 import numbers
@@ -119,6 +129,67 @@ def load_prices(path) -> dict[str, float]:
     return out
 
 
+class FlowPrices(dict):
+    """The ``{group: price}`` table of the sensitivity "all flow prices" (a plain dict wherever a price table is taken), with two records: ``fallback``, the groups whose price is the ``value`` of the file
+    because their flow price was not estimable (``price_flow`` None), and ``fixed_immediate``, the groups that never read a flow price. Both are tuples in the order of ``flowprice.GROUPS``."""
+
+    def __init__(self, prices, fallback=(), fixed_immediate=()):
+        super().__init__(prices)
+        self.fallback = tuple(fallback)
+        self.fixed_immediate = tuple(fixed_immediate)
+
+
+def load_flow_prices(path) -> dict:
+    """The price of each group for the pre-registered sensitivity "all flow prices" (decision D19), ``{group: value}`` in the order of ``flowprice.GROUPS``, from the ``PRICES.json`` of the s3a run.
+
+    The groups of ``flowprice.FIXED_IMMEDIATE`` (the base and nexus towers and the inhibitors) are priced as in the primary table, by ``<group>["value"]`` (their immediate value). Every other group
+    is priced by its flow price ``<group>["price_flow"]`` whether or not the run adopted it (the primary table uses the flow price of the elder only). A flow price that is None (the flow fit was
+    not estimable) falls back to the ``value`` of the entry; the groups that did are recorded in the ``fallback`` attribute of the result (a ``FlowPrices``), and a group without any price is a ValueError.
+    A missing group or entry, a price that is not a finite number and a ``fixed_immediate`` flag that disagrees with ``flowprice.FIXED_IMMEDIATE`` are a ValueError that names the group.
+
+    수식
+    ----
+    p_ψ = value_ψ (ψ ∈ FIXED_IMMEDIATE) ;  p_ψ = price_flow_ψ (그 밖의 묶음) ;  p_ψ = value_ψ (price_flow_ψ가 없을 때, 기록한다)
+
+      기호          | 뜻                                              | 단위 | 범위            | 코드 변수
+      ψ             | 오브젝트 가격 묶음 12개 (``flowprice.GROUPS``)    | —    | —               | name
+      value_ψ       | 주 표가 쓰는 가격 (채택한 흐름 가격 또는 즉시값) | 골드 | 유한            | entry['value']
+      price_flow_ψ  | 묶음 ψ의 흐름 가격 (채택 여부와 무관)            | 골드 | 유한 또는 None  | entry['price_flow']
+
+    해석
+    ----
+    주 f₀는 G-S3a에서 채택한 가격을 그대로 쓰고(흐름 가격은 장로만 채택), 민감도는 "모두 흐름 가격"으로 다시 매겨 주 판정이 가격 정의에 기대는지 본다. 억제기 포탑, 넥서스 포탑, 억제기는 가져간 뒤
+    곧 경기가 끝나 뒤 흐름이 잘리므로 흐름 가격을 쓰지 않는다는 규칙을 민감도에서도 그대로 둔다(결정 D19). 흐름 가격을 추정할 수 없는 묶음은 주 표의 값에 머물며 그 묶음을 결과가 알려 준다.
+
+    근거
+    ----
+    결정 D19 (B12: 현행 가격 유지와 혼합 명시, "모두 흐름 가격" 민감도 사전 등록, A1 제외), 설계서 8.1절의 고정 즉시값 묶음, ``flowprice.price_table``이 쓰는 PRICES.json의 항목.
+    """
+    doc = json.loads(Path(path).read_text(encoding='utf-8'))
+    if not isinstance(doc, dict):
+        raise ValueError('the price table must be a JSON object with one entry for each group')
+    out, fallback = {}, []
+    for name in flowprice.GROUPS:
+        entry = doc.get(name)
+        if not isinstance(entry, dict) or 'value' not in entry:
+            raise ValueError(f'the price table has no entry with a value for the group {name}')
+        fixed = name in flowprice.FIXED_IMMEDIATE
+        if 'fixed_immediate' in entry and entry['fixed_immediate'] is not fixed:
+            raise ValueError(f'the price table says fixed_immediate={entry["fixed_immediate"]!r} for the group {name}, but flowprice.FIXED_IMMEDIATE '
+                             f'{"holds" if fixed else "does not hold"} it')
+        if fixed:
+            out[name] = _price(name, entry['value'])
+            continue
+        if 'price_flow' not in entry:
+            raise ValueError(f'the price table has no price_flow for the group {name}')
+        if entry['price_flow'] is None:
+            out[name] = _price(name, entry['value'])
+            fallback.append(name)
+        else:
+            out[name] = _price(name, entry['price_flow'])
+    return FlowPrices(out, fallback, flowprice.FIXED_IMMEDIATE)
+
+
 def _price(name: str, v) -> float:
     if v is None:
         raise ValueError(f'the price of {name} is None (its flow fit and its immediate value were both unavailable)')
@@ -149,7 +220,7 @@ def object_price(kind, sub, prices) -> np.ndarray:
 
 
 # =============================================================================
-# 블록 3: 킬 골드 구간 분할 및 승자 판정 (식 VAL-1, VAL-2)
+# 블록 3: 킬 골드 구간 분할 및 승자 판정 (식 VAL-5 ~ VAL-7)
 # =============================================================================
 def gold_bin(gold) -> np.ndarray:
     """The bin (int8, 0 .. 30) of kill gold: floor(gold / 100), the open bin 30 for 3,000 and more. ValueError for gold that is negative or
@@ -210,6 +281,102 @@ def winner_of(f0_unit) -> tuple[np.ndarray, np.ndarray]:
     return (r > 0).astype(np.int8) - (r < 0).astype(np.int8), np.abs(r) >= SURE_F0
 
 
+WINNER_TRUTH_RULES = ('gold', 'binned')                # the truth side of the winner endpoint: the raw f0 (the default) or f on the bin representatives
+
+
+def check_winner_truth(rule) -> str:
+    """``rule`` itself if it is one of ``WINNER_TRUTH_RULES``; ValueError naming ``winner_truth`` otherwise. The message holds the legal names and the text
+    of a rule that is a short string (a setting, not data); anything else is named by its type only."""
+    if not isinstance(rule, str) or rule not in WINNER_TRUTH_RULES:
+        shown = repr(rule[:40]) if isinstance(rule, str) else type(rule).__name__
+        raise ValueError(f'winner_truth must be one of {WINNER_TRUTH_RULES}, not {shown}')
+    return rule
+
+
+def _float_array(name: str, a, shape=None, *, nonnegative: bool = False) -> np.ndarray:
+    """``a`` as a float64 array of ``shape`` (None: any); ValueError naming ``winner_truth`` and ``name``, never the value, for what is missing, does
+    not convert, has another shape, is not finite or (``nonnegative``) is below 0."""
+    if a is None:
+        raise ValueError(f'winner_truth: {name} is needed by the rule binned')
+    try:
+        out = np.asarray(a, dtype=np.float64)
+    except (TypeError, ValueError):
+        raise ValueError(f'winner_truth: {name} must be numeric') from None
+    if shape is not None and out.shape != shape:
+        raise ValueError(f'winner_truth: {name} must have shape {shape}, not {out.shape}')
+    if not np.isfinite(out).all() or (nonnegative and (out < 0).any()):
+        raise ValueError(f'winner_truth: {name} must be finite' + (' and not negative' if nonnegative else ''))
+    return out
+
+
+def winner_truth(f0_unit, kill_gold_bins, gold_reps, obj_value, rule: str) -> np.ndarray:
+    """The truth side f of the winner endpoint (blue minus red; f > 0 blue wins, f == 0 a tie, f < 0 red wins), (n,) float64, one entry for each unit.
+
+    ``rule`` 'gold' (the default of every run so far): f is ``f0_unit`` as the labels hold it (a copy; the other arguments are not read and may be None).
+    ``rule`` 'binned' (decision D5, tie rule (i)): the gold term of f is the variable the models use, the gold of a team read as the representative of its
+    gold bin (the same ``gold_reps`` array that the open Monte Carlo of the models reads): ``kill_gold_bins`` (n, 2) integer, -1 for a team without a kill;
+    ``gold_reps`` (31,) the representatives of the bins (``gold_bin_means``). The objective term is NOT the models' variable: it stays the realized attributed
+    prices of the labels, ``obj_value`` (n, 2). For towers that is the realized tier price, whereas the models price a tower at the expected tier price at the
+    first-kill time (``adapters.open_cell_values``), so for units with towers the truth f and the model f differ even where their gold terms agree. A pair of
+    teams in one gold bin is a tie when the realized objective values of the two teams are equal. ValueError (naming ``winner_truth`` and the argument, never a
+    value) for a rule that is not in ``WINNER_TRUTH_RULES``, an ``f0_unit`` that is not 1-d or not finite (a unit that is not valued has no winner), and, for
+    'binned', an argument that is missing, has another shape or type, a bin outside -1 .. 30, a representative that is below 0 or not finite, or an objective
+    value that is not finite.
+
+    수식
+    ----
+    (VAL-5)  규칙 'gold':    f_i = f₀_i                                                            (라벨 그대로)
+             규칙 'binned':  f_i = (ĝ_{i,blue} + obj_{i,blue}) − (ĝ_{i,red} + obj_{i,red}),
+                             ĝ_it = rep_{b_it} (b_it ≥ 0),   ĝ_it = 0 (b_it = −1: 킬이 없는 팀)         (rep_b: (VAL-7), b_it: (VAL-6))
+             승자 = f의 부호, 무승부 = (f = 0)
+
+      기호      | 뜻                                           | 단위 | 범위             | 코드 변수
+      f_i       | 교전 i의 승자 끝점 참값 (파랑 − 빨강)         | 골드 | 유한, 부호 있음  | 반환값
+      f₀_i      | 라벨의 f₀ (킬 골드 원시값 + 오브젝트)         | 골드 | 유한, 부호 있음  | f0_unit
+      b_it      | 팀 t의 킬 골드 구간 번호, −1 = 킬 없음        | —    | −1, 0, …, 30     | kill_gold_bins
+      rep_b     | 구간 b의 대표값 (FIT 구간 평균)               | 골드 | ≥ 0 유한         | gold_reps
+      ĝ_it      | 팀 t의 이산화한 킬 골드                        | 골드 | ≥ 0              | gold
+      obj_it    | 팀 t의 귀속 오브젝트의 실현된 가격 합 (포탑은 실제 단계 가격) | 골드 | 유한, 부호 있음  | obj_value
+
+    해석
+    ----
+    모형은 팀의 킬 골드를 구간 b로만 예측하고 그 값을 rep_b로 읽는다(평가 어댑터의 열린 몬테카를로: g = rep[구간], 킬이 없으면 0). 그래서 모형이 계산한 f는 한 교전에서 두 팀이
+    같은 구간이면 골드 항이 정확히 상쇄되어 무승부가 될 수 있다. 참값이 원시 골드를 쓰면 같은 구간의 두 팀(예: 410과 450)도 승패가 갈려, 모형이 쓰는 변수와 참값 변수가 달라진다. 모형은
+    같은 구간을 무승부로 세지만 참값의 무승부(f₀ = 0의 정확한 일치)는 드물어 모든 모형의 승자 확률은 낮게, 무승부 확률은 높게 나온다(검토 A4-F4; "같은 변수를 같은 점수로").
+    규칙 'binned'는 참값의 골드 항을 같은 구간 대표값으로 계산한다. 오브젝트 항은 모형의 변수가 아니라 라벨의 실현된 귀속 가격(obj_value) 그대로이다. 포탑의 경우 이것은 실제로 부순
+    단계의 가격이고, 모형은 포탑을 첫 킬 시각의 기대 단계 가격(어댑터의 open_cell_values)으로 매기므로, 포탑이 있는 교전에서는 골드 항이 같아도 참값 f와 모형 f가 다를 수 있다.
+    모형 쪽 칸 가격으로 실현된 오브젝트 개수를 다시 매길지는 저자가 정할 열린 질문이며 이 함수는 가격을 바꾸지 않는다.
+    경계 사례는 다음과 같다. 구간의 아래 경계값(300.0)은 윗 구간(3)에 들고 299.99는 아랫 구간(2)에 들어, 경계 양쪽의 0.01 골드 차이가 대표값 한 구간 폭(여기서는 100)의 차이가 된다.
+    킬이 없는 팀의 골드는 0이고 구간의 대표값이 아니다. 킬이 있으나 골드가 0인 팀은 구간 0의 대표값을 갖는다(모형의 k > 0 규칙과 같다).
+    오브젝트 가격은 대표값과 같은 순서((골드 + 오브젝트)끼리 뺀다)로 더해지므로, 같은 구간의 두 팀은 실현된 오브젝트 값이 같으면 동률이 남고 다르면 오브젝트가 동률을 깬다.
+    무승부는 f = 0의 정확한 비교이다. (VAL-5)의 소수 여섯째 자리 반올림은 라벨 승자 W(``winner_of``)의 정의이고, 평가 끝점의 현행 참값과 모형 쪽 계산이 모두 반올림 없이 f의 부호를 읽으므로
+    이 함수도 같다. 규칙 'gold'는 그 현행 참값을 한 비트도 바꾸지 않고 돌려주어 기본값이 이전 실행과 같다. 유한하지 않은 f₀는 값이 매겨지지 않은 단위이므로 두 규칙 모두 거부한다.
+
+    근거
+    ----
+    결정 D5 (동률 규칙 (i): 승자 끝점의 참값을 모형과 같은 이산 변수, 곧 gold_bin 대표값으로 계산한다), 검토 A4-F4, 진단 P1, 판정 R12(승자 규약), 평가 어댑터 ``_open_draws``의 f.
+    """
+    rule = check_winner_truth(rule)
+    f0 = np.asarray(f0_unit, dtype=np.float64)
+    if f0.ndim != 1:
+        raise ValueError('winner_truth: f0_unit must be 1-d, one entry for each unit')
+    if not np.isfinite(f0).all():
+        raise ValueError('winner_truth: f0 must be finite (a unit that is not valued has no winner)')
+    if rule == 'gold':
+        return f0.copy()
+    n = len(f0)
+    bins = None if kill_gold_bins is None else np.asarray(kill_gold_bins)
+    if bins is None or bins.shape != (n, 2) or bins.dtype.kind not in 'iu':
+        raise ValueError(f'winner_truth: kill_gold_bins must be an integer array of shape ({n}, 2), one bin for each team of each unit')
+    if ((bins < -1) | (bins >= N_GOLD_BINS)).any():
+        raise ValueError(f'winner_truth: kill_gold_bins must lie in -1 .. {N_GOLD_BINS - 1}')
+    reps = _float_array('gold_reps', gold_reps, (N_GOLD_BINS,), nonnegative=True)
+    obj = _float_array('obj_value', obj_value, (n, 2))
+    # 식 (VAL-5) 규칙 'binned': 킬이 있는 팀(구간 ≥ 0)의 골드는 구간 대표값이고 킬이 없는 팀(구간 −1)은 0이다. 합과 차의 순서는 unit_values의 f₀와 같다.
+    gold = np.where(bins >= 0, reps[np.clip(bins, 0, N_GOLD_BINS - 1)], 0.0)
+    return (gold[:, 0] + obj[:, 0]) - (gold[:, 1] + obj[:, 1])
+
+
 class GoldReps(NamedTuple):
     """The representatives of the gold bins: ``means`` (31,) float64 and ``fallback``, the bins that had no entry and took their middle.
 
@@ -235,37 +402,40 @@ def _unit_selection(selected, n_units: int) -> np.ndarray:
     raise ValueError('units must be a boolean mask or a 1-d array of unit numbers')
 
 
-def gold_bin_means(uv: 'UnitValues', units) -> GoldReps:
-    """The representative of each gold bin: the mean kill gold of the team entries in it, over the selected units (the FIT units: see
-    ``role_units``). An entry is a team of a valued unit with at least one kill (bin >= 0); a team without a kill is no entry. The mean is
-    exact (``math.fsum``), so ``count x mean`` summed over the bins reproduces the gold of the entries. A bin with no entry takes the middle
-    of its range (100 b + 50; 3,000 for the open bin) and is named in ``fallback``.
+GOLD_REP_POPULATIONS = ('all', 'in_scope')             # the entries of the bin means: those of every unit the caller selected, in scope or not (every earlier run), or of those in scope only
 
-    수식
-    ----
-    (VAL-7)  rep_b = (1 / |E_b|) · Σ_{e ∈ E_b} g_e                         (E_b ≠ ∅)
-             rep_b = 100·b + 50 (b < 30),   rep_30 = 3,000                 (E_b = ∅; 그 b를 fallback에 적는다)
-             E_b = 선택한 교전 단위 가운데 값이 매겨진 단위의 팀 항목 e = (i, t) 가운데 킬이 하나 이상이고 구간이 b인 것, g_e = 그 항목의 킬 골드
 
-      기호  | 뜻                      | 단위 | 범위     | 코드 변수
-      E_b   | 구간 b의 팀 항목의 집합 | —    | 0개 이상 | gold[lo:hi]
-      g_e   | 항목 e의 킬 골드        | 골드 | ≥ 0 유한 | uv.kill_gold
-      rep_b | 구간 b의 대표값         | 골드 | ≥ 0      | means[b]
+def check_gold_rep_population(population) -> str:
+    """``population`` itself if it is one of ``GOLD_REP_POPULATIONS``; ValueError naming ``population`` otherwise. The message holds the legal names and, of the value, a short
+    string (a setting, not data) or only its type.
 
-    해석
-    ----
-    식 (VAL-7)의 대표값은 구간에 든 실제 킬 골드의 평균이므로, 항목 수에 대표값을 곱해 구간마다 더하면 선택한 항목의 킬 골드 합이 그대로 나온다. 구간의 가운데를 대표값으로 쓰면 킬 골드가
-    구간의 시작에 몰려 있을 때 한쪽으로 치우치고 열린 구간에는 가운데가 없다(계획 P4). 항목이 없는 구간은 가운데(열린 구간은 아래끝 3,000)를 쓰고 그 번호를 따로 알린다(판정 R12). 킬이 없는 팀은 항목이 아니다.
-    항목은 호출한 쪽이 고른 교전 단위에서 나오며(실행기는 FIT 경기의 단위를 고른다) 단위가 범위 안인지는 따지지 않는데, 이는 S3 as-built 기록의 열린 항목이다.
+    (VAL-7)의 항목 집합 E_b를 어느 단위에서 모을지의 이름이다. 'all'은 호출한 쪽이 고른 단위 전부(범위 안이든 밖이든; 이전 실행들의 정의), 'in_scope'는 그 가운데 범위 안 단위뿐이다(결정 D21 B16).
+    ('all'은 한 번 'selected'라 불렀으나, D12와 프로파일이 "선택된 FIT"를 실행의 자료 비율로 고른 부분 집합이라는 뜻으로 쓰므로 이름을 바꾸었다.)"""
+    if not isinstance(population, str) or population not in GOLD_REP_POPULATIONS:
+        shown = repr(population[:40]) if isinstance(population, str) else type(population).__name__
+        raise ValueError(f'population must be one of {GOLD_REP_POPULATIONS}, not {shown}')
+    return population
 
-    근거
-    ----
-    계획 P4(구간 대표값은 FIT 구간 평균), 판정 R12(항목이 없는 구간은 가운데, 목록으로 알림), 검산 노트 math-control-03 D절(구간 평균은 합을 재현한다; 시험이 같은 수를 확인한다).
-    """
-    n = len(uv.f0_unit)
-    sel = _unit_selection(units, n)
+
+def in_scope_units(s1) -> np.ndarray:
+    """(n_units,) bool: ``units/in_scope`` of the S1 store, the one definition of "in scope" (the units of the open heads, the units that ``v_start`` sums). It is read as it is
+    stored and does not depend on the role of the unit's match.
+
+    (VAL-7)의 'in_scope' 모집단이 쓰는 마스크이다. 범위 안 교전은 첫 킬 f가 120 s ≤ f ≤ T − 30 s인 교전이고(설계서 2절) S1이 이 표시를 한 번 정한다."""
+    return np.asarray(s1.array('units/in_scope'), dtype=bool)
+
+
+def _scope_mask(in_scope, n_units: int) -> np.ndarray:
+    if not isinstance(in_scope, np.ndarray) or in_scope.dtype != np.bool_ or in_scope.shape != (n_units,):
+        raise ValueError(f'in_scope must be a boolean array with one entry for each of the {n_units} units (units/in_scope of the S1 store)')
+    return in_scope
+
+
+def _bin_means(bins, gold, sel: np.ndarray) -> GoldReps:
+    """The bin means of (VAL-7) from the (n, 2) arrays ``bins`` (int, -1 for no entry) and ``gold`` over the units of the mask ``sel``: the one computation behind
+    ``gold_bin_means`` and ``fit_gold_bin_means``."""
     # 식 (VAL-7)의 항목 집합 E_b: 선택한 단위의 두 팀 가운데 구간이 0 이상인 팀(킬이 있는 팀)이다. 값이 매겨지지 않은 단위의 구간은 −1이어서 들지 않는다.
-    bins, gold = uv.gold_bin[sel].ravel().astype(np.int64), uv.kill_gold[sel].ravel()
+    bins, gold = bins[sel].ravel().astype(np.int64), gold[sel].ravel()
     keep = bins >= 0
     bins, gold = bins[keep], gold[keep]
     if not np.isfinite(gold).all():
@@ -283,8 +453,129 @@ def gold_bin_means(uv: 'UnitValues', units) -> GoldReps:
     return GoldReps(means, tuple(fallback))
 
 
+def _need_entries(reps: GoldReps, in_scope_n: int, selected_n: int, what: str) -> GoldReps:
+    """``reps`` itself unless the population 'in_scope' left no team entry with a kill in any bin (all 31 representatives would be midpoints); ValueError with counts only.
+
+    해석: 범위 안 단위가 하나도 없거나 그 단위에 킬이 하나도 없으면 대표값 31개가 모두 구간의 가운데가 되는데, 이는 모집단이 아니라 잘못된 저장소나 잘못된 마스크의 신호이므로 학습 입력을
+    만들기 전에 거부한다(검토 m1). 모집단 'all'은 이전 실행이 하던 대로 거부하지 않는다."""
+    if len(reps.fallback) == N_GOLD_BINS:
+        raise ValueError(f"{what}: the population 'in_scope' has no team entry with a kill in any gold bin ({in_scope_n} of {selected_n} units of the population 'all' are in scope): "
+                         f'all {N_GOLD_BINS} representatives would be the middles of their ranges')
+    return reps
+
+
+def gold_bin_means(uv: 'UnitValues', units, *, population: str = 'all', in_scope=None) -> GoldReps:
+    """The representative of each gold bin: the mean kill gold of the team entries in it, over the selected units (the FIT units: see
+    ``role_units``). An entry is a team of a valued unit with at least one kill (bin >= 0); a team without a kill is no entry. The mean is
+    exact (``math.fsum``), so ``count x mean`` summed over the bins reproduces the gold of the entries. A bin with no entry takes the middle
+    of its range (100 b + 50; 3,000 for the open bin) and is named in ``fallback``.
+
+    ``population`` (S4b preparation M3, decision D21 B16): ``'all'`` (the default) takes the entries of every unit in ``units``, in scope or not, as every earlier run did (the
+    labels of the S3 as-built carry these means as ``labels/gold_reps``; its first name was ``'selected'``, which D12 and the profiles use for a run's data fraction); ``'in_scope'``
+    takes the entries of the units in ``units`` that are in scope, and needs ``in_scope``, the (n_units,) boolean mask ``units/in_scope`` of S1 (``in_scope_units``; the labels do
+    not know the scope). A mask given with ``'all'`` is a ValueError, not an ignored argument. ValueError (naming ``population`` or ``in_scope``, never a value of the data) for a
+    name that is not in ``GOLD_REP_POPULATIONS`` and for a mask that is missing, not boolean or not of one entry for each unit; and, for ``'in_scope'`` only, for a population that
+    gives no team entry with a kill to any bin (all 31 would be midpoints: a wrong mask or store; the message holds counts only). The population ``'all'`` is never refused for that.
+
+    수식
+    ----
+    (VAL-7)  rep_b = (1 / |E_b|) · Σ_{e ∈ E_b} g_e                         (E_b ≠ ∅)
+             rep_b = 100·b + 50 (b < 30),   rep_30 = 3,000                 (E_b = ∅; 그 b를 fallback에 적는다)
+             E_b = 모집단 U 안의 값이 매겨진 단위의 팀 항목 e = (i, t) 가운데 킬이 하나 이상이고 구간이 b인 것, g_e = 그 항목의 킬 골드
+             U = 고른 교전 단위 전부 (population = 'all'),   U = 고른 교전 단위 ∩ 범위 안 교전 단위 (population = 'in_scope'; |E_b| = 0인 구간이 31개 전부이면 거부)
+
+      기호  | 뜻                      | 단위 | 범위     | 코드 변수
+      E_b   | 구간 b의 팀 항목의 집합 | —    | 0개 이상 | gold[lo:hi]
+      g_e   | 항목 e의 킬 골드        | 골드 | ≥ 0 유한 | uv.kill_gold
+      U     | 대표값을 내는 단위의 집합 | —  | 단위 번호의 집합 | units, in_scope
+      rep_b | 구간 b의 대표값         | 골드 | ≥ 0      | means[b]
+
+    해석
+    ----
+    식 (VAL-7)의 대표값은 구간에 든 실제 킬 골드의 평균이므로, 항목 수에 대표값을 곱해 구간마다 더하면 선택한 항목의 킬 골드 합이 그대로 나온다. 구간의 가운데를 대표값으로 쓰면 킬 골드가
+    구간의 시작에 몰려 있을 때 한쪽으로 치우치고 열린 구간에는 가운데가 없다(계획 P4). 항목이 없는 구간은 가운데(열린 구간은 아래끝 3,000)를 쓰고 그 번호를 따로 알린다(판정 R12). 킬이 없는 팀은 항목이 아니다.
+    항목은 호출한 쪽이 고른 교전 단위에서 나온다(실행기는 FIT 경기의 단위를 고른다). 기본 모집단 'all'은 단위가 범위 안인지를 따지지 않으므로 FIT 경기의 범위 밖 교전도 구간 평균에
+    들어가는데, S3 as-built 기록(``labels/gold_reps``)이 이 정의이고 이전 실행의 합성과 평가가 읽은 대표값이다. 모집단 'in_scope'는 범위 안 교전만으로 평균을 낸다: 모형이 보는 교전은 범위 안
+    교전이고(열린 머리의 행, V_start의 합) 대표값은 K 조건 머리의 입력과 합성의 이산 변수를 정하므로, 그 변수가 모형이 다루는 교전의 킬 골드의 평균이어야 한다(검토 A3-F4). 경계 사례:
+    범위 안 항목이 하나도 없는 구간은, 범위 밖 항목이 있더라도 'in_scope'에서는 가운데 값이 되고 fallback에 든다. 범위는 단위의 표시(``units/in_scope``)이지 단위가 속한 경기의 역할이 아니므로
+    역할 선택(``units``)과 범위 마스크의 교집합이 모집단이다. 'in_scope'에서 31개 구간이 모두 비면 대표값 전부가 가운데 값이므로 거부한다: 그것은 모집단이 아니라 잘못된 마스크나 저장소이다
+    (검토 m1; 개수만 말한다).
+
+    근거
+    ----
+    계획 P4(구간 대표값은 FIT 구간 평균), 판정 R12(항목이 없는 구간은 가운데, 목록으로 알림), 검산 노트 math-control-03 D절(구간 평균은 합을 재현한다; 시험이 같은 수를 확인한다),
+    결정 D21 B16(대표값은 범위 안 FIT 단위에서 낸다), 결정 D12(타깃의 정의는 FIT 전체에서), 검토 A3-F4.
+    """
+    population = check_gold_rep_population(population)
+    n = len(uv.f0_unit)
+    sel = _unit_selection(units, n)
+    if population == 'in_scope':
+        if in_scope is None:
+            raise ValueError("gold_bin_means: the population 'in_scope' needs in_scope, the (n_units,) boolean mask units/in_scope of the S1 store")
+        chosen = sel
+        sel = sel & _scope_mask(in_scope, n)                         # U = selected units ∩ units in scope
+        return _need_entries(_bin_means(uv.gold_bin, uv.kill_gold, sel), int(sel.sum()), int(chosen.sum()), 'gold_bin_means')
+    if in_scope is not None:
+        raise ValueError("gold_bin_means: in_scope is read by the population 'in_scope' only")
+    return _bin_means(uv.gold_bin, uv.kill_gold, sel)
+
+
+def fit_gold_bin_means(s1, labels, *, population: str) -> GoldReps:
+    """The representatives of the gold bins of a label store: the bin means of the units of the FIT matches of the S1 store ``s1`` from ``labels/gold_bin`` and
+    ``labels/kill_gold`` of ``labels``, for the ``population`` (``GOLD_REP_POPULATIONS``, no default: the caller names it). With ``'all'`` (every FIT unit of the store, in scope
+    or not) the result is ``labels/gold_reps`` of the S3 as-built, bit for bit (the same arrays go through the same computation as in ``gold_bin_means``); with ``'in_scope'`` the units
+    out of scope (``in_scope_units``) are left out. The role is FIT alone and the whole FIT store: not the matches a run selects for its data fraction (decision D12: the target
+    definitions are whole-FIT assets). ValueError for a population that is not one of the names, for labels that do not have one row of two entries for each unit of the S1 store
+    (counts only, never a key), for the errors of ``gold_bin_means``, and, for ``'in_scope'``, for FIT units in scope that give no team entry with a kill to any bin (review m1: all 31
+    representatives would be midpoints). The bins without an entry are in the ``fallback`` of the result.
+
+    수식
+    ----
+    (VAL-7)  rep_b = (1 / |E_b|) · Σ_{e ∈ E_b} g_e,  U = FIT 경기의 단위 (population = 'all') 또는 FIT 경기의 단위 ∩ 범위 안 교전 단위 (population = 'in_scope')
+
+    해석
+    ----
+    이 함수는 새 식이 아니라 (VAL-7)을 라벨 저장소에서 계산하는 입구이다. 학습 행(``head_rows.HeadRows``의 K 조건 'binned')과 평가(``adapters.run_inference``의 대표값)가 이 함수 하나에서
+    같은 31개 수를 읽으므로 K 조건 머리가 학습에서 본 값의 집합과 합성이 넣는 값의 집합이 같다(검토 A3-F4, M2 검토 m2). 라벨 저장소는 FIT, STOP, DEV 경기의 라벨만 갖고(``LABEL_ROLES``)
+    홀드아웃 역할의 단위는 이 함수가 읽지 않는다.
+
+    근거
+    ----
+    결정 D21 B16, 결정 D12, 검토 A3-F4, 계획 P4와 판정 R12(구간 평균과 fallback).
+    """
+    population = check_gold_rep_population(population)
+    fit = role_units(s1, ('FIT',))
+    n = len(fit)
+    bins, gold = np.asarray(labels.array('labels/gold_bin')), np.asarray(labels.array('labels/kill_gold'))
+    if bins.shape != (n, 2) or gold.shape != (n, 2) or bins.dtype.kind not in 'iu' or gold.dtype.kind != 'f':
+        raise ValueError(f'fit_gold_bin_means: labels/gold_bin (integer) and labels/kill_gold (float) must have shape ({n}, 2), one row for each unit of the S1 store, '
+                         f'not {bins.shape} and {gold.shape}: the labels do not belong to this S1 store')
+    if population == 'in_scope':
+        scope = in_scope_units(s1)
+        if scope.shape != (n,):
+            raise ValueError(f'fit_gold_bin_means: units/in_scope must have one entry for each of the {n} units, not shape {scope.shape}')
+        chosen = fit
+        fit = fit & scope                                            # U = FIT units ∩ units in scope
+        return _need_entries(_bin_means(bins, gold, fit), int(fit.sum()), int(chosen.sum()), 'fit_gold_bin_means')
+    return _bin_means(bins, gold, fit)
+
+
+def gold_reps_sha256(reps) -> str:
+    """The sha256 (hex) of the 31 representatives as float64 little-endian bytes in C order (31 times 8 bytes, whatever the byte order and the memory order of the array). ValueError
+    (naming ``gold_reps``) for anything but a floating array of shape (31,).
+
+    The identity of the representatives that a binned run was trained on and an evaluation was made with (review m4): the training identity, the B1 set and the ``run_inference``
+    provenance all use this one function.
+
+    해석: 대표값 31개의 신원이다. 배열의 바이트 순서와 메모리 배치가 아니라 값만 해시에 들어가도록 '<f8' C 순서로 고정한다."""
+    a = np.asarray(reps) if isinstance(reps, np.ndarray) else None
+    if a is None or a.shape != (N_GOLD_BINS,) or a.dtype.kind != 'f':
+        raise ValueError(f'gold_reps must be a floating array of shape ({N_GOLD_BINS},)')
+    return hashlib.sha256(np.ascontiguousarray(a, dtype='<f8').tobytes()).hexdigest()
+
+
 # =============================================================================
-# 블록 4: 피해자 레벨 인덱싱 및 어시스트 풀 연동
+# 블록 4: 피해자 레벨 인덱싱 및 어시스트 풀 연동 (식 VAL-1)
 # =============================================================================
 def _record_kill_levels(rec) -> tuple:
     """``(kill table, victim levels)`` of one record: the kills as S1 stores them and, per kill, the level of its victim at the kill ms.
@@ -409,7 +700,7 @@ def kill_levels(s1, roles=LABEL_ROLES, workers: int = 8, *, records=reader.read_
 
 
 # =============================================================================
-# 블록 5: 교전 단위 가치 산출 엔진 (UnitValues, unit_values; 식 VAL-4, VAL-5)
+# 블록 5: 교전 단위 가치 산출 엔진 (UnitValues, unit_values; 식 VAL-2 ~ VAL-6)
 # =============================================================================
 @dataclass(frozen=True, eq=False)
 class UnitValues:
@@ -624,8 +915,51 @@ def unit_values(s1, prices, rules, kill_levels, roles=LABEL_ROLES) -> UnitValues
     return out
 
 
+def reprice_units(s1, uv: UnitValues, prices, roles=LABEL_ROLES) -> UnitValues:
+    """The labels ``uv`` with another price table, in memory (the truth of the sensitivity "all flow prices", decision D19): the objective values, f0, f0 of the conversions, the winner and the sure
+    stratum are made again from the S1 objectives with ``prices``; the kill gold, the gold bins, the kill counts and the valued masks of ``uv`` are kept (no price enters them). The result equals
+    ``unit_values`` made with ``prices`` in every field and bit, and with the prices of ``uv`` it equals ``uv``. No label store is written. ``roles`` must be the roles ``uv`` was made for
+    (ValueError otherwise); ValueError for a price table that is not usable and for labels that do not belong to the S1 store.
+
+    수식
+    ----
+    (VAL-3)  obj′_it = Σ_{귀속 오브젝트 ∈ (i, t)} price′_ψ,      conv′_it = Σ_{전환 오브젝트 ∈ (i, t)} price′_ψ
+    (VAL-4)  f₀′_i = (g_{i,blue} + obj′_{i,blue}) − (g_{i,red} + obj′_{i,red}),      f₀conv′_i = conv′_{i,blue} − conv′_{i,red}      (g는 uv의 킬 골드, 가격에 매이지 않는다)
+
+    해석
+    ----
+    킬 골드는 가격표를 읽지 않으므로(도움 풀을 포함한 실현 골드) 가격만 바꾸는 민감도의 참값은 오브젝트 몫만 다시 매기면 되고, 그래서 킬 레벨이나 규칙표를 다시 읽지 않는다. 같은 식과 같은 순서로
+    계산하므로 ``unit_values``와 비트 단위로 같다(시험이 이를 고정한다).
+    """
+    table = _price_table(prices)
+    n_units = _check_uv(s1, uv)
+    match_valued = _valued_matches(s1, roles)
+    if not np.array_equal(match_valued, uv.match_valued):
+        raise ValueError('reprice_units: roles are not the roles of the labels uv (the valued matches differ)')
+    unit_match = np.asarray(s1.array('units/match'), dtype=np.int64)
+    obj = _objectives(s1, table)
+    valued_obj = match_valued[obj.match]
+    _objective_unit_check(obj.unit, obj.match, unit_match, 'objectives/unit', valued_obj)
+    _objective_unit_check(obj.conv_unit, obj.match, unit_match, 'objectives/conv_unit', valued_obj)
+    # 식 (VAL-3): 귀속된 오브젝트와 전환된 오브젝트의 새 가격을 칸마다 더한다.
+    obj_value = _cells(obj.unit, obj.taker, obj.price, valued_obj & (obj.unit >= 0), n_units)
+    conv_value = _cells(obj.conv_unit, obj.taker, obj.price, valued_obj & (obj.conv_unit >= 0), n_units)
+    valued = uv.valued
+    obj_value[~valued], conv_value[~valued] = np.nan, np.nan
+    # 식 (VAL-4): 킬 골드는 uv의 것이다.
+    f0_unit = (uv.kill_gold[:, 0] + obj_value[:, 0]) - (uv.kill_gold[:, 1] + obj_value[:, 1])
+    f0_conv = conv_value[:, 0] - conv_value[:, 1]
+    winner, sure = np.zeros(n_units, dtype=np.int8), np.zeros(n_units, dtype=bool)
+    winner[valued], sure[valued] = winner_of(f0_unit[valued])
+    out = UnitValues(kill_gold=uv.kill_gold, obj_value=obj_value, conv_value=conv_value, f0_unit=f0_unit, f0_conv=f0_conv, winner=winner,
+                     sure=sure, gold_bin=uv.gold_bin, n_kills=uv.n_kills, valued=uv.valued, match_valued=uv.match_valued)
+    for name in ('obj_value', 'conv_value', 'f0_unit', 'f0_conv', 'winner', 'sure'):
+        getattr(out, name).setflags(write=False)
+    return out
+
+
 # =============================================================================
-# 블록 6: 향후 예측 시계별 누적 가치 계산 (v_start; 식 VAL-6)
+# 블록 6: 향후 예측 시계별 누적 가치 계산 (v_start; 식 VAL-8)
 # =============================================================================
 def _check_uv(s1, uv: UnitValues) -> int:
     """The number of units; ValueError if the labels do not have the S1 store's units and matches."""
@@ -710,7 +1044,7 @@ def v_start(s1, uv: UnitValues, horizons_ms=C.EVAL_H_MS) -> np.ndarray:
 
 
 # =============================================================================
-# 블록 7: 엄밀한 경제/오브젝트 보존 회계 감사 (accounting; 판정 R11, 식 VAL-7 ~ VAL-9)
+# 블록 7: 엄밀한 경제/오브젝트 보존 회계 감사 (accounting; 판정 R11, 식 VAL-9)
 # =============================================================================
 def _objective_identity(s1, obj: _Objectives, valued_obj, match_valued, unit_match, valued_unit) -> dict:
     """The objective identity per (match, group, taker) in counts, and the labels against the cells ``units/O`` and ``units/conv`` of S1.

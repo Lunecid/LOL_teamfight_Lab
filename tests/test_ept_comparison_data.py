@@ -335,3 +335,187 @@ def test_explicit_selection_refuses_other_role_and_preserves_legacy_default():
             np.testing.assert_array_equal(old.blocks[key].fields[field], full.blocks[key].fields[field])
         np.testing.assert_array_equal(old.blocks[key].views, full.blocks[key].views)
     assert neural.fit_stats(w.s1, w.s2).sha256 == neural.fit_stats(w.s1, w.s2, matches=tuple(range(9))).sha256
+
+
+# ---- the settings of S4b (preparation M3 review m6, M5: decisions D5, D21 B16, D7, D12): defaults unchanged, the others passed through ------------------
+def flagged_world():
+    """The world with two summary columns that are constant over the whole store (``atakhan_in_patch``) and inside the selected FIT only (``dragon_up``)."""
+    w = world()
+    member = data.select_membership(w.s1)
+    vm = w.s2.array('views/match')
+    w.s2.arrays['x/summary'][:, tokens.SUMMARY.index('atakhan_in_patch')] = 0.0
+    w.s2.arrays['x/summary'][:, tokens.SUMMARY.index('dragon_up')] = np.where(np.isin(vm, member.fit), 3.0, vm + 1.0)
+    w.s2.arrays['x/summary'][:, tokens.SUMMARY.index('old_champion_kill_b')] = 0.0      # one half of a swap pair is constant, the other half varies
+    return w, member
+
+
+class FakeHead:
+    """What ``fit_head`` returns in the tests that look at the settings: only the law that the kill head says it was fitted for."""
+    def __init__(self, kill_law):
+        self.kill_law = kill_law
+
+
+def spy_fit_head(monkeypatch):
+    seen = []
+
+    def fake(fit, stop, name, kind, **kw):
+        seen.append((fit, stop, name, kind))
+        return FakeHead(fit.kill_law) if name == 'M3Kills' else FakeHead('poisson')
+    monkeypatch.setattr(b1, 'fit_head', fake)
+    return seen
+
+
+def test_defaults_of_the_settings_are_the_calls_and_the_receipts_of_the_earlier_runs():
+    w = world()
+    member = data.select_membership(w.s1)
+    training, stats, receipt = data.build_neural_data(w, member, scales=scales(), check=lambda: None)
+    assert stats.sha256 == neural.fit_stats(w.s1, w.s2, matches=member.fit).sha256 == data.fit_stats_subset(w.s1, w.s2, member, lambda: None).sha256
+    assert stats.column_drop == 'none' and stats.population == 'whole_fit' and stats.dropped == ()
+    assert set(receipt) == {'schema', 'membership_sha256', 'membership', 'stats_sha256', 'stats_fitted_here', 'predictor_fit_scope', 'head_init_scope', 'train_seed',
+                            'rows', 'loss_scales_scope', 'auxiliary_scope'}                  # nothing is added for the default settings
+    for batches in (training.fit, training.stop):
+        assert batches.rows.head_rows.kill_law == 'poisson' and batches.rows.head_rows.k_condition == 'raw'
+    explicit, same, other = data.build_neural_data(w, member, scales=scales(), check=lambda: None, kill_law='poisson', k_condition='raw', column_drop='none',
+                                                   stats_population='whole_fit')
+    assert same.sha256 == stats.sha256 and other == receipt
+    import inspect
+    for fn in (data.build_neural_data, data.fit_stats_subset, data.fit_b1_subset):
+        parameters = inspect.signature(fn).parameters
+        assert all(parameters[name].default == default for name, default in (('kill_law', 'poisson'), ('k_condition', 'raw'), ('column_drop', 'none'),
+                                                                               ('stats_population', 'whole_fit')) if name in parameters), fn
+    assert 'kill_law' in inspect.signature(data.fit_b1_subset).parameters and 'k_condition' in inspect.signature(data.fit_b1_subset).parameters
+    assert 'column_drop' in inspect.signature(data.fit_b1_subset).parameters
+    assert {'column_drop', 'stats_population'} <= set(inspect.signature(data.build_neural_data).parameters)
+    assert {'kill_law', 'k_condition'} <= set(inspect.signature(data.build_neural_data).parameters)
+
+
+def test_the_neural_rows_take_the_kill_law_and_the_k_condition_and_the_receipt_says_so():
+    w = world()
+    member = data.select_membership(w.s1)
+    training, stats, receipt = data.build_neural_data(w, member, scales=scales(), check=lambda: None, kill_law='shifted', k_condition='binned')
+    for batches, role in ((training.fit, 'FIT'), (training.stop, 'STOP')):
+        rows = batches.rows.head_rows
+        assert rows.kill_law == 'shifted' and rows.k_condition == 'binned' and rows.role == role
+        assert 'd' in batches.rows.blocks[('M3Kills', 'open')].fields                         # the first-kill team of the shifted law
+    reps = training.fit.rows.head_rows.k_reps_sha256()
+    assert reps == training.stop.rows.head_rows.k_reps_sha256() and len(reps) == 64
+    assert receipt['kill_law'] == 'shifted' and receipt['k_condition'] == 'binned' and receipt['k_reps_sha256'] == reps
+    assert 'column_drop' not in receipt and 'stats_population' not in receipt
+    plain = data.build_neural_data(w, member, scales=scales(), check=lambda: None)[2]
+    assert {k: v for k, v in receipt.items() if k not in ('kill_law', 'k_condition', 'k_reps_sha256', 'rows')} == {k: v for k, v in plain.items() if k != 'rows'}
+    for bad in ({'kill_law': 'bogus'}, {'k_condition': 'bogus'}, {'column_drop': 'bogus'}, {'stats_population': 'bogus'}):
+        fresh = world()
+        with pytest.raises(ValueError):
+            data.build_neural_data(fresh, member, scales=scales(), check=lambda: None, **bad)
+        assert not fresh.labels.reads                                                         # refused before the labels are read
+
+
+def test_the_neural_data_pass_the_column_drop_and_the_population_to_the_statistics():
+    w, member = flagged_world()
+    training, stats, receipt = data.build_neural_data(w, member, scales=scales(), check=lambda: None, column_drop='store_and_subset', stats_population='selected_fit')
+    views = np.flatnonzero(np.isin(w.s2.array('views/match'), member.fit))
+    assert stats.column_drop == 'store_and_subset' and stats.population == 'selected_fit' and stats.n_views == len(views)
+    assert stats.dropped == features.dropped_columns(w.s2, views, pooled=True)              # the list of the B1 of the same run
+    fit_views = np.flatnonzero(features.split_views(w.s1, w.s2, 'FIT'))
+    assert stats.dropped_store == features.dropped_columns(w.s2, fit_views, pooled=True)    # the D7 list is judged over the whole FIT store
+    assert 'atakhan_in_patch' in stats.dropped_store and 'dragon_up' in stats.dropped and 'dragon_up' not in stats.dropped_store
+    assert receipt['column_drop'] == 'store_and_subset' and receipt['stats_population'] == 'selected_fit' and receipt['stats_sha256'] == stats.sha256
+    assert receipt['dropped_store'] == list(stats.dropped_store) and receipt['dropped'] == list(stats.dropped)
+    assert training.fit.stats is stats and training.stop.stats is stats
+    # the store-only drop leaves the columns that are constant only inside the selection
+    only, store_stats, _ = data.build_neural_data(w, member, scales=scales(), check=lambda: None, column_drop='store', stats_population='selected_fit')
+    assert store_stats.dropped == store_stats.dropped_store == stats.dropped_store
+    # a supplied Stats must have been made under the same settings: the default ones, or the other ones, are refused
+    plain = data.fit_stats_subset(w.s1, w.s2, member, lambda: None)
+    for given, kw in ((plain, dict(column_drop='store_and_subset', stats_population='selected_fit')), (stats, {}), (store_stats, dict(column_drop='store_and_subset',
+                                                                                                                                         stats_population='selected_fit')),
+                      (stats, dict(column_drop='store_and_subset'))):
+        with pytest.raises(ValueError, match='column_drop|population'):
+            data.build_neural_data(w, member, scales=scales(), check=lambda: None, stats=given, **kw)
+    again = data.build_neural_data(w, member, scales=scales(), check=lambda: None, stats=stats, column_drop='store_and_subset', stats_population='selected_fit')
+    assert again[1] is stats and again[2]['stats_fitted_here'] is False
+
+
+def test_fit_stats_subset_reads_the_whole_store_only_for_the_list_and_the_default_does_not():
+    w, member = flagged_world()
+    guards = guard_world(w, member, ('FIT',))
+    data.fit_stats_subset(w.s1, w.s2, member, lambda: None)                                  # the default: only the selected FIT views are read
+    assert all(set(g.reads) <= set(np.flatnonzero(np.isin(w.s2.array('views/match'), member.fit))) for g in guards)
+    with pytest.raises(AssertionError, match='nonselected'):                                  # the D7 list is judged over the whole FIT store: other FIT matches are read
+        data.fit_stats_subset(w.s1, w.s2, member, lambda: None, column_drop='store', stats_population='selected_fit')
+
+
+def test_b1_subset_takes_the_kill_law_and_the_k_condition_and_records_them(monkeypatch):
+    w = world()
+    member = data.select_membership(w.s1)
+    seen = spy_fit_head(monkeypatch)
+    result = data.fit_b1_subset(w.s1, w.s2, w.labels, member, check=lambda: None, kill_law='shifted', k_condition='binned')
+    assert len(seen) == 13 and all(f.kill_law == s.kill_law == 'shifted' and f.k_condition == s.k_condition == 'binned' for f, s, _, _ in seen)
+    reps = seen[0][0].k_reps_sha256()
+    assert result.kill_law == 'shifted' and result.k_condition == 'binned' and result.k_reps_sha256 == reps and len(reps) == 64
+    receipt = result.comparison_receipt
+    assert receipt['kill_law'] == 'shifted' and receipt['k_condition'] == 'binned' and receipt['k_reps_sha256'] == reps
+    seen.clear()
+    default = data.fit_b1_subset(w.s1, w.s2, w.labels, member, check=lambda: None)
+    assert all(f.kill_law == 'poisson' and f.k_condition == 'raw' for f, _, _, _ in seen)
+    assert default.kill_law == 'poisson' and default.k_condition == 'raw' and default.k_reps_sha256 is None
+    assert not {'kill_law', 'k_condition', 'k_reps_sha256', 'column_drop', 'dropped_store', 'column_drop_scope'} & set(default.comparison_receipt)      # the receipt of the earlier runs
+    for bad in ({'kill_law': 'bogus'}, {'k_condition': 'bogus'}, {'column_drop': 'bogus'}):
+        fresh = world()
+        with pytest.raises(ValueError):
+            data.fit_b1_subset(fresh.s1, fresh.s2, fresh.labels, member, check=lambda: None, **bad)
+        assert not fresh.labels.reads and not fresh.s2.reads
+
+
+def test_b1_subset_uses_the_list_of_the_epts_when_a_column_drop_is_asked_for(monkeypatch):
+    w, member = flagged_world()
+    seen = spy_fit_head(monkeypatch)
+    views = np.flatnonzero(np.isin(w.s2.array('views/match'), member.fit))
+    fit_views = np.flatnonzero(features.split_views(w.s1, w.s2, 'FIT'))
+    store = features.dropped_columns(w.s2, fit_views, pooled=True)
+    both = data.fit_b1_subset(w.s1, w.s2, w.labels, member, check=lambda: None, column_drop='store_and_subset')
+    assert both.dropped == features.dropped_columns(w.s2, views, pooled=True) and set(store) <= set(both.dropped) and 'dragon_up' in both.dropped
+    assert 'old_champion_kill_b' in features.dropped_columns(w.s2, views) and 'old_champion_kill_b' not in both.dropped        # the pair is judged together
+    only = data.fit_b1_subset(w.s1, w.s2, w.labels, member, check=lambda: None, column_drop='store')
+    assert only.dropped == store and 'dragon_up' not in only.dropped
+    assert only.comparison_receipt['column_drop'] == 'store' and only.comparison_receipt['dropped'] == list(store)
+    neural_scope = data.build_neural_data(w, member, scales=scales(), check=lambda: None, column_drop='store', stats_population='selected_fit')[2]['column_drop_scope']
+    assert only.comparison_receipt['column_drop_scope'] == neural_scope and 'column_drop_scope' in both.comparison_receipt         # one text for both receipts (review m3)
+    assert both.comparison_receipt['column_drop'] == 'store_and_subset' and both.comparison_receipt['dropped_store'] == list(store)
+    assert all(tuple(f.dropped) == tuple(s.dropped) == both.dropped for f, s, _, _ in seen[:13])
+    neural_stats = data.fit_stats_subset(w.s1, w.s2, member, lambda: None, column_drop='store_and_subset', stats_population='selected_fit')
+    assert neural_stats.dropped == both.dropped and neural_stats.dropped_store == store           # one list for the EPT and for B1 (decision D7)
+    plain = data.fit_b1_subset(w.s1, w.s2, w.labels, member, check=lambda: None)
+    assert plain.dropped == features.dropped_columns(w.s2, views)                                  # the default is the list of the earlier runs, judged one column at a time
+
+
+def test_the_neural_data_take_the_swap_mode_for_the_fit_batches_only_and_the_default_is_the_earlier_data(tmp_path):
+    """S4b preparation M7 review follow-up (D10 P1): ``swap_mode`` goes to the FIT batches only (evaluation batches never swap at random), the default gives the batches and the
+    receipt of the earlier runs bit for bit, a mode that is not the default is named in the receipt, and 'random_view' batches pass the check of ``train`` against the settings."""
+    import inspect
+    import torch
+    from c_ept.ept import encoder, train
+    w = world()
+    member = data.select_membership(w.s1)
+    assert inspect.signature(data.build_neural_data).parameters['swap_mode'].default == 'average'
+    plain, stats, receipt = data.build_neural_data(w, member, scales=scales(), check=lambda: None)
+    explicit, _, same = data.build_neural_data(w, member, scales=scales(), check=lambda: None, stats=stats, swap_mode='average')
+    _, _, receipt = data.build_neural_data(w, member, scales=scales(), check=lambda: None, stats=stats)       # the same call with the statistics supplied (the receipt says whether they were fitted here)
+    assert same == receipt and 'swap_mode' not in receipt and plain.fit.swap_mode == explicit.fit.swap_mode == 'average'
+    for a, b in zip(plain.fit.epoch(0), explicit.fit.epoch(0)):
+        assert list(a) == list(b) and all(torch.equal(a[k], b[k]) for k in a) and 'swap_view' not in a
+    cfg = train.TrainConfig(encoder.EncoderConfig(d=16, layers=1, heads=2), 1e-3, 0.0, 1, swap_mode='random_view')
+    swapped, _, named = data.build_neural_data(w, member, scales=scales(), check=lambda: None, stats=stats, swap_mode='random_view')
+    assert swapped.fit.swap_mode == 'random_view' and swapped.stop.swap_mode == 'average' and named['swap_mode'] == 'random_view'
+    assert {k: v for k, v in named.items() if k != 'swap_mode'} == receipt
+    batches = list(swapped.fit.epoch(0))
+    assert batches and all(b['swap_view'].dtype == torch.bool and len(b['swap_view']) == len(b['view']) for b in batches)
+    assert all('swap_view' not in b for b in swapped.stop.epoch(0))
+    from pathlib import Path
+    run = lambda d, c, folder: train.train(c, d, Path(folder), device='cpu', epochs=1, check=lambda: None, seed=0)       # noqa: E731
+    with pytest.raises(ValueError, match='swap_mode'):                                          # the batches of the default are not made for the settings
+        run(plain, cfg, tmp_path / 'refused')
+    with pytest.raises(ValueError, match=r'data\.static'):                                      # the swapped batches pass the swap check; this toy world's static grid is the next (unrelated) refusal
+        run(swapped, cfg, tmp_path / 'run')
+    with pytest.raises(ValueError, match='swap_mode'):
+        data.build_neural_data(w, member, scales=scales(), check=lambda: None, stats=stats, swap_mode='Random')

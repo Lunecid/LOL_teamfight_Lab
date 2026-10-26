@@ -7,7 +7,14 @@ here once. What differs between the models is the *feature builder* (B0: ``featu
 without the FIT drop list) and the *design* that is made of the rows (B0: standardised numeric columns and one-hot blocks; B1: the float32
 columns and the categories as LightGBM categorical columns). ``HeadRows`` takes the builder; the design is made by the model.
 
-``HeadRows(s1, s2, labels, role, build)``: the rows of the matches of one role (FIT, STOP or DEV) of an (S1, S2, labels) triple.
+``HeadRows(s1, s2, labels, role, build)``: the rows of the matches of one role (FIT, STOP or DEV) of an (S1, S2, labels) triple. The keyword ``kill_law``
+(S4b preparation M1, decision D5; ``'poisson'`` by default, which gives the rows of every earlier run) names the kill law of the M3Kills head: under ``'shifted'``
+the M3Kills rows carry the first-kill team d (``HeadParts.first_team``; the open rows also as the category ``codes['d']``, the masked rows have it in the mark ``m``)
+and are refused when a unit's first-kill team has no kill (``units/K`` and ``units/mark`` must agree, equation (HR-8)). The keyword ``k_condition`` (S4b preparation M3,
+decision D21 B16; ``'raw'`` by default, which gives the rows of every earlier run) names what the gold of the K block is: ``'raw'`` the true continuous kill gold of the
+labels, ``'binned'`` the representative of the observed gold bin (``rep[labels/gold_bin]`` for a team with a kill, 0 for a team without one), exactly the K that the
+composer feeds to the K-conditioned heads; the representatives are the in-scope FIT bin means of the label store (``value.fit_gold_bin_means``, ``HeadRows.k_reps``),
+equation (HR-9).
 ``build(s2, views)`` returns the (n, d) float32 feature rows of the S2 views ``views`` (an int64 array of view numbers).
 ``parts(head, kind)`` gives the ``HeadParts`` of one head: the feature rows, the categories, the target, the exposure and the K and O
 blocks. ``view_numbers(head, kind)`` gives, row by row in the order of ``parts``, the S2 view that each row reads (a model that reads the
@@ -30,7 +37,8 @@ The inputs of a head (what a design may be made of; a model takes the ones its h
     codes  the categories: q the occurrence bin, m the mark, z the zone (-1 = the first kill has no position), s the size class, layer
            the kill layer of the team of a gold entry (1 .. 6, six or more); a head has the ones it conditions on
     K      kills blue, kills red, kill gold blue and red in thousands (float64): the open M3 object and M4 heads, and the masked M3 object
-           head when ``masked_obj_k`` is set (B1 conditions it on K; B0 does not, decision P6)
+           head when ``masked_obj_k`` is set (B1 conditions it on K; B0 does not, decision P6). The gold is the true gold of the labels
+           (``k_condition='raw'``) or the representative of the observed gold bin (``'binned'``, equation (HR-9))
     O      the 18 objective counts of the engagement: the open M4 head
     m4     the masked M4 head only: the matrix that ``features.m4_masked_inputs`` builds from the t0 rows and the TRUE q, m, z, K and O of
            the onsets (the one way to build what the masked M4 head sees, leakage test (a)); ``feat`` is its first d columns and the
@@ -66,18 +74,25 @@ t₀ 행의 특징과 사슬의 앞 단계 값(발생의 범주 q, m, z, s, 골�
     (HR-3)  M3Gold의 행 i = 킬이 k ≥ 1인 팀 하나(파랑 먼저):   ξ_i = min(k, 6),   c_i = b_i = 그 팀의 골드 구간
     (HR-4)  K 블록 = (k_blue, k_red, g_blue / 1000, g_red / 1000)                           골드는 천 골드 단위
     (HR-5)  v_I = Σ_{i∈I} ℓ_i                                                              평가 행 I의 점수; (NLL-4)와 (NLL-5)의 입력
+    (HR-8)  d_i = m_i // 25 (m_i ≤ 49),  d_i = −1 (m_i = 50, 51);   단언 k_{i,d_i} ≥ 1                  M3Kills 이동 법칙 행의 첫 킬 팀(``kill_law='shifted'``만)
+    (HR-9)  g̃_{i,t} = rep_{b_{i,t}} (k_{i,t} ≥ 1),   g̃_{i,t} = 0 (k_{i,t} = 0),   K 블록 = (k_blue, k_red, g̃_blue / 1000, g̃_red / 1000)       K 조건 'binned'의 K 블록 ((HR-4)의 g 대신)
 
 공통 가정.
     (가) 노출이 0인 칸은 (NLL-1)에 아무것도 더하지 않으므로 행으로 만들지 않고 그 수를 센다(계획 전역 제약의 확률 족, 판정 R22). 그 칸에 기록된
          개수는 자료 오류이다(검산 노트 03 C절).
     (나) 목표를 알 수 없는 행(구역이 관측되지 않은 첫 킬, z = −1)은 돌려주되 채점 평균에서 빼고 센다(판정 R17, R22).
     (다) 모든 행은 경기 번호와 평가 행 번호를 가져서, 평균과 복제가 경기를 하나의 독립 단위로 다룰 수 있다(nll 모듈 글 (나); 계획 P7, P9).
+    (라) K 조건 'binned'(S4b 준비 M3, 결정 D21 B16)는 K 블록의 골드를 합성기가 넣는 값으로 맞춘다. 합성기는 팀의 킬 골드를 구간 b로만 뽑아 rep_b로 읽고 킬이 없는 팀은 0이므로,
+         학습 행이 실제 연속 골드를 넣으면 K 조건 머리(오브젝트·전환)가 합성에서 한 번도 보지 않는 입력의 지지로 학습한다(검토 A3-F4). 대표값 rep_b는 FIT 전체의 범위 안
+         단위에서 한 번 내며 행의 역할이나 고른 경기에 따라 바뀌지 않는다(결정 D12: 타깃의 정의는 FIT 전체의 고정 자산). 킬 수 열, 모든 목표, 골드 머리의 구간 라벨은 그대로이다.
 """
 # Ref: docs/superpowers/plans/2026-10-21-c-ept-s3.md decisions P4 (the factorisation), P6 (what the masked heads are conditioned on), P9
 #      (one row per training row), P10 (the exposures), Tasks 6 and 7; controller rulings R17 (the zone label), R18 (this module), R19 (a
 #      column of y for each team in the kill heads) and R22 (left-out rows are counted).
 # Ref: docs/superpowers/specs/2026-10-20-c-ept-design.md sections 3.2–3.3 (the masked and the open heads) and 9 (stage S3: B0 and B1)
 #      and section 4 (frame-clock rows and the occurrence window).
+# Ref: harness/decisions.md D21 (2026-10-26, B16: the K-conditioned heads are trained on the representatives of the observed gold bin, from the in-scope FIT units) and D12
+#      (target definitions on the whole FIT), and the review finding A3-F4 (harness/reviews/EPT-T010-area-3.md), for ``k_condition``.
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -89,7 +104,7 @@ import numpy as np
 
 from c_ept import config as C
 from c_ept.preprocessing import features
-from c_ept.models import nll as nll_scores
+from c_ept.models import killlaw, nll as nll_scores
 
 # ---- the heads and their shapes --------------------------------------------------------------------------------------------------------
 KINDS = ('masked', 'open')
@@ -106,6 +121,15 @@ N_K = 4                          # kills blue, kills red, kill gold blue and red
 PREDICT_ALL_WIDTHS = {'rate': N_Q, 'mark_prob': N_M, 'zone_prob': N_ZONE, 'size_prob': N_SIZE, 'kill_rate': 2, 'gold_prob': 2 * N_GOLD,
                       'obj_rate': N_CELLS, 'conv_rate': N_CELLS}
 VALID_HEADS = frozenset([(name, 'masked') for name in HEAD_NAMES] + [(name, 'open') for name in OPEN_HEAD_NAMES])
+K_CONDITIONS = ('raw', 'binned')  # the gold of the K block: the true kill gold of the labels (every earlier run) or the representative of the observed gold bin (decision D21 B16)
+
+
+def check_k_condition(k_condition) -> str:
+    """``k_condition`` itself if it is one of ``K_CONDITIONS``; ValueError naming ``k_condition`` otherwise (a short string is shown, any other value by its type only)."""
+    if not isinstance(k_condition, str) or k_condition not in K_CONDITIONS:
+        shown = repr(k_condition[:40]) if isinstance(k_condition, str) else type(k_condition).__name__
+        raise ValueError(f'k_condition must be one of {K_CONDITIONS}, not {shown}')
+    return k_condition
 
 
 # ---- the training and scoring rows -------------------------------------------------------------------------------------------------------
@@ -116,10 +140,11 @@ class HeadData(NamedTuple):
     the design (that of the model: ``baselines_b0.Layout`` or ``baselines_b1.Layout``) and ``n_zero_exposure``, the number of rows or
     cells that were left out for want of exposure (cells beyond the game end, units without a conversion window). ``team`` (0 blue, 1 red,
     one entry for each row) is given for the gold head only, whose rows are the team entries with at least one kill, blue entries first;
-    M3Kills has one row per onset (or unit) and a column of ``y`` for each team.
+    M3Kills has one row per onset (or unit) and a column of ``y`` for each team. ``first_team`` (S4b preparation M1, decision D5) is given for the
+    M3Kills head of the shifted kill law only: the team d that took the first kill of each row (0 blue, 1 red, −1 an execution).
 
     설계 ``X``는 모형이 만든다. ``y``와 ``e``는 점수 (NLL-1)–(NLL-3)의 개수·범주와 노출이고(행의 정의는 (HR-1)–(HR-4)), ``match``와 ``row``는 평균 (NLL-4)와
-    복제 (NLL-5)가 쓰는 경기 번호와 평가 행 번호이다((HR-5))."""
+    복제 (NLL-5)가 쓰는 경기 번호와 평가 행 번호이다((HR-5)). ``first_team``은 이동 법칙의 첫 킬 팀 d((HR-8))이다."""
     X: np.ndarray
     y: np.ndarray
     e: np.ndarray | None
@@ -128,6 +153,7 @@ class HeadData(NamedTuple):
     layout: object
     n_zero_exposure: int = 0
     team: np.ndarray | None = None
+    first_team: np.ndarray | None = None
 
 
 class HeadParts(NamedTuple):
@@ -135,7 +161,9 @@ class HeadParts(NamedTuple):
     ``take``, ``codes``, ``K``, ``O`` and ``m4``. ``y``, ``e``, ``match``, ``row``, ``n_zero_exposure`` and ``team`` are those of
     ``HeadData``.
 
-    행의 정의 (HR-1)–(HR-4)의 개수 y_i·y_{ic}와 범주 머리의 목표 c_i는 ``y``에, 노출 e_i는 ``e``에, 조건 범주 q, m, z, s와 층 ξ_i는 ``codes``에, K 블록은 ``K``에 들어 있다."""
+    행의 정의 (HR-1)–(HR-4)의 개수 y_i·y_{ic}와 범주 머리의 목표 c_i는 ``y``에, 노출 e_i는 ``e``에, 조건 범주 q, m, z, s와 층 ξ_i는 ``codes``에, K 블록은 ``K``에 들어 있다.
+    ``first_team``(S4b 준비 M1, 결정 D5)은 이동 법칙을 켠 M3Kills 행의 첫 킬 팀 d((HR-8))이다. 열린 M3Kills 행은 같은 값을 ``codes['d']``(머리의 입력)로도 갖고,
+    가린 행은 표지 ``codes['m']``에서 d를 얻는다."""
     feat: np.ndarray
     take: np.ndarray | None
     codes: dict
@@ -148,10 +176,34 @@ class HeadParts(NamedTuple):
     K: np.ndarray | None = None
     O: np.ndarray | None = None
     m4: np.ndarray | None = None
+    first_team: np.ndarray | None = None
 
     def gather(self) -> np.ndarray:
         """(n, d) the feature row of every row of the head (a copy if ``take`` is given, else ``feat`` itself)."""
         return self.feat if self.take is None else self.feat[self.take]
+
+
+def _unselected_label_fill(dtype: np.dtype):
+    """The value that stands in for the label rows of the units of matches that a ``matches=`` selection leaves out (never a valid label).
+
+    A signed integer array gets -1, a floating array NaN, an unsigned integer array the largest value of its type. A boolean (or any
+    other kind of) array has no value that a label cannot take, so TypeError: the subset path refuses it rather than fill it with False.
+    The label arrays read here today are ``labels/kill_gold`` (float64) and ``labels/gold_bin`` (int8), so only the first two rules are
+    used.
+
+    표지값. 0은 유효한 골드 구간이고 유효한 킬 골드이므로 선택하지 않은 행에 0을 두면 행 선택의 실수가 그럴듯한 값으로 숨는다. 부호 있는 정수는 −1(골드 구간
+    −1은 "킬이 없는 팀"의 표지이기도 하지만, 킬이 있는 팀의 항목에서 −1을 읽으면 ``_gold_rows``가 거부한다), 실수는 NaN(``_kraw``의 유한성 검사가 거부한다),
+    부호 없는 정수는 그 자료형의 최댓값(구간 0–30이나 개수가 될 수 없는 값)이다. 참거짓 배열에는 라벨이 갖지 않는 값이 없어 표지를 둘 수 없으므로 거부한다.
+    """
+    kind = np.dtype(dtype).kind
+    if kind == 'i':
+        return -1
+    if kind == 'f':
+        return np.nan
+    if kind == 'u':
+        return np.iinfo(dtype).max
+    raise TypeError(f'a label array of dtype {np.dtype(dtype)} has no value that marks a row as not selected; '
+                    'the match-subset path takes signed integer, unsigned integer or floating label arrays')
 
 
 def _freeze(obj):
@@ -176,7 +228,11 @@ class HeadRows:
     행의 정의는 식 (HR-1)–(HR-4)이고 ``parts``가 그 정의대로 행을 낸다. 역할은 FIT, STOP, DEV만 받으며 홀드아웃 역할(TEST, EXTERNAL)과 S3가 쓰지 않는
     역할은 첫 배열을 읽기 전에 거부한다(계획 전역 제약의 분할)."""
 
-    def __init__(self, s1, s2, labels, role, build: Callable, *, matches=None):
+    def __init__(self, s1, s2, labels, role, build: Callable, *, matches=None, kill_law: str = 'poisson', k_condition: str = 'raw'):
+        self.kill_law = killlaw.check_law(kill_law)             # before any array is read; 'poisson' gives the rows of every earlier run
+        self.k_condition = check_k_condition(k_condition)       # likewise: 'raw' gives the rows of every earlier run
+        if self.k_condition == 'binned' and labels is None:
+            raise ValueError("k_condition 'binned' reads labels/gold_bin and the representatives of the gold bins: it needs the label store")
         self.s1, self.s2, self.labels, self.role = s1, s2, labels, role
         self.build = build
         self._frame_in = features.role_mask(s1, 'frame_rows', role)       # refuses a bad role before the first array is read
@@ -216,8 +272,12 @@ class HeadRows:
                 if source.shape != (n_units, 2):
                     raise ValueError(f'{name} must have shape ({n_units}, 2)')
                 selected = np.flatnonzero(self._unit_in)
-                # Preserve global unit IDs while reading selected label values only.
-                a = np.zeros(source.shape, dtype=source.dtype)
+                # Preserve global unit IDs while reading selected label values only. 선택하지 않은 경기의 단위는 라벨을 읽지 않으므로 그 행을
+                # 유효한 값(0은 유효한 골드 구간이자 유효한 킬 골드이다)이 아니라 표지값으로 채운다: 정수 −1, 실수 NaN. 행 선택에 실수가 있어
+                # 그 행을 읽으면 그럴듯한 0으로 학습하거나 채점하지 않고, 킬 골드는 유한성 검사(_kraw)에서, 골드 구간은 −1 거부
+                # (_gold_rows)에서 바로 거부된다(EPT-T010 A1-F7). 선택한 행의 값은 전체 경로와 같다.
+                # K 조건 'binned'의 대표값(``_k_gold_reps``)은 이 경로가 아니라 라벨 저장소의 전체 FIT 배열을 직접 읽는다(결정 D12: 타깃의 정의는 FIT 전체의 고정 자산이므로 고른 경기가 달라도 같은 31개 수).
+                a = np.full(source.shape, _unselected_label_fill(np.dtype(source.dtype)), dtype=source.dtype)
                 a[selected] = np.asarray(source[selected])
                 self._cache[key] = a
             a = self._cache[key]
@@ -311,10 +371,104 @@ class HeadRows:
     def _kcounts(self, unit) -> np.ndarray:
         return self._s1('units/K')[unit][:, :2].astype(np.int64)
 
-    def _kraw(self, unit) -> np.ndarray:
-        """(n, 4) float64: kills blue, kills red, kill gold blue and red (the K of ``features.m4_masked_inputs``).
+    def _first_teams(self, head: str, mark, unit, what: str):
+        """The first team d of every row of the M3Kills head under the shifted kill law, after the check that it has a kill; None for every other head and for the plain law.
 
-        (HR-4)의 K 블록을 원시 골드로 낸다."""
+        수식
+        ----
+        (HR-8)  d_i = m_i // 25  (m_i ≤ 49),   d_i = −1  (m_i = 50, 51) ;   단언: k_{i,d_i} ≥ 1  (d_i ≥ 0)
+
+          기호  | 뜻                                                | 단위 | 범위       | 코드 변수
+          m_i   | 행 i의 단위가 첫 킬에서 얻은 표지                   | —    | 0 … 51    | mark
+          d_i   | 첫 킬 팀 (0 파랑, 1 빨강, −1 처형)                  | —    | −1, 0, 1  | 반환값
+          k_{i,t} | 행 i의 단위에서 팀 t가 낸 킬 수 (``units/K``)      | 개   | 0, 1, …   | _kcounts
+
+        해석: 이동 법칙은 첫 킬 팀의 킬 수를 1 + N_d로 두므로 그 팀의 킬 수가 0인 단위는 확률 0이다. 표지의 d는 킬러 칸(참가자 1–5가 팀 0)에서, ``units/K``는 팀 배열
+        (``side[killer − 1]``)에서 나오므로 두 출처가 어긋나면 그 단위가 −1 칸을 만든다(검토 초점 2). 어긋난 단위의 수만 말하고 경기 번호는 말하지 않는다.
+        """
+        if head != 'M3Kills' or self.kill_law != 'shifted':
+            return None
+        first = killlaw.first_team(mark)
+        champion = np.flatnonzero(first >= 0)
+        bad = int((self._kcounts(unit)[champion, first[champion]] < 1).sum())
+        if bad:
+            raise ValueError(f'{bad} {what}(s) of the role have a first kill by a team that scored no kill (the mark and units/K disagree): the shifted kill law gives them '
+                             'the probability 0')
+        return first
+
+    def k_reps(self):
+        """(31,) float64, read only: the representatives rep_b of the gold bins that the K block of the rows is made of under ``k_condition='binned'`` (the in-scope FIT bin means of
+        the label store, the whole FIT whatever the role of the rows and the matches they are restricted to); None under ``'raw'``, which uses none. These are the 31 numbers
+        that the composer must hold (``Composer(..., gold_reps=rows.k_reps())``, ``run_inference(..., gold_reps='in_scope_fit')``) so that the heads see one support in
+        training and in composition.
+
+        (HR-9)의 rep_b이다. 값은 ``value.fit_gold_bin_means(population='in_scope')`` 한 곳에서 오고 행마다 다시 계산하지 않는다. 범위 안 FIT 단위가 하나도 없거나 그 단위에 킬이 하나도
+        없으면 그 함수가 거부한다(31개가 모두 가운데 값이 되는 저장소로 학습하지 않는다)."""
+        return self._k_reps() if self.k_condition == 'binned' else None
+
+    def k_reps_fallback(self):
+        """The bins of the representatives that had no in-scope FIT entry and hold the middle of their range (100 b + 50; 3,000 for the open bin), as an ascending tuple of bin
+        numbers, like the ``gold_bin_fallback`` that the S3 labels named; None under ``'raw'``. A ledger that records the representatives (``k_reps_sha256``) records these as well.
+
+        (VAL-7)의 fallback이다(판정 R12: 항목이 없는 구간은 가운데를 쓰고 그 번호를 알린다)."""
+        return self._k_gold_reps().fallback if self.k_condition == 'binned' else None
+
+    def k_reps_sha256(self):
+        """The sha256 (hex) of the 31 representatives as float64 little-endian bytes in C order (``value.gold_reps_sha256``); None under ``'raw'``. The identity of the 31 numbers that
+        the K block of these rows was made of: the training identity, the B1 set and the evaluation record it.
+
+        (HR-9)의 rep_b 31개의 신원이다."""
+        if self.k_condition != 'binned':
+            return None
+        from c_ept.valuation import value                      # not at module level, as in ``_k_gold_reps``
+        return value.gold_reps_sha256(self._k_reps())
+
+    def _k_gold_reps(self):
+        def make():
+            # imported here, not at module level: this module imports no label code (a test pins it), and the representatives are read through this one function
+            from c_ept.valuation import value
+            return value.fit_gold_bin_means(self.s1, self.labels, population='in_scope')
+        return self._once('k_gold_reps', make)               # a GoldReps (means, fallback); ``_once`` makes the means read-only
+
+    def _k_reps(self) -> np.ndarray:
+        return self._k_gold_reps().means
+
+    def _kbinned(self, unit) -> np.ndarray:
+        """(n, 4) float64: kills blue, kills red and the binned gold of the two teams, g̃ = rep[gold bin] of a team with a kill and 0 for a team without one (the K of the composer).
+
+        수식
+        ----
+        (HR-9)  g̃_{i,t} = rep_{b_{i,t}}  (k_{i,t} ≥ 1),   g̃_{i,t} = 0  (k_{i,t} = 0) ;   단언: k_{i,t} ≥ 1이면 0 ≤ b_{i,t} ≤ 30
+
+          기호      | 뜻                                                      | 단위 | 범위       | 코드 변수
+          k_{i,t}   | 단위 i에서 팀 t가 낸 킬 수 (``units/K``의 앞 두 열)       | 개   | 0, 1, …    | counts
+          b_{i,t}   | 팀 t의 킬 골드 구간 (``labels/gold_bin``, 킬이 없으면 −1)  | —    | −1, 0 … 30 | bins
+          rep_b     | 구간 b의 대표값 (범위 안 FIT 단위의 구간 평균)            | 골드 | ≥ 0        | self._k_reps()
+          g̃_{i,t}   | 팀 t의 이산화한 킬 골드                                 | 골드 | ≥ 0        | 반환값의 뒤 두 열
+
+        해석: 합성기는 킬이 하나 이상인 팀의 골드를 뽑은 구간의 대표값으로, 킬이 없는 팀은 0으로 K 조건 머리에 넣는다(``Composer._draw_row``의 ``np.where(k >= 1, reps[drawn], 0)``).
+        이 함수는 학습 행의 K를 같은 규칙으로 만든다. 판정 기준은 골드 머리의 행(``_gold_rows``)과 같은 킬 수 ``units/K``이다. 킬이 하나 이상인 팀에 구간이 없으면 0이라는 그럴듯한
+        값으로 학습하지 않고 거부한다(고르지 않은 경기의 단위도 구간 −1이므로 여기서 걸린다). 킬이 없는 팀에 구간이 있는 라벨은 합성기의 규칙대로 0이다. 킬이 있으나 골드가 0인
+        팀은 구간 0의 대표값을 갖는다.
+        """
+        counts = self._kcounts(unit)
+        bins = self._labels('labels/gold_bin')[unit].astype(np.int64)
+        has = counts >= 1
+        reps = self._k_reps()
+        if (has & (bins < 0)).any():
+            raise ValueError(f'{int((has & (bins < 0)).sum())} team(s) with a kill have no gold bin in labels/gold_bin for the role: the binned K has no representative for them')
+        if (has & (bins >= len(reps))).any():
+            raise ValueError(f'{int((has & (bins >= len(reps))).sum())} team(s) with a kill have a gold bin above {len(reps) - 1} in labels/gold_bin')
+        gold = np.where(has, reps[np.clip(bins, 0, len(reps) - 1)], 0.0)
+        return np.column_stack([counts.astype(np.float64), gold])
+
+    def _kraw(self, unit) -> np.ndarray:
+        """(n, 4) float64: kills blue, kills red, kill gold blue and red (the K of ``features.m4_masked_inputs``). With ``k_condition='binned'`` the gold is the representative of the
+        gold bin (``_kbinned``, equation (HR-9)); with ``'raw'`` (the default) it is the true kill gold of the labels, as in every earlier run.
+
+        (HR-4)의 K 블록을 원시 골드로 낸다. K 조건 'binned'이면 (HR-9)의 대표값 골드로 낸다."""
+        if self.k_condition == 'binned':
+            return self._kbinned(unit)
         gold = self._labels('labels/kill_gold')[unit]
         if not np.isfinite(gold).all():
             raise ValueError(f'labels/kill_gold is not finite for {int((~np.isfinite(gold)).any(axis=1).sum())} unit(s) of the role')
@@ -494,7 +648,8 @@ class HeadRows:
             # M3Obj: the 18 objective counts; M3Kills: the kills of the two teams (a cell for each)
             y = self._s1('units/O')[on.unit].astype(np.int64) if head == 'M3Obj' else self._kcounts(on.unit)
             K = self._kblock(on.unit) if head == 'M3Obj' and masked_obj_k else None
-            return HeadParts(feat, on.take, {k: codes[k] for k in names[head]}, y, np.ones(len(on.idx)), on.match, on.idx, K=K)
+            return HeadParts(feat, on.take, {k: codes[k] for k in names[head]}, y, np.ones(len(on.idx)), on.match, on.idx, K=K,
+                             first_team=self._first_teams(head, on.mark, on.unit, 'onset'))
         if head == 'M3Gold':
             return self._gold_rows(feat, on.take, on.unit, on.idx, on.match, codes)
         # 식 (HR-2)의 M4Conv 행: 입력은 [t₀ 행 특징 | q, m, z | K | O]이고 목표는 전환 수이며 노출은 전환 창의 길이이다. 범주 q, m, z는 만든 입력의 열에서 되읽어
@@ -563,7 +718,10 @@ class HeadRows:
             return HeadParts(feat, None, {'s': u.size}, self._s1('units/O')[u.unit].astype(np.int64), np.ones(len(u.unit)), u.match,
                              u.unit, K=self._kblock(u.unit))
         if head == 'M3Kills':
-            return HeadParts(feat, None, {'s': u.size}, self._kcounts(u.unit), np.ones(len(u.unit)), u.match, u.unit)
+            codes, first = {'s': u.size}, self._first_teams(head, self._s1('units/mark')[u.unit].astype(np.int64), u.unit, 'unit')
+            if first is not None:
+                codes['d'] = first                                          # the open head reads d from its input (the masked head reads the mark m)
+            return HeadParts(feat, None, codes, self._kcounts(u.unit), np.ones(len(u.unit)), u.match, u.unit, first_team=first)
         return self._gold_rows(feat, None, u.unit, u.unit, u.match, {'s': u.size})
 
 

@@ -487,6 +487,40 @@ def test_status_corrupt_process_binding_refused(tmp_path,key,value):
     assert snapshot(tmp_path)==before
 
 
+def test_status_reads_the_additive_exception_type_of_a_failed_process_record(tmp_path):
+    run=tmp_path/'20261023_c_ept_s4a_1'
+    run.mkdir()
+    manifest,owner=write_status_fixture(run)
+    owner.update(state='failed',outcome='failed',exit_code=2,exception_type='ValueError')
+    (run/'PROCESS.json').write_text(json.dumps(owner))
+    before=snapshot(tmp_path)
+    result=op.status(run)
+    assert result['state']=='recorded_failure' and result['recorded_exit_code']==2
+    assert result['recorded_exception_type']=='ValueError'
+    assert snapshot(tmp_path)==before
+
+
+@pytest.mark.parametrize('update',[
+    dict(exception_type='ValueError'),                                                     # a running record has no exception
+    dict(state='finished',outcome='completed',exit_code=0,exception_type='ValueError'),   # nor does a finished one
+    dict(state='failed',outcome='failed',exit_code=2,exception_type=None),
+    dict(state='failed',outcome='failed',exit_code=2,exception_type=''),
+    dict(state='failed',outcome='failed',exit_code=2,exception_type='not a class name'),
+    dict(state='failed',outcome='failed',exit_code=2,exception_type='pkg.ValueError'),
+    dict(state='failed',outcome='failed',exit_code=2,exception_type='E'*129),            # longer than EXCEPTION_TYPE_PATTERN allows
+    dict(state='failed',outcome='failed',exit_code=2,exception_type='Ünicode_오류'),    # not ASCII
+    dict(state='failed',outcome='failed',exit_code=2,exception_type=7)])
+def test_status_refuses_a_misplaced_or_malformed_exception_type(tmp_path,update):
+    run=tmp_path/'20261023_c_ept_s4a_1'
+    run.mkdir()
+    manifest,owner=write_status_fixture(run)
+    owner.update(update)
+    (run/'PROCESS.json').write_text(json.dumps(owner))
+    before=snapshot(tmp_path)
+    with pytest.raises(op.OperatorError):op.status(run)
+    assert snapshot(tmp_path)==before
+
+
 @pytest.mark.parametrize('key,value',[
     ('schema','wrong'),('stage','s3'),('operator_api_version',True),
     ('run_identity_sha256','0'*64),('identity_sha256','alias_only'),
@@ -543,8 +577,17 @@ def fresh_operator_repo(tmp_path):
     pkg=repo/'c_ept'
     pkg.mkdir(parents=True)
     (pkg/'__init__.py').write_text('')
+    # An equivalent layout to the packaged tree: the implementations live in c_ept/workflows, and the legacy
+    # names c_ept.s4a_operator / c_ept.s4a_runtime (the harness import and `python -m c_ept.s4a_operator`)
+    # are the real compatibility shims from c_ept/_compat. The packaged tree reaches the shims through the
+    # __path__ fallback in c_ept/__init__.py; this fixture copies them flat into c_ept/ and leaves
+    # c_ept/workflows without an __init__.py (a namespace package), which resolves the same modules. An
+    # older copy that put the implementations flat in c_ept/ failed with ModuleNotFoundError: No module
+    # named 'c_ept.workflows' once the module layout moved.
+    (pkg/'workflows').mkdir()
     for name in ('s4a_operator.py','s4a_runtime.py'):
-        shutil.copyfile(REPO / ('c_ept/workflows/s4a_operator.py' if name=='s4a_operator.py' else 'c_ept/workflows/s4a_runtime.py'),pkg/name)
+        shutil.copyfile(REPO/'c_ept/workflows'/name,pkg/'workflows'/name)
+        shutil.copyfile(REPO/'c_ept/_compat'/name,pkg/name)
     (repo/'environment').mkdir()
     shutil.copyfile(REPO/'environment/s4a-runtime.json',repo/'environment/s4a-runtime.json')
     (pkg/'runlog.py').write_text(

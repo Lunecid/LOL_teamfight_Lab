@@ -2531,3 +2531,73 @@ def test_a_fit_that_hits_the_iteration_limit_warns_and_is_marked_not_converged(m
         logistic = baselines_b0.M2Zone().fit(X, zone)
     assert logistic.converged_.tolist() == [False]
     assert all(s['converged'] == [False] for s in (poisson.summary(), logistic.summary()))
+
+
+# =====================================================================================================================================
+# S4b preparation M11 (decision D16): B0 on the rows of a match subset (matches=), the per-entry NLL and the rows of the set
+# =====================================================================================================================================
+M11_SUBSET = [1, 3]                  # two of the four FIT matches of the heads world (as in tests/test_head_rows)
+
+
+def test_b0_headrows_accepts_matches_subset(heads_world):
+    """B0 is scored on exactly the matches= rows of the other models (``head_rows.HeadRows(..., matches=)``, B1 has it already): the design, the targets, the exposure, the match and the row of every
+    entry of a subset are the entries of the full rows that belong to the chosen matches, head by head; the subset is proper and nonempty for every head."""
+    args = (heads_world.s1, heads_world.s2, heads_world.labels, heads_world.fit_means, 'FIT')
+    full, sub = baselines_b0.HeadRows(*args), baselines_b0.HeadRows(*args, matches=M11_SUBSET)
+    assert sub.matches is not None and list(sub.matches) == M11_SUBSET
+    for head, kind in baselines_b0.LAYOUTS:
+        f, s = full.data(head, kind), sub.data(head, kind)
+        mask = np.isin(f.match, M11_SUBSET)
+        assert mask.any() and not mask.all() and len(s.match) == mask.sum(), (head, kind)
+        for name in ('X', 'y', 'e', 'match', 'row', 'team', 'first_team'):
+            a, b = getattr(f, name), getattr(s, name)
+            if a is None or b is None:
+                assert a is None and b is None, (head, kind, name)
+            else:
+                assert np.array_equal(np.asarray(a)[mask], np.asarray(b), equal_nan=True), (head, kind, name)
+
+
+def test_b0_nll_on_a_match_subset_is_the_full_nll_of_those_matches(heads_world, fitted):
+    """``B0Heads.nll(..., matches=)`` scores the rows of the chosen matches only, with the numbers of the full call."""
+    for kind in ('masked', 'open'):
+        full = fitted.nll(heads_world.s1, heads_world.s2, heads_world.labels, 'FIT', kind)
+        sub = fitted.nll(heads_world.s1, heads_world.s2, heads_world.labels, 'FIT', kind, matches=M11_SUBSET)
+        assert tuple(full) == tuple(sub)
+        for name in full:
+            mask = np.isin(full[name].match, M11_SUBSET)
+            assert mask.any() and not mask.all(), (kind, name)
+            for field in ('match', 'row'):
+                assert np.array_equal(getattr(full[name], field)[mask], getattr(sub[name], field)), (kind, name, field)
+            # the same heads on fewer rows: the linear predictor is a matrix product whose last bits can depend on the number of rows, so the scores agree to the rounding of float64, not bit for bit
+            np.testing.assert_allclose(sub[name].nll, full[name].nll[mask], rtol=1e-12, atol=1e-12, err_msg=f'{kind} {name}')
+
+
+def test_the_entry_scores_of_b0_cover_every_design_entry_and_equal_nll_on_the_scored_ones(heads_world, fitted):
+    """``entry_nll(head, kind, d)``: one score for each design entry of ``d`` (a zone entry without a zone and a gold entry without a bin score 0, as the head says); the scores are those of ``nll``
+    (M2Zone: nll leaves the entries without a zone out, they are the zeros here). ``head_rows`` builds the rows of the set with the condition and the means of the set."""
+    rows = fitted.head_rows(heads_world.s1, heads_world.s2, heads_world.labels, 'DEV')
+    assert isinstance(rows, baselines_b0.HeadRows) and rows.k_condition == fitted.k_condition and rows.kill_law == fitted.kill_law
+    assert np.array_equal(rows.means, fitted.fit_means)
+    for kind in ('masked', 'open'):
+        scores = fitted.nll(heads_world.s1, heads_world.s2, heads_world.labels, 'DEV', kind)
+        for name in scores:
+            d = rows.data(name, kind)
+            entry = fitted.entry_nll(name, kind, d)
+            assert entry.shape == (len(d.y),) and np.isfinite(entry).all(), (kind, name)
+            if name == 'M2Zone':
+                scored = d.y >= 0
+                assert (~scored).any() and (entry[~scored] == 0).all()
+                np.testing.assert_allclose(entry[scored], scores[name].nll, rtol=1e-12, atol=0, err_msg='M2Zone')       # ``nll`` scores the scored entries alone: another number of rows for the product
+            else:
+                assert np.array_equal(entry, scores[name].nll), (kind, name)
+
+
+def test_the_saved_identity_of_a_b0_set_is_the_sha256_of_the_files_that_save_writes(fitted, tmp_path):
+    """``saved_sha256()`` (S4b preparation M11 review, m4): the sha256 of the array file and of the JSON that ``save`` writes, computed without writing anything (the run provenance records it)."""
+    import hashlib
+    ident = fitted.saved_sha256()
+    assert set(ident) == {'npz_sha256', 'json_sha256'}
+    out = fitted.save(tmp_path / 'saved')                         # nothing was written before: save does not refuse
+    assert ident['npz_sha256'] == hashlib.sha256((out / baselines_b0.NPZ_NAME).read_bytes()).hexdigest()
+    assert ident['json_sha256'] == hashlib.sha256((out / baselines_b0.JSON_NAME).read_bytes()).hexdigest()
+    assert fitted.saved_sha256() == ident and len(ident['npz_sha256']) == 64

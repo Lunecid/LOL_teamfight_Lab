@@ -580,8 +580,9 @@ def test_the_match_lists_come_from_the_arrays_of_the_store_and_of_the_golden_loc
     write_store(tmp_path, rows)
     write_store(tmp_path / 'golden', rows[:2])
     (tmp_path / 's1' / 'STORE.json').write_text('{}', encoding='utf-8')
-    assert common.s1_matches(tmp_path) == rows
-    assert common.s1_matches(tmp_path / 's1') == rows                      # the store folder names the run as well
+    assert common.s1_matches(tmp_path, roles='all') == rows                # m2 of the M15 review: every role only by the named argument
+    assert common.s1_matches(tmp_path) == [r for r in rows if r[2] != 'CAL']
+    assert common.s1_matches(tmp_path / 's1', roles='all') == rows         # the store folder names the run as well
     assert common.golden_matches(tmp_path) == rows[:2]
     other = tmp_path / 'elsewhere'
     write_store(other, rows[2:3])
@@ -590,12 +591,25 @@ def test_the_match_lists_come_from_the_arrays_of_the_store_and_of_the_golden_loc
         common.s1_matches(tmp_path / 'nothing_here')
 
 
-def test_the_sample_takes_the_first_fit_and_the_first_of_every_other_role_per_patch(tmp_path):
+def test_a_golden_lock_that_lists_a_match_outside_the_qa_roles_is_refused(tmp_path):
+    """I2 of the M15 review: ``measure_levels`` reads the matches of the lock, so a lock with a CAL (or AUDIT, TEST, UNUSED) row is a
+    ValueError that names the role and never a key; a lock of QA roles is returned as before."""
+    write_store(tmp_path, [('SYN_a', '15.18', 'FIT')])
+    write_store(tmp_path / 'golden', [('SYN_a', '15.18', 'FIT'), ('SYN_secret', '15.18', 'CAL')])
+    with pytest.raises(ValueError, match='QA_ROLES') as err:
+        common.golden_matches(tmp_path)
+    assert 'CAL' in str(err.value) and 'SYN_' not in str(err.value)
+    write_store(tmp_path / 'ok', [('SYN_a', '15.18', 'FIT'), ('SYN_b', '15.19', 'STOP'), ('SYN_c', '15.19', 'DEV')])
+    assert [r for _, _, r in common.golden_matches(tmp_path, tmp_path / 'ok')] == ['FIT', 'STOP', 'DEV']
+
+
+def test_the_sample_takes_the_first_fit_and_the_first_of_every_other_qa_role_per_patch(tmp_path):
+    """B21 (S4b preparation M15): "every other role" is every other QA role (STOP, DEV); the CAL matches of the store are not sampled."""
     rows = [(f'SYN_{p}_{m}_{i}', p, m) for p in ('15.18', '15.19') for m in ('FIT', 'DEV', 'CAL') for i in range(4)]
     write_store(tmp_path, rows)
     got = common.sample_matches(tmp_path, fit=3, other=1)
-    want = [r for r in rows if (r[2] == 'FIT' and r[0].endswith(('_0', '_1', '_2'))) or (r[2] != 'FIT' and r[0].endswith('_0'))]
-    assert sorted(got) == sorted(want) and len(got) == 2 * (3 + 1 + 1)
+    want = [r for r in rows if (r[2] == 'FIT' and r[0].endswith(('_0', '_1', '_2'))) or (r[2] == 'DEV' and r[0].endswith('_0'))]
+    assert sorted(got) == sorted(want) and len(got) == 2 * (3 + 1) and not any(r[2] == 'CAL' for r in got)
     assert [r[1] for r in got] == sorted(r[1] for r in got)                              # in the order of the patches
 
 
@@ -699,3 +713,30 @@ def test_the_other_scripts_run_on_a_few_matches_of_the_s1_store(script, extra, g
     assert got['script'] == script.SCRIPT and got['counts']['matches'] == 3 and got['counts']['mismatch_cells'] == 0
     assert got.get('errors', {}) == {} and got['run'] == common.run_folder(run).name
     assert not shows_a_key(printed, golden_records) and not shows_a_key(out.read_text(encoding='utf-8'), golden_records)
+
+
+# ---- the trait signature of a champion in a patch (S4b preparation M13, decision D18) ---------------------------------------------------------
+def test_the_trait_signature_is_the_static_base_and_growth_of_the_data_dragon_table_and_holds_no_level():
+    """``trait_signature(patch, champ)`` is the part of the trait vector that identifies a champion in a patch and does not depend on the level: the 12 static columns, the 6 base stats and the
+    5 growth stats of the pinned Data Dragon table (Annie in 15.18: health 560 + 96, armor 23 + 4, magic resist 30 + 1.3, attack damage 50 + 2.65, attack speed 0.61 + 1.36 %, move speed 335, range
+    625, tags Mage and Support, resource Mana). The values are the ones of the table, not a rebuilt vector, and the function takes no level and no match."""
+    import inspect
+    static, base, growth = traits.trait_signature('15.18', ANNIE)
+    assert tuple(inspect.signature(traits.trait_signature).parameters) == ('patch', 'champ')
+    assert static == (0, 0, 1, 0, 1, 0, 1, 625, 1, 0, 0, 0)                  # tags Assassin .. Tank, is_ranged, attackrange, partype Mana / Energy / none / other
+    assert base == (560, 23, 30, 50, 0.61, 335)
+    assert growth == (96, 4, 1.3, 2.65, 1.36)
+    assert len(static) + len(base) + len(growth) == 12 + 6 + 5 and len(static) == traits.TRAIT_NAMES.index('lvl_healthMax')
+
+
+def test_the_trait_signature_of_an_unseen_champion_is_none_and_a_bool_or_float_champion_is_no_champion():
+    """A key that the table of the patch does not hold (0, a mode id, a champion of a later patch) has no signature: None, the "unseen champion" of decision D18. A champion is a whole number: a bool or a float
+    is a TypeError (it must not alias the key 1 in the cache of the table rows), and it does not poison the answer for the real champion."""
+    assert traits.trait_signature('15.18', 0) is None and traits.trait_signature('15.18', 9999) is None and traits.trait_signature('15.18', 99_999) is None
+    for bad in (True, False, 1.0, 1.5, '1', None):
+        with pytest.raises(TypeError, match='champ'):
+            traits.trait_signature('15.18', bad)
+    assert traits.trait_signature('15.18', ANNIE) is not None                # not poisoned by the refused True
+    assert traits.trait_signature('15.18', np.int32(ANNIE)) == traits.trait_signature('15.18', ANNIE)
+    with pytest.raises(TypeError, match='patch'):
+        traits.trait_signature(1518, ANNIE)

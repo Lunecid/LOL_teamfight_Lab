@@ -29,9 +29,9 @@ from c_ept.workflows.s4a_runtime import prepare_native_runtime, validate_e6_prob
 OPERATOR_API_VERSION = 1
 
 
-def _process_record(run, manifest, state, outcome=None, exit_code=None):
-    """프로세스 상태 기록 딕셔너리를 생성하여 반환한다."""
-    record = primitive._process_record(run, manifest, state, outcome, exit_code)
+def _process_record(run, manifest, state, outcome=None, exit_code=None, exception_type=None):
+    """프로세스 상태 기록 딕셔너리를 생성하여 반환한다. 실패한 실행은 예외 클래스 이름(exception_type)을 추가 필드로 남긴다."""
+    record = primitive._process_record(run, manifest, state, outcome, exit_code, exception_type)
     record['schema'] = operator.PROCESS_SCHEMA
     return record
 
@@ -163,7 +163,8 @@ def _execute_reserved(c, args, control, policy, verified_meta):
                     'stages': list(operator.STAGES), 'results': {},
                     'stats_population': 'whole FIT; deterministic FIT/STOP 25% proxy',
                     'limits': {'trainer_cumulative_seconds': 24 * 3600, 'sampled_private_bytes_strictly_below': primitive.MEMORY_CAP,
-                               'memory_enforcement': 'epoch/batch boundary samples; not a continuous OS guarantee'}}
+                               'memory_enforcement': 'epoch/batch boundary samples; not a continuous OS guarantee'},
+                    **primitive.provenance_record()}      # record fields beside the identity, never inside it (A5-F4)
         primitive._write(run / 'RUN.json', manifest)
         try:
             primitive._write(run / 'PROCESS.json', _process_record(run, manifest, 'running'))
@@ -217,7 +218,8 @@ def _execute_reserved(c, args, control, policy, verified_meta):
             runlog.register(run, manifest, Path(c['catalog_db']))
             primitive._write(run / 'PROCESS.json', _process_record(run, manifest, 'finished', 'completed', 0))
         except BaseException as error:
-            primitive._write(run / 'PROCESS.json', _process_record(run, manifest, 'failed', 'failed', primitive._failure_exit_code(error)))
+            primitive._write(run / 'PROCESS.json', _process_record(run, manifest, 'failed', 'failed', primitive._failure_exit_code(error),
+                                                                   type(error).__name__))
             raise
     print(json.dumps({'run': str(run), 'schema': operator.RUN_SCHEMA, 'control': str(control / 'run.json')}))
     return 0
@@ -230,6 +232,7 @@ def main(argv=None):
     parser.add_argument('--control', type=Path, required=True)
     parser.add_argument('--operator-config-sha256', required=True)
     args = parser.parse_args(argv)
+    c = None
     try:
         policy = prepare_native_runtime()
         c = operator.load_config(operator.config_path(args.config))
@@ -237,7 +240,9 @@ def main(argv=None):
             raise RuntimeRefused('effective operator config digest mismatch')
         return execute(c, args.control, policy)
     except (operator.OperatorError, RuntimeRefused, ValueError, OSError) as error:
-        print('EPT training refused: ' + str(error), file=sys.stderr)
+        # Only the guard types are refusals; any other ValueError/OSError keeps its class name and a key-scrubbed traceback (A5-F8).
+        print(primitive.failure_report('EPT training refused', error, (operator.OperatorError, RuntimeRefused),
+                                       s1=None if c is None else c['s1']), file=sys.stderr)
         return primitive._failure_exit_code(error)
 
 

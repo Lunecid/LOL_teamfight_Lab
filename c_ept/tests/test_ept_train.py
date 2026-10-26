@@ -36,7 +36,7 @@ import numpy as np
 import pytest
 import torch
 
-from c_ept.ept import data, encoder, heads, loss, train
+from c_ept.ept import data, encoder, heads, loss, step_guard, train
 from c_ept.tests.ept_toys import build_ept_world, toy_static
 
 SEED = 3
@@ -83,8 +83,8 @@ class SpyBatches(data.Batches):
     """A real ``Batches`` that writes ``('epoch', name, epoch, start)`` when an epoch starts and ``('batch', name)`` for each batch; ``hook(name, epoch, i)`` is called
     inside ``next()`` just before batch ``i`` of the epoch is yielded."""
 
-    def __init__(self, rows, batch_size, seed, *, stats, training, name, log, hook=None):
-        super().__init__(rows, batch_size, seed, stats=stats, training=training)
+    def __init__(self, rows, batch_size, seed, *, stats, training, name, log, hook=None, swap_mode='average'):
+        super().__init__(rows, batch_size, seed, stats=stats, training=training, **({} if swap_mode == 'average' else {'swap_mode': swap_mode}))
         self.name, self.log, self.hook = name, log, hook
 
     def epoch(self, epoch, start=0):
@@ -96,12 +96,12 @@ class SpyBatches(data.Batches):
             yield batch
 
 
-def make_data(rows, stats, *, log=None, stop_rows=None, static=None, scales=None, fit_batches=FIT_BATCHES, static_source=None, stop_size=None, hook=None):
-    """A ``TrainData``: FIT in ``fit_batches`` shuffled batches, STOP in one batch (or ``stop_size`` engagements per batch)."""
+def make_data(rows, stats, *, log=None, stop_rows=None, static=None, scales=None, fit_batches=FIT_BATCHES, static_source=None, stop_size=None, hook=None, swap_mode='average'):
+    """A ``TrainData``: FIT in ``fit_batches`` shuffled batches (made for ``swap_mode``, S4b preparation M7), STOP in one batch (or ``stop_size`` engagements per batch)."""
     log = [] if log is None else log
     fit_rows, stop_rows = rows['FIT'], rows['STOP'] if stop_rows is None else stop_rows
     size = max(1, math.ceil(len(fit_rows.units) / fit_batches))
-    fit = SpyBatches(fit_rows, size, 7, stats=stats, training=True, name='fit', log=log, hook=hook)
+    fit = SpyBatches(fit_rows, size, 7, stats=stats, training=True, name='fit', log=log, hook=hook, swap_mode=swap_mode)
     stop = SpyBatches(stop_rows, stop_size or max(1, len(stop_rows.units)), 7, stats=stats, training=False, name='stop', log=log, hook=hook)
     return train.TrainData(fit=fit, stop=stop, scales=dict(SCALES if scales is None else scales), static=toy_static() if static is None else static,
                            static_source=static_source)
@@ -443,12 +443,12 @@ def block_outputs(fa, enc, batch) -> dict:
     return outs
 
 
-def reference_stop(model, batches, scales) -> float:
+def reference_stop(model, batches, scales, *, average=True) -> float:
     """The STOP number by the definition (R-S4a-16), from one pass over the entries: the scored entries of an evaluation row ``(match, row)`` of a block are averaged,
     each evaluation row is weighted 1 / n (n: the evaluation rows of the match in that block and size stratum), the weighted mean is taken in each stratum, the strata
-    are averaged, divided by the scale and the blocks added."""
+    are averaged, divided by the scale and the blocks added. ``average=False`` evaluates the recorded frame only (S4b preparation M7, ``eval_average=False``)."""
     model.eval()
-    fa = heads.FrameAveraged(model)
+    fa = heads.FrameAveraged(model) if average else heads.FrameAveraged(model, average=False)
     cols = {}
     with torch.no_grad():
         for batch in batches.epoch(0):
@@ -1824,7 +1824,8 @@ def test_the_training_loss_is_the_task_4_loss_with_the_equal_row_weights(tmp_pat
 
     def spy(nlls, scales, targets):
         out = real(nlls, scales, targets)
-        seen.append(float(out.detach()))
+        if step_guard.trusted():                      # the steps of the loop; the dry run of the data checks (batch_prep.validate_rows, S4b speed-ups item 3) and the STOP evaluation are untrusted calls
+            seen.append(float(out.detach()))
         return out
 
     monkeypatch.setattr(loss, 'total_loss', spy)
@@ -1937,3 +1938,1087 @@ def test_checkpoint_missing_q10_components_is_refused_before_tensor_loading(tmp_
     head_path.write_text(json.dumps(doc),encoding='utf-8')
     with pytest.raises(RuntimeError,match='schema|telemetry'):
         train._latest_checkpoint(folder)
+
+
+# =====================================================================================================================================
+# AdamW parameter groups and the record of kappa (S4b preparation M4, decision D6, review finding A2-F2)
+# =====================================================================================================================================
+# The defect. One decay for every parameter pulls each log kappa toward 0 (kappa toward 1 s, a unit-dependent prior) and the FIT-initialised output biases toward 0: with 4,511
+# steps an epoch the decay alone multiplies a log kappa by 0.543 after 18 epochs (80 s -> 10.8 s). ``decay_groups='split'`` gives no decay to every log kappa, every bias,
+# LayerNorm and Embedding and the decay to the Linear weight matrices, the co-participation weights and the learned terrain field; ``'all'`` (the default) is the call of every
+# earlier run. What the "default" tests prove: a test can only compare the code as it is now, so the ``'all'`` tests compare with the call written out in the test (the AdamW
+# of every earlier run) and with an explicit ``'all'``; the evidence for the bits of the base commit is the proof script ``m4_proof_ept.py`` of the T012 session folder.
+KAPPA2 = encoder.EncoderConfig(d=16, layers=2, heads=2, dropout=0.1, kappas=2, field_channels=2)       # two decay scales: two kappa columns
+
+
+def split_cfg(**over):
+    return make_cfg(encoder=KAPPA2, decay_groups='split', **over)
+
+
+def build_model(kind: str, seed: int = 5):
+    """A seeded model of the training loop: the EPT of size S or M (3 decay scales, 8 learned terrain channels) or the N2 team-set model of the comparison."""
+    torch.manual_seed(seed)
+    if kind == 'N2':
+        from c_ept.models.neural import TeamSetModel
+        return TeamSetModel(encoder.SIZES['S'], toy_static(), hidden=32)
+    return heads.EPT(encoder.SIZES[kind[-1]], toy_static())
+
+
+def two_steps(model, optimizer):
+    """Two optimizer steps on a loss that every parameter feeds with a gradient of its own size (no data, no randomness)."""
+    for _ in range(2):
+        total = sum((i + 1) * p.square().sum() for i, p in enumerate(model.parameters()))
+        optimizer.zero_grad(set_to_none=True)
+        total.backward()
+        optimizer.step()
+    return model
+
+
+@pytest.fixture(scope='module')
+def split_run(tmp_path_factory, rows, stats):
+    """An uninterrupted run of EPOCHS epochs under ``decay_groups='split'`` with two decay scales."""
+    folder = tmp_path_factory.mktemp('train_split') / 'run'
+    return run(folder, make_data(rows, stats), split_cfg()), folder
+
+
+@pytest.fixture(scope='module')
+def all_run_k2(tmp_path_factory, rows, stats):
+    """The same run under the default policy: the reference of the identity and of the curves."""
+    folder = tmp_path_factory.mktemp('train_all_k2') / 'run'
+    return run(folder, make_data(rows, stats), make_cfg(encoder=KAPPA2)), folder
+
+
+@pytest.mark.parametrize('kind', ['EPT S', 'EPT M', 'N2'])
+def test_split_groups_cover_every_parameter_once(kind):
+    """Every parameter of the model lands in exactly one group (the groups partition ``model.parameters()``), whatever the model; the policy ``'all'`` is one group."""
+    model = build_model(kind)
+    everything = list(model.parameters())
+    groups = train.param_groups(model, 0.01, 'split')
+    flat = [p for g in groups for p in g['params']]
+    assert len(flat) == len(everything) and len({id(p) for p in flat}) == len(flat) and {id(p) for p in flat} == {id(p) for p in everything}
+    assert [g['weight_decay'] for g in groups] == [0.01, 0.0] and all(g['params'] for g in groups) and all(set(g) == {'params', 'weight_decay'} for g in groups)
+    assert list(train.decay_assignment(model, 0.01)) == [name for name, _ in model.named_parameters()]        # a decay for each name, each name once
+    one = train.param_groups(model, 0.01, 'all')
+    assert len(one) == 1 and one[0]['weight_decay'] == 0.01 and [id(p) for p in one[0]['params']] == [id(p) for p in everything]
+
+
+def test_split_groups_assign_decay_by_rule():
+    """One name of each kind of the rule. The names are code (a rename of a model part is seen here), not data. The distance and geodesic networks sit in the module attribute
+    ``bias`` of the encoder (``encoder.bias``): the rule is on the name of the parameter itself, so their weight matrices decay although the path of their names holds 'bias'."""
+    model = build_model('EPT S')
+    got = train.decay_assignment(model, 0.01)
+    no_decay = ['encoder.bias.co.log_kappa',                                  # log kappa
+                'encoder.bias.type_bias',                                     # type_bias
+                'encoder.players_in.bias', 'encoder.blocks.0.qkv.bias',       # the bias of a Linear layer
+                'heads.rate_net.bias',                                        # the hidden bias of the head networks
+                'heads.rate_net.out.bias', 'heads.kill_out.bias', 'heads.gold_out.bias',     # output biases (FIT-initialised)
+                'encoder.blocks.0.norm1.weight', 'encoder.blocks.0.norm1.bias', 'encoder.norm.weight',          # LayerNorm
+                'encoder.zone_emb.weight', 'heads.bin_emb.weight', 'heads.gold_slot.weight', 'heads.mark.kind.weight']        # Embedding
+    decayed = ['encoder.players_in.weight', 'encoder.blocks.0.qkv.weight', 'encoder.blocks.0.ffn.0.weight',          # Linear weight matrices
+               'heads.rate_net.maps.0.weight', 'heads.rate_net.out.weight', 'heads.gold_in.weight', 'heads.mark.killer.weight', 'encoder.field_proj.weight',
+               'encoder.bias.dist.0.net.0.weight', 'encoder.bias.geo.2.net.2.weight',             # Linear weights under the module attribute named 'bias'
+               'encoder.bias.co.w', 'encoder.bias.co.w_back',                # the co-participation weights
+               'encoder.field.learned']                                      # the learned terrain field (an L2 prior around 0)
+    for name in no_decay:
+        assert got[name] == 0.0, name
+    for name in decayed:
+        assert got[name] == 0.01, name
+    # a second implementation written from the text of the rule, for every parameter of the model
+    for name in got:
+        parent, _, leaf = name.rpartition('.')
+        zero = leaf in ('log_kappa', 'type_bias', 'bias') or isinstance(model.get_submodule(parent), (torch.nn.LayerNorm, torch.nn.Embedding))
+        assert got[name] == (0.0 if zero else 0.01), name
+        assert zero or leaf in ('weight', 'w', 'w_back', 'learned'), name          # what decays is a weight matrix, w, w_back or the field and nothing else
+    assert got['encoder.bias.co.log_kappa'] != got['encoder.bias.co.w']
+    # the decay is the weight decay that was asked for, not a constant of the module
+    assert train.decay_assignment(model, 0.5)['encoder.players_in.weight'] == 0.5 and train.decay_assignment(model, 0.0)['encoder.players_in.weight'] == 0.0
+    split = train.param_groups(model, 0.0, 'split')                    # a decay of 0 still gives the two groups (the policy, not the number, makes the groups)
+    assert [g['weight_decay'] for g in split] == [0.0, 0.0] and sum(len(g['params']) for g in split) == len(list(model.parameters()))
+
+
+def test_a_parameter_without_a_rule_is_a_value_error_naming_it_and_the_policy_name_is_checked():
+    class Odd(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.lin = torch.nn.Linear(2, 2)
+            self.gamma = torch.nn.Parameter(torch.ones(2))
+
+    with pytest.raises(ValueError, match='gamma'):
+        train.param_groups(Odd(), 0.01, 'split')
+    with pytest.raises(ValueError, match=r'conv\.weight'):
+        train.param_groups(torch.nn.ModuleDict({'conv': torch.nn.Conv1d(1, 1, 1)}), 0.01, 'split')
+    train.param_groups(Odd(), 0.01, 'all')                              # the policy 'all' has no rule to miss
+    for bad in ('Split', 'none', '', None, 1, ('split',)):
+        with pytest.raises(ValueError, match='decay_groups'):
+            train.param_groups(build_model('EPT S'), 0.01, bad)
+
+
+def test_all_policy_is_bit_identical(tmp_path, rows, stats, base):
+    """The policy ``'all'`` is the AdamW call of every earlier run: one group of ``model.parameters()`` with the weight decay as a keyword of the optimizer, so the optimizer
+    state after a step, the bytes of its state dict, the identity, the head and the epoch metrics are those of the code before this task."""
+    cfg = make_cfg()
+    model = build_model('EPT S')
+    optimizer = train._optimizer(model, cfg)
+    assert len(optimizer.param_groups) == 1 and optimizer.param_groups[0]['weight_decay'] == cfg.weight_decay
+    two_steps(model, optimizer)
+    old_model = build_model('EPT S')
+    old_optimizer = torch.optim.AdamW(old_model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)       # the line of every earlier run, written out
+    two_steps(old_model, old_optimizer)
+    assert_same_state(model.state_dict(), old_model.state_dict(), 'model')
+    assert_same_state(optimizer.state_dict(), old_optimizer.state_dict(), 'optimizer')
+    assert train._torch_bytes(optimizer.state_dict()) == train._torch_bytes(old_optimizer.state_dict())       # the bytes too: the order of the keys of the group
+    # a whole run: the keyword changes nothing, and nothing new is written under the default
+    result, folder = base
+    again = run(tmp_path / 'explicit', make_data(rows, stats), make_cfg(decay_groups='all'))
+    assert_same_run(result, again)
+    a, b = last_pt(folder, EPOCHS), last_pt(tmp_path / 'explicit', EPOCHS)
+    for part in ('model', 'optimizer', 'rng'):
+        assert_same_state(a[part], b[part], part)
+    assert 'kappa' not in a['loop'] and len(a['optimizer']['param_groups']) == 1 and a['optimizer']['param_groups'][0]['weight_decay'] == 0.01
+    for head_ in (checkpoints(folder)[-1][0], again.head):
+        assert 'decay_groups' not in head_ and head_['schema'] == 'ept_train_checkpoint_v6'
+        assert 'decay_groups' not in head_['identity'] and 'decay_groups_sha256' not in head_['identity']
+    assert again.head['identity'] == checkpoints(folder)[-1][0]['identity']
+    snapshot = json.loads((folder / f'epoch_{EPOCHS:04d}' / 'epoch_metrics.json').read_text(encoding='utf-8'))
+    assert snapshot['schema'] == 'epoch-metrics-v1' and all(set(row) == set(train.epoch_metrics.COLUMNS) for row in snapshot['rows'])
+    assert (folder / f'epoch_{EPOCHS:04d}' / 'epoch_metrics.csv').read_text(encoding='utf-8').split('\n')[0] == ','.join(train.epoch_metrics.COLUMNS)
+
+
+def test_the_split_groups_step_like_a_uniform_decay_of_their_own_value():
+    """The decay of AdamW is decoupled and acts on each element alone, so the parameters of the no-decay group must move exactly as under a uniform decay of 0 and the
+    others exactly as under a uniform 0.01: two steps, bit for bit. (Controls: the two uniform runs differ from each other, and log kappa moves differently under 0.01.)"""
+    cfg = split_cfg()
+
+    def stepped(make):
+        model = build_model('EPT S')
+        return two_steps(model, make(model))
+    split = stepped(lambda m: train._optimizer(m, cfg))
+    uniform = stepped(lambda m: torch.optim.AdamW(m.parameters(), lr=cfg.lr, weight_decay=0.01))
+    plain = stepped(lambda m: torch.optim.AdamW(m.parameters(), lr=cfg.lr, weight_decay=0.0))
+    rule = train.decay_assignment(build_model('EPT S'), 0.01)
+    uniform_parameters, plain_parameters = dict(uniform.named_parameters()), dict(plain.named_parameters())
+    for name, p in split.named_parameters():
+        assert torch.equal(p, (uniform_parameters if rule[name] else plain_parameters)[name]), name
+    assert not torch.equal(uniform_parameters['encoder.bias.co.log_kappa'], plain_parameters['encoder.bias.co.log_kappa'])
+    assert not torch.equal(uniform_parameters['encoder.players_in.weight'], plain_parameters['encoder.players_in.weight'])
+    assert not torch.equal(split.encoder.bias.co.log_kappa, uniform.encoder.bias.co.log_kappa)
+    assert not torch.equal(split.encoder.players_in.weight, plain.encoder.players_in.weight)
+
+
+def test_the_train_config_has_decay_groups_after_the_k_condition_with_the_default_all_and_refuses_another_name():
+    names = [f.name for f in dataclasses.fields(train.TrainConfig)]
+    assert names.index('decay_groups') == names.index('k_condition') + 1 and names[:6] == ['encoder', 'lr', 'weight_decay', 'warmup_steps', 'patience', 'model_spec']
+    small = encoder.EncoderConfig(d=16, layers=1, heads=2)
+    assert train.TrainConfig(small, 1e-3, 0.0, 1).decay_groups == 'all' and train.TrainConfig(small, 1e-3, 0.0, 1, 2, None, 'poisson', 'raw').decay_groups == 'all'
+    assert train.TrainConfig(small, 1e-3, 0.0, 1, decay_groups='split').decay_groups == 'split'
+    assert train.DECAY_GROUPS == ('all', 'split')
+    for bad in ('Split', 'none', '', None, 1):
+        with pytest.raises(ValueError, match='decay_groups'):
+            train.TrainConfig(small, 1e-3, 0.0, 1, decay_groups=bad)
+    import inspect
+    assert list(inspect.signature(train.param_groups).parameters) == ['model', 'weight_decay', 'policy']
+
+
+def test_a_split_run_records_the_policy_and_the_hash_of_its_rule_in_the_identity_and_the_default_run_does_not(split_run, all_run_k2, monkeypatch):
+    split, _ = split_run
+    reference, _ = all_run_k2
+    identity = split.head['identity']
+    assert identity['decay_groups'] == 'split' and identity['decay_groups_sha256'] == train.decay_rule_sha256()
+    assert len(identity['decay_groups_sha256']) == 64 and set(identity['decay_groups_sha256']) <= set('0123456789abcdef')
+    assert {k: v for k, v in identity.items() if k not in ('decay_groups', 'decay_groups_sha256')} == reference.head['identity']          # nothing else moves
+    assert 'decay_groups' not in reference.head['identity'] and 'decay_groups_sha256' not in reference.head['identity']              # absent means 'all'
+    # the hash is the hash of the rule that is applied: another rule table is another hash and another assignment
+    before = train.decay_rule_sha256()
+    monkeypatch.setattr(train, 'DECAY_RULES', tuple((c, leaf, 'weight_decay') if leaf == 'log_kappa' else (c, leaf, kind) for c, leaf, kind in train.DECAY_RULES))
+    assert train.decay_rule_sha256() != before
+    assert train.decay_assignment(build_model('EPT S'), 0.01)['encoder.bias.co.log_kappa'] == 0.01              # log kappa decayed by that table
+    monkeypatch.setattr(train, 'DECAY_RULES', tuple(rule for rule in train.DECAY_RULES if rule[1] != 'log_kappa'))
+    with pytest.raises(ValueError, match='log_kappa'):                                                            # and without a rule it is refused, not guessed
+        train.decay_assignment(build_model('EPT S'), 0.01)
+
+
+def test_a_split_head_names_the_groups_it_trained_with(split_run, all_run_k2):
+    split, folder = split_run
+    record = split.head['decay_groups']
+    assignment = train.decay_assignment(split.model, 0.01)
+    assert record['policy'] == 'split' and record['rule_sha256'] == train.decay_rule_sha256()
+    assert record['assignment_sha256'] == hashlib.sha256(json.dumps([[n, d] for n, d in sorted(assignment.items())]).encode()).hexdigest()
+    sizes = {0.01: [p.numel() for n, p in split.model.named_parameters() if assignment[n]], 0.0: [p.numel() for n, p in split.model.named_parameters() if not assignment[n]]}
+    assert record['groups'] == [{'weight_decay': 0.01, 'tensors': len(sizes[0.01]), 'elements': sum(sizes[0.01])},
+                                {'weight_decay': 0.0, 'tensors': len(sizes[0.0]), 'elements': sum(sizes[0.0])}]
+    assert split.head['schema'] == 'ept_train_checkpoint_v7' and checkpoints(folder)[-1][0] == split.head
+    saved = last_pt(folder, EPOCHS)['optimizer']['param_groups']              # the optimizer state of the run has the two groups, the indices partition the parameters
+    assert [g['weight_decay'] for g in saved] == [0.01, 0.0] and sorted(i for g in saved for i in g['params']) == list(range(len(assignment)))
+    assert 'decay_groups' not in all_run_k2[0].head
+
+
+def test_epoch_metrics_records_kappa_for_ept_and_blank_for_n2(tmp_path, rows, stats, split_run, base):
+    """Under ``'split'`` every epoch row has one column for each decay scale: exp(log kappa) of the model at the end of that epoch (EPT), blank for N2, which has no decay scale.
+    Under ``'all'`` there is no kappa column and the schema is the old one."""
+    from c_ept.comparison import models as comparison_models
+    result, folder = split_run
+    em = train.epoch_metrics
+    columns = (*em.COLUMNS, 'kappa_0', 'kappa_1')
+    doc = train.checkpoints.latest_metadata(folder)[2]
+    assert doc['schema'] == 'epoch-metrics-v2' and len(doc['rows']) == EPOCHS and all(set(row) == set(columns) for row in doc['rows'])
+    for epoch, row in enumerate(doc['rows'], 1):
+        want = torch.exp(last_pt(folder, epoch)['model']['encoder.bias.co.log_kappa']).tolist()            # read from the weights of that epoch's checkpoint
+        assert [row['kappa_0'], row['kappa_1']] == want and all(isinstance(v, float) and v > 0 for v in want), epoch
+    assert doc['rows'][0]['kappa_0'] != doc['rows'][-1]['kappa_0']                    # recorded at each epoch: the scale moves
+    assert last_pt(folder, EPOCHS)['loop']['kappa'] == [[r['kappa_0'], r['kappa_1']] for r in doc['rows']]
+    import csv
+    parsed = list(csv.DictReader((folder / f'epoch_{EPOCHS:04d}' / 'epoch_metrics.csv').read_text(encoding='utf-8').splitlines()))
+    assert list(parsed[0]) == list(columns) and [float(r['kappa_1']) for r in parsed] == [r['kappa_1'] for r in doc['rows']]
+    # the default policy: no kappa column, the schema of every earlier run
+    old = train.checkpoints.latest_metadata(base[1])[2]
+    assert old['schema'] == 'epoch-metrics-v1' and all(set(row) == set(em.COLUMNS) for row in old['rows'])
+    # N2 has no co-participation: the columns are there (one for each configured scale) and blank
+    spec = comparison_models.specification('n2', hidden=8)
+    n2 = run(tmp_path / 'n2', make_data(rows, stats), split_cfg(model_spec=spec), epochs=2)
+    n2_doc = train.checkpoints.latest_metadata(tmp_path / 'n2')[2]
+    assert n2.head['schema'] == 'ept_train_checkpoint_v7' and n2.head['identity']['model_spec']['architecture'] == 'n2_teamset_v1'
+    assert n2_doc['rows'] and all(row['kappa_0'] is None and row['kappa_1'] is None and set(row) == set(columns) for row in n2_doc['rows'])
+    n2_csv = list(csv.DictReader((tmp_path / 'n2' / 'epoch_0002' / 'epoch_metrics.csv').read_text(encoding='utf-8').splitlines()))
+    assert list(n2_csv[0]) == list(columns) and all(r['kappa_0'] == '' and r['kappa_1'] == '' for r in n2_csv)
+    assert 'encoder.bias.co.log_kappa' not in n2.model.state_dict() and n2.head['decay_groups']['policy'] == 'split'
+    assert not any('kappa' in name for name in n2.model.state_dict())
+
+
+@pytest.mark.parametrize('first,second', [('all', 'split'), ('split', 'all')])
+def test_resume_refuses_a_checkpoint_from_another_policy(tmp_path, rows, stats, first, second):
+    """The optimizer state is indexed by the position of the parameters in its groups, which the policy changes, so a checkpoint of one policy is not resumed under the other:
+    the identity differs (the keys ``decay_groups`` and ``decay_groups_sha256`` are absent under 'all'), before any work and with nothing written, in both directions."""
+    folder = tmp_path / 'run'
+    with pytest.raises(Cut):
+        run(folder, make_data(rows, stats), make_cfg(encoder=KAPPA2, decay_groups=first), check=cut_on(3))
+    assert len(checkpoints(folder)) == 2
+    before, log = file_hashes(folder), []
+    with pytest.raises(ValueError, match='decay_groups') as raised:
+        run(folder, make_data(rows, stats, log=log), make_cfg(encoder=KAPPA2, decay_groups=second))
+    assert "['decay_groups', 'decay_groups_sha256'] differ" in str(raised.value)              # both keys are named, whichever side holds them
+    assert no_work(log) and file_hashes(folder) == before
+
+
+def test_a_split_run_resumes_with_the_same_bits_and_the_same_kappa_record(tmp_path, rows, stats, split_run):
+    full, full_folder = split_run
+    folder = tmp_path / 'run'
+    with pytest.raises(Cut):
+        run(folder, make_data(rows, stats), split_cfg(), check=cut_on(3))
+    resumed = run(folder, make_data(rows, stats), split_cfg())
+    assert_same_run(full, resumed)
+    a, b = last_pt(full_folder, EPOCHS), last_pt(folder, EPOCHS)
+    for part in ('model', 'optimizer', 'rng'):
+        assert_same_state(a[part], b[part], part)
+    assert a['loop']['kappa'] == b['loop']['kappa'] and len(b['loop']['kappa']) == EPOCHS
+    for name in ('epoch_metrics.json', 'epoch_metrics.csv'):
+        assert (folder / f'epoch_{EPOCHS:04d}' / name).read_bytes() == (full_folder / f'epoch_{EPOCHS:04d}' / name).read_bytes(), name
+    assert resumed.head['decay_groups'] == full.head['decay_groups']
+
+
+def test_a_resume_refuses_a_checkpoint_whose_group_assignment_is_not_the_one_of_the_code(tmp_path, rows, stats, monkeypatch):
+    """The identity holds the hash of the rule table; the head holds the hash of the assignment that the rule gave to the parameters of the model. A code whose rule gives
+    another assignment (the same table, another reading of it) is refused before the optimizer state is loaded into groups that do not mean what they meant."""
+    folder = tmp_path / 'run'
+    with pytest.raises(Cut):
+        run(folder, make_data(rows, stats), split_cfg(), check=cut_on(3))
+    real, log = train.decay_assignment, []
+
+    def other(model, weight_decay):
+        return {**real(model, weight_decay), 'encoder.bias.co.log_kappa': weight_decay}              # as if log kappa were decayed
+
+    monkeypatch.setattr(train, 'decay_assignment', other)
+    with pytest.raises(ValueError, match='assignment'):
+        run(folder, make_data(rows, stats, log=log), split_cfg())
+    assert no_work(log) and len(checkpoints(folder)) == 2
+
+
+# =====================================================================================================================================
+# the terrain smoothness weight lambda_Omega (EPT-T012 S4b preparation M6, decision D8, review finding A2-F5)
+# =====================================================================================================================================
+SMOOTH = 0.5
+
+
+def smooth_cfg(**over):
+    return make_cfg(terrain_smooth_weight=SMOOTH, **over)
+
+
+@pytest.fixture(scope='module')
+def smooth_run(tmp_path_factory, rows, stats):
+    """An uninterrupted run of EPOCHS epochs with lambda_Omega = 0.5, with the R_Omega of every optimizer step logged by a spy on ``training_step.terrain_penalty``."""
+    folder = tmp_path_factory.mktemp('train_smooth') / 'run'
+    seen = []
+    real = train.training_step.terrain_penalty
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(train.training_step, 'terrain_penalty', lambda fa: (seen.append(float(real(fa).detach())), real(fa))[1])
+        result = run(folder, make_data(rows, stats), smooth_cfg())
+    return result, folder, seen
+
+
+def test_the_train_config_has_terrain_smooth_weight_after_the_population_with_the_default_zero_and_refuses_what_is_not_a_finite_number_that_is_not_negative():
+    names = [f.name for f in dataclasses.fields(train.TrainConfig)]
+    assert names.index('terrain_smooth_weight') == names.index('stats_population') + 1          # relative order: the fields of the next tasks (M7 swap_mode, eval_average) come after it
+    small = encoder.EncoderConfig(d=16, layers=1, heads=2)
+    assert train.TrainConfig(small, 1e-3, 0.0, 1).terrain_smooth_weight == 0.0 and train.TrainConfig(small, 1e-3, 0.0, 1, terrain_smooth_weight=0.25).terrain_smooth_weight == 0.25
+    assert train.TrainConfig(small, 1e-3, 0.0, 1, terrain_smooth_weight=2).terrain_smooth_weight == 2
+    for bad in (-0.1, float('nan'), float('inf'), -float('inf'), True, '0.5', None, [0.5]):
+        with pytest.raises(ValueError, match='terrain_smooth_weight'):
+            train.TrainConfig(small, 1e-3, 0.0, 1, terrain_smooth_weight=bad)
+
+
+def test_zero_terrain_weight_is_bit_identical(tmp_path, rows, stats, base):
+    """A weight of 0 is the default: no penalty in the loss, so the weights, the optimizer state, the random state, the identity, the head, the epoch metrics and the bytes of the metric
+    files are those of the run without the setting (the K8 comparison reads ``epoch_metrics`` with ``==``); the loop of ``last.pt`` has no key for the penalty and the metrics no column."""
+    result, folder = base
+    again = run(tmp_path / 'explicit', make_data(rows, stats), make_cfg(terrain_smooth_weight=0.0))
+    assert_same_run(result, again)
+    a, b = last_pt(folder, EPOCHS), last_pt(tmp_path / 'explicit', EPOCHS)
+    for part in ('model', 'optimizer', 'rng'):
+        assert_same_state(a[part], b[part], part)
+    assert 'terrain_penalty' not in a['loop'] and 'terrain_penalty' not in b['loop'] and list(a['loop']) == list(b['loop'])
+    for head_ in (checkpoints(folder)[-1][0], again.head):
+        assert head_['schema'] == 'ept_train_checkpoint_v6' and 'terrain_smooth_weight' not in head_['identity']
+    assert again.head['identity'] == checkpoints(folder)[-1][0]['identity']
+    for name in ('epoch_metrics.json', 'epoch_metrics.csv', 'best.pt'):                    # last.pt holds the wall-clock timings of the loop, so only its parts are compared above
+        first, second = folder / f'epoch_{EPOCHS:04d}' / name, tmp_path / 'explicit' / f'epoch_{EPOCHS:04d}' / name
+        if first.exists() or second.exists():
+            assert first.read_bytes() == second.read_bytes(), name
+    snapshot = json.loads((tmp_path / 'explicit' / f'epoch_{EPOCHS:04d}' / 'epoch_metrics.json').read_text(encoding='utf-8'))
+    assert snapshot['schema'] == 'epoch-metrics-v1' and all(set(row) == set(train.epoch_metrics.COLUMNS) for row in snapshot['rows'])
+
+
+def test_a_weighted_run_records_the_weight_in_the_identity_and_the_penalty_in_a_v8_head_and_the_metrics(smooth_run, base):
+    result, folder, seen = smooth_run
+    reference, _ = base
+    identity = result.head['identity']
+    assert identity['terrain_smooth_weight'] == SMOOTH and {k: v for k, v in identity.items() if k != 'terrain_smooth_weight'} == reference.head['identity']          # nothing else moves
+    assert result.head['schema'] == 'ept_train_checkpoint_v8' and checkpoints(folder)[-1][0] == result.head
+    doc = train.checkpoints.latest_metadata(folder)[2]
+    columns = (*train.epoch_metrics.COLUMNS, 'terrain_penalty')
+    assert doc['schema'] == 'epoch-metrics-v3' and len(doc['rows']) == EPOCHS and all(set(row) == set(columns) for row in doc['rows'])
+    assert (folder / f'epoch_{EPOCHS:04d}' / 'epoch_metrics.csv').read_text(encoding='utf-8').split('\n')[0] == ','.join(columns)
+    steps = len(seen) // EPOCHS
+    assert steps == FIT_BATCHES and len(seen) == EPOCHS * steps                                       # one R_Omega for every optimizer step
+    for epoch, row in enumerate(doc['rows']):
+        assert row['terrain_penalty'] == sum(seen[epoch * steps:(epoch + 1) * steps]) / steps         # the mean over the steps of that epoch, unweighted
+        assert math.isfinite(row['terrain_penalty']) and row['terrain_penalty'] > 0
+    assert seen[0] == 0.0                                                                             # the learned field starts at 0, so the first step has R_Omega = 0
+    assert last_pt(folder, EPOCHS)['loop']['terrain_penalty'] == [row['terrain_penalty'] for row in doc['rows']]
+    assert result.fit_batch_mean_losses != reference.fit_batch_mean_losses and not all(torch.equal(a, b) for a, b in zip(result.model.state_dict().values(), reference.model.state_dict().values()))      # the penalty changes the training (control)
+
+
+def test_stop_value_excludes_the_penalty(tiny_model, rows, stats, smooth_run, monkeypatch):
+    """The STOP value is the evaluation of the model on the STOP rows and nothing else: ``evaluate_stop`` has no weight, never asks for R_Omega, and the STOP value of a weighted run is the one of
+    its own weights."""
+    import inspect
+    assert 'smooth_weight' not in inspect.signature(train.evaluate_stop).parameters and 'terrain_smooth_weight' not in inspect.signature(train.evaluate_stop).parameters
+    batches = data.Batches(rows['STOP'], 100, 0, stats=stats, training=False)
+    want = train.evaluate_stop(tiny_model, batches, SCALES)
+    for owner, name in ((encoder.TerrainField, 'penalty'), (train.training_step, 'terrain_penalty')):
+        monkeypatch.setattr(owner, name, lambda *a, **k: pytest.fail('the penalty was asked for in the STOP evaluation'))
+    assert train.evaluate_stop(tiny_model, batches, SCALES) == want
+    monkeypatch.undo()
+    result, folder, _ = smooth_run
+    torch.manual_seed(0)
+    model = heads.EPT(encoder.EncoderConfig(d=16, layers=2, heads=2, dropout=0.1, kappas=1, field_channels=2), toy_static())
+    model.load_state_dict(last_state(folder, EPOCHS))
+    again = train.evaluate_stop(model, data.Batches(rows['STOP'], len(rows['STOP'].units), 7, stats=stats, training=False), SCALES)
+    tolerance = 1e-8 * abs(result.stop_losses[-1])                                 # the two evaluations differ by float32 reduction noise only (about 3e-10 relative in this toy run)
+    assert abs(again - result.stop_losses[-1]) <= tolerance
+    # the control: the term that must be missing (about 1e-5 absolute against a STOP value of about 30 in this toy run) is far above that tolerance, so this test can see it (a mutation that adds
+    # lambda * R_Omega to ``stop_value`` in ``train`` fails the line above)
+    assert SMOOTH * float(model.encoder.field.penalty().detach()) > 10 * tolerance
+
+
+def test_the_terrain_weight_is_refused_when_the_model_has_no_learned_field_channel_before_any_work(tmp_path, rows, stats):
+    from c_ept.comparison import models as comparison_models
+    for name, cfg in (('ept', make_cfg(encoder=encoder.EncoderConfig(d=16, layers=2, heads=2, dropout=0.1, kappas=1, field_channels=0), terrain_smooth_weight=SMOOTH)),
+                      ('n2', make_cfg(encoder=encoder.EncoderConfig(d=16, layers=2, heads=2, dropout=0.1, kappas=1, field_channels=0), terrain_smooth_weight=SMOOTH,
+                                      model_spec=comparison_models.specification('n2', hidden=8)))):
+        log = []
+        with pytest.raises(ValueError, match='terrain_smooth_weight.*field_channels'):
+            run(tmp_path / name, make_data(rows, stats, log=log), cfg)
+        assert no_work(log) and checkpoints(tmp_path / name) == []
+    run(tmp_path / 'zero', make_data(rows, stats), make_cfg(encoder=encoder.EncoderConfig(d=16, layers=2, heads=2, dropout=0.1, kappas=1, field_channels=0)), epochs=1)      # weight 0, no channel: fine
+
+
+@pytest.mark.parametrize('first,second', [(0.0, SMOOTH), (SMOOTH, 0.0), (SMOOTH, 0.25)])
+def test_resume_refuses_a_checkpoint_under_another_terrain_weight_in_both_directions(tmp_path, rows, stats, first, second):
+    folder = tmp_path / 'run'
+    with pytest.raises(Cut):
+        run(folder, make_data(rows, stats), make_cfg(terrain_smooth_weight=first), check=cut_on(3))
+    assert len(checkpoints(folder)) == 2
+    before, log = file_hashes(folder), []
+    with pytest.raises(ValueError, match='terrain_smooth_weight'):
+        run(folder, make_data(rows, stats, log=log), make_cfg(terrain_smooth_weight=second))
+    assert no_work(log) and file_hashes(folder) == before
+
+
+def test_a_weighted_run_resumes_with_the_same_bits_and_the_same_metrics(tmp_path, rows, stats, smooth_run):
+    full, full_folder, _ = smooth_run
+    folder = tmp_path / 'run'
+    with pytest.raises(Cut):
+        run(folder, make_data(rows, stats), smooth_cfg(), check=cut_on(3))
+    resumed = run(folder, make_data(rows, stats), smooth_cfg())
+    assert_same_run(full, resumed)
+    a, b = last_pt(full_folder, EPOCHS), last_pt(folder, EPOCHS)
+    for part in ('model', 'optimizer', 'rng'):
+        assert_same_state(a[part], b[part], part)
+    assert a['loop']['terrain_penalty'] == b['loop']['terrain_penalty'] and len(b['loop']['terrain_penalty']) == EPOCHS
+    for name in ('epoch_metrics.json', 'epoch_metrics.csv'):
+        assert (folder / f'epoch_{EPOCHS:04d}' / name).read_bytes() == (full_folder / f'epoch_{EPOCHS:04d}' / name).read_bytes(), name
+
+
+def test_a_weighted_split_run_has_the_kappa_columns_and_then_the_terrain_column_in_a_v8_head(tmp_path, rows, stats):
+    result = run(tmp_path / 'run', make_data(rows, stats), split_cfg(terrain_smooth_weight=SMOOTH), epochs=2)
+    doc = train.checkpoints.latest_metadata(tmp_path / 'run')[2]
+    columns = (*train.epoch_metrics.COLUMNS, 'kappa_0', 'kappa_1', 'terrain_penalty')
+    assert result.head['schema'] == 'ept_train_checkpoint_v8' and doc['schema'] == 'epoch-metrics-v3' and result.head['identity']['decay_groups'] == 'split'
+    assert all(list(row) == list(columns) or set(row) == set(columns) for row in doc['rows']) and train.epoch_metrics.columns(result.head) == columns
+    assert (tmp_path / 'run' / 'epoch_0002' / 'epoch_metrics.csv').read_text(encoding='utf-8').split('\n')[0] == ','.join(columns)
+    assert all(row['kappa_0'] > 0 and row['terrain_penalty'] > 0 for row in doc['rows']) and 'decay_groups' in result.head
+
+
+def test_a_team_set_run_smooths_its_field_too_and_records_a_number(tmp_path, rows, stats):
+    from c_ept.comparison import models as comparison_models
+    result = run(tmp_path / 'n2', make_data(rows, stats), make_cfg(terrain_smooth_weight=SMOOTH, model_spec=comparison_models.specification('n2', hidden=8)), epochs=2)
+    doc = train.checkpoints.latest_metadata(tmp_path / 'n2')[2]
+    assert result.head['schema'] == 'ept_train_checkpoint_v8' and all(isinstance(row['terrain_penalty'], float) and row['terrain_penalty'] > 0 for row in doc['rows'])
+
+
+# =====================================================================================================================================
+# the random view swap in training and the evaluation average (EPT-T012 S4b preparation M7, decisions D10 P1 and D17, plan Q3)
+# =====================================================================================================================================
+def coins(seed, epoch, index, views):
+    """Plan Q3 written out: one fair coin for each distinct view of batch ``index`` of epoch ``epoch``, from SeedSequence([seed, epoch, index, 0x5157])."""
+    return np.random.default_rng(np.random.SeedSequence([seed, epoch, index, 0x5157])).integers(0, 2, size=views).astype(bool).tolist()
+
+
+def swap_cfg(mode, **over):
+    return make_cfg(swap_mode=mode, **over)
+
+
+def swap_data(rows, stats, mode, **over):
+    return make_data(rows, stats, swap_mode=mode, **over)
+
+
+def spy_encodes(patch):
+    """A log of the calls of ``EPT.encode`` (the encoder of the model): ``(training mode, grad enabled, side markers of the views, number of views)``."""
+    log, real = [], heads.EPT.encode
+
+    def encode(self, batch):
+        log.append((self.training, torch.is_grad_enabled(), batch['side'].clone(), int(len(batch['view']))))
+        return real(self, batch)
+
+    patch.setattr(heads.EPT, 'encode', encode)
+    return log
+
+
+@pytest.mark.parametrize('mode,calls', [('average', 2), ('random_view', 1), ('none', 1)])
+def test_random_view_encodes_each_view_once_in_training(tmp_path, rows, stats, mode, calls):
+    """The cost claim of D10 P1: the two-frame average runs the encoder twice for each training batch (both frames of every view), a random view or no swap once (one frame of every view).
+    The coins of 'random_view' are those of plan Q3, they reach the encoder as the side marker of its views; 'none' encodes the recorded frame; the STOP evaluation keeps the average
+    in every mode (``eval_average`` is True): two calls for its one batch."""
+    with pytest.MonkeyPatch.context() as patch:
+        log = spy_encodes(patch)
+        run(tmp_path / mode, swap_data(rows, stats, mode), swap_cfg(mode), epochs=2)
+    training, evaluation = [e for e in log if e[0]], [e for e in log if not e[0]]
+    assert len(training) == calls * FIT_BATCHES * 2 and all(e[1] for e in training)                 # with gradients, in training mode
+    assert len(evaluation) == 2 * 2 and not any(e[1] for e in evaluation)                           # STOP: one batch, two frames, no gradients, twice (two epochs)
+    for e in evaluation[0::2]:
+        assert not e[2].any()
+    for e in evaluation[1::2]:
+        assert e[2].all()
+    if mode == 'average':
+        assert all(not a[2].any() and b[2].all() and a[3] == b[3] for a, b in zip(training[0::2], training[1::2]))      # the recorded frame, then its swap
+    elif mode == 'none':
+        assert not any(e[2].any() for e in training)
+    else:
+        sides = [e[2].tolist() for e in training]
+        assert sides == [[bool(x) for x in coins(7, epoch, index, len(sides[epoch * FIT_BATCHES + index]))] for epoch in range(2) for index in range(FIT_BATCHES)]
+        assert any(any(s) for s in sides) and not all(all(s) for s in sides)                        # control: not a constant
+
+
+def test_random_view_choice_is_seeded_and_independent_of_dropout(tmp_path, rows, stats):
+    """The coins are drawn in the batches, not in the model: two runs with other dropout (other masks, other weights after the first step) see the same coins, the same coins as the
+    generator of plan Q3 gives, and the same ones again in a second run with the same settings."""
+    seen = {}
+    for name, dropout in (('a', 0.1), ('b', 0.0), ('c', 0.1)):
+        with pytest.MonkeyPatch.context() as patch:
+            log = spy_encodes(patch)
+            cfg = swap_cfg('random_view', encoder=encoder.EncoderConfig(d=16, layers=2, heads=2, dropout=dropout, kappas=1, field_channels=2))
+            run(tmp_path / name, swap_data(rows, stats, 'random_view'), cfg, epochs=2)
+        seen[name] = [e[2].tolist() for e in log if e[0]]
+    assert seen['a'] == seen['b'] == seen['c'] and len(seen['a']) == 2 * FIT_BATCHES
+    assert seen['a'][0] == [float(x) for x in coins(7, 0, 0, len(seen['a'][0]))]
+
+
+def test_rows_follow_their_view_frame_in_the_scored_blocks(tiny_model, rows, stats):
+    """Plan M7: the blocks that ``score_blocks`` scores hold the rows in the frame of their view. A batch with some coins up is scored with the one-frame wrapper; for each of the 13 blocks
+    the target fields are, bit for bit, the swapped ones where the coin of the row's view is up and the recorded ones where it is not, and the score of each row is the score it has
+    in the fully swapped (coin up) or the fully recorded (coin down) batch, up to the rounding of a batch that holds other rows."""
+    model = tiny_model.eval()
+    fa = heads.FrameAveraged(model, average=False).eval()
+    batch = next(iter(data.Batches(rows['FIT'], 100, 0, stats=stats, swap_mode='random_view').epoch(0)))
+    flag = batch['swap_view']
+    assert 0 < int(flag.sum()) < len(flag)
+    plain = {k: v for k, v in batch.items() if k != 'swap_view'}
+    whole = data.swap(plain)
+    with torch.no_grad():
+        mixed, recorded, every = (train.score_blocks(fa, fa.encode(b), b) for b in (batch, plain, whole))
+    assert set(mixed) == set(recorded) == set(every) and len(mixed) == 13
+    seen_up = seen_down = 0
+    for name, (head, target, nll) in mixed.items():
+        _, kind = loss.split_key(name)
+        mask = flag[plain[data.row_key(head, kind, 'pos')]]
+        seen_up, seen_down = seen_up + int(mask.sum()), seen_down + int((~mask).sum())
+        for field, t in target.items():
+            want = torch.where(mask.reshape(-1, *([1] * (t.dim() - 1))), every[name][1][field], recorded[name][1][field])
+            assert torch.equal(t, want), (name, field)
+        torch.testing.assert_close(nll, torch.where(mask, every[name][2], recorded[name][2]), rtol=1e-5, atol=1e-6)
+    assert seen_up > 10 and seen_down > 10                                                          # control: rows of both frames were scored
+
+
+def test_none_mode_never_swaps(tmp_path, rows, stats):
+    """'none' (no swap augmentation): the batches carry no coin, the encoder sees only the recorded frame (one call for each training batch, every side marker 0) and the run records the
+    mode; it is another run than the average and than the random swap (control)."""
+    data_ = swap_data(rows, stats, 'none')
+    assert all('swap_view' not in b for b in data_.fit.epoch(0))
+    with pytest.MonkeyPatch.context() as patch:
+        log = spy_encodes(patch)
+        result = run(tmp_path / 'none', data_, swap_cfg('none'), epochs=2)
+    assert len([e for e in log if e[0]]) == 2 * FIT_BATCHES and not any(e[2].any() for e in log if e[0])
+    assert result.head['identity']['swap_mode'] == 'none' and 'eval_average' not in result.head['identity']
+    other = run(tmp_path / 'average', swap_data(rows, stats, 'average'), make_cfg(), epochs=2)
+    assert result.fit_batch_mean_losses != other.fit_batch_mean_losses
+
+
+def test_average_default_is_bit_identical(tmp_path, rows, stats, base):
+    """``swap_mode='average'`` and ``eval_average=True`` are the defaults: set explicitly they give the run of the earlier tasks bit for bit (the weights, the optimizer state, the random
+    state, the identity, the head, the bytes of the metric files), and the identity has no key for either."""
+    result, folder = base
+    again = run(tmp_path / 'explicit', swap_data(rows, stats, 'average'), make_cfg(swap_mode='average', eval_average=True))
+    assert_same_run(result, again)
+    a, b = last_pt(folder, EPOCHS), last_pt(tmp_path / 'explicit', EPOCHS)
+    for part in ('model', 'optimizer', 'rng'):
+        assert_same_state(a[part], b[part], part)
+    assert list(a['loop']) == list(b['loop'])
+    assert again.head['identity'] == checkpoints(folder)[-1][0]['identity'] and 'swap_mode' not in again.head['identity'] and 'eval_average' not in again.head['identity']
+    assert again.head['schema'] == 'ept_train_checkpoint_v6'
+    for name in ('epoch_metrics.json', 'epoch_metrics.csv', 'best.pt'):                    # last.pt holds the wall-clock timings of the loop, so only its parts are compared above; best.pt exists only in the folder of an epoch that improved
+        first, second = folder / f'epoch_{EPOCHS:04d}' / name, tmp_path / 'explicit' / f'epoch_{EPOCHS:04d}' / name
+        assert first.exists() == second.exists() and (not first.exists() or first.read_bytes() == second.read_bytes()), name
+    assert (folder / f'epoch_{EPOCHS:04d}' / 'epoch_metrics.json').exists()
+
+
+def test_swap_settings_enter_the_identity_only_when_they_are_not_the_default(tmp_path, rows, stats, base):
+    reference, _ = base
+    for name, mode, over, keys in (('rv', 'random_view', {}, {'swap_mode': 'random_view'}), ('none', 'none', {}, {'swap_mode': 'none'}),
+                                   ('noavg', 'average', {'eval_average': False}, {'eval_average': False}),
+                                   ('d17', 'none', {'eval_average': False}, {'swap_mode': 'none', 'eval_average': False})):
+        result = run(tmp_path / name, swap_data(rows, stats, mode), make_cfg(swap_mode=mode, **over))
+        identity = result.head['identity']
+        assert {k: identity[k] for k in keys} == keys and {k: v for k, v in identity.items() if k not in keys} == reference.head['identity'], name       # nothing else moves
+        assert result.head['schema'] == 'ept_train_checkpoint_v6'                                  # no new column: the metric files are those of the earlier tasks
+
+
+@pytest.mark.parametrize('first,second', [({'swap_mode': 'average'}, {'swap_mode': 'random_view'}), ({'swap_mode': 'random_view'}, {'swap_mode': 'average'}),
+                                          ({'swap_mode': 'none'}, {'swap_mode': 'average'}), ({'swap_mode': 'average'}, {'swap_mode': 'none'}),
+                                          ({'swap_mode': 'random_view'}, {'swap_mode': 'none'}),
+                                          ({'eval_average': True}, {'eval_average': False}), ({'eval_average': False}, {'eval_average': True})])
+def test_resume_refuses_a_checkpoint_under_another_swap_setting_in_both_directions(tmp_path, rows, stats, first, second):
+    folder = tmp_path / 'run'
+    name = next(iter(first))
+    with pytest.raises(Cut):
+        run(folder, swap_data(rows, stats, first.get('swap_mode', 'average')), make_cfg(**first), check=cut_on(3))
+    assert len(checkpoints(folder)) == 2
+    before, log = file_hashes(folder), []
+    with pytest.raises(ValueError, match=name):
+        run(folder, swap_data(rows, stats, second.get('swap_mode', 'average'), log=log), make_cfg(**second))
+    assert no_work(log) and file_hashes(folder) == before
+
+
+@pytest.mark.parametrize('settings,made_for', [('random_view', 'average'), ('average', 'random_view'), ('none', 'average'), ('average', 'none'), ('random_view', 'none'), ('none', 'random_view')])
+def test_the_batches_and_the_settings_must_agree_on_the_swap_mode_before_any_work(tmp_path, rows, stats, settings, made_for):
+    log = []
+    with pytest.raises(ValueError, match='swap_mode'):
+        run(tmp_path / 'run', swap_data(rows, stats, made_for, log=log), swap_cfg(settings))
+    assert no_work(log) and checkpoints(tmp_path / 'run') == []
+
+
+def test_the_train_config_has_swap_mode_and_eval_average_last_with_the_defaults_and_refuses_another_name_and_a_non_bool():
+    names = [f.name for f in dataclasses.fields(train.TrainConfig)]
+    assert names[-5:-2] == ['terrain_smooth_weight', 'swap_mode', 'eval_average'] and names[:6] == ['encoder', 'lr', 'weight_decay', 'warmup_steps', 'patience', 'model_spec']
+    small = encoder.EncoderConfig(d=16, layers=1, heads=2)
+    cfg = train.TrainConfig(small, 1e-3, 0.0, 1)
+    assert cfg.swap_mode == 'average' and cfg.eval_average is True
+    assert train.TrainConfig(small, 1e-3, 0.0, 1, 2, None, 'poisson', 'raw', 'all', 'none', 'whole_fit', 0.0).swap_mode == 'average'         # the positional calls of the earlier tasks
+    assert train.TrainConfig(small, 1e-3, 0.0, 1, swap_mode='random_view', eval_average=False).swap_mode == 'random_view'
+    assert data.SWAP_MODES == ('average', 'random_view', 'none')
+    for bad in ('Random_view', 'random', 'swap', '', None, 1, True):
+        with pytest.raises(ValueError, match='swap_mode'):
+            train.TrainConfig(small, 1e-3, 0.0, 1, swap_mode=bad)
+    for bad in (None, 0, 1, 'yes', 'False', [True]):
+        with pytest.raises(ValueError, match='eval_average'):
+            train.TrainConfig(small, 1e-3, 0.0, 1, eval_average=bad)
+
+
+@pytest.fixture(scope='module')
+def swap_run(tmp_path_factory, rows, stats):
+    """An uninterrupted run of EPOCHS epochs with the random view swap."""
+    folder = tmp_path_factory.mktemp('train_random_view') / 'run'
+    return run(folder, swap_data(rows, stats, 'random_view'), swap_cfg('random_view')), folder
+
+
+def test_a_random_view_run_trains_and_is_another_run_than_the_average(swap_run, base):
+    result, _ = swap_run
+    reference, _ = base
+    assert np.isfinite(result.stop_losses).all() and np.isfinite(result.fit_batch_mean_losses).all() and len(result.stop_losses) == EPOCHS
+    assert result.head['identity']['swap_mode'] == 'random_view'
+    assert result.fit_batch_mean_losses != reference.fit_batch_mean_losses
+    assert not all(torch.equal(a, b) for a, b in zip(result.model.state_dict().values(), reference.model.state_dict().values()))      # the swap changes the training (control)
+
+
+def test_a_random_view_run_resumes_with_the_same_bits(tmp_path, rows, stats, swap_run):
+    """The coins are a function of the seed, the epoch and the batch index, so a run that was cut and resumed saw the same coins as the run that was not."""
+    full, full_folder = swap_run
+    folder = tmp_path / 'run'
+    with pytest.raises(Cut):
+        run(folder, swap_data(rows, stats, 'random_view'), swap_cfg('random_view'), check=cut_on(3))
+    resumed = run(folder, swap_data(rows, stats, 'random_view'), swap_cfg('random_view'))
+    assert_same_run(full, resumed)
+    a, b = last_pt(full_folder, EPOCHS), last_pt(folder, EPOCHS)
+    for part in ('model', 'optimizer', 'rng'):
+        assert_same_state(a[part], b[part], part)
+
+
+def test_the_stop_value_uses_the_evaluation_path_of_the_settings(tmp_path, rows, stats):
+    """STOP value = the evaluation path: the two-frame average after a random-view run (``eval_average`` True), the recorded frame only for the D17 check ('none' with
+    ``eval_average=False``); the recorded value is the pooled STOP number of the returned weights computed by the definition with the same wrapper."""
+    data_ = swap_data(rows, stats, 'random_view')
+    averaged = run(tmp_path / 'rv', data_, swap_cfg('random_view'), epochs=1)
+    assert averaged.stop_losses[0] == pytest.approx(reference_stop(averaged.model, data_.stop, SCALES), rel=2e-5)
+    d17_data = swap_data(rows, stats, 'none')
+    d17 = run(tmp_path / 'd17', d17_data, make_cfg(swap_mode='none', eval_average=False), epochs=1)
+    assert d17.stop_losses[0] == pytest.approx(reference_stop(d17.model, d17_data.stop, SCALES, average=False), rel=2e-5)
+    assert abs(d17.stop_losses[0] - reference_stop(d17.model, d17_data.stop, SCALES)) > 1e-4 * d17.stop_losses[0]           # control: the average would be another number
+
+
+def test_evaluate_stop_takes_eval_average_and_the_default_is_the_two_frame_average(tiny_model, rows, stats):
+    import inspect
+    assert inspect.signature(train.evaluate_stop).parameters['eval_average'].default is True
+    batches = data.Batches(rows['STOP'], 100, 0, stats=stats, training=False)
+    with pytest.MonkeyPatch.context() as patch:
+        log = spy_encodes(patch)
+        default = train.evaluate_stop(tiny_model, batches, SCALES)
+        assert len(log) == 2 * len(batches) and train.evaluate_stop(tiny_model, batches, SCALES, eval_average=True) == default
+        log.clear()
+        single = train.evaluate_stop(tiny_model, batches, SCALES, eval_average=False)
+        assert len(log) == len(batches) and not any(e[2].any() for e in log)                      # every view once, in the recorded frame
+    assert single == pytest.approx(reference_stop(tiny_model, batches, SCALES, average=False), rel=2e-5) and single != default
+    with pytest.raises(ValueError, match='eval_average'):
+        train.evaluate_stop(tiny_model, batches, SCALES, eval_average=1)
+
+
+def test_eval_average_true_gives_exact_swap_invariance_of_the_stop_value_and_false_does_not(tiny_model, rows, stats):
+    """The invariance of the average is exact in every output (``test_ept_heads``); the STOP value adds the scores over permuted cells, so it is the same number up to the order of those sums.
+    One frame alone gives another number for the swapped batch (control: the D17 check measures something)."""
+    batch = next(iter(data.Batches(rows['STOP'], 100, 0, stats=stats, training=False).epoch(0)))
+    swapped = data.swap(batch)
+    a, b = (train.evaluate_stop(tiny_model, Fixed(x), SCALES) for x in (batch, swapped))
+    assert a == pytest.approx(b, rel=1e-6)
+    one_a, one_b = (train.evaluate_stop(tiny_model, Fixed(x), SCALES, eval_average=False) for x in (batch, swapped))
+    assert abs(one_a - one_b) > 1e-4 * a
+
+
+def test_the_loop_passes_eval_average_to_the_stop_evaluation_only_when_it_is_false(tmp_path, rows, stats, monkeypatch):
+    kwargs = []
+    monkeypatch.setattr(train, 'evaluate_stop', lambda *a, **k: (kwargs.append(sorted(k)), 2.0)[1])
+    run(tmp_path / 'default', make_data(rows, stats), epochs=2)
+    run(tmp_path / 'false', make_data(rows, stats), make_cfg(eval_average=False), epochs=2)
+    assert kwargs[:2] == [['guard']] * 2 and kwargs[2:] == [['eval_average', 'guard']] * 2           # the default call is the call of every earlier run
+
+
+def test_a_team_set_run_under_random_view_and_under_the_d17_settings_trains(tmp_path, rows, stats):
+    from c_ept.comparison import models as comparison_models
+    spec = comparison_models.specification('n2', hidden=8)
+    for name, mode, over in (('rv', 'random_view', {}), ('d17', 'none', {'eval_average': False})):
+        result = run(tmp_path / name, swap_data(rows, stats, mode), make_cfg(swap_mode=mode, model_spec=spec, **over), epochs=2)
+        assert np.isfinite(result.stop_losses).all() and np.isfinite(result.fit_batch_mean_losses).all()
+        assert result.head['identity']['model_spec']['architecture'] == 'n2_teamset_v1' and result.head['identity']['swap_mode'] == mode
+
+
+# =====================================================================================================================================
+# S4b preparation M8 (decision D10 P2, P7): the epoch budget and the behaviour at the wall cap
+# =====================================================================================================================================
+def cap_hook(clock, epoch_index=1):
+    """The fake clock moves 90,000 s (more than the 24 h cap) while the second FIT batch of epoch ``epoch_index`` is fetched: no time is spent."""
+    def hook(name, epoch, i):
+        if (name, epoch, i) == ('fit', epoch_index, 1):
+            clock.bump += 90_000.0
+    return hook
+
+
+def test_the_train_config_has_on_wall_cap_last_with_the_default_fail_and_refuses_another_name():
+    names = [f.name for f in dataclasses.fields(train.TrainConfig)]
+    assert names[-5:] == ['terrain_smooth_weight', 'swap_mode', 'eval_average', 'on_wall_cap', 'zone_mark'] and names[:6] == ['encoder', 'lr', 'weight_decay', 'warmup_steps', 'patience', 'model_spec']       # M9 adds zone_mark after it
+    small = encoder.EncoderConfig(d=16, layers=1, heads=2)
+    assert train.TrainConfig(small, 1e-3, 0.0, 1).on_wall_cap == 'fail'
+    assert train.TrainConfig(small, 1e-3, 0.0, 1, 2, None, 'poisson', 'raw', 'all', 'none', 'whole_fit', 0.0, 'average', True).on_wall_cap == 'fail'      # the positional calls of the earlier tasks
+    assert train.TrainConfig(small, 1e-3, 0.0, 1, on_wall_cap='best_stop').on_wall_cap == 'best_stop'
+    for bad in ('Best_Stop', 'stop', 'best', 'budget', '', None, 1, True):
+        with pytest.raises(ValueError, match='on_wall_cap'):
+            train.TrainConfig(small, 1e-3, 0.0, 1, on_wall_cap=bad)
+
+
+def test_wall_cap_with_best_stop_ends_done_with_budget_reason(tmp_path, rows, stats, monkeypatch, base):
+    """The cap is reached while epoch 2 (index 1) trains. Under 'best_stop' that epoch is finished (its FIT batches, its STOP pass, its checkpoint) and the run then ends with done=True
+    and the reason 'budget': the best STOP weights are the returned model, the call marker is a normal completed one, and nothing is stored as a failure."""
+    clock, log, folder = Clock(monkeypatch), [], tmp_path / 'budget'
+    result = run(folder, make_data(rows, stats, log=log, hook=cap_hook(clock)), make_cfg(on_wall_cap='best_stop'))
+    assert result.epochs_run == 2 and fit_batches_logged(log) == 2 * FIT_BATCHES and stop_batches_logged(log) == 2           # not between batches: the epoch is finished
+    saved = checkpoints(folder)
+    assert [head['epoch'] for head, _ in saved] == [1, 2] and 'budget_end' not in saved[0][0]
+    head, last = saved[-1]
+    assert head['done'] is True and head['stopped_early'] is False and head['budget_end'] is True and head['epochs'] == EPOCHS
+    assert result.head['budget_end'] is True and result.head['identity']['on_wall_cap'] == 'best_stop'
+    doc = json.loads((last / 'epoch_metrics.json').read_text(encoding='utf-8'))
+    assert (doc['termination_reason'], doc['done'], doc['stopped_early'], doc['epoch_count']) == ('budget', True, False, 2)
+    assert_same_state(result.model.state_dict(), torch.load(folder / head['best']['folder'] / 'best.pt', weights_only=True))      # the best STOP checkpoint, as it was
+    for epoch in (1, 2):                                                                                                       # the budget run is the first two epochs of the default run
+        assert_same_state(last_pt(folder, epoch)['model'], last_pt(base[1], epoch)['model'], f'epoch {epoch}')
+    marker = call_marker(folder)
+    assert (marker['outcome'], marker['status'], marker['epoch_done_end']) == ('completed', 'ok', 2) and marker['seconds'] >= 90_000.0
+    assert not list(folder.glob('resource_failure_*.json'))
+    before, again = file_hashes(folder), []                                                                                    # a call on the finished run does nothing, over the cap as it is
+    repeated = run(folder, make_data(rows, stats, log=again), make_cfg(on_wall_cap='best_stop'))
+    assert no_work(again) and file_hashes(folder) == before and repeated.epochs_run == 2 and repeated.head['budget_end'] is True
+    assert_same_weights(repeated.model, result.model)
+
+
+@pytest.mark.parametrize('case', ['early_stopping', 'max_epochs'])
+def test_a_natural_end_in_the_epoch_of_the_cap_keeps_its_own_reason(tmp_path, rows, stats, monkeypatch, case):
+    """The budget is the end that no other rule reached: when the patience runs out (or the horizon is reached) in the epoch that reaches the cap, the reason is that rule's."""
+    clock = Clock(monkeypatch)
+    if case == 'early_stopping':
+        scripted(monkeypatch, [2.0, 3.0, 4.0, 5.0])
+        result = run(tmp_path / case, make_data(rows, stats, hook=cap_hook(clock, 2)), make_cfg(on_wall_cap='best_stop', patience=2))
+        assert result.epochs_run == 3 and result.stopped_early
+    else:
+        result = run(tmp_path / case, make_data(rows, stats, hook=cap_hook(clock, 1)), make_cfg(on_wall_cap='best_stop'), epochs=2)
+        assert result.epochs_run == 2 and not result.stopped_early
+    head, last = checkpoints(tmp_path / case)[-1]
+    doc = json.loads((last / 'epoch_metrics.json').read_text(encoding='utf-8'))
+    assert 'budget_end' not in head and head['done'] is True and doc['termination_reason'] == case
+
+
+def test_best_stop_under_the_cap_is_the_default_run(tmp_path, rows, stats, base):
+    """The cap is never reached: the run is the run of the default setting (weights, curves, metrics rows, no budget key), apart from the identity key that names the setting."""
+    result = run(tmp_path / 'under', make_data(rows, stats), make_cfg(on_wall_cap='best_stop'))
+    assert_same_run(base[0], result)
+    head, last = checkpoints(tmp_path / 'under')[-1]
+    assert 'budget_end' not in head and head['identity']['on_wall_cap'] == 'best_stop'
+    assert json.loads((last / 'epoch_metrics.json').read_text(encoding='utf-8'))['termination_reason'] == 'max_epochs'
+    assert (last / 'epoch_metrics.csv').read_bytes() == (base[1] / f'epoch_{EPOCHS:04d}' / 'epoch_metrics.csv').read_bytes()
+
+
+@pytest.mark.parametrize('where', ['before_the_epochs', 'checkpoint_write', 'unmeasured'])
+def test_memory_cap_still_fails_with_best_stop(tmp_path, rows, stats, monkeypatch, where):
+    """P7 ends a run at the wall cap only: the memory bound (and a run that could not be measured) stays a failure with its stored record, and a later call is refused."""
+    folder, log = tmp_path / where, []
+    if where == 'before_the_epochs':
+        injected_memory(monkeypatch, lambda: 41 * GIB)
+        match = '40 GiB'
+    elif where == 'checkpoint_write':
+        injected_memory(monkeypatch, lambda: 41 * GIB if (folder / 'epoch_0002' / 'head.json').exists() else GIB)
+        match = '40 GiB'
+    else:
+        monkeypatch.setattr(train, 'MEMORY_INTERVAL_S', 1e6)
+        monkeypatch.setattr(train, '_memory_sample', lambda: (0, None, 0, 'unavailable'))
+        match = 'measure'
+    with pytest.raises(train.ResourceBoundError, match=match):
+        run(folder, make_data(rows, stats, log=log), make_cfg(on_wall_cap='best_stop'))
+    if where == 'checkpoint_write':
+        assert [head['epoch'] for head, _ in checkpoints(folder)] == [1, 2] and 'budget_end' not in checkpoints(folder)[-1][0]
+        assert list(folder.glob('resource_failure_*.json'))
+        injected_memory(monkeypatch, lambda: GIB)
+        again = []
+        with pytest.raises(train.ResourceBoundError, match='earlier'):
+            run(folder, make_data(rows, stats, log=again), make_cfg(on_wall_cap='best_stop'))
+        assert no_work(again)
+    else:
+        assert no_work(log) and not checkpoints(folder)
+
+
+def test_an_integrity_error_after_the_cap_is_not_a_budget_end_and_the_run_is_not_continued(tmp_path, rows, stats, monkeypatch):
+    """The cap is reached and the STOP value of that epoch is not finite: the error is raised as it always was (no checkpoint, no 'done'), and the next call, which would have to train beyond
+    the cap with no clean end behind it, is refused before any work."""
+    clock, real, folder = Clock(monkeypatch), train.evaluate_stop, tmp_path / 'broken'
+    scripted(monkeypatch, [float('nan')])
+    with pytest.raises(FloatingPointError):
+        run(folder, make_data(rows, stats, hook=cap_hook(clock, 0)), make_cfg(on_wall_cap='best_stop'))
+    assert not checkpoints(folder) and not list(folder.glob('resource_failure_*.json')) and call_marker(folder)['outcome'] == 'interrupted'      # not yet a stored failure: the next call finds the run over the cap
+    monkeypatch.setattr(train, 'evaluate_stop', real)
+    log = []
+    with pytest.raises(train.ResourceBoundError, match='24 h'):
+        run(folder, make_data(rows, stats, log=log), make_cfg(on_wall_cap='best_stop'))
+    assert no_work(log)
+
+
+def test_fail_default_is_unchanged(tmp_path, rows, stats, monkeypatch, base):
+    """The explicit 'fail' is the default: same weights, same checkpoint files (last.pt, the metrics snapshot), no new key in the head or the identity, and the cap is refused as before
+    (the epoch in which it is reached is not finished, the failure is stored, a later call is refused)."""
+    result = run(tmp_path / 'explicit', make_data(rows, stats), make_cfg(on_wall_cap='fail'))
+    assert_same_run(base[0], result)
+    for epoch in range(1, EPOCHS + 1):
+        a, b = base[1] / f'epoch_{epoch:04d}', tmp_path / 'explicit' / f'epoch_{epoch:04d}'
+        for part in ('model', 'optimizer', 'rng'):                                                                             # last.pt also holds the timings of the epochs, which are no bits to compare
+            assert_same_state(last_pt(base[1], epoch)[part], last_pt(tmp_path / 'explicit', epoch)[part], f'epoch {epoch} {part}')
+        assert (a / 'epoch_metrics.csv').read_bytes() == (b / 'epoch_metrics.csv').read_bytes() and json.loads((a / 'epoch_metrics.json').read_text(encoding='utf-8')) == json.loads((b / 'epoch_metrics.json').read_text(encoding='utf-8'))
+    head = checkpoints(tmp_path / 'explicit')[-1][0]
+    assert set(head) == set(base[0].head) and head['identity'] == base[0].head['identity'] and 'on_wall_cap' not in head['identity'] and 'budget_end' not in head
+    clock, log, folder = Clock(monkeypatch), [], tmp_path / 'cap'
+    with pytest.raises(train.ResourceBoundError, match='24 h'):
+        run(folder, make_data(rows, stats, log=log, hook=cap_hook(clock)), make_cfg(on_wall_cap='fail'))
+    assert [head['epoch'] for head, _ in checkpoints(folder)] == [1] and fit_batches_logged(log) == FIT_BATCHES + 2 and stop_batches_logged(log) == 1
+    assert list(folder.glob('resource_failure_*.json')) and call_marker(folder)['status'] == 'exceeded'
+    again = []
+    with pytest.raises(train.ResourceBoundError, match='earlier'):
+        run(folder, make_data(rows, stats, log=again), make_cfg(on_wall_cap='fail'))
+    assert no_work(again)
+
+
+def test_on_wall_cap_enters_the_identity_only_when_it_is_not_fail_and_a_resume_under_the_other_setting_is_refused_both_ways(tmp_path, rows, stats, base):
+    assert 'on_wall_cap' not in base[0].head['identity']
+    for first, second in (('best_stop', 'fail'), ('fail', 'best_stop')):
+        folder = tmp_path / first
+        with pytest.raises(Cut):
+            run(folder, make_data(rows, stats), make_cfg(on_wall_cap=first), check=cut_on(2))
+        identity = checkpoints(folder)[-1][0]['identity']
+        assert identity.get('on_wall_cap') == ('best_stop' if first == 'best_stop' else None)
+        before, log = file_hashes(folder), []
+        with pytest.raises(ValueError, match='on_wall_cap'):
+            run(folder, make_data(rows, stats, log=log), make_cfg(on_wall_cap=second))
+        assert no_work(log) and file_hashes(folder) == before
+        resumed = run(folder, make_data(rows, stats), make_cfg(on_wall_cap=first))
+        assert resumed.epochs_run == EPOCHS
+        assert_same_run(base[0], resumed)
+
+
+def test_the_cap_boundary_fail_allows_exactly_24_h_and_best_stop_ends_at_it(tmp_path, rows, stats, monkeypatch):
+    """M8 review m1: the seconds of the run are exactly the cap (a clock that is constant except for one step in epoch 2), then one tick below, then one tick above. 'fail' allows exactly the
+    cap and refuses above it (inclusive, as before); 'best_stop' ends the run at the epoch that reaches the cap (>=) and not one tick below it."""
+    cap = train.WALL_CAP_SECONDS
+
+    def fixed_clock(level):
+        state = {'t': 0.0}
+        monkeypatch.setattr(train, '_clock', lambda: state['t'])
+
+        def hook(name, epoch, i):
+            if (name, epoch, i) == ('fit', 1, 1):
+                state['t'] = level
+        return hook
+
+    for mode, level, epochs_run in (('best_stop', cap, 2), ('best_stop', cap - 1e-6, EPOCHS), ('fail', cap, EPOCHS), ('fail', cap - 1e-6, EPOCHS), ('best_stop', cap + 1e-6, 2)):
+        folder = tmp_path / f'{mode}_{level}'
+        result = run(folder, make_data(rows, stats, hook=fixed_clock(level)), make_cfg(on_wall_cap=mode))
+        assert result.epochs_run == epochs_run, (mode, level)
+        assert ('budget_end' in result.head) == (epochs_run != EPOCHS), (mode, level)
+    with pytest.raises(train.ResourceBoundError, match='24 h'):
+        run(tmp_path / 'fail_above', make_data(rows, stats, hook=fixed_clock(cap + 1e-6)), make_cfg(on_wall_cap='fail'))
+
+
+def test_the_memory_bound_is_not_masked_by_the_soft_wall_cap(tmp_path, rows, stats, monkeypatch):
+    """M8 review m5: the wall cap is passed in epoch 2 and the memory goes over its bound in the same epoch. The soft wall does not hide it: the run fails before the write of epoch 2, and no budget end is written."""
+    clock, folder, state = Clock(monkeypatch), tmp_path / 'both', {'high': False}
+    injected_memory(monkeypatch, lambda: 41 * GIB if state['high'] else GIB)
+
+    def hook(name, epoch, i):
+        if (name, epoch, i) == ('fit', 1, 1):
+            clock.bump += 90_000.0
+            state['high'] = True
+    with pytest.raises(train.ResourceBoundError, match='40 GiB'):
+        run(folder, make_data(rows, stats, hook=hook), make_cfg(on_wall_cap='best_stop'))
+    assert [head['epoch'] for head, _ in checkpoints(folder)] == [1] and list(folder.glob('resource_failure_*.json'))
+
+
+# =====================================================================================================================================
+# the zone mark switch (S4b preparation M9, decision D9: A7 keeps the zone mark only if the shared M2Rate + M2Mark NLL is non-inferior and the mark gains on V_start CRPS and the masked M3 NLL)
+# =====================================================================================================================================
+SMALL_CFG = dict(d=16, layers=2, heads=2, dropout=0.1, kappas=1, field_channels=2)
+
+
+def zone_models(seed: int = 5):
+    """The same starting weights twice: the default EPT and the EPT without the zone mark."""
+    cfg = encoder.EncoderConfig(**SMALL_CFG)
+    torch.manual_seed(seed)
+    on = heads.EPT(cfg, toy_static())
+    torch.manual_seed(seed)
+    off = heads.EPT(cfg, toy_static(), zone_mark=False)
+    return on, off
+
+
+def test_zone_mark_off_removes_the_m2zone_block_and_z_conditioning(rows, stats, monkeypatch):
+    """A7: without the zone mark the M2Zone block is not scored (not in the loss, not in STOP) and M3, the objectives and M4 do not read z. The other twelve blocks are scored as before, the
+    shared M2 call reads the views of the mark block only, the zone table and the zone head get no gradient, and the default model trains them."""
+    on, off = zone_models()
+    batch = next(iter(data.Batches(rows['FIT'], 100, 0, stats=stats, training=False).epoch(0)))
+    calls, real = [], heads.FrameAveraged.m2
+    monkeypatch.setattr(heads.FrameAveraged, 'm2', lambda self, enc, exposure, pos=None: (calls.append(None if pos is None else pos.clone()), real(self, enc, exposure, pos))[1])
+    got = {}
+    for name, model, extra in (('on', on, {}), ('off', off, {'zone_mark': False})):
+        model.eval()                                                                              # no dropout: the two models see the same numbers
+        fa = heads.FrameAveraged(model)
+        calls.clear()
+        scored = train.score_blocks(fa, fa.encode(batch), batch, **extra)
+        got[name] = scored, list(calls)
+        total = loss.total_loss({k: v[2] for k, v in scored.items()}, SCALES, {k: v[1] for k, v in scored.items()})
+        total.backward()
+        zone = {n: p.grad for n, p in model.heads.named_parameters() if n.startswith('zone_net.') or n == 'zone_emb.weight'}
+        assert (name == 'on') == all(g is not None and g.abs().sum() > 0 for g in zone.values()), name       # the default trains every zone part; the others get nothing
+        assert (name == 'off') == all(g is None for g in zone.values()), name
+    (scored_on, calls_on), (scored_off, calls_off) = got['on'], got['off']
+    assert 'M2Zone/masked' in scored_on and 'M2Zone/masked' not in scored_off and set(scored_off) == set(scored_on) - {'M2Zone/masked'} and len(scored_off) == 12
+    mark_views = data.block(batch, 'M2Mark', 'masked')['pos']
+    zone_views = data.block(batch, 'M2Zone', 'masked')['pos']
+    assert len(calls_on) == 1 and torch.equal(calls_on[0], torch.unique(torch.cat([mark_views, zone_views])))
+    assert len(calls_off) == 1 and torch.equal(calls_off[0], torch.unique(mark_views))
+    for key in ('M2Rate/masked', 'M2Mark/masked'):                                           # the shared M2 blocks do not read z: the same bits whichever model
+        assert torch.equal(scored_on[key][2].detach(), scored_off[key][2].detach()), key
+    assert not torch.equal(scored_on['M3Size/masked'][2].detach(), scored_off['M3Size/masked'][2].detach())      # M3 read z in the default (control)
+    # the STOP number leaves the zone block out as well: the number without it is the number with it minus the term of the block
+    stop = data.Batches(rows['STOP'], 100, 0, stats=stats, training=False)
+    full, without = train.evaluate_stop(on, stop, SCALES), train.evaluate_stop(on, stop, SCALES, zone_mark=False)
+    term = train.evaluate_stop_blocks(on, stop, SCALES)['blocks']['M2Zone/masked']['term']
+    assert term > 0 and without == pytest.approx(full - term, rel=1e-12) and without < full
+
+
+def test_zone_mark_on_default_is_bit_identical(tmp_path, rows, stats, base):
+    """zone_mark=True given explicitly is the default: the same blocks and losses, the same STOP number, the same run (weights, curves, every checkpoint part, the metric files, the head and the identity,
+    which has no zone_mark key), and a run that does not pass the setting at all gives them too."""
+    reference, folder = base
+    on, _ = zone_models()
+    batch = next(iter(data.Batches(rows['FIT'], 100, 0, stats=stats, training=False).epoch(0)))
+    fa = heads.FrameAveraged(on.eval()).eval()
+    with torch.no_grad():
+        enc = fa.encode(batch)
+        default, explicit = train.score_blocks(fa, enc, batch), train.score_blocks(fa, enc, batch, zone_mark=True)
+    assert list(default) == list(explicit) and all(torch.equal(default[k][2], explicit[k][2]) for k in default)
+    stop = data.Batches(rows['STOP'], 100, 0, stats=stats, training=False)
+    assert train.evaluate_stop(on, stop, SCALES) == train.evaluate_stop(on, stop, SCALES, zone_mark=True)
+    result = run(tmp_path / 'explicit', make_data(rows, stats), make_cfg(zone_mark=True))
+    assert_same_run(reference, result)
+    for epoch in range(1, EPOCHS + 1):
+        a, b = folder / f'epoch_{epoch:04d}', tmp_path / 'explicit' / f'epoch_{epoch:04d}'
+        for part in ('model', 'optimizer', 'rng'):                                                    # last.pt also holds the timings of the epochs, which are no bits to compare
+            assert_same_state(last_pt(folder, epoch)[part], last_pt(tmp_path / 'explicit', epoch)[part], f'epoch {epoch} {part}')
+        for name in ('epoch_metrics.csv', 'epoch_metrics.json'):
+            assert (a / name).read_bytes() == (b / name).read_bytes(), name
+        assert (a / 'best.pt').exists() == (b / 'best.pt').exists() and (not (a / 'best.pt').exists() or (a / 'best.pt').read_bytes() == (b / 'best.pt').read_bytes())
+    head = checkpoints(tmp_path / 'explicit')[-1][0]
+    assert set(head) == set(reference.head) and head['identity'] == reference.head['identity'] and 'zone_mark' not in head['identity'] and head['schema'] == 'ept_train_checkpoint_v6'
+    assert train.TrainConfig(encoder.EncoderConfig(d=16, layers=1, heads=2), 1e-3, 0.0, 1).zone_mark is True
+
+
+def test_zone_mark_is_a_boolean_setting_that_the_n2_model_cannot_take_off(tmp_path, rows, stats):
+    small = encoder.EncoderConfig(d=16, layers=1, heads=2)
+    assert train.TrainConfig(small, 1e-3, 0.0, 1, zone_mark=False).zone_mark is False
+    for bad in (None, 0, 1, 'no', 'False'):
+        with pytest.raises(ValueError, match='zone_mark'):
+            train.TrainConfig(small, 1e-3, 0.0, 1, zone_mark=bad)
+    from c_ept.comparison import models as comparison_models
+    log = []
+    with pytest.raises(ValueError, match='zone_mark'):
+        run(tmp_path / 'n2', make_data(rows, stats, log=log), make_cfg(zone_mark=False, model_spec=comparison_models.specification('n2', hidden=8)))
+    assert no_work(log) and not (tmp_path / 'n2').exists()                                       # refused before any work, before the first marker of the call is written (not by the model registry later)
+    ept = comparison_models.build_model(encoder.EncoderConfig(**SMALL_CFG), toy_static(), comparison_models.specification('ept'), zone_mark=False)
+    assert isinstance(ept, heads.EPT) and ept.heads.zone_mark is False
+    assert comparison_models.build_model(encoder.EncoderConfig(**SMALL_CFG), toy_static(), comparison_models.specification('ept')).heads.zone_mark is True
+    with pytest.raises(ValueError, match='zone_mark'):
+        comparison_models.build_model(encoder.EncoderConfig(**SMALL_CFG), toy_static(), comparison_models.specification('n2', hidden=8), zone_mark=False)
+
+
+@pytest.fixture(scope='module')
+def zone_off_run(tmp_path_factory, rows, stats):
+    folder = tmp_path_factory.mktemp('zone_off') / 'run'
+    return run(folder, make_data(rows, stats), make_cfg(zone_mark=False)), folder
+
+
+def test_a_run_without_the_zone_mark_trains_no_zone_part_and_scores_no_zone_block(zone_off_run, base, rows, stats):
+    """A7 run: the identity says zone_mark False and nothing else moves; no new column or schema; the zone table, the zone head's maps and its starting bias layer weights are what the seed made
+    (they get no gradient and no decay), while the default run moved them; the recorded STOP numbers are the ones of the twelve blocks."""
+    result, folder = zone_off_run
+    reference, ref_folder = base
+    identity = result.head['identity']
+    assert identity['zone_mark'] is False and {k: v for k, v in identity.items() if k != 'zone_mark'} == reference.head['identity']
+    assert result.head['schema'] == 'ept_train_checkpoint_v6' and set(result.head) == set(reference.head)
+    last = EPOCHS
+    assert (folder / f'epoch_{last:04d}' / 'epoch_metrics.csv').read_bytes().split(b'\n')[0] == (ref_folder / f'epoch_{last:04d}' / 'epoch_metrics.csv').read_bytes().split(b'\n')[0]     # the same columns
+    train.deterministic_cpu(seed=SEED)
+    initial = heads.EPT(encoder.EncoderConfig(**SMALL_CFG), toy_static()).state_dict()                  # the model the run started from, before the start biases
+    moved = lambda model, key: not torch.equal(model.state_dict()[key], initial[key])                   # noqa: E731
+    zone_keys = [k for k in initial if k.startswith('heads.zone_net.') and k != 'heads.zone_net.out.bias'] + ['heads.zone_emb.weight']
+    assert zone_keys and not any(moved(result.model, k) for k in zone_keys)
+    assert all(moved(reference.model, k) for k in zone_keys)                                          # control: the default run trains them
+    assert all(math.isfinite(v) for v in result.stop_losses) and result.stop_losses != reference.stop_losses
+    stop = make_data(rows, stats).stop
+    report = train.evaluate_stop_blocks(result.model, stop, SCALES, zone_mark=False)
+    assert 'M2Zone/masked' not in report['blocks'] and len(report['blocks']) == 12
+    assert report['loss_stop'] == pytest.approx(result.stop_losses[result.best_epoch], rel=1e-9) and report['loss_stop'] == train.evaluate_stop(result.model, stop, SCALES, zone_mark=False)
+
+
+def test_zone_mark_enters_the_identity_only_when_it_is_off_and_a_resume_under_the_other_setting_is_refused_both_ways(tmp_path, rows, stats, base, zone_off_run):
+    reference, _ = base
+    assert 'zone_mark' not in reference.head['identity'] and zone_off_run[0].head['identity']['zone_mark'] is False
+    for first, second in ((False, True), (True, False)):
+        folder = tmp_path / f'first_{first}'
+        with pytest.raises(Cut):
+            run(folder, make_data(rows, stats), make_cfg(zone_mark=first), check=cut_on(2))
+        identity = checkpoints(folder)[-1][0]['identity']
+        assert identity.get('zone_mark', True) is first
+        before, log = file_hashes(folder), []
+        with pytest.raises(ValueError, match='zone_mark'):
+            run(folder, make_data(rows, stats, log=log), make_cfg(zone_mark=second))
+        assert no_work(log) and file_hashes(folder) == before
+        resumed = run(folder, make_data(rows, stats), make_cfg(zone_mark=first))
+        assert resumed.epochs_run == EPOCHS
+        assert_same_run(zone_off_run[0] if first is False else reference, resumed)
+
+
+def test_shared_m2_blocks_are_reported_separately(rows, stats):
+    """D9 judges the zone mark on the M2Rate and M2Mark blocks that the zone term does not touch. ``evaluate_stop_blocks`` returns the STOP value of every block separately (the mean L_h in nat of
+    (TRN-2), its B0 scale and the term L_h / scale that Loss_STOP adds), the blocks add up to the STOP value of ``evaluate_stop`` bit for bit, ``shared_m2_blocks`` picks the two blocks, and the
+    values of the two blocks are those of the independent reference. The report is a call on the finished model: no column of the epoch record and no schema changes."""
+    on, off = zone_models()
+    stop = data.Batches(rows['STOP'], 5, 0, stats=stats, training=False)
+    report = train.evaluate_stop_blocks(on, stop, SCALES)
+    assert set(report) == {'loss_stop', 'blocks'} and report['loss_stop'] == train.evaluate_stop(on, stop, SCALES)
+    blocks = report['blocks']
+    assert list(blocks) == [k for k in loss.BLOCKS if k in blocks] and {'M2Rate/masked', 'M2Mark/masked', 'M2Zone/masked'} <= set(blocks)
+    total = None
+    for key, entry in blocks.items():
+        assert set(entry) == {'mean', 'scale', 'term'} and entry['scale'] == SCALES[key] and entry['term'] == entry['mean'] / SCALES[key] and entry['mean'] > 0, key
+        total = entry['term'] if total is None else total + entry['term']
+    assert total == report['loss_stop']
+    shared = train.shared_m2_blocks(report)
+    assert set(shared) == {'M2Rate/masked', 'M2Mark/masked'} and shared['M2Rate/masked'] == blocks['M2Rate/masked'] and shared['M2Mark/masked'] == blocks['M2Mark/masked']
+    assert shared['M2Rate/masked'] != shared['M2Mark/masked']                                   # two separate values, not a sum
+    for key in ('M2Rate/masked', 'M2Mark/masked', 'M2Zone/masked'):                              # the independent reference with every other block scaled away
+        only = {k: (1.0 if k == key else 1e300) for k in loss.BLOCKS}
+        assert blocks[key]['mean'] == pytest.approx(reference_stop(on, stop, only), rel=2e-5), key
+    # the zone mark does not change the shared blocks of a model (same weights), and without the zone block the report has twelve
+    without = train.evaluate_stop_blocks(off, stop, SCALES, zone_mark=False)
+    assert 'M2Zone/masked' not in without['blocks'] and without['blocks']['M2Rate/masked'] == blocks['M2Rate/masked'] and without['blocks']['M2Mark/masked'] == blocks['M2Mark/masked']
+    assert train.shared_m2_blocks(without) == shared
+    with pytest.raises(ValueError, match='M2Mark'):
+        train.shared_m2_blocks({'loss_stop': 1.0, 'blocks': {'M2Rate/masked': blocks['M2Rate/masked']}})
+
+
+def test_the_stop_evaluation_refuses_a_model_that_declares_no_zone_mark_when_asked_to_score_the_zone_block(rows, stats):
+    """M9 review m2: the model without the zone mark has an untrained M2Zone head; scoring it with the default zone_mark=True would add a meaningless block to the STOP value. Refused (for both
+    functions); the other direction (a model with the zone mark, zone_mark=False) is the D9 comparison and stays legal."""
+    on, off = zone_models()
+    stop = data.Batches(rows['STOP'], 100, 0, stats=stats, training=False)
+    for call in (train.evaluate_stop, train.evaluate_stop_blocks):
+        with pytest.raises(ValueError, match='zone_mark'):
+            call(off, stop, SCALES)
+        assert call(off, stop, SCALES, zone_mark=False) is not None and call(on, stop, SCALES, zone_mark=False) is not None

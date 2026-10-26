@@ -2,8 +2,10 @@ r"""Level clock against the frame level on a sample of 200 S1 matches, and how c
 
 What it measures: the same comparison as ``measure_levels`` (``traits.level_at`` against the frame level at every regular frame, counted
 per player-frame and split by cause) on a sample of the S1 matches, and, for every LEVEL_UP, how long before the next regular frame it
-happens (on exactly the frame's ms, within 10 ms, 100 ms, 1 s). The sample is the first 40 FIT matches and the first 20 matches of every
-other role per patch, by sorted key: 200 matches of the four patches 15.18-15.21.
+happens (on exactly the frame's ms, within 10 ms, 100 ms, 1 s). The sample is the first 40 FIT matches and the first 20 STOP and 20 DEV
+matches per patch, by sorted key (``common.sample_matches``; decision B21: no TEST, CAL, AUDIT, EXTERNAL or UNUSED match is read). The
+sample of 200 matches of the four patches 15.18-15.21 that the counts below were taken on was drawn before this restriction and also held
+the other roles.
 
 Input: the S1 run folder (or its ``s1`` store), for the list of its matches; the raw matches are read with ``reader.read_match`` and its
 default root. ``--limit N`` reads only the first N of the sample. Output: counts only, on stdout and with ``--out FILE`` as JSON; no match

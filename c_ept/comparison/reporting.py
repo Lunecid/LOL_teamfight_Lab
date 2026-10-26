@@ -33,6 +33,14 @@ def rows(pairs):
                        'reason':structural['reason']}
 
 
+def _number(value):
+    return 'unavailable' if value is None else f'{float(value):.6g}'
+
+
+def _interval(ci95):
+    return 'unavailable' if ci95 is None else f'[{float(ci95[0]):.6g}, {float(ci95[1]):.6g}]'
+
+
 def write_report(pairs, output, *, provenance):
     output=Path(output)
     output.mkdir(parents=True,exist_ok=True)
@@ -40,10 +48,17 @@ def write_report(pairs, output, *, provenance):
     decisions={}
     for pair in ('ept_vs_b1','ept_vs_n2'):
         m=pairs[pair]['structural_normalized_nll']['metrics']
+        # The summary's 'b1' column is the comparator slot of each pair, not always B1: in ept_vs_n2
+        # (comparison.evaluation.neural_pair) it holds N2. The real comparator is named by model_labels.
+        comparator=pairs[pair]['model_labels']['b1']
         if m is None or any(m[k]['estimate'] is None for k in ('ept','b1')):
-            decisions[pair]={'status':'unavailable','inference':'diagnostic_only','confirmed_success':False}
+            decisions[pair]={'status':'unavailable','comparator':comparator,
+                             'inference':'diagnostic_only','confirmed_success':False}
         else:
-            decisions[pair]=pilot_decision(m['ept']['estimate'],m['b1']['estimate'])
+            # Decide on the paired structural difference and its paired match bootstrap interval
+            # (both already computed by summarize_endpoints), never on the point sign alone.
+            decisions[pair]=pilot_decision(m['delta']['estimate'],m['delta']['ci95'],m['ci_status'],
+                                           comparator_label=comparator)
     record={'schema':'ept-matched25-report-v1','pairs':pairs,'provenance':provenance,
             'decisions':decisions,'interpretation':'diagnostic_only',
             'claims':'Single neural seed and fixed B1 seed1; no confirmatory architecture claim.'}
@@ -53,10 +68,13 @@ def write_report(pairs, output, *, provenance):
         writer=csv.DictWriter(stream,fieldnames=columns);writer.writeheader();writer.writerows(flat)
     lines=['# EPT·B1·N2 matched25 비교','',
            '단일 seed 진단이다. 같은25% predictor fit과 공유 whole-FIT 고정 assets 조건부 비교이며 최종 논문 성공 판정이 아니다.','',
-           '| 비교 | 공통8-head 정규화 NLL 차이(EPT−대조) | 진단 |','|---|---:|---|']
+           '| 비교 | 대조 | 공통8-head 정규화 NLL 차이(EPT−대조) | 95% 구간(짝지은 경기 bootstrap) | 진단 |',
+           '|---|---|---:|---:|---|']
     for key,d in decisions.items():
-        lines.append(f"| {key} | {d.get('difference','unavailable')} | {d['status']} |")
-    lines += ['', '경기 가중 pooled AUC·Brier/조건부 NLL은 CSV/JSON의 각 module/layer/endpoint를 확인한다.',
+        lines.append(f"| {key} | {d['comparator']} | {_number(d.get('difference'))} | {_interval(d.get('ci95'))} | {d['status']} |")
+    lines += ['', '진단 규칙: 95% 구간 상한이 0보다 작으면 provisional_improvement, 하한이 0보다 크면 diagnose_before_expansion이다.',
+              '구간이 0을 포함하거나 구간이 없거나 유효하지 않으면 inconclusive이며 동등성이 아니다.',
+              '경기 가중 pooled AUC·Brier/조건부 NLL은 CSV/JSON의 각 module/layer/endpoint를 확인한다.',
               '음의 손실 차이는 EPT에 유리하다. 유의성·동등성·인과 효과·최종 수렴을 주장하지 않는다.',
               '학습 loss와 STOP 평가의 정의를 구분하고, missing/unavailable을0으로 바꾸지 않는다.']
     (output/'REPORT_KO.md').write_text('\n'.join(lines)+'\n',encoding='utf-8')

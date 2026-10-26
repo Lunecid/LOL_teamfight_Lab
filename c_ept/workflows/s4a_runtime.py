@@ -10,6 +10,12 @@ from pathlib import Path
 
 RUNTIME_POLICY_VERSION = 1
 
+# 해석: 실패한 실행의 PROCESS.json에 남기는 exception_type(예외 클래스 이름)의 형식이다. 쓰는 쪽(run_s4a._process_record)이 이 형식에 맞는 이름만
+# 기록하고, 읽는 쪽(s4a_operator.validate_process_metadata)이 같은 식으로 검사하므로 기록된 실패가 이름 때문에 메타데이터 거부로 바뀌지 않는다.
+# 점 없는 ASCII 식별자 128자 이하이다. 표준 라이브러리만 쓰는 tools/ept_training_monitor.py는 다른 소스 체크아웃에 속할 수 있어 같은 식을
+# 자기 상수로 두며, 둘이 같은지는 시험(test_monitor_accepts_the_longest_class_name_and_keeps_the_pattern_of_the_runner)이 확인한다.
+EXCEPTION_TYPE_PATTERN = r'[A-Za-z_][A-Za-z0-9_]{0,127}'
+
 
 class RuntimeRefused(ValueError):
     """Unsupported native policy or unavailable/active E6 evidence."""

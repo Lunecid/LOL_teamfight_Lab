@@ -7,8 +7,9 @@ middle one and the last; they coincide in a short match, so the set collapses; c
 with an unknown item). A match that raises is counted by the error's class and the code position (never its message, which
 could hold a key).
 
-Input: the S1 run folder (or its ``s1`` store); the matches are those of its store (28,701 for the S1 run of 2026-10-20). They are read with
-``reader.read_match`` and its default root. ``--workers N`` (default 6; 1 runs in this process) and ``--limit N`` (the first N matches, a
+Input: the S1 run folder (or its ``s1`` store); the matches are those of its store with the role FIT, STOP or DEV (``common.QA_ROLES``,
+decision B21: TEST, CAL, AUDIT, EXTERNAL and UNUSED matches are not read; the counts of 2026-10-20 below were taken over all 28,701 matches
+of the S1 run, before this restriction). They are read with ``reader.read_match`` and its default root. ``--workers N`` (default 6; 1 runs in this process) and ``--limit N`` (the first N matches, a
 smoke test). Output: counts only, on stdout and with ``--out FILE`` as JSON; no key or identifier is printed or written, and nothing is
 written into the S1 run. Refuses to start while a Strata server runs (E6), and checks it once, before the pool starts.
 
@@ -116,7 +117,10 @@ def work(pairs):
 
 
 def main(argv=None) -> int:
-    """S1–S2 판정 R37의 목록을 묶음으로 나누어 집계하며, E6 시작 검사는 작업자 풀을 만들기 전에 수행한다."""
+    """S1–S2 판정 R37의 목록을 묶음으로 나누어 집계하며, E6 시작 검사는 작업자 풀을 만들기 전에 수행한다.
+
+    결정 B21: 목록은 QA 역할(FIT·STOP·DEV)의 경기만이고 --limit은 그 목록의 앞부분이다. 다른 역할의 원시 기록은 열지 않는다.
+    """
     ap = common.arguments(__doc__, limit=True)
     ap.add_argument('--workers', type=int, default=6, help='worker processes (1: everything in this process)')
     args = common.parse(ap, argv)
@@ -125,7 +129,7 @@ def main(argv=None) -> int:
     except run_s1.StrataRunning as e:
         return common.refuse(str(e))
     try:
-        matches = common.s1_matches(args.run)[:args.limit]
+        matches = common.s1_matches(args.run, roles=common.QA_ROLES)[:args.limit]       # B21: FIT, STOP and DEV only
     except FileNotFoundError as e:
         return common.refuse(str(e))
     chunks = [[(patch, key) for key, patch, _ in matches[i:i + CHUNK]] for i in range(0, len(matches), CHUNK)]

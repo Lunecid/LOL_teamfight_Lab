@@ -73,7 +73,10 @@ class UnitTable:
     - comp: 각 교전 단위에 속한 KillTable 행 인덱스들의 배열 리스트
     - f: 교전의 첫 번째 킬 발생 시각 (First kill timestamp, ms)
     - last: 교전의 마지막 킬 발생 시각 (Last kill timestamp, ms)
-    - tau: 교전 직전 분석 기준 시점 (tau = f - 15초, 예측 모델의 입력 snapshot 기준점)
+    - tau: 교전 시작 규칙 앵커 (tau = f - 15초). O(오브젝트)의 귀속 창 [tau, delta)의 시작점을 정의하는 데에만 쓴다 (설계서 §3.1).
+           K는 교전 성분 자신의 킬이라 귀속 창이 없으며, 그 킬은 모두 [f, last] ⊂ [tau, delta)에 있다.
+           뒤 흐름(전환)의 창 (delta, delta + 60초]는 별개이며 tau는 그 창의 경계가 아니다.
+           모델 입력의 snapshot 시점이 아니다: 입력은 프레임 시계의 t0 또는 사건 시계의 f / delta에서 취한다.
     - delta: 교전 종료 및 결과 확정 시점 (delta = max(last + 1ms, f + 20초))
     - nb, nr: 해당 교전에 참여한 블루팀/레드팀 인원수 (킬러, 피해자, 어시스트 포함)
     - size: 교전 규모 분류 코드 (0: T, 1: S, 2: ASYM, 3: P)
@@ -334,7 +337,8 @@ def build_units(k: KillTable, team: np.ndarray, T_ms: int) -> UnitTable:
     3. 각 교전의 시간 시계(Clock anchors) 계산:
        - f: 첫 킬 시각 (First kill time)
        - last: 마지막 킬 시각 (Last kill time)
-       - tau = f - 15,000ms: 교전 직전 스냅샷 시점 (예측 모델의 입력 기준점)
+       - tau = f - 15,000ms: 교전 시작 규칙 앵커 (O의 귀속 창 [tau, delta)의 시작점이며, 모델 입력 시점이 아님; K는 교전 성분의 킬로
+         모두 [f, last] ⊂ [tau, delta)에 있음; 뒤 흐름 전환 창 (delta, delta + 60초]는 별개; 설계서 §3.1)
        - delta = max(last + 1ms, f + 20,000ms): 교전 결과 수렴 시점
     4. 블루팀/레드팀 고유 참여 인원수(nb, nr) 집계 및 교전 규모(size: T/S/ASYM/P) 분류
     5. 선제 킬 표지(mark: 0~51) 및 교전 지리적 분산도(spread) 산출
@@ -372,7 +376,7 @@ def build_units(k: KillTable, team: np.ndarray, T_ms: int) -> UnitTable:
         comp=comp,
         f=f,
         last=last,
-        tau=f - C.TAU_LEAD_MS,                                   # 첫 킬 15초 전 시점 (모델 입력 snapshot)
+        tau=f - C.TAU_LEAD_MS,                                   # 첫 킬 15초 전 규칙 앵커: 귀속 창 [tau, delta)의 시작 (입력 시점 아님)
         delta=np.maximum(last + 1, f + C.DELTA_AFTER_F_MS),      # 교전 결과 확정 시점 (해상도 컷오프)
         nb=nb,
         nr=nr,

@@ -1544,15 +1544,36 @@ def test_the_size_of_a_call_does_not_change_the_b0_closed_form_beyond_rounding(b
         assert b0_composer.expect(idx) == pytest.approx(ref, rel=1e-12), rows
 
 
+MIN_ONSETS = 30        # a heuristic: fewer expected onsets than this in the S simulations of a horizon cell, and its z is not a normal statistic
+
+
 def test_the_b0_simulation_agrees_with_the_b0_closed_form(b0_composer):
     idx = sane_rows(b0_composer, 3)
     r, e = b0_composer.simulate(idx), b0_composer.expect(idx)
     # G-S3b B2-a: with a state vector for each window the B0 heads of the random world give some rows a first-minute rate of 5e-9: no draw
     # has an onset in 60 s, the simulation has sd 0 there and no standard error, and the closed form is the value of an event that
-    # almost never happens (-1e-5 gold). Such a cell is held to 0.01 gold; the others to four standard errors, as before.
-    flat = r.sd == 0.0
-    z = (r.mean - e) / np.where(flat, 1.0, r.sd / np.sqrt(b0_composer.S))
-    assert np.abs(z[~flat]).max(initial=0.0) < 4.0, z
+    # almost never happens (-1e-5 gold).
+    #
+    # M0 (EPT-T012, D22): the z of a mean, z = (V-hat - E V) / (sd / sqrt(S)), is a normal approximation that needs onsets. A cell
+    # with few expected onsets in the S simulations (c = S x E[N(H)] < MIN_ONSETS, E[N(H)] of formula COMP-8) has a sample sd of a
+    # handful of heavy-tailed values: a first-minute rate of 1e-4 per bin gives about 3 onsets in S = 4000, and the object value of an
+    # onset has a mean of about 1e5 gold carried by cells of probability a few percent, so four onsets gave z = -18 for a closed form that
+    # agrees with the simulation bin by bin and term by term when the onset count is forced. With no onset in the S draws (probability
+    # e^-c) the sample sd is 0 as well, so a few-onset cell never gets the sd-0 bound of 0.01 gold: that bound has the scale of an event
+    # that almost never happens, not of this cell. Such a cell is held to four standard errors of the longest horizon of its row. The
+    # onsets of a shorter horizon are among those of H = 180 s; the bins are independent Poisson counts with i.i.d. marks, so V(H) is a
+    # compound Poisson sum and
+    #     Var V(H) = sum_{q < H/10 s} lambda_q Delta_q E[v_q^2]  <=  Var V(180 s),
+    # every term being >= 0 whatever the sign of v. The 180-s standard error (thousands of onsets) therefore bounds the true standard
+    # error of the cell. Cells with at least MIN_ONSETS expected onsets keep the test of four standard errors of their own sd, as before.
+    S = b0_composer.S
+    onsets = S * b0_composer.expected_onsets(idx)                           # (rows, 3): expected onsets in the S simulations (COMP-8)
+    assert (onsets[:, -1] >= MIN_ONSETS).all() and (r.sd[:, -1] > 0).all(), (onsets, r.sd)       # the 180-s column is the yardstick
+    few = onsets < MIN_ONSETS                                               # with or without realised onsets
+    flat = (r.sd == 0.0) & ~few                                             # many expected onsets and sd 0: held to 0.01 gold
+    se = np.where(few, (r.sd / np.sqrt(S))[:, -1:], r.sd / np.sqrt(S))
+    z = (r.mean - e) / np.where(flat, 1.0, se)
+    assert np.abs(z[~flat]).max(initial=0.0) < 4.0, (z, onsets)
     assert (np.abs(r.mean - e)[flat] < 0.01).all(), (r.mean, e)
 
 
@@ -1762,3 +1783,255 @@ def test_the_e6_check_must_be_a_function_or_none_and_compose_does_not_import_run
             c.expect([0], check=bad)
     assert c.expect([0], check=None).shape == (1, 3) and c.expected_onsets([0], check=lambda: None).shape == (1, 3)
     assert 'c_ept.run_s1' not in all_imports(SOURCE)                                      # the runner passes run_s1.require_no_strata
+
+
+# =====================================================================================================================================
+# the composer without the zone mark (S4b preparation M9, decision D9)
+# =====================================================================================================================================
+class ZoneSpyHeads(ToyHeads):
+    """``ToyHeads`` (the laws do not depend on z) that counts the calls of ``zone_prob`` and writes down every z that the other heads are asked about."""
+
+    def __init__(self, **kw):
+        super().__init__(**kw)
+        self.zone_calls, self.z_seen = 0, []
+
+    def zone_prob(self, rows, q, m):
+        self.zone_calls += 1
+        return super().zone_prob(rows, q, m)
+
+    def size_prob(self, rows, q, m, z):
+        self.z_seen.append(np.asarray(z))
+        return super().size_prob(rows, q, m, z)
+
+    def kill_rate(self, rows, q, m, z, s):
+        self.z_seen.append(np.asarray(z))
+        return super().kill_rate(rows, q, m, z, s)
+
+    def gold_prob(self, rows, q, m, z, s, layer):
+        self.z_seen.append(np.asarray(z))
+        return super().gold_prob(rows, q, m, z, s, layer)
+
+    def obj_rate(self, rows, q, m, z, s, K):
+        self.z_seen.append(np.asarray(z))
+        return super().obj_rate(rows, q, m, z, s, K)
+
+    def conv_rate(self, m4_inputs):
+        self.z_seen.append(self._m4_codes(m4_inputs)[2])
+        return super().conv_rate(m4_inputs)
+
+
+def test_a_composer_without_the_zone_mark_draws_no_z_and_keeps_the_other_draws():
+    """A7: ``zone_mark=False`` never asks the heads for the zone law and feeds the constant z = -1 ("no position", a value every head accepts) to the others, while the random stream is the same
+    (the second uniform column is drawn and not used), so every other draw of every row equals the draw of the default composer on heads that do not read z. The default draws z from the law."""
+    on_heads, off_heads = ZoneSpyHeads(), ZoneSpyHeads()
+    on, off = toy_composer(S=200, seed=9, heads=on_heads), toy_composer(S=200, seed=9, heads=off_heads, zone_mark=False)
+    assert on.zone_mark is True and off.zone_mark is False
+    drawn = 0
+    for i in range(len(on.rows)):
+        a, b = on.simulate_onsets(i), off.simulate_onsets(i)
+        assert len(a.z) == len(b.z)
+        drawn += len(a.z)
+        assert (b.z == -1).all() and b.z.dtype == a.z.dtype
+        for field in ('sim', 'q', 'm', 's', 'k', 'gold_bin', 'gold', 'O', 'conv', 'value'):
+            assert np.array_equal(getattr(a, field), getattr(b, field)), (i, field)
+    assert drawn > 0 and on_heads.zone_calls > 0 and off_heads.zone_calls == 0
+    assert off_heads.z_seen and all((z == -1).all() for z in off_heads.z_seen)
+    assert any((z >= 0).any() for z in on_heads.z_seen) and all(((z >= 0) & (z <= 9)).all() for z in on_heads.z_seen if len(z))
+
+
+def test_a_composer_without_the_zone_mark_has_the_closed_form_over_the_one_value_of_z():
+    """The closed form (COMP-6) sums over z with the zone law; without the zone mark the sum has one value z = -1 of weight 1. For heads that do not read z (the zone law of the toy heads is uniform) it
+    is the sum of the default composer, up to the rounding of ten equal weights, and the zone law is not asked."""
+    on_heads, off_heads = ZoneSpyHeads(), ZoneSpyHeads()
+    on, off = toy_composer(S=20, heads=on_heads), toy_composer(S=20, heads=off_heads, zone_mark=False)
+    np.testing.assert_allclose(off.expect(TOY_ROWS), on.expect(TOY_ROWS), rtol=1e-12, atol=1e-9)
+    assert on_heads.zone_calls > 0 and off_heads.zone_calls == 0
+    assert off_heads.z_seen and all((z == -1).all() for z in off_heads.z_seen)
+    assert {int(v) for z in on_heads.z_seen for v in z} == set(range(10))                      # the default sums over the ten zones
+
+
+def test_the_default_composer_is_the_composer_with_zone_mark_true_and_the_setting_is_a_keyword_only_boolean():
+    import inspect
+    parameter = inspect.signature(compose.Composer.__init__).parameters['zone_mark']
+    assert parameter.default is True and parameter.kind is inspect.Parameter.KEYWORD_ONLY
+    default, explicit = toy_composer(S=60, seed=3), compose.Composer(ToyHeads(), TOY_COMPOSE_PRICES, toy_tier_model(), TOY_GOLD_REPS, toy_row_table(), None, S=60, seed=3, zone_mark=True)
+    assert default.zone_mark is True
+    assert np.array_equal(default.expect(TOY_ROWS), explicit.expect(TOY_ROWS)) and np.array_equal(default.simulate(TOY_ROWS).mean, explicit.simulate(TOY_ROWS).mean)
+    for i in range(len(default.rows)):
+        a, b = default.simulate_onsets(i), explicit.simulate_onsets(i)
+        assert all(np.array_equal(getattr(a, f), getattr(b, f)) for f in ('sim', 'q', 'm', 'z', 's', 'k', 'gold_bin', 'gold', 'O', 'conv', 'value'))
+    for bad in (None, 0, 1, 'no'):
+        with pytest.raises(ValueError, match='zone_mark'):
+            compose.Composer(ToyHeads(), TOY_COMPOSE_PRICES, toy_tier_model(), TOY_GOLD_REPS, toy_row_table(), None, S=20, zone_mark=bad)
+
+
+def test_the_composer_checks_the_zone_mark_of_heads_that_declare_one_before_it_binds_them_and_leaves_the_others_alone():
+    """The EPT composer heads declare the zone mark of their model (``heads.zone_mark``): a mismatch with the composer is refused before ``bind`` (the heads were trained with z as a condition or without it, and
+    the composer would draw z or leave it out the other way round). Heads that declare none (the toy heads, the B0 and B1 chains) are not checked."""
+    class Declaring(ToyHeads):
+        def __init__(self, declared):
+            super().__init__()
+            self.zone_mark = declared
+    for declared, asked, ok in ((True, True, True), (False, False, True), (False, True, False), (True, False, False)):
+        heads_ = Declaring(declared)
+        if ok:
+            toy_composer(heads=heads_, zone_mark=asked)
+            assert heads_.n_bind == 1
+        else:
+            with pytest.raises(ValueError, match='zone_mark'):
+                toy_composer(heads=heads_, zone_mark=asked)
+            assert heads_.n_bind == 0
+    for asked in (True, False):
+        toy_composer(heads=ToyHeads(), zone_mark=asked)
+
+
+# =====================================================================================================================================
+# the nominal exposure (S4b preparation M12, decision D14): the composition of a t0 forecast without the end of the game T
+# =====================================================================================================================================
+def composer_digest(c) -> str:
+    """sha256 of everything a composer says about its rows: the closed form (heads that have one), the expected onsets, the summary of the simulation (mean, sd, 19 quantiles) and the raw onsets of every row,
+    each array with its dtype and shape. Two composers with the same digest are the same bit for bit."""
+    import hashlib
+    h, n = hashlib.sha256(), len(c.rows)
+
+    def put(a):
+        a = np.ascontiguousarray(a)
+        h.update(a.tobytes() + str(a.dtype).encode() + str(a.shape).encode())
+    if c.heads.analytic_ok and not c.heads.obj_uses_K and not c.heads.conv_uses_KO:
+        put(c.expect(range(n)))
+    put(c.expected_onsets(range(n)))
+    r = c.simulate(range(n))
+    for part in (r.mean, r.sd, r.q19):
+        put(part)
+    for i in range(n):
+        d = c.simulate_onsets(i)
+        for field in ('sim', 'q', 'm', 'z', 's', 'k', 'gold_bin', 'gold', 'O', 'conv', 'value'):
+            put(getattr(d, field))
+    return h.hexdigest()
+
+
+# The digests of the composers below as the code before the nominal exposure (526c2b1) gives them: the default must stay these bits.
+BASE_DIGEST_TOY = 'a605476084fe5d3b68b183ef281bee7abdc08af6d1e97eb6a959871fa1a7bc76'
+BASE_DIGEST_RICH = '99e1953027bb95998a12a0c4fe1dce3ed00401a427d9c03cf658a94abc4b1a57'
+
+
+def toy_default():
+    return toy_composer(S=120, seed=3)
+
+
+def rich_default():
+    return rich_composer(S=150, seed=5)
+
+
+def test_the_default_composer_gives_the_bits_of_the_code_before_the_nominal_exposure():
+    """The pin of ``test_observed_default_is_bit_identical``: the digest of the default composers (toy heads; rich heads with a tower state, a cut game and a short game) taken from the unmodified code."""
+    assert composer_digest(toy_default()) == BASE_DIGEST_TOY
+    assert composer_digest(rich_default()) == BASE_DIGEST_RICH
+
+
+def test_observed_default_is_bit_identical():
+    """``exposure='observed'`` is the default and the explicit keyword changes nothing: the closed form, the expected onsets, the simulation and every raw draw are the same bit for bit (the digest of the
+    unmodified code is pinned above), also in worker processes and blocks."""
+    import inspect
+    parameter = inspect.signature(compose.Composer.__init__).parameters['exposure']
+    assert parameter.default == 'observed' and parameter.kind is inspect.Parameter.KEYWORD_ONLY
+    for make, pinned in ((toy_default, BASE_DIGEST_TOY), (rich_default, BASE_DIGEST_RICH)):
+        explicit = make()
+        again = compose.Composer(explicit.heads.__class__(), explicit.prices, explicit.tier_model, explicit.gold_reps, explicit.rows, None, S=explicit.S, seed=explicit.seed, exposure='observed')
+        assert again.exposure == 'observed' and make().exposure == 'observed'
+        assert composer_digest(again) == composer_digest(make()) == pinned
+    c = compose.Composer(ToyHeads(), TOY_COMPOSE_PRICES, toy_tier_model(), TOY_GOLD_REPS, toy_row_table(), None, S=60, seed=3, exposure='observed')
+    d = toy_composer(S=60, seed=3)
+    assert np.array_equal(c.expect(TOY_ROWS, block=2, workers=2), d.expect(TOY_ROWS)) and np.array_equal(c.simulate(TOY_ROWS, block=2, workers=2).q19, d.simulate(TOY_ROWS).q19)
+
+
+@pytest.mark.parametrize('bad', [None, '', 'Nominal', 'full', 1, True, ('nominal',), b'nominal'])
+def test_the_exposure_is_observed_or_nominal_and_nothing_else_and_is_checked_before_the_heads_are_bound(bad):
+    heads_ = ToyHeads()
+    with pytest.raises(ValueError, match='exposure'):
+        compose.Composer(heads_, TOY_COMPOSE_PRICES, toy_tier_model(), TOY_GOLD_REPS, toy_row_table(), None, S=20, exposure=bad)
+    assert heads_.n_bind == 0
+    assert compose.EXPOSURES == ('observed', 'nominal')
+
+
+FAR = 100_000.0              # the game ends 100,000 s after t0: no occurrence bin is cut and no conversion window is cut
+
+
+def far_specs(specs):
+    """The same t0 as ``specs`` with a game end so far away that the observed exposure is the nominal one (10 s per occurrence bin, 60 s of conversion window for every bin)."""
+    return tuple((t0, t0 + FAR) for t0, _ in specs)
+
+
+def test_nominal_exposure_is_the_observed_exposure_of_a_game_that_ends_far_away_bit_for_bit():
+    """Under the nominal exposure the occurrence mass of a bin is the rate x 10 s and the conversion window is 60 s, whatever the game end of the row is: a composer of rows that are cut by T gives the very bits
+    of the observed composer of the same rows with a game end far away (same t0, same frame rows, so the same random stream). Closed form, expected onsets, simulation and the raw draws."""
+    for specs in (RICH_SPECS, SHORT_SPECS):
+        nominal = rich_composer(S=150, seed=5, specs=specs, exposure='nominal')
+        far = rich_composer(S=150, seed=5, specs=far_specs(specs))
+        assert nominal.exposure == 'nominal' and far.exposure == 'observed'
+        assert composer_digest(nominal) == composer_digest(far)
+    cut = toy_composer(S=120, seed=3, exposure='nominal')
+    assert composer_digest(cut) == composer_digest(toy_composer(S=120, seed=3, rows=toy_row_table(far_specs(TOY_ROW_SPECS))))
+
+
+def test_nominal_exposure_differs_from_the_observed_exposure_of_the_cut_rows():
+    """Control of the test above: the observed composition of the cut rows is another composition (otherwise the equality would prove nothing)."""
+    assert composer_digest(rich_composer(S=150, seed=5, exposure='nominal')) != composer_digest(rich_composer(S=150, seed=5))
+    observed, nominal = toy_composer(S=120, seed=3), toy_composer(S=120, seed=3, exposure='nominal')
+    assert not np.array_equal(observed.expected_onsets(TOY_ROWS), nominal.expected_onsets(TOY_ROWS))
+
+
+def test_the_nominal_occurrence_mass_is_the_rate_times_ten_seconds_in_all_eighteen_bins():
+    """(COMP-2n) lambda_q x 10 s in every bin, also in the bins that the game end leaves without observation: the rows with no exposure from the bin 12 on have onsets there, and the expected onsets are
+    rate x 10 s x (6, 12, 18)."""
+    rows = rows_with_zero_tail_from_bin(12)
+    assert simulated_onset_bins(toy_composer(rows=rows)).max() < 12
+    nominal = toy_composer(rows=rows, exposure='nominal')
+    assert simulated_onset_bins(nominal).max() >= 12
+    assert np.allclose(nominal.expected_onsets(range(len(rows))), np.array([0.01 * 10.0 * b for b in H_BINS]))
+
+
+def test_the_nominal_conversion_window_is_sixty_seconds_for_every_bin_and_the_closed_form_is_the_note_03_number_for_every_row_at_the_same_t0():
+    """(COMP-5n) e_q = 60 s: the rows 0, 1, 2 and 4 of the toy have t0 = 1,000 s and ends of the game from 1,075 to 5,000 s; observed they give 32.16 for row 0 and 22.12 for row 1 (note 03 E), nominal all of them
+    give the number of the row far from the end. The row 3 (t0 = 1,500 s) is a row of another time, as in the observed composer."""
+    nominal = toy_composer(S=20, exposure='nominal')
+    observed = toy_composer(S=20)
+    e_nominal, e_observed = nominal.expect(TOY_ROWS), observed.expect(TOY_ROWS)
+    assert e_nominal[0, 0] == pytest.approx(TOY_EXPECTED_V60) and e_observed[1, 0] == pytest.approx(TOY_EXPECTED_V60_CUT)
+    for i in (1, 2, 4):
+        assert np.array_equal(e_nominal[i], e_nominal[0])
+    assert np.array_equal(e_nominal[0], e_observed[0])
+
+
+def test_the_nominal_composer_reads_neither_the_end_of_the_game_nor_the_observed_exposure_of_its_rows():
+    """The fields stay on the row table (the RED tests of the leakage file need them) but the nominal composer does not read them: with both replaced by None after the composer was made, every output is the
+    output of the untouched composer. The control: the observed composer cannot work with the same tampering."""
+    ref = composer_digest(rich_composer(S=100, seed=2, exposure='nominal'))
+    tampered = rich_composer(S=100, seed=2, exposure='nominal')
+    object.__setattr__(tampered.rows, 'T_ms', None)
+    object.__setattr__(tampered.rows, 'exposure_ms', None)
+    assert composer_digest(tampered) == ref
+    spoiled = rich_composer(S=100, seed=2)
+    object.__setattr__(spoiled.rows, 'T_ms', None)
+    object.__setattr__(spoiled.rows, 'exposure_ms', None)
+    with pytest.raises(TypeError):
+        spoiled.expected_onsets([0])
+
+
+def test_the_nominal_composer_does_not_call_the_conversion_exposure_function(monkeypatch):
+    def forbidden(*args, **kwargs):
+        raise AssertionError('the nominal composer must not compute the T-cut conversion exposure')
+    monkeypatch.setattr(compose, 'conv_exposure_s', forbidden)
+    c = toy_composer(S=30, exposure='nominal')
+    c.expect(TOY_ROWS)
+    c.simulate(TOY_ROWS)
+    with pytest.raises(AssertionError):
+        toy_composer(S=30).expect(TOY_ROWS)
+
+
+def test_the_nominal_composer_gives_the_same_bits_with_blocks_and_worker_processes():
+    a = toy_composer(S=60, seed=4, exposure='nominal')
+    b = toy_composer(S=60, seed=4, exposure='nominal')
+    assert np.array_equal(a.expect(TOY_ROWS), b.expect(TOY_ROWS, block=2, workers=2))
+    assert np.array_equal(a.simulate(TOY_ROWS).sd, b.simulate(TOY_ROWS, block=1, workers=2).sd)
+    assert np.array_equal(pickle.loads(pickle.dumps(a)).expect(TOY_ROWS), a.expect(TOY_ROWS)) and pickle.loads(pickle.dumps(a)).exposure == 'nominal'

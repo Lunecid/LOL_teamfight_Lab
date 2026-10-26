@@ -322,3 +322,335 @@ def test_later_v5_head_refused_after_any_prior_v6(tmp_path, remove_previous_file
     (folder/'head.json').write_bytes(cp.json_bytes(head))
     with pytest.raises(RuntimeError,match='downgrade'):
         cp.latest_metadata(tmp_path)
+
+
+# ---- the v7 head and the epoch-metrics-v2 snapshot: one kappa column for each decay scale under decay_groups='split' (S4b preparation M4, decision D6) ----
+KAPPAS = [[5.0, 20.0], [5.25, 19.5], [5.5, 19.0]]
+
+
+def fixture_state_v7(stops=(4., 3.), *, kappas=KAPPAS, n2=False, horizon=4, patience=2):
+    """The fixture of a run under ``decay_groups='split'`` with two decay scales: the v7 head, an identity that names the policy and a loop with the record of kappa."""
+    head, loop = fixture_state(stops, horizon=horizon, patience=patience)
+    head['schema'] = em.HEAD_SCHEMA_V7
+    head['identity'] = {**head['identity'], 'encoder': {'kappas': 2}, 'decay_groups': 'split', 'decay_groups_sha256': 'a' * 64}
+    if n2:
+        head['identity']['model_spec'] = {'architecture': 'n2_teamset_v1', 'n2_hidden': 8, 'prefetch': 0, 'precision': 'float32_strict'}
+    loop['kappa'] = [None if n2 else list(kappas[i]) for i in range(len(stops))]
+    return head, loop
+
+
+def save_v7(root, stops=(4., 3.), **kwargs):
+    head, loop = fixture_state_v7(stops, **kwargs)
+    files = {'last.pt': b'last', 'best.pt': b'best', **em.encode(loop, head)}
+    return cp.save_checkpoint(root, len(stops), files, head)
+
+
+def test_the_v6_names_and_columns_are_unchanged_and_the_v7_ones_are_new():
+    assert em.HEAD_SCHEMA == 'ept_train_checkpoint_v6' and em.SCHEMA == 'epoch-metrics-v1' and em.HEAD_SCHEMA_V7 == 'ept_train_checkpoint_v7'
+    assert em.COLUMNS == ('epoch', 'epoch_index', 'fit_batch_mean_loss', 'stop_loss', 'lr_last_step') and em.HEAD_SCHEMAS == (em.HEAD_SCHEMA, em.HEAD_SCHEMA_V7, em.HEAD_SCHEMA_V8)     # v8 added by S4b preparation M6
+    assert em.head_schema({'patience': 2}) == em.HEAD_SCHEMA and em.head_schema({'decay_groups': 'all'}) == em.HEAD_SCHEMA and em.head_schema({'decay_groups': 'split'}) == em.HEAD_SCHEMA_V7
+    head, loop = fixture_state()                                       # a v6 head: no kappa column whatever the loop holds
+    loop['kappa'] = [[1.0], [2.0]]
+    doc = em.snapshot(loop, head)
+    assert doc['schema'] == em.SCHEMA and all(set(row) == set(em.COLUMNS) for row in doc['rows'])
+    assert em.csv_bytes(doc['rows']).decode('utf-8').split('\n')[0] == ','.join(em.COLUMNS) and em.DEFINITIONS.keys() < em.DEFINITIONS_V2.keys()
+
+
+def test_v7_rows_carry_one_kappa_column_for_each_decay_scale_in_json_and_csv_and_survive_the_head_last_round_trip(tmp_path):
+    folder, head, _ = save_v7(tmp_path)
+    found_folder, found_head, doc = cp.latest_metadata(tmp_path)
+    assert found_folder == folder and found_head == head and head['schema'] == em.HEAD_SCHEMA_V7
+    columns = (*em.COLUMNS, 'kappa_0', 'kappa_1')
+    assert doc['schema'] == em.SCHEMA_V2 and doc['definitions'] == em.DEFINITIONS_V2 and 'kappa_i' in doc['definitions']
+    assert [dict(zip(columns, (1, 0, -.5, 4., .02, 5.0, 20.0))), dict(zip(columns, (2, 1, -1.5, 3., .02, 5.25, 19.5)))] == doc['rows']
+    parsed = list(csv.DictReader(io.StringIO((folder / em.FILES[1]).read_text(encoding='utf-8'))))
+    assert list(parsed[0]) == list(columns) and [float(row['kappa_0']) for row in parsed] == [5.0, 5.25] and [float(row['kappa_1']) for row in parsed] == [20.0, 19.5]
+    assert em.read_snapshot(folder, head) == doc and head['epoch_metrics']['schema'] == em.SCHEMA_V2 == em.snapshot_schema(head)
+    assert em.columns(head) == columns and em.columns(fixture_state()[0]) == em.COLUMNS and em.snapshot_schema(fixture_state()[0]) == em.SCHEMA
+    assert cp.latest_checkpoint(tmp_path)[2:] == (b'last', b'best')
+
+
+def test_v7_n2_rows_have_blank_kappa_cells_and_the_blank_follows_the_architecture_of_the_identity(tmp_path):
+    from c_ept.comparison import models as comparison_models
+    assert em.EPT_ARCHITECTURE == comparison_models.ARCHITECTURES[0]                 # the one name that has decay scales
+    folder, head, _ = save_v7(tmp_path, n2=True)
+    doc = cp.latest_metadata(tmp_path)[2]
+    assert all(row['kappa_0'] is None and row['kappa_1'] is None for row in doc['rows'])
+    parsed = list(csv.DictReader(io.StringIO((folder / em.FILES[1]).read_text(encoding='utf-8'))))
+    assert all(row['kappa_0'] == '' and row['kappa_1'] == '' for row in parsed)
+    head, loop = fixture_state_v7(n2=True)
+    loop['kappa'] = [list(k) for k in KAPPAS[:2]]                       # numbers for N2: it has no decay scale
+    with pytest.raises(RuntimeError, match='epoch metrics'):
+        em.encode(loop, head)
+    head, loop = fixture_state_v7()
+    loop['kappa'][1] = None                                              # blank for an EPT: the record is incomplete
+    with pytest.raises(RuntimeError, match='epoch metrics'):
+        em.encode(loop, head)
+    head, loop = fixture_state_v7()                                      # an EPT chosen through the model specification of the comparison has its scales
+    head['identity']['model_spec'] = {'architecture': 'ept_s_v1', 'n2_hidden': 8, 'prefetch': 0, 'precision': 'float32_strict'}
+    assert em.snapshot(loop, head)['rows'][0]['kappa_1'] == 20.0
+    loop['kappa'][0] = None
+    with pytest.raises(RuntimeError, match='epoch metrics'):
+        em.snapshot(loop, head)
+
+
+@pytest.mark.parametrize('damage', ['no_record', 'short_record', 'long_record', 'wrong_width', 'zero', 'negative', 'nan', 'inf', 'bool', 'string', 'not_a_list', 'identity_without_split',
+                                    'split_identity_in_v6', 'no_kappa_count'])
+def test_v7_refuses_a_record_of_kappa_that_is_missing_or_not_a_positive_finite_number_and_a_head_that_does_not_match_its_policy(damage):
+    head, loop = fixture_state_v7()
+    if damage == 'no_record':
+        loop.pop('kappa')
+    elif damage == 'short_record':
+        loop['kappa'].pop()
+    elif damage == 'long_record':
+        loop['kappa'].append([5.0, 20.0])
+    elif damage == 'wrong_width':
+        loop['kappa'][0] = [5.0]
+    elif damage == 'not_a_list':
+        loop['kappa'][0] = 5.0
+    elif damage in ('zero', 'negative', 'nan', 'inf', 'bool', 'string'):
+        loop['kappa'][1][1] = {'zero': 0.0, 'negative': -1.0, 'nan': float('nan'), 'inf': float('inf'), 'bool': True, 'string': '5'}[damage]
+    elif damage == 'identity_without_split':
+        head['identity'].pop('decay_groups')
+    elif damage == 'split_identity_in_v6':
+        head['schema'] = em.HEAD_SCHEMA
+    else:
+        head['identity']['encoder'] = {}
+    with pytest.raises(RuntimeError, match='epoch metrics'):
+        em.snapshot(loop, head)
+
+
+@pytest.mark.parametrize('damage', ['doc_schema', 'definitions', 'column_removed', 'column_added', 'kappa_changed', 'v6_doc_under_v7_head', 'csv_changed'])
+def test_a_v7_snapshot_that_was_edited_is_refused_when_it_is_read(tmp_path, damage):
+    folder, head, _ = save_v7(tmp_path)
+    doc = em.read_snapshot(folder, head)
+    if damage == 'doc_schema':
+        doc['schema'] = em.SCHEMA
+    elif damage == 'definitions':
+        doc['definitions'] = em.DEFINITIONS
+    elif damage == 'column_removed':
+        doc['rows'][0].pop('kappa_1')
+    elif damage == 'column_added':
+        doc['rows'][0]['kappa_2'] = 1.0
+    elif damage == 'kappa_changed':
+        doc['rows'][0]['kappa_1'] = -3.0
+    elif damage == 'v6_doc_under_v7_head':
+        for row in doc['rows']:
+            row.pop('kappa_0'), row.pop('kappa_1')
+        doc['schema'], doc['definitions'] = em.SCHEMA, em.DEFINITIONS
+    if damage == 'csv_changed':
+        raw = (folder / em.FILES[1]).read_bytes().replace(b'19.5', b'19.6')
+        (folder / em.FILES[1]).write_bytes(raw)
+        head['epoch_metrics']['files'][em.FILES[1]] = {'bytes': len(raw), 'sha256': cp.sha256(raw)}
+        (folder / 'head.json').write_bytes(cp.json_bytes(head))
+    else:                                                                # the json rebound with a valid hash: only the content check can refuse it
+        payload = em.json_bytes(doc)
+        (folder / em.FILES[0]).write_bytes(payload)
+        head['epoch_metrics']['files'][em.FILES[0]] = {'bytes': len(payload), 'sha256': cp.sha256(payload)}
+        (folder / 'head.json').write_bytes(cp.json_bytes(head))
+    with pytest.raises(RuntimeError):
+        cp.latest_metadata(tmp_path)
+
+
+# ---- the v8 head and the epoch-metrics-v3 snapshot: the column terrain_penalty under a terrain smoothness weight other than 0 (S4b preparation M6, decision D8) ----
+PENALTIES = [0.25, 0.5, 0.75]
+
+
+def fixture_state_v8(stops=(4., 3.), *, split=False, n2=False, penalties=PENALTIES, horizon=4, patience=2):
+    """The fixture of a run with ``terrain_smooth_weight`` 0.5: the v8 head, an identity that names the weight and a loop with the record of R_Omega (and of kappa under 'split')."""
+    head, loop = fixture_state(stops, horizon=horizon, patience=patience)
+    head['schema'] = em.HEAD_SCHEMA_V8
+    head['identity'] = {**head['identity'], 'encoder': {'kappas': 2}, 'terrain_smooth_weight': 0.5}
+    if split:
+        head['identity'] = {**head['identity'], 'decay_groups': 'split', 'decay_groups_sha256': 'a' * 64}
+        loop['kappa'] = [None if n2 else list(KAPPAS[i]) for i in range(len(stops))]
+    if n2:
+        head['identity']['model_spec'] = {'architecture': 'n2_teamset_v1', 'n2_hidden': 8, 'prefetch': 0, 'precision': 'float32_strict'}
+    loop['terrain_penalty'] = list(penalties[:len(stops)])
+    return head, loop
+
+
+def save_v8(root, stops=(4., 3.), **kwargs):
+    head, loop = fixture_state_v8(stops, **kwargs)
+    files = {'last.pt': b'last', 'best.pt': b'best', **em.encode(loop, head)}
+    return cp.save_checkpoint(root, len(stops), files, head)
+
+
+def test_the_v6_and_v7_names_are_unchanged_and_the_v8_ones_are_new():
+    assert em.HEAD_SCHEMA_V8 == 'ept_train_checkpoint_v8' and em.SCHEMA_V3 == 'epoch-metrics-v3' and em.TERRAIN_COLUMN == 'terrain_penalty'
+    assert em.HEAD_SCHEMAS == (em.HEAD_SCHEMA, em.HEAD_SCHEMA_V7, em.HEAD_SCHEMA_V8) and cp.METRICS_SCHEMAS == em.HEAD_SCHEMAS
+    assert em.HEAD_SCHEMA == 'ept_train_checkpoint_v6' and em.HEAD_SCHEMA_V7 == 'ept_train_checkpoint_v7' and em.SCHEMA == 'epoch-metrics-v1' and em.SCHEMA_V2 == 'epoch-metrics-v2'
+    assert em.head_schema({'patience': 2}) == em.HEAD_SCHEMA and em.head_schema({'decay_groups': 'split'}) == em.HEAD_SCHEMA_V7
+    assert em.head_schema({'terrain_smooth_weight': 0.5}) == em.HEAD_SCHEMA_V8 and em.head_schema({'decay_groups': 'split', 'terrain_smooth_weight': 0.5}) == em.HEAD_SCHEMA_V8
+    head, loop = fixture_state()                                       # a v6 head: no terrain column whatever the loop holds
+    loop['terrain_penalty'] = [0.25, 0.5]
+    assert all(set(row) == set(em.COLUMNS) for row in em.snapshot(loop, head)['rows'])
+
+
+@pytest.mark.parametrize('split', [False, True])
+def test_v8_rows_carry_the_terrain_penalty_after_the_kappa_columns_in_json_and_csv_and_survive_the_head_last_round_trip(tmp_path, split):
+    folder, head, _ = save_v8(tmp_path, split=split)
+    found_folder, found_head, doc = cp.latest_metadata(tmp_path)
+    assert found_folder == folder and found_head == head and head['schema'] == em.HEAD_SCHEMA_V8
+    columns = (*em.COLUMNS, *(('kappa_0', 'kappa_1') if split else ()), 'terrain_penalty')
+    assert doc['schema'] == em.SCHEMA_V3 and head['epoch_metrics']['schema'] == em.SCHEMA_V3 == em.snapshot_schema(head) and em.columns(head) == columns
+    assert 'terrain_penalty' in doc['definitions'] and ('kappa_i' in doc['definitions']) is split and doc['definitions']['fit_batch_mean_loss'] == em.DEFINITIONS['fit_batch_mean_loss']
+    values = ((5.0, 20.0, 0.25), (5.25, 19.5, 0.5)) if split else ((0.25,), (0.5,))
+    assert doc['rows'] == [dict(zip(columns, (1, 0, -.5, 4., .02, *values[0]))), dict(zip(columns, (2, 1, -1.5, 3., .02, *values[1])))]
+    parsed = list(csv.DictReader(io.StringIO((folder / em.FILES[1]).read_text(encoding='utf-8'))))
+    assert list(parsed[0]) == list(columns) and [float(row['terrain_penalty']) for row in parsed] == [0.25, 0.5]
+    assert em.read_snapshot(folder, head) == doc and cp.latest_checkpoint(tmp_path)[2:] == (b'last', b'best')
+
+
+def test_v8_n2_rows_have_blank_kappa_and_a_number_for_the_terrain_penalty(tmp_path):
+    folder, head, _ = save_v8(tmp_path, split=True, n2=True)
+    doc = cp.latest_metadata(tmp_path)[2]
+    assert all(row['kappa_0'] is None and row['kappa_1'] is None and isinstance(row['terrain_penalty'], float) for row in doc['rows'])
+
+
+@pytest.mark.parametrize('damage', ['no_record', 'short_record', 'long_record', 'negative', 'nan', 'inf', 'bool', 'string', 'none', 'identity_without_weight', 'v6_head_with_weight', 'zero_weight_in_identity',
+                                    'negative_weight', 'bool_weight', 'string_weight', 'v7_head_with_weight', 'split_without_kappa_record'])
+def test_v8_refuses_a_record_that_is_missing_or_not_a_finite_number_not_below_zero_and_a_head_that_does_not_match_the_weight(damage):
+    head, loop = fixture_state_v8(split=damage == 'split_without_kappa_record')
+    if damage == 'no_record':
+        loop.pop('terrain_penalty')
+    elif damage == 'short_record':
+        loop['terrain_penalty'].pop()
+    elif damage == 'long_record':
+        loop['terrain_penalty'].append(1.0)
+    elif damage in ('negative', 'nan', 'inf', 'bool', 'string', 'none'):
+        loop['terrain_penalty'][1] = {'negative': -0.5, 'nan': float('nan'), 'inf': float('inf'), 'bool': True, 'string': '5', 'none': None}[damage]
+    elif damage == 'identity_without_weight':
+        head['identity'].pop('terrain_smooth_weight')
+    elif damage == 'v6_head_with_weight':
+        head['schema'] = em.HEAD_SCHEMA
+    elif damage == 'v7_head_with_weight':
+        head['schema'] = em.HEAD_SCHEMA_V7
+    elif damage == 'split_without_kappa_record':
+        loop.pop('kappa')
+    else:
+        head['identity']['terrain_smooth_weight'] = {'zero_weight_in_identity': 0.0, 'negative_weight': -0.5, 'bool_weight': True, 'string_weight': '0.5'}[damage]
+    with pytest.raises(RuntimeError, match='epoch metrics'):
+        em.snapshot(loop, head)
+
+
+def test_a_zero_value_of_the_penalty_is_a_valid_record():
+    """R_Omega is 0 while the learned field is still zero (the first steps): a mean of 0 is a number, not a missing record."""
+    head, loop = fixture_state_v8(penalties=[0.0, 0.0, 0.0])
+    assert [row['terrain_penalty'] for row in em.snapshot(loop, head)['rows']] == [0.0, 0.0]
+
+
+@pytest.mark.parametrize('damage', ['doc_schema', 'definitions', 'column_removed', 'column_added', 'penalty_changed', 'v1_doc_under_v8_head', 'csv_changed'])
+def test_a_v8_snapshot_that_was_edited_is_refused_when_it_is_read(tmp_path, damage):
+    folder, head, _ = save_v8(tmp_path)
+    doc = em.read_snapshot(folder, head)
+    if damage == 'doc_schema':
+        doc['schema'] = em.SCHEMA_V2
+    elif damage == 'definitions':
+        doc['definitions'] = em.DEFINITIONS
+    elif damage == 'column_removed':
+        doc['rows'][0].pop('terrain_penalty')
+    elif damage == 'column_added':
+        doc['rows'][0]['kappa_0'] = 1.0
+    elif damage == 'penalty_changed':
+        doc['rows'][0]['terrain_penalty'] = -3.0
+    elif damage == 'v1_doc_under_v8_head':
+        for row in doc['rows']:
+            row.pop('terrain_penalty')
+        doc['schema'], doc['definitions'] = em.SCHEMA, em.DEFINITIONS
+    if damage == 'csv_changed':
+        raw = (folder / em.FILES[1]).read_bytes().replace(b'0.25', b'0.26')
+        (folder / em.FILES[1]).write_bytes(raw)
+        head['epoch_metrics']['files'][em.FILES[1]] = {'bytes': len(raw), 'sha256': cp.sha256(raw)}
+        (folder / 'head.json').write_bytes(cp.json_bytes(head))
+    else:                                                                # the json rebound with a valid hash: only the content check can refuse it
+        payload = em.json_bytes(doc)
+        (folder / em.FILES[0]).write_bytes(payload)
+        head['epoch_metrics']['files'][em.FILES[0]] = {'bytes': len(payload), 'sha256': cp.sha256(payload)}
+        (folder / 'head.json').write_bytes(cp.json_bytes(head))
+    with pytest.raises(RuntimeError):
+        cp.latest_metadata(tmp_path)
+
+
+def test_a_v5_head_after_a_v8_head_is_a_downgrade(tmp_path):
+    prior, _, _ = save_v8(tmp_path, (4.,))
+    folder, head, _ = save_v8(tmp_path)
+    head['schema'] = cp.SCHEMA
+    head.pop('epoch_metrics')
+    for name in em.FILES:
+        (folder / name).unlink()
+    (folder / 'head.json').write_bytes(cp.json_bytes(head))
+    with pytest.raises(RuntimeError, match='downgrade'):
+        cp.latest_metadata(tmp_path)
+    assert (prior / 'head.json').is_file()
+
+
+def test_a_v5_head_after_a_v7_head_is_a_downgrade(tmp_path):
+    prior, _, _ = save_v7(tmp_path, (4.,))
+    folder, head, _ = save_v7(tmp_path)
+    head['schema'] = cp.SCHEMA
+    head.pop('epoch_metrics')
+    for name in em.FILES:
+        (folder / name).unlink()
+    (folder / 'head.json').write_bytes(cp.json_bytes(head))
+    with pytest.raises(RuntimeError, match='downgrade'):
+        cp.latest_metadata(tmp_path)
+    assert (prior / 'head.json').is_file()
+
+
+# ---- S4b preparation M8 (decision D10 P7): a run that ends at the wall cap says so --------------------------------------------------------
+def budget_state(stops=(4., 3.), *, horizon=4, patience=2):
+    """The state of a run that ended at the wall cap after len(stops) epochs: the identity names the setting, the head says done and budget_end."""
+    head, loop = fixture_state(stops, horizon=horizon, patience=patience)
+    head['identity']['on_wall_cap'] = 'best_stop'
+    head['done'], head['budget_end'] = True, True
+    head['caps'], head['seconds'] = {'wall_seconds': 86_400}, 86_400.5                 # the cap was reached when the epoch ended (EM-3)
+    return head, loop
+
+
+def test_epoch_metrics_accepts_budget_reason_and_consumers_accept_done(tmp_path):
+    head, loop = budget_state()
+    doc = em.snapshot(loop, head)
+    assert (doc['termination_reason'], doc['done'], doc['stopped_early'], doc['best_epoch'], doc['bad_epochs']) == ('budget', True, False, 2, 0)
+    files = {'last.pt': b'last', 'best.pt': b'best', **em.encode(loop, head)}
+    folder, saved, _ = cp.save_checkpoint(tmp_path, 2, files, head)
+    assert em.read_snapshot(folder, saved)['termination_reason'] == 'budget'
+    latest_folder, latest_head, latest_doc = cp.latest_metadata(tmp_path)                    # the reader of the newest checkpoint takes it, and tells done
+    assert latest_folder == folder and latest_head['done'] is True and latest_head['budget_end'] is True and latest_doc['termination_reason'] == 'budget'
+
+
+def test_the_budget_end_of_the_best_epoch_that_is_not_the_last_is_a_valid_end():
+    head, loop = budget_state((3., 4.))                                                      # the best epoch is the first; one epoch without a new best, under the patience
+    assert em.snapshot(loop, head)['best_epoch'] == 1 and em.snapshot(loop, head)['termination_reason'] == 'budget'
+
+
+@pytest.mark.parametrize('damage', ['no_setting', 'budget_false', 'budget_one', 'budget_text', 'early_stopping', 'horizon_reached', 'not_done', 'under_the_cap', 'no_seconds'])
+def test_a_budget_end_is_refused_unless_it_is_the_end_that_no_other_rule_reached(damage):
+    head, loop = budget_state()
+    if damage == 'no_setting':
+        head['identity'].pop('on_wall_cap')                                                  # 'fail' (the default) can not end a run at the cap
+    elif damage == 'budget_false':
+        head['budget_end'] = False
+    elif damage == 'budget_one':
+        head['budget_end'] = 1
+    elif damage == 'budget_text':
+        head['budget_end'] = 'yes'
+    elif damage == 'early_stopping':
+        head, loop = budget_state((-2., -2., -1.), horizon=4)                                # the patience ran out: that is the reason
+    elif damage == 'horizon_reached':
+        head, loop = budget_state((4., 3.), horizon=2)                                       # the horizon was reached: that is the reason
+    elif damage == 'under_the_cap':
+        head['seconds'] = 86_399.5                                                           # the cap was not reached: nothing ended this run
+    elif damage == 'no_seconds':
+        head.pop('seconds')
+    else:
+        head['done'] = False
+    with pytest.raises(RuntimeError, match='epoch metrics'):
+        em.snapshot(loop, head)
+
+
+def test_without_a_budget_end_the_reasons_and_the_snapshot_are_those_of_every_earlier_run():
+    head, loop = fixture_state((4., 3.), horizon=4)
+    assert 'budget_end' not in head and em.snapshot(loop, head)['termination_reason'] == 'in_progress'
+    head['identity']['on_wall_cap'] = 'best_stop'                                            # the setting alone changes nothing about the rows or the reason
+    assert em.snapshot(loop, head)['termination_reason'] == 'in_progress' and em.snapshot(loop, head)['done'] is False

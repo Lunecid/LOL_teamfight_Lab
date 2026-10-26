@@ -401,7 +401,7 @@ def test_dropped_columns_judge_the_views_they_are_given(toy_s1, toy_s2):
 
 def test_the_views_of_dropped_columns_are_required_and_the_old_default_is_gone(toy_s2):       # ruling R14
     parameters = inspect.signature(features.dropped_columns).parameters
-    assert list(parameters) == ['s2', 'fit_views'] and parameters['fit_views'].default is inspect.Parameter.empty
+    assert list(parameters) == ['s2', 'fit_views', 'pooled'] and parameters['fit_views'].default is inspect.Parameter.empty      # 'pooled': S4b preparation M5
     with pytest.raises(TypeError, match='fit_views'):
         features.dropped_columns(toy_s2)                                        # the default judged every role together
     seen = []
@@ -504,6 +504,81 @@ def test_dropped_columns_refuse_a_store_that_is_not_an_s2_store(tmp_path):
         features.dropped_columns(build_feature_store(tmp_path / 'b', summary, players[:, :, :80], geo), [0])
     with pytest.raises(ValueError, match='views'):
         features.dropped_columns(build_feature_store(tmp_path / 'c', summary, players[:2], geo), [0])
+
+
+# ---- dropped_columns, pooled over the pairs of columns that the team swap exchanges (S4b preparation M5, decision D7) ------------------------
+def pooled_world(tmp_path, n=8):
+    """A hand-made store of ``n`` views in which every summary column varies (so that only the columns a test makes constant are constant)."""
+    summary, players, geo = blank_feature_arrays(n)
+    summary += np.arange(n, dtype=np.float32)[:, None]               # every summary column is 0, 1, ..., n-1: not constant
+    players += np.arange(n, dtype=np.float32)[:, None, None]         # every player column too
+    return summary, players, geo
+
+
+def test_dropped_columns_pooled_false_is_the_call_of_every_earlier_run(toy_s2):
+    """The default (pooled=False), the explicit False and the earlier two-argument call give one and the same tuple."""
+    views = np.array(TOY_FIT_VIEWS)
+    assert features.dropped_columns(toy_s2, views, pooled=False) == features.dropped_columns(toy_s2, views)
+    assert inspect.signature(features.dropped_columns).parameters['pooled'].default is False
+
+
+def test_pooled_judges_the_two_columns_of_a_swap_pair_on_their_pooled_values(tmp_path):
+    """old_champion_kill_b / _r are exchanged by the team swap (summary columns 'h' and 'h′'). Constant 0 in b and varying in r: the baseline list drops
+    b alone (the swap would then give b a column that varies), the pooled list keeps both. Constant 0 in both: both go together. Constant 0 in b and
+    1 in r: each is constant alone (the baseline drops both) but the pooled values 0 and 1 are not: both stay."""
+    summary, players, geo = pooled_world(tmp_path)
+    cb, cr = SUM_I['old_champion_kill_b'], SUM_I['old_champion_kill_r']
+    eb, er = SUM_I['old_elite_monster_kill_b'], SUM_I['old_elite_monster_kill_r']
+    wb, wr = SUM_I['old_ward_kill_b'], SUM_I['old_ward_kill_r']
+    summary[:, cb] = 0.0                                   # one column of the pair constant, the other varies
+    summary[:, eb] = summary[:, er] = 0.0                  # both constant, the same value
+    summary[:, wb], summary[:, wr] = 0.0, 1.0              # both constant, two values
+    store = build_feature_store(tmp_path / 's2', summary, players, geo)
+    views = np.arange(len(summary))
+    plain, pooled = features.dropped_columns(store, views), features.dropped_columns(store, views, pooled=True)
+    assert {'old_champion_kill_b', 'old_elite_monster_kill_b', 'old_elite_monster_kill_r', 'old_ward_kill_b', 'old_ward_kill_r'} <= set(plain)
+    assert 'old_champion_kill_r' not in plain                                         # the baseline list is not closed under the swap
+    assert 'old_champion_kill_b' not in pooled and 'old_champion_kill_r' not in pooled     # judged together: the pair varies
+    assert {'old_elite_monster_kill_b', 'old_elite_monster_kill_r'} <= set(pooled)         # dropped together
+    assert 'old_ward_kill_b' not in pooled and 'old_ward_kill_r' not in pooled             # pooled values 0 and 1
+
+
+def test_pooled_list_is_closed_under_the_swap_and_keeps_t_s_and_the_order(toy_s2):
+    from c_ept.domain import symmetry
+    names = tuple(tokens.SUMMARY)
+    d = features.dropped_columns(toy_s2, np.array(TOY_FIT_VIEWS), pooled=True)
+    assert 't_s' in d
+    summary = [n for n in d if n in names]
+    assert [names.index(n) for n in summary] == sorted(names.index(n) for n in summary)          # the summary names first, in the order of tokens
+    assert d[:len(summary)] == tuple(summary)
+    for n in summary:
+        assert names[symmetry.SUMMARY_SWAP[names.index(n)]] in summary, n                         # a pair goes together
+
+
+def test_pooled_all_nan_column_is_dropped_and_a_nan_partner_does_not_hide_a_varying_one(tmp_path):
+    summary, players, geo = pooled_world(tmp_path)
+    a, b = SUM_I['old_champion_kill_b'], SUM_I['old_champion_kill_r']
+    summary[:, a] = np.nan                                                            # no value at all in b; r varies
+    c, e = SUM_I['old_elite_monster_kill_b'], SUM_I['old_elite_monster_kill_r']
+    summary[:, c] = summary[:, e] = np.nan                                            # no value in either
+    store = build_feature_store(tmp_path / 's2', summary, players, geo)
+    pooled = features.dropped_columns(store, np.arange(len(summary)), pooled=True)
+    assert 'old_champion_kill_b' not in pooled and 'old_champion_kill_r' not in pooled
+    assert 'old_elite_monster_kill_b' in pooled and 'old_elite_monster_kill_r' in pooled
+
+
+def test_pooled_judges_a_position_column_together_with_its_rotation(tmp_path):
+    """The swap turns x into W - x: a position that is constant at c is constant after the swap only if c = W/2. Pooled, the column stays unless c = W/2;
+    the baseline list drops it at any c."""
+    summary, players, geo = pooled_world(tmp_path)
+    px, py = PLR_I['x'], PLR_I['y']
+    players[:, :, px] = 100.0
+    players[:, :, py] = float(C.W) / 2.0
+    store = build_feature_store(tmp_path / 's2', summary, players, geo)
+    views = np.arange(len(summary))
+    assert {'x', 'y'} <= set(features.dropped_columns(store, views))
+    pooled = features.dropped_columns(store, views, pooled=True)
+    assert 'x' not in pooled and 'y' in pooled
 
 
 # ---- b0: names and width -----------------------------------------------------------------------------------------------------------------

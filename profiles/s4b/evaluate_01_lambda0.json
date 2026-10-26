@@ -1,0 +1,17 @@
+{
+  "b0": false,
+  "b1_swap_average": false,
+  "bootstrap_B": 2000,
+  "checkpoints": {},
+  "chunk_views": null,
+  "exposure": "observed",
+  "holdout_lock_sha256": null,
+  "kind": "evaluate",
+  "models": [
+    "t01"
+  ],
+  "price_sensitivity": false,
+  "role": "STOP",
+  "strata": false,
+  "winner_truth": "gold"
+}

@@ -658,3 +658,58 @@ def test_best_loader_tiny_cpu_model_strict_hash_and_state(tmp_path, monkeypatch)
     ref = {**reference, 'bytes': len(invalid.getvalue()), 'sha256': hashlib.sha256(invalid.getvalue()).hexdigest()}
     with pytest.raises(RuntimeError, match='state_dict'):
         runtime.load_best(ref, head, static, 'cpu')
+
+
+def test_production_bundle_declares_the_dev_role_that_the_adapter_now_requires(monkeypatch, tmp_path):
+    # EPT-T011 A4-F8: run_inference refuses a bundle without role == 'DEV', so the one production builder must set it.
+    from c_ept.ept import encoder
+    from c_ept.evaluation import stores
+    from c_ept.preprocessing import terrain
+    from c_ept.valuation import towertier, value
+    monkeypatch.setattr(stores, 'ReadOnlyVerifiedStore', lambda path, check=None: SimpleNamespace(path=path))
+    monkeypatch.setattr(terrain, 'Terrain', lambda path: 'terrain')
+    monkeypatch.setattr(encoder, 'static_channels', lambda t: 'static')
+    monkeypatch.setattr(value, 'load_prices', lambda path: {})
+    monkeypatch.setattr(towertier.TierModel, 'load', staticmethod(lambda path: 'tier'))
+    monkeypatch.setattr(guard, 'read_json', lambda path: {})
+    meta = {'paths': {k: str(tmp_path / k) for k in ('s1', 's2', 'labels', 'terrain', 's3', 'prices', 'rules')},
+            'terrain_files_sha256': {}, 'tier_files_sha256': {}}
+    bundle = runtime._bundle(meta, check=lambda: None)
+    assert bundle.role == 'DEV'
+    assert (bundle.s1.path, bundle.s2.path, bundle.labels.path) == tuple(meta['paths'][k] for k in ('s1', 's2', 'labels'))
+
+
+UNPASSED_SETTINGS = ({'zone_mark': False}, {'kill_law': 'shifted'}, {'k_condition': 'binned'}, {'eval_average': False})
+
+
+@pytest.mark.parametrize('setting', UNPASSED_SETTINGS)
+def test_load_best_refuses_a_checkpoint_whose_identity_has_a_setting_the_evaluation_does_not_pass_on(setting, tmp_path):
+    """S4b preparation M9 review I1: this loader builds the plain model and ``run_inference`` is called with its defaults, so a checkpoint trained with zone_mark False, a shifted kill law, binned K or
+    eval_average False would be evaluated as the other design with no error. It is refused by name, before the best payload is read; the identities of the earlier runs (no such key) load as before."""
+    import numpy as np
+    head = {'identity': {'static_sha256': '0' * 64, 'encoder': {}, **setting}}
+    reference = {'path': str(tmp_path / 'best.pt'), 'bytes': 0, 'sha256': '0' * 64}
+    with pytest.raises(guard.EvaluationRefused, match=next(iter(setting))):
+        runtime.load_best(reference, head, np.zeros((2, 2), dtype=np.float32), 'cpu')
+
+
+def test_the_guard_refuses_an_identity_key_that_nobody_classified_and_every_key_of_the_identity_code_is_classified(tmp_path):
+    """M9 re-check r3: the guard is closed by default. An identity key that is neither passed on, nor training-only, nor one of the four refused settings is refused by name, so a setting that a later
+    task adds to ``train._identity`` cannot reach an evaluation unseen. Every key that ``_identity`` can write (the default run and each Track M setting) is classified."""
+    from c_ept.evaluation import guard as g
+    assert g.unpassed_evaluation_settings({'seed': 1, 'lr': .1, 'zone_mark': True}) == []
+    assert g.unpassed_evaluation_settings({'seed': 1, 'brand_new_setting': 3}) == ["brand_new_setting (not classified for the evaluation loaders)"]
+    assert g.unpassed_evaluation_settings({'zone_mark': False, 'brand_new_setting': 3}) == ["zone_mark=False", "brand_new_setting (not classified for the evaluation loaders)"]
+    import ast
+    from pathlib import Path as _Path
+    tree = ast.parse((_Path(__file__).resolve().parents[1] / 'c_ept' / 'ept' / 'train.py').read_text(encoding='utf-8'))
+    function = next(n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == '_identity')
+    written = set()
+    for node in ast.walk(function):
+        if isinstance(node, ast.Dict):
+            written |= {k.value for k in node.keys if isinstance(k, ast.Constant) and isinstance(k.value, str)}
+        if isinstance(node, ast.Subscript) and isinstance(node.value, ast.Name) and node.value.id == 'doc' and isinstance(node.slice, ast.Constant):
+            written.add(node.slice.value)
+    written -= {'dropped', 'dropped_store'}                                                 # the keys of the hashed list, not of the identity
+    assert {'zone_mark', 'kill_law', 'swap_mode', 'k_reps_sha256', 'epochs', 'torch', 'model_spec'} <= written
+    assert written <= g.CLASSIFIED_IDENTITY_KEYS, sorted(written - g.CLASSIFIED_IDENTITY_KEYS)

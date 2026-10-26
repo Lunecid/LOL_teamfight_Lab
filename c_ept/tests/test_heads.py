@@ -76,8 +76,32 @@ def test_the_method_parameters_are_those_of_the_ruling(method, params):
     assert list(inspect.signature(getattr(ComposerHeads, method)).parameters) == params
 
 
-def test_feature_kinds_are_b0_and_b1():
-    assert heads.FEATURE_KINDS == ('b0', 'b1')
+def test_feature_kinds_are_b0_b1_and_ept():
+    assert heads.FEATURE_KINDS == ('b0', 'b1', 'ept')
+
+
+def test_every_shipped_head_declares_a_listed_feature_kind():
+    # FEATURE_KINDS는 기술용 목록이다(어느 코드도 이것으로 검증하지 않는다). 그래서 실제 머리 구현체가 선언하는 feature_kind를
+    # 소스 문장에서 읽어 목록과 대조한다: B0, B1, EPT 어댑터 셋 모두 목록 안에 있어야 한다(EPT가 빠졌던 것이 A2-F7).
+    import re
+    root = Path(heads.__file__).parents[1]
+    declared = {}
+    for rel in ('models/baselines_b0.py', 'models/baselines_b1.py', 'ept/compose_heads.py'):
+        found = re.findall(r"^\s+feature_kind = '(\w+)'\s*$", (root / rel).read_text(encoding='utf-8'), flags=re.M)
+        assert len(found) == 1, (rel, found)
+        declared[rel] = found[0]
+    assert set(declared.values()) == {'b0', 'b1', 'ept'}
+    assert set(declared.values()) <= set(heads.FEATURE_KINDS)
+
+
+def test_the_size_description_names_the_real_size_classes_not_kill_count_bins():
+    # s의 실제 범주는 킬 크레딧 참여 인원으로 정한 T, S, ASYM, P(units.SIZE_NAMES)이다. 킬 수 구간(1킬, 2킬, ...)이 아니다(A2-F7).
+    from c_ept.domain import units
+    doc = ComposerHeads.size_prob.__doc__
+    assert all(f'{i}: {name}' in doc for i, name in enumerate(units.SIZE_NAMES)), doc
+    assert '1킬' not in doc and '5킬 이상' not in doc
+    text = SOURCE.read_text(encoding='utf-8')
+    assert "소/중/대/초대형" not in text and "0: 1킬" not in text
 
 
 def test_the_output_widths_are_the_ones_of_the_ruling():

@@ -124,6 +124,14 @@ def test_resume_checks_args_runtime_config_and_input_even_with_same_digest():
             r.verify_resume(manifest,{**base,key:value})
 
 
+def test_resume_identity_ignores_the_record_only_provenance_fields():
+    from c_ept.workflows import run_s4a as r
+    base=dict(code=dict(code_commit='a'*40,code_dirty=False),args=dict(epochs=2),runtime=dict(mkl='SEQUENTIAL'),inputs=dict(s1='a'),operator_config_sha256='b'*64)
+    manifest=dict(schema=r.RUN_SCHEMA,stage='s4a',operator_api_version=1,code_commit='a'*40,code_dirty=False,identity=base,run_identity_sha256=r._digest(base),operator_config_sha256=base['operator_config_sha256'])
+    r.verify_resume({**manifest,'spec_sha256':'c'*64,'gpu_devices':[{'name':'GPU','driver_version':'1'}]},base)
+    r.verify_resume({**manifest,'spec_sha256':None,'gpu_devices':None},base)
+
+
 def test_lock_real_process_contention_and_owner_exit_recovery(tmp_path):
     from c_ept.workflows import run_s4a as r
     owner_code='from c_ept.run_s4a import run_lock; import sys; from pathlib import Path\nwith run_lock(Path(sys.argv[1])):\n print("READY",flush=True)\n sys.stdin.readline()\n'
@@ -324,6 +332,9 @@ def test_synthetic_cpu_pipeline_cost_schema_resume_and_protected_payloads(tmp_pa
     monkeypatch.setattr(run_s1,'require_no_strata',lambda:probe())
     monkeypatch.setattr(scales,'load_scales',lambda path,expected_provenance:factors)
     monkeypatch.setattr(r,'_model_config',lambda size:encoder.EncoderConfig(d=16,layers=2,heads=2,kappas=1,field_channels=2))
+    from c_ept.workflows import s4a_operator
+    monkeypatch.setattr(C,'check_spec',lambda:'e'*64)                           # no real decision record or nvidia-smi in a synthetic test
+    monkeypatch.setattr(s4a_operator,'gpu_metadata',lambda:['NVIDIA Synthetic GPU, 555.55'])
     flags=['--s1','toy1','--s2','toy2','--s3',str(source),'--runs-root',str(root),'--catalog-db',str(tmp_path/'catalog.sqlite'),'--sizes','S','--devices','cpu','--epochs','1','--share','1','--dev-sample','1']
     assert r.main(flags)==0
     run=next(root.iterdir())
@@ -335,9 +346,18 @@ def test_synthetic_cpu_pipeline_cost_schema_resume_and_protected_payloads(tmp_pa
     assert cost['training'][0]['epochs_run']==1 and cost['projections'][0]['available']
     assert cost['compose']['measurements'][0]['S']==200 and reads
     assert process['state']=='finished' and process['outcome']=='completed'
+    # Record-only provenance (A5-F4): the decision-record hash and the GPU, kept beside the identity and outside it.
+    assert manifest['spec_sha256']=='e'*64 and manifest['gpu_devices']==[{'name':'NVIDIA Synthetic GPU','driver_version':'555.55'}]
+    assert 'spec_sha256' not in manifest['identity'] and 'gpu_devices' not in manifest['identity']
+    assert 'spec_sha256' not in manifest['runtime'] and 'gpu_devices' not in manifest['runtime']
     before=(run/'COST.json').read_bytes()
+    # A resume on another driver (and an unreadable decision record) is still the same run: the fields are not part of the resume identity.
+    monkeypatch.setattr(C,'check_spec',lambda:(_ for _ in ()).throw(FileNotFoundError('decision record moved')))
+    monkeypatch.setattr(s4a_operator,'gpu_metadata',lambda:['NVIDIA Synthetic GPU, 999.99'])
     assert r.main(flags+['--resume',str(run)])==0
     assert (run/'COST.json').read_bytes()==before
+    resumed=json.loads((run/'RUN.json').read_text())
+    assert resumed['spec_sha256']=='e'*64 and resumed['gpu_devices'][0]['driver_version']=='555.55'     # the record of the first call stays
 
 
 def test_resumed_training_is_not_uninterrupted_projection_calibration():
@@ -375,7 +395,8 @@ def test_projection_does_not_scale_checkpoint_io_by_rows_or_double_count_compone
 
 @pytest.mark.parametrize('case', ['nested', 'nested_with_flat_decoys', 'prices_hash', 'rules_hash',
                                   'label_prices_hash', 'label_rules_hash', 'missing_prices', 'missing_rules',
-                                  'flat_decoy_prices', 'flat_decoy_rules'])
+                                  'flat_decoy_prices', 'flat_decoy_rules',
+                                  'terrain_changed', 'terrain_record_missing', 'terrain_record_malformed'])
 def test_input_preflight_builds_scales_expectations_from_requested_records(tmp_path,case):
     from types import SimpleNamespace
     from c_ept.workflows import run_s4a as r, run_s3
@@ -384,8 +405,18 @@ def test_input_preflight_builds_scales_expectations_from_requested_records(tmp_p
     def put(path,doc):
         path.parent.mkdir(parents=True,exist_ok=True)
         path.write_text(json.dumps(doc),encoding='utf-8')
+    from c_ept.data import store_core
+    # The S2 build records the hash of the terrain that built its views in STORE.json (stages.views.terrain_sha256), computed as the build
+    # does it: runlog.sha256_json of {file name: store_core.sha(file)} for the three files (test_store_build pins this on a real build).
+    # The three files hold different bytes, so that a file name paired with the hash of another file (a mix-up in the hashing loop of
+    # inspect_inputs) changes the hash of the mapping and the success case below refuses.
+    terrain=root/'s2/terrain'; terrain.mkdir(parents=True)
+    for name in ('TERRAIN.json','terrain.npz','geodesic.npy'):
+        (terrain/name).write_bytes(b'synthetic static '+name.encode())
+    built_terrain=runlog.sha256_json({name:store_core.sha(terrain/name) for name in ('TERRAIN.json','terrain.npz','geodesic.npy')})
     for name in ('s1','s2'):
-        put(root/name/name/'STORE.json',{'complete':True,'files':{name+'.npy':'a'*64},'arrays':{}})
+        put(root/name/name/'STORE.json',{'complete':True,'files':{name+'.npy':'a'*64},'arrays':{},
+            **({'stages':{'views':{'blocks':[],'terrain_sha256':built_terrain}}} if name=='s2' else {})})
     records={name:{'run':name,'files_sha256':runlog.sha256_json({name+'.npy':'a'*64})} for name in ('s1','s2')}
     s3=root/'s3'
     prices=root/'s3a/prices/PRICES.json'; rules=root/'s3a/rules/RULE_PAYOUTS.json'
@@ -398,9 +429,6 @@ def test_input_preflight_builds_scales_expectations_from_requested_records(tmp_p
         arrays=s3/f'fit/{folder}/{stem}.npz'; arrays.parent.mkdir(parents=True,exist_ok=True); arrays.write_bytes(b'synthetic arrays')
         metadata=s3/f'fit/{folder}/{stem}.json'; put(metadata,{'npz_sha256':r._sha(arrays)})
         outputs[f'fit/{folder}/{stem}.json']=r._sha(metadata)
-    terrain=root/'s2/terrain'; terrain.mkdir()
-    for name in ('TERRAIN.json','terrain.npz','geodesic.npy'):
-        (terrain/name).write_bytes(b'synthetic static')
     ledger=run_s3.Ledger(s3)
     ledger.begin('labels',{},'a'); ledger.finish('labels',{'labels/store/':runlog.sha256_json({'labels/a.npy':'b'*64})})
     ledger.begin('fit',{},'b'); ledger.finish('fit',outputs)
@@ -431,7 +459,27 @@ def test_input_preflight_builds_scales_expectations_from_requested_records(tmp_p
         with pytest.raises((FileNotFoundError,RuntimeRefused)):
             r.inspect_inputs(args)
         return
-    verified=r.inspect_inputs(args)
+    elif case == 'terrain_changed':
+        # A terrain folder rebuilt or replaced after the S2 views were built: the files no longer hash to the recorded build terrain.
+        (terrain/'geodesic.npy').write_bytes(b'a terrain built elsewhere')
+        with pytest.raises(RuntimeRefused,match='terrain folder differs from the terrain that built the S2 views'):
+            r.inspect_inputs(args)
+        return
+    elif case in ('terrain_record_missing','terrain_record_malformed'):
+        store_path=root/'s2/s2/STORE.json'
+        record=json.loads(store_path.read_text())
+        if case == 'terrain_record_missing':
+            del record['stages']
+        else:
+            record['stages']['views']['terrain_sha256']='not a sha-256'
+        put(store_path,record)
+        # A missing record is "no terrain hash"; a record that is present but not 64 lower-case hex digits is "no valid terrain hash".
+        with pytest.raises(RuntimeRefused,match='S2 store records no terrain hash' if case == 'terrain_record_missing'
+                           else 'S2 store records no valid terrain hash'):
+            r.inspect_inputs(args)
+        return
+    verified=r.inspect_inputs(args)           # the terrain folder hashes to the recorded build terrain: the preflight passes
+    assert set(verified['terrain_files_sha256'])=={'TERRAIN.json','terrain.npz','geodesic.npy'}
     assert Path(verified['paths']['prices']) == prices
     assert Path(verified['paths']['rules']) == rules
     assert Path(verified['paths']['s3a']) == (root/'s3a').resolve()
@@ -458,6 +506,39 @@ def test_store_preflight_refuses_incomplete_manifest_without_payload_read(tmp_pa
     (tmp_path/'STORE.json').write_text(json.dumps({'complete':False,'files':{}}))
     with pytest.raises(RuntimeRefused,match='complete'):
         r._store_metadata(tmp_path)
+
+
+def test_provenance_record_reuses_the_decision_record_check_and_the_operator_gpu_query(monkeypatch):
+    from c_ept import config as C
+    from c_ept.workflows import run_s4a as r, s4a_operator
+    monkeypatch.setattr(C,'check_spec',lambda:'d'*64)
+    monkeypatch.setattr(s4a_operator,'gpu_metadata',lambda:['NVIDIA Synthetic GPU, 555.55','NVIDIA Second GPU, 555.55'])
+    assert r.provenance_record()=={'spec_sha256':'d'*64,'gpu_devices':[{'name':'NVIDIA Synthetic GPU','driver_version':'555.55'},
+                                                                        {'name':'NVIDIA Second GPU','driver_version':'555.55'}]}
+
+
+@pytest.mark.parametrize('spec_error',[FileNotFoundError('moved'),ValueError('not json'),'mismatch'])
+def test_provenance_record_is_null_where_the_decision_record_cannot_be_established(monkeypatch,spec_error):
+    from c_ept import config as C
+    from c_ept.workflows import run_s4a as r, s4a_operator
+    error=C.SpecMismatch('constants differ') if spec_error == 'mismatch' else spec_error
+    monkeypatch.setattr(C,'check_spec',lambda:(_ for _ in ()).throw(error))
+    monkeypatch.setattr(s4a_operator,'gpu_metadata',lambda:['NVIDIA Synthetic GPU, 555.55'])
+    record=r.provenance_record()
+    assert record['spec_sha256'] is None and record['gpu_devices'][0]['name']=='NVIDIA Synthetic GPU'
+
+
+@pytest.mark.parametrize('answer',['unavailable','garbled','empty_name'])
+def test_provenance_record_is_null_where_no_gpu_name_and_driver_can_be_read(monkeypatch,answer):
+    from c_ept import config as C
+    from c_ept.workflows import run_s4a as r, s4a_operator
+    monkeypatch.setattr(C,'check_spec',lambda:'d'*64)
+    def query():
+        if answer == 'unavailable':
+            raise s4a_operator.OperatorError('no nvidia-smi')
+        return ['a line without the driver'] if answer == 'garbled' else [', 555.55']
+    monkeypatch.setattr(s4a_operator,'gpu_metadata',query)
+    assert r.provenance_record()=={'spec_sha256':'d'*64,'gpu_devices':None}     # null, never a guess
 
 
 def test_checkpoint_projection_component_stays_invariant_when_row_ratio_changes():
@@ -503,6 +584,7 @@ def test_main_post_process_failure_records_actual_declared_return(tmp_path,monke
     monkeypatch.setattr(r,'APPROVED_RUNS_ROOT',root)
     monkeypatch.setattr(r,'repository_state',lambda:dict(code_commit='a'*40,code_dirty=False,repo_root=str(tmp_path)))
     monkeypatch.setattr(r,'inspect_inputs',lambda args:meta)
+    monkeypatch.setattr(r,'provenance_record',lambda:{'spec_sha256':None,'gpu_devices':None})   # no decision record or nvidia-smi here
     monkeypatch.setattr(run_s1,'require_no_strata',lambda:probe())
     def fail_loading(meta): raise failure_type('synthetic post-PROCESS failure')
     monkeypatch.setattr(r,'_load_inputs',fail_loading)

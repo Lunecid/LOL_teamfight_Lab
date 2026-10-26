@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import numbers
 from pathlib import Path
 import re
 import subprocess
@@ -30,7 +31,7 @@ SOURCE_REQUIRED = ('c_ept/comparison/protocol.py', 'c_ept/comparison/operator.py
                    'c_ept/comparison/data.py', 'c_ept/comparison/infrastructure.py',
                    'c_ept/comparison/evaluation.py', 'c_ept/comparison/reporting.py',
                    'c_ept/models/neural/team_set.py', 'c_ept/ept/train.py',
-                   'c_ept/ept/data.py', 'c_ept/evaluation/adapters.py',
+                   'c_ept/ept/data.py', 'c_ept/evaluation/adapters.py', 'c_ept/evaluation/guard.py',
                    'c_ept/models/baselines_b1.py', 'tools/ept_comparison_controller.py',
                    'docs/EPT_MATCHED25_PROTOCOL_KO.md')
 _HASH = re.compile(r'[0-9a-f]{64}')
@@ -175,11 +176,80 @@ def preflight(c, *, source_probe=clean_source, runs_root=None, check=None):
             'interpretation':'diagnostic_only', 'execution_authorized':c['execution_authorized']}
 
 
-def pilot_decision(ept, comparator):
-    require(all(isinstance(v,(int,float)) and not isinstance(v,bool) and math.isfinite(v)
-                for v in (ept,comparator)), 'finite paired structural scores required')
-    delta = float(ept)-float(comparator)
-    return {'contrast':'EPT-minus-comparator','difference':delta,
-            'status':'provisional_improvement' if delta < 0 else 'diagnose_before_expansion',
+def _paired_interval(ci95, ci_status):
+    """The usable 95% interval (lo, hi) of the paired match bootstrap, or None.
+
+    Usable means the pipeline marked it 'available' (every requested replicate was
+    valid) and it is a finite, ordered pair. 'not_requested', invalid-replicate
+    (conditional) and malformed intervals are all treated as missing.
+    """
+    if ci_status != 'available' or not isinstance(ci95, (list, tuple)) or len(ci95) != 2:
+        return None
+    if not all(isinstance(v, numbers.Real) and not isinstance(v, bool) and math.isfinite(v) for v in ci95):
+        return None
+    lo, hi = float(ci95[0]), float(ci95[1])
+    return (lo, hi) if lo <= hi else None
+
+
+def pilot_decision(difference, ci95, ci_status, *, comparator_label='comparator'):
+    """Diagnostic status of one matched-25% pair from the paired structural difference and its CI.
+
+    Equations
+    ---------
+    (PD-1)  Delta = S_EPT - S_cmp          normalized structural NLL difference, lower NLL is better
+                                            (the pipeline's structural 'delta' estimate)
+    (PD-2)  [lo, hi] = 95% percentile interval of Delta over the paired match bootstrap
+    (PD-3)  hi < 0            -> provisional_improvement
+            lo > 0            -> diagnose_before_expansion
+            otherwise         -> inconclusive   ([lo, hi] contains 0, or the interval is missing / not finite / not 'available')
+
+      symbol    | meaning                                   | unit      | code
+      Delta     | EPT minus the real comparator (B1 or N2)  | NLL/scale | difference
+      lo, hi    | 95% bootstrap interval of Delta           | NLL/scale | ci95
+      cmp       | the comparator slot of the pair           | -         | comparator_label
+
+    Interpretation
+    --------------
+    The sign of a single-seed point difference alone says nothing: with the interval
+    straddling 0 the pilot cannot tell an improvement from noise, and that is
+    "inconclusive", never equivalence (T008; docs/EPT_MATCHED25_PROTOCOL_KO.md).
+    A missing interval is the same case as a straddling one, so it can never promote
+    a pilot. The boundary is strict (hi == 0 or lo == 0 still contains 0). Every
+    status keeps confirmed_success False: this is a single-seed diagnostic, and
+    an interval over match sampling does not cover training-seed variation.
+    """
+    require(isinstance(difference, numbers.Real) and not isinstance(difference, bool) and math.isfinite(difference),
+            'finite paired structural difference required')
+    require(isinstance(comparator_label, str) and comparator_label, 'comparator label required')
+    interval = _paired_interval(ci95, ci_status)
+    if interval is None or interval[0] <= 0 <= interval[1]:
+        status = 'inconclusive'
+    elif interval[1] < 0:
+        status = 'provisional_improvement'
+    else:
+        status = 'diagnose_before_expansion'
+    return {'contrast':f'EPT-minus-{comparator_label}','comparator':comparator_label,
+            'difference':float(difference),'ci95':None if interval is None else list(interval),
+            'ci_status':ci_status,'status':status,
             'inference':'diagnostic_only','confirmed_success':False,
             'withdrawal':'no superiority claim from this single-seed pilot'}
+
+
+# Text of the matched-25% outputs. The T003 wording ("existing whole-FIT B1; unequal training
+# scope") describes the earlier pilot only and must not appear in matched outputs: here every
+# model is fitted on the same selected 25% FIT/STOP matches. What is fitted on that FIT alone is
+# per model family: EPT and N2 read one predictor Stats object (prepare stage); B1 does not use it
+# and fits its own dropped columns on the same matches (EPT_MATCHED25_PROTOCOL_KO.md, fairness
+# values). The S3 scales, terrain and target definitions are shared fixed assets of the whole FIT.
+MATCHED_DESIGN = ('same selected 25% FIT/STOP membership for every model; predictor preprocessing fitted on the selected FIT only '
+                  '(one Stats shared by EPT and N2, the dropped columns of B1); '
+                  'shared fixed S3 scales, terrain and target-definition assets')
+MATCHED_LIMITATION = ('Same selected 25% membership for all models, with predictor preprocessing fitted on the selected FIT only '
+                      '(one Stats shared by EPT and N2, the dropped columns of B1), but the S3 B0 scales, terrain '
+                      'and target definitions are shared fixed assets, so the comparison is conditional on them.')
+
+
+def matched_text(model, comparator):
+    """Comparison and delta labels of one matched pair, naming its real models (B1 or N2 as the comparator)."""
+    return {'comparison':f'matched 25% diagnostic: {model} versus {comparator}; {MATCHED_DESIGN}; single-seed',
+            'delta':f'{model}-{comparator}'}

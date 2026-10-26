@@ -27,7 +27,7 @@ import subprocess
 import sys
 
 from c_ept import __path__ as _package_path
-from c_ept.workflows.s4a_runtime import RuntimeRefused, prepare_native_runtime, validate_e6_probe
+from c_ept.workflows.s4a_runtime import EXCEPTION_TYPE_PATTERN, RuntimeRefused, prepare_native_runtime, validate_e6_probe
 
 ROOT = Path(_package_path[0]).resolve().parent
 RUN_NAME = re.compile(r'^\d{8}_c_ept_s4a_\d+$')
@@ -296,6 +296,9 @@ def validate_process_metadata(record, run, identity, digest):
     fields = {'schema','operator_api_version','run_path','run_identity_sha256',
               'code_commit','operator_config_sha256','pid','create_time','state',
               'outcome','exit_code','updated_at'}
+    # 추가 필드 exception_type(실패한 실행의 예외 클래스 이름)만 선택적으로 허용한다. 그 밖의 필드는 여전히 거부한다.
+    if 'exception_type' in record:
+        fields = fields | {'exception_type'}
     if (set(record) != fields or record.get('schema') != 's4a_process_v1'
             or type(record.get('operator_api_version')) is not int
             or record['operator_api_version'] != 1):
@@ -322,6 +325,10 @@ def validate_process_metadata(record, run, identity, digest):
                  and (code is None or (type(code) is int and code != 0))))
     if not valid:
         raise OperatorError('PROCESS state/outcome/exit_code 조합 오류')
+    # exception_type은 실패 기록에만, 클래스 이름 형식(점 없는 식별자; 쓰는 쪽과 같은 s4a_runtime.EXCEPTION_TYPE_PATTERN)으로만 있을 수 있다.
+    if 'exception_type' in record and (state != 'failed' or not isinstance(record['exception_type'],str)
+                                       or not re.fullmatch(EXCEPTION_TYPE_PATTERN,record['exception_type'])):
+        raise OperatorError('PROCESS exception_type은 실패 기록의 예외 클래스 이름이어야 합니다')
 
 
 def observe_process(pid):
@@ -380,6 +387,8 @@ def status(path):
     elif record['state'] == 'failed':
         result.update(state='recorded_failure', recorded_exit_code=record['exit_code'],
                       message='파이프라인 실패 기록: OS 종료를 별도로 관측한 결과는 아닙니다')
+        if 'exception_type' in record:
+            result['recorded_exception_type'] = record['exception_type']
     else:
         evidence = observe_process(record['pid'])
         result['process_evidence'] = evidence['kind']

@@ -833,3 +833,42 @@ def test_freeze03_cli_render_denial_is_nonzero_and_preserves_light_report(pilot,
     saved=m.read_json(p.out/'report.json')
     assert saved['state']=='completed' and saved['render_refused']
     assert saved['controller']['tree_gone'] is False and (p.out/'loss-live.svg').exists()
+
+
+# ---- EPT-T011 A5-F8: the failed PROCESS record carries the additive exception_type; the strict monitor validator accepts exactly that ----
+def test_failed_process_record_with_the_additive_exception_type_is_observed_not_refused(pilot):
+    p=pilot
+    epoch(p)
+    p.process.update(state='failed',outcome='failed',exit_code=2,exception_type='ValueError')
+    write(p.run/'PROCESS.json',p.process)
+    p.controller['state']='failed'
+    write(p.control/'controller.json',p.controller)
+    report=inspect(p,missing)
+    assert report['state']=='failed' and report['process']['exception_type']=='ValueError'
+
+
+@pytest.mark.parametrize('update',[
+    dict(exception_type='ValueError'),                                                       # a running record has no exception
+    dict(state='finished',outcome='completed',exit_code=0,exception_type='ValueError'),
+    dict(state='failed',outcome='failed',exit_code=2,exception_type=None),
+    dict(state='failed',outcome='failed',exit_code=2,exception_type=''),
+    dict(state='failed',outcome='failed',exit_code=2,exception_type='not a class name'),
+    dict(state='failed',outcome='failed',exit_code=2,exception_type='pkg.ValueError'),       # a dotted name is not a class name
+    dict(state='failed',outcome='failed',exit_code=2,exception_type='E'*129),                 # longer than the pattern allows
+    dict(state='failed',outcome='failed',exit_code=2,exception_type=7),
+    dict(state='failed',outcome='failed',exit_code=2,current_stage='train_S_cuda')])         # any other extra field stays refused
+def test_misplaced_malformed_or_other_extra_process_fields_stay_refused(pilot,update):
+    p=pilot
+    p.process.update(update)
+    with pytest.raises(m.MetadataError):
+        m.validate_process(p.process,p.run,p.manifest)
+
+
+def test_monitor_accepts_the_longest_class_name_and_keeps_the_pattern_of_the_runner(pilot):
+    # The monitor is stdlib-only and may belong to another source checkout, so it keeps its own copy of the class-name pattern. The runner
+    # (writer) and the S4a operator (validator) share c_ept.workflows.s4a_runtime.EXCEPTION_TYPE_PATTERN; the copies must not drift (review M3).
+    from c_ept.workflows.s4a_runtime import EXCEPTION_TYPE_PATTERN
+    assert m.EXCEPTION_TYPE_PATTERN==EXCEPTION_TYPE_PATTERN
+    p=pilot
+    p.process.update(state='failed',outcome='failed',exit_code=2,exception_type='E'*128)
+    m.validate_process(p.process,p.run,p.manifest)

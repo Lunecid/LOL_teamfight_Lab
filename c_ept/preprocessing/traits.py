@@ -5,6 +5,7 @@ C-EPT 챔피언 특성 및 레벨/아이템 모듈 (c_ept.traits):
 
 - stat_at_level, attack_speed_at_level: LoL 공식 성장 계수 factor(n)을 적용한 레벨 n 스탯 계산
 - champion_traits: Data Dragon 기반 챔피언 역할군/사거리/자원 및 레벨 반영 19차원 특성 벡터
+- trait_signature: 한 패치에서 챔피언을 가리키는 레벨 없는 특성 묶음(정적 + 기본 + 성장); 표에 없는 챔피언은 None (결정 D18, 층 분석)
 - LevelIndex, level_at: LEVEL_UP 이벤트를 누적하여 특정 시점(ref_ms)의 선수별 레벨 조회
 - ItemIndex: 교전 시점까지 구매한 아이템의 종합 스탯(22개 피처) 재생
 """
@@ -189,6 +190,41 @@ def _table_row(patch: str, champ: int):
     if not np.isfinite(np.array(static + base + growth)).all():
         raise ValueError(f'the champion table of patch {patch} lacks a value for champion {champ}')
     return static, base, growth
+
+
+def trait_signature(patch: str, champ: int):
+    """
+    패치 ``patch``에서 챔피언 ``champ``를 가리키는 특성의 묶음 (정적 12 + 기본 스탯 6 + 성장 스탯 5)을 ``(static, base, growth)``로 돌려줍니다.
+    그 패치의 Data Dragon 표에 없는 챔피언(처음 보는 챔피언, 빈 칸 0, 모드 ID)은 None입니다.
+
+    수식 (S4b 준비 M13, 결정 D18)
+    ----
+    σ(p, c) = (S_c^(p), B_c^(p), G_c^(p)) ;  σ(p, c) = None  ⇔  c가 p의 표에 없다
+    챔피언 c의 패치 p에서의 레벨별 특성은 stat(n) = B + G · factor(n) (``stat_at_level``)이고, σ는 레벨 n을 담지 않는다.
+    챔피언 c가 패치 p와 q 사이에서 "바뀌었다" ⇔ σ(p, c) ≠ σ(q, c) (둘 다 None이 아닐 때)
+
+      기호     | 뜻                                                   | 단위   | 범위                    | 코드 변수
+      p, c     | 패치 이름 (예 '15.22'), 챔피언 키 (Data Dragon의 수) | —      | 표에 있는 패치, 정수    | patch, champ
+      S_c      | 정적 12열: 역할군 6, 원거리 여부, 사거리, 자원 4      | 열마다 | 유한                    | 반환값[0]
+      B_c      | 기본 스탯 6: 체력, 방어력, 마저, 공격력, 공속, 이속   | 열마다 | 유한                    | 반환값[1]
+      G_c      | 성장 스탯 5: 체력, 방어력, 마저, 공격력, 공속(%)      | 열마다 | 유한                    | 반환값[2]
+
+    해석
+    ----
+    챔피언의 특성 벡터는 한 패치 안에서 챔피언을 하나씩 가리키는 코드로도 읽히므로(결정 D18: 171개 모두 서로 다르다), "그 챔피언의 스탯이 바뀌었는가"를 묻는 층 분석은 레벨이 아니라 표의 값 자체를
+    견줘야 한다. 레벨별 값은 같은 표에서 stat(n)으로 나오므로 두 패치의 서명이 같으면 모든 레벨의 특성이 같고, 다르면 어느 한 레벨 이상에서 다르다(성장 계수가 0이 아닌 레벨).
+    값은 JSON이 읽어 온 그대로이므로 같음은 정확한 같음이고 허용 오차는 없다. 챔피언은 정수만 받는다: ``True``나 1.0은 표의 캐시에서 키 1과 같은 칸에 놓여 진짜 챔피언 1의 답을 오염시키므로
+    TypeError로 막는다. 표가 없는 패치는 레거시 읽기 함수의 FileNotFoundError가 그대로 올라온다.
+
+    근거
+    ----
+    결정 D18 (B7을 챔피언 신원 코드로 읽는 층 비교, 15.22에서 바뀐 챔피언 층), 계획 M13, ``champion_traits``가 쓰는 같은 표 행 (``_table_row``).
+    """
+    if not isinstance(patch, str):
+        raise TypeError(f'patch must be a patch name such as "15.22", not {type(patch).__name__}')
+    if isinstance(champ, (bool, np.bool_)) or not isinstance(champ, (int, np.integer)):
+        raise TypeError(f'champ must be a whole number (the Data Dragon key), not {type(champ).__name__}')
+    return _table_row(patch, int(champ))
 
 
 def champion_traits(rec: MatchRecord, levels) -> np.ndarray:

@@ -1,0 +1,4 @@
+# Preserve the historical equation-index byte prefix in committed snapshots.
+docs/superpowers/notes/equation-index.md -text
+# Run profiles are hash-locked: one content, one hash, so no line-end conversion (S4b-prep K9).
+profiles/**/*.json -text

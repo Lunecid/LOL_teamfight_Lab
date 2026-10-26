@@ -33,6 +33,10 @@ PROCESS_FIELDS = {'schema', 'operator_api_version', 'run_path', 'run_identity_sh
                   'code_commit', 'operator_config_sha256', 'pid', 'create_time',
                   'state', 'outcome', 'exit_code', 'updated_at'}
 REF_FIELDS = {'run', 'code_commit', 'operator_config_sha256', 'run_identity_sha256'}
+# The form of the class name that a runner writes as exception_type on a failed PROCESS record. This module is stdlib-only and may belong to
+# another source checkout, so it keeps its own copy of c_ept.workflows.s4a_runtime.EXCEPTION_TYPE_PATTERN; a test pins that the two are equal.
+# 쓰는 쪽(실행기)과 읽는 쪽(검사기)이 같은 형식을 쓰도록 맞춘 상수이다(EPT-T011 검토 M3).
+EXCEPTION_TYPE_PATTERN = r'[A-Za-z_][A-Za-z0-9_]{0,127}'
 
 
 class MetadataError(ValueError):
@@ -234,8 +238,14 @@ def generation_state(pid, created, probe=observe_process):
 
 
 def validate_process(p, run, m):
-    require(set(p) == PROCESS_FIELDS and p.get('schema') == PROCESS_SCHEMA
+    # The runner adds exception_type (the class name of the exception that ended a failed run) to a failed record only. It is the one
+    # optional field; any other extra field is still refused. 실패 기록에만 붙는 선택 필드 하나만 허용한다(EPT-T011 A5-F8).
+    fields = PROCESS_FIELDS | {'exception_type'} if 'exception_type' in p else PROCESS_FIELDS
+    require(set(p) == fields and p.get('schema') == PROCESS_SCHEMA
             and type(p.get('operator_api_version')) is int and p['operator_api_version'] == 1, 'PROCESS exact fields/schema mismatch')
+    require('exception_type' not in p or (p['state'] == 'failed' and type(p['exception_type']) is str
+                                          and re.fullmatch(EXCEPTION_TYPE_PATTERN, p['exception_type'])),
+            'PROCESS exception_type must be the class name on a failed record')
     require(canonical(p['run_path']) == run and all(p[k] == m[k] for k in REF_FIELDS - {'run'}), 'PROCESS binding mismatch')
     stamp = dt.datetime.fromisoformat(p['updated_at'])
     require(stamp.tzinfo is not None and stamp.utcoffset() == dt.timedelta(0), 'PROCESS timestamp must be UTC')

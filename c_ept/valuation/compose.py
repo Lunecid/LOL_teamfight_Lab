@@ -1,5 +1,6 @@
 r"""[모듈 개요 및 하네스 위치]
 This module evaluates value forecasts using the t0 information plus the censoring time T of the match (decision P10: exposures and conversion windows are cut at T - 30 s and at T; censoring is observation design, not a model input).
+With ``Composer(exposure='nominal')`` (S4b preparation M12, decision D14) a t0 forecast does not read T at all: every occurrence bin has the exposure 10 s and every conversion window 60 s (formulas COMP-2n and COMP-5n below).
 
 이 모듈은 평가 시점(t₀ 분 프레임)에서 각 머리(heads)가 예측한 조건부 확률법칙들을 연결하여
 향후 예측 시계(H = 60초, 120초, 180초) 동안 발생하는 교전들의 미래 누적 가치 V_start(t₀, H)를
@@ -31,6 +32,7 @@ C. 합성 사슬 및 가치 회계 규칙 (식 COMP-3, COMP-4):
      2) 첫 킬 구역 z ~ ρ(· | q, m) (관측 구역 0 .. 9 중 역변환 표집)
      3) 교전 규모 s ~ P(· | q, m, z)
      4) 팀별 킬 수 k_blue, k_red ~ Poisson(kill_rate)
+        (이동 법칙 kill_law='shifted'(결정 D5): 첫 킬 팀 d = m // 25의 킬 수는 1 + Poisson(kill_rate의 d 칸), 다른 팀과 처형 표지는 위와 같다)
      5) 킬 골드: k ≥ 1인 팀은 gold_prob(layer = min(k, 6))에서 구간 표집 후 대표 골드 환산, 0킬 팀은 0골드 확정
      6) K = (k_blue, k_red, gold_blue, gold_red)
      7) 오브젝트 O ~ Poisson(obj_rate(rows, q, m, z, s, K))
@@ -45,8 +47,11 @@ D. 핵심 수식 (COMP-1 ~ COMP-8):
    (COMP-3)  한 발생의 사슬  m → z → s → (k_blue, k_red) → 골드 구간 → O → 전환 수 y_c
    (COMP-4)  발생의 가치     v = g_blue − g_red + Σ_c sign_c · price_{qc} · (O_c + y_c)
    (COMP-5)  전환 노출       e_q = max(0, min(60s, T − δ̂)),   δ̂ = t₀ + (q + 0.5)·10s + 20s
+   (COMP-2n) 공칭 발생 수    n_{jq} ~ Poisson(λ_q · 10 s)                              (결정 D14: Δ_q = 10 s, 모든 구간 q = 0, …, 17; T와 관측 노출 exposure_ms를 읽지 않는다)
+   (COMP-5n) 공칭 전환 노출  e_q = 60 s                                                (결정 D14: 모든 구간; T를 읽지 않는다)
    (COMP-6)  닫힌 꼴         E[V(H)] = Σ_{q<H/10s} λ_q · Δ_q · Σ_m π(m | q) · Σ_z ρ(z | q, m) · Σ_s P(s | q, m, z) · v̄(q, m, z, s)
    (COMP-7)  기대 킬 골드    E[g_t] = Σ_{k=1}^{5} P(k; μ_t) · G_t(k) + P(≥ 6; μ_t) · G_t(6)
+   (COMP-7k) 이동 법칙에서 첫 킬 팀 d의 확률표: P(K_d = k) = P(k − 1; λ_d) (k ≥ 1), P(K_d = 0) = 0, P(K_d ≥ 6) = P(N_d ≥ 5) (다른 팀은 (COMP-7)); 표본은 포아송 한 번 + 1[t = d]
    (COMP-8)  기대 발생 수    E[N(H)] = Σ_{q<H/10s} λ_q · Δ_q
 
 E. 하네스 제약 및 결정성 보장:
@@ -59,6 +64,8 @@ E. 하네스 제약 및 결정성 보장:
 #      "determinism" (the generator of a row from the seed and the row number), Review Focus 3 (no onset and no conversion without
 #      exposure) and Task 9; controller rulings R3 (the protocol of ``heads``), R13 (strictly positive categorical outputs), R22.
 # Ref: docs/superpowers/notes/2026-10-21-math-control-03.md section E (one composed row: 32.16, and 22.12 when the game ends at 1,075 s).
+# Ref: docs/superpowers/plans/2026-10-26-c-ept-s4b-prep.md Task M12 and decision D14 of harness/decisions.md (the forecast from t0 is T-blind: nominal exposures 10 s per occurrence bin and 60 s of conversion window;
+#      T is read only by the training censoring (P10) and by the filter of the primary population t0 + H <= T - 30 s).
 # Ref: Kingman, J. F. C. (1993), "Poisson Processes", Oxford University Press, chapter 3; doi:10.1093/oso/9780198536932.001.0001 (Campbell's
 #      theorem: the expected sum of a function over the points of a marked Poisson process is the integral of its mean over the intensity).
 # Ref: Devroye, L. (1986), "Non-Uniform Random Variate Generation", Springer, section III.2; doi:10.1007/978-1-4613-8643-8 (inverse
@@ -78,11 +85,11 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 
 import numpy as np
-from scipy.special import gammainc
 
 from c_ept import config as C
 from c_ept.preprocessing import features
 from c_ept.valuation import flowprice, towertier
+from c_ept.models import killlaw
 from c_ept.models.heads import OUTPUT_WIDTHS, ComposerHeads
 
 # =============================================================================
@@ -106,6 +113,7 @@ N_POISSON = N_LAYER                                  # P(k) is written out for k
 HORIZON_BINS = tuple(h // C.BIN_MS for h in C.EVAL_H_MS)          # (6, 12, 18): the bins of V_start(t0, 60 / 120 / 180 s)
 Q_LEVELS = np.arange(1, 20) / 20.0                   # the 19 quantile levels 0.05 .. 0.95
 Q_LEVELS.setflags(write=False)
+EXPOSURES = ('observed', 'nominal')                  # the exposures of a composer: the observed ones (cut by the game end T, decision P10) or the nominal ones of a T-blind forecast (decision D14)
 BLUE, RED = 0, 1
 _TOWER = C.O_KINDS.index('tower')
 
@@ -424,12 +432,21 @@ def _spans(n: int):
 def _poisson_head(mu: np.ndarray) -> tuple:
     """(P(k) for k = 0 .. 5 as (..., 6), P(k >= 6) as (...)) of Poisson laws with the means ``mu`` (...).
 
-    (COMP-7)의 P(k; μ) (k = 0 … 5)와 꼬리 P(≥ 6; μ)를 계산한다."""
-    p = np.empty(mu.shape + (N_POISSON,))
-    p[..., 0] = np.exp(-mu)
-    for k in range(1, N_POISSON):
-        p[..., k] = p[..., k - 1] * mu / k
-    return p, gammainc(float(N_POISSON), mu)
+    (COMP-7)의 P(k; μ) (k = 0 … 5)와 꼬리 P(≥ 6; μ)를 계산한다. 계산은 ``killlaw.pmf_head``의 옛 법칙 가지이고(같은 연산, 같은 순서), 이동 법칙은 ``_kill_head``가 부른다."""
+    return killlaw.pmf_head(mu, None, 'poisson', N_POISSON)
+
+
+def _kill_head(mu: np.ndarray, m: np.ndarray, law: str) -> tuple:
+    """(P(K = k) for k = 0 .. 5 as (N, 2, 6), P(K >= 6) as (N, 2)) of the kill counts of the two teams for the kill rates ``mu`` (N, 2) of the onsets with the marks ``m``
+    (N,) under the kill law ``law``: the plain Poisson table for 'poisson', and for 'shifted' the table of the first-kill team moved by one place (K_d = 1 + N_d).
+
+    수식
+    ----
+    (COMP-7k)  P(K_d = k) = P(N_d = k − 1) = e^{−λ_d} λ_d^{k−1} / (k − 1)!  (k ≥ 1),   P(K_d = 0) = 0,   P(K_d ≥ 6) = P(N_d ≥ 5) = gammainc(5, λ_d) ;   다른 팀과 처형(d = −1)은 (COMP-7)
+
+    해석: 닫힌 꼴은 킬 수 k = 1 … 5의 확률과 6 이상의 꼬리 하나로 팀의 기대 킬 골드를 쓰므로, 이동 법칙에서는 첫 킬 팀의 표만 한 칸 옮기면 된다. d는 격자의 표지 m에서 오고
+    (``killlaw.first_team``), 출력 율의 d 칸은 λ_d이다."""
+    return killlaw.pmf_head(mu, killlaw.first_team(m) if law == 'shifted' else None, law, N_POISSON)
 
 
 # =============================================================================
@@ -452,13 +469,54 @@ class Composer:
     ``simulate``는 (COMP-1)–(COMP-4), ``expect``는 (COMP-6)과 (COMP-7), ``expected_onsets``는 (COMP-8)을 행 하나씩 계산한다. 머리는 만들 때 한 번 t₀ 행의 보기에
     묶고(판정 R32), 가격과 포탑 단계 분포와 골드 구간 대표값은 모든 행에 같은 것을 쓴다.
 
-    ``dead_time`` is keyword-only and must be None in S4a (Q12); refusal happens before binding."""
+    ``dead_time`` is keyword-only and must be None in S4a (Q12); refusal happens before binding.
 
-    def __init__(self, heads, prices, tier_model, gold_reps, rows, s2, S: int = DEFAULT_S, seed: int = DEFAULT_SEED, *, dead_time=None):
+    ``kill_law`` (keyword-only; S4b preparation M1, decision D5) is the kill law of the heads: ``'poisson'`` (the default) takes the kill rate of a team as the mean of its
+    kill count, as every earlier run did; ``'shifted'`` takes the entry of the first-kill team of the mark as the mean λ_d of the excess N_d of K_d = 1 + N_d and the other
+    entry as the mean μ of the plain count, for the closed form (``_kill_head``) and for the draws (``killlaw.sample``: one Poisson call of the same shape, then 1 added to
+    the first team, so the random stream is that of the plain law). An execution mark (50, 51) has no first team. The heads must have been fitted for the same law: heads
+    that declare their law (``heads.kill_law``, the B0 and B1 chains take it from their M3Kills head) are refused with a ValueError naming both laws when it differs,
+    before they are bound; heads that declare none (the EPT compose heads, the toy heads) are not checked here, the training identity of the EPT carries their law.
+
+    ``zone_mark`` (keyword-only; S4b preparation M9, decision D9) says whether the zone is part of the model. ``True`` (the default) is the chain of every earlier run. ``False`` is the A7 design
+    check "without the zone mark": the composer does not draw z (the zone law of the heads is not asked) and gives every head the constant z = -1, "the first kill has no position", a condition that
+    every head takes; the second uniform of each onset is still drawn and not used, so the random stream is that of the default and, on heads that do not read z (the heads of a model without
+    the zone mark), every other draw is the draw of the default. The closed form sums over the one value z = -1 with weight 1. The heads must have been fitted for the same setting: heads that declare it (``heads.zone_mark``; the EPT compose
+    heads take it from their model) are refused with a ValueError naming both settings when it differs, before they are bound; heads that declare none (the toy heads, the B0 and B1 chains) are not
+    checked here, the training identity of the EPT (``TrainConfig.zone_mark``) carries their setting.
+
+    ``exposure`` (keyword-only; S4b preparation M12, decision D14) says which exposures the forecast uses. ``'observed'`` (the default) is every earlier run: the occurrence mass of a bin is the rate times
+    the observed exposure ``rows.exposure_ms`` (the part of the bin before min(t0 + 180 s, T - 30 s)) and the conversion window of an onset is cut at the game end T (``conv_exposure_s``, decision P10). ``'nominal'``
+    is the T-blind forecast of a t0 row: the occurrence mass of every bin is the rate times 10 s and every conversion window is 60 s, so the composition reads neither ``rows.T_ms`` nor ``rows.exposure_ms`` (the
+    fields stay on the table so that a test can catch a reader). The random stream is the same, so a nominal composer of rows whose game end is far away is the observed composer of those rows bit for bit. Training
+    keeps the observed exposure (P10); the nominal composer is for the evaluation on the primary population (``endpoints.primary_rows``), where the observed exposure of the first H/10 bins is the nominal one.
+
+    수식 (결정 D14): 공칭 노출에서 (COMP-2)는 n_{jq} ~ Poisson(λ_q · 10 s)이고 (COMP-5)의 전환 노출은 e_q = 60 s이다(모든 구간 q). 해석: t₀ 예측은 경기가 언제 끝나는지를 몰라도 되어야 하므로(끝은 관측의 설계일 뿐 t₀ 정보가
+    아니다) 평가에서는 노출을 T로 자르지 않는 기준 노출로 합성하고, T는 주 모집단의 선별(t₀ + H ≤ T − 30 s)에만 쓴다. 이 행들에서는 앞 H/10개 구간의 관측 노출이 이미 10 s이므로 두 노출은 발생 항에서 같고, 전환 창만 다르다."""
+
+    def __init__(self, heads, prices, tier_model, gold_reps, rows, s2, S: int = DEFAULT_S, seed: int = DEFAULT_SEED, *, dead_time=None,
+                 kill_law: str = 'poisson', zone_mark: bool = True, exposure: str = 'observed'):
         if dead_time is not None:
             raise ValueError('dead_time must be None in S4a')
+        if not isinstance(exposure, str) or exposure not in EXPOSURES:
+            raise ValueError(f'exposure must be one of {EXPOSURES} ("observed": cut by the game end, the earlier runs; "nominal": 10 s per occurrence bin and 60 s of conversion window, no T), not {exposure!r}')
+        self.exposure = exposure
+        self.kill_law = killlaw.check_law(kill_law)
+        if not isinstance(zone_mark, bool):
+            raise ValueError(f'zone_mark must be True (the chain draws the zone) or False (A7: no zone mark), not {zone_mark!r}')
+        self.zone_mark = zone_mark
         if not isinstance(heads, ComposerHeads):
             raise TypeError('heads must implement the ComposerHeads protocol of c_ept.heads')
+        # 킬 머리가 어느 법칙으로 맞춰졌는지 선언하는 머리(B0·B1 체인: ``kill_law``)는 이 합성기의 법칙과 같아야 한다. 다르면 d 칸의 율 λ_d를 킬 수의 평균 μ로(또는 그 반대로) 읽어 첫 킬 팀의
+        # 확정된 킬 하나가 말없이 빠지거나 겹친다(검토 I1). 선언이 없는 머리(EPT 합성 머리, 장난감 머리)는 검사하지 않는다: EPT의 법칙은 학습 정체성(``TrainConfig.kill_law``)이 맡는다.
+        declared = getattr(heads, 'kill_law', None)
+        if declared is not None and declared != self.kill_law:
+            raise ValueError(f'the heads were fitted for kill_law {declared!r} but this Composer has kill_law {self.kill_law!r}: the kill rates would be read as the other law')
+        # 구역 표지의 유무도 같다: 구역 표지 없이 학습한 머리(z 조건 입력이 0)에 z를 뽑아 먹이거나, 구역 표지로 학습한 머리에 z를 -1로 고정해 먹이면 머리가 학습 때 보지 않은 조건을 읽는다(결정 D9, 계획 M9).
+        # 선언이 없는 머리(장난감 머리, B0·B1 체인)는 검사하지 않는다.
+        declared_zone = getattr(heads, 'zone_mark', None)
+        if declared_zone is not None and declared_zone != self.zone_mark:
+            raise ValueError(f'the heads were fitted for zone_mark {declared_zone!r} but this Composer has zone_mark {self.zone_mark!r}: the zone would be fed to heads that were trained without it, or left out for heads that read it')
         if not isinstance(rows, RowTable):
             raise TypeError('rows must be a RowTable (compose.row_table)')
         if not callable(getattr(tier_model, 'prob', None)):
@@ -484,13 +542,19 @@ class Composer:
     # Everything that a row needs besides the heads is made from the inputs of that row alone, inside the block function that computes it,
     # never for the whole table: a row has the same value in any table, block and process (R30: the calling process computes no value).
     def _seconds(self, i: int) -> np.ndarray:
-        """(18,) the seconds of observation of each occurrence bin of the row i."""
+        """(18,) the seconds of observation of each occurrence bin of the row i: the observed exposure of the table, or under ``exposure='nominal'`` 10 s in every bin (decision D14; the table is not read).
+
+        관측 노출이면 표의 exposure_ms/1000이고, 공칭 노출이면 (COMP-2n)의 Δ_q = 10 s를 18구간 모두에 낸다."""
+        if self.exposure == 'nominal':
+            return np.full(N_Q, C.BIN_MS / 1000.0)
         return self.rows.exposure_ms[i] / 1000.0
 
     def _conv_exposure(self, i: int) -> np.ndarray:
-        """(18,) the seconds of conversion window of an onset in each bin of the row i (decision P10).
+        """(18,) the seconds of conversion window of an onset in each bin of the row i (decision P10); under ``exposure='nominal'`` 60 s in every bin and T is not read (decision D14).
 
-        (COMP-5)의 e_q를 18구간 모두에 낸다."""
+        (COMP-5)의 e_q를 18구간 모두에 낸다. 공칭 노출이면 (COMP-5n)의 e_q = 60 s이다."""
+        if self.exposure == 'nominal':
+            return np.full(N_Q, C.CONV_MS / 1000.0)
         return conv_exposure_s(self.rows.t0_ms[i], np.arange(N_Q), self.rows.T_ms[i])
 
     def _tower_prices(self, i: int) -> np.ndarray:
@@ -571,14 +635,19 @@ class Composer:
         nA = active.size
         # 식 (COMP-6)의 합이 도는 격자: 기대 발생 수가 0보다 큰 구간 × 표지 × 구역 × 규모 전부이며 가지치기가 없다(나머지 구간은 가중이 0이다).
         q2, m2 = (g.ravel() for g in np.meshgrid(active, np.arange(N_M), indexing='ij'))
-        q3, m3, z3 = (g.ravel() for g in np.meshgrid(active, np.arange(N_M), np.arange(N_Z), indexing='ij'))
-        q4, m4, z4, s4 = (g.ravel() for g in np.meshgrid(active, np.arange(N_M), np.arange(N_Z), np.arange(N_S), indexing='ij'))
+        zones = np.arange(N_Z) if self.zone_mark else np.array([-1])                              # (COMP-6z): the zones of the sum: the ten of the law, or the one "no position" (no zone mark)
+        nZ = len(zones)
+        q3, m3, z3 = (g.ravel() for g in np.meshgrid(active, np.arange(N_M), zones, indexing='ij'))
+        q4, m4, z4, s4 = (g.ravel() for g in np.meshgrid(active, np.arange(N_M), zones, np.arange(N_S), indexing='ij'))
         full = lambda size: np.full(size, i, dtype=np.int64)                                      # noqa: E731
         # 머리의 법칙 π(m | q), ρ(z | q, m), P(s | q, m, z)를 격자의 각 점에서 묻는다. 머리 호출은 CALL_ROWS개씩 한다(판정 R29).
         pi = _checked('mark_prob', h.mark_prob(full(nA), active), (nA, N_M), unit_sum=True)
-        rho = np.empty((len(q2), N_Z))
-        for lo, hi in _spans(len(q2)):
-            rho[lo:hi] = _checked('zone_prob', h.zone_prob(full(hi - lo), q2[lo:hi], m2[lo:hi]), (hi - lo, N_Z), unit_sum=True)
+        if self.zone_mark:
+            rho = np.empty((len(q2), N_Z))
+            for lo, hi in _spans(len(q2)):
+                rho[lo:hi] = _checked('zone_prob', h.zone_prob(full(hi - lo), q2[lo:hi], m2[lo:hi]), (hi - lo, N_Z), unit_sum=True)
+        else:                                                                                      # (COMP-6z): z의 값은 -1 하나이고 가중은 1이다. 구역 법칙은 묻지 않는다.
+            rho = np.ones((len(q2), 1))
         size = np.empty((len(q3), N_S))
         for lo, hi in _spans(len(q3)):
             size[lo:hi] = _checked('size_prob', h.size_prob(full(hi - lo), q3[lo:hi], m3[lo:hi], z3[lo:hi]), (hi - lo, N_S), unit_sum=True)
@@ -594,18 +663,18 @@ class Composer:
                 pg = _checked('gold_prob', h.gold_prob(rows_k, *cell, layers), (k, 2, N_GOLD), unit_sum=True)
                 G[lo:hi, :, layer - 1] = np.einsum('ntb,b->nt', pg, reps)
             obj[lo:hi] = _checked('obj_rate', h.obj_rate(rows_k, *cell, np.zeros((k, 4))), (k, N_CELLS))
-        pk, tail = _poisson_head(mu)
+        pk, tail = _poisson_head(mu) if self.kill_law == 'poisson' else _kill_head(mu, m4, self.kill_law)       # (COMP-7), the first team moved by one place under (COMP-7k)
         # 식 (COMP-7): k = 0은 골드 0이어서 합에 없고(pk[..., 1:]), k ≥ 6은 꼬리 확률 하나에 층 6의 G를 곱한다. 이어서 E[g_blue] − E[g_red]를 만든다.
         gold_mean = (pk[..., 1:] * G[..., :N_POISSON - 1]).sum(axis=-1) + tail * G[..., N_POISSON - 1]       # (N, 2): 0 kills pay nothing
-        gold = (gold_mean[:, 0] - gold_mean[:, 1]).reshape(nA, N_M, N_Z, N_S)
+        gold = (gold_mean[:, 0] - gold_mean[:, 1]).reshape(nA, N_M, nZ, N_S)
         # 전환 머리의 입력은 K = O = 0으로 만든 행렬이다: 닫힌 꼴 머리는 K와 O를 읽지 않는다(계획 P6).
         conv = np.empty((len(q3), N_CELLS))
         for lo, hi in _spans(len(q3)):
             k = hi - lo
             x = features.m4_masked_inputs(h.row_view(full(k)), q3[lo:hi], m3[lo:hi], z3[lo:hi], np.zeros((k, 4)), np.zeros((k, N_CELLS)))
             conv[lo:hi] = _checked('conv_rate', h.conv_rate(x), (k, N_CELLS))
-        rho, size = rho.reshape(nA, N_M, N_Z), size.reshape(nA, N_M, N_Z, N_S)
-        obj, conv = obj.reshape(nA, N_M, N_Z, N_S, N_CELLS), conv.reshape(nA, N_M, N_Z, N_CELLS)
+        rho, size = rho.reshape(nA, N_M, nZ), size.reshape(nA, N_M, nZ, N_S)
+        obj, conv = obj.reshape(nA, N_M, nZ, N_S, N_CELLS), conv.reshape(nA, N_M, nZ, N_CELLS)
         # 식 (COMP-6)의 v̄(코드의 g): 킬 골드 + 오브젝트 가치 + 전환 가치. 전환 항은 s에 의존하지 않으므로 (q, m, z)마다 한 번 구해 s 축으로 퍼뜨린다. 바깥 합은 s, z, m 순으로 접는다.
         value = self._cell_values(i)[active]                                                       # (nA, 18)
         g = gold + np.einsum('qmzsc,qc->qmzs', obj, value) \
@@ -714,12 +783,16 @@ class Composer:
         bins, back = np.unique(q, return_inverse=True)                                           # the mark law depends on the bin only
         pm = _checked('mark_prob', h.mark_prob(np.full(len(bins), i, dtype=np.int64), bins), (len(bins), N_M), unit_sum=True)
         m = _inverse_cdf(pm[back], u[:, 0])
-        z = _inverse_cdf(_checked('zone_prob', h.zone_prob(rows, q, m), (n, N_Z), unit_sum=True), u[:, 1])
+        if self.zone_mark:
+            z = _inverse_cdf(_checked('zone_prob', h.zone_prob(rows, q, m), (n, N_Z), unit_sum=True), u[:, 1])
+        else:                                                                                      # (COMP-3z): no zone mark: z = -1 for every onset, u[:, 1] is drawn and left unused (the stream stays)
+            z = np.full(n, -1, dtype=np.int64)
         s = _inverse_cdf(_checked('size_prob', h.size_prob(rows, q, m, z), (n, N_S), unit_sum=True), u[:, 2])
         # 식 (COMP-3)의 킬 수와 킬 골드: 팀별 킬 수를 뽑고, 킬이 있는 팀만 층 ξ = min(k, 6)의 분포에서 골드 구간을 뽑는다. 킬이 0인 팀의 난수는 뽑아 두되
         # 쓰지 않고 그 팀의 골드는 0이다(계획 P4).
         mu = _checked('kill_rate', h.kill_rate(rows, q, m, z, s), (n, 2))
-        k = rng.poisson(mu).astype(np.int64)
+        # (KL-5): one Poisson call of the shape of mu as before; under the shifted law 1 is added to the entry of the first-kill team of the mark m afterwards
+        k = killlaw.sample(rng, mu, killlaw.first_team(m) if self.kill_law == 'shifted' else None, self.kill_law)
         layer = np.clip(k, 1, N_LAYER)
         pg = _checked('gold_prob', h.gold_prob(rows, q, m, z, s, layer), (n, 2, N_GOLD), unit_sum=True)
         ug = rng.random((n, 2))
@@ -801,6 +874,7 @@ class Composer:
         (COMP-2)  n_{jq} ~ Poisson(λ_q·Δ_q)                  (j = 1, …, S; q = 0, …, 17; 행의 입력이 주어지면 모의와 구간마다 독립)
         (COMP-3)  m = inv(π(· | q), U₁),   z = inv(ρ(· | q, m), U₂),   s = inv(P(· | q, m, z), U₃)              (U₁, U₂, U₃ ~ 균등 [0, 1))
                   k_blue ~ Poisson(μ_blue),   k_red ~ Poisson(μ_red)                                            (μ = kill_rate(q, m, z, s))
+                  (kill_law='shifted'(결정 D5): 첫 킬 팀 d = m // 25는 k_d = 1 + N_d, N_d ~ Poisson(μ_d)이고 μ_d는 초과분의 평균 λ_d; 다른 팀과 처형 표지는 위와 같다)
                   k_t ≥ 1이면 ξ_t = min(k_t, 6),   b_t = inv(gold_prob(ξ_t)[t, ·], U_t),   g_t = rep_{b_t};   k_t = 0이면 g_t = 0
                   K = (k_blue, k_red, g_blue, g_red),   O_c ~ Poisson(μ_c(K)),   y_c ~ Poisson(λ_c(K, O)·e_q)        (c = 0, …, 17)
 

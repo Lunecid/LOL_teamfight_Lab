@@ -429,6 +429,166 @@ def test_role_units_selects_the_units_of_the_matches_of_the_asked_roles(toy_s1):
             value.role_units(toy_s1, roles)
 
 
+# ---- the population of the bin means (S4b preparation M3, decision D21 B16) -------------------------------------------------------------
+# The representatives are the FIT means of the gold bins. ``population='all'`` (the default) is every entry of the selected units, in scope or not, as in every earlier run (the S3
+# as-built labels), ``'in_scope'`` the entries of the selected units that are in scope (``units/in_scope`` of S1) only. Hand values (five units, one entry each team):
+#   gold (blue, red):  u0 (310, 120)  u1 (390, 130)  u2 (3500, 140)  u3 (3900, 150)  u4 (330, 160);   in scope: u0 u1 u3 (u2 and u4 lie outside the scope)
+#   all five units:   bin 1 = (120 + 130 + 140 + 150 + 160) / 5 = 140,  bin 3 = (310 + 390 + 330) / 3 = 1030 / 3,  bin 30 = (3500 + 3900) / 2 = 3700
+#   in-scope units:   bin 1 = (120 + 130 + 150) / 3 = 400 / 3,          bin 3 = (310 + 390) / 2 = 350,            bin 30 = 3900
+SCOPE_GOLD = np.array([[310.0, 120.0], [390.0, 130.0], [3500.0, 140.0], [3900.0, 150.0], [330.0, 160.0]])
+SCOPE_MASK = np.array([True, True, False, True, False])
+
+
+def plain_bin_means(uv, selected) -> np.ndarray:
+    """The bin means of (VAL-7) by a plain loop over the entries of the units ``selected`` (never the function under test): the exact sum of each bin divided by its count,
+    the middle of the range (3,000 for the open bin) for a bin without an entry."""
+    import math
+    sums = {b: [] for b in range(31)}
+    for u in selected:
+        for t in (0, 1):
+            if uv.gold_bin[u, t] >= 0:
+                sums[int(uv.gold_bin[u, t])].append(float(uv.kill_gold[u, t]))
+    return np.array([math.fsum(sums[b]) / len(sums[b]) if sums[b] else (100.0 * b + 50.0 if b < 30 else 3000.0) for b in range(31)])
+
+
+def test_representatives_come_from_in_scope_fit_units():
+    uv = fake_uv(SCOPE_GOLD, np.ones((5, 2)))
+    fit = np.arange(5)                                                     # all five units are FIT units: the role selection
+    default = value.gold_bin_means(uv, fit)
+    scoped = value.gold_bin_means(uv, fit, population='in_scope', in_scope=SCOPE_MASK)
+    assert default.means[1] == 140.0 and default.means[3] == pytest.approx(1030 / 3) and default.means[30] == 3700.0           # the hand values of the section text
+    assert scoped.means[1] == pytest.approx(400 / 3) and scoped.means[3] == 350.0 and scoped.means[30] == 3900.0
+    # the other bins are the middle of their range in both, and the open bin 30 has entries in both
+    assert default.means[0] == 50.0 and scoped.means[0] == 50.0 and sorted(set(range(31)) - set(scoped.fallback)) == [1, 3, 30]
+    # an out-of-scope unit changes the default representatives and does not change the in-scope ones, down to the bit and the fallback list
+    other = SCOPE_GOLD.copy()
+    other[2], other[4] = [5000.0, 995.0], [111.0, 222.0]                   # the gold of the two out-of-scope units: other bins (30, 9 and 1, 2)
+    uv2 = fake_uv(other, np.ones((5, 2)))
+    again = value.gold_bin_means(uv2, fit, population='in_scope', in_scope=SCOPE_MASK)
+    assert np.array_equal(again.means, scoped.means) and again.fallback == scoped.fallback
+    assert not np.array_equal(value.gold_bin_means(uv2, fit).means, default.means)
+    # a unit that is in scope but not selected (not a FIT unit) is not an entry either: the population is the selected units that are in scope
+    fewer = value.gold_bin_means(uv, np.array([0, 1, 2]), population='in_scope', in_scope=SCOPE_MASK)
+    assert fewer.means[3] == 350.0 and fewer.means[1] == pytest.approx(125.0) and fewer.means[30] == 3000.0 and 30 in fewer.fallback
+
+
+def test_the_default_population_is_every_selected_unit_as_in_every_earlier_run():
+    """The default is the plain loop of (VAL-7) over the selected units, scope not asked, and the keyword at 'all' is the default. (The comparison with the code of the
+    base commit is the before/after proof script; this test compares with a second implementation written from the text of the rule.)"""
+    rng = np.random.default_rng(7)
+    gold = rng.uniform(0.0, 3600.0, (40, 2))
+    kills = rng.integers(0, 3, (40, 2))
+    uv = fake_uv(gold, kills)
+    for selected in (np.arange(40), np.arange(0, 40, 3), np.array([4, 5, 6])):
+        want = plain_bin_means(uv, selected)
+        for got in (value.gold_bin_means(uv, selected), value.gold_bin_means(uv, selected, population='all')):
+            assert np.array_equal(got.means, want) and got.means.dtype == np.float64
+    assert value.GOLD_REP_POPULATIONS == ('all', 'in_scope')
+    import inspect
+    parameters = inspect.signature(value.gold_bin_means).parameters
+    assert [p for p in parameters] == ['uv', 'units', 'population', 'in_scope']
+    assert parameters['population'].kind is inspect.Parameter.KEYWORD_ONLY and parameters['population'].default == 'all' and parameters['in_scope'].default is None
+
+
+def test_the_population_of_the_bin_means_is_checked_before_any_entry_is_read():
+    uv = fake_uv(SCOPE_GOLD, np.ones((5, 2)))
+    fit = np.arange(5)
+    for bad in ('in-scope', 'IN_SCOPE', 'selected', 'All', '', None, 3, ('in_scope',)):             # 'selected' was the name of 'all' in the first commit of this task: no alias
+        with pytest.raises(ValueError, match='population'):
+            value.gold_bin_means(uv, fit, population=bad)
+        with pytest.raises(ValueError, match='population'):
+            value.check_gold_rep_population(bad)
+    assert value.check_gold_rep_population('in_scope') == 'in_scope' and value.check_gold_rep_population('all') == 'all'
+    with pytest.raises(ValueError, match='in_scope'):                                      # the scope of the units must be given: it is not in the labels
+        value.gold_bin_means(uv, fit, population='in_scope')
+    for bad in (SCOPE_MASK[:3], SCOPE_MASK.astype(np.int64), np.flatnonzero(SCOPE_MASK), SCOPE_MASK.reshape(5, 1), 'yes'):
+        with pytest.raises(ValueError, match='in_scope'):
+            value.gold_bin_means(uv, fit, population='in_scope', in_scope=bad)
+    with pytest.raises(ValueError, match='in_scope'):                                      # a scope mask is read by the in-scope population only: no silent no-op
+        value.gold_bin_means(uv, fit, in_scope=SCOPE_MASK)
+
+
+class ArrayStore:
+    """A store of arrays by name (the ``array`` method of ``Store``): the part of S1 or of the labels that the representatives read."""
+
+    def __init__(self, arrays: dict, base=None):
+        self.arrays, self.base = arrays, base
+
+    def array(self, name):
+        return self.arrays[name] if name in self.arrays else self.base.array(name)
+
+
+def test_the_in_scope_fit_representatives_of_the_toy_stores_leave_out_the_units_out_of_scope(toy_s1, toy_uv):
+    """The FIT units 0 .. 5 of the toy (the gold of the units is in the comment of ``test_the_bin_means_of_the_toy_fit_units``); the scope is set by hand:
+    unit 1 (blue 1,186.875 in bin 11, red 450 in bin 4) lies outside it. All FIT units: bin 4 = (403.125 + 450) / 2, bin 11 = 1,186.875. In scope: bin 4 = 403.125 and bin 11 has no entry
+    (its middle 1,150). Bin 3 (units 3, 4, 5: 300 each) and the units of the other roles are the same in both."""
+    labels = ArrayStore({'labels/gold_bin': toy_uv.gold_bin, 'labels/kill_gold': toy_uv.kill_gold})
+    selected = value.fit_gold_bin_means(toy_s1, labels, population='all')
+    assert np.array_equal(selected.means, value.gold_bin_means(toy_uv, value.role_units(toy_s1, ('FIT',))).means)               # the labels as they are: labels/gold_reps
+    assert selected.means[4] == pytest.approx((403.125 + 450.0) / 2) and selected.means[11] == 1186.875
+    scope = np.ones(TOY_N_UNITS, dtype=bool)
+    scope[1] = False
+    s1 = ArrayStore({'units/in_scope': scope}, toy_s1)
+    scoped = value.fit_gold_bin_means(s1, labels, population='in_scope')
+    assert scoped.means[4] == 403.125 and scoped.means[3] == 300.0 and scoped.means[11] == 1150.0 and 11 in scoped.fallback and 11 not in selected.fallback
+    assert [b for b in range(31) if scoped.means[b] != selected.means[b]] == [4, 11]
+    assert np.array_equal(value.in_scope_units(s1), scope) and value.in_scope_units(s1).dtype == np.bool_
+    # the role selection is FIT alone: the units of STOP and DEV (6 .. 8) are never an entry of the representatives
+    labels_other = ArrayStore({'labels/kill_gold': np.where(np.arange(TOY_N_UNITS)[:, None] >= 6, 99999.0, toy_uv.kill_gold)}, labels)
+    assert np.array_equal(value.fit_gold_bin_means(s1, labels_other, population='in_scope').means, scoped.means)
+    for bad in ('IN_SCOPE', None):
+        with pytest.raises(ValueError, match='population'):
+            value.fit_gold_bin_means(s1, labels, population=bad)
+    with pytest.raises(ValueError, match='labels'):                                         # the labels of another store: counts only
+        value.fit_gold_bin_means(s1, ArrayStore({'labels/gold_bin': toy_uv.gold_bin[:4], 'labels/kill_gold': toy_uv.kill_gold[:4]}), population='all')
+
+
+def test_an_in_scope_population_without_any_entry_is_refused_with_counts_and_the_all_population_is_not():
+    """Review m1: a scope mask that leaves no team entry with a kill in any bin would give all 31 representatives as midpoints; that is a wrong store or a wrong mask, not a
+    population, so it is refused (counts only, no value of the data). The population 'all' keeps what every earlier run did: the midpoints and the full fallback list."""
+    uv = fake_uv(SCOPE_GOLD, np.ones((5, 2)))
+    fit = np.arange(5)
+    for mask in (np.zeros(5, dtype=bool), np.array([False, False, False, False, False])):
+        with pytest.raises(ValueError, match=r"no team entry with a kill in any gold bin \(0 of 5 units of the population 'all' are in scope\)") as raised:
+            value.gold_bin_means(uv, fit, population='in_scope', in_scope=mask)
+        assert '3500' not in str(raised.value) and '310' not in str(raised.value)
+    # in-scope units that have no kill at all are no entry either
+    quiet = fake_uv(SCOPE_GOLD, np.array([[0, 0], [0, 0], [1, 1], [1, 1], [1, 1]]))
+    with pytest.raises(ValueError, match=r"no team entry with a kill in any gold bin \(2 of 5 units of the population 'all' are in scope\)"):
+        value.gold_bin_means(quiet, fit, population='in_scope', in_scope=np.array([True, True, False, False, False]))
+    one = value.gold_bin_means(quiet, fit, population='in_scope', in_scope=np.array([True, True, True, False, False]))              # unit 2 only: bins 30 (3500) and 1 (140)
+    assert sorted(set(range(31)) - set(one.fallback)) == [1, 30] and one.means[30] == 3500.0 and one.means[1] == 140.0
+    nothing = fake_uv(SCOPE_GOLD, np.zeros((5, 2)))                                          # no kill anywhere: 'all' still gives the midpoints, as before
+    everything = value.gold_bin_means(nothing, fit)
+    assert everything.fallback == tuple(range(31)) and np.array_equal(everything.means, value.GOLD_FALLBACK)
+    with pytest.raises(ValueError, match='no team entry with a kill in any gold bin'):
+        value.gold_bin_means(nothing, fit, population='in_scope', in_scope=np.ones(5, dtype=bool))
+
+
+def test_fit_gold_bin_means_refuses_an_in_scope_fit_population_without_any_entry(toy_s1, toy_uv):
+    labels = ArrayStore({'labels/gold_bin': toy_uv.gold_bin, 'labels/kill_gold': toy_uv.kill_gold})
+    nothing = ArrayStore({'units/in_scope': np.zeros(TOY_N_UNITS, dtype=bool)}, toy_s1)
+    with pytest.raises(ValueError, match=r"no team entry with a kill in any gold bin \(0 of 6 units of the population 'all' are in scope\)"):           # the six FIT units of the toy
+        value.fit_gold_bin_means(nothing, labels, population='in_scope')
+    assert len(value.fit_gold_bin_means(nothing, labels, population='all').fallback) == 28                 # the same store, every FIT unit: the three bins of the toy have entries
+
+
+def test_the_sha256_of_the_representatives_is_that_of_the_31_float64_numbers_little_endian_c_order():
+    import hashlib
+    import struct
+    reps = np.arange(31, dtype=np.float64) * 100.0
+    want = hashlib.sha256(struct.pack('<31d', *reps.tolist())).hexdigest()                    # 31 times 8 bytes, written out with struct (little-endian doubles)
+    assert value.gold_reps_sha256(reps) == want and len(want) == 64
+    assert value.gold_reps_sha256(reps.astype('>f8')) == want                                 # the byte order of the array is not the byte order of the hash
+    assert value.gold_reps_sha256(np.asfortranarray(reps)) == want
+    other = reps.copy()
+    other[30] = np.nextafter(other[30], np.inf)                                               # one ulp of one representative changes it
+    assert value.gold_reps_sha256(other) != want
+    for bad in (reps[:30], reps.astype(np.int64), reps.reshape(31, 1), 'x', None):
+        with pytest.raises(ValueError, match='gold_reps'):
+            value.gold_reps_sha256(bad)
+
+
 # ---- the winner and the sure stratum (ruling R12) --------------------------------------------------------------------------------------
 def test_winner_is_the_sign_of_f0_rounded_to_a_millionth_of_a_gold():
     f0 = np.array([5.0, -5.0, 0.0, 1e-9, -1e-9, 4e-7, -4e-7, 6e-7, 1e-6, -1e-6, 5.55e-17])
@@ -455,6 +615,171 @@ def test_winner_of_refuses_f0_that_is_not_finite():
     for bad in (np.nan, np.inf, -np.inf):
         with pytest.raises(ValueError):
             value.winner_of(np.array([1.0, bad]))
+
+
+# ---- the truth of the winner endpoint under the tie rule (S4b-prep M2, decision D5 rule (i)) -----------------------------------------------
+# The models decide the winner on the binned gold (each team's kill gold is the representative of its bin); under the rule 'binned' the gold term of the
+# truth side is computed on the same variable, so two teams in one bin tie when their realized objective values are equal (the objective term is the
+# realized attributed price of the labels; for a tower that is not the models' expected tier price). The twelve units of ``TIE_CASES`` are worked out
+# by hand with the made-up representatives rep_b = 100 b + 40 (40, 140, ..., 3,040: no representative is the middle of its bin, so a mix-up of the bin edge, the bin
+# middle and the representative changes a number). A team without a kill has the bin -1 and the gold 0.
+TIE_REPS = 100.0 * np.arange(31) + 40.0
+# (blue gold, red gold, blue objectives, red objectives, raw f0 worked out by hand, binned f worked out by hand); gold None: no kill
+TIE_CASES = (
+    (410.0, 450.0, 0.0, 0.0, -40.0, 0.0),                # 0: one bin (4): the 40 gold of difference is no difference of the representatives
+    (410.0, 450.0, 30.0, 0.0, -10.0, 30.0),              # 1: the same bin, an objective of blue breaks the tie (the raw sign says red)
+    (410.0, 450.0, 0.0, 25.0, -65.0, -25.0),             # 2: the same bin, an objective of red breaks the tie
+    (610.0, 340.0, 0.0, 0.0, 270.0, 300.0),              # 3: bins 6 and 3: 640 - 340
+    (None, 340.0, 0.0, 0.0, -340.0, -340.0),             # 4: blue has no kill: its gold is 0, not the representative of a bin
+    (None, 340.0, 350.0, 0.0, 10.0, 10.0),               # 5: ... and its objectives of 350 are added as they are: 350 - 340
+    (None, None, 0.0, 0.0, 0.0, 0.0),                    # 6: no kill on either side: a tie
+    (None, None, 0.0, 200.0, -200.0, -200.0),            # 7: no kill, the objectives alone decide
+    (300.0, 399.99, 0.0, 0.0, -99.99, 0.0),              # 8: the lowest gold of bin 3 and one just below its top: one bin, a tie
+    (299.99, 300.0, 0.0, 0.0, -0.01, -100.0),            # 9: either side of the edge 300 (bins 2 and 3): 240 - 340, the whole step of 100
+    (3000.0, 4500.0, 0.0, 0.0, -1500.0, 0.0),            # 10: the open bin 30 holds both: a tie
+    (0.0, None, 0.0, 0.0, 0.0, 40.0),                    # 11: a kill worth 0 gold is a kill (bin 0, 40) and a team without a kill has 0
+)
+
+
+def tie_arrays():
+    """The columns of ``TIE_CASES``: (f0, bins, obj, binned f by hand). The raw f0 is built the way ``unit_values`` builds it, the bins by ``gold_bin``."""
+    gold = np.array([[0.0 if g is None else g for g in case[:2]] for case in TIE_CASES])
+    has_kill = np.array([[g is not None for g in case[:2]] for case in TIE_CASES])
+    obj = np.array([case[2:4] for case in TIE_CASES])
+    bins = np.full(gold.shape, -1, dtype=np.int8)
+    bins[has_kill] = value.gold_bin(gold[has_kill])
+    f0 = (gold[:, 0] + obj[:, 0]) - (gold[:, 1] + obj[:, 1])
+    return f0, bins, obj, np.array([case[5] for case in TIE_CASES])
+
+
+def test_binned_truth_uses_bin_representatives():
+    f0, bins, obj, want = tie_arrays()
+    assert bins.tolist() == [[4, 4], [4, 4], [4, 4], [6, 3], [-1, 3], [-1, 3], [-1, -1], [-1, -1], [3, 3], [2, 3], [30, 30], [0, -1]]
+    assert f0.tolist() == pytest.approx([case[4] for case in TIE_CASES])                # the hand-worked raw values are what the inputs hold
+    binned = value.winner_truth(f0, bins, TIE_REPS, obj, 'binned')
+    assert binned.dtype == np.float64 and binned.shape == (len(TIE_CASES),)
+    assert binned.tolist() == want.tolist()                                              # exact: every term is a whole number of gold
+    assert np.sign(binned).tolist() == [0, 1, -1, 1, -1, 1, 0, -1, 0, -1, 0, 1]          # blue +1, a tie 0, red -1
+    gold_rule = value.winner_truth(f0, bins, TIE_REPS, obj, 'gold')
+    assert np.sign(gold_rule).tolist() == [-1, -1, -1, 1, -1, 1, 0, -1, -1, -1, -1, 0]   # the raw sign decides the pairs of one bin (0, 1, 8, 10); a kill worth 0 gold against none is a raw tie (11)
+    # the units where the two rules disagree are the ones the rule is about: a pair in one bin (0, 8, 10), an objective over a pair in one bin (1)
+    # and a kill worth 0 gold against no kill (11)
+    assert np.flatnonzero(np.sign(binned) != np.sign(gold_rule)).tolist() == [0, 1, 8, 10, 11]
+
+
+def test_binned_truth_ties_two_teams_of_one_bin_an_objective_breaks_the_tie_and_the_bin_edge_is_a_whole_step():
+    reps = TIE_REPS
+    for blue, red in ((300.0, 399.99), (300.0, 300.0), (350.0, 351.0), (3000.0, 9000.0)):          # one bin each, at its edge and inside, and the open bin
+        b = value.gold_bin(np.array([blue, red])).astype(np.int8)
+        assert b[0] == b[1]
+        f = value.winner_truth(np.array([blue - red]), b[None, :], reps, np.zeros((1, 2)), 'binned')
+        assert f.tolist() == [0.0]
+        for objective, sign in ((1.0, 1.0), (-1.0, -1.0)):                                       # the objectives of the pair decide: blue more, red more
+            f = value.winner_truth(np.array([blue - red]), b[None, :], reps, np.array([[max(objective, 0.0), max(-objective, 0.0)]]), 'binned')
+            assert np.sign(f).tolist() == [sign]
+    edge = value.gold_bin(np.array([299.99, 300.0]))
+    assert edge.tolist() == [2, 3]                                                               # the edge belongs to the bin above it
+    assert value.winner_truth(np.array([-0.01]), edge[None, :], reps, np.zeros((1, 2)), 'binned').tolist() == [-100.0]
+
+
+def test_binned_truth_equals_the_raw_f0_when_every_bin_holds_one_gold_value():
+    """The two rules differ only through the discretisation: with a representative equal to the gold of its bin the sums are the same floats."""
+    gold = np.array([[403.125, 520.0], [1186.875, 650.5], [300.0, 930.5], [3000.0, 1200.0], [0.0, 120.0]])
+    obj = np.array([[0.0, 0.0], [410.0, 350.1], [0.1, 0.2], [0.3, 0.0], [0.7, 0.7]])
+    bins = value.gold_bin(gold)
+    assert bins.tolist() == [[4, 5], [11, 6], [3, 9], [30, 12], [0, 1]]                         # ten different bins: no bin holds two golds
+    reps = np.full(31, 77.0)
+    reps[bins.ravel()] = gold.ravel()
+    f0 = (gold[:, 0] + obj[:, 0]) - (gold[:, 1] + obj[:, 1])
+    assert value.winner_truth(f0, bins, reps, obj, 'binned').tobytes() == f0.tobytes()
+    reps[bins[2, 0]] += 1.0                                                                       # one representative off by a gold: that unit moves, the others stay
+    moved = value.winner_truth(f0, bins, reps, obj, 'binned')
+    assert moved[2] == pytest.approx(f0[2] + 1.0, abs=1e-9) and np.array_equal(np.delete(moved, 2), np.delete(f0, 2))
+
+
+def test_gold_rule_returns_the_f0_unchanged_bit_for_bit_and_reads_no_other_argument():
+    f0 = np.array([-0.0, 0.0, 1.5, -2.5, 403.125, 1e-300, -1e-12, 0.1 + 0.2 - 0.3, 123456789.987654321])
+    out = value.winner_truth(f0, None, None, None, 'gold')                                       # the other arguments are not read at all
+    assert out.dtype == np.float64 and out.shape == f0.shape and out.tobytes() == f0.tobytes()   # the sign of -0.0 and the noise of 0.1 + 0.2 - 0.3 survive
+    assert out is not f0 and not np.shares_memory(out, f0)                                       # the label array is never aliased
+    out[0] = 9.0
+    assert f0[0] == 0.0
+    f0, bins, obj, _ = tie_arrays()
+    assert value.winner_truth(f0, bins, TIE_REPS, obj, 'gold').tobytes() == f0.tobytes()
+    assert value.winner_truth(f0, 'not an array', 'not reps', 'not objectives', 'gold').tobytes() == f0.tobytes()
+    as_float32 = f0.astype(np.float32)
+    assert value.winner_truth(as_float32, None, None, None, 'gold').tobytes() == as_float32.astype(np.float64).tobytes()
+
+
+def test_the_winner_truth_rules_are_the_two_names_of_the_profile_field_with_gold_first():
+    assert value.WINNER_TRUTH_RULES == ('gold', 'binned')
+    assert value.check_winner_truth('gold') == 'gold' and value.check_winner_truth('binned') == 'binned'
+
+
+@pytest.mark.parametrize('rule', ['Gold', 'raw', '', ' binned', 'binned ', None, 3, 1.0, ('gold',), np.array(['gold']), b'gold'])
+def test_an_unknown_winner_truth_rule_is_refused_by_name_and_echoes_no_data(rule):
+    f0 = np.array([123456.789])
+    with pytest.raises(ValueError, match='winner_truth') as raised:
+        value.winner_truth(f0, np.zeros((1, 2), dtype=np.int8), TIE_REPS, np.zeros((1, 2)), rule)
+    assert '123456' not in str(raised.value)                                                    # no label value in the message
+    with pytest.raises(ValueError, match='winner_truth'):
+        value.check_winner_truth(rule)
+
+
+def test_a_long_unknown_rule_text_is_cut_in_the_message():
+    with pytest.raises(ValueError, match='winner_truth') as raised:
+        value.check_winner_truth('x' * 40 + 'SECRET' + 'y' * 100)
+    assert 'x' * 40 in str(raised.value) and 'SECRET' not in str(raised.value)
+
+
+@pytest.mark.parametrize('rule', ['gold', 'binned'])
+@pytest.mark.parametrize('bad', [np.nan, np.inf, -np.inf])
+def test_winner_truth_refuses_an_f0_that_is_not_finite_under_either_rule(rule, bad):
+    f0, bins, obj, _ = tie_arrays()
+    f0[4] = bad                                                                                  # a unit that is not valued has NaN and no winner
+    with pytest.raises(ValueError, match='finite'):
+        value.winner_truth(f0, bins, TIE_REPS, obj, rule)
+
+
+def test_winner_truth_refuses_label_arrays_that_do_not_fit_the_binned_rule_without_echoing_a_value():
+    f0, bins, obj, _ = tie_arrays()
+    nan_obj = obj.copy(); nan_obj[3, 1] = np.nan
+    inf_obj = obj.copy(); inf_obj[3, 0] = np.inf
+    bad_reps = TIE_REPS.copy(); bad_reps[7] = np.nan
+    negative_reps = TIE_REPS.copy(); negative_reps[7] = -1.0
+    too_high, too_low = bins.copy(), bins.copy()
+    too_high[2, 0], too_low[2, 1] = 31, -2
+    cases = {'f0 of the wrong rank': (f0[:, None], bins, TIE_REPS, obj),
+             'no bins': (f0, None, TIE_REPS, obj), 'bins of one team': (f0, bins[:, :1], TIE_REPS, obj), 'bins of another length': (f0, bins[:-1], TIE_REPS, obj),
+             'bins that are floats': (f0, bins.astype(np.float64), TIE_REPS, obj), 'bins above 30': (f0, too_high, TIE_REPS, obj),
+             'bins below -1': (f0, too_low, TIE_REPS, obj), 'no representatives': (f0, bins, None, obj),
+             'a short representative table': (f0, bins, TIE_REPS[:30], obj), 'a representative that is NaN': (f0, bins, bad_reps, obj),
+             'a representative below 0': (f0, bins, negative_reps, obj), 'no objectives': (f0, bins, TIE_REPS, None),
+             'objectives of one team': (f0, bins, TIE_REPS, obj[:, :1]), 'objectives of another length': (f0, bins, TIE_REPS, obj[:-1]),
+             'objectives with a NaN': (f0, bins, TIE_REPS, nan_obj), 'objectives with an infinity': (f0, bins, TIE_REPS, inf_obj),
+             'text for the representatives': (f0, bins, 'abcxyz', obj)}
+    for what, (a, b, c, d) in cases.items():
+        with pytest.raises(ValueError, match='winner_truth') as raised:
+            value.winner_truth(a, b, c, d, 'binned')
+        assert 'abcxyz' not in str(raised.value), what                                          # the text that was passed is not echoed
+
+
+def test_winner_truth_on_the_labels_of_unit_values_reads_the_toy_units(toy_s1, toy_uv):
+    """The arrays that ``unit_values`` makes (bins as int8 with -1, the obj_value, the f0) and the FIT bin means as the representatives: no hand
+    value needs a tie here, so the test pins the numbers of the units that have a pair of bins. Unit 9 is a unit of a role that is not valued."""
+    means, _ = value.gold_bin_means(toy_uv, value.role_units(toy_s1, ('FIT',)))
+    valued = np.flatnonzero(toy_uv.valued)
+    got = value.winner_truth(toy_uv.f0_unit[valued], toy_uv.gold_bin[valued], means, toy_uv.obj_value[valued], 'binned')
+    assert got.shape == (len(valued),)
+    by_unit = dict(zip(valued.tolist(), got.tolist()))
+    assert by_unit[3] == 0.0                                                                     # 300 and 300 in bin 3: a tie under either rule
+    assert by_unit[0] == pytest.approx(means[4])                                                 # blue has bin 4, red no kill: (426.5625 + 0) - (0 + 0)
+    assert by_unit[1] == pytest.approx((means[11] + 410.0) - (means[4] + 350.0))                 # bins 11 and 4 with the objectives 410 and 350
+    assert (np.sign(got) == np.sign(toy_uv.f0_unit[valued])).all()                               # no toy unit changes its winner under the FIT bin means
+    with pytest.raises(ValueError, match='finite'):
+        value.winner_truth(toy_uv.f0_unit, toy_uv.gold_bin, means, toy_uv.obj_value, 'binned')    # unit 9 has NaN labels
+    with pytest.raises(ValueError, match='finite'):
+        value.winner_truth(toy_uv.f0_unit, toy_uv.gold_bin, means, toy_uv.obj_value, 'gold')
 
 
 def ledger_world(tmp_path, records, matches=None):
@@ -1402,3 +1727,106 @@ def test_the_module_names_no_array_the_labels_do_not_need():
 
 def test_flowprice_groups_are_the_groups_of_the_price_table():
     assert flowprice.GROUPS == GROUPS and tuple(TOY_PRICES) == GROUPS
+
+
+# ---- the "all flow prices" table and the repricing of the units (S4b preparation M13, decision D19) --------------------------------------------
+FIXED_IMMEDIATE_D19 = ('tower_base', 'tower_nexus', 'inhibitor')           # decision D19: the base and nexus towers and the inhibitors keep the immediate value in the sensitivity
+
+
+def write_price_table(tmp_path, flow=None, mutate=None, name='PRICES.json'):
+    """A toy PRICES.json with the fields of ``flowprice.price_table`` that matter here, for every group: ``value`` (the price in use), ``used``, ``fixed_immediate``, ``price_flow`` and ``immediate``.
+    The immediate values are the toy prices; unless ``flow`` says otherwise the flow price of the group number i is the immediate value + 10 (i + 1). As in the real file the elder is the one group
+    whose flow price is in use, and a fixed-immediate group has a flow price too, which nothing may read."""
+    flow = {} if flow is None else flow
+    doc = {}
+    for i, g in enumerate(GROUPS):
+        pf = flow[g] if g in flow else TOY_PRICES[g] + 10.0 * (i + 1)
+        used = 'flow' if g == 'elder' else 'immediate'
+        doc[g] = {'value': pf if used == 'flow' else TOY_PRICES[g], 'used': used, 'fixed_immediate': g in FIXED_IMMEDIATE_D19, 'price_flow': pf, 'immediate': TOY_PRICES[g]}
+    doc.update({'kill_gold_coef': {'kill_gold_coef': 1.12}, 'B': 2000, 'seed': 20261021, 'n_matches': 19100})
+    if mutate is not None:
+        mutate(doc)
+    path = tmp_path / name
+    path.write_text(json.dumps(doc), encoding='utf-8')
+    return path
+
+
+def test_flow_price_table_uses_the_flow_price_of_every_group_but_the_fixed_immediate_ones(tmp_path):
+    """D19: the sensitivity "all flow prices" prices every group by its flow price except the base and nexus towers and the inhibitors, which stay at the immediate value (the ``value`` of the file).
+    The fixed groups are the ones of ``flowprice.FIXED_IMMEDIATE``, as D19 words them, and the flow price in their entry is never read. The table is the dict that ``Composer`` and ``unit_values`` take;
+    the primary table of ``load_prices`` is not changed by the new reader."""
+    path = write_price_table(tmp_path)
+    table = value.load_flow_prices(path)
+    assert isinstance(table, dict) and list(table) == list(GROUPS) and all(type(v) is float for v in table.values())
+    for i, g in enumerate(GROUPS):
+        assert table[g] == (TOY_PRICES[g] if g in FIXED_IMMEDIATE_D19 else TOY_PRICES[g] + 10.0 * (i + 1)), g
+    assert tuple(table.fixed_immediate) == FIXED_IMMEDIATE_D19 == tuple(flowprice.FIXED_IMMEDIATE) and tuple(table.fallback) == ()
+    primary = value.load_prices(path)
+    assert primary == {g: (TOY_PRICES[g] + 10.0 * (i + 1) if g == 'elder' else TOY_PRICES[g]) for i, g in enumerate(GROUPS)}      # the file's own value, as before
+    assert primary != table and all(primary[g] == table[g] for g in FIXED_IMMEDIATE_D19 + ('elder',))
+    assert table == dict(table) and value.object_price(np.array([6]), np.array([1]), table).tolist() == [table['tower_inner']]      # usable wherever a price table goes
+
+
+def test_flow_price_table_falls_back_when_flow_is_missing(tmp_path):
+    """A group whose flow price was not estimable (its ``price_flow`` is None: collinear, too few events) keeps its ``value`` and the table says which groups did: ``fallback``, in the order of the groups.
+    A fixed-immediate group with no flow price is not a fallback (it never reads the flow price)."""
+    path = write_price_table(tmp_path, flow={'atakhan': None, 'grubs': None, 'tower_nexus': None})
+    table = value.load_flow_prices(path)
+    assert table['grubs'] == TOY_PRICES['grubs'] and table['atakhan'] == TOY_PRICES['atakhan']
+    assert tuple(table.fallback) == ('grubs', 'atakhan')
+    assert table['tower_nexus'] == TOY_PRICES['tower_nexus']
+    assert table['dragon'] == TOY_PRICES['dragon'] + 10.0 and table['baron'] == TOY_PRICES['baron'] + 50.0       # the other groups read their flow price
+    both = write_price_table(tmp_path, flow={'grubs': None}, mutate=lambda d: d['grubs'].update(value=None), name='both.json')
+    with pytest.raises(ValueError, match='grubs'):
+        value.load_flow_prices(both)
+
+
+@pytest.mark.parametrize('mutate, group', [
+    (lambda d: d.pop('baron'), 'baron'),
+    (lambda d: d['baron'].pop('price_flow'), 'baron'),
+    (lambda d: d['baron'].update(price_flow=float('nan')), 'baron'),
+    (lambda d: d['baron'].update(price_flow='1830'), 'baron'),
+    (lambda d: d['baron'].update(price_flow=True), 'baron'),
+    (lambda d: d['tower_base'].update(value=None), 'tower_base'),
+    (lambda d: d['inhibitor'].update(value=float('inf')), 'inhibitor'),
+    (lambda d: d['dragon'].update(fixed_immediate=True), 'dragon'),               # the file disagrees with the code about which groups are fixed
+    (lambda d: d['tower_base'].update(fixed_immediate=False), 'tower_base')])
+def test_flow_price_table_refuses_what_it_cannot_read_and_names_the_group(tmp_path, mutate, group):
+    with pytest.raises(ValueError, match=group):
+        value.load_flow_prices(write_price_table(tmp_path, mutate=mutate))
+
+
+def test_flow_price_table_refuses_a_file_that_is_not_a_price_table(tmp_path):
+    for text in ('[1, 2]', '"x"', '{ not json'):
+        p = tmp_path / 'bad.json'
+        p.write_text(text, encoding='utf-8')
+        with pytest.raises(ValueError):
+            value.load_flow_prices(p)
+
+
+FIELDS = tuple(f.name for f in dataclasses.fields(value.UnitValues))
+
+
+def same_labels(a, b):
+    for name in FIELDS:
+        x, y = getattr(a, name), getattr(b, name)
+        assert x.dtype == y.dtype and x.shape == y.shape and np.array_equal(x, y, equal_nan=x.dtype.kind == 'f'), name
+
+
+def test_repricing_the_units_is_unit_values_made_with_the_other_prices(toy_s1, toy_uv, toy_prices, toy_rules):
+    """The truth of the sensitivity is recomputed in memory: the kill gold, the gold bins and the kill counts of the labels stay, the objective values, f0, f0 of the conversions and the winner are those
+    of ``unit_values`` made with the other prices, in every bit; with the prices of the labels it is the labels themselves, and V_start of the repriced units is that of the new labels."""
+    flow = {g: p + 7.5 * (i + 1) for i, (g, p) in enumerate(toy_prices.items())}
+    same_labels(value.reprice_units(toy_s1, toy_uv, toy_prices), toy_uv)
+    other = value.reprice_units(toy_s1, toy_uv, flow)
+    want = value.unit_values(toy_s1, flow, toy_rules, TOY_LEVELS)
+    same_labels(other, want)
+    assert np.array_equal(value.v_start(toy_s1, other), value.v_start(toy_s1, want), equal_nan=True)
+    assert not np.array_equal(other.f0_unit, toy_uv.f0_unit, equal_nan=True) and np.array_equal(other.kill_gold, toy_uv.kill_gold, equal_nan=True)      # the prices moved f0 (control), not the kill gold
+    assert not other.f0_unit.flags.writeable and not other.obj_value.flags.writeable
+    with pytest.raises(ValueError, match='roles'):
+        value.reprice_units(toy_s1, toy_uv, flow, roles=('FIT',))                            # labels of all three roles, repriced for one
+    fit = value.unit_values(toy_s1, toy_prices, toy_rules, TOY_LEVELS, roles=('FIT',))
+    same_labels(value.reprice_units(toy_s1, fit, flow, roles=('FIT',)), value.unit_values(toy_s1, flow, toy_rules, TOY_LEVELS, roles=('FIT',)))
+    with pytest.raises(ValueError):
+        value.reprice_units(toy_s1, toy_uv, {k: v for k, v in flow.items() if k != 'plate'})

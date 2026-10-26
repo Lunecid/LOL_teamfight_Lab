@@ -19,7 +19,8 @@ What it measures, per match (``reader.read_match``):
 A match that raises is counted by the error's class and the code position (never its message, which could hold a key) and keeps the
 counts it had reached; ``matches_with_exception`` is the number of those matches.
 
-Input: the S1 run folder (or its ``s1`` store); the matches are those of its store (FIT, STOP, DEV, CAL, AUDIT: no holdout patch). They
+Input: the S1 run folder (or its ``s1`` store); the matches are those of its store with the role FIT, STOP or DEV (``common.QA_ROLES``,
+decision B21: TEST, CAL, AUDIT, EXTERNAL and UNUSED matches are not read, and their keys are not decoded; no holdout patch). They
 are read with ``reader.read_match`` and its default root. ``--workers N`` (default 6; 1 runs in this process), ``--limit N`` (the first N
 matches, a smoke test) and ``--sample N --seed S`` (N matches drawn at random with that seed). Output: counts only, on stdout and with
 ``--out FILE`` as JSON; no key or identifier is printed or written, and nothing is written into the S1 run. Refuses to start while a
@@ -218,10 +219,14 @@ def work(pairs):
 
 
 def main(argv=None) -> int:
-    """S1–S2 Task 10 판정 R10-d의 전수 또는 표본 진단 경로를 연결하며, 선택된 목록의 처리 결과를 합친다."""
+    """S1–S2 Task 10 판정 R10-d의 전수 또는 표본 진단 경로를 연결하며, 선택된 목록의 처리 결과를 합친다.
+
+    결정 B21: 목록은 QA 역할(FIT·STOP·DEV)의 경기만이다. --limit(앞부분)과 --sample(무작위 추출)도 이 목록 안에서만 고르므로
+    TEST·CAL·AUDIT·EXTERNAL·UNUSED 경기의 원시 기록은 어떤 옵션으로도 열리지 않는다. 이전에는 저장소의 모든 역할이 대상이었다.
+    """
     ap = common.arguments(__doc__, limit=True)
     ap.add_argument('--workers', type=int, default=6, help='worker processes (1: everything in this process)')
-    ap.add_argument('--sample', type=int, help='read N matches drawn at random (see --seed) instead of all')
+    ap.add_argument('--sample', type=int, help='read N matches drawn at random (see --seed) from the FIT, STOP and DEV matches instead of all of them')
     ap.add_argument('--seed', type=int, default=0, help='seed of the --sample draw (default 0)')
     args = common.parse(ap, argv)
     from c_ept.workflows import run_s1                                  # inside the function: a view builder never imports the S1 runner chain
@@ -230,7 +235,7 @@ def main(argv=None) -> int:
     except run_s1.StrataRunning as e:
         return common.refuse(str(e))
     try:
-        matches = common.s1_matches(args.run)
+        matches = common.s1_matches(args.run, roles=common.QA_ROLES)      # B21: FIT, STOP and DEV only; --limit and --sample draw from these
     except FileNotFoundError as e:
         return common.refuse(str(e))
     if args.sample is not None:

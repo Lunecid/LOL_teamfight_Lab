@@ -12,6 +12,7 @@ exposure, row id, refusals); the tests here pin what the move into a shared modu
     structure   the module imports no model, no runner, no raw reader; it names only the arrays it is documented to read
 """
 import ast
+import inspect
 from pathlib import Path
 
 import numpy as np
@@ -20,6 +21,7 @@ import pytest
 from c_ept.models import baselines_b0
 from c_ept.preprocessing import features
 from c_ept.data import head_rows
+from c_ept.valuation import value
 from c_ept.tests.conftest import all_imports, module_level_imports
 from c_ept.tests.s3_toys import KEY_PREFIX, HeadsOracle, heads_world  # noqa: F401  (the fixture is imported by ruling R1)
 
@@ -281,6 +283,81 @@ def test_a_role_without_frame_rows_is_refused(heads_world):
 
 
 # =====================================================================================================================================
+# the match-subset path (matches=): the labels of the matches that are not selected are never read, and the rows that stand in for
+# them hold a sentinel, not a valid value (EPT-T010 A1-F7: a 0 is a valid gold bin and a valid kill gold)
+# =====================================================================================================================================
+SUBSET = [1, 3]                  # two of the four FIT matches of the heads world
+
+
+def subset_rows(heads_world, matches=SUBSET):
+    return head_rows.HeadRows(heads_world.s1, heads_world.s2, heads_world.labels, 'FIT',
+                              lambda s2, views: features.b0(s2, views, heads_world.fit_means), matches=matches)
+
+
+def assert_same_on_selected(full, sub, mask, what):
+    for name in ('y', 'e', 'match', 'row', 'team', 'K', 'O', 'm4'):
+        a, b = getattr(full, name), getattr(sub, name)
+        if a is None or b is None:
+            assert a is None and b is None, (what, name)
+        else:
+            assert np.array_equal(np.asarray(a)[mask], np.asarray(b), equal_nan=True), (what, name)
+    assert full.codes.keys() == sub.codes.keys(), what
+    for name in full.codes:
+        assert np.array_equal(full.codes[name][mask], sub.codes[name]), (what, 'codes', name)
+    assert np.array_equal(full.gather()[mask], sub.gather(), equal_nan=True), (what, 'features')
+
+
+@pytest.mark.parametrize('head, kind', ALL_HEADS)
+def test_the_subset_path_gives_the_rows_of_the_full_path_on_the_selected_matches(heads_world, head, kind):
+    full, sub = b0_rows(heads_world), subset_rows(heads_world)
+    for masked_obj_k in ((False, True) if (head, kind) == ('M3Obj', 'masked') else (False,)):
+        pf, ps = full.parts(head, kind, masked_obj_k=masked_obj_k), sub.parts(head, kind, masked_obj_k=masked_obj_k)
+        mask = np.isin(pf.match, SUBSET)
+        assert mask.any() and not mask.all() and len(ps.match) == mask.sum(), (head, kind)       # a proper, nonempty subset
+        assert_same_on_selected(pf, ps, mask, (head, kind, masked_obj_k))
+
+
+def test_the_unselected_label_rows_of_the_subset_path_hold_a_sentinel_and_the_selected_ones_are_the_full_values(heads_world):
+    full, sub = b0_rows(heads_world), subset_rows(heads_world)
+    chosen = np.isin(np.asarray(heads_world.s1.array('units/match')), SUBSET)
+    assert chosen.any() and not chosen.all()
+    gold_full, gold_sub = full._labels('labels/kill_gold'), sub._labels('labels/kill_gold')
+    bin_full, bin_sub = full._labels('labels/gold_bin'), sub._labels('labels/gold_bin')
+    assert gold_sub.dtype == gold_full.dtype and bin_sub.dtype == bin_full.dtype and gold_sub.shape == gold_full.shape
+    assert np.isnan(gold_sub[~chosen]).all()                       # 0.0 is a valid kill gold (a team without a kill)
+    assert (bin_sub[~chosen] == -1).all()                          # 0 is a valid gold bin
+    assert np.array_equal(gold_sub[chosen], gold_full[chosen], equal_nan=True) and np.array_equal(bin_sub[chosen], bin_full[chosen])
+
+
+def test_reading_the_kill_gold_of_an_unselected_unit_is_refused_instead_of_giving_zeros(heads_world):
+    sub = subset_rows(heads_world)
+    chosen = np.isin(np.asarray(heads_world.s1.array('units/match')), SUBSET)
+    with pytest.raises(ValueError, match='not finite'):
+        sub._kraw(np.flatnonzero(~chosen)[:3])
+    assert np.isfinite(sub._kraw(np.flatnonzero(chosen)[:3])).all()
+
+
+@pytest.mark.parametrize('dtype', [np.int8, np.int16, np.int32, np.int64])
+def test_the_sentinel_of_a_signed_integer_label_array_is_minus_one(dtype):
+    assert head_rows._unselected_label_fill(np.dtype(dtype)) == -1
+
+
+@pytest.mark.parametrize('dtype', [np.float32, np.float64])
+def test_the_sentinel_of_a_floating_label_array_is_nan(dtype):
+    assert np.isnan(head_rows._unselected_label_fill(np.dtype(dtype)))
+
+
+@pytest.mark.parametrize('dtype, largest', [(np.uint8, 255), (np.uint16, 65535), (np.uint32, 2**32 - 1)])
+def test_the_sentinel_of_an_unsigned_label_array_is_its_largest_value(dtype, largest):
+    assert head_rows._unselected_label_fill(np.dtype(dtype)) == largest
+
+
+def test_a_boolean_label_array_has_no_free_value_and_is_refused_in_the_subset_path():
+    with pytest.raises(TypeError, match='no value'):
+        head_rows._unselected_label_fill(np.dtype(bool))
+
+
+# =====================================================================================================================================
 # refusals
 # =====================================================================================================================================
 class NoRead:
@@ -343,6 +420,198 @@ def test_the_b0_data_is_the_one_hot_design_of_the_shared_parts(heads_world):
     assert np.array_equal(d.match, p.match) and np.array_equal(d.row, p.row) and d.e is p.e is None
     z_block = d.X[:, features.N_B0 + 18 + 52:features.N_B0 + 18 + 52 + 11]
     assert np.array_equal(z_block.argmax(axis=1) - 1, p.codes['z'])
+
+
+# =====================================================================================================================================
+# the K condition (S4b preparation M3, decision D21 B16): under 'binned' the gold of the K block is the representative of the observed gold
+# bin, the value the composer feeds to the K-conditioned heads, and not the true continuous gold
+# =====================================================================================================================================
+class LabelOverlay:
+    """The label store of the heads world with some arrays replaced."""
+
+    def __init__(self, base, arrays):
+        self.base, self.arrays = base, arrays
+
+    def array(self, name):
+        return self.arrays[name] if name in self.arrays else self.base.array(name)
+
+
+def k_rows(world, k_condition=None, role='FIT', matches=None, labels=None):
+    """The rows of the heads world with the b0 builder; ``k_condition`` None leaves the keyword out (the default of the code)."""
+    kw = {} if k_condition is None else {'k_condition': k_condition}
+    if matches is not None:
+        kw['matches'] = matches
+    return head_rows.HeadRows(world.s1, world.s2, world.labels if labels is None else labels, role, lambda s2, views: features.b0(s2, views, world.fit_means), **kw)
+
+
+def composer_k(oracle, reps, u) -> np.ndarray:
+    """kills blue, kills red, gold blue and red in thousands of the unit u as the K of the composer (``compose._draw_row``: gold = reps[bin] for a team with a kill, 0 for a team
+    without one), written from the text of the composer and not from the rows under test."""
+    gold = [reps[oracle.gold_bin[u, t]] if oracle.K[u, t] >= 1 else 0.0 for t in (0, 1)]
+    return np.array([oracle.K[u, 0], oracle.K[u, 1], gold[0] / 1000.0, gold[1] / 1000.0])
+
+
+K_HEADS = [('M3Obj', 'masked'), ('M4Conv', 'masked'), ('M3Obj', 'open'), ('M4Conv', 'open')]       # the heads that read the K block (the masked M4 head in its matrix)
+
+
+def test_binned_k_condition_matches_composer_support(heads_world, oracle):
+    """Every K amount of a binned row is 0 or the representative of a gold bin, the same 31 numbers that the composer feeds to the K-conditioned heads, and the K block of every
+    row is the composer's K of that unit (a team with a kill: reps[its bin] in thousands; a team without one: 0)."""
+    from c_ept.tests.test_compose import rich_composer
+    binned, raw = k_rows(heads_world, 'binned'), k_rows(heads_world)
+    reps = binned.k_reps()
+    # the one source of the representatives: the in-scope FIT means of the label store (not the labels/gold_reps of the S3 as-built, which are the means of every FIT unit)
+    in_scope = value.fit_gold_bin_means(heads_world.s1, heads_world.labels, population='in_scope').means
+    every_unit = value.fit_gold_bin_means(heads_world.s1, heads_world.labels, population='all').means
+    assert np.array_equal(reps, in_scope) and reps.shape == (31,) and reps.dtype == np.float64 and not reps.flags.writeable
+    assert not np.array_equal(in_scope, every_unit)                          # the control: the world has FIT units out of scope whose gold moves the default means
+    fit, units = oracle.onsets('FIT'), oracle.units('FIT')
+    d = features.N_B0
+    masked_obj = binned.parts('M3Obj', 'masked', masked_obj_k=True)
+    assert [masked_obj.K[j].tolist() for j in range(len(fit))] == [composer_k(oracle, reps, oracle.on_unit[i]).tolist() for i in fit]
+    open_obj = binned.parts('M3Obj', 'open')
+    assert [open_obj.K[j].tolist() for j in range(len(units))] == [composer_k(oracle, reps, u).tolist() for u in units]
+    with_view = [u for u in units if oracle.event_row(u, 2) is not None]
+    open_conv = binned.parts('M4Conv', 'open')
+    assert [open_conv.K[j].tolist() for j in range(len(with_view))] == [composer_k(oracle, reps, u).tolist() for u in with_view]
+    masked_conv = binned.parts('M4Conv', 'masked')
+    kept = [i for i in fit if oracle.cexp[oracle.on_unit[i]] > 0]
+    assert len(kept) == len(masked_conv.y)
+    for j, i in enumerate(kept):
+        assert np.array_equal(masked_conv.m4[j, d + 3:d + 7], composer_k(oracle, reps, oracle.on_unit[i]).astype(np.float32)), j
+    # the support: every gold of a K block is 0 or the representative of a bin, in thousands as the heads see it
+    support = np.concatenate([[0.0], reps]) / 1000.0
+    for block in (masked_obj.K, open_obj.K, open_conv.K):
+        assert np.isin(block[:, 2:], support).all()
+    assert np.isin(masked_conv.m4[:, d + 5:d + 7], support.astype(np.float32)).all()
+    assert (open_obj.K[:, 2:] > 0).any() and len(np.unique(open_obj.K[:, 2:][open_obj.K[:, 2:] > 0])) > 3       # many bins occur, not one
+    assert not np.isin(raw.parts('M3Obj', 'open').K[:, 2:], support).all()     # the control: the true continuous gold of the raw rows leaves the support
+    # the composer holding the same array draws golds of the same support (and no other): rows and composer share one source of representatives
+    c = rich_composer(S=60, seed=5, gold_reps=reps)
+    drawn = np.concatenate([c.simulate_onsets(i).gold.ravel() for i in range(len(c.rows))])
+    assert np.array_equal(c.gold_reps, reps) and np.isin(drawn, np.concatenate([[0.0], reps])).all()
+    assert (drawn > 0).sum() > 20 and len(np.unique(drawn[drawn > 0])) > 3
+    other = rich_composer(S=60, seed=5, gold_reps=every_unit)
+    assert not np.isin(np.concatenate([other.simulate_onsets(i).gold.ravel() for i in range(len(other.rows))]), np.concatenate([[0.0], reps])).all()   # the S3 labels leave it
+
+
+def test_the_default_k_condition_gives_the_true_gold_rows_of_the_oracle_bit_for_bit_and_asks_for_no_representatives(heads_world, oracle, monkeypatch):
+    """What this proves: the rows of the default keyword, and of the explicit 'raw', are equal to each other field by field, and the K blocks are the K of the labels as the oracle
+    reads them (the true continuous gold in thousands), and no representative is asked for. It cannot compare with the code before the task (the before/after proof script does)."""
+    def refuse(*args, **kw):
+        raise AssertionError('the representatives were asked for under the raw condition')
+    monkeypatch.setattr(value, 'fit_gold_bin_means', refuse)
+    default, explicit = k_rows(heads_world), k_rows(heads_world, 'raw')
+    assert default.k_condition == explicit.k_condition == 'raw' and default.k_reps() is None and explicit.k_reps() is None
+    for head, kind in ALL_HEADS:
+        x, y = default.parts(head, kind, masked_obj_k=True), explicit.parts(head, kind, masked_obj_k=True)
+        for name in head_rows.HeadParts._fields:
+            u, v = getattr(x, name), getattr(y, name)
+            if isinstance(u, dict):
+                assert u.keys() == v.keys() and all(np.array_equal(u[k], v[k]) for k in u), (head, kind, name)
+            elif isinstance(u, np.ndarray):
+                assert np.array_equal(u, v, equal_nan=True) and u.dtype == v.dtype, (head, kind, name)
+            else:
+                assert u == v, (head, kind, name)
+    fit, units = oracle.onsets('FIT'), oracle.units('FIT')
+    masked_obj = default.parts('M3Obj', 'masked', masked_obj_k=True)
+    assert all(np.array_equal(masked_obj.K[j], oracle.kblock(oracle.on_unit[i])) for j, i in enumerate(fit))
+    open_obj = default.parts('M3Obj', 'open')
+    assert all(np.array_equal(open_obj.K[j], oracle.kblock(u)) for j, u in enumerate(units))
+
+
+def test_the_binned_condition_changes_the_k_inputs_of_four_heads_and_nothing_else(heads_world):
+    """The targets, the exposures, the categories, the features and the gold bins of every head are the raw rows': the gold layer and the targets do not change."""
+    raw, binned = k_rows(heads_world), k_rows(heads_world, 'binned')
+    changed = []
+    for head, kind in ALL_HEADS:
+        a, b = raw.parts(head, kind, masked_obj_k=True), binned.parts(head, kind, masked_obj_k=True)
+        for name in head_rows.HeadParts._fields:
+            u, v = getattr(a, name), getattr(b, name)
+            same = (all(np.array_equal(u[k], v[k]) for k in u) and u.keys() == v.keys() if isinstance(u, dict)
+                    else np.array_equal(u, v, equal_nan=True) if isinstance(u, np.ndarray) else u == v)
+            if not same:
+                changed.append((head, kind, name))
+    assert changed == [('M3Obj', 'masked', 'K'), ('M4Conv', 'masked', 'm4'), ('M3Obj', 'open', 'K'), ('M4Conv', 'open', 'K')]
+    pa, pb = raw.parts('M4Conv', 'masked'), binned.parts('M4Conv', 'masked')
+    d = features.N_B0
+    assert np.array_equal(pa.m4[:, :d + 5], pb.m4[:, :d + 5]) and np.array_equal(pa.m4[:, d + 7:], pb.m4[:, d + 7:])          # features, q, m, z, both kill counts and O
+    assert not np.array_equal(pa.m4[:, d + 5:d + 7], pb.m4[:, d + 5:d + 7])                                                  # the gold columns are the only difference
+
+
+def test_the_representatives_are_those_of_the_whole_fit_whatever_the_role_and_the_selected_matches(heads_world, oracle):
+    """D12: the definition of the target variable is a whole-FIT asset. A DEV or STOP row set, and the 25 % style selection of FIT matches, hold the same 31 numbers."""
+    reference = k_rows(heads_world, 'binned').k_reps()
+    for kw in ({'role': 'STOP'}, {'role': 'DEV'}, {'matches': SUBSET}):
+        assert np.array_equal(k_rows(heads_world, 'binned', **kw).k_reps(), reference), kw
+    # ... and the rows of the selection are the rows of the full path on the selected matches, with these representatives
+    full, sub = k_rows(heads_world, 'binned'), k_rows(heads_world, 'binned', matches=SUBSET)
+    for head, kind in K_HEADS:
+        pf, ps = full.parts(head, kind), sub.parts(head, kind)
+        mask = np.isin(pf.match, SUBSET)
+        assert mask.any() and not mask.all()
+        assert_same_on_selected(pf, ps, mask, (head, kind))
+    # the gold of the K block of a STOP row is still read from the FIT representatives (not from the means of the STOP units)
+    stop = k_rows(heads_world, 'binned', role='STOP').parts('M3Obj', 'open')
+    assert np.isin(stop.K[:, 2:], np.concatenate([[0.0], reference]) / 1000.0).all()
+
+
+def test_the_k_condition_is_one_of_two_names_and_binned_needs_the_label_store_before_any_array_is_read():
+    assert head_rows.K_CONDITIONS == ('raw', 'binned')
+    assert [head_rows.check_k_condition(name) for name in head_rows.K_CONDITIONS] == ['raw', 'binned']
+    for bad in ('Binned', 'bin', 'continuous', '', None, 1, ('raw',), b'raw'):
+        with pytest.raises(ValueError, match='k_condition'):
+            head_rows.check_k_condition(bad)
+        with pytest.raises(ValueError, match='k_condition'):
+            head_rows.HeadRows(NoRead(), NoRead(), NoRead(), 'FIT', None, k_condition=bad)
+    with pytest.raises(ValueError, match='label'):                              # the binned K reads labels/gold_bin and the representatives: no label store, no rows
+        head_rows.HeadRows(NoRead(), NoRead(), None, 'FIT', None, k_condition='binned')
+    parameters = inspect.signature(head_rows.HeadRows.__init__).parameters       # the keyword comes after kill_law and is keyword only: no positional call can change
+    names = list(parameters)                                                      # relative order: a later task may add keywords after these (review m3)
+    assert names.index('kill_law') == names.index('matches') + 1 and names.index('k_condition') == names.index('kill_law') + 1
+    assert parameters['k_condition'].default == 'raw' and parameters['k_condition'].kind is inspect.Parameter.KEYWORD_ONLY
+
+
+def test_the_binned_rows_name_their_fallback_bins_and_the_sha256_of_their_representatives(heads_world):
+    """Review m1 and m4: the bins of the representatives that had no in-scope FIT entry (they hold the middle of their range) are named, as the S3 labels named theirs, and the 31
+    numbers have an identity (sha256 of the float64 little-endian bytes, ``value.gold_reps_sha256``). Under 'raw' there are none of them."""
+    raw, binned = k_rows(heads_world), k_rows(heads_world, 'binned')
+    result = value.fit_gold_bin_means(heads_world.s1, heads_world.labels, population='in_scope')
+    fallback = binned.k_reps_fallback()
+    assert fallback == result.fallback and isinstance(fallback, tuple) and list(fallback) == sorted(fallback) and 0 < len(fallback) < 31       # the toy world has bins without entry
+    assert all(binned.k_reps()[b] == value.GOLD_FALLBACK[b] for b in fallback)                                 # a fallback bin holds the middle of its range
+    sha = binned.k_reps_sha256()
+    assert sha == value.gold_reps_sha256(binned.k_reps()) and len(sha) == 64 and sha == k_rows(heads_world, 'binned', role='DEV').k_reps_sha256()
+    assert raw.k_reps_fallback() is None and raw.k_reps_sha256() is None
+
+
+def test_the_binned_rows_refuse_a_store_without_any_in_scope_fit_entry(heads_world):
+    """Review m1: all 31 representatives would be midpoints (a wrong or role-scoped store); the rows say so instead of training on made-up numbers."""
+    n_units = len(np.asarray(heads_world.s1.array('units/match')))
+    nothing = LabelOverlay(heads_world.s1, {'units/in_scope': np.zeros(n_units, dtype=bool)})
+    rows = head_rows.HeadRows(nothing, heads_world.s2, heads_world.labels, 'FIT', lambda s2, views: features.b0(s2, views, heads_world.fit_means), k_condition='binned')
+    with pytest.raises(ValueError, match='no team entry with a kill in any gold bin') as raised:
+        rows.k_reps()
+    assert KEY_PREFIX not in str(raised.value)
+
+
+def test_a_team_with_a_kill_and_no_gold_bin_is_refused_under_the_binned_condition(heads_world, oracle):
+    """A team with a kill must have a gold bin (the same rule as the gold head), else its K amount would be a made-up 0; a team without a kill is 0 by the rule."""
+    unit = next(u for u in oracle.units('FIT') if oracle.K[u, 0] >= 1)
+    bins = np.array(oracle.gold_bin)
+    bins[unit, 0] = -1
+    broken = k_rows(heads_world, 'binned', labels=LabelOverlay(heads_world.labels, {'labels/gold_bin': bins}))
+    with pytest.raises(ValueError, match=r'1 team\(s\) with a kill have no gold bin') as raised:
+        broken.parts('M3Obj', 'open')
+    assert KEY_PREFIX not in str(raised.value)
+    k_rows(heads_world, 'binned').parts('M3Obj', 'open')                          # the intact labels pass
+    # the units of the matches that a selection leaves out hold -1 in the bin array: asking for the K of one of them is refused, not given a 0
+    sub = k_rows(heads_world, 'binned', matches=SUBSET)
+    chosen = np.isin(np.asarray(heads_world.s1.array('units/match')), SUBSET)
+    other = [u for u in range(len(chosen)) if not chosen[u] and oracle.K[u, 0] >= 1][:3]
+    assert other
+    with pytest.raises(ValueError, match='no gold bin'):
+        sub._kraw(np.array(other))
 
 
 # =====================================================================================================================================

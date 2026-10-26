@@ -487,18 +487,34 @@ def test_nothing_in_c_ept_opens_the_gate():
 # defines them) and the tests (which write and read synthetic files). A guard against a slip, not a wall: a string such as
 # ``getattr(C, 'RAW_ROOT')`` is not seen. The string constants exactly equal to ``'raw'`` (the folder below a patch) and
 # ``'C_EPT_RAW_ROOT'`` (the environment variable of the raw root) are, so that the realistic slip ``C.CACHE_ROOT / patch / 'raw' / 'kr'``
-# is caught; they are compared for equality, so a docstring that speaks of raw data is not.
+# is caught; they are compared for equality, so a docstring that speaks of raw data is not. ``'raw'`` is also a value of the K condition
+# (``k_condition='raw'``, decisions B16 and D24), so it counts only where it builds a path: an operand of ``/`` or an argument of a
+# path-joining call (RAW_PATH_CALLS). ``'C_EPT_RAW_ROOT'`` counts wherever it stands.
 RAW_LOCATION_NAMES = ('RAW_ROOT', 'RAW_REGION')
 RAW_LOCATION_STRINGS = ('raw', 'C_EPT_RAW_ROOT')
+RAW_PATH_CALLS = ('join', 'joinpath', 'Path', 'PurePath', 'PurePosixPath', 'PureWindowsPath')
+
+
+def _builds_a_path(node, parents: dict) -> bool:
+    """Whether the string constant ``node`` is an operand of ``/`` or an argument of a call in RAW_PATH_CALLS."""
+    parent = parents.get(node)
+    if isinstance(parent, ast.BinOp) and isinstance(parent.op, ast.Div):
+        return True
+    if isinstance(parent, ast.Call) and node in parent.args:
+        func = parent.func
+        return (func.attr if isinstance(func, ast.Attribute) else getattr(func, 'id', None)) in RAW_PATH_CALLS
+    return False
 RAW_LOCATION_EXEMPT = ('reader.py', 'data/reader.py', 'config.py')               # paths relative to the package folder; everything under tests/ too
 
 
 def raw_location_users(source: str) -> list[int]:
     """Line numbers of the places in ``source`` that name the raw-file location: as a name (``RAW_ROOT``), as an attribute
     (``C.RAW_ROOT``), as an imported name (``from c_ept.config import RAW_ROOT as ROOT``: the import is the one place where it shows) or
-    as a string constant exactly equal to ``'raw'`` or ``'C_EPT_RAW_ROOT'``."""
+    as a string constant exactly equal to ``'C_EPT_RAW_ROOT'``, or as a string constant exactly equal to ``'raw'`` that builds a path."""
     lines = []
-    for node in ast.walk(ast.parse(source)):
+    tree = ast.parse(source)
+    parents = {child: node for node in ast.walk(tree) for child in ast.iter_child_nodes(node)}
+    for node in ast.walk(tree):
         if isinstance(node, ast.Name):
             name = node.id
         elif isinstance(node, ast.Attribute):
@@ -506,7 +522,8 @@ def raw_location_users(source: str) -> list[int]:
         elif isinstance(node, ast.alias):
             name = node.name
         elif isinstance(node, ast.Constant) and isinstance(node.value, str) and node.value in RAW_LOCATION_STRINGS:
-            lines.append(node.lineno)
+            if node.value != 'raw' or _builds_a_path(node, parents):
+                lines.append(node.lineno)
             continue
         else:
             continue
@@ -558,12 +575,22 @@ def test_the_scan_for_the_raw_file_location_sees_the_strings_of_the_path_too():
     assert raw_location_users('x = 1\np = Path(root) / patch / "raw" / region') == [2]
     assert raw_location_users("import os\nroot = os.environ.get('C_EPT_RAW_ROOT')") == [2]
     assert raw_location_users("os.environ['C_EPT_RAW_ROOT']") == [1]
+    assert raw_location_users("p = os.path.join(root, patch, 'raw')") == [1]
+    assert raw_location_users("p = Path('raw')\nq = (root / patch).joinpath('raw', 'kr')") == [1, 2]
+
+
+def test_the_scan_for_the_raw_file_location_leaves_the_k_condition_value_raw_alone():
+    """``'raw'`` is also a value of the K condition (B16, D24): as a default, a keyword, a comparison, a member or a dict value it builds no
+    path and is not flagged."""
+    assert raw_location_users("def f(k_condition='raw'):\n    return k_condition == 'raw'") == []
+    assert raw_location_users("g(k_condition='raw')\nKINDS = ('raw', 'binned')\nx = {'k': 'raw'}\ny = getattr(s, 'k', 'raw')") == []
 
 
 def test_the_scan_for_the_raw_file_location_compares_strings_for_equality_not_by_substring():
     docs = '"""reads the raw data of RAW_ROOT"""\nx = "a raw file"\ny = "raw/timeline"\nz = f"{k}/raw"\nw = "RAWS"\nv = "C_EPT_RAW_ROOT_X"'
     assert raw_location_users(docs) == []
-    assert raw_location_users('"raw"\n"C_EPT_RAW_ROOT"') == [1, 2]                         # the exact strings, even as bare statements
+    assert raw_location_users('"raw"\n"C_EPT_RAW_ROOT"') == [2]                            # the exact env name, even as a bare statement; a bare 'raw' builds no path
+    assert raw_location_users('x = root / "raw"') == [1]
 
 
 def test_the_scan_of_the_package_lists_the_folder_when_it_runs_and_skips_only_the_exempt_modules(tmp_path):

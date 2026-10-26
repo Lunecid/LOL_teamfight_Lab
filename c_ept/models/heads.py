@@ -20,8 +20,8 @@ C. 출력 텐서 규격 (OUTPUT_WIDTHS):
    - rate(rows)                         : (n, 18)    초당 첫 킬 발생률 (구간 0~17)
    - mark_prob(rows, q)                 : (n, 52)    첫 킬 표지(선제킬 쌍 50개 + 처형 2개) 확률분포 (합=1)
    - zone_prob(rows, q, m)              : (n, 10)    첫 킬 구역 확률분포 (합=1, 구역 0~9)
-   - size_prob(rows, q, m, z)           : (n, 4)     교전 규모 범주 확률분포 (합=1, 규모 0~3)
-   - kill_rate(rows, q, m, z, s)        : (n, 2)     팀별(Blue, Red) 평균 킬 수 (Poisson 평균)
+   - size_prob(rows, q, m, z)           : (n, 4)     교전 규모 범주 확률분포 (합=1, 규모 0~3 = T, S, ASYM, P)
+   - kill_rate(rows, q, m, z, s)        : (n, 2)     팀별(Blue, Red) 평균 킬 수 (Poisson 평균; 이동 법칙에서는 첫 킬 팀 칸이 초과분의 평균 λ_d)
    - gold_prob(rows, q, m, z, s, layer) : (n, 2, 31) 킬 수 층(layer 1~6) 조건부 팀별 킬 골드 구간(0~30) 확률분포
    - obj_rate(rows, q, m, z, s, K)      : (n, 18)    18개 오브젝트 칸별 기대 획득 수 (Poisson 평균)
    - conv_rate(m4_inputs)               : (n, 18)    18개 오브젝트 칸별 초당 전환율 (Poisson 발생률)
@@ -54,8 +54,11 @@ from c_ept import config as C
 # 블록 1: 전역 상수 및 출력 형상 규격 (OUTPUT_WIDTHS)
 # =============================================================================
 
-# 지원하는 특징 규격 ('b0': 39개 열, 'b1': 요약 통계량 포함 열)
-FEATURE_KINDS = ('b0', 'b1')
+# 머리 구현체가 선언하는 행 특징 종류의 기술용 목록 ('b0': 39개 열, 'b1': 요약 통계량 포함 열,
+# 'ept': 신경망 EPT 어댑터 compose_heads.EPTComposerHeads, 프레임 시계 입력을 모형 안에서 직접 부호화).
+# feature_kind는 구현체(B0, B1, EPT 어댑터)가 선언하며 실행 코드는 읽지 않는다. 시험만 선언과 이 목록을 대조한다.
+# 그래서 이 목록은 실제 선언 셋과 같게 유지하는 문서 역할이고, 이 튜플로 값을 검증하는 코드는 없다.
+FEATURE_KINDS = ('b0', 'b1', 'ept')
 
 # 각 머리별 반환 배열의 마지막 차원 크기 규약.
 # 단위 테스트에 의해 units, nll, features, targets 모듈의 상수와 일치함이 검증됨.
@@ -63,7 +66,7 @@ OUTPUT_WIDTHS = {
     'rate': (C.N_BINS,),                 # (18,) 10초 간격 18개 발생 구간
     'mark_prob': (C.N_MARKS,),           # (52,) 선제 킬 쌍 50개 + 처형 2개
     'zone_prob': (10,),                  # (10,) 구역 0 .. 9 (관측 구역)
-    'size_prob': (4,),                   # (4,) 소/중/대/초대형 교전 규모 0 .. 3
+    'size_prob': (4,),                   # (4,) 교전 규모 범주 s = 0: T, 1: S, 2: ASYM, 3: P (units.SIZE_NAMES; 킬 크레딧 참여 인원 규칙)
     'kill_rate': (2,),                   # (2,) Blue, Red 팀별 평균 킬 수
     'gold_prob': (2, 31),                # (2, 31) Blue, Red 팀별 31개 킬 골드 구간
     'obj_rate': (2 * len(C.O_KINDS),),   # (18,) 9종 오브젝트 x 2개 팀 = 18개 칸
@@ -84,7 +87,7 @@ class ComposerHeads(Protocol):
     - B0 GLM, B1 LightGBM, EPT 신경망 모형이 모두 이 프로토콜을 구현하여 동일 규격으로 연동된다.
     - 식 (HEAD-1) ~ (HEAD-4)의 사슬을 단계별 조건부 호출로 분해하여 계산한다.
     """
-    feature_kind: str      # 사용 중인 행 특징 종류 ('b0' 또는 'b1')
+    feature_kind: str      # 사용 중인 행 특징 종류 ('b0', 'b1' 또는 'ept'; FEATURE_KINDS)
     analytic_ok: bool       # 닫힌 꼴(closed-form) 교전 가치 계산 가능 여부 (B0: True, B1/EPT: False)
     obj_uses_K: bool        # M3 오브젝트 머리가 킬 결과 K를 조건으로 받는지 여부
     conv_uses_KO: bool      # M4 전환 머리가 K와 O를 조건으로 받는지 여부
@@ -177,7 +180,16 @@ class ComposerHeads(Protocol):
         - z: (n,) 첫 킬 구역 인덱스 (-1 .. 9)
 
         [출력]:
-        - (n, 4) float64: 규모 s (0: 1킬, 1: 2킬, 2: 3~4킬, 3: 5킬 이상) 확률분포 (합=1)
+        - (n, 4) float64: 규모 s의 확률분포 (합=1). s는 units.SIZE_NAMES 순서의 범주 0: T, 1: S, 2: ASYM, 3: P이다.
+          킬 수 구간이 아니라 교전의 킬 크레딧 참여 인원(킬러·피해자·어시스트, 팀별 nb, nr)으로 정한다
+          (units.size_class; lo = min(nb, nr), hi = max(nb, nr)):
+            0: T    lo ≥ 4          양 팀 모두 4명 이상 (4v4, 5v5 등 대규모 한타)
+            1: S    2 ≤ lo, hi ≤ 3  양 팀 모두 2~3명 (소규모 교전)
+            2: ASYM 2 ≤ lo ≤ 3, hi ≥ 4  한 팀 2~3명 대 상대 4명 이상 (인원 불균형)
+            3: P    lo < 2          한 팀이라도 참여자가 2명 미만 (단독 처치)
+          해석: 킬 하나짜리 교전은 반대 팀 참여자가 피해자 한 명뿐이므로 언제나 P이고, T는 양 팀에서 4명 이상이 크레딧을 받은
+          여러 킬의 교전에서만 나온다. 규모는 발생 관문이나 t₀ 입력이 아니라 결과 쪽 표지이며,
+          kill_rate, gold_prob, obj_rate가 이 s를 조건으로 받는다.
         """
         ...
 
@@ -196,6 +208,11 @@ class ComposerHeads(Protocol):
 
         [출력]:
         - (n, 2) float64: [Blue 기대 킬 수, Red 기대 킬 수] (각 값 ≥ 0)
+
+        [이동 킬 법칙의 뜻 (S4b 준비 M1, 결정 D5)]:
+        - 모양과 값의 범위는 그대로이고 칸의 뜻만 법칙이 정한다. 옛 법칙('poisson')에서는 팀의 킬 수의 평균 μ이다. 이동 법칙('shifted')에서는 표지 m의 첫 킬 팀
+          d = m // 25 (m ≤ 49)의 칸이 초과분 N_d (K_d = 1 + N_d)의 평균 λ_d이고 다른 칸과 처형 표지(m = 50, 51)의 두 칸은 킬 수의 평균 μ이다.
+          합성기가 법칙을 안다(``Composer(..., kill_law=...)``); 머리는 같은 법칙으로 적합되어야 한다.
         """
         ...
 

@@ -36,7 +36,7 @@ from c_ept.data import store_core
 from c_ept.ept import data, encoder, heads, loss
 from c_ept.tests.conftest import all_imports, module_level_imports
 from c_ept.tests.ept_toys import build_ept_world, encoder_batch, toy_static
-from c_ept.tests.s3_toys import KEY_PREFIX, heads_world  # noqa: F401  (the fixture is imported by ruling R1)
+from c_ept.tests.s3_toys import KEY_PREFIX, consistent_heads_world, heads_world  # noqa: F401  (the fixtures are imported by ruling R1)
 
 HEAD_NAMES = head_rows.HEAD_NAMES
 N_Q, N_M, N_ZONE, N_SIZE, N_LAYER, N_GOLD, N_CELLS = (head_rows.N_Q, head_rows.N_M, head_rows.N_ZONE, head_rows.N_SIZE, head_rows.N_LAYER,
@@ -1383,3 +1383,88 @@ def test_the_constants_agree_with_nll_and_head_rows():
     assert loss.N_SIZE == N_SIZE == 4 and loss.BLOCKS == tuple(f'{h}/{k}' for k, names in (('masked', HEAD_NAMES), ('open', head_rows.OPEN_HEAD_NAMES))
                                                                for h in names)
     assert set(heads.HEAD_OUTPUT) == set(HEAD_NAMES)
+
+
+# ---- the condition of the B0 that made the scales (S4b preparation M3b, decision D24) -----------------------------------------------------------
+# B0 follows the K condition and the kill law of the run (D24): the scales are the B0 NLL on the FIT rows of that condition, so the file says which condition it was made
+# under. The three fields are written only when they are not the defaults ('poisson', 'raw', no representatives): a default B0 gives the bytes of every earlier file.
+OLD_FIELDS = {'schema', 's3_run', 'role', 'rule', 's1', 's2', 'labels_store_sha256', 'model_files_sha256', 'scales', 'n_rows', 'n_unscored', 'by_size', 'n_rows_unit',
+              'n_unscored_unit', 'size_normalised', 'code', 'scales_sha256'}
+CONDITION_FIELDS = ('kill_law', 'k_condition', 'k_reps_sha256')
+
+
+def toy_condition_run(world, tmp_path_factory, **fit_args):
+    from sklearn.exceptions import ConvergenceWarning
+
+    from c_ept.models import baselines_b0
+    runs = tmp_path_factory.mktemp('b0_scales_condition_runs') / 'runs'
+    names = SimpleNamespace(s1='20261020_c_ept_s1_1', s2='20261021_c_ept_s2_3', s3='20261022_c_ept_s3_3')
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', ConvergenceWarning)
+        b0 = baselines_b0.B0Heads.fit(world.s1, world.s2, world.labels, world.fit_means, **fit_args)
+    return SimpleNamespace(runs=runs, run=write_toy_run(runs, world.s1, world.s2, world.labels, b0, names), names=names, b0=b0, world=world)
+
+
+@pytest.fixture(scope='module')
+def binned_run(heads_world, tmp_path_factory):                                              # noqa: F811
+    run = toy_condition_run(heads_world, tmp_path_factory, k_condition='binned')
+    yield run
+    shutil.rmtree(run.runs.parent, ignore_errors=True)
+
+
+@pytest.fixture(scope='module')
+def shifted_binned_run(consistent_heads_world, tmp_path_factory):                          # noqa: F811
+    run = toy_condition_run(consistent_heads_world, tmp_path_factory, kill_law='shifted', k_condition='binned')
+    yield run
+    shutil.rmtree(run.runs.parent, ignore_errors=True)
+
+
+def test_the_scales_file_of_a_default_b0_has_no_condition_field_and_the_accessor_gives_the_defaults(toy_run, tmp_path):
+    """The file of a default B0 holds exactly the fields of every earlier file (so its bytes do not change with the task); the accessor reads the absence as the defaults."""
+    from c_ept.ept import scales
+    scales.b0_scales(toy_run.run, tmp_path, runs_root=toy_run.runs)
+    doc = json.loads((tmp_path / 'B0_SCALES.json').read_text(encoding='utf-8'))
+    assert set(doc) == OLD_FIELDS and not any(name in (tmp_path / 'B0_SCALES.json').read_text(encoding='utf-8') for name in CONDITION_FIELDS)
+    assert scales.scales_condition(tmp_path) == {'kill_law': 'poisson', 'k_condition': 'raw', 'k_reps_sha256': None}
+    assert scales.scales_condition(tmp_path / 'B0_SCALES.json') == scales.scales_condition(tmp_path)
+
+
+def test_the_scales_file_records_the_k_condition_and_the_sha256_of_a_binned_b0_and_no_kill_law_for_the_plain_law(binned_run, tmp_path):
+    from c_ept.ept import scales
+    got = scales.b0_scales(binned_run.run, tmp_path, runs_root=binned_run.runs)
+    doc = json.loads((tmp_path / 'B0_SCALES.json').read_text(encoding='utf-8'))
+    assert doc['k_condition'] == 'binned' and doc['k_reps_sha256'] == binned_run.b0.k_reps_sha256 and len(doc['k_reps_sha256']) == 64 and 'kill_law' not in doc
+    assert set(doc) == OLD_FIELDS | {'k_condition', 'k_reps_sha256'}
+    assert scales.load_scales(tmp_path) == got
+    assert scales.scales_condition(tmp_path) == {'kill_law': 'poisson', 'k_condition': 'binned', 'k_reps_sha256': binned_run.b0.k_reps_sha256}
+    # the scales are the B0 NLL on the binned rows of the FIT matches: they are not the scales of the true gold
+    w = binned_run.world
+    scores = binned_run.b0.nll(w.s1, w.s2, w.labels, 'FIT', 'open')
+    assert got['M3Obj/open'] == pytest.approx(scales.head_scale('M3Obj', scores['M3Obj'], scales._size_of_rows(w.s1, 'open', np.asarray(scores['M3Obj'].row)))[0], rel=1e-12)
+
+
+def test_the_scales_file_records_the_kill_law_with_the_condition_and_the_scales_differ_from_the_plain_ones(shifted_binned_run, tmp_path):
+    from c_ept.ept import scales
+    got = scales.b0_scales(shifted_binned_run.run, tmp_path, runs_root=shifted_binned_run.runs)
+    doc = json.loads((tmp_path / 'B0_SCALES.json').read_text(encoding='utf-8'))
+    assert doc['kill_law'] == 'shifted' and doc['k_condition'] == 'binned' and doc['k_reps_sha256'] == shifted_binned_run.b0.k_reps_sha256
+    assert scales.scales_condition(tmp_path) == {'kill_law': 'shifted', 'k_condition': 'binned', 'k_reps_sha256': shifted_binned_run.b0.k_reps_sha256}
+    assert scales.load_scales(tmp_path) == got
+
+
+def test_load_scales_checks_the_condition_fields_and_the_accessor_normalises_an_old_file(tmp_path):
+    from c_ept.ept import scales
+    sha = 'a' * 64
+    assert scales.scales_condition(write_hand(tmp_path)) == {'kill_law': 'poisson', 'k_condition': 'raw', 'k_reps_sha256': None}            # an old file: absent means the defaults
+    assert scales.load_scales(write_hand(tmp_path, k_condition='binned', k_reps_sha256=sha, kill_law='shifted')) == hand_values()
+    assert scales.scales_condition(write_hand(tmp_path, k_condition='binned', k_reps_sha256=sha, kill_law='shifted')) == {'kill_law': 'shifted', 'k_condition': 'binned', 'k_reps_sha256': sha}
+    assert scales.scales_condition(write_hand(tmp_path, k_condition='binned'))['k_reps_sha256'] is None                                       # allowed to exist; the K6 check refuses it
+    for bad, match in (({'kill_law': 'gamma'}, 'kill_law'), ({'k_condition': 'continuous'}, 'k_condition'), ({'k_condition': 3}, 'k_condition'),
+                       ({'k_condition': 'binned', 'k_reps_sha256': 'abc'}, 'k_reps_sha256'), ({'k_condition': 'binned', 'k_reps_sha256': sha.upper()}, 'k_reps_sha256'),
+                       ({'k_reps_sha256': sha}, 'k_reps_sha256'), ({'k_condition': 'raw', 'k_reps_sha256': sha}, 'k_reps_sha256')):
+        with pytest.raises(ValueError, match=match):
+            scales.load_scales(write_hand(tmp_path, **bad))
+        with pytest.raises(ValueError, match=match):
+            scales.scales_condition(write_hand(tmp_path, **bad))
+    with pytest.raises(FileNotFoundError):
+        scales.scales_condition(tmp_path / 'missing.json')

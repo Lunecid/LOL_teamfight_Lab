@@ -135,3 +135,10 @@ def test_train_wrapper_observes_write_monkeypatch_on_each_save(tmp_path):
     ns['_save_checkpoint'](tmp_path, 2, files, metadata(2))
     assert seen == [(tag, name) for tag in ('first', 'second') for name in ('last.pt', 'best.pt', 'head.json')]
     assert cp.latest_checkpoint(tmp_path)[1]['epoch'] == 2
+
+
+def test_the_head_schemas_are_v5_for_the_calls_and_v6_or_v7_for_a_head_with_a_metrics_snapshot():
+    """v7 (S4b preparation M4) is the head of a run under ``decay_groups='split'``: it carries the same snapshot files with the kappa columns. v6 stays the head of every earlier
+    run, so the names of the earlier schemas do not change."""
+    assert cp.SCHEMA == 'ept_train_checkpoint_v5' and cp.METRICS_SCHEMA == 'ept_train_checkpoint_v6'
+    assert cp.METRICS_SCHEMAS == ('ept_train_checkpoint_v6', 'ept_train_checkpoint_v7', 'ept_train_checkpoint_v8')          # v8 (S4b preparation M6): a run with a terrain smoothness weight

@@ -62,6 +62,8 @@ def load_best(reference, head, static, device):
     """Read ONLY the hash-bound best weight tensor dict; never last/optimizer/RNG."""
     import torch
     from c_ept.ept import encoder, heads
+    unpassed = guard.unpassed_evaluation_settings(head['identity'])      # the plain model and the default run_inference would evaluate such a checkpoint as another design
+    guard.require(not unpassed, f'the checkpoint was trained with settings that this evaluation does not pass on: {unpassed}')
     p = Path(reference['path'])
     guard.require(p.name == 'best.pt' and not p.is_symlink(), 'best-only loader path mismatch')
     raw = p.read_bytes()
@@ -89,7 +91,12 @@ def _bundle(meta, *, check):
     for rel, expected in meta['tier_files_sha256'].items():
         check()
         guard.require(guard.sha_file(guard.inside(p['s3'], rel)) == expected, 'tier artifact hash mismatch')
-    return SimpleNamespace(s1=ReadOnlyVerifiedStore(p['s1'], check=check),
+    # role: the adapter (run_inference) refuses any bundle that does not declare 'DEV'. This is the one
+    # production builder (the matched-25% runtime reuses it), so DEV is declared here, once. Only
+    # run_inference reads the attribute: the matched prepare/fit stages share this builder but choose
+    # their FIT/STOP rows through their own role-selecting calls and never consult it.
+    return SimpleNamespace(role='DEV',
+                           s1=ReadOnlyVerifiedStore(p['s1'], check=check),
                            s2=ReadOnlyVerifiedStore(p['s2'], check=check),
                            labels=ReadOnlyVerifiedStore(p['labels'], check=check),
                            static=encoder.static_channels(terrain.Terrain(p['terrain'])),

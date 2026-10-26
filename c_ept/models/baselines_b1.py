@@ -84,7 +84,7 @@ from scipy.special import expit
 from c_ept import config as C
 from c_ept.preprocessing import features
 from c_ept.data import head_rows, store_core
-from c_ept.models import heads, nll as nll_scores
+from c_ept.models import heads, killlaw, nll as nll_scores
 from c_ept.data.casts import narrow
 # the names of the heads, their shapes, and the rows and scores that B0 and B1 share (ruling R18)
 from c_ept.data.head_rows import (HEAD_NAMES, KINDS, MIX, N_CELLS, N_GOLD, N_K, N_LAYER, N_M, N_Q, N_SIZE, N_ZONE, OPEN_HEAD_NAMES,  # noqa: F401
@@ -132,8 +132,12 @@ SLOTS = {
 CATEGORIES = ('q', 'm', 'z', 's', 'layer')
 # the raw values of a category: lo .. lo + n - 1; the column holds value - lo (0 .. n - 1)
 _LEVELS = {'q': (0, N_Q), 'm': (0, N_M), 'z': (-1, N_ZONE + 1), 's': (0, N_SIZE), 'layer': (1, N_LAYER)}
+# The first-kill team (S4b preparation M1, decision D5) is a category of the open M3Kills design under the shifted kill law only (``make_layout(..., kill_law)``), so
+# it is kept apart from the tables of the categories of every design: -1 an execution (no first team), 0 blue, 1 red; the column holds d + 1 (0 .. 2).
+FIRST_TEAM = 'd'
+_ALL_LEVELS = {**_LEVELS, FIRST_TEAM: (-1, 3)}
 K_NAMES = features.M4_EXTRA_NAMES[3:]                  # kills_blue, kills_red, gold_blue_k, gold_red_k
-_WIDTH = {'K': N_K, 'O': N_CELLS, **{name: 1 for name in CATEGORIES}}
+_WIDTH = {'K': N_K, 'O': N_CELLS, **{name: 1 for name in CATEGORIES + (FIRST_TEAM,)}}
 NUMERIC_SLOTS = ('feat', 'K', 'O')
 # the last dimension of what a head gives for a row (``heads.OUTPUT_WIDTHS``), for the composer's answer to no rows
 _OUT_SHAPE = {'M2Mark': (N_M,), 'M2Zone': (N_ZONE,), 'M3Size': (N_SIZE,), 'M3Kills': (2,), 'M3Gold': (N_GOLD,), 'M3Obj': (N_CELLS,)}
@@ -154,8 +158,10 @@ class Layout(NamedTuple):
         return len(self.names)
 
 
-def make_layout(head: str, kind: str, columns) -> Layout:
-    """The ``Layout`` of the design of the head ``head`` of ``kind``, when the b1 columns are ``columns`` (``features.b1_columns``).
+def make_layout(head: str, kind: str, columns, kill_law: str = 'poisson') -> Layout:
+    """The ``Layout`` of the design of the head ``head`` of ``kind``, when the b1 columns are ``columns`` (``features.b1_columns``). ``kill_law`` is the kill law
+    of the M3Kills head (decision D5): under ``'shifted'`` the design of the open M3Kills head has the category ``d`` (the first-kill team) after ``s``, the one input
+    that tells a team's cell whether its rate is the rate λ_d of the excess N_d or the rate μ of the plain count; every other design is that of the plain law.
 
     수식
     ----
@@ -187,8 +193,10 @@ def make_layout(head: str, kind: str, columns) -> Layout:
     """
     if (head, kind) not in SLOTS:
         raise ValueError(f'there is no {kind} head {head!r}; the heads are {[k for k in SLOTS]}')
+    killlaw.check_law(kill_law)
+    slots = SLOTS[(head, kind)] + ((FIRST_TEAM,) if kill_law == 'shifted' and (head, kind) == ('M3Kills', 'open') else ())
     names, categorical = [], []
-    for slot in SLOTS[(head, kind)]:
+    for slot in slots:
         if slot == 'feat':
             names += list(columns)
         elif slot == 'K':
@@ -200,7 +208,7 @@ def make_layout(head: str, kind: str, columns) -> Layout:
             names.append(slot)
     if len(set(names)) != len(names):
         raise ValueError('the design has a column name twice: ' + ', '.join(sorted({n for n in names if names.count(n) > 1})))
-    return Layout(SLOTS[(head, kind)], tuple(names), tuple(categorical), len(columns))
+    return Layout(slots, tuple(names), tuple(categorical), len(columns))
 
 
 def _int_codes(name: str, values) -> np.ndarray:
@@ -222,7 +230,7 @@ def _category(slot: str, values, n: int) -> np.ndarray:
     a = _int_codes(slot, values)
     if len(a) != n:
         raise ValueError(f'{slot} has {len(a)} entries but there are {n} rows')
-    lo, levels = _LEVELS[slot]
+    lo, levels = _ALL_LEVELS[slot]
     if a.size and (a.min() < lo or a.max() > lo + levels - 1):
         raise ValueError(f'{slot} must lie in {lo} .. {lo + levels - 1}')
     return (a - lo).astype(np.float32)
@@ -514,7 +522,7 @@ class _Boosted:
         widths = {s: (self.layout_.d if s == 'feat' else _WIDTH[s]) for s in slots if s in NUMERIC_SLOTS}
         if A.shape[1] != sum(widths.values()):
             raise ValueError(f'{self.name}: the numeric part must have {sum(widths.values())} columns, not shape {A.shape}')
-        wanted = {s for s in slots if s in CATEGORIES}
+        wanted = {s for s in slots if s in CATEGORIES or s == FIRST_TEAM}
         if set(codes) != wanted:
             raise ValueError(f'{self.name}: the codes must be given for the categories {sorted(wanted)}, not {sorted(codes)}')
         parts, at = {}, 0
@@ -943,8 +951,66 @@ class M3Kills(_PoissonBoosted):
     """The kills of the two teams (ruling R19): a Poisson head with two cells, 0 the blue and 1 the red team, on one row per onset; each
     cell is a booster of its own. ``predict`` gives the mean kills (n, 2), blue then red.
 
-    (HEAD-3)의 μ_blue, μ_red를 (B1-2)로 낸다(노출 1). 두 팀의 칸은 부스터를 따로 둔다(판정 R19)."""
+    (HEAD-3)의 μ_blue, μ_red를 (B1-2)로 낸다(노출 1). 두 팀의 칸은 부스터를 따로 둔다(판정 R19).
+
+    ``kill_law`` (S4b 준비 M1, 결정 D5): ``'poisson'``(기본값)은 위의 머리 그대로이다. ``'shifted'``는 첫 킬 팀 d의 킬 수를 K_d = 1 + N_d로 둔다.
+
+    수식
+    ----
+    (B1-2k)  y*_{i,t} = y_{i,t} − 1[t = d_i] ;   log λ*_{i,t} = γ_t + F_t(x_i) ,   γ_t = log(Σ_i y*_{i,t} / n),   LightGBM 목적함수 'poisson'의 라벨 = y*
+             exp(γ_t + F_t(x_i)) = λ_{i,t} (d_i = t, 초과분 N_d의 평균) 또는 μ_{i,t} (d_i ≠ t, 킬 수의 평균) ;   점수 ℓ_{i,t}는 ``killlaw.logpmf``의 음수 (KL-3)
+
+      기호      | 뜻                                                 | 단위 | 범위     | 코드 변수
+      d_i       | 행 i의 첫 킬 팀 (0 파랑, 1 빨강, −1 처형)           | —    | −1, 0, 1 | first_team
+      y*_{i,t}  | 칸 t의 유효 개수: 첫 킬 팀이면 y − 1, 아니면 y      | 개   | 0, 1, … | killlaw.excess
+
+    해석: 포아송 목적함수는 라벨이 정수이기만 하면 되므로 첫 킬 팀 칸의 라벨을 y − 1로 두면 같은 목적함수가 λ_d를 적합한다. 한 칸이 두 종류의 행을 함께 보므로 나무가 d = t인 행과 아닌 행을
+    가르는 입력이 있어야 한다: 가린 머리는 범주 열 m(d = m // 25)이, 열린 머리는 ``make_layout``이 더하는 범주 열 d가 그 입력이다. 조기 종료의 STOP 행도 같은 방식으로 y*를 라벨로 쓰므로
+    (``valid_first_team``) 손실 (B1-5)가 적합한 모형과 같은 모형의 손실이다."""
     name = 'M3Kills'
+
+    def __init__(self, kind: str = 'masked', params=None, kill_law: str = 'poisson'):
+        super().__init__(kind, params)
+        self.kill_law = killlaw.check_law(kill_law)
+
+    def fit(self, X, Y, e, *, categorical=(), layout=None, valid=None, check=None, first_team=None, valid_first_team=None):
+        """(B1-2) with the labels of the kill law: the counts ``Y`` for the plain law, their excess for the shifted law, whose first teams ``first_team`` (n,) and, with
+        ``valid``, ``valid_first_team`` (n_valid,) are required (ValueError otherwise, and for a first team with no kill)."""
+        if self.kill_law == 'shifted':
+            if first_team is None or (valid is not None and valid_first_team is None):
+                raise ValueError(f'{self.name}: the shifted kill law needs the first-kill team of every row of the fit and of the validation rows')
+            Y = killlaw.excess(Y, first_team, self.kill_law)
+            if valid is not None:
+                valid = (valid[0], killlaw.excess(valid[1], valid_first_team, self.kill_law), valid[2])
+        return super().fit(X, Y, e, categorical=categorical, layout=layout, valid=valid, check=check)
+
+    def nll(self, X, Y, e, cells: bool = False, first_team=None) -> np.ndarray:
+        """The NLL of the kill counts ``Y`` (n, 2): ``_PoissonBoosted.nll`` for the plain law, the shifted score (KL-3) with the first teams ``first_team`` (n,) for the shifted
+        law (required; the exposure is 1). One value per row, or (n, 2) with ``cells``."""
+        if self.kill_law == 'poisson':
+            return super().nll(X, Y, e, cells)
+        if first_team is None:
+            raise ValueError(f'{self.name}: the shifted kill law needs the first-kill team of every row (first_team)')
+        if not np.array_equal(np.asarray(e, dtype=np.float64), np.ones(len(np.asarray(Y)))):
+            raise ValueError(f'{self.name}: the kill counts have the exposure 1')
+        per_cell = -killlaw.logpmf(Y, self.predict(X), first_team, self.kill_law)
+        return per_cell if cells else per_cell.sum(axis=1)
+
+    def state(self) -> tuple:
+        texts, meta = super().state()
+        if self.kill_law != 'poisson':
+            meta['kill_law'] = self.kill_law                       # absent means the plain law: a plain head is saved as every earlier head was
+        return texts, meta
+
+    def _restore(self, texts: Mapping, meta: Mapping, layout=None) -> None:
+        super()._restore(texts, meta, layout)
+        self.kill_law = killlaw.check_law(meta.get('kill_law', 'poisson'))
+
+    def summary(self) -> dict:
+        out = super().summary()
+        if self.kill_law != 'poisson':
+            out['kill_law'] = self.kill_law
+        return out
 
 
 class _GoldModel(_CategoricalBoosted):
@@ -1150,12 +1216,17 @@ class HeadRows(head_rows.HeadRows):
     ``Layout``. ValueError for an S2 store or label store that does not belong to the S1 store (counts only, never a key), for a role that
     is a holdout role or not used by S3, for a dropped name that is no column, and for a unit that lacks a view.
 
+    ``kill_law`` and ``k_condition`` (S4b preparation M1 and M3) go to ``head_rows.HeadRows``: the kill law of the M3Kills rows, and the gold of the K block of the object and
+    conversion rows ('raw' the true gold of the labels, 'binned' the representative of the observed gold bin, ``head_rows`` equation (HR-9)); the defaults are the rows of every
+    earlier run.
+
     행의 정의는 (HR-1)–(HR-4)이고, 이 클래스는 거기에 b1 특징(결측 칸은 NaN으로 둔다)과 SLOTS의 설계를 얹는다(판정 R18)."""
 
-    def __init__(self, s1, s2, labels, dropped, role, *, matches=None):
+    def __init__(self, s1, s2, labels, dropped, role, *, matches=None, kill_law: str = 'poisson', k_condition: str = 'raw'):
         self.dropped = tuple(dropped) if not isinstance(dropped, str) else dropped
         self.columns = features.b1_columns(self.dropped)                       # refuses a string and a name that is no column
-        super().__init__(s1, s2, labels, role, lambda store, views: features.b1(store, views, self.dropped), matches=matches)
+        super().__init__(s1, s2, labels, role, lambda store, views: features.b1(store, views, self.dropped), matches=matches, kill_law=kill_law,
+                         k_condition=k_condition)
 
     def data(self, head: str, kind: str) -> HeadData:
         """The rows of the head ``head`` ('M2Rate', ... 'M4Conv') of ``kind`` ('masked' or 'open'), see ``HeadData``. ValueError for a head
@@ -1164,13 +1235,13 @@ class HeadRows(head_rows.HeadRows):
         (B1-1)의 설계 X와 (HR-1)–(HR-5)의 y, e, 경기 번호, 평가 행 번호를 묶어 ``HeadData``로 낸다. 가린 오브젝트 머리는 K를 읽는다(``masked_obj_k``, 계획 P6)."""
         if (head, kind) not in SLOTS:
             raise ValueError(f'there is no {kind} head {head!r}; the heads are {[k for k in SLOTS]}')
-        layout = make_layout(head, kind, self.columns)
+        layout = make_layout(head, kind, self.columns, self.kill_law)
         p = self.parts(head, kind, masked_obj_k=True)                          # B1 conditions the masked object head on K (decision P6)
         if (head, kind) == ('M4Conv', 'masked'):
             X = _m4_design(p.m4, layout.d)                                     # the matrix of features.m4_masked_inputs, zone shifted
         else:
             X = _assemble(layout.slots, p.feat, p.take, p.codes, p.K, p.O)
-        return HeadData(X, p.y, p.e, p.match, p.row, layout, p.n_zero_exposure, p.team)
+        return HeadData(X, p.y, p.e, p.match, p.row, layout, p.n_zero_exposure, p.team, p.first_team)
 
 
 # =============================================================================
@@ -1494,6 +1565,9 @@ class _MaskedChain:
         self._dropped = tuple(dropped)
         self._columns = features.b1_columns(self._dropped)
         self._b1 = None
+        # 킬 수 법칙(결정 D5, 검토 I1): ``kill_rate``의 d 칸이 초과분의 평균 λ_d('shifted')인지 킬 수의 평균 μ('poisson')인지는 M3Kills 머리가 정한다. 합성기가 이 선언을 자기 법칙과
+        # 대조하므로(``Composer``) 다른 법칙으로 맞춘 머리를 말없이 합성하지 못한다. 킬 머리가 없으면(부분 묶음) 옛 법칙이다.
+        self.kill_law = getattr(masked.get('M3Kills'), 'kill_law', 'poisson')
 
     def bind(self, s2, views) -> None:
         """Compute and keep the b1 rows of the frame-clock views ``views`` (view numbers in any order, or a bool mask). ValueError for a
@@ -1643,15 +1717,26 @@ def fit_head(fit_rows: HeadRows, stop_rows: HeadRows, name: str, kind: str, *, p
         check()
     if tuple(fit_rows.dropped) != tuple(stop_rows.dropped):
         raise ValueError('the fit rows and the stop rows must be made with the same dropped columns')
+    if fit_rows.kill_law != stop_rows.kill_law:
+        raise ValueError(f'the fit rows have the kill law {fit_rows.kill_law!r} and the stop rows {stop_rows.kill_law!r}: the early stopping would score another law')
+    if fit_rows.k_condition != stop_rows.k_condition:
+        raise ValueError(f'the fit rows have the k_condition {fit_rows.k_condition!r} and the stop rows {stop_rows.k_condition!r}: the early stopping would score the K heads on '
+                         'another input')
+    if fit_rows.k_reps_sha256() != stop_rows.k_reps_sha256():                        # None on both sides under the raw gold
+        raise ValueError('the fit rows and the stop rows hold different representatives of the gold bins (k_reps_sha256 differs): the early stopping would score the K heads on '
+                         'another K')
     d = fit_rows.data(name, kind)
     v = stop_rows.data(name, kind)
-    head = HEAD_CLASSES[name](kind, params)
+    shifted_kills = name == 'M3Kills' and fit_rows.kill_law != 'poisson'
+    head = M3Kills(kind, params, fit_rows.kill_law) if shifted_kills else HEAD_CLASSES[name](kind, params)
     design = _Design(d.X)
     d = d._replace(X=None)                                                  # the head owns the design from here on
     if name == 'M3Gold':                                                    # the team of every entry (ruling R19)
         head.fit(design, d.y, d.team, layout=d.layout, valid=(v.X, v.y, v.team), check=check)
     elif d.e is None:
         head.fit(design, d.y, layout=d.layout, valid=(v.X, v.y), check=check)
+    elif shifted_kills:                                                     # (B1-2k): the labels are the excess of the first team, in the fit rows and in the STOP rows
+        head.fit(design, d.y, d.e, layout=d.layout, valid=(v.X, v.y, v.e), check=check, first_team=d.first_team, valid_first_team=v.first_team)
     else:
         head.fit(design, d.y, d.e, layout=d.layout, valid=(v.X, v.y, v.e), check=check)
         # 공통 가정 (나)에서 뺀 행의 수를 머리의 기록에 합친다.
@@ -1672,7 +1757,7 @@ def save_head(head, kind: str, name: str, columns, directory, *, record=None) ->
     out = Path(directory)
     if (out / HEAD_JSON).exists():
         raise FileExistsError(f'{out} already holds a saved B1 head: it is not written over')
-    layout = make_layout(name, kind, columns)
+    layout = make_layout(name, kind, columns, getattr(head, 'kill_law', 'poisson'))             # only the kill head has a kill law
     texts, meta = head.state()
     out.mkdir(parents=True, exist_ok=True)
     files = {}
@@ -1716,7 +1801,7 @@ def load_head(directory, kind: str, name: str, columns):
     if (doc.get('kind'), doc.get('name')) != (kind, name) or meta.get('kind') != kind or meta.get('class') != name:
         raise ValueError(f'{folder / HEAD_JSON}: the saved head is the {doc.get("kind")} head {doc.get("name")!r}, '
                          f'not the {kind} head {name!r}')
-    layout = make_layout(name, kind, columns)
+    layout = make_layout(name, kind, columns, meta.get('kill_law', 'poisson'))                  # the kill head says its law; absent means the plain law
     if meta['columns'] != list(layout.names):
         raise ValueError(f'{kind} head {name!r}: the saved design is not the design of this module')
     texts = {}
@@ -1740,10 +1825,23 @@ class B1Heads:
 
     가린 머리 8개와 열린 머리 5개를 한 묶음으로 맞추고, 쓰고, 읽는다. 식은 (B1-1)–(B1-5)이다."""
 
-    def __init__(self, masked: Mapping, open_: Mapping, dropped, fit_roles=('FIT',), stop_roles=('STOP',)):
+    def __init__(self, masked: Mapping, open_: Mapping, dropped, fit_roles=('FIT',), stop_roles=('STOP',), kill_law: str = 'poisson', k_condition: str = 'raw',
+                 k_reps_sha256=None):
         unknown = (set(masked) - set(HEAD_NAMES)) | (set(open_) - set(OPEN_HEAD_NAMES))
         if unknown:
             raise ValueError(f'unknown head(s): {", ".join(sorted(unknown))}')
+        self.kill_law = killlaw.check_law(kill_law)
+        # the gold of the K block that the object and conversion heads (masked and open) were fitted on (decision D21 B16); the set says it, the heads carry no declaration of it
+        self.k_condition = head_rows.check_k_condition(k_condition)
+        # the sha256 of the 31 representatives of the binned K block (``value.gold_reps_sha256``; review m4): None for the raw gold, and for a binned set whose representatives are not
+        # recorded (``run_inference`` refuses such a set). A lowercase 64-digit hex string or None.
+        if k_reps_sha256 is not None and (self.k_condition != 'binned' or not isinstance(k_reps_sha256, str) or len(k_reps_sha256) != 64
+                                          or any(c not in '0123456789abcdef' for c in k_reps_sha256)):
+            raise ValueError("k_reps_sha256 must be None or a lowercase 64-digit hex sha256, and only for k_condition 'binned'")
+        self.k_reps_sha256 = k_reps_sha256
+        for group in (masked, open_):
+            if 'M3Kills' in group and getattr(group['M3Kills'], 'kill_law', 'poisson') != self.kill_law:
+                raise ValueError(f'the kill head is fitted for kill_law {getattr(group["M3Kills"], "kill_law", "poisson")!r} but the set says {self.kill_law!r}')
         # always in the order of HEAD_NAMES and OPEN_HEAD_NAMES: summary(), nll() and the files do not depend on how the set was made
         self.masked = {name: masked[name] for name in HEAD_NAMES if name in masked}
         self.open = {name: open_[name] for name in OPEN_HEAD_NAMES if name in open_}
@@ -1754,7 +1852,7 @@ class B1Heads:
 
     # -- fit -------------------------------------------------------------------------------------------------------------------------------
     @classmethod
-    def fit(cls, s1, s2, labels, dropped, roles=None, *, check=None, params=None) -> 'B1Heads':
+    def fit(cls, s1, s2, labels, dropped, roles=None, *, check=None, params=None, kill_law: str = 'poisson', k_condition: str = 'raw') -> 'B1Heads':
         """Fit the eight masked and the five open heads on the matches of the role ``roles['fit']`` (default FIT), one head and one
         cell at a time, with the early stopping on the matches of ``roles['stop']`` (default STOP). ``dropped``: the columns left out of
         b1, ``features.dropped_columns(s2, np.flatnonzero(features.split_views(s1, s2, 'FIT')))`` (ruling R14). ``check``: a function
@@ -1763,17 +1861,30 @@ class B1Heads:
         does not use, before any array is read.
 
         기본값은 FIT 역할의 경기로 맞추고 STOP 역할의 경기로 조기 종료 (B1-5)를 정하는 것이다(판정 R21의 roles 서명). 두 역할이 겹치거나 홀드아웃 역할이거나 S3가 쓰지 않는 역할이면
-        배열을 읽기 전에 거부한다(계획 전역 제약의 분할)."""
+        배열을 읽기 전에 거부한다(계획 전역 제약의 분할).
+
+        ``kill_law`` (S4b 준비 M1, 결정 D5): 킬 머리 M3Kills의 킬 수 법칙. 기본값 ``'poisson'``은 이전 적합과 같다(행, 설계, 부스터, 저장 파일). ``'shifted'``는 첫 킬 팀의 킬 수를 1 + N_d로 둔
+        적합이다: 두 M3Kills 머리가 초과분을 라벨로 학습하고(조기 종료의 STOP 행도 같은 라벨) 열린 머리의 설계에 범주 열 d가 더해진다(``make_layout``). 다른 머리는 그대로이다.
+
+        ``k_condition`` (S4b 준비 M3, 결정 D21 B16): K 블록을 읽는 네 머리(가린·열린 오브젝트 머리와 전환 머리)가 학습에서 보는 골드. 기본값 ``'raw'``는 이전 적합과 같다(행, 설계, 부스터, 저장 파일).
+        ``'binned'``는 라벨의 실제 연속 골드 대신 관측한 골드 구간의 대표값(``head_rows``의 (HR-9); 킬이 없는 팀은 0)을 넣는 적합으로, 합성기가 이 머리들에 넣는 값과 같은 지지에서 학습한다.
+        FIT 행과 조기 종료의 STOP 행이 같은 조건으로 만들어지고, 다른 머리는 그대로이다. 이름은 ``head_rows.K_CONDITIONS``에 있어야 한다(배열을 읽기 전에 거부). 'binned'이면 묶음이 대표값 31개의
+        ``k_reps_sha256``(float64 little-endian 바이트의 sha256, ``value.gold_reps_sha256``)를 기록하고 ``save``가 JSON에 적는다; 평가(``run_inference``)가 자기 대표값과 대조한다."""
         fit_role, stop_role = _fit_stop_roles(roles)
+        killlaw.check_law(kill_law)
+        head_rows.check_k_condition(k_condition)
         tick = check if check is not None else (lambda: None)
         tick()
-        fit_rows = HeadRows(s1, s2, labels, dropped, fit_role)
-        stop_rows = HeadRows(s1, s2, labels, dropped, stop_role)
+        law = {} if kill_law == 'poisson' else {'kill_law': kill_law}
+        condition = {} if k_condition == 'raw' else {'k_condition': k_condition}      # the raw gold is not passed: the calls are those of every earlier run
+        fit_rows = HeadRows(s1, s2, labels, dropped, fit_role, **law, **condition)
+        stop_rows = HeadRows(s1, s2, labels, dropped, stop_role, **law, **condition)
         fitted = {kind: {} for kind in KINDS}
         for kind, names in (('masked', HEAD_NAMES), ('open', OPEN_HEAD_NAMES)):
             for name in names:
                 fitted[kind][name] = fit_head(fit_rows, stop_rows, name, kind, params=params, check=check)       # it calls check first
-        return cls(fitted['masked'], fitted['open'], dropped, _as_tuple(fit_role), _as_tuple(stop_role))
+        recorded = {} if k_condition == 'raw' else {'k_reps_sha256': fit_rows.k_reps_sha256()}       # the 31 numbers of the binned K block (fit and STOP rows agree: ``fit_head`` checked)
+        return cls(fitted['masked'], fitted['open'], dropped, _as_tuple(fit_role), _as_tuple(stop_role), **law, **condition, **recorded)
 
     # -- scoring ---------------------------------------------------------------------------------------------------------------------------
     def nll(self, s1, s2, labels, role, kind: str = 'masked', *, check=None) -> dict:
@@ -1786,7 +1897,8 @@ class B1Heads:
             raise ValueError(f'kind must be one of {KINDS}, not {kind!r}')
         tick = check if check is not None else (lambda: None)
         tick()
-        rows = HeadRows(s1, s2, labels, self.dropped, role)
+        rows = HeadRows(s1, s2, labels, self.dropped, role, **({} if self.kill_law == 'poisson' else {'kill_law': self.kill_law}),
+                        **({} if self.k_condition == 'raw' else {'k_condition': self.k_condition}))          # the K heads are scored on the K they were fitted on
         group = self.masked if kind == 'masked' else self.open
         out = {}
         for name, head in group.items():
@@ -1798,6 +1910,8 @@ class B1Heads:
                 out[name] = HeadScores(head.nll(d.X[scored], d.y[scored]), d.match[scored], d.row[scored], int((~scored).sum()))
             elif name == 'M3Gold':
                 out[name] = HeadScores(head.nll(d.X, d.y, d.team), d.match, d.row, 0)
+            elif name == 'M3Kills' and self.kill_law != 'poisson':
+                out[name] = HeadScores(head.nll(d.X, d.y, d.e, first_team=d.first_team), d.match, d.row, d.n_zero_exposure)       # (KL-3): the shifted score
             elif d.e is None:
                 out[name] = HeadScores(head.nll(d.X, d.y), d.match, d.row, 0)
             else:
@@ -1870,6 +1984,12 @@ class B1Heads:
         doc = {'schema': SCHEMA, 'lightgbm': lgb.__version__, 'fit_roles': list(self.fit_roles), 'stop_roles': list(self.stop_roles),
                'dropped': list(self.dropped), 'b1_columns': list(self.columns), 'fixed_params': FIXED_PARAMS, 'max_rounds': MAX_ROUNDS,
                'early_stop': EARLY_STOP, 'heads': described}
+        if self.kill_law != 'poisson':
+            doc['kill_law'] = self.kill_law                         # absent means the plain law: a plain set is saved as every earlier set was
+        if self.k_condition != 'raw':
+            doc['k_condition'] = self.k_condition                   # absent means the raw gold: a raw set is saved as every earlier set was
+            if self.k_reps_sha256 is not None:
+                doc['k_reps_sha256'] = self.k_reps_sha256           # the 31 representatives of the binned K block (sha256 of the float64 little-endian bytes)
         store_core.write_atomic(out / JSON_NAME, json.dumps(doc, indent=2, sort_keys=True, allow_nan=False) + '\n')
         return out
 
@@ -1891,6 +2011,8 @@ class B1Heads:
         wanted = {'masked': HEAD_NAMES, 'open': OPEN_HEAD_NAMES}
         if any(set(doc['heads'].get(kind, {})) != set(names) for kind, names in wanted.items()):
             raise ValueError('the saved set does not hold the eight masked and the five open heads')
+        kill_law = killlaw.check_law(doc.get('kill_law', 'poisson'))
+        k_condition = head_rows.check_k_condition(doc.get('k_condition', 'raw'))
         groups = {}
         for kind, names in wanted.items():                                              # the order of the head names, not that of the JSON
             groups[kind] = {}
@@ -1899,7 +2021,7 @@ class B1Heads:
                 cls_ = HEAD_CLASSES.get(meta['class'])
                 if cls_ is None or cls_.name != name or meta['kind'] != kind:
                     raise ValueError(f'{kind} head {name!r}: the JSON names the class {meta["class"]!r} of kind {meta["kind"]!r}')
-                layout = make_layout(name, kind, columns)
+                layout = make_layout(name, kind, columns, kill_law)
                 if meta['columns'] != list(layout.names):
                     raise ValueError(f'{kind} head {name!r}: the saved design is not the design of this module')
                 where = f'{MODEL_DIR}/{kind}.{name}'
@@ -1909,4 +2031,5 @@ class B1Heads:
                     raise ValueError(f'{folder / where / HEAD_JSON}: the head file has changed (its sha256 differs from the one in the '
                                      'JSON)')
                 groups[kind][name] = load_head(folder / where, kind, name, columns)
-        return cls(groups['masked'], groups['open'], dropped, doc['fit_roles'], doc['stop_roles'])
+        return cls(groups['masked'], groups['open'], dropped, doc['fit_roles'], doc['stop_roles'], **({} if kill_law == 'poisson' else {'kill_law': kill_law}),
+                   **({} if k_condition == 'raw' else {'k_condition': k_condition, 'k_reps_sha256': doc.get('k_reps_sha256')}))

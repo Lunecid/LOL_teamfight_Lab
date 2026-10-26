@@ -187,10 +187,11 @@ def write_views(root, arrays: dict, src) -> Store:
 
 
 def build_ept_world(root, seed: int = EPT_SEED, roles=WORLD_ROLES, shift: float = 0.0, base_seed: int = WORLD_SEED,
-                    n_events: int = EPT_EVENTS, n_edges: int = EPT_EDGES) -> EptWorld:
-    """The heads world under ``root/base`` and, under ``root/s2``, the EPT S2 store of its views (see the module text)."""
+                    n_events: int = EPT_EVENTS, n_edges: int = EPT_EDGES, consistent_first_kill: bool = False) -> EptWorld:
+    """The heads world under ``root/base`` and, under ``root/s2``, the EPT S2 store of its views (see the module text). ``consistent_first_kill``: the marks of the
+    units follow their kills (``s3_toys.build_heads_world``), the rows of the shifted kill law of S4b."""
     root = Path(root)
-    base = build_heads_world(root / 'base', base_seed, roles)
+    base = build_heads_world(root / 'base', base_seed, roles, consistent_first_kill)
     src = np.asarray(base.s2.array('views/src'))
     fit = features.split_views(base.s1, base.s2, 'FIT')
     arrays = random_x(np.random.default_rng(seed), src, fit, n_events, n_edges)
@@ -218,6 +219,17 @@ def ept_world(tmp_path_factory):
     yield world
     del world
     gc.collect()                                   # Windows does not delete a folder with open memory maps
+    shutil.rmtree(folder, ignore_errors=True)
+
+
+@pytest.fixture(scope='module')
+def consistent_ept_world(tmp_path_factory):
+    """The EPT toy world whose units all have a kill by their first-kill team (``build_ept_world(..., consistent_first_kill=True)``), written once per test module."""
+    folder = tmp_path_factory.mktemp('consistent_ept_world')
+    world = build_ept_world(folder, consistent_first_kill=True)
+    yield world
+    del world
+    gc.collect()
     shutil.rmtree(folder, ignore_errors=True)
 
 

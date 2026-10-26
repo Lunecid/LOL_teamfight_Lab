@@ -165,6 +165,9 @@ def composed(config, tmp_path, monkeypatch):
     code = dict(code_commit='a' * 40, code_dirty=False, repo_root=str(op.ROOT))
     events = []
     monkeypatch.setattr(op, 'preflight', lambda c: events.append('preflight'))
+    from c_ept import config
+    monkeypatch.setattr(config, 'check_spec', lambda: 'c' * 64)           # no real decision record or nvidia-smi in a synthetic test
+    monkeypatch.setattr(op.common, 'gpu_metadata', lambda: ['NVIDIA Synthetic GPU, 555.55'])
     monkeypatch.setattr(primitive, 'APPROVED_RUNS_ROOT', Path(c['runs_root']))
     monkeypatch.setattr(primitive, 'repository_state', lambda: events.append('source_guard') or code)
     monkeypatch.setattr(primitive, 'inspect_inputs', lambda args: events.append('input_guard') or meta)
@@ -373,3 +376,92 @@ def test_wrapper_quoted_paths_and_exact_flags(tmp_path, action):
     assert result.returncode == 7, result.stderr
     assert json.loads(capture.read_text(encoding='utf-8-sig')) == ['-B', '-m', 'c_ept.workflows.training_operator',
                  '--action', action, '--config', str(config), '--control', str(control)]
+
+
+# ---- EPT-T011 A5-F8: unexpected exceptions keep their class name and a key-scrubbed traceback ---------------------------------------
+def test_pilot_unexpected_error_shows_class_name_and_scrubbed_traceback_and_keeps_exit_code(composed, monkeypatch, capsys):
+    from c_ept.tests.test_failure_diagnostics import KEY, toy_s1
+    c, path, control, events, _ = composed
+    toy_s1(Path(c['s1']))                  # the config s1 folder is where the runner takes the match keys to scrub from
+    monkeypatch.delenv('CUDA_VISIBLE_DEVICES', raising=False)
+    def fail(meta):
+        raise ValueError(f'the match {KEY} is broken, and its id is 0042')
+    monkeypatch.setattr(primitive, '_load_inputs', fail)
+    assert runner.main(['--config', str(path), '--control', str(control), '--operator-config-sha256', op.config_digest(c)]) == 2
+    err = capsys.readouterr().err
+    assert err.startswith('EPT training refused:')
+    assert 'ValueError' in err and 'Traceback' in err and 'is broken' in err
+    assert 'TOYKEY' not in err and '<key>' in err and 'its id is <id>' in err
+    run, manifest, identity, digest = op.bound_run(control, c)
+    process = op.read_json(run / 'PROCESS.json')
+    op.validate_process_metadata(process, run, identity, digest)           # the strict validator accepts the additive field
+    assert process['state'] == 'failed' and process['exit_code'] == 2 and process['exception_type'] == 'ValueError'
+    assert op.status(control, c)['recorded_exception_type'] == 'ValueError'
+
+
+def test_pilot_guard_refusal_is_one_line_and_records_its_class(composed, monkeypatch, capsys):
+    c, path, control, events, _ = composed
+    monkeypatch.delenv('CUDA_VISIBLE_DEVICES', raising=False)
+    def refuse(meta):
+        raise primitive.RuntimeRefused('synthetic guard refusal')
+    monkeypatch.setattr(primitive, '_load_inputs', refuse)
+    assert runner.main(['--config', str(path), '--control', str(control), '--operator-config-sha256', op.config_digest(c)]) == 2
+    assert capsys.readouterr().err == 'EPT training refused: synthetic guard refusal\n'
+    run, _, _, _ = op.bound_run(control, c)
+    assert op.read_json(run / 'PROCESS.json')['exception_type'] == 'RuntimeRefused'
+
+
+@pytest.mark.parametrize('kind', [RuntimeError, KeyError])
+def test_pilot_error_outside_the_refusal_classes_escapes_as_exit_1_unscrubbed_and_is_recorded(composed, monkeypatch, capsys, kind):
+    """Group 3 fix review m3: the T002 runner catches only ``(OperatorError, RuntimeRefused, ValueError, OSError)`` (``run_training.main``), so a
+    RuntimeError (CUDA out of memory, a trainer resource bound) or a KeyError escapes with exit 1 and Python's own traceback, which holds the
+    key unscrubbed. The operator doc says so; this pins that it is true for T002 as ``test_failure_diagnostics`` does for S4a. No code changed."""
+    import traceback
+    from c_ept.tests.test_failure_diagnostics import KEY
+    c, path, control, events, _ = composed
+    monkeypatch.delenv('CUDA_VISIBLE_DEVICES', raising=False)
+    def fail(meta):
+        raise kind(f'x/{KEY}')
+    monkeypatch.setattr(primitive, '_load_inputs', fail)
+    with pytest.raises(kind) as escaped:
+        runner.main(['--config', str(path), '--control', str(control), '--operator-config-sha256', op.config_digest(c)])
+    assert capsys.readouterr().err == ''                      # nothing is printed by the runner: no scrubbed text, no class-name line
+    shown = ''.join(traceback.format_exception(escaped.type, escaped.value, escaped.tb))      # what Python prints for the escaped exception
+    assert KEY in shown and '<key>' not in shown
+    run, _, identity, digest = op.bound_run(control, c)
+    process = op.read_json(run / 'PROCESS.json')
+    op.validate_process_metadata(process, run, identity, digest)
+    assert process['state'] == 'failed' and process['exit_code'] == 1 and process['exception_type'] == kind.__name__
+    assert 'train_stub' not in events
+
+
+def test_operator_main_names_an_unexpected_error_and_leaves_a_guard_refusal_alone(config, monkeypatch, capsys):
+    c, path, control = config
+    def unexpected(loaded):
+        raise OSError('synthetic disk failure')
+    monkeypatch.setattr(op, 'preflight', unexpected)
+    assert op.main(['--config', str(path), '--control', str(control)]) == 2                 # the exit code is unchanged
+    err = capsys.readouterr().err
+    assert err.startswith('EPT training refused:') and 'OSError' in err and 'Traceback' in err and 'synthetic disk failure' in err
+    def refusal(loaded):
+        raise op.OperatorError('synthetic refusal')
+    monkeypatch.setattr(op, 'preflight', refusal)
+    assert op.main(['--config', str(path), '--control', str(control)]) == 2
+    assert capsys.readouterr().err == 'EPT training refused: synthetic refusal\n'
+
+
+@pytest.mark.parametrize('gpu', ['available', 'unavailable'])
+def test_pilot_manifest_records_the_decision_record_hash_and_gpu_outside_the_identity(composed, monkeypatch, gpu):
+    c, path, control, events, meta = composed
+    monkeypatch.delenv('CUDA_VISIBLE_DEVICES', raising=False)
+    if gpu == 'unavailable':
+        def no_gpu():
+            raise op.OperatorError('no nvidia-smi')
+        monkeypatch.setattr(op.common, 'gpu_metadata', no_gpu)
+    assert runner.main(['--config', str(path), '--control', str(control), '--operator-config-sha256', op.config_digest(c)]) == 0
+    run, manifest, identity, digest = op.bound_run(control, c)
+    assert manifest['spec_sha256'] == 'c' * 64                                       # A5-F4: the S1-S3 provenance, now in the pilot RUN.json
+    assert manifest['gpu_devices'] == ([{'name': 'NVIDIA Synthetic GPU', 'driver_version': '555.55'}] if gpu == 'available' else None)
+    assert not {'spec_sha256', 'gpu_devices'} & (set(identity) | set(identity['runtime']))        # record fields, not resume identity
+    assert digest == primitive._digest(identity)
+    assert op.status(control, c)['state'] == 'recorded_completion'                   # the strict validators accept the additive fields

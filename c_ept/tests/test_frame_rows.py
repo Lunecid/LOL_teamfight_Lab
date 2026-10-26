@@ -132,6 +132,24 @@ def test_exposure_is_the_part_of_each_bin_inside_the_window(T):
         assert r.exposure_ms[i].sum() == hi - t0
 
 
+@pytest.mark.parametrize('H', [60, 120, 180])
+def test_primary_rows_equal_full_exposure_rows(H):
+    """S4b preparation M12 (decision D14): the primary rows of a horizon H are exactly the rows whose first H/10 occurrence bins have the whole 10 s of exposure, and exactly the rows with
+    t0 + H <= T - 30 s. The match ends are chosen so that rows sit on the boundary (T - 30 s - t0 = H x 1000 and one ms less), in rows that are cut at the end and in rows that are not."""
+    from c_ept.evaluation.endpoints import primary_rows
+    n_primary = n_other = 0
+    for T in (140_000, 150_301, 210_300, 210_299, 210_301, 241_000, 301_300, 301_299, 331_000, 361_300, 361_299, 425_000, 600_000, 1_234_567):
+        r = frame_rows.frame_rows(rec_with_frames(T=T))
+        if not len(r.k):
+            continue
+        got = primary_rows(r.t0, r.hi, H)
+        full = (r.exposure_ms[:, :H // 10] == C.BIN_MS).all(axis=1)
+        by_game_end = r.t0 + H * 1000 <= T - C.END_CUT_MS
+        assert got.tolist() == full.tolist() == by_game_end.tolist(), T
+        n_primary, n_other = n_primary + int(got.sum()), n_other + int((~got).sum())
+    assert n_primary > 0 and n_other > 0                                  # the boundary cases are in both groups
+
+
 def test_dtypes_and_shapes():
     r = frame_rows.frame_rows(rec_with_frames(T=425_000))
     assert (r.k.dtype, r.t0.dtype, r.hi.dtype, r.exposure_ms.dtype) == (np.int16, np.int64, np.int64, np.int32)

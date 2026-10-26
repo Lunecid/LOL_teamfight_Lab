@@ -13,6 +13,8 @@ B. 스키마 규격 및 하위 호환성:
    - v5 스키마 ('ept_train_checkpoint_v5'): 과거 체크포인트 호환 규격.
    - v6 스키마 ('ept_train_checkpoint_v6'): 불변 epoch_metrics.json/csv 스냅샷을 필수 포함하며,
      크기(bytes) 및 SHA-256 해시를 head.json에 강제 바인딩.
+   - v7 스키마 ('ept_train_checkpoint_v7', S4b 준비 M4): decay_groups='split'인 실행의 머리. 스냅샷 규약은 v6와 같고 행에 감쇠 척도 열 kappa_i가 더해진다 (epoch_metrics).
+   - v8 스키마 ('ept_train_checkpoint_v8', S4b 준비 M6): 지형 매끄러움 가중이 0이 아닌 실행의 머리. 스냅샷 규약은 같고 행에 열 terrain_penalty가 더해진다 (epoch_metrics; 'split'이면 kappa 열 뒤).
    - v6 게시 후 이전 v5로의 다운그레이드는 엄격히 차단된다.
 
 C. 주요 함수 및 안전성 보장:
@@ -35,7 +37,11 @@ from c_ept.ept import epoch_metrics
 
 SCHEMA = 'ept_train_checkpoint_v5'  # 과거 v5 헤드 및 호출 회계 스키마
 METRICS_SCHEMA = epoch_metrics.HEAD_SCHEMA
+METRICS_SCHEMAS = epoch_metrics.HEAD_SCHEMAS  # v6 (every earlier run), v7 (decay_groups='split', S4b 준비 M4) and v8 (terrain_smooth_weight != 0, S4b 준비 M6): the heads that carry an epoch-metrics snapshot
 COMPONENT_FIELDS = ('transfer_seconds', 'forward_seconds', 'backward_seconds', 'optimizer_seconds')
+# Meaning of two timings since the S4b speed-ups (D32, review m6): ``transfer_seconds`` of an inline run (plain ``Batches``) includes the CPU preparation of the batch (the frame, the data checks, the index lists, the packing:
+# ``batch_prep.Preparation``) and then the copy to the device; ``load_seconds`` of a kernel run is the WAIT for the prefetch producer (which assembles and prepares the batches ahead), not the assembly. The numbers of a run
+# are not affected; timings of runs before and after, or of the two kinds of run, are not comparable component by component.
 FILES = ('last.pt', 'best.pt')
 
 
@@ -107,7 +113,7 @@ def latest_metadata(out_dir: Path):
         try:
             meta = json.loads(epoch_metrics.bounded_read(head))
             best = meta['best']
-            ok = (meta['schema'] in (SCHEMA, METRICS_SCHEMA) and type(meta['epoch']) is int and folder.name == f'epoch_{int(meta["epoch"]):04d}' and 'last.pt' in meta['files'] and set(meta['files']) <= set(FILES)
+            ok = (meta['schema'] in (SCHEMA, *METRICS_SCHEMAS) and type(meta['epoch']) is int and folder.name == f'epoch_{int(meta["epoch"]):04d}' and 'last.pt' in meta['files'] and set(meta['files']) <= set(FILES)
                   and set(best) == {'folder', 'sha256', 'bytes'} and re.fullmatch(r'epoch_\d{4}', best['folder']) is not None)
         except (OSError, ValueError, KeyError, TypeError):
             ok = False
@@ -117,7 +123,7 @@ def latest_metadata(out_dir: Path):
         if any(key not in timing or not isinstance(timing[key], list) or len(timing[key]) != int(meta['epoch'])
                or any(isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) or v < 0 for v in timing[key]) for key in COMPONENT_FIELDS):
             raise RuntimeError('checkpoint telemetry schema/components are missing or invalid')
-        if meta['schema'] == METRICS_SCHEMA:
+        if meta['schema'] in METRICS_SCHEMAS:
             history = epoch_metrics.read_snapshot(folder, meta)
         else:
             if 'epoch_metrics' in meta or any((folder / name).exists() for name in epoch_metrics.FILES):
@@ -179,16 +185,16 @@ def save_checkpoint(out_dir: Path, epoch_done: int, files: dict, meta: dict, *, 
     folder.mkdir(parents=True, exist_ok=True)
     if (folder / 'head.json').exists():
         raise FileExistsError(f'{folder.name} already holds a complete checkpoint; nothing is overwritten')
-    if meta['schema'] == METRICS_SCHEMA:
+    if meta['schema'] in METRICS_SCHEMAS:
         if not set(epoch_metrics.FILES) <= set(files):
             raise RuntimeError('checkpoint epoch metrics files required for v6')
-        meta = {**meta, 'epoch_metrics': {'schema': epoch_metrics.SCHEMA, 'files': {
+        meta = {**meta, 'epoch_metrics': {'schema': epoch_metrics.snapshot_schema(meta), 'files': {
             name: {'sha256': sha256(files[name]), 'bytes': len(files[name])} for name in epoch_metrics.FILES}}}
-    for name in (*FILES, *(epoch_metrics.FILES if meta['schema'] == METRICS_SCHEMA else ())):
+    for name in (*FILES, *(epoch_metrics.FILES if meta['schema'] in METRICS_SCHEMAS else ())):
         if name in files:
             write(folder / name, files[name])
     meta = {**meta, 'files': {name: {'sha256': sha256(files[name]), 'bytes': len(files[name])} for name in FILES if name in files}}
-    if meta['schema'] == METRICS_SCHEMA:
+    if meta['schema'] in METRICS_SCHEMAS:
         epoch_metrics.read_snapshot(folder, meta)
     payload = json_bytes(meta)
     write(folder / 'head.json', payload)

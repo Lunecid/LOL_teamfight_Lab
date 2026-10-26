@@ -22,6 +22,7 @@ S3 실행 폴더는 읽기만 한다. 결과 파일은 지정한 폴더 ``out``�
 
     b0_scales(run_s3, out=None, *, runs_root, check) → {블록: 척도}, ``out``에 ``B0_SCALES.json``       load_scales(path, expected_provenance=None) → {블록: 척도}, 열세 블록·역할·해시·출처 구조를 확인한다 (출처가 요청한 실행의 것인지는 expected_provenance를 줄 때만 대조한다)
     head_scale(head, scores, sizes=None) → (척도, 행 수, 규모별 평균)
+    scales_condition(path) → {kill_law, k_condition, k_reps_sha256}: 척도를 만든 B0의 조건 (S4b 준비 M3b, 결정 D24). 파일은 기본값('poisson', 'raw', 없음)이 아닌 필드만 적으므로 옛 파일은 기본값으로 읽힌다
     ``python -m c_ept.ept.scales --s3 <S3 실행> --out <폴더>``: E6를 확인한 뒤 한 번 실행한다
 """
 # Ref: docs/superpowers/specs/2026-10-20-c-ept-design.md section 7 (the loss: NLL divided by the B0 NLL) and 8 (the scores);
@@ -44,7 +45,8 @@ from c_ept import config as C
 from c_ept import runlog
 from c_ept.data import store_core
 from c_ept.ept import loss
-from c_ept.data.head_rows import HEAD_NAMES
+from c_ept.data.head_rows import HEAD_NAMES, check_k_condition
+from c_ept.models import killlaw
 
 SCALES_NAME = 'B0_SCALES.json'
 SCHEMA = 'b0_scales_v1'
@@ -57,6 +59,8 @@ RULE = ('mean of the B0 NLL over the FIT rows of the block (M2Rate: over the fra
         'M3Kills, M3Gold and M3Obj: the mean over the sizes that occur of the mean over the rows of a size; the rows that B0 leaves out of its scores do not count '
         '(for M2Rate the left-out units are time-bin cells, not rows); every row has the same weight (plan P9)')
 PROVENANCE_FIELDS = ('s3_run', 's1', 's2', 'labels_store_sha256', 'model_files_sha256')   # what ``load_scales(expected_provenance=)`` binds
+CONDITION_FIELDS = ('kill_law', 'k_condition', 'k_reps_sha256')   # the condition of the B0 that made the scales (S4b 준비 M3b, 결정 D24); written only when not the default
+CONDITION_DEFAULTS = {'kill_law': 'poisson', 'k_condition': 'raw', 'k_reps_sha256': None}      # what a file without the field says (every file of an earlier run)
 
 
 def block_units(key: str) -> tuple:
@@ -116,6 +120,23 @@ def _size_of_rows(s1, kind: str, rows: np.ndarray) -> np.ndarray:
     size = np.asarray(s1.array('units/size'))
     unit = np.asarray(s1.array('onsets/unit'))[rows] if kind == 'masked' else np.asarray(rows)
     return size[unit].astype(np.int64)
+
+
+def condition_record(b0) -> dict:
+    """The condition fields of ``B0_SCALES.json`` for the B0 set ``b0`` (a ``B0Heads``): ``{}`` for a B0 of the defaults, and otherwise only the fields that are not the default:
+    ``kill_law`` when it is not ``'poisson'``, ``k_condition`` when it is not ``'raw'`` and, for ``'binned'``, the ``k_reps_sha256`` of its 31 representatives when the set records them.
+    A default B0 therefore gives the bytes of every earlier file.
+
+    해석: 척도는 B0 NLL의 평균이므로 B0가 맞춘 킬 법칙과 K 조건(결정 D5, D24)에 따라 값이 달라진다. 파일이 어느 조건의 척도인지 적어 두어야 K6가 학습 조건과 대조할 수 있다.
+    모든 새 필드의 규칙("없음 = 기본값", 계획 M1 구현 기록)을 따라 기본값이면 쓰지 않는다."""
+    record = {}
+    if b0.kill_law != CONDITION_DEFAULTS['kill_law']:
+        record['kill_law'] = b0.kill_law
+    if b0.k_condition != CONDITION_DEFAULTS['k_condition']:
+        record['k_condition'] = b0.k_condition
+        if b0.k_reps_sha256 is not None:
+            record['k_reps_sha256'] = b0.k_reps_sha256
+    return record
 
 
 def _run_record(run_s3, runs_root) -> tuple:
@@ -212,7 +233,7 @@ def b0_scales(run_s3, out=None, *, runs_root=C.RUNS_ROOT, check=None) -> dict:
                   'n_unscored': {key: n_unscored[key] for key in loss.BLOCKS}, 'by_size': by_size,
                   'n_rows_unit': {key: block_units(key)[0] for key in loss.BLOCKS}, 'n_unscored_unit': {key: block_units(key)[1] for key in loss.BLOCKS},
                   'size_normalised': sorted(key for key in loss.BLOCKS if loss.split_key(key)[0] in loss.SIZE_NORMALISED),
-                  'code': runlog.code_state(), 'scales_sha256': runlog.sha256_json(scale)}
+                  'code': runlog.code_state(), 'scales_sha256': runlog.sha256_json(scale), **condition_record(b0)}
         path.parent.mkdir(parents=True, exist_ok=True)
         store_core.write_atomic(path, json.dumps(record, indent=2, sort_keys=True, allow_nan=False) + '\n')
     return scale
@@ -220,6 +241,18 @@ def b0_scales(run_s3, out=None, *, runs_root=C.RUNS_ROOT, check=None) -> dict:
 
 def _is_hex(value) -> bool:
     return isinstance(value, str) and re.fullmatch(r'[0-9a-f]{64}', value) is not None
+
+
+def _check_condition(name: str, doc: dict) -> None:
+    """ValueError unless the condition fields of ``doc`` that are present are in the form ``condition_record`` writes: a kill law of ``killlaw.LAWS``, a K condition of
+    ``head_rows.K_CONDITIONS`` and a lowercase 64-digit ``k_reps_sha256`` only together with the condition ``'binned'``. A field that is absent is the default and is not checked."""
+    try:
+        killlaw.check_law(doc.get('kill_law', CONDITION_DEFAULTS['kill_law']))
+        condition = check_k_condition(doc.get('k_condition', CONDITION_DEFAULTS['k_condition']))
+    except ValueError as e:
+        raise ValueError(f'{name}: {e}') from None
+    if 'k_reps_sha256' in doc and not (condition == 'binned' and _is_hex(doc['k_reps_sha256'])):
+        raise ValueError(f"{name}: k_reps_sha256 must be a SHA-256 (64 lowercase hex digits) and only with the k_condition 'binned'")
 
 
 def _check_provenance(name: str, doc: dict) -> None:
@@ -286,6 +319,7 @@ def load_scales(path, expected_provenance=None) -> dict:
         if doc.get(field) != {key: block_units(key)[index] for key in loss.BLOCKS}:
             raise ValueError(f'{name}: {field} is not the unit of the counts of each block')
     _check_provenance(name, doc)
+    _check_condition(name, doc)
     if expected_provenance is not None:
         if not isinstance(expected_provenance, Mapping) or set(expected_provenance) != set(PROVENANCE_FIELDS):
             raise ValueError(f'{name}: the expected provenance must be a mapping with exactly the fields {list(PROVENANCE_FIELDS)}')
@@ -293,6 +327,18 @@ def load_scales(path, expected_provenance=None) -> dict:
             if doc[field] != expected_provenance[field]:
                 raise ValueError(f'{name}: the field {field} is not the expected one: the file is not the scales of the requested S3 run')
     return {key: float(value) for key, value in scale.items()}
+
+
+def scales_condition(path) -> dict:
+    """The condition of the B0 that made the scales of a ``B0_SCALES.json`` (the file, or the folder that holds it), with the defaults filled in: ``{'kill_law', 'k_condition',
+    'k_reps_sha256'}``. A field that the file does not hold is the default (``'poisson'``, ``'raw'``, ``None``), so the file of every earlier run reads as the defaults. The file is
+    checked as ``load_scales`` checks it (without a provenance mapping); ValueError for a file that is not valid, FileNotFoundError for a missing one.
+
+    해석: K6는 이 값을 학습 정체성의 ``kill_law``·``k_condition``·``k_reps_sha256``과 대조해 다르면 거부한다(결정 D24: B0의 척도는 학습과 같은 조건에서 잰 것이어야 한다)."""
+    load_scales(path)
+    path = Path(path)
+    doc = json.loads((path / SCALES_NAME if path.is_dir() else path).read_text(encoding='utf-8'))
+    return {name: doc.get(name, default) for name, default in CONDITION_DEFAULTS.items()}
 
 
 def main(argv=None) -> int:

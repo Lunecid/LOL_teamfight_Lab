@@ -1,0 +1,647 @@
+{
+ "version": 3,
+ "library": [
+  {
+   "importer": "c_ept/comparison/runtime.py",
+   "target": "c_ept.ept.train._rows_digest"
+  },
+  {
+   "importer": "c_ept/comparison/runtime.py",
+   "target": "c_ept.evaluation.runtime._bundle"
+  },
+  {
+   "importer": "c_ept/ept/scales.py",
+   "target": "c_ept.valuation.flowprice._open_s2"
+  },
+  {
+   "importer": "c_ept/evaluation/adapters.py",
+   "target": "c_ept.ept.data._block_rows"
+  },
+  {
+   "importer": "c_ept/evaluation/adapters.py",
+   "target": "c_ept.models.baselines_b1._assemble"
+  },
+  {
+   "importer": "c_ept/evaluation/adapters.py",
+   "target": "c_ept.models.baselines_b1._m4_design"
+  },
+  {
+   "importer": "c_ept/evaluation/adapters.py",
+   "target": "c_ept.valuation.compose._checked"
+  },
+  {
+   "importer": "c_ept/evaluation/adapters.py",
+   "target": "c_ept.valuation.compose._gold_reps"
+  },
+  {
+   "importer": "c_ept/evaluation/adapters.py",
+   "target": "c_ept.valuation.compose._inverse_cdf"
+  },
+  {
+   "importer": "c_ept/evaluation/adapters.py",
+   "target": "c_ept.valuation.compose._prices"
+  },
+  {
+   "importer": "c_ept/evaluation/runtime.py",
+   "target": "c_ept.ept.train._deterministic_gpu"
+  },
+  {
+   "importer": "c_ept/preprocessing/features.py",
+   "target": "c_ept.valuation.flowprice._role_codes"
+  },
+  {
+   "importer": "c_ept/preprocessing/tokens.py",
+   "target": "c_ept.domain.units._assist_mask"
+  },
+  {
+   "importer": "c_ept/preprocessing/tokens.py",
+   "target": "c_ept.domain.units._event_id"
+  },
+  {
+   "importer": "c_ept/preprocessing/tokens.py",
+   "target": "c_ept.domain.units._is_int"
+  },
+  {
+   "importer": "c_ept/preprocessing/traits.py",
+   "target": "c_ept.domain.units._event_id"
+  },
+  {
+   "importer": "c_ept/preprocessing/traits.py",
+   "target": "c_ept.domain.units._is_int"
+  },
+  {
+   "importer": "c_ept/reporting/report_s1.py",
+   "target": "c_ept.runlog._git"
+  },
+  {
+   "importer": "c_ept/reporting/report_s3.py",
+   "target": "c_ept.data.store_build._key_parts"
+  },
+  {
+   "importer": "c_ept/reporting/report_s3.py",
+   "target": "c_ept.workflows.run_s3._scrub_text"
+  },
+  {
+   "importer": "c_ept/valuation/flowprice.py",
+   "target": "c_ept.domain.units._ALL_PIDS"
+  },
+  {
+   "importer": "c_ept/valuation/flowprice.py",
+   "target": "c_ept.domain.units._POPCOUNT"
+  },
+  {
+   "importer": "c_ept/valuation/flowprice.py",
+   "target": "c_ept.domain.units._is_pid"
+  },
+  {
+   "importer": "c_ept/valuation/flowprice.py",
+   "target": "c_ept.workflows.run_s1._PeakMemory"
+  },
+  {
+   "importer": "c_ept/valuation/value.py",
+   "target": "c_ept.data.store_build._chain_text"
+  },
+  {
+   "importer": "c_ept/valuation/value.py",
+   "target": "c_ept.data.store_build._key_parts"
+  },
+  {
+   "importer": "c_ept/valuation/value.py",
+   "target": "c_ept.data.store_build._scrub"
+  },
+  {
+   "importer": "c_ept/valuation/value.py",
+   "target": "c_ept.domain.units._ALL_PIDS"
+  },
+  {
+   "importer": "c_ept/valuation/value.py",
+   "target": "c_ept.domain.units._POPCOUNT"
+  },
+  {
+   "importer": "c_ept/valuation/value.py",
+   "target": "c_ept.domain.units._is_pid"
+  },
+  {
+   "importer": "c_ept/valuation/value.py",
+   "target": "c_ept.workflows.run_s1._mapper"
+  },
+  {
+   "importer": "c_ept/workflows/run_s1.py",
+   "target": "c_ept.runlog._git"
+  },
+  {
+   "importer": "c_ept/workflows/run_s3.py",
+   "target": "c_ept.data.store_build._scrub"
+  },
+  {
+   "importer": "c_ept/workflows/run_s3.py",
+   "target": "c_ept.models.baselines_b0._write_npz_bytes"
+  },
+  {
+   "importer": "c_ept/workflows/run_s3.py",
+   "target": "c_ept.valuation.flowprice._open_s2"
+  }
+ ],
+ "tests": [
+  {
+   "importer": "c_ept/tests/test_baselines_b0.py",
+   "target": "c_ept.models.baselines_b0._PoissonHead"
+  },
+  {
+   "importer": "c_ept/tests/test_baselines_b1.py",
+   "target": "c_ept.models.baselines_b0._MaskedChain"
+  },
+  {
+   "importer": "c_ept/tests/test_baselines_b1.py",
+   "target": "c_ept.models.baselines_b1._Design"
+  },
+  {
+   "importer": "c_ept/tests/test_baselines_b1.py",
+   "target": "c_ept.models.baselines_b1._GoldModel"
+  },
+  {
+   "importer": "c_ept/tests/test_baselines_b1.py",
+   "target": "c_ept.models.baselines_b1._LEVELS"
+  },
+  {
+   "importer": "c_ept/tests/test_baselines_b1.py",
+   "target": "c_ept.models.baselines_b1._assemble"
+  },
+  {
+   "importer": "c_ept/tests/test_baselines_b1.py",
+   "target": "c_ept.models.baselines_b1._m4_design"
+  },
+  {
+   "importer": "c_ept/tests/test_compose.py",
+   "target": "c_ept.valuation.compose._worker_environment"
+  },
+  {
+   "importer": "c_ept/tests/test_config.py",
+   "target": "c_ept.config._SPLIT"
+  },
+  {
+   "importer": "c_ept/tests/test_ept_data.py",
+   "target": "c_ept.ept.data._Moments"
+  },
+  {
+   "importer": "c_ept/tests/test_ept_heads.py",
+   "target": "c_ept.ept.heads._MARK"
+  },
+  {
+   "importer": "c_ept/tests/test_ept_heads.py",
+   "target": "c_ept.ept.heads._TEAM"
+  },
+  {
+   "importer": "c_ept/tests/test_ept_heads.py",
+   "target": "c_ept.ept.heads._ZONE"
+  },
+  {
+   "importer": "c_ept/tests/test_ept_heads.py",
+   "target": "c_ept.ept.heads._back"
+  },
+  {
+   "importer": "c_ept/tests/test_ept_heads.py",
+   "target": "c_ept.ept.heads._log_mean"
+  },
+  {
+   "importer": "c_ept/tests/test_ept_loss.py",
+   "target": "c_ept.ept.scales._size_of_rows"
+  },
+  {
+   "importer": "c_ept/tests/test_ept_loss.py",
+   "target": "c_ept.models.nll._ROW_SUM_TOLERANCE"
+  },
+  {
+   "importer": "c_ept/tests/test_ept_m2_components.py",
+   "target": "c_ept.ept.heads._exposure"
+  },
+  {
+   "importer": "c_ept/tests/test_ept_m2_components.py",
+   "target": "c_ept.ept.heads._read"
+  },
+  {
+   "importer": "c_ept/tests/test_ept_train.py",
+   "target": "c_ept.ept.train._Call"
+  },
+  {
+   "importer": "c_ept/tests/test_ept_train.py",
+   "target": "c_ept.ept.train._Resources"
+  },
+  {
+   "importer": "c_ept/tests/test_ept_train.py",
+   "target": "c_ept.ept.train._adopt_orphan"
+  },
+  {
+   "importer": "c_ept/tests/test_ept_train.py",
+   "target": "c_ept.ept.train._latest_checkpoint"
+  },
+  {
+   "importer": "c_ept/tests/test_ept_train.py",
+   "target": "c_ept.ept.train._load_calls"
+  },
+  {
+   "importer": "c_ept/tests/test_ept_train.py",
+   "target": "c_ept.ept.train._memory_sample"
+  },
+  {
+   "importer": "c_ept/tests/test_ept_train.py",
+   "target": "c_ept.ept.train._metric_name"
+  },
+  {
+   "importer": "c_ept/tests/test_ept_train.py",
+   "target": "c_ept.ept.train._optimizer"
+  },
+  {
+   "importer": "c_ept/tests/test_ept_train.py",
+   "target": "c_ept.ept.train._read_beats"
+  },
+  {
+   "importer": "c_ept/tests/test_ept_train.py",
+   "target": "c_ept.ept.train._torch_bytes"
+  },
+  {
+   "importer": "c_ept/tests/test_ept_train.py",
+   "target": "c_ept.ept.train._violation"
+  },
+  {
+   "importer": "c_ept/tests/test_ept_train.py",
+   "target": "c_ept.ept.train._write_atomic"
+  },
+  {
+   "importer": "c_ept/tests/test_failure_diagnostics.py",
+   "target": "c_ept.workflows.run_s4a._REFUSAL_ERRORS"
+  },
+  {
+   "importer": "c_ept/tests/test_failure_diagnostics.py",
+   "target": "c_ept.workflows.run_training._process_record"
+  },
+  {
+   "importer": "c_ept/tests/test_flowprice.py",
+   "target": "c_ept.valuation.flowprice._flow_fit"
+  },
+  {
+   "importer": "c_ept/tests/test_flowprice.py",
+   "target": "c_ept.valuation.flowprice._solve_normal"
+  },
+  {
+   "importer": "c_ept/tests/test_head_rows.py",
+   "target": "c_ept.data.head_rows._unselected_label_fill"
+  },
+  {
+   "importer": "c_ept/tests/test_kcondition.py",
+   "target": "c_ept.ept.train._check_identity"
+  },
+  {
+   "importer": "c_ept/tests/test_kcondition.py",
+   "target": "c_ept.ept.train._rows_digest"
+  },
+  {
+   "importer": "c_ept/tests/test_killlaw.py",
+   "target": "c_ept.ept.scales._size_of_rows"
+  },
+  {
+   "importer": "c_ept/tests/test_killlaw.py",
+   "target": "c_ept.ept.train._check_identity"
+  },
+  {
+   "importer": "c_ept/tests/test_killlaw.py",
+   "target": "c_ept.evaluation.adapters._open_draws"
+  },
+  {
+   "importer": "c_ept/tests/test_killlaw.py",
+   "target": "c_ept.valuation.compose._poisson_head"
+  },
+  {
+   "importer": "c_ept/tests/test_public_view_api.py",
+   "target": "c_ept.domain.symmetry._SUMMARY_SWAP"
+  },
+  {
+   "importer": "c_ept/tests/test_public_view_api.py",
+   "target": "c_ept.preprocessing.features._view_index"
+  },
+  {
+   "importer": "c_ept/tests/test_report_s1.py",
+   "target": "c_ept.reporting.report_s1._check"
+  },
+  {
+   "importer": "c_ept/tests/test_report_s1.py",
+   "target": "c_ept.reporting.report_s1._dist"
+  },
+  {
+   "importer": "c_ept/tests/test_report_s1.py",
+   "target": "c_ept.reporting.report_s1._plt"
+  },
+  {
+   "importer": "c_ept/tests/test_report_s1.py",
+   "target": "c_ept.reporting.report_s1._py"
+  },
+  {
+   "importer": "c_ept/tests/test_report_s1.py",
+   "target": "c_ept.reporting.report_s1._ratio"
+  },
+  {
+   "importer": "c_ept/tests/test_report_s1.py",
+   "target": "c_ept.reporting.report_s1._same_array"
+  },
+  {
+   "importer": "c_ept/tests/test_report_s1.py",
+   "target": "c_ept.reporting.report_s1._save"
+  },
+  {
+   "importer": "c_ept/tests/test_report_s2.py",
+   "target": "c_ept.reporting.report_s2._save"
+  },
+  {
+   "importer": "c_ept/tests/test_report_s3.py",
+   "target": "c_ept.reporting.report_s3._plt"
+  },
+  {
+   "importer": "c_ept/tests/test_report_s3.py",
+   "target": "c_ept.reporting.report_s3._render"
+  },
+  {
+   "importer": "c_ept/tests/test_report_s3.py",
+   "target": "c_ept.workflows.run_s3._ProgressLog"
+  },
+  {
+   "importer": "c_ept/tests/test_rulepay.py",
+   "target": "c_ept.valuation.rulepay._Segment"
+  },
+  {
+   "importer": "c_ept/tests/test_run_s3.py",
+   "target": "c_ept.valuation.flowprice._open_s2"
+  },
+  {
+   "importer": "c_ept/tests/test_run_s3.py",
+   "target": "c_ept.workflows.run_s3._Guard"
+  },
+  {
+   "importer": "c_ept/tests/test_run_s3.py",
+   "target": "c_ept.workflows.run_s3._ProgressLog"
+  },
+  {
+   "importer": "c_ept/tests/test_run_s3.py",
+   "target": "c_ept.workflows.run_s3._Sampler"
+  },
+  {
+   "importer": "c_ept/tests/test_run_s3.py",
+   "target": "c_ept.workflows.run_s3._TickTimer"
+  },
+  {
+   "importer": "c_ept/tests/test_run_s3.py",
+   "target": "c_ept.workflows.run_s3._acquire_lock"
+  },
+  {
+   "importer": "c_ept/tests/test_run_s3.py",
+   "target": "c_ept.workflows.run_s3._base_hashes"
+  },
+  {
+   "importer": "c_ept/tests/test_run_s3.py",
+   "target": "c_ept.workflows.run_s3._chunk_ranges"
+  },
+  {
+   "importer": "c_ept/tests/test_run_s3.py",
+   "target": "c_ept.workflows.run_s3._fit_b0"
+  },
+  {
+   "importer": "c_ept/tests/test_run_s3.py",
+   "target": "c_ept.workflows.run_s3._gib"
+  },
+  {
+   "importer": "c_ept/tests/test_run_s3.py",
+   "target": "c_ept.workflows.run_s3._head_names"
+  },
+  {
+   "importer": "c_ept/tests/test_run_s3.py",
+   "target": "c_ept.workflows.run_s3._load_chunk"
+  },
+  {
+   "importer": "c_ept/tests/test_run_s3.py",
+   "target": "c_ept.workflows.run_s3._model_saved"
+  },
+  {
+   "importer": "c_ept/tests/test_run_s3.py",
+   "target": "c_ept.workflows.run_s3._npz_bytes"
+  },
+  {
+   "importer": "c_ept/tests/test_run_s3.py",
+   "target": "c_ept.workflows.run_s3._release_lock"
+  },
+  {
+   "importer": "c_ept/tests/test_run_s3.py",
+   "target": "c_ept.workflows.run_s3._remove_tree"
+  },
+  {
+   "importer": "c_ept/tests/test_run_s3.py",
+   "target": "c_ept.workflows.run_s3._scalar"
+  },
+  {
+   "importer": "c_ept/tests/test_run_s3.py",
+   "target": "c_ept.workflows.run_s3._set_loky_cpu_count"
+  },
+  {
+   "importer": "c_ept/tests/test_run_s3.py",
+   "target": "c_ept.workflows.run_s3._tree_memory"
+  },
+  {
+   "importer": "c_ept/tests/test_run_s3.py",
+   "target": "c_ept.workflows.run_s3._tree_private_bytes"
+  },
+  {
+   "importer": "c_ept/tests/test_run_s4a.py",
+   "target": "c_ept.workflows.run_s3._Guard"
+  },
+  {
+   "importer": "c_ept/tests/test_run_s4a.py",
+   "target": "c_ept.workflows.run_s4a._best_model"
+  },
+  {
+   "importer": "c_ept/tests/test_run_s4a.py",
+   "target": "c_ept.workflows.run_s4a._digest"
+  },
+  {
+   "importer": "c_ept/tests/test_run_s4a.py",
+   "target": "c_ept.workflows.run_s4a._finalize_cost"
+  },
+  {
+   "importer": "c_ept/tests/test_run_s4a.py",
+   "target": "c_ept.workflows.run_s4a._model_hashes"
+  },
+  {
+   "importer": "c_ept/tests/test_run_s4a.py",
+   "target": "c_ept.workflows.run_s4a._output_paths"
+  },
+  {
+   "importer": "c_ept/tests/test_run_s4a.py",
+   "target": "c_ept.workflows.run_s4a._parser"
+  },
+  {
+   "importer": "c_ept/tests/test_run_s4a.py",
+   "target": "c_ept.workflows.run_s4a._process_record"
+  },
+  {
+   "importer": "c_ept/tests/test_run_s4a.py",
+   "target": "c_ept.workflows.run_s4a._projections"
+  },
+  {
+   "importer": "c_ept/tests/test_run_s4a.py",
+   "target": "c_ept.workflows.run_s4a._sha"
+  },
+  {
+   "importer": "c_ept/tests/test_run_s4a.py",
+   "target": "c_ept.workflows.run_s4a._stage"
+  },
+  {
+   "importer": "c_ept/tests/test_run_s4a.py",
+   "target": "c_ept.workflows.run_s4a._store_metadata"
+  },
+  {
+   "importer": "c_ept/tests/test_run_s4a.py",
+   "target": "c_ept.workflows.run_s4a._train_stage"
+  },
+  {
+   "importer": "c_ept/tests/test_store_build.py",
+   "target": "c_ept.data.store_build._BUILDER"
+  },
+  {
+   "importer": "c_ept/tests/test_store_build.py",
+   "target": "c_ept.data.store_build._BlockBuilder"
+  },
+  {
+   "importer": "c_ept/tests/test_store_build.py",
+   "target": "c_ept.data.store_build._check_workers"
+  },
+  {
+   "importer": "c_ept/tests/test_store_build.py",
+   "target": "c_ept.data.store_build._key_parts"
+  },
+  {
+   "importer": "c_ept/tests/test_store_build.py",
+   "target": "c_ept.data.store_build._scrub"
+  },
+  {
+   "importer": "c_ept/tests/test_store_build.py",
+   "target": "c_ept.workflows.run_s4a._require_build_terrain"
+  },
+  {
+   "importer": "c_ept/tests/test_store_build.py",
+   "target": "c_ept.workflows.run_s4a._sha"
+  },
+  {
+   "importer": "c_ept/tests/test_tokens.py",
+   "target": "c_ept.domain.targets._taker"
+  },
+  {
+   "importer": "c_ept/tests/test_training_operator.py",
+   "target": "c_ept.ept.train._identity"
+  },
+  {
+   "importer": "c_ept/tests/test_training_operator.py",
+   "target": "c_ept.workflows.run_s4a._digest"
+  },
+  {
+   "importer": "c_ept/tests/test_training_operator.py",
+   "target": "c_ept.workflows.run_s4a._model_config"
+  },
+  {
+   "importer": "c_ept/tests/test_training_operator.py",
+   "target": "c_ept.workflows.run_s4a._stage"
+  },
+  {
+   "importer": "c_ept/tests/test_training_operator.py",
+   "target": "c_ept.workflows.run_s4a._write"
+  },
+  {
+   "importer": "c_ept/tests/test_training_operator.py",
+   "target": "c_ept.workflows.run_training._process_record"
+  },
+  {
+   "importer": "c_ept/tests/test_training_operator.py",
+   "target": "c_ept.workflows.run_training._reserve"
+  },
+  {
+   "importer": "c_ept/tests/test_training_operator.py",
+   "target": "c_ept.workflows.run_training._verify_final_head"
+  },
+  {
+   "importer": "c_ept/tests/test_traits.py",
+   "target": "c_ept.preprocessing.traits._effect_flags"
+  },
+  {
+   "importer": "c_ept/tests/test_units.py",
+   "target": "c_ept.domain.units._assist_mask"
+  },
+  {
+   "importer": "c_ept/tests/test_units.py",
+   "target": "c_ept.domain.units._event_id"
+  },
+  {
+   "importer": "c_ept/tests/test_value.py",
+   "target": "c_ept.valuation.rulepay._Segment"
+  }
+ ],
+ "frozen_reference": [
+  {
+   "importer": "c_ept/tests/test_run_ledger.py",
+   "target": "c_ept.comparison.runtime._write_receipt",
+   "reason": "frozen reference: the T009 receipt writer whose artifact hashes the kernel ledger test compares against"
+  },
+  {
+   "importer": "c_ept/tests/test_run_supervisor.py",
+   "target": "c_ept.workflows.run_s3",
+   "reason": "frozen reference: the frozen S3 module is run on purpose to prove the kernel scrub rule agrees with it"
+  },
+  {
+   "importer": "c_ept/tests/test_run_supervisor.py",
+   "target": "c_ept.workflows.run_s3._scrub_text",
+   "reason": "frozen reference: the frozen S3 scrub rule that the kernel scrub_text must reproduce"
+  }
+ ],
+ "white_box": [
+  {
+   "importer": "c_ept/tests/test_run_identity.py",
+   "target": "c_ept.run.identity._default_repo",
+   "reason": "white-box seam of the kernel's own module"
+  },
+  {
+   "importer": "c_ept/tests/test_run_identity.py",
+   "target": "c_ept.run.identity._git_env",
+   "reason": "white-box seam of the kernel's own module"
+  },
+  {
+   "importer": "c_ept/tests/test_run_identity.py",
+   "target": "c_ept.run.identity._interpreter_roots",
+   "reason": "white-box seam of the kernel's own module"
+  },
+  {
+   "importer": "c_ept/tests/test_run_identity.py",
+   "target": "c_ept.run.identity._is_protected_module",
+   "reason": "white-box seam of the kernel's own module"
+  },
+  {
+   "importer": "c_ept/tests/test_run_identity.py",
+   "target": "c_ept.run.identity._run_git",
+   "reason": "white-box seam of the kernel's own module"
+  },
+  {
+   "importer": "c_ept/tests/test_run_supervisor.py",
+   "target": "c_ept.run.profile._read_file",
+   "reason": "white-box seam of the kernel's own module"
+  },
+  {
+   "importer": "c_ept/tests/test_run_supervisor.py",
+   "target": "c_ept.run.supervisor._RunLock",
+   "reason": "white-box seam of the kernel's own module"
+  },
+  {
+   "importer": "c_ept/tests/test_run_supervisor.py",
+   "target": "c_ept.run.supervisor._stop_check",
+   "reason": "white-box seam of the kernel's own module"
+  },
+  {
+   "importer": "c_ept/tests/test_run_supervisor.py",
+   "target": "c_ept.run.supervisor._terminate",
+   "reason": "white-box seam of the kernel's own module"
+  }
+ ]
+}

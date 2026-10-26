@@ -1,4 +1,5 @@
-"""Pure, paired DEV diagnostics; no model, dataset, cohort or device imports.
+"""Pure, paired DEV diagnostics; no model, dataset, cohort or device objects (the numpy-only ``proper`` module supplies the weighted
+mean; it reads ``compose.Q_LEVELS``, and nothing here imports torch or a device library).
 
 Endpoints contain name/module/layer/horizon_s/target, one-dimensional match,
 stable row keys (unique within each match), binary y, p_ept and p_b1. An explicit
@@ -12,6 +13,10 @@ scale. Only explicitly marked common_head=True entries enter the structural
 normalized head mean; this is never an automatic sum of training loss blocks.
 All inputs are already eligible paired rows. Selection/exclusion counts can be
 supplied in counts; this module cannot infer exclusions from eligible rows.
+
+``relative_structural`` (S4b preparation M11, decision D16) is the structural metric of the confirmatory path: per head the ratio R_h of the model's
+match-balanced NLL to B0's on the same rows (the records carry ``nll_b0`` when ``run_inference`` is given B0), the mean of R_h over the eight heads, with the
+percentile interval of the ratio estimator on the common resample matrix of ``inference``. ``summarize_endpoints`` and its training-scale composite are unchanged.
 """
 from __future__ import annotations
 
@@ -19,6 +24,8 @@ from collections.abc import Mapping
 import numbers
 
 import numpy as np
+
+from c_ept.evaluation import inference, proper
 
 
 def _json(value):
@@ -141,21 +148,24 @@ class _Ranks:
 
 
 def _mean(values, weights):
+    """Σ w·v / Σ w, or None for no row / zero total weight. The arithmetic is ``proper.weighted_mean`` (D11: one weighted mean for the
+    evaluation); this wrapper only keeps the old "unavailable" outcome, so every earlier output stays bit for bit (a test pins it).
+
+    (MET-1)  mean = Σ_r (w_r / W)·v_r, normalised weights first so that a representable mean does not overflow.
+    이 함수는 새 모듈의 가중 평균을 감싸 빈 입력의 None만 옛 그대로 돌려준다.
+    """
     if not len(weights) or weights.sum() == 0:
         return None
-    # Normalize first to avoid overflow in otherwise representable means.
-    result = float(np.dot(values, weights / weights.sum()))
-    if not np.isfinite(result):
-        raise ValueError('nonfinite metric arithmetic')
-    return result
+    return proper.weighted_mean(values, weights)
 
 
 def _ci(values):
     return np.quantile(values, [.025, .975]).tolist() if values else None
 
 
-def _comparison(point, samples, requested, *, reason=None):
-    """The three columns always use exactly the same valid paired replicates."""
+def _comparison(point, samples, requested, *, reason=None, labels=('ept', 'b1')):
+    """The three columns always use exactly the same valid paired replicates. ``labels`` names the two compared columns (the third is their difference 'delta');
+    the default is the EPT / B1 pair of every earlier output, ``('ept', 'b0')`` is the pair of the relative structural metric (S4b preparation M11)."""
     valid = len(samples)
     invalid = requested - valid
     result = {'valid_replicates': valid, 'invalid_replicates': invalid,
@@ -164,7 +174,7 @@ def _comparison(point, samples, requested, *, reason=None):
               'reason': reason}
     columns = list(zip(*samples)) if samples else [(), ()]
     delta = None if point[0] is None or point[1] is None else point[0] - point[1]
-    for label, value, draws in zip(('ept', 'b1', 'delta'), (*point, delta),
+    for label, value, draws in zip((*labels, 'delta'), (*point, delta),
                                    (*columns, [a - b for a, b in samples])):
         result[label] = {'estimate': value, 'ci95': _ci(draws) if invalid == 0 else None,
                          'conditional_ci95': _ci(draws) if invalid else None}
@@ -340,18 +350,145 @@ def _structural(entries, bootstrap, rng, check):
             'metrics': _comparison(point, draws, bootstrap, reason='empty_common_head' if any(p is None for p in point) else None)}
 
 
-def summarize_endpoints(endpoints, nll=(), *, bootstrap=2000, seed=20261022, check=None):
+# ---- the relative structural metric against B0 (S4b preparation M11, decision D16) -------------------------------------------------------
+RELATIVE_HEADS = ('M2Rate/masked', 'M2Mark/masked', 'M2Zone/masked',
+                  'M3Size/open', 'M3Kills/open', 'M3Gold/open', 'M3Obj/open', 'M4Conv/open')       # = adapters.STRUCTURAL_HEADS (a test pins it): M2 whole layer plus M3/M4 open
+RELATIVE_DEFINITION = ('mean over the eight structural heads of R_h = sum_m a_m / sum_m d_m, a_m and d_m the match-balanced (1/n_m per HR-5 row of the head) mean NLL of the model and of B0 on the '
+                       'same rows of the head; B0 scores exactly 1; the bootstrap recomputes numerator and denominator together on the common match resample matrix (D15, D16)')
+RELATIVE_COMPOSITE_NOTE = ('the training-scale composite (mean of NLL / B0 training scale, summarize_endpoints()["structural_normalized_nll"]) is secondary: its scales carry hidden head weights '
+                           '(decision D16 evidence)')
+
+
+def _relative_head(record, ids):
+    """``(status, reason, a, d)`` of one head: the per-match numerator and denominator on the common id list, or the reason the head has no ratio."""
+    name = record['name']
+    for key in ('match', 'row', 'nll_ept', 'nll_b0'):
+        if key not in record:
+            raise ValueError(f'{name}: missing {key}' + (' (run_inference was not given b0)' if key == 'nll_b0' else ''))
+    match = np.asarray(record['match'])
+    model, base = (np.asarray(record[key], dtype=np.float64) for key in ('nll_ept', 'nll_b0'))
+    if match.ndim != 1 or model.shape != match.shape or base.shape != match.shape or np.asarray(record['row']).shape != match.shape:
+        raise ValueError(f'{name}: match, row, nll_ept and nll_b0 must be vectors of one length')
+    if not (np.isfinite(model).all() and np.isfinite(base).all()):
+        raise ValueError(f'{name}: nonfinite NLL')
+    if not len(match):
+        return 'unavailable', (record.get('counts') or {}).get('unavailable_reason') or 'no_rows', None, None
+    a = inference.match_aggregate(match, model, ids)[1]
+    d = inference.match_aggregate(match, base, ids)[1]
+    if not d.sum() > 0:
+        return 'unavailable', 'zero_denominator', None, None
+    return 'available', None, a, d
+
+
+def relative_structural(records, matrix, *, ids) -> dict:
+    """The relative structural metric of decision D16 on the NLL records of ``run_inference(..., b0=)``: per head the ratio R_h of the model's NLL to B0's on the same rows, and their mean over
+    the eight heads (``RELATIVE_HEADS``), with percentile intervals of the ratio estimator on ``matrix`` (``inference.resample_matrix``, one column for each match of ``ids``).
+
+    ``ids`` (required): the sorted, unique list of the matches of the judging split, shared by every head and comparison (``inference.match_aggregate``) and giving the columns of ``matrix``. It is not derived
+    from the records: the matches that happen to have a row are not the split's list (a match without a row in any head would be dropped from the resample and the interval would be too narrow), so the caller
+    passes the split's own list and a call without it is a TypeError (M11 review m1). Records of other blocks are ignored.
+
+    수식
+    ----
+    (REL-1)  R_h = Σ_m a_{h,m} / Σ_m d_{h,m},   a_{h,m} = Σ_{r in m} (1/n_{h,m}) ℓ_r^model,   d_{h,m} = Σ_{r in m} (1/n_{h,m}) ℓ_r^{B0}
+    (REL-2)  S = (1/8) Σ_h R_h ;   S*_b = (1/8) Σ_h [ Σ_m c_{b,m} a_{h,m} / Σ_m c_{b,m} d_{h,m} ]
+
+      기호        | 뜻                                              | 단위 | 범위       | 코드 변수
+      ℓ_r         | 머리 h의 HR-5 평가 행 r의 NLL                   | nat  | ≥ 0        | nll_ept, nll_b0
+      n_{h,m}     | 머리 h에서 경기 m의 평가 행 수                  | 행   | ≥ 0        | match의 개수
+      a, d        | 경기별 분자·분모(경기 안 평균, 빠진 경기는 0)   | nat  | ≥ 0        | match_aggregate
+      c_{b,m}     | 재표본 b에서 경기 m이 뽑힌 횟수                 | 개   | 0..n       | matrix
+      R_h, S      | 머리별 상대 NLL, 8머리 평균(구조 지표)          | —    | > 0        | per_head, metrics
+
+    해석
+    ----
+    R_h는 같은 행 위에서 모형의 평균 NLL을 B0의 평균 NLL로 나눈 값이라 B0는 모든 머리에서 정확히 1이다(분자와 분모가 같은 수). 분자와 분모가 모두 경기에 따라 변하므로 재표본마다 둘을 함께 다시
+    합한다(비 추정량). 머리의 행 집합이 다르거나 경기가 빠져도 같은 경기 목록 위에서 빠진 경기는 분자·분모가 모두 0이다. 구조 지표는 결정 D16대로 8머리 평균이므로 한 머리라도 값이 없으면
+    (A7의 M2Zone 없음, 행 없음, B0 분모 0) 7머리 평균으로 바꾸지 않고 '없음'과 그 이유를 낸다. 재표본의 분모가 0이면 그 재표본의 비는 정의되지 않으므로 세지만 구간에는 넣지 않는다:
+    구간(ci95)은 '없음'이고 ci_status가 이유를 말하며, 유효한 재표본만의 구간은 conditional_ci95로 따로 이름 붙여 낸다.
+    """
+    by_name = {}
+    for record in records:
+        name = record.get('name') if isinstance(record, Mapping) else None
+        if name in by_name:
+            raise ValueError(f'duplicate record name {name!r}')
+        by_name[name] = record
+    missing = [name for name in RELATIVE_HEADS if name not in by_name]
+    if missing:
+        raise ValueError(f'no NLL record for the structural head(s) {missing}')
+    matrix = np.asarray(matrix)
+    if matrix.ndim != 2:
+        raise ValueError(f'matrix must have the shape (B, n_matches), not {matrix.shape}')
+    if ids is None:
+        raise ValueError('ids must be the sorted, unique match list of the judging split, not None')
+    ids = np.asarray(ids)
+    if matrix.shape[1] != len(ids):
+        raise ValueError(f'matrix must have one column for each of the {len(ids)} matches of the common list, not shape {matrix.shape}')
+    B = matrix.shape[0]
+    ones = np.ones((1, len(ids)))
+    heads, points, draws, valid = {}, {}, {}, {}
+    for name in RELATIVE_HEADS:
+        status, reason, a, d = _relative_head(by_name[name], ids)
+        heads[name] = {'status': status, 'reason': reason, 'metrics': None,
+                       'n_matches_present': 0 if a is None else int(inference.match_presence(by_name[name]['match'], ids).sum())}
+        if status != 'available':
+            continue
+        points[name] = float(inference.bootstrap_stat(a, d, ones)[0])                  # (REL-1) on the matrix of ones: the point estimate
+        ok = (matrix @ d) > 0                                                          # a resample without B0 mass has no ratio (INF-3 would stop): count it, never fill it
+        draws[name], valid[name] = np.full(B, np.nan), ok
+        if ok.any():
+            draws[name][ok] = inference.bootstrap_stat(a, d, matrix[ok])
+        heads[name]['metrics'] = _comparison((points[name], 1.0), [(x, 1.0) for x in draws[name][ok]], B, labels=('ept', 'b0'))
+    gone = [f'{name}: {head["reason"]}' for name, head in heads.items() if head['status'] != 'available']
+    result = {'status': 'unavailable' if gone else 'available', 'reason': '; '.join(gone) if gone else None, 'definition': RELATIVE_DEFINITION,
+              'heads': list(RELATIVE_HEADS), 'n_matches': int(len(ids)), 'bootstrap_B': int(B), 'metrics': None,
+              'secondary': {'per_head': heads, 'training_scale_composite': RELATIVE_COMPOSITE_NOTE}}
+    if not gone:
+        everywhere = np.logical_and.reduce([valid[name] for name in RELATIVE_HEADS])         # (REL-2): a resample counts for the mean only if all eight heads have a ratio in it
+        mean_draws = np.mean([draws[name][everywhere] for name in RELATIVE_HEADS], axis=0)
+        result['metrics'] = _comparison((float(np.mean([points[name] for name in RELATIVE_HEADS])), 1.0), [(x, 1.0) for x in mean_draws], B, labels=('ept', 'b0'))
+    return _json(result)
+
+
+# Default text of the T003 path: the EPT FIT/STOP 25% pilot against the existing whole-FIT B1.
+# It is accurate only there. Other designs (the matched 25% comparison) pass their own
+# comparison / delta / limitation text so that the T003 scope wording never leaks into them.
+# T003_SUMMARY_COMPARISON is the 'comparison' label of summarize_endpoints; the provenance text of
+# adapters.run_inference is a different string (adapters.T003_PROVENANCE_COMPARISON).
+T003_SUMMARY_COMPARISON = 'EPT FIT/STOP 25% pilot versus existing whole-FIT B1; unequal training scope'
+T003_DELTA = 'EPT-B1'
+LIMITATIONS = ('Single training seed; CI covers match sampling, not training-seed variation.',
+               'M3/M4 are conditional layers, not whole t0 or composed-value performance.',
+               'No aggregate AUC and no all-training-block NLL sum.')
+
+
+def _text(value, name):
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f'{name} must be a non-empty string')
+    return value
+
+
+def summarize_endpoints(endpoints, nll=(), *, bootstrap=2000, seed=20261022, check=None,
+                        comparison=T003_SUMMARY_COMPARISON, delta_label=T003_DELTA, limitations=LIMITATIONS):
     """Return JSON-safe summaries without emitting identifiers or predictions.
 
     check() is invoked before work, between endpoints, every 25 bootstrap
     replicates and after each loop. Exceptions (or literal False) abort the job.
     bootstrap=0 explicitly disables intervals. Single-class/empty endpoints are
     valid unavailable outcomes, whereas malformed inputs always raise ValueError.
+    comparison / delta_label / limitations only label the output (design scope,
+    the sign convention of every 'delta' column, caveats); they never enter any
+    estimate. The defaults are the T003 wording.
     """
     if isinstance(bootstrap, bool) or not isinstance(bootstrap, numbers.Integral) or bootstrap < 0:
         raise ValueError('bootstrap must be a nonnegative integer')
     if isinstance(seed, bool) or not isinstance(seed, numbers.Integral) or seed < 0:
         raise ValueError('seed must be a nonnegative integer')
+    _text(comparison, 'comparison')
+    _text(delta_label, 'delta_label')
+    if isinstance(limitations, str) or not isinstance(limitations, (list, tuple)) or not limitations:
+        raise ValueError('limitations must be a non-empty list of strings')
+    limitations = [_text(line, 'limitation') for line in limitations]
     _guard(check)
     endpoints, nll = list(endpoints), list(nll)
     for collection in (endpoints, nll):
@@ -361,13 +498,11 @@ def summarize_endpoints(endpoints, nll=(), *, bootstrap=2000, seed=20261022, che
     rng = np.random.default_rng(seed)
     result = {'schema_version': 'ept-dev-metrics-v1',
               'bootstrap': {'replicates': int(bootstrap), 'seed': int(seed), 'confidence': .95,
-                            'method': 'paired match percentile', 'delta': 'EPT-B1'},
+                            'method': 'paired match percentile', 'delta': delta_label},
               'weighting': '1 / eligible rows in each match, separately per endpoint',
               'auc_definition': 'pooled weighted positive-negative pairs; ties count half; not within-match AUC',
-              'comparison': 'EPT FIT/STOP 25% pilot versus existing whole-FIT B1; unequal training scope',
-              'limitations': ['Single training seed; CI covers match sampling, not training-seed variation.',
-                             'M3/M4 are conditional layers, not whole t0 or composed-value performance.',
-                             'No aggregate AUC and no all-training-block NLL sum.'],
+              'comparison': comparison,
+              'limitations': limitations,
               'endpoints': [], 'nll': []}
     for entry in endpoints:
         _guard(check)

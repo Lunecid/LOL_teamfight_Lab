@@ -24,11 +24,14 @@ def specification(model, *, hidden=512, prefetch=2):
                                 'prefetch':prefetch,'precision':'float32_strict'})
 
 
-def build_model(cfg, static, spec):
+def build_model(cfg, static, spec, *, zone_mark=True):
+    """The model of ``spec``. ``zone_mark`` (S4b preparation M9, decision D9): False takes the zone mark off the EPT ('ept_s_v1', the A7 design check) and is a ValueError for N2."""
     spec=validate_model_spec(spec)
     if spec['architecture']=='ept_s_v1':
         from c_ept.ept.heads import EPT
-        return EPT(cfg,static)
+        return EPT(cfg,static,**({} if zone_mark else {'zone_mark':False}))
+    if not zone_mark:
+        raise ValueError('zone_mark=False is defined for the EPT (ept_s_v1) only: the N2 heads have their own conditions')
     from c_ept.models.neural.team_set import TeamSetModel
     return TeamSetModel(cfg,static,hidden=spec['n2_hidden'])
 

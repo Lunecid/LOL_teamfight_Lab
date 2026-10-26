@@ -31,6 +31,7 @@
     (EH-7)  μ_c = exp(Θ GELU(A^h h + A^q Γ_q + A^m Γ_m + A^z Γ_z + A^s Γ_s + A^K log(1 + K)))_c
     (EH-8)  μ_c = e · λ_c ;  λ_c = exp(Θ GELU(A^h h + A^q Γ_q + A^m Γ_m + A^z Γ_z + A^K log(1 + K) + A^O log(1 + O)))_c
     (EH-9)  ȳ(b) = ½ [ŷ(b) + Π ŷ(swap b)] (율과 확률의 산술평균) ;  log p̄ = logaddexp(log p(b), log Π p(swap b)) − log 2
+    (EH-10) ȳ(b) = ŷ(F_c(b)) (한 틀: 보기마다 동전 c로 고른 틀에서 한 번, 평균도 Π도 없다; S4b 준비 M7, 결정 D10 P1·D17)
 
 가정과 선택
 
@@ -46,9 +47,16 @@
 
     EPT(cfg, static).encode(batch) → Encoded        EPTHeads(cfg).m2 / m3 / m3_obj / m4(enc, 조건, pos=None) → 위 표
     FrameAveraged(model).encode(batch) → FrameEncoded    FrameAveraged(model).m2 / m3 / m3_obj / m4(enc, 조건, pos=None) → 위 표, 두 틀의 평균
+    FrameAveraged(model, average=False): 한 틀 (S4b 준비 M7, 결정 D10 P1·D17; 학습의 swap_mode 'random_view'·'none'과 eval_average=False의 평가): 부호화기 한 번, 머리의 답을 평균 없이 그대로 (EH-10)
 
 
-m2_rate는 평가 시 발생률 분기만 계산하며, 학습 시 기존 전체 m2 경로를 사용한다. 기존 m2의 출력 계약과 수식은 그대로다.
+m2_rate는 학습·평가 모두 발생률 분기만 계산한다. 건너뛴 표지·구역 분기는 rate의 값에도 손실 그래프에도 들어가지 않고 EPTHeads에 난수 연산이 없으므로, 학습 모드에서도 값과 기울기는 m2의 rate와 비트 단위로 같다
+(EPT-T011 A2-F10; CPU에서 시험했으며 GPU는 시험하지 않았다: GPU에서는 결정적 알고리즘 설정(train.py의 use_deterministic_algorithms) 아래에서 같은 논리가 성립할 것으로 기대한다).
+기존 m2의 출력 계약과 수식은 그대로다.
+
+입력 점검과 믿는 걸음 (S4b 속도 개선 SPD 항목 3, 결정 D32): 아래 ``_whole``·``_counts``·``_exposure``·``_window``·``_view_index``의 값 읽기(범위, 유한성, 부호: ``int(t.min())``, ``bool(...any())``)는 장치에서 읽을 때마다
+대기열이 빌 때까지 기다린다. 걸음이 ``step_guard.trust(...)`` 안에서 돌면(배치가 CPU에서 ``batch_prep.Preparation``으로 같은 함수로 같은 점검을 이미 통과했다) 이 읽기만 건너뛴다. 형·모양·dtype 점검은
+읽기가 없어 그대로 일어나고, 믿는 범위 밖에서는 모든 점검이 이전과 같다. 값은 달라지지 않는다(점검은 값을 만들지 않고 막기만 한다).
 
 참조 경로 확인(2026-10-24): 위에서 인용한 역사적 설계서·S4a 계획·Task 5 계약서 중 해당 경로는 이 checkout에 미동봉되어 있다. 인용은 과거 설계 출처이며 이번 검토에서 그 원문까지 확인했다는 뜻이 아니다. docs/superpowers/notes/equation-index.md는 이 checkout에 존재하지만, 파일 존재만으로 모든 수식의 정확성을 인증하지 않는다."""
 # Ref: docs/superpowers/specs/2026-10-20-c-ept-design.md sections 3.1-3.3 (the factorisation of the process and its heads), 4 (one network for the two
@@ -76,7 +84,7 @@ from torch import nn
 
 from c_ept.preprocessing import terrain
 from c_ept.domain import units
-from c_ept.ept import data
+from c_ept.ept import data, step_guard
 from c_ept.ept.encoder import Encoded, EncoderConfig, EPTEncoder, token_layout
 from c_ept.data.head_rows import HEAD_NAMES, MIX, N_CELLS, N_GOLD, N_K, N_LAYER, N_M, N_Q, N_SIZE, N_ZONE
 
@@ -158,7 +166,7 @@ def _whole(name: str, t, n: int, low: int, high: int, like: torch.Tensor) -> tor
     """``t`` as an int64 tensor on the device of ``like``, after the check that it is an integer tensor of shape (n,) with values in low .. high."""
     if not isinstance(t, torch.Tensor) or t.dtype not in _INT_DTYPES or tuple(t.shape) != (n,):
         raise ValueError(f'{name} must be an integer tensor (not uint8) of shape ({n},): one number for each row')
-    if n and (int(t.min()) < low or int(t.max()) > high):
+    if n and not step_guard.trusted() and (int(t.min()) < low or int(t.max()) > high):        # a trusted step: the CPU made this check (`batch_prep`)
         raise ValueError(f'{name} must lie in {low} .. {high}')
     return t.to(device=like.device, dtype=torch.long)
 
@@ -169,7 +177,7 @@ def _counts(name: str, t, n: int, width: int, like: torch.Tensor) -> torch.Tenso
     if not isinstance(t, torch.Tensor) or tuple(t.shape) != (n, width):
         raise ValueError(f'{name} must be a tensor of shape ({n}, {width})')
     t = t.to(device=like.device, dtype=like.dtype).contiguous()
-    if not bool(torch.isfinite(t).all()) or bool((t < 0).any()):
+    if not step_guard.trusted() and (not bool(torch.isfinite(t).all()) or bool((t < 0).any())):
         raise ValueError(f'{name} must be finite and not negative')
     return t
 
@@ -184,7 +192,7 @@ def _exposure(e, n: int, width: int, like: torch.Tensor) -> torch.Tensor:
         e = e[:, None]
     elif tuple(e.shape) != (n, width):
         raise ValueError(f'the exposure must be a number, a tensor of shape ({n},) or one of shape ({n}, {width}), got {tuple(e.shape)}')
-    if not bool(torch.isfinite(e).all()) or bool((e < 0).any()):
+    if not step_guard.trusted() and (not bool(torch.isfinite(e).all()) or bool((e < 0).any())):
         raise ValueError('the exposure must be finite and not negative')
     return e
 
@@ -198,7 +206,7 @@ def _window(e, n: int, like: torch.Tensor) -> torch.Tensor:
     elif tuple(e.shape) != (n,):
         raise ValueError(f'the exposure of M4 is the conversion window: a number or a tensor of shape ({n},), one value for each row, '
                          f'not shape {tuple(e.shape)} (ruling R-S4a-11)')
-    if not bool(torch.isfinite(e).all()) or bool((e < 0).any()):
+    if not step_guard.trusted() and (not bool(torch.isfinite(e).all()) or bool((e < 0).any())):
         raise ValueError('the exposure must be finite and not negative')
     return e
 
@@ -210,7 +218,7 @@ def _view_index(pos, views: int, like: torch.Tensor):
         return None
     if not isinstance(pos, torch.Tensor) or pos.ndim != 1 or pos.dtype not in _INT_DTYPES:
         raise ValueError('pos must be a 1-d integer tensor (not uint8) of view numbers')
-    if pos.numel() and (int(pos.min()) < 0 or int(pos.max()) >= views):
+    if pos.numel() and not step_guard.trusted() and (int(pos.min()) < 0 or int(pos.max()) >= views):
         raise ValueError(f'pos must lie in 0 .. {views - 1}')
     return pos.to(device=like.device, dtype=torch.long)
 
@@ -315,12 +323,21 @@ class EPTHeads(nn.Module):
     Parts (for tests and for starting values): ``bin_emb`` (the 18 bins and "none"), ``zone_emb`` (the zones -1 .. 9 and "none"), ``size_emb``, ``mark``
     (``_MarkEmbedding``), ``rate_net``, ``mark_net``, ``zone_net``, ``m3_net`` with ``size_out``, ``kill_out`` and ``gold_in``, ``gold_slot``,
     ``gold_out``, ``obj_net`` and ``conv_net``; the output layers are ``.out`` of the nets and ``size_out``, ``kill_out``, ``gold_out``.
+
+    ``zone_mark`` (keyword-only; S4b preparation M9, author decision D9): True (the default) is every earlier model. False is the A7 design check "without the zone mark": the zone embedding Γ_z
+    that goes into the maps A^z of M3, the objectives and M4 is set to 0 (see ``_conditions``), so those heads do not read z at all; the shapes, the parameters (the zone table, the M2Zone head
+    and the maps A^z stay in the module, unused) and the order of the operations do not change, which keeps the checkpoint keys, the optimizer groups and the output shapes. The zone law
+    ``m2().zone_logp`` is still computed (the composer does not draw from it) but the training does not score it: that is the business of ``train.score_blocks(zone_mark=False)``. The module
+    knows its setting (``self.zone_mark``) because the model object carries no training identity: the composer and the evaluation check it against the setting they are given.
     """
 
-    def __init__(self, cfg: EncoderConfig):
+    def __init__(self, cfg: EncoderConfig, *, zone_mark: bool = True):
         super().__init__()
+        if not isinstance(zone_mark, bool):
+            raise ValueError(f'zone_mark must be True (the zone mark is a condition of M3, the objectives and M4) or False (A7: no zone mark), not {zone_mark!r}')
         d, hidden, table = cfg.d, cfg.d, max(8, cfg.d // 4)
         self.cfg = cfg
+        self.zone_mark = zone_mark
         self.bin_emb, self.zone_emb, self.size_emb = nn.Embedding(N_Q + 1, D_EMB), nn.Embedding(N_ZONE + 2, D_EMB), nn.Embedding(N_SIZE, D_EMB)
         self.mark = _MarkEmbedding(d)
         self.rate_net = _Mlp((d, D_EMB), hidden, 1)                                  # inputs: h, Γ_q
@@ -335,13 +352,37 @@ class EPTHeads(nn.Module):
             nn.init.normal_(emb.weight, std=_INIT_STD)
 
     def _conditions(self, h: torch.Tensor, players: torch.Tensor, team: torch.Tensor, q, m, z) -> tuple:
-        """The embeddings Γ_q, Γ_m, Γ_z of (EH-2) for the masked reading (q, m, z given) or the open one (all None)."""
+        """The embeddings Γ_q, Γ_m, Γ_z of (EH-2) for the masked reading (q, m, z given) or the open one (all None).
+
+        수식
+        ----
+        (EH-2z)  Γ_z = E_zone[z + 1] (기본값, zone_mark=True) ;   Γ_z = 0 (zone_mark=False, A7)      →  A^z Γ_z = 0 (A^z는 편향 없는 선형 사상)
+
+          기호     | 뜻                                              | 단위 | 범위     | 코드 변수
+          Γ_z      | 구역 임베딩 (z = −1과 "없음" 포함)              | —    | 실수     | zone_emb 또는 0
+          A^z      | M3·M3_obj·M4의 구역 입력 사상                   | —    | 행렬     | m3_net.maps[3], obj_net.maps[3], conv_net.maps[3]
+          zone_mark | 구역 표지를 조건으로 쓰는가 (결정 D9)           | —    | 참/거짓  | self.zone_mark
+
+        해석
+        ----
+        구역 표지를 뺀 설계(A7)는 M3·오브젝트·M4가 z를 읽지 않는 모형이다. 사상을 지우는 대신 입력 Γ_z를 0으로 두면 항 A^z Γ_z는 정확히 0(편향 없는 사상이므로 +0.0)이어서 모양, 매개변수 목록,
+        연산 순서가 그대로이고 체크포인트 키와 최적화기 묶음이 바뀌지 않는다. z가 달라도 출력이 같으며, 구역 임베딩은 기울기를 받지 않아 학습되지 않는다. 사상 A^z의 가중은 기울기가 0인 채로
+        남아(0 입력의 기울기는 0) 출력에 쓰이지 않는다. 열린 읽기도 같은 0을 쓴다(열린 읽기의 "없음" 구역 값은 이 설계에서 존재하지 않는다). 기본값은 이 줄을 지나지 않으므로 이전 출력과 비트까지 같다.
+
+        근거
+        ----
+        저자 결정 D9 (A7: 구역 표지는 공통 M2Rate + M2Mark NLL이 비열등이고 V_start CRPS와 가린 M3 NLL이 이득일 때만 둔다), 계획 M9, 검토 A2-F3.
+        """
         n = h.shape[0]
         q, m, z = _reading(n, h, q, m, z)
         if q is None:
             none = h.new_full((n,), 0, dtype=torch.long)
-            return self.bin_emb(none + N_Q), self.mark.absent(n), self.zone_emb(none + N_ZONE + 1)
-        return self.bin_emb(q), self.mark(players, team, m), self.zone_emb(z + 1)
+            emb = self.bin_emb(none + N_Q), self.mark.absent(n), self.zone_emb(none + N_ZONE + 1)
+        else:
+            emb = self.bin_emb(q), self.mark(players, team, m), self.zone_emb(z + 1)
+        if not self.zone_mark:
+            return emb[0], emb[1], torch.zeros_like(emb[2])                                              # Γ_z = 0: a constant, so the zone table gets no gradient
+        return emb
 
     def m2(self, enc: Encoded, exposure, pos=None) -> M2Out:
         """M2 (occurrence): for every row and each of the 18 bins q, the expected number of first kills ``rate`` (n, 18), the log law of the mark
@@ -399,10 +440,11 @@ class EPTHeads(nn.Module):
         동작 및 예외:
         - exposure 형상·범위 오류나 pos 유효 범위 초과 시 ValueError가 발생한다.
         - 노출이 0인 구간의 출력과 가중치 기울기는 정확히 0이다.
-        - 학습 모드(training=True)에서는 드롭아웃 등 확률적 분기의 난수 소비(RNG)와 연산 그래프 무결성을 위해 전체 m2를 호출하고 그 rate를 취한다.
-        - 평가 모드(eval)에서는 표지와 구역 로짓 연산을 건너뛰고 동일 연산 순서로 _m2_eta만 계산하여 발생률을 산출한다."""
-        if self.training:
-            return self.m2(enc, exposure, pos).rate
+        - 학습·평가 모드 모두 표지와 구역 로짓 연산을 건너뛰고 m2와 같은 연산 순서로 _m2_eta만 계산하여 발생률을 산출한다.
+          rate는 _m2_eta의 출력만 읽으므로 건너뛴 분기는 rate의 값에도 손실 그래프(기울기)에도 들어가지 않는다. EPTHeads에는 드롭아웃 등 난수 연산이 없어
+          (가중치 초기화 말고는 없다) 그 분기를 건너뛰어도 난수 소비(RNG)가 같다. 그래서 학습 모드에서도 값과 모든 가중치의 기울기가 m2(...).rate와
+          비트 단위로 같다 (EPT-T011 A2-F10; 시험: test_ept_m2_components, test_ept_heads, test_ept_training_step). 이 비트 일치는 CPU에서 시험했으며 GPU는 시험하지 않았다
+          (GPU에서는 결정적 알고리즘 설정 아래에서 같은 논리가 성립할 것으로 기대한다). 머리에 난수 연산을 넣는다면 이 선택을 다시 해야 한다."""
         h, _, _ = _read(enc, pos)
         e = _exposure(exposure, h.shape[0], N_Q, h)
         eta = self._m2_eta(h, self.bin_emb.weight[:N_Q])
@@ -541,10 +583,10 @@ class EPT(nn.Module):
     해석: 부호화기와 머리를 한 모듈에 담아 학습 고리와 프레임 평균이 하나의 모형을 다루게 한다. 가중은 둘이 따로 갖는다.
     """
 
-    def __init__(self, cfg: EncoderConfig, static: np.ndarray | bool):
+    def __init__(self, cfg: EncoderConfig, static: np.ndarray | bool, *, zone_mark: bool = True):
         super().__init__()
         self.encoder = EPTEncoder(cfg, static)
-        self.heads = EPTHeads(cfg)
+        self.heads = EPTHeads(cfg, zone_mark=zone_mark)
 
     def encode(self, batch: Mapping) -> Encoded:
         return self.encoder(batch)
@@ -574,10 +616,15 @@ def _back(t: torch.Tensor, dim: int, perm: torch.Tensor) -> torch.Tensor:
 
 class FrameEncoded(NamedTuple):
     """The encodings of one batch in the frame it came in (``original``) and in its team swap (``swapped``), and ``side`` (views,) bool, True for a view that
-    the batch recorded in the swapped frame (side marker 1); made by ``FrameAveraged.encode``."""
+    the batch recorded in the swapped frame (side marker 1); made by ``FrameAveraged.encode``.
+
+    One frame (``FrameAveraged(model, average=False)``, S4b preparation M7): ``original`` is the encoding of every view in the frame that was chosen for it, ``swapped`` is None, ``side`` is the
+    side marker of the encoded views (True: the view was swapped by its coin) and ``rows`` is the batch in those frames (``data.swap_views``: the rows that read a swapped view are swapped with it)
+    when the batch had coins, else None (every view as recorded, the rows of the batch are the rows to score). Under the average ``rows`` is None."""
     original: Encoded
-    swapped: Encoded
+    swapped: Encoded | None
     side: torch.Tensor
+    rows: Mapping | None = None
 
 
 class FrameAveraged(nn.Module):
@@ -589,12 +636,19 @@ class FrameAveraged(nn.Module):
     -1), move the swapped answer back by the tables of ``data`` and average. ``model`` has ``encode(batch) -> Encoded`` and ``heads`` (an ``EPT``). TypeError
     for another object.
 
+    ``average=False`` (keyword only, default True; S4b preparation M7, decisions D10 P1 and D17) is the wrapper of the runs that use one frame: the training of ``swap_mode='random_view'`` and
+    ``'none'`` and the evaluation with ``eval_average=False``. ``encode`` then makes one call of the encoder on the views of the batch, each view in its chosen frame (``data.swap_views``
+    when the batch has the coins ``swap_view``; as recorded when it has none), and ``m2``, ``m2_rate``, ``m3``, ``m3_obj`` and ``m4`` return the answer of the heads for that frame as it is: nothing
+    is swapped, moved back or averaged, the conditions are those of the rows in the frame of their view (the rows come back swapped in ``FrameEncoded.rows``, which ``train.score_blocks`` reads), and
+    the conditions are checked and cast as under the average. The averaging wrapper refuses a batch with ``swap_view`` (ValueError: its coins ask for one frame), ``average`` that is not a bool is a TypeError.
+
     수식
     ----
     (EH-9)  ȳ(b) = ½ [ŷ(b) + Π ŷ(swap b)]   (율 μ와 확률 p의 산술평균) ;   log p̄(b) = logaddexp(log p̂(b), log Π p̂(swap b)) − log 2
             (Π ŷ)[i] = ŷ[PERM[i]] ;  PERM = MARK_PERM (표지 축), ZONE_PERM (구역 축), TEAM_PERM (팀 축), CELL_PERM (오브젝트·전환 칸 축)
             log 법칙의 평균은 기록된 틀(진영 표시 0)에서 계산하고, 진영 표시 1인 행은 그 결과에 Π를 쓴다 (Π는 자기 역이어서 같은 값이다)
             Σ_c p̄_c = 1 ; p̄_c ≥ ν/C   ((EH-4)의 공통 균등 혼합 하한)
+    (EH-10) ȳ(b) = ŷ(F_c(b)) (한 틀, average=False) ;  F_c(b) = 보기 v마다 swap b_v (c_v = 1) 또는 b_v (c_v = 0), 그 보기를 읽는 행의 조건과 정답도 같은 틀 (DAT-11) ;  평균도 Π도 없다
 
       기호      | 뜻                                                                | 단위 | 범위     | 코드 변수
       ŷ(b)      | 보기 묶음 b에서 머리가 낸 율 μ 또는 확률 p (p̂는 그 가운데 확률)  | —    | ≥ 0      | 머리의 반환값
@@ -602,6 +656,8 @@ class FrameAveraged(nn.Module):
       Π         | 맞바꾼 틀의 출력을 원래 틀로 되돌리는 축 순열                     | —    | —        | _back, _MARK, _ZONE, _TEAM, _CELL
       ȳ, p̄      | 프레임 평균한 율, 확률                                            | —    | ≥ 0      | 반환값
       진영 표시 | 묶음이 보기를 기록한 틀 (0 기록대로, 1 팀 교환)                   | —    | 0 또는 1 | enc.side
+      F_c(b)    | 동전 c대로 보기마다 틀을 고른 묶음 (한 틀)                         | —    | —        | data.swap_views, enc.rows
+      c_v       | 보기 v의 동전 (1이면 맞바꾼 틀)                                    | —    | 0 또는 1 | batch['swap_view']
 
     해석
     ----
@@ -610,6 +666,9 @@ class FrameAveraged(nn.Module):
     비트 단위의 불변을 위해 두 틀을 같은 모양의 별개 호출로 계산한다: 한 묶음에 쌓으면 같은 행이 놓이는 자리에 따라 반올림이 달라진다.
     log 법칙의 평균은 기록된 틀에서 계산한다: 벡터화한 exp·log1p는 같은 값도 버퍼의 자리에 따라 마지막 비트가 다르다.
     이 정확한 불변은 평가 모드에서만 성립한다: 드롭아웃을 켜면 두 틀의 마스크가 다르다.
+    한 틀 (EH-10)은 부호화기를 보기마다 한 번만 돌리므로 학습 비용이 두 틀 평균의 절반이다. 평균하지 않으므로 출력은 팀 교환에 불변이 아니다: 정확한 불변은 평가의 프레임 평균(eval_average=True)이 내고,
+    학습에서 보기마다 동전으로 틀을 고르면 같은 가중이 두 틀의 입력을 모두 보게 되어 가중 공유 교환 증강이 된다 (결정 D17의 C3 문구). 대칭 없음 점검(결정 D17)은 이 한 틀을 동전 없이(swap_mode='none')
+    쓰고 평가도 한 틀(eval_average=False)로 하여, 증강과 평균을 모두 뺀 모형을 잰다.
 
     근거
     ----
@@ -617,23 +676,40 @@ class FrameAveraged(nn.Module):
     Ref: Puny 외 2022 (위 Ref).
     """
 
-    def __init__(self, model):
+    def __init__(self, model, *, average: bool = True):
         super().__init__()
         if not callable(getattr(model, 'encode', None)) or not hasattr(model, 'heads'):
             raise TypeError('the model of a FrameAveraged must have encode(batch) and heads (an EPT)')
-        self.model = model
+        if not isinstance(average, bool):
+            raise TypeError(f'average must be True (both frames, the mean) or False (one frame), not {average!r}')
+        self.model, self.average = model, average
 
     def encode(self, batch: Mapping) -> FrameEncoded:
         """Encode ``batch`` (the view tensors; the keys of the row blocks are ignored) and, in a separate call on a batch of the same shape, its team swap.
 
-        해석: 두 틀을 한 묶음에 쌓지 않고 같은 모양의 별개 호출로 부호화해, 같은 행이 두 호출에서 같은 자리에서 같은 연산을 받게 한다.
+        ``average=False``: one call of the encoder on the views in their chosen frames (``data.swap_views`` for a batch with the coins ``swap_view``; the recorded views for a batch without);
+        ``swapped`` is None, ``rows`` the batch in those frames (None without coins). ValueError for a batch with ``swap_view`` under the average.
+
+        해석: 두 틀을 한 묶음에 쌓지 않고 같은 모양의 별개 호출로 부호화해, 같은 행이 두 호출에서 같은 자리에서 같은 연산을 받게 한다. 한 틀은 부호화기를 한 번만 부르고, 동전이 선 보기는
+        ``data.swap_views``가 입력과 그 보기를 읽는 행을 함께 맞바꾼 것을 부호화한다. 학습 고리는 이 변환을 복사 앞에서 CPU 배치에 이미 적용해 두므로(S4b 속도 개선 SPD 항목 1, 결정 D32,
+        ``batch_prep.prepare_batch``) 거기서 온 배치에는 동전이 없고 이 함수는 기록대로의 틀을 부호화한다. 동전이 든 배치를 직접 주는 쪽(시험, 다른 호출자)은 지금도 같은 결과를 얻는다
+        (같은 함수이고 모든 연산이 정확해서 어디서 적용해도 같은 비트이다).
         """
+        if not self.average:
+            framed = data.swap_views(batch) if 'swap_view' in batch else None
+            views = {k: (batch if framed is None else framed)[k] for k in data.VIEW_KEYS if k in batch}
+            return FrameEncoded(self.model.encode(views), None, views['side'] > 0.5, framed)
+        if 'swap_view' in batch:
+            raise ValueError('the batch has swap_view (one frame for each view) but this FrameAveraged averages both frames: use FrameAveraged(model, average=False)')
         views = {k: batch[k] for k in data.VIEW_KEYS if k in batch}          # the keys of the row blocks are no input and need no swap
         original = self.model.encode(views)
         return FrameEncoded(original, self.model.encode(data.swap(views)), views['side'] > 0.5)
 
     def m2(self, enc: FrameEncoded, exposure, pos=None) -> M2Out:
-        """(EH-9) for ``EPTHeads.m2``: the marks of ``mark_logp`` by ``MARK_PERM``, the marks and zones of ``zone_logp``; the rate has no axis to move."""
+        """(EH-9) for ``EPTHeads.m2``: the marks of ``mark_logp`` by ``MARK_PERM``, the marks and zones of ``zone_logp``; the rate has no axis to move.
+        An encoding of one frame (``enc.swapped`` None, ``average=False``) gives the answer of the heads for that frame, as it is (EH-10)."""
+        if enc.swapped is None:
+            return self.model.heads.m2(enc.original, exposure, pos)
         a, b = self.model.heads.m2(enc.original, exposure, pos), self.model.heads.m2(enc.swapped, exposure, pos)
         side = _side(enc, pos, a.rate)
         return M2Out(_mean(a.rate, b.rate), _log_mean(a.mark_logp, b.mark_logp, side, lambda t: _back(t, -1, _MARK)),
@@ -651,20 +727,30 @@ class FrameAveraged(nn.Module):
         - rate (Tensor): 원본과 교환 프레임 출력의 평균 기대 첫 킬 수, 형상 (n, 18).
 
         동작 및 대체 규칙:
-        - 학습 모드(self.training 또는 heads.training)이거나 하위 머리에 m2_rate가 없거나 호출 불가능한 레거시 mock 객체인 경우, 전체 m2를 호출하여 난수 소비(RNG)와 기존 프로토콜을 그대로 보존한다.
-        - 평가 모드이면서 m2_rate 호출이 지원되는 경우에만 표지·구역 분기를 건너뛰고 양쪽 프레임의 rate만 각각 계산한 뒤 _side 검증을 거쳐 평균을 취한다.
+        - 하위 머리에 호출 가능한 m2_rate가 있으면 학습·평가 모드와 관계없이 표지·구역 분기를 건너뛰고 양쪽 프레임의 rate만 각각 계산한 뒤 _side 검증을 거쳐 평균을 취한다.
+          학습 모드에서도 값과 기울기는 m2(...).rate와 비트 단위로 같다: 건너뛴 분기는 rate와 손실 그래프에 들어가지 않고 EPTHeads에 난수 연산이 없다 (EPT-T011 A2-F10;
+          CPU에서 시험했으며 GPU는 시험하지 않았다).
+        - 하위 머리에 m2_rate가 없거나 호출 불가능한 레거시 mock 객체이면 전체 m2를 호출해 그 rate를 취하여 기존 프로토콜을 그대로 보존한다.
         - 드롭아웃이 비활성화된 평가 모드에서 정확한 팀 교환 불변성이 성립한다."""
         rate = getattr(self.model.heads, 'm2_rate', None)
-        if self.training or getattr(self.model.heads, 'training', False) or not callable(rate):
+        if not callable(rate):
             return self.m2(enc, exposure, pos).rate
+        if enc.swapped is None:                   # one frame (S4b preparation M7, EH-10): the rate-only call of the heads for that frame, nothing to average
+            return rate(enc.original, exposure, pos)
         a, b = rate(enc.original, exposure, pos), rate(enc.swapped, exposure, pos)
         _side(enc, pos, a)                    # retain the side/row selection of the full M2 path
         return _mean(a, b)
 
     def m3(self, enc: FrameEncoded, q, m, z, pos=None) -> M3Out:
-        """(EH-9) for ``EPTHeads.m3``: the teams of ``kill_rate`` and ``gold_logp`` by ``TEAM_PERM``; the size law has no axis to move."""
+        """(EH-9) for ``EPTHeads.m3``: the teams of ``kill_rate`` and ``gold_logp`` by ``TEAM_PERM``; the size law has no axis to move.
+
+        이동 킬 법칙 (S4b 준비 M1, 결정 D5)에서도 이 평균은 바뀌지 않는다. 팀 t 칸의 값은 그 틀의 첫 킬 팀 d에 따라 λ_d(t = d) 또는 μ(t ≠ d)의 뜻을 갖는데, 팀을 맞바꾼 틀의 첫 킬 팀은
+        1 − d이고 그 틀의 출력을 ``TEAM_PERM``으로 되돌리면 맞바꾼 틀에서 팀 1 − t의 칸이 원래 틀의 팀 t 칸으로 온다. t = d이면 맞바꾼 틀의 (1 − d) 칸, 곧 그 틀의 첫 킬 팀 칸(λ)이 오므로
+        평균은 항상 같은 뜻(λ는 λ와, μ는 μ와)끼리 이루어진다. 손실이 쓰는 d는 기록된 틀의 것이고 평균한 출력도 기록된 틀에 있다."""
         like = enc.original.h_pool
         q, m, z = _reading(_row_count(enc.original, pos), like, q, m, z)
+        if enc.swapped is None:                   # one frame (S4b preparation M7, EH-10): the conditions are already those of the frame of each view
+            return self.model.heads.m3(enc.original, q, m, z, pos)
         s = _swapped(m=m, z=z)
         a, b = self.model.heads.m3(enc.original, q, m, z, pos), self.model.heads.m3(enc.swapped, q, s['m'], s['z'], pos)
         side = _side(enc, pos, a.kill_rate)
@@ -676,6 +762,8 @@ class FrameAveraged(nn.Module):
         like, n = enc.original.h_pool, _row_count(enc.original, pos)
         q, m, z = _reading(n, like, q, m, z)
         s, K = _whole('s', s, n, 0, N_SIZE - 1, like), _counts('K', K, n, N_K, like)
+        if enc.swapped is None:                   # one frame (S4b preparation M7, EH-10)
+            return self.model.heads.m3_obj(enc.original, q, m, z, s, K, pos)
         t = _swapped(m=m, z=z, K=K)
         a = self.model.heads.m3_obj(enc.original, q, m, z, s, K, pos)
         return _mean(a, _back(self.model.heads.m3_obj(enc.swapped, q, t['m'], t['z'], s, t['K'], pos), -1, _CELL))
@@ -685,6 +773,8 @@ class FrameAveraged(nn.Module):
         like, n = enc.original.h_pool, _row_count(enc.original, pos)
         q, m, z = _reading(n, like, q, m, z)
         K, O, window = _counts('K', K, n, N_K, like), _counts('O', O, n, N_CELLS, like), _window(exposure, n, like)
+        if enc.swapped is None:                   # one frame (S4b preparation M7, EH-10)
+            return self.model.heads.m4(enc.original, q, m, z, K, O, window, pos)
         t = _swapped(m=m, z=z, K=K, O=O)
         a = self.model.heads.m4(enc.original, q, m, z, K, O, window, pos)
         return _mean(a, _back(self.model.heads.m4(enc.swapped, q, t['m'], t['z'], t['K'], t['O'], window, pos), -1, _CELL))

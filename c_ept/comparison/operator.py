@@ -118,7 +118,8 @@ def start(c,config_path):
         budget.abort(f'{type(exc).__name__}: {exc}',phase=phase,model=model)
         atomic_json(output/'FINAL.json',{'schema':'ept-comparison-final-v1','state':state,
                     'config_sha256':P.digest(c),'source_commit':c['source_commit'],
-                    'error':f'{type(exc).__name__}: {exc}','campaign_ledger':ledger.snapshot()})
+                    'error':f'{type(exc).__name__}: {exc}','exception_type':type(exc).__name__,
+                    'campaign_ledger':ledger.snapshot()})
         raise
     return {'state':state,'output':str(output)}
 
@@ -152,6 +153,7 @@ def main(argv=None):
     parser.add_argument('--model',choices=P.MODELS)
     parser.add_argument('--await-job-binding',action='store_true')
     args=parser.parse_args(argv)
+    c=None
     try:
         c=P.load_config(args.config)
         if args.action=='Worker':
@@ -166,7 +168,13 @@ def main(argv=None):
         print(json.dumps(result,ensure_ascii=False,allow_nan=False))
         return 0
     except (ValueError,RuntimeError,OSError,KeyError) as err:
-        print('Comparison refused: '+str(err),file=sys.stderr)
+        # ComparisonRefused and the S4a RuntimeRefused are guard refusals: the prepare stage reuses run_s4a.inspect_inputs, whose refusals (for
+        # example the terrain check) are the same one-line guards as in S4a and T002. Any other error keeps its class name and a traceback (A5-F8).
+        # A worker has loaded match data, so its text is scrubbed with the keys of the S1 store; Check, Start and Status read metadata only.
+        from c_ept.workflows.run_s4a import failure_report
+        from c_ept.workflows.s4a_runtime import RuntimeRefused
+        s1=c['inputs']['s1']['root'] if c is not None and args.action=='Worker' else None
+        print(failure_report('Comparison refused',err,(P.ComparisonRefused,RuntimeRefused),s1=s1),file=sys.stderr)
         return 2
 
 

@@ -211,6 +211,8 @@ def status(control, c):
     result['process_evidence'] = evidence['kind']
     result['process_state'] = process['state']
     result['recorded_exit_code'] = process['exit_code']
+    if 'exception_type' in process:                  # additive field of a failed run: tells a guard refusal from a computational error
+        result['recorded_exception_type'] = process['exception_type']
     same = evidence['kind'] == 'observed' and evidence.get('create_time') == process['create_time']
     if process['state'] == 'running':
         result['state'] = 'running' if same else 'interrupted_unconfirmed' if evidence['kind'] == 'missing' else 'unknown'
@@ -247,7 +249,10 @@ def main(argv=None):
         return runner.main(['--config', str(path), '--control', str(control),
                             '--operator-config-sha256', config_digest(c)])
     except (OperatorError, RuntimeRefused, OSError, ValueError) as exc:
-        print('EPT training refused: ' + str(exc), file=sys.stderr)
+        # Only the guard types are refusals; any other OSError/ValueError keeps its class name and a traceback (A5-F8). This operator reads
+        # metadata only (Start hands over to the runner, which has its own handler), so there is no match data to scrub from the text.
+        from c_ept.workflows.run_s4a import failure_report
+        print(failure_report('EPT training refused', exc, (OperatorError, RuntimeRefused)), file=sys.stderr)
         return 2
 
 

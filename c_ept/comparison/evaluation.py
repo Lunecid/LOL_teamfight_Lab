@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import numpy as np
 
+from . import protocol as P
+
 
 def _aligned(left, right, fields):
     if len(left) != len(right):
@@ -52,15 +54,20 @@ def neural_pair(ept_result, n2_result):
 
 
 def summarize_pairs(ept_result, n2_result, *, bootstrap=2000, seed=20261022, check=None):
-    from c_ept.evaluation.metrics import summarize_endpoints
+    from c_ept.evaluation.metrics import LIMITATIONS, summarize_endpoints
     paired=neural_pair(ept_result,n2_result)
     outputs={}
     for name,result,labels in (
         ('ept_vs_b1',ept_result,{'ept':'EPT','b1':'B1'}),
         ('n2_vs_b1',n2_result,{'ept':'N2','b1':'B1'}),
         ('ept_vs_n2',paired,{'ept':'EPT','b1':'N2'})):
+        # The 'b1' slot is the comparator of the pair (B1, or N2 in ept_vs_n2). The text names the real
+        # pair and the matched design; the T003 "existing whole-FIT B1 / unequal scope" wording does not apply here.
+        text=P.matched_text(labels['ept'],labels['b1'])
         summary=summarize_endpoints(result['endpoints'],result['nll'],
-                                     bootstrap=bootstrap,seed=seed,check=check)
+                                     bootstrap=bootstrap,seed=seed,check=check,
+                                     comparison=text['comparison'],delta_label=text['delta'],
+                                     limitations=[*LIMITATIONS,P.MATCHED_LIMITATION])
         summary['model_labels']=labels
         summary['interpretation']='diagnostic_only'
         outputs[name]=summary
@@ -72,6 +79,6 @@ def run_three(bundle, ept, n2, stats, b1, *, check, device='cuda', batch_size=32
               bootstrap_seed=20261022):
     from c_ept.evaluation.adapters import run_inference
     common=dict(check=check,device=device,batch_size=batch_size,draws=draws,seed=seed,scales=scales)
-    a=run_inference(bundle,ept,stats,b1,**common)
-    b=run_inference(bundle,n2,stats,b1,**common)
+    a=run_inference(bundle,ept,stats,b1,comparison=P.matched_text('EPT','B1')['comparison'],**common)
+    b=run_inference(bundle,n2,stats,b1,comparison=P.matched_text('N2','B1')['comparison'],**common)
     return summarize_pairs(a,b,bootstrap=bootstrap,seed=bootstrap_seed,check=check)

@@ -19,7 +19,7 @@
 ## 성공·미결·철회 기준
 
 1. 공학 gate: membership/role/target/exposure/row identity, selected-FIT fitting, 유효한 확률/NLL, architecture-bound best checkpoint, source/config/input hash, phase/전체 예산·Job cleanup·독립 검토가 모두 통과해야 후속 실행을 검토한다. 하나라도 실패하면 실행 불가이며 자동 재시도/Resume/작은 batch 대체를 하지 않는다.
-2. pilot 손실 차이는 `score(EPT)-score(대조)`다. 음수는 잠정 개선,0 이상은 확장 전 원인 진단이다. 단일 seed의 점 차이/경기 bootstrap만으로 confirmed_success나 최종 연구 성공을 출력하지 않는다. 구간이0을 포함하면 미결이며 동등성 증명이 아니다. `pilot_decision`은 항상 `confirmed_success=false`다.
+2. pilot 손실 차이는 `score(EPT)-score(대조)`다. 상태는 경기 단위 짝 bootstrap 95% 구간 [lo, hi]로 정하며 점 차이의 부호만으로 정하지 않는다. 구간이 `available`이고 유한하며 lo ≤ hi일 때만 쓰고, hi < 0이면 잠정 개선(`provisional_improvement`), lo > 0이면 확장 전 원인 진단(`diagnose_before_expansion`), 그 밖에는 미결(`inconclusive`)이다. 구간이 없거나 유효하지 않으면 미결이고, 경계는 엄격해서 hi = 0이나 lo = 0도 0을 포함하므로 미결이다. 단일 seed의 점 차이/경기 bootstrap만으로 confirmed_success나 최종 연구 성공을 출력하지 않는다. 구간이0을 포함하면 미결이며 동등성 증명이 아니다. `pilot_decision`은 항상 `confirmed_success=false`다.
 3. 향후 확증 조건은 기존 세 seed 짝 차이 부호 일치·EPT에 유리한95% 경기 bootstrap 구간과 해당 원 Holm 규칙이다. EPT–B1 주 비교를 이기지 못하면 구조 우위를 주장하지 않고 원 규칙대로 B1을 주 결과로 둔다. N2 대비 이득이 불확실하면 복잡한 인코더의 추가 이득을 주장하지 않는다. N2는 prospective 승인 전 보조 비교다. 다른 유리한 대조로 실패한 주 비교를 대체하지 않는다.
 4. primary 구조는 M2 masked3+M3/M4 open5의 원 공통8 head·고정 B0 scale이다.13개 training block 합과 혼동하지 않는다. 각 조건부 module/endpoint의 NLL·AUC·Brier는 기존 T003 정의와 경기당1/n_m 가중을 유지한다. AUC는 weighted pooled 값이며 종합 AUC를 만들지 않는다. 빈/단일-class의 unavailable을0으로 바꾸지 않는다.
 5. shared B1 reference 결과와 모든 행/정답/scale를 EPT/N2 사이에서 맞춘 뒤 세 쌍을 보고한다. 다른 행을 inner join으로 버리지 않는다. N2 결과를 EPT라는 이름으로 표시하지 않는다. CAL/AUDIT/TEST/외부 평가는 열지 않는다. 합성 V_start 확증과 전체 연구 목표 판정은 이 모듈 진단 바깥이다.

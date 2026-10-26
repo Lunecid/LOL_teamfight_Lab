@@ -221,6 +221,9 @@ def load_neural_best(c,model,static,device):
     P.require(head['done'] is True and head['best_epoch']==info['best_epoch'] and head['best']==info['best'],
               'best pointer differs from final head')
     P.require(head['identity']['model_spec']==spec,'head architecture differs')
+    from c_ept.evaluation.guard import unpassed_evaluation_settings
+    unpassed=unpassed_evaluation_settings(head['identity'])      # the plain model and the default run_inference would evaluate such a checkpoint as another design
+    P.require(not unpassed,f'the checkpoint was trained with settings that this evaluation does not pass on: {unpassed}')
     P.require(head['identity']['static_sha256']==hashlib.sha256(static.tobytes()).hexdigest(),'static input differs')
     best=P.inside(folder/'model',head['best']['folder'])/'best.pt'
     P.require(best.is_file() and not best.is_symlink() and best.stat().st_size==head['best']['bytes'], 'invalid best-only file')
@@ -296,9 +299,13 @@ def evaluate(c,model,check):
     b1=B1Heads.load(stage_path(c,'fit','b1')/'model')
     fitted=load_neural_best(c,model,bundle.static,'cuda')
     check()
+    # Matched design: this model and B1 were fitted on the same selected 25% membership. The neural model read the shared Stats;
+    # B1 did not (it fitted its own dropped columns on the selected FIT). The provenance text says exactly that; the T003 default
+    # ("existing whole-FIT B1; unequal scope") describes another design.
     result=run_inference(bundle,fitted,stats,b1,check=check,device='cuda',
                          batch_size=c['settings']['batch_size'],draws=c['settings']['mc_draws'],
-                         seed=c['settings']['mc_seed'],scales=scales)
+                         seed=c['settings']['mc_seed'],scales=scales,
+                         comparison=P.matched_text({'ept':'EPT','n2':'N2'}[model],'B1')['comparison'])
     result['provenance'].update(model=model,membership_sha256=member.sha256,stats_sha256=stats.sha256)
     artifacts=save_predictions(result,folder/'predictions')
     verify_bundle(bundle);check()

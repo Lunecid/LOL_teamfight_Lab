@@ -17,12 +17,19 @@ r"""EPT의 자료 층 (S4a 과제 1): S2 보기를 신경망 입력 텐서로 �
              z ↦ ZONE_PERM[z] (z ≥ 0) ;  K ↦ (K₂, K₁, K₄, K₃) ;  O는 두 팀 칸을 맞바꿈 ;  side ↦ 1 − side
     (DAT-7)  대리 경기: M′ = max(1, ⌈ζ M⌉), 시드 순열 ω_{seed,role}로 섞은 경기 열의 앞 M′개 (작은 몫이 큰 몫 안에 든다).
     (DAT-8)  배치: J = ⌈N / L⌉ ;  교전 열과 프레임 행 열을 ω_{seed,epoch}로 섞어 J덩어리로 나눈다.
+    (DAT-9)  뺀 열 (S4b 준비 M5, 결정 D7·D12): 열 c ∈ Ω_drop이면 x̃_c = 0 (표준화 뒤 0으로 고정), 값이 하나도 없던 열(n_c = 0)이면 가림 채널 ν_c도 0.
+             Ω_drop = Ω_store ∪ Ω_sub ;  Ω_store = {c : 전체 FIT 저장소에서 (짝과 합쳐) 값이 하나뿐이거나 없음} ∪ {t_s} ;  Ω_sub = {c : 이 실행의 선택된 FIT에서 (짝과 합쳐) 상수}
+    (DAT-10) 통계의 모집단 (결정 D12): 'whole_fit'은 FIT 전체, 'selected_fit'은 선택한 경기 M_sel만 : (n, x̄, D) = Σ_{경기 ∈ M_sel} (보기 덩어리의 (DAT-3) 병합)
+    (DAT-11) 보기 단위 무작위 교환 (S4b 준비 M7, 결정 D10 P1·D17, 계획 Q3): c_v ~ Bernoulli(½), (c_v)_v = 생성기 SeedSequence([s, e, j, 0x5157])의 동전 ;
+             보기 v의 입력 = x_v (c_v = 0) 또는 S(x_v) (c_v = 1) ;  보기 v(i)를 읽는 행 i의 조건과 정답 = y_i (c_{v(i)} = 0) 또는 S(y_i) (c_{v(i)} = 1) ;  S = (DAT-6)의 팀 교환
 
 기호 (단위와 범위는 식을 계산하는 함수의 표에 있다)
 
     x, x̃  표의 한 칸의 값(모형 입력 x의 한 성분), 표준화한 값      x₀, σ  중심, 척도        ν  가림 표시      W = 14,875  지도 폭 (맵 단위)
+    Ω_drop, Ω_store, Ω_sub  뺀 열의 집합, 전체 FIT 저장소에서 상수인 열(D7 목록), 선택된 FIT에서만 상수인 열      M_sel  선택한 FIT 경기
     n, x̄, D  NaN을 뺀 개수, 평균, 평균에서 잰 제곱합              h, h′  요약 열과 팀 교환이 짝지우는 열      ξ  선수 번호 (0–4 파랑, 5–9 빨강)
     M, M′, ζ  경기 수, 뽑은 경기 수, 몫      N, L, J  교전 수, 배치당 교전 수, 에폭의 배치 수      ω  시드로 만든 임의 순열
+    c_v, s, e, j  보기 v의 동전(1이면 맞바꾼 틀), 배치 시드, 에폭 번호, 에폭 안의 배치 번호      v(i)  행 i가 읽는 보기(pos)      S  팀 교환 (DAT-6)
     m, z, K, O, f, δ, t₀  식 색인 기호 등록부의 뜻 그대로
 
 가정과 선택
@@ -33,17 +40,22 @@ r"""EPT의 자료 층 (S4a 과제 1): S2 보기를 신경망 입력 텐서로 �
     · 팀 교환이 입력의 정확한 변환이 되도록 표준화를 고른다 (R-S4a-3): 위치 열은 평균이 아니라 W/2에서 재고 (DAT-4), 팀 교환이 맞바꾸는 두 요약
       열은 통계를 나눠 쓴다 (DAT-5). 그래서 표준화한 보기에 swap을 쓴 결과는 원자료 보기를 symmetry.swap_view로 맞바꾸고(표지점 행과 geo_pl
       열은 LANDMARK_PERM으로 옮긴다) 표준화한 결과와 0의 부호 비트까지 같다. 위치가 정수이고 부호를 0.0 − x̃로 바꿀 때이며, 시험이 확인한다.
-    · 요약의 t_s는 game_time_s와 항상 같은 짝 열이라 입력에서 뺀다 (tokens 모듈 머리). 그 밖에 FIT에서 상수인 열은 입력에 남고 척도만 1이다.
+    · 요약의 t_s는 game_time_s와 항상 같은 짝 열이라 입력에서 뺀다 (tokens 모듈 머리). 그 밖에 FIT에서 상수인 열은 기본값(column_drop='none')에서는 입력에 남고
+      척도만 1이다 (이전 실행들). column_drop='store'·'store_and_subset'(S4b 준비 M5, 결정 D7·D12)이면 그 열들을 표준화한 뒤 0으로 고정한다: 입력 폭은 그대로이고
+      (모형 모양이 자료에 따라 바뀌지 않게 한다, 계획 Q5), 입력이 0이므로 첫 층의 그 열 가중에는 기울기가 가지 않으며, 다른 역할의 자료에서 FIT에는 없던 값이
+      들어와도 모형이 보지 못한다. 목록은 STATS.json에 이름과 해시로 남는다. 팀 교환이 맞바꾸는 요약 열 짝은 합친 값으로 판정해 함께 뺀다 (DAT-5와 같은 이유).
     · 허용된 칸 밖의 NaN, 한 좌표만 빈 위치, 모든 무한대는 오류로 멈춘다 (검토 초점 3). 그래서 신경망에 NaN이 흘러들 수 없다.
     · 사건과 간선의 개수는 저장소 목록(STORE.json)의 모양에서 읽는다. 코드에 적어 두지 않는다 (판정 R-S4a-1).
 
 입력과 출력
 
-    fit_stats(s1, s2)             → Stats (JSON과 해시로 저장)
+    fit_stats(s1, s2)             → Stats (JSON과 해시로 저장; column_drop·stats_population·store_constant은 S4b 준비 M5)
+    store_constant_columns(s2, fit_views) → 전체 FIT 저장소에서 상수인 열의 이름 (D7 목록; 짝을 합쳐 판정)
     ViewTensors(s2, views, stats) → dict[str, torch.Tensor] (VIEW_KEYS)
     swap(batch)                   → 팀을 맞바꾼 새 배치 (입력과 정답을 함께; 표는 MARK_PERM 등으로 내보낸다)
+    swap_views(batch)             → 배치의 swap_view(보기마다 bool)대로 보기를 맞바꾼 새 배치: 맞바꾼 보기와 그 보기를 읽는 행이 함께 (S4b 준비 M7)
     proxy_matches(s1)             → FIT와 STOP의 대리 경기
-    ept_head_rows, EngagementRows, Batches  → head_rows의 행과 정답을 교전 단위로 묶어 섞은 배치 (ROW_FIELDS, row_key, block)
+    ept_head_rows, EngagementRows, Batches  → head_rows의 행과 정답을 교전 단위로 묶어 섞은 배치 (ROW_FIELDS, row_key, block; swap_mode는 S4b 준비 M7)
 """
 # Ref: docs/superpowers/specs/2026-10-20-c-ept-design.md section 4 (two clocks and masking) and 5.2 (symmetry: rotation by 180 degrees plus
 #      a side marker, outputs swapped with it).
@@ -55,6 +67,13 @@ r"""EPT의 자료 층 (S4a 과제 1): S2 보기를 신경망 입력 텐서로 �
 #      Bibliographic data read from the DOI record (Crossref API) on 2026-10-22.
 # Ref: ruling R14 (statistics on FIT only), R18 (rows and targets from head_rows), R-S4a-1 (shapes from the manifest), R-S4a-3 (the centre W/2
 #      of the position columns and the pooled statistics of the exchanged summary columns, so that standardising commutes with the swap).
+# Ref: S4b preparation M5: author decision D7 (the columns with zero variance over the full FIT store, and t_s, leave the EPT inputs; the list and its hash
+#      are recorded; the baselines use the same list; swap-pair columns are judged on their pooled values) and D12 (the input statistics come from the
+#      selected FIT of each run; a column constant only inside that selection is dropped for that run alone), plan question Q5 (the input width stays).
+# Ref: S4b preparation M7: author decisions D10 P1 (training encodes one frame of every view, swapped with probability 1/2, inputs and targets swapped together; the
+#      evaluation keeps the two-frame average) and D17 (the 'no symmetry' check: no swap augmentation and no evaluation average), plan question Q3 (the unit of the swap
+#      is the view, the coins come from SeedSequence([seed, epoch, batch index, 0x5157]) and never from the global random streams). The choice of the random frame and
+#      of its unit is these decisions of the author; no paper prescribes it (the frame average of ``heads`` cites its own source).
 from __future__ import annotations
 
 import json
@@ -245,6 +264,61 @@ def _read_checked(s2, idx: np.ndarray, layout: SimpleNamespace) -> dict:
     return a
 
 
+# ---- the columns that are dropped (S4b preparation M5, decisions D7 and D12) ------------------------------------------------------------
+_V2_KEYS = frozenset({'population', 'column_drop', 'dropped', 'dropped_store', 'dropped_sha256', 'dropped_store_sha256'})        # the fields that version 2 adds
+COLUMN_DROPS = ('none', 'store', 'store_and_subset')         # which columns are dropped: none (every earlier run), the D7 list, the D7 list and the run's own constant columns
+POPULATIONS = ('whole_fit', 'selected_fit')                  # the views the statistics are measured on: all FIT views (every earlier run), those of the selected FIT matches
+COLUMN_DROP_SCOPE = 'D7 list: the whole FIT store; the columns constant only inside the selected FIT: this run (D12)'      # the text of the receipts of a dropping run
+AGE_COLUMN = 'frame_age_s'                                 # the age input (the clock of a view): never dropped
+_SUMMARY_STORE = tuple(tokens.SUMMARY)                       # the 107 columns of the store: SUMMARY_COLUMNS and t_s
+_DROP_RANK = {name: rank for rank, name in enumerate(_SUMMARY_STORE + PLAYER_COLUMNS)}       # the order of the lists: the summary columns, then the player columns
+_SWAP_PARTNER = {_SUMMARY_STORE[i]: _SUMMARY_STORE[int(j)] for i, j in enumerate(symmetry.SUMMARY_SWAP)}       # the summary column that the team swap exchanges with it
+_NO_ZERO = tuple(np.empty(0, dtype=np.int64) for _ in range(4))
+
+
+def _canonical_names(what: str, names) -> tuple:
+    """``names`` (a list or tuple of column names, no repeat, each a summary or a player column of the S2 store) as a tuple in the order of ``_DROP_RANK``;
+    ValueError naming ``what`` otherwise."""
+    if isinstance(names, str) or not isinstance(names, (list, tuple)):
+        raise ValueError(f'{what} must be a tuple of column names, not {type(names).__name__}')
+    unknown = sorted({n for n in names if not isinstance(n, str) or n not in _DROP_RANK})
+    if unknown:
+        raise ValueError(f'{what}: {", ".join(map(str, unknown))} is no summary or player column of the S2 store')
+    if len(set(names)) != len(names):
+        raise ValueError(f'{what} names a column twice')
+    return tuple(sorted(names, key=_DROP_RANK.__getitem__))
+
+
+def _check_drop_list(names: tuple) -> None:
+    """ValueError unless the list drops ``frame_age_s`` never and drops both columns of every pair of summary columns that the team swap exchanges.
+
+    해석: 프레임 나이는 두 시계를 알리는 입력(식 (ENC-3)의 Z_v)이라 빼면 모형이 프레임 시계와 사건 시계를 구별하지 못한다. 팀 교환이 맞바꾸는 열 한 쌍에서 한쪽만 빼면
+    교환 뒤에 그 자리에 다른 열의 값이 들어오므로 입력이 교환에 닫히지 않는다: 짝은 함께 뺀다 (결정 D7, DAT-5와 같은 이유).
+    """
+    if AGE_COLUMN in names:
+        raise ValueError(f'{AGE_COLUMN} is the age input and is never dropped')
+    for name in names:
+        if name in _SWAP_PARTNER and _SWAP_PARTNER[name] not in names:
+            raise ValueError(f'{name} is dropped without {_SWAP_PARTNER[name]}, the column that the team swap exchanges with it: a pair goes together')
+
+
+def _zero_plan(arrays: Mapping, dropped: tuple) -> tuple:
+    """``(player columns, summary columns, player mask channels, summary mask channels)`` that ``ViewTensors`` sets to 0 for the list ``dropped``: every
+    dropped column of the two tables, and the mask channel of a dropped column that has no value at all in the statistics (``count`` 0; the channel would be
+    a constant 1 there). A dropped column that has values keeps its mask channel: where its cells are missing is still information.
+
+    해석: 열이 상수이면 모형에 주는 정보가 없지만 NaN이 어디 있는지는 가림 채널이 따로 알린다. 값이 하나도 없던 열은 가림 채널도 상수 1이라 함께 뺀다 (결정 D7).
+    """
+    def pick(table: str, columns: tuple, nan_columns: tuple) -> tuple:
+        cs = arrays.get(table)
+        at = [j for j, name in enumerate(columns) if name in dropped]
+        empty = [nan_columns.index(columns[j]) for j in at if columns[j] in nan_columns and cs is not None and int(cs.count[j]) == 0]
+        return np.array(at, dtype=np.int64), np.array(sorted(empty), dtype=np.int64)
+    players, players_nan = pick('players_num', PLAYER_COLUMNS, PLAYER_NAN_COLUMNS)
+    summary, summary_nan = pick('summary', SUMMARY_COLUMNS, SUMMARY_NAN_COLUMNS)
+    return players, summary, players_nan, summary_nan
+
+
 # ---- the statistics of the FIT views ---------------------------------------------------------------------------------------------------
 @dataclass(frozen=True, eq=False)
 class ColumnStats:
@@ -269,20 +343,67 @@ class Stats:
     ``summary``, ``landmarks``, ``geo_pp``, ``geo_pl``, ``ev_dt``, ``ev_gold``, ``ev_xy``) to its ``ColumnStats``, ``n_views`` is the number
     of FIT views read and ``role`` the role they came from, which can only be FIT (ruling R14): ValueError for another role, when a
     ``Stats`` is made and when a file is loaded. ``sha256`` is the hash of the content (``runlog.sha256_json``); ``save`` writes it into
-    the JSON file and ``load`` refuses a file whose content does not give the hash it states."""
+    the JSON file and ``load`` refuses a file whose content does not give the hash it states.
+
+    S4b preparation M5 (decisions D7, D12) adds four fields, all with the default of every earlier run. ``column_drop`` is how the columns were
+    chosen ('none': none are dropped; 'store': the D7 list only; 'store_and_subset': the D7 list and the columns that are constant inside the
+    selected FIT of this run). ``dropped`` is the list of the dropped columns (names of the S2 summary and player columns, in the order of
+    ``tokens.SUMMARY`` and then ``tokens.PLAYER_NUM``; it always holds ``dropped_store``), ``dropped_store`` the D7 list over the whole FIT store
+    (always with ``t_s``), ``population`` the FIT views the statistics were measured on ('whole_fit' or 'selected_fit'). A dropped column is
+    exactly 0 after the standardisation (``ViewTensors``) and, if it had no FIT value at all, so is its mask channel; the width of the inputs does not
+    change. The drop covers the standardised tables ``players`` and ``summary`` (and their mask channels), not the raw positions ``players_xy``, which the geometry and the
+    terrain field read (a position column is dropped only if it is constant at W/2, so this does not arise on real data). For a swap pair of summary columns the count of "no
+    FIT value" is the pooled count of the pair, so both halves keep or lose their mask channel together. ValueError for a name that is no column, for ``frame_age_s`` (the age input is never dropped), for a list that drops one half of a pair of
+    summary columns that the team swap exchanges, and for lists that do not fit ``column_drop``. With all four at their defaults the body, the hash
+    and the file are those of every earlier run (version 1); otherwise the body is version 2 and holds the four fields and the hash of each list."""
     arrays: Mapping[str, ColumnStats]
     n_views: int
     role: str = 'FIT'
+    dropped: tuple = ()
+    dropped_store: tuple = ()
+    population: str = 'whole_fit'
+    column_drop: str = 'none'
 
     def __post_init__(self):
         if self.role != 'FIT':
             raise ValueError(f'the statistics are those of the FIT views only (ruling R14), not of {self.role!r}')
+        if self.column_drop not in COLUMN_DROPS:
+            raise ValueError(f'column_drop must be one of {COLUMN_DROPS}, not {self.column_drop!r}')
+        if self.population not in POPULATIONS:
+            raise ValueError(f'the population of the statistics must be one of {POPULATIONS}, not {self.population!r}')
+        dropped, store = _canonical_names('dropped', self.dropped), _canonical_names('dropped_store', self.dropped_store)
+        if self.column_drop == 'none':
+            if dropped or store:
+                raise ValueError("column_drop 'none' drops no column, but a list of dropped columns is given")
+        else:
+            if 't_s' not in store:
+                raise ValueError("the list of the whole FIT store (decision D7) always holds t_s: dropped_store is empty or is another list")
+            if not set(store) <= set(dropped):
+                raise ValueError('dropped_store (the D7 list) must be part of dropped')
+            if self.column_drop == 'store' and dropped != store:
+                raise ValueError("column_drop 'store' drops the columns of dropped_store and no others")
+            _check_drop_list(dropped)
+            _check_drop_list(store)
+        object.__setattr__(self, 'dropped', dropped)
+        object.__setattr__(self, 'dropped_store', store)
+        object.__setattr__(self, '_zero', _zero_plan(self.arrays, dropped) if dropped else _NO_ZERO)
+
+    @property
+    def zero_plan(self) -> tuple:
+        """``(player columns, summary columns, player mask channels, summary mask channels)``: the numbers of the input columns that ``ViewTensors`` sets to 0
+        (empty arrays for the statistics of every earlier run)."""
+        return self._zero
 
     def _body(self) -> dict:
-        return {'version': 1, 'kind': 'ept_view_stats', 'role': self.role, 'n_views': int(self.n_views), 'centre': CENTRE,
+        body = {'version': 1, 'kind': 'ept_view_stats', 'role': self.role, 'n_views': int(self.n_views), 'centre': CENTRE,
                 'columns': {'players_num': list(PLAYER_COLUMNS), 'summary': list(SUMMARY_COLUMNS)},
                 'arrays': {name: {'centre': cs.centre.tolist(), 'scale': cs.scale.tolist(), 'count': cs.count.tolist()}
                            for name, cs in sorted(self.arrays.items())}}
+        if self.column_drop != 'none' or self.population != 'whole_fit':
+            # absent means the defaults: statistics of the whole FIT with no dropped column have the body, the hash and the file of every earlier run
+            body.update(version=2, population=self.population, column_drop=self.column_drop, dropped=list(self.dropped), dropped_store=list(self.dropped_store),
+                        dropped_sha256=runlog.sha256_json(list(self.dropped)), dropped_store_sha256=runlog.sha256_json(list(self.dropped_store)))
+        return body
 
     @property
     def sha256(self) -> str:
@@ -312,7 +433,21 @@ class Stats:
             raise ValueError('the statistics belong to another set of player or summary columns than this code reads')
         arrays = {name: ColumnStats(np.array(v['centre'], dtype=np.float64), np.array(v['scale'], dtype=np.float64),
                                     np.array(v['count'], dtype=np.int64)) for name, v in js['arrays'].items()}
-        return cls(arrays=arrays, n_views=int(js['n_views']), role=js['role'])
+        version, extra = js.get('version'), {}
+        if version not in (1, 2) or isinstance(version, bool):
+            raise ValueError(f'the statistics file has the version {version!r}; this code reads the versions 1 and 2')
+        if version == 1 and _V2_KEYS & set(js):
+            raise ValueError('a statistics file of version 1 holds fields of version 2: ' + ', '.join(sorted(_V2_KEYS & set(js))))
+        if version == 2:
+            if js.get('column_drop') == 'none' and js.get('population') == 'whole_fit':
+                raise ValueError('a statistics file of version 2 with both settings at their defaults is refused: that content is version 1 (one content, one hash)')
+            if not _V2_KEYS <= set(js):
+                raise ValueError('a statistics file of version 2 lacks the fields ' + ', '.join(sorted(_V2_KEYS - set(js))))
+            for name in ('dropped', 'dropped_store'):
+                if not isinstance(js[name], list) or runlog.sha256_json(js[name]) != js[f'{name}_sha256']:
+                    raise ValueError(f'the list {name} of the statistics file does not give the hash that the file states for it')
+            extra = dict(dropped=tuple(js['dropped']), dropped_store=tuple(js['dropped_store']), population=js['population'], column_drop=js['column_drop'])
+        return cls(arrays=arrays, n_views=int(js['n_views']), role=js['role'], **extra)
 
 
 def _merge(n_a, mean_a, m2_a, n_b, mean_b, m2_b) -> tuple:
@@ -375,12 +510,50 @@ class _Moments:
         none = (n == 0) | (lo == hi) | (var <= 0)
         return ColumnStats(centre, np.where(none, 1.0, np.sqrt(var)), n)
 
+    def constant(self, centred=(), pool: np.ndarray | None = None) -> np.ndarray:
+        """(width,) bool: the column has no value, or one value, among the cells taken in (the same judgement as ``features.dropped_columns(..., pooled=True)``).
+        ``pool``: for every column the column that the team swap exchanges it with, the two are judged on their pooled values. ``centred``: the position
+        columns, judged together with their rotation x ↦ W − x.
+
+        수식
+        ----
+        (DAT-9a)  c ∈ Ω ⇔ n′_c = 0 또는 min′_c = max′_c ;  n′_c = n_c + n_π(c) (짝이 있으면, 아니면 n_c) ;  min′_c = min(min_c, min_π(c)),  max′_c = max(max_c, max_π(c))
+                  위치 열: min′_c = min(min_c, W − max_c),  max′_c = max(max_c, W − min_c)
+
+        해석: 팀 교환 뒤에도 상수인 열만 상수로 센다. 짝의 한쪽만 상수이면 교환 뒤 그 자리에 변하는 열이 들어오므로 둘 다 상수가 아니다.
+        """
+        n, lo, hi = self.n.copy(), self.lo.copy(), self.hi.copy()
+        if pool is not None:
+            moved = pool != np.arange(len(n))
+            n, lo, hi = np.where(moved, n + n[pool], n), np.minimum(lo, lo[pool]), np.maximum(hi, hi[pool])
+        for j in centred:
+            lo[j], hi[j] = min(lo[j], W - self.hi[j]), max(hi[j], W - self.lo[j])
+        return (n == 0) | (lo == hi)
+
 
 DEFAULT_ROLES = MappingProxyType({'fit': 'FIT'})
 _CHUNK = 1 << 12                                 # views read at a time by ``fit_stats`` (4,096 x about 8 KB)
 
 
-def fit_stats(s1, s2, roles: Mapping = DEFAULT_ROLES, *, matches=None, check=None) -> Stats:
+def store_constant_columns(s2, fit_views) -> tuple:
+    """The D7 list: the names of the summary and player columns that have no value, or one value, over ``fit_views`` (the FIT views of the whole store,
+    ``np.flatnonzero(features.split_views(s1, s2, 'FIT'))``), and ``'t_s'``, in the order of ``tokens.SUMMARY`` and then ``tokens.PLAYER_NUM``. The two
+    columns that the team swap exchanges are judged on their pooled values and go together or stay together. It is ``features.dropped_columns(s2,
+    fit_views, pooled=True)``, the list of the baselines, and nothing else. Only the summary and the player tables are judged; the landmark, geodesic and event
+    arrays are not (the scope of S2 gate S2G-4 and of the expected D7 list). ValueError, before anything is dropped, if the list would drop ``frame_age_s``
+    (a store whose age is constant has one clock only: the loader stops for a report); ValueError for no FIT view and for views outside the store.
+
+    해석: 결정 D7의 "전체 FIT 저장소에서 분산이 0인 열 + t_s"를 실제 자료에서 계산하는 함수이다. 목록은 코드에 적어 두지 않고 저장소에서 구해 STATS.json에 이름과
+    해시로 남긴다(예상 목록: atakhan_in_patch, rule_uncertain_* 여덟 개, 늘 0인 챔피언 능력치 다섯 개, t_s). 목록이 예상과 다르면 구현자가 아니라 저자가 판단한다.
+    """
+    found = features.dropped_columns(s2, fit_views, pooled=True)
+    if AGE_COLUMN in found:
+        raise ValueError(f'{AGE_COLUMN} is constant over the FIT views: it is the age input and is never dropped (a store with one clock only?)')
+    return found
+
+
+def fit_stats(s1, s2, roles: Mapping = DEFAULT_ROLES, *, matches=None, check=None, column_drop: str = 'none', stats_population: str = 'whole_fit',
+              store_constant: tuple = ()) -> Stats:
     """The standardisation statistics of the EPT inputs, computed on the FIT views of the S2 store ``s2`` only.
 
     ``roles`` must be ``{'fit': 'FIT'}`` (the default): the statistics are those of FIT and of nothing else (ruling R14), and any other
@@ -389,6 +562,15 @@ def fit_stats(s1, s2, roles: Mapping = DEFAULT_ROLES, *, matches=None, check=Non
     (frame clock, M3 and M4 views, ``features.split_views``). The cells that are NaN are not counted. Reads the arrays of ``_READ`` in
     chunks of ``_CHUNK`` views, so the 18.7 GiB store is never in memory. ValueError for no FIT view, and for the cells that
     ``_check_cells`` refuses.
+
+    ``stats_population`` and ``column_drop`` (S4b preparation M5, decisions D12 and D7); the defaults are the call of every earlier run, with the same
+    statistics, hash and file. ``stats_population='selected_fit'`` says that the statistics are those of the FIT matches ``matches`` of this run (required;
+    ValueError without); it records the population in the statistics. With ``'whole_fit'`` (the default) ``matches`` keeps the meaning that it had for the
+    earlier runs (the selected matches, no record of it), and no column is dropped with it. ``column_drop='store'`` drops the columns of ``store_constant``,
+    the D7 list from ``store_constant_columns(s2, fit_views)`` over the whole FIT store (it always holds ``t_s``; a name that is no column, ``frame_age_s``,
+    a pair of swap columns dropped by halves, or a column that varies in the selected FIT is a ValueError); ``'store_and_subset'`` also drops the columns
+    that are constant inside the selected FIT of this run (the swap pairs judged on pooled values, ``frame_age_s`` never: ValueError). The list is recorded
+    in the returned ``Stats`` (``dropped``, ``dropped_store``), see there. ``store_constant`` must be empty for ``column_drop='none'``.
 
     수식
     ----
@@ -424,14 +606,19 @@ def fit_stats(s1, s2, roles: Mapping = DEFAULT_ROLES, *, matches=None, check=Non
     있는 값으로만 평균을 낸다. 값이 하나뿐인 열은 (x − x₀) / σ가 0/0이 되므로 σ = 1로 두어 값이 (x − x₀)로 남게 한다.
     위치 열은 평균이 아니라 회전 중심 W/2에서 재므로 팀 교환 x ↦ W − x가 표준화한 좌표에서 정확히 부호 바꿈이 된다.
     선수 10명(표지점 34개)이 한 열의 통계를, 맞바꾸는 요약 열 두 개가 한 쌍의 통계를 나눠 쓰는 것도 교환 뒤에 표준화가 변하지 않게 하려는 조건이다.
+    (DAT-10) 'selected_fit'은 그 실행이 고른 FIT 경기의 보기만으로 중심·척도를 재므로 학습 곡선의 각 점이 자기 자료만으로 닫힌다(D12). (DAT-9) 상수 열을 빼는 일은 두 군데에 이유가
+    있다. 상수 열은 FIT에서는 표준화하면 이미 0이지만 다른 역할의 자료에서는 FIT에 없던 값이 들어와 모형이 본 적 없는 입력이 되고, 빼면 그 일이 없다. 열의 판정은 전체 FIT 저장소
+    (D7 목록, 모든 실행에 같음)와 그 실행의 선택된 FIT 안에서만 상수인 열(그 실행에서만)로 나뉘고, 전체 저장소에서 상수이면 부분집합에서도 상수이므로 뒤의 목록이 앞의 목록을 담는다.
+    목록은 표준화 통계와 같은 파일에 이름과 해시로 남아서 모형, 기준 모형, 평가가 같은 열을 쓴다.
 
     근거
     ----
-    계획 Q5 (통계는 FIT로만), 판정 R14 (같은 원칙), Task 1 인터페이스 (NaN은 빼고 센다, 상수 열은 척도 1), 판정 R-S4a-3 (위치 열 중심 W/2, 짝 열
-    통계 합침), Chan 외 1983 (덩어리 병합), tokens 모듈 머리 (사건 채움 행).
+    계획 Q5 (통계는 FIT로만; S4b 준비 Q5: 입력 폭은 그대로 두고 뺀 열은 0), 판정 R14 (같은 원칙), Task 1 인터페이스 (NaN은 빼고 센다, 상수 열은 척도 1), 판정 R-S4a-3 (위치 열 중심 W/2,
+    짝 열 통계 합침), Chan 외 1983 (덩어리 병합), tokens 모듈 머리 (사건 채움 행), 저자 결정 D7·D12 (decisions.md).
     """
     if not isinstance(roles, Mapping) or dict(roles) != dict(DEFAULT_ROLES):
         raise ValueError(f"the normalisation statistics are computed on FIT only: roles must be {{'fit': 'FIT'}}, not {roles!r}")
+    store = _check_drop_request(matches, column_drop, stats_population, store_constant)       # before a check() tick and before an array is read
     if check is not None:
         check()
     layout = _layout(s2)
@@ -461,7 +648,46 @@ def fit_stats(s1, s2, roles: Mapping = DEFAULT_ROLES, *, matches=None, check=Non
     arrays['players_num'] = acc['players_num'].finish(centred=_POSITION_AT.tolist())
     arrays['summary'] = acc['summary'].finish(pool=SUMMARY_PERM)
     arrays['ev_xy'] = acc['ev_xy'].finish(centred=(0, 1))
-    return Stats(arrays=arrays, n_views=int(fit.size))
+    if column_drop == 'none' and stats_population == 'whole_fit':
+        return Stats(arrays=arrays, n_views=int(fit.size))                    # the statistics of every earlier run
+    dropped = ()
+    if column_drop != 'none':
+        # (DAT-9a) the columns that are constant inside the selected FIT, the swap pairs on their pooled values
+        constant_p, constant_s = acc['players_num'].constant(centred=_POSITION_AT.tolist()), acc['summary'].constant(pool=SUMMARY_PERM)
+        inside = {PLAYER_COLUMNS[j] for j in np.flatnonzero(constant_p)} | {SUMMARY_COLUMNS[j] for j in np.flatnonzero(constant_s)}
+        varies = [name for name in store if name in _DROP_RANK and name != 't_s' and name not in inside]
+        if varies:
+            raise ValueError('the list of the columns that are constant over the whole FIT store names columns that vary in the selected FIT: '
+                             + ', '.join(varies) + ' (a list from other views?)')
+        if column_drop == 'store_and_subset' and AGE_COLUMN in inside:
+            raise ValueError(f'{AGE_COLUMN} is constant inside the selected FIT of this run: it is the age input and is never dropped (a selection of one clock only?)')
+        dropped = store if column_drop == 'store' else tuple(sorted(set(store) | inside, key=_DROP_RANK.__getitem__))
+    return Stats(arrays=arrays, n_views=int(fit.size), dropped=dropped, dropped_store=store, population=stats_population, column_drop=column_drop)
+
+
+def _check_drop_request(matches, column_drop, stats_population, store_constant) -> tuple:
+    """The checks of the new arguments of ``fit_stats``, before anything is read; returns the D7 list as a tuple in canonical order (empty for ``'none'``).
+
+    해석: 새 인자의 이름, 선택 경기와 모집단의 짝, 목록이 쓰임새와 맞는지를 자료를 읽기 전에 막는다. 'whole_fit'에 선택 경기를 주는 호출은 이전 실행의 호출이라 그대로 두되, 새
+    열 제거와는 함께 못 쓴다(모집단 표시가 거짓이 되지 않게).
+    """
+    if column_drop not in COLUMN_DROPS:
+        raise ValueError(f'column_drop must be one of {COLUMN_DROPS}, not {column_drop!r}')
+    if stats_population not in POPULATIONS:
+        raise ValueError(f'stats_population must be one of {POPULATIONS}, not {stats_population!r}')
+    if stats_population == 'selected_fit' and matches is None:
+        raise ValueError("stats_population 'selected_fit' needs the selected FIT matches (matches=...)")
+    if column_drop != 'none' and stats_population == 'whole_fit' and matches is not None:
+        raise ValueError("a column drop with selected matches needs stats_population 'selected_fit': the 'whole_fit' record would be false")
+    if column_drop == 'none':
+        if len(store_constant):
+            raise ValueError("store_constant is the list of column_drop 'store' and 'store_and_subset'; it must be empty for 'none'")
+        return ()
+    store = _canonical_names('store_constant', store_constant)
+    if 't_s' not in store:
+        raise ValueError('store_constant is not the D7 list: that list always holds t_s (data.store_constant_columns gives it)')
+    _check_drop_list(store)
+    return store
 
 
 # ---- the view tensors ------------------------------------------------------------------------------------------------------------------
@@ -521,6 +747,13 @@ def _view_tensors(s2, views, stats: Stats) -> dict:
     # summary: the same, without the twin column; the frame age is also given as a column of its own
     summary_raw = a['summary'][:, _SUMMARY_AT].astype(np.float64)
     summary = _standardise(summary_raw, st['summary'])
+    players = _standardise(players_raw, st['players_num'])
+    players_nan, summary_nan = np.isnan(players_raw)[:, :, _PLAYER_NAN_AT], np.isnan(summary_raw[:, _SUMMARY_NAN_AT])
+    zero_players, zero_summary, zero_players_nan, zero_summary_nan = getattr(stats, 'zero_plan', _NO_ZERO)
+    if zero_players.size or zero_summary.size:
+        # (DAT-9) the dropped columns: x̃ = 0 after the standardisation, and ν = 0 for a dropped column that had no FIT value; the width does not change
+        players[:, :, zero_players], summary[:, zero_summary] = 0.0, 0.0
+        players_nan[:, :, zero_players_nan], summary_nan[:, zero_summary_nan] = False, False
     # events: a real token has an age, a gold value and maybe a position; the rows of padding are zero in every standardised channel
     valid = np.arange(layout.events)[None, :] < a['ev_n'][:, None]
     ev_xy_raw = a['ev_xy'].astype(np.float64)
@@ -535,14 +768,14 @@ def _view_tensors(s2, views, stats: Stats) -> dict:
     out = {
         'view': _i64(idx), 'kind': _i64(kind), 'side': torch.zeros(n, dtype=torch.float32),
         'age': _f32('age', summary[:, _AGE_AT]),
-        'players': _f32('players', _standardise(players_raw, st['players_num'])),
-        'players_nan': _mask(np.isnan(players_raw)[:, :, _PLAYER_NAN_AT]),
+        'players': _f32('players', players),
+        'players_nan': _mask(players_nan),
         'players_zone': _i64(a['players_zone']),
         'players_xy': _f32('players_xy', np.where(np.isnan(xy), CENTRE, xy)),
         'landmarks': _f32('landmarks', _standardise(a['landmarks'], st['landmarks'])),
         'landmarks_nan': _mask(np.isnan(a['landmarks'][..., 1:])),
         'summary': _f32('summary', summary),
-        'summary_nan': _mask(np.isnan(summary_raw[:, _SUMMARY_NAN_AT])),
+        'summary_nan': _mask(summary_nan),
         'ev_valid': torch.from_numpy(np.ascontiguousarray(valid)), 'ev_type': _i64(a['ev_type']), 'ev_team': _i64(a['ev_team']),
         'ev_num': _f32('ev_num', ev_num), 'ev_xy': _f32('ev_xy', np.where(has_xy, ev_xy_raw, CENTRE)),
         'ev_nan': _mask(missing[..., None]), 'ev_actors': _mask(actors),
@@ -646,6 +879,11 @@ ROW_FIELDS = MappingProxyType({
 })
 if set(ROW_FIELDS) != set(head_rows.VALID_HEADS):
     raise RuntimeError('ROW_FIELDS must have a block for every head and kind of head_rows')
+# The fields that a block has only when the rows were made for the shifted kill law (S4b preparation M1, decision D5): the first-kill team ``d`` of the open
+# M3Kills rows (the open head reads the first kill from its view, and the loss needs the team that the shift 1 + N_d belongs to). ``ROW_FIELDS`` is the table of the
+# fields that every batch has, so the batches, the identity digest of the rows and every table built from ``ROW_FIELDS`` are those of the plain law unless the rows ask
+# for the shifted one. The masked M3Kills rows need no new field: their first team is ``killlaw.first_team`` of the mark ``m``.
+OPTIONAL_ROW_FIELDS = MappingProxyType({('M3Kills', 'open'): ('d',)})
 _FLOAT_FIELDS = frozenset({'K', 'O', 'e'})       # float32 in a batch; every other field is int64
 FRAME_BLOCK = ('M2Rate', 'masked')               # the one block whose rows belong to a frame row and not to an engagement
 
@@ -656,8 +894,10 @@ def row_key(head: str, kind: str, field: str) -> str:
 
 
 def block(batch: Mapping, head: str, kind: str) -> dict:
-    """The fields (without the prefix) of the row block of ``(head, kind)`` in ``batch``: ``{'pos': ..., 'y': ...}``."""
-    return {field: batch[row_key(head, kind, field)] for field in ROW_FIELDS[(head, kind)]}
+    """The fields (without the prefix) of the row block of ``(head, kind)`` in ``batch``: ``{'pos': ..., 'y': ...}``, and the optional fields of
+    ``OPTIONAL_ROW_FIELDS`` that the batch has (``'d'`` of the open M3Kills block, when the rows were made for the shifted kill law)."""
+    names = ROW_FIELDS[(head, kind)] + tuple(f for f in OPTIONAL_ROW_FIELDS.get((head, kind), ()) if row_key(head, kind, f) in batch)
+    return {field: batch[row_key(head, kind, field)] for field in names}
 
 
 # ---- the swap --------------------------------------------------------------------------------------------------------------------------
@@ -778,9 +1018,25 @@ def _field_swap(head: str, kind: str, field: str) -> str | None:
 # (MARK_PERM), the zone axis of zone_logp (ZONE_PERM), the team axis of kill_rate and gold_logp (TEAM_PERM), the cells of obj_rate and
 # conv_rate (CELL_PERM); the rate, the size law and the gold bin are the same in both frames.
 FIELD_SWAP = MappingProxyType({(h, k, f): _field_swap(h, k, f) for (h, k), fields in ROW_FIELDS.items() for f in fields})
+# The same table for the optional fields (``OPTIONAL_ROW_FIELDS``), kept apart so that the table above stays the table of the fields of every batch:
+#   'first_team'  the team that took the first kill, 0 blue / 1 red, -1 an execution (no first team): the teams change places, -1 stays
+OPTIONAL_FIELD_SWAP = MappingProxyType({(h, k, f): 'first_team' for (h, k), fields in OPTIONAL_ROW_FIELDS.items() for f in fields})
+
+
+def _first_team(t):
+    """Rule: the first-kill team 0 / 1 becomes the other team; -1 (an execution: no first team) stays.
+
+    해석: 팀을 맞바꾸면 첫 킬을 낸 팀도 맞바뀌고, 처형으로 시작한 교전은 첫 킬 팀이 없으므로 그대로이다. ``killlaw.first_team``이 표지에서 구하는 d와 같은 규칙이다(표지 표 MARK_PERM이
+    d를 1 − d로 옮긴다)."""
+    if t.numel() and (t.min() < -1 or t.max() > 1):
+        raise ValueError('a first-kill team is -1 (none), 0 (blue) or 1 (red)')
+    return torch.where(t >= 0, 1 - t, t)
+
+
 _APPLY = {None: _keep, 'mark': _mark, 'zone': _zone, 'team': lambda t: 1 - t, 'teams': _last(_TEAM_T), 'k': _last(_K_T),
-          'cells': _last(_CELL_T)}
-_RULES = {**_VIEW_RULES, **{row_key(h, k, f): _APPLY[change] for (h, k, f), change in FIELD_SWAP.items()}}
+          'cells': _last(_CELL_T), 'first_team': _first_team}
+_RULES = {**_VIEW_RULES, **{row_key(h, k, f): _APPLY[change] for (h, k, f), change in FIELD_SWAP.items()},
+          **{row_key(h, k, f): _APPLY[change] for (h, k, f), change in OPTIONAL_FIELD_SWAP.items()}}
 
 
 def swap(batch: Mapping) -> dict:
@@ -797,13 +1053,15 @@ def swap(batch: Mapping) -> dict:
     (-1 stays) and the rows and columns of the geodesics follow the players; the summary columns, the landmark rows and the ``geo_pl``
     columns are exchanged by ``SUMMARY_PERM`` and ``LANDMARK_PERM``; the side marker ``side`` becomes 1 − side. The rows of a block follow
     ``FIELD_SWAP``: the mark, the zone, the two teams of ``K``, of ``O`` and of the kills, and the team of a gold entry change, and
-    everything else stays. The tables are exported (``MARK_PERM``, ``ZONE_PERM``, ``K_PERM``, ``TEAM_PERM``, ``CELL_PERM``,
+    everything else stays; the optional first-kill team ``d`` of the open M3Kills rows (``OPTIONAL_FIELD_SWAP``, kill law ``'shifted'``) becomes 1 − d, and −1 (an
+    execution) stays. The tables are exported (``MARK_PERM``, ``ZONE_PERM``, ``K_PERM``, ``TEAM_PERM``, ``CELL_PERM``,
     ``PLAYER_PERM``): a model that is run on both frames maps its outputs back with the same tables.
 
     수식
     ----
     (DAT-6)  x ↦ W − x ;  x̃ ↦ −x̃ (위치 열) ;  ξ ↦ (ξ + 5) mod 10 ;  m ↦ (m + 25) mod 50 (m < 50) 또는 101 − m (m ≥ 50) ;  z ↦ ZONE_PERM[z] (z ≥ 0) ;
-             K ↦ (K₂, K₁, K₄, K₃) ;  O ↦ O[CELL_PERM] ;  팀 칸 (파랑, 빨강) ↦ (빨강, 파랑), 골드 항목의 팀 ↦ 1 − 팀 ;  side ↦ 1 − side
+             K ↦ (K₂, K₁, K₄, K₃) ;  O ↦ O[CELL_PERM] ;  팀 칸 (파랑, 빨강) ↦ (빨강, 파랑), 골드 항목의 팀 ↦ 1 − 팀 ;  side ↦ 1 − side ;
+             d ↦ 1 − d (d ≥ 0), −1은 그대로 (첫 킬 팀; 이동 법칙의 열린 M3Kills 행에만 있다)
 
       기호  | 뜻                                              | 단위            | 범위        | 코드 변수
       x, x̃  | 위치 열의 칸의 값, 표준화한 값                  | 맵 단위, 무차원 | 0 .. W, 실수 | players, players_xy, ev_num, ev_xy
@@ -814,6 +1072,7 @@ def swap(batch: Mapping) -> dict:
       K     | 킬 부분 (K₁, K₂ 파랑·빨강 킬 수, K₃, K₄ 파랑·빨강 킬 골드) | 개, 천 골드 | ≥ 0     | K
       O     | 오브젝트 개수 18칸 (칸 = 2 · 종류 + 취한 팀)    | 개              | 0, 1, …     | O, y(M3Obj, M4Conv)
       side  | 진영 표시 (기록대로 0, 교환하면 1)              | —               | 0 또는 1    | side
+      d     | 첫 킬 팀 (0 파랑, 1 빨강, −1 처형: 팀 없음)     | —               | −1, 0, 1    | M3Kills/open/d
 
     해석
     ----
@@ -838,7 +1097,73 @@ def swap(batch: Mapping) -> dict:
     return {k: _RULES[k](t) for k, t in batch.items()}
 
 
-# ---- the proxy task --------------------------------------------------------------------------------------------------------------------
+# ---- the swap of single views (S4b preparation M7, decisions D10 P1 and D17, plan Q3) -------------------------------------------------------------
+SWAP_MODES = ('average', 'random_view', 'none')      # how the training batches are framed: both frames averaged (every earlier run), one frame of each view chosen by a coin, one frame as recorded
+SWAP_STREAM = 0x5157                                 # the last word of the seed sequence of the coins (plan Q3)
+
+
+def check_swap_mode(name):
+    """``name`` if it is one of ``SWAP_MODES``; ValueError naming ``swap_mode`` otherwise (before anything is built)."""
+    if not isinstance(name, str) or name not in SWAP_MODES:
+        raise ValueError(f'swap_mode must be one of {SWAP_MODES}, not {name!r}')
+    return name
+
+
+def swap_views(batch: Mapping) -> dict:
+    """The batch with every view in the frame that its coin chose: the views whose entry of ``batch['swap_view']`` is True are swapped (``swap``) and the rows that read such a view are
+    swapped with it, inputs and targets together; the others stay as recorded. Returns new tensors for every key of ``batch`` but ``swap_view``, which the call consumes.
+
+    ``batch`` is a mapping from keys to tensors: ``swap_view`` (views,) bool, one entry for each view of the batch (``Batches`` with ``swap_mode='random_view'`` makes it), the keys of
+    ``ViewTensors`` (``VIEW_KEYS``) and the row blocks of ``ROW_FIELDS`` (``<head>/<kind>/<field>``, with the optional ``d``), all of them or any part, but the fields of a block need its
+    ``pos``. ValueError, naming the key, for a missing or ill-shaped ``swap_view``, a key without a rule (as ``swap``), a block without ``pos`` and a ``pos`` outside the views; TypeError
+    for a value that is not a tensor. The input is not changed. With every entry False the result equals ``batch`` and with every entry True it equals ``swap(batch)``, bit for bit.
+
+    수식
+    ----
+    (DAT-11)  x'_v = x_v (c_v = 0),  S(x_v) (c_v = 1) ;   y'_i = y_i (c_{v(i)} = 0),  S(y_i) (c_{v(i)} = 1)
+
+      기호   | 뜻                                                          | 단위 | 범위       | 코드 변수
+      c_v    | 보기 v의 동전 (1이면 맞바꾼 틀)                             | —    | 0 또는 1   | batch['swap_view'][v]
+      x_v    | 보기 v의 입력 텐서 한 줄                                    | —    | —          | VIEW_KEYS의 텐서 v번 줄
+      y_i    | 행 i의 조건과 정답 (FIELD_SWAP·OPTIONAL_FIELD_SWAP이 적은 필드) | —  | —          | <head>/<kind>/<field>의 i번 줄
+      v(i)   | 행 i가 읽는 보기                                            | —    | 0 .. views − 1 | <head>/<kind>/pos[i]
+      S      | 팀 교환 (DAT-6)                                             | —    | —          | swap
+
+    해석
+    ----
+    같은 보기를 읽는 행은 모두 그 보기의 틀을 따른다: 한 행이 두 보기를 섞어 읽는 일이 없으므로 (행마다 보기 하나, pos) 입력을 맞바꾼 보기의 행은 조건(m, z, K, O)과 정답(y), 열린 킬 머리의 첫 킬
+    팀 d를 모두 맞바꾸고, 맞바꾸지 않은 보기의 행은 하나도 건드리지 않는다. 한 교전의 가린 행과 열린 행은 서로 다른 보기를 읽으므로 서로 다른 틀에 있을 수 있고, 그것이 보기 단위로 고르는 뜻이다
+    (계획 Q3). ``swap``이 모든 키를 맞바꾼 배치를 만들고 동전이 서 있는 자리에서 그것을 고르므로 선택은 비트 단위로 정확하다 (``torch.where``는 값을 고를 뿐 계산하지 않는다).
+    ``swap``과 같은 이유로 규칙 없는 키는 오류이다.
+
+    근거
+    ----
+    저자 결정 D10 P1 (학습은 한 프레임을 확률 ½로 맞바꾸고 입력과 정답을 함께 바꾼다), 계획 Q3 (단위는 보기), 검토 A2-F4.
+    """
+    if 'swap_view' not in batch:
+        raise ValueError('swap_views needs the key swap_view: one bool entry for each view of the batch')
+    flag = batch['swap_view']
+    if not isinstance(flag, torch.Tensor) or flag.dtype != torch.bool or flag.dim() != 1 or ('view' in batch and isinstance(batch['view'], torch.Tensor) and flag.shape[0] != batch['view'].shape[0]):
+        raise ValueError('swap_view must be a 1-d bool tensor with one entry for each view of the batch (the length of view)')
+    rest = {k: v for k, v in batch.items() if k != 'swap_view'}
+    whole = swap(rest)                                             # the whole batch seen from the other side (it refuses a key without a rule and a value that is no tensor)
+    out = {}
+    for k, t in rest.items():
+        if k in _VIEW_RULES:
+            mask = flag
+        else:
+            pos_key = row_key(*k.split('/')[:2], 'pos')
+            if pos_key not in rest:
+                raise ValueError(f'{k} cannot follow its view: the block has no {pos_key}')
+            pos = rest[pos_key]
+            if pos.numel() and (int(pos.min()) < 0 or int(pos.max()) >= flag.shape[0]):
+                raise ValueError(f'{pos_key} must lie in 0 .. {flag.shape[0] - 1}: one view for each row')
+            mask = flag[pos]
+        out[k] = torch.where(mask.reshape(-1, *([1] * (t.dim() - 1))), whole[k], t)
+    return out
+
+
+# ---- the proxy task--------------------------------------------------------------------------------------------------------------------
 PROXY_SEED = 20261022
 PROXY_ROLES = ('FIT', 'STOP')
 
@@ -896,11 +1221,16 @@ def _no_features(s2, views) -> np.ndarray:
     return np.zeros((len(views), 1), dtype=np.float32)
 
 
-def ept_head_rows(s1, s2, labels, role: str, *, matches=None) -> head_rows.HeadRows:
+def ept_head_rows(s1, s2, labels, role: str, *, matches=None, kill_law: str = 'poisson', k_condition: str = 'raw') -> head_rows.HeadRows:
     """``head_rows.HeadRows`` of the matches of ``role`` (FIT, STOP or DEV; ValueError for any other role, before an array is read) whose
     rows and targets are those of the baselines B0 and B1 (ruling R18) and whose feature rows are empty: the EPT takes the view numbers
-    of ``HeadRows.view_numbers`` and reads the views with ``ViewTensors``."""
-    return head_rows.HeadRows(s1, s2, labels, role, _no_features, matches=matches)
+    of ``HeadRows.view_numbers`` and reads the views with ``ViewTensors``. ``kill_law`` (S4b preparation M1, decision D5) is the kill law of the M3Kills rows:
+    ``'shifted'`` adds the first-kill team ``d`` to the open M3Kills block (``OPTIONAL_ROW_FIELDS``) and refuses a unit whose first-kill team has no kill;
+    the default ``'poisson'`` gives the rows and batches of every earlier run. ``k_condition`` (S4b preparation M3, decision D21 B16) is the gold of the ``K`` field of
+    the four K blocks (the masked and the open object and conversion heads): ``'binned'`` gives the representative of the observed gold bin (0 for a team without a kill),
+    the K that the composer feeds; the default ``'raw'`` gives the true gold of the labels and the rows and batches of every earlier run. The kill counts, the ``O`` field and
+    every target are the same under both conditions."""
+    return head_rows.HeadRows(s1, s2, labels, role, _no_features, matches=matches, kill_law=kill_law, k_condition=k_condition)
 
 
 def _typed(fields: dict) -> dict:
@@ -943,7 +1273,8 @@ def _block_rows(head: str, kind: str, p: head_rows.HeadParts, views: np.ndarray,
             fields['K'] = p.K
         if p.O is not None:
             fields['O'] = p.O
-    if set(fields) != set(ROW_FIELDS[(head, kind)]) - {'pos'}:
+    required = set(ROW_FIELDS[(head, kind)]) - {'pos'}
+    if not required <= set(fields) or set(fields) - required - set(OPTIONAL_ROW_FIELDS.get((head, kind), ())):
         raise RuntimeError(f'the rows of {head} ({kind}) have the fields {sorted(fields)}, not those of ROW_FIELDS')
     return _typed(fields), views, fields['unit'].astype(np.int64)
 
@@ -1005,7 +1336,7 @@ class EngagementRows:
 
 
 class Batches:
-    """The batches of an epoch over the rows of an ``EngagementRows``: ``Batches(rows, batch_size, seed, stats=None, training=True)``.
+    """The batches of an epoch over the rows of an ``EngagementRows``: ``Batches(rows, batch_size, seed, stats=None, training=True, swap_mode='average')``.
 
     ``rows`` may also be a ``HeadRows`` (``ept_head_rows``): all its matches are used. ``batch_size`` is the number of engagements of a
     batch (the rows of an engagement, of all its heads, come with it: its masked rows, which read frame-clock views, and its open rows,
@@ -1019,6 +1350,14 @@ class Batches:
     role may be FIT, STOP or DEV: the batches of early stopping and of evaluation. ``len(batches)`` is the number of batches of an epoch.
     ``epoch(epoch, start=0)`` yields the batches ``start ..`` of that epoch without building the first ones (to resume a cut run).
     There is no default epoch: a ``Batches`` is not iterable, so that a loop cannot repeat the order of epoch 0.
+
+    ``swap_mode`` (S4b preparation M7, decisions D10 P1 and D17, plan Q3) says in which frame the training batches are used: ``'average'`` (the default, every earlier run) and ``'none'`` add
+    nothing to the batches (the former is used with both frames averaged, the latter in the recorded frame only; the wrapper that does that is ``heads.FrameAveraged``, chosen by the
+    training settings), ``'random_view'`` adds the key ``swap_view``, a bool tensor with one coin for each distinct view of the batch (the entries of ``view``, in that order; True: use
+    this view and the rows that read it in the swapped frame, ``swap_views``). The batch itself stays as recorded: the frame is applied by ``swap_views`` where the batch is used (the training loop applies
+    it on the CPU batch before the copy, ``batch_prep.prepare_batch``, S4b speed-ups D32 item 1; ``FrameAveraged.encode`` applies it to a batch that still carries the coins). The
+    coins of batch ``j`` of epoch ``e`` are the generator of ``SeedSequence([seed, e, j, 0x5157])``: they depend on nothing else, so a resumed epoch repeats them, and they never touch
+    the global random streams (a dropout mask would move, and a prefetching thread would race for the stream). An evaluation batch (``training=False``) is never swapped at random: ValueError.
 
     수식
     ----
@@ -1043,7 +1382,10 @@ class Batches:
     계획 Q8 (한 교전의 두 보기는 같은 배치), Q4 (행과 정답은 head_rows), Q3 (같은 입력은 같은 비트), 계획 P9 (학습 행 가중은 같다).
     """
 
-    def __init__(self, rows, batch_size: int, seed: int, *, stats: Stats | None = None, training: bool = True):
+    def __init__(self, rows, batch_size: int, seed: int, *, stats: Stats | None = None, training: bool = True, swap_mode: str = 'average'):
+        check_swap_mode(swap_mode)
+        if swap_mode == 'random_view' and not training:
+            raise ValueError("swap_mode 'random_view' needs training=True: the frame of an evaluation batch is fixed (the recorded frame; the two-frame average is the evaluation)")
         if isinstance(rows, head_rows.HeadRows):
             rows = EngagementRows(rows)
         if not isinstance(rows, EngagementRows):
@@ -1062,7 +1404,8 @@ class Batches:
         if len(rows.units) == 0 and len(rows.frames) == 0:
             raise ValueError('the rows hold no engagement and no frame row')
         self.rows, self.batch_size, self.seed, self.stats, self.training = rows, int(batch_size), int(seed), stats, bool(training)
-        self._n = -(-len(rows.units) // self.batch_size) if len(rows.units) else -(-len(rows.frames) // self.batch_size)
+        self.swap_mode = swap_mode
+        self._n =-(-len(rows.units) // self.batch_size) if len(rows.units) else -(-len(rows.frames) // self.batch_size)
 
     def __len__(self) -> int:
         return self._n
@@ -1080,11 +1423,18 @@ class Batches:
             units, frames = units[rng.permutation(len(units))], frames[rng.permutation(len(frames))]
         return list(zip(np.array_split(units, self._n), np.array_split(frames, self._n)))
 
-    def assemble(self, units, frames) -> dict:
+    def assemble(self, units, frames, *, epoch: int | None = None, index: int | None = None) -> dict:
         """The batch of the engagements ``units`` and the frame rows ``frames``: the rows of every block, their distinct views as
-        ``ViewTensors`` and the position of each row's view in them.
+        ``ViewTensors`` and the position of each row's view in them. With ``swap_mode='random_view'`` also ``swap_view``, one coin for each distinct view
+        (``epoch`` and ``index``, the epoch and the place of the batch in it, are then required: ValueError otherwise); the other modes ignore both.
+
+        수식
+        ----
+        (DAT-11)  c_v = 생성기(SeedSequence([s, e, j, 0x5157])).integers(0, 2)의 v번째 뽑기,  v = 0 .. (보기 수 − 1) (``view``의 순서)
 
         해석: 한 교전의 모든 머리의 행과 고른 프레임 행이 읽는 보기를 중복 없이 한 번씩만 텐서로 만들고, 각 행에는 그 보기가 놓인 자리를 적는다.
+        동전은 보기마다 하나이고 배치를 만들 때 정해진다: 시드, 에폭, 배치 번호의 함수이므로 끊었다 이어도 같고, 전역 난수를 쓰지 않으므로 드롭아웃 마스크와 섞이지 않는다 (계획 Q3).
+        배치의 행과 보기는 기록된 틀 그대로이며 ``swap_views``가 동전대로 틀을 적용한다.
         """
         chosen = {key: blk.select(frames if key == FRAME_BLOCK else units) for key, blk in self.rows.blocks.items()}
         wanted = np.concatenate([self.rows.blocks[key].views[idx] for key, idx in chosen.items()])
@@ -1098,6 +1448,11 @@ class Batches:
             start += len(idx)
             for field, a in self.rows.blocks[key].fields.items():
                 out[row_key(head, kind, field)] = torch.from_numpy(a[idx])
+        if self.swap_mode == 'random_view':
+            if epoch is None or index is None:
+                raise ValueError("swap_mode 'random_view' draws the coins of a batch from its epoch and its place in the epoch (plan Q3): pass epoch= and index=")
+            coin = np.random.default_rng(np.random.SeedSequence([self.seed, int(epoch), int(index), SWAP_STREAM]))
+            out['swap_view'] = torch.from_numpy(coin.integers(0, 2, size=len(distinct)).astype(bool))
         return out
 
     def epoch(self, epoch: int, start: int = 0):
@@ -1105,4 +1460,6 @@ class Batches:
         plan = self.plan(epoch)
         if isinstance(start, bool) or not isinstance(start, (int, np.integer)) or not 0 <= start <= len(plan):
             raise ValueError(f'start must be an int in 0 .. {len(plan)}, not {start!r}')
+        if self.swap_mode == 'random_view':                         # the coins need the place of the batch: the other modes call ``assemble`` as every earlier run did
+            return (self.assemble(units, frames, epoch=epoch, index=j) for j, (units, frames) in enumerate(plan[start:], start))
         return (self.assemble(units, frames) for units, frames in plan[start:])

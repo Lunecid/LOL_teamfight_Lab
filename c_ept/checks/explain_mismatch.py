@@ -1,7 +1,8 @@
 r"""The cause of every difference between the level clock and the frame level, on the sample of ``measure_levels_wide``.
 
-What it measures: for every player-frame of the sample (the first 40 FIT matches and the first 20 matches of every other role per patch of
-the S1 store, 200 matches) where ``traits.level_at`` differs from the frame level, it gives the cause (``lag_by_one_at_frame_ms``: the frame
+What it measures: for every player-frame of the sample (the first 40 FIT matches and the first 20 STOP and 20 DEV matches per patch of
+the S1 store; decision B21: no TEST, CAL, AUDIT, EXTERNAL or UNUSED match is read; the 200-match sample of 2026-10-20 below was drawn
+before this restriction) where ``traits.level_at`` differs from the frame level, it gives the cause (``lag_by_one_at_frame_ms``: the frame
 shows one level less than the clock and a LEVEL_UP of that player falls on exactly the frame's ms; or ``other``) together with the
 LEVEL_UPs of that player within 5 s of the frame and the player's frame levels around it. The numbers are frame indices, times in ms,
 participant ids (1-10), levels, and the position of the match in the sample, its patch and its role; never a key or an identifier.

@@ -853,3 +853,149 @@ def test_ept_red_b_true_gold_value_is_caught(monkeypatch, ept_leak_world, ept_le
         return comp
     with pytest.raises(Leak, match='simulate'):
         check_b(mutant, closed_form=False)
+
+
+# =====================================================================================================================================
+# (d) the end of the game T (S4b preparation M12, decision D14): a t0 forecast is T-blind
+# =====================================================================================================================================
+# D14: T is allowed in the training censoring (P10) and in the filter of the primary population (t0 + H <= T - 30 s), nowhere else. The composed V_start and the occurrence probabilities of the evaluation use
+# the nominal exposures (10 s per occurrence bin, 60 s of conversion window) and no head and no composer reads T. The check (d) takes two composers of the same rows whose tables differ in T (and so in
+# the observed exposure) and asks for the same composition bit for bit on the primary rows of both; the RED variants below (a head that reads T, a nominal composer that reads T or the observed
+# exposure, and the observed composer itself) must fail it.
+T_NEAR_S, T_FAR_S = 120, 200                # T = t0 + 120 s / t0 + 200 s: both primary at H = 60 s (hi - t0 = 90 s / 170 s); the conversion windows of the later bins are cut by the first and not by the second
+
+
+def with_game_end(rows, after_s: int):
+    """A copy of the row table whose game ends ``after_s`` seconds after each t0, with the exposure of the occurrence bins that ``frame_rows`` gives for it (hi = min(t0 + 180 s, T - 30 s))."""
+    T = rows.t0_ms + 1000 * after_s
+    hi = np.minimum(rows.t0_ms + C.H_OCC_MS, T - C.END_CUT_MS)
+    exposure = np.clip(hi[:, None] - (rows.t0_ms[:, None] + C.BIN_MS * np.arange(C.N_BINS)[None, :]), 0, C.BIN_MS)
+    return dataclasses.replace(rows, T_ms=T, exposure_ms=exposure)
+
+
+def primary_both(a, b, H: int = 60) -> np.ndarray:
+    """The rows (numbers in the table) that are primary at the horizon ``H`` under both tables: hi - t0 >= H x 1000 with hi = min(t0 + 180 s, T - 30 s)."""
+    from c_ept.evaluation.endpoints import primary_rows
+    masks = [primary_rows(r.t0_ms, np.minimum(r.t0_ms + C.H_OCC_MS, r.T_ms - C.END_CUT_MS), H) for r in (a, b)]
+    return np.flatnonzero(masks[0] & masks[1])
+
+
+def check_d(plain, other, closed_form: bool, H: int = 60) -> None:
+    """(d) ``plain`` and ``other`` compose the same rows, their tables differ in the end of the game T (and in the occurrence exposure that follows from it): on the rows that are primary at the horizon ``H`` in
+    both, the composition (``simulate``: mean, sd, 19 quantiles; the raw draws of the first rows; ``expected_onsets``; ``expect`` for heads with a closed form) is bit for bit the same, or ``Leak``."""
+    idx = primary_both(plain.rows, other.rows, H)
+    assert len(idx) >= 6 and not np.array_equal(plain.rows.T_ms, other.rows.T_ms) and not np.array_equal(plain.rows.exposure_ms, other.rows.exposure_ms), 'set-up: the two tables must differ in T on primary rows'
+    a, b = plain.simulate(idx), other.simulate(idx)
+    assert (a.mean != 0).any() and (a.q19 != 0).any(), 'set-up: the simulation is empty, so that equality would prove nothing'
+    for field in ('mean', 'sd', 'q19'):
+        same(f'(d) T changed: simulate {field}', getattr(a, field), getattr(b, field))
+    same('(d) T changed: expected onsets', plain.expected_onsets(idx), other.expected_onsets(idx))
+    for i in idx[:3]:
+        da, db = plain.simulate_onsets(int(i)), other.simulate_onsets(int(i))
+        for field in ('sim', 'q', 'm', 'z', 's', 'k', 'gold', 'O', 'conv', 'value'):
+            same(f'(d) T changed: the draws of the row {i}: {field}', getattr(da, field), getattr(db, field))
+    if closed_form:
+        e = plain.expect(idx)
+        assert (e != 0).any(), 'set-up: the closed form is zero, so that equality would prove nothing'
+        same('(d) T changed: expect', e, other.expect(idx))
+
+
+def t_blind_pair(world, kind: str, exposure: str, heads=None):
+    """Two composers of the toy rows of ``world`` with the games ending 120 s and 200 s after t0, composed with the given exposure; ``heads(rows)`` makes the heads of a table (default the toy heads of ``kind``)."""
+    out = []
+    for after in (T_NEAR_S, T_FAR_S):
+        rows = with_game_end(world.rows, after)
+        h = HEADS[kind]() if heads is None else heads(rows)
+        out.append(compose.Composer(h, PRICES, state_tier_model(), TOY_GOLD_REPS, rows, world.s2, S=S_SIM, seed=SEED, exposure=exposure))
+    return out
+
+
+class TReadingHeads(ToyHeads):
+    """A head set that reads the end of the game of its table: the onset rate grows with T (a leak that D14 forbids: no model reads T)."""
+
+    def __init__(self, T_ms):
+        super().__init__()
+        self.T = np.asarray(T_ms, dtype=np.float64)
+
+    def rate(self, rows) -> np.ndarray:
+        return super().rate(rows) * (1.0 + self.T[self._rows(rows)][:, None] / 1e7)
+
+
+@pytest.mark.parametrize('kind', ['closed', 'ko'])
+def test_nominal_composition_is_bit_identical_when_T_changes_on_primary_rows(world, kind):
+    check_d(*t_blind_pair(world, kind, 'nominal'), closed_form=kind == 'closed')
+
+
+def test_nominal_composition_with_the_real_ept_heads_is_bit_identical_when_T_changes_on_primary_rows(ept_leak_world, ept_leak_stats):
+    world = ept_leak_world
+    pair = []
+    for after in (T_NEAR_S, T_FAR_S):
+        pair.append(compose.Composer(ept_leak_heads(ept_leak_stats), PRICES, state_tier_model(), TOY_GOLD_REPS, with_game_end(world.rows, after), world.s2, S=S_SIM, seed=SEED, exposure='nominal'))
+    check_d(*pair, closed_form=False)
+
+
+@pytest.mark.parametrize('kind', ['closed', 'ko'])
+def test_red_the_observed_composition_depends_on_T_and_the_check_catches_it(world, kind):
+    """Why D14 exists: the observed exposure cuts the conversion windows at T, so the observed composition of a primary row moves with T and the check fails."""
+    with pytest.raises(Leak, match='T changed'):
+        check_d(*t_blind_pair(world, kind, 'observed'), closed_form=kind == 'closed')
+
+
+def test_red_variant_head_reading_T_is_caught(world):
+    """A head that reads T makes the nominal composition depend on T: the check fails on the simulation. (Only the nominal case says something about the head: the observed composer already fails the check
+    by itself, ``test_red_the_observed_composition_depends_on_T_and_the_check_catches_it``, so an observed variant would not isolate the head; M12 review m5.)"""
+    with pytest.raises(Leak, match='T changed'):
+        check_d(*t_blind_pair(world, 'closed', 'nominal', heads=lambda rows: TReadingHeads(rows.T_ms)), closed_form=True)
+    check_d(*t_blind_pair(world, 'closed', 'nominal'), closed_form=True)                    # control: the same pair with heads that do not read T passes
+
+
+def test_red_a_nominal_composer_that_reads_T_for_the_conversion_window_is_caught(monkeypatch, world):
+    def reads_T(self, i):
+        return compose.conv_exposure_s(self.rows.t0_ms[i], np.arange(compose.N_Q), self.rows.T_ms[i])
+    monkeypatch.setattr(compose.Composer, '_conv_exposure', reads_T)
+    with pytest.raises(Leak, match='T changed'):
+        check_d(*t_blind_pair(world, 'ko', 'nominal'), closed_form=False)
+
+
+def test_red_a_nominal_composer_that_reads_the_observed_occurrence_exposure_is_caught(monkeypatch, world):
+    def reads_exposure(self, i):
+        return self.rows.exposure_ms[i] / 1000.0
+    monkeypatch.setattr(compose.Composer, '_seconds', reads_exposure)
+    with pytest.raises(Leak, match='T changed'):
+        check_d(*t_blind_pair(world, 'closed', 'nominal'), closed_form=True)
+
+
+def test_T_is_read_by_the_composer_only_in_the_two_observed_exposure_methods_behind_the_nominal_branch():
+    """Structure: in the class ``Composer`` the attributes ``T_ms`` and ``exposure_ms`` of the table are read in ``_seconds`` and ``_conv_exposure`` only, and each of the two returns before the read when the
+    exposure is nominal. Nothing else of the composer, the draw, the closed form or the heads' binding, can read T."""
+    tree = ast.parse(SOURCE.read_text(encoding='utf-8'))
+    composer = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'Composer')
+    readers = {}
+    for method in (n for n in composer.body if isinstance(n, ast.FunctionDef)):
+        names = {a.attr for a in ast.walk(method) if isinstance(a, ast.Attribute) and a.attr in ('T_ms', 'exposure_ms')}
+        if names:
+            readers[method.name] = (names, method)
+    assert set(readers) == {'_seconds', '_conv_exposure'}, sorted(readers)
+    for name, (names, method) in readers.items():
+        body = [s for s in method.body if not (isinstance(s, ast.Expr) and isinstance(s.value, ast.Constant))]            # without the docstring
+        guard = body[0]
+        assert isinstance(guard, ast.If) and isinstance(guard.body[-1], ast.Return) and ast.unparse(guard.test) == "self.exposure == 'nominal'", name
+        assert not {a.attr for stmt in guard.body for a in ast.walk(stmt) if isinstance(a, ast.Attribute)} & {'T_ms', 'exposure_ms'}, name
+
+
+def test_the_evaluation_adapters_name_the_game_end_nowhere_and_read_the_window_end_in_the_population_filter_only():
+    """The population filter reads ``frame_rows/t0`` and ``frame_rows/hi`` (hi = min(t0 + 180 s, T - 30 s)) in ``_primary_masks`` and nowhere else; no module of ``c_ept/evaluation`` (every ``*.py`` of the folder,
+    also a future one) names ``T_ms``, and none but ``adapters.py`` names the two frame-row arrays (M12 review m6)."""
+    root = Path(compose.__file__).parent.parent / 'evaluation'
+    modules = sorted(root.glob('*.py'))
+    assert {m.name for m in modules} >= {'adapters.py', 'endpoints.py', 'metrics.py', 'inference.py', 'guard.py', 'runtime.py', 'stores.py', 'proper.py', 'reporting.py'}
+    users = set()
+    for module in modules:
+        tree = ast.parse(module.read_text(encoding='utf-8'))
+        constants = {n.value for n in ast.walk(tree) if isinstance(n, ast.Constant) and isinstance(n.value, str)}
+        assert not any('T_ms' in c for c in constants) and not any(isinstance(n, ast.Attribute) and n.attr == 'T_ms' for n in ast.walk(tree)), module.name
+        names = lambda n: isinstance(n, ast.Constant) and n.value in ('frame_rows/hi', 'frame_rows/t0')                  # noqa: E731
+        users |= {(module.name, f.name) for f in ast.walk(tree) if isinstance(f, ast.FunctionDef) and any(names(n) for n in ast.walk(f))}
+        if any(names(n) for n in ast.walk(tree)) and not any(u[0] == module.name for u in users):
+            users.add((module.name, '<module level>'))
+    assert users == {('adapters.py', '_primary_masks')}, users

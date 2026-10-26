@@ -1,0 +1,23 @@
+{
+  "column_drop": "store_and_subset",
+  "decay_groups": "split",
+  "epochs": 12,
+  "eval_average": true,
+  "field_channels": 8,
+  "fraction": 0.25,
+  "k_condition": "binned",
+  "kill_law": "shifted",
+  "kind": "train",
+  "lr": 0.001,
+  "on_wall_cap": "best_stop",
+  "patience": 2,
+  "seed": 20261022,
+  "selection_seed": 20261022,
+  "size": "S",
+  "stats_population": "selected_fit",
+  "swap_mode": "random_view",
+  "terrain_smooth_weight": 0.0,
+  "warmup": 10,
+  "weight_decay": 0.01,
+  "zone_mark": true
+}

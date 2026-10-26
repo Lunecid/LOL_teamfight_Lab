@@ -263,3 +263,24 @@ def preflight(c, *, parent_probe=parent_metadata, source_probe=clean_source, all
     best = best_reference(parent, Path(c['training_run'])/'train/S_cuda')
     return {'parent': parent, 'best': best, 'parent_final_audit': final_audit, **input_metadata(c,parent),
             'historical_roots': verify_history_hashes(c['training_control']), 'config_sha256': digest(c)}
+
+
+# ---- the settings of a training identity that an evaluation loader must pass on (S4b preparation M9 review I1) -------------------------------------------------------------------
+# The identity holds a setting only when it is not the default. The loaders of the S4a/T003 evaluation (``runtime.load_best``) and of the matched comparison
+# (``comparison.runtime.load_neural_best``) build the plain model and call ``adapters.run_inference`` with its defaults, so a checkpoint of any of these settings would be evaluated
+# as the other design with no error (the model object carries no identity). They are refused by name. The other Track M settings do not change that call: decay_groups,
+# terrain_smooth_weight and on_wall_cap act in training only; swap_mode changes the training frames while the evaluation keeps the two-frame average (decision D10 P1); column_drop and
+# stats_population are carried by the statistics file whose hash both loaders already compare with the identity.
+EVALUATION_DEFAULTS = (('zone_mark', True), ('kill_law', 'poisson'), ('k_condition', 'raw'), ('eval_average', True))
+# The guard is closed by default (M9 re-check r3): every other key of the identity must be classified here, so a setting that a later task adds to ``train._identity`` is refused until someone decides.
+TRAINING_ONLY = frozenset({'decay_groups', 'decay_groups_sha256', 'terrain_smooth_weight', 'on_wall_cap', 'swap_mode', 'column_drop', 'column_drop_sha256', 'stats_population'})
+EARLIER_IDENTITY_KEYS = frozenset({'epochs', 'seed', 'lr', 'weight_decay', 'warmup_steps', 'patience', 'encoder', 'static_sha256', 'scales_sha256', 'fit', 'stop', 's2_store_json_sha256',
+                                   'device', 'dtype', 'deterministic_algorithms', 'threads', 'torch', 'model_spec', 'k_reps_sha256'})      # k_reps_sha256 only accompanies k_condition 'binned', which is refused
+CLASSIFIED_IDENTITY_KEYS = TRAINING_ONLY | EARLIER_IDENTITY_KEYS | {name for name, _ in EVALUATION_DEFAULTS}
+
+
+def unpassed_evaluation_settings(identity) -> list:
+    """The names of the settings of ``identity`` (a training identity) that differ from the default and that the evaluation loaders do not pass on (``EVALUATION_DEFAULTS``), as 'name=value' texts; an
+    empty list for every identity of an earlier run. A key that is in none of ``TRAINING_ONLY``, ``EARLIER_IDENTITY_KEYS`` and ``EVALUATION_DEFAULTS`` is reported as not classified (fail closed)."""
+    out = [f'{name}={identity[name]!r}' for name, default in EVALUATION_DEFAULTS if name in identity and identity[name] != default]
+    return out + [f'{name} (not classified for the evaluation loaders)' for name in identity if name not in CLASSIFIED_IDENTITY_KEYS]

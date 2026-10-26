@@ -12,7 +12,8 @@ r"""B0 베이스라인 모델: M2(발생), M3(교전 결과), M4(전환) 예측�
   * M2Rate  (포아송 회귀) : 시간 구간(q)별 초당 첫 킬 발생률 λ (3개 게이트 윈도우 상호작용 반영) [Masked 전용]
   * M2Mark  (다항 로지스틱) : 첫 킬을 낸 선제 킬 표지 m (52개 클래스: 50개 킬러-피해자 슬롯 쌍 + 2개 처형) [Masked 전용]
   * M2Zone  (다항 로지스틱) : 첫 킬 발생 위치 z (10개 맵 구역 + 1개 미식별 구역 -1) [Masked 전용]
-  * M3Size  (다항 로지스틱) : 교전 참가 규모 s (4개 규모 클래스: 2v2, 3v3 등)
+  * M3Size  (다항 로지스틱) : 교전 규모 s (4개 범주 0: T, 1: S, 2: ASYM, 3: P = units.SIZE_NAMES; 킬 크레딧 참여 인원으로 정한다:
+                              T 양 팀 4명 이상, S 양 팀 2~3명, ASYM 한 팀 2~3명 대 상대 4명 이상, P 한 팀이 2명 미만)
   * M3Kills (포아송 회귀) : 교전 결과 양 팀 킬 수 k_blue, k_red (블루/레드 독립 2개 모델)
   * M3Gold  (다항 로지스틱) : 교전 결과 획득 골드 구간 (팀별 31개 골드 구간, 6개 킬 수 층별 조건부)
   * M3Obj   (포아송 회귀) : 교전 중 획득 오브젝트 수 (18개 오브젝트 종류/팀별 독립 포아송 셀)
@@ -52,7 +53,7 @@ import numpy as np
 
 from c_ept.preprocessing import features
 from c_ept.data import head_rows, store_core
-from c_ept.models import heads, nll as nll_scores
+from c_ept.models import heads, killlaw, nll as nll_scores
 from c_ept.data.casts import narrow
 # the names of the heads, their shapes, and the rows and scores that B0 and B1 share (ruling R18); ``baselines_b0.HeadData`` etc. stay
 from c_ept.data.head_rows import (HEAD_NAMES, KINDS, MIX, N_CELLS, N_GOLD, N_K, N_LAYER, N_M, N_Q, N_SIZE, N_ZONE, OPEN_HEAD_NAMES,  # noqa: F401
@@ -135,7 +136,8 @@ class Layout(NamedTuple):
 
 
 # 각 범주 변수별 유효 정수 범위: (최소값, 수준 개수)
-_RANGE = {'q': (0, N_Q), 'm': (0, N_M), 'z': (-1, N_ZONE + 1), 's': (0, N_SIZE), 'layer': (1, N_LAYER)}
+# 'd'는 이동 킬 법칙(결정 D5)의 열린 M3Kills 머리에만 있는 첫 킬 팀이다: −1 처형(팀 없음), 0 파랑, 1 빨강. LAYOUTS에는 없고 layout_for가 이동 법칙에서만 더한다.
+_RANGE = {'q': (0, N_Q), 'm': (0, N_M), 'z': (-1, N_ZONE + 1), 's': (0, N_SIZE), 'layer': (1, N_LAYER), 'd': (-1, 3)}
 
 
 def _blocks(drop: bool, *names: str) -> tuple:
@@ -161,6 +163,25 @@ LAYOUTS = {
     ('M3Obj', 'open'): Layout(N_B0 + N_K, _blocks(True, 's')),
     ('M4Conv', 'open'): Layout(N_B0 + N_K + N_CELLS, ()),
 }
+
+
+def layout_for(head: str, kind: str, kill_law: str = 'poisson') -> Layout:
+    """The layout of the head ``head`` of ``kind`` for the kill law ``kill_law``: ``LAYOUTS[(head, kind)]`` itself for the plain law and for every head but the open
+    M3Kills head. Under the shifted law (decision D5) the open M3Kills head gets the one-hot block of the first-kill team ``d`` after ``s``, because it is the only
+    kill head that does not see the mark m, and each team's cell must be able to say whether its rate is the rate λ_d of the excess N_d or the rate μ of the plain count
+    (the masked head has the mark in its blocks already).
+
+    수식
+    ----
+    (B0-9)  η_{t}(x, s, d) = γ_t + x̃·β_t + ω^s_t[s] + ω^d_t[d]          (열린 M3Kills, 이동 법칙; 팀 t의 칸마다 따로)
+            d = t이면 exp(η_t) = λ_t (초과분 N_t의 평균), d ≠ t이면 exp(η_t) = μ_t (킬 수의 평균)
+
+    해석: d의 세 수준(처형, 파랑, 빨강) 가운데 첫 수준(처형)이 기준이다. 칸 t는 d = t인 행과 d ≠ t인 행을 다른 절편으로 맞추므로 한 칸의 모형이 λ와 μ를 모두 낼 수 있다.
+    """
+    killlaw.check_law(kill_law)
+    if kill_law == 'shifted' and (head, kind) == ('M3Kills', 'open'):
+        return Layout(N_B0, _blocks(True, 's', 'd'))
+    return LAYOUTS[(head, kind)]
 
 
 # ==========================================================================================================================
@@ -1053,8 +1074,65 @@ class M3Kills(_PoissonHead):
     """The kills of the two teams (ruling R19): a Poisson head with two cells, 0 the blue and 1 the red team, on one row per onset; each
     cell is a model of its own with its own coefficient for every column. ``predict`` gives the mean kills (n, 2), blue then red.
 
-    (HEAD-3)의 μ_blue, μ_red를 (B0-2)로 낸다(노출 1). 두 칸의 계수를 따로 맞추므로 한 팀을 올리는 입력이 다른 팀을 낮출 수 있다(판정 R19)."""
+    (HEAD-3)의 μ_blue, μ_red를 (B0-2)로 낸다(노출 1). 두 칸의 계수를 따로 맞추므로 한 팀을 올리는 입력이 다른 팀을 낮출 수 있다(판정 R19).
+
+    ``kill_law`` (S4b 준비 M1, 결정 D5): ``'poisson'``(기본값)은 위의 머리 그대로(옛 적합과 비트까지 같다). ``'shifted'``는 첫 킬 팀 d의 킬 수를 K_d = 1 + N_d로 두는 이동 법칙이다.
+
+    수식
+    ----
+    (B0-2k)  y*_{i,t} = y_{i,t} − 1[t = d_i] ;   (γ̂_t, β̂_t, ω̂_t) = (B0-2)로 y*를 맞춘 해 ;   exp(η_{i,t}) = λ_{i,t}  (d_i = t)  또는  μ_{i,t}  (d_i ≠ t)
+             점수:  ℓ_{i,t} = r_{i,t} − y*_{i,t} log r_{i,t} + log(y*_{i,t}!),   r_{i,t} = predict(X)[i, t]  (``killlaw.logpmf``; y*_{i,d_i} < 0이면 +∞)
+
+      기호      | 뜻                                                | 단위 | 범위            | 코드 변수
+      d_i       | 행 i의 첫 킬 팀 (0 파랑, 1 빨강, −1 처형)          | —    | −1, 0, 1        | first_team
+      y*_{i,t}  | 칸 t의 유효 개수: 첫 킬 팀이면 초과분 y − 1, 아니면 y | 개   | 0, 1, …        | killlaw.excess
+      r_{i,t}   | 팀 t 칸의 율 (d 칸은 초과분의 평균 λ_d, 다른 칸은 킬 수의 평균 μ) | 개 | > 0            | predict
+
+    해석: 두 팀의 칸은 따로 맞추고 입력이 같은 (B0-7)의 선형 예측량이다. 이동 법칙에서는 한 칸이 d = t인 행과 d ≠ t인 행을 함께 보므로 칸이 두 율을 낼 수 있어야 한다: 가린 머리는 표지 m의
+    원핫 블록이(d = m // 25), 열린 머리는 ``layout_for``가 더하는 d 블록이 그 구분을 맡는다. 적합은 y*를 목표로 한 (B0-2) 그대로이고(``first_team``을 함께 준다), 점수와 예측 함수는 d를 몰라도
+    율을 낸다(합성기가 d를 안다)."""
     name = 'M3Kills'
+
+    def __init__(self, kind: str = 'masked', kill_law: str = 'poisson'):
+        super().__init__(kind)
+        self.kill_law = killlaw.check_law(kill_law)
+
+    def fit(self, X, Y, e, n_numeric=None, blocks=(), *, overwrite_X: bool = False, first_team=None):
+        """(B0-2) with the target of the kill law: the counts ``Y`` for the plain law, their excess ``killlaw.excess(Y, first_team)`` for the shifted law, whose first teams
+        ``first_team`` (n,) are required (ValueError otherwise, and for a first team with no kill)."""
+        if self.kill_law == 'shifted':
+            if first_team is None:
+                raise ValueError(f'{self.name}: the shifted kill law needs the first-kill team of every row (first_team)')
+            Y = killlaw.excess(Y, first_team, self.kill_law)
+        return super().fit(X, Y, e, n_numeric, blocks, overwrite_X=overwrite_X)
+
+    def nll(self, X, Y, e, cells: bool = False, first_team=None) -> np.ndarray:
+        """The NLL of the kill counts ``Y`` (n, 2): ``_PoissonHead.nll`` for the plain law; for the shifted law (KL-3) with the first teams ``first_team`` (n,) of the rows
+        (required; the exposure is 1). The result is one value per row, or (n, 2) with ``cells``."""
+        if self.kill_law == 'poisson':
+            return super().nll(X, Y, e, cells)
+        if first_team is None:
+            raise ValueError(f'{self.name}: the shifted kill law needs the first-kill team of every row (first_team)')
+        if not np.array_equal(np.asarray(e, dtype=np.float64), np.ones(len(np.asarray(Y)))):
+            raise ValueError(f'{self.name}: the kill counts have the exposure 1')
+        per_cell = -killlaw.logpmf(Y, self.predict(X), first_team, self.kill_law)
+        return per_cell if cells else per_cell.sum(axis=1)
+
+    def state(self) -> tuple:
+        arrays, meta = super().state()
+        if self.kill_law != 'poisson':
+            meta['kill_law'] = self.kill_law                       # absent means the plain law: a plain head is saved as every earlier head was
+        return arrays, meta
+
+    def _restore(self, arrays: Mapping, meta: Mapping) -> None:
+        super()._restore(arrays, meta)
+        self.kill_law = killlaw.check_law(meta.get('kill_law', 'poisson'))
+
+    def summary(self) -> dict:
+        out = super().summary()
+        if self.kill_law != 'poisson':
+            out['kill_law'] = self.kill_law
+        return out
 
 
 class _GoldModel(_CategoricalHead):
@@ -1273,11 +1351,18 @@ class HeadRows(head_rows.HeadRows):
     that does not belong to the S1 store (counts only, never a key), for a role that is a holdout role or not used by S3, for fit means
     that are not 39 finite numbers, and for a unit that lacks a view.
 
+    ``k_condition`` (S4b 준비 M3b, 결정 D24): 열린 오브젝트 머리(M3Obj)와 열린 전환 머리(M4Conv)의 설계에 들어가는 K 블록의 골드. ``'raw'``(기본값)는 라벨의 실제 킬 골드(이전 실행의 행)이고,
+    ``'binned'``는 B1·EPT와 같은 값, 곧 킬이 있는 팀은 관측한 골드 구간의 대표값 rep[b]이고 킬이 없는 팀은 0이다((HR-9); 31개의 rep는 ``head_rows.HeadRows.k_reps``의 범위 안 FIT 한 출처). 가린 머리는 K를 설계에 두지 않으므로(계획 P6)
+    어느 조건에서도 같은 행이다.
+
+    ``matches`` (S4b 준비 M11, 결정 D16): 역할의 경기 가운데 고른 경기 번호(``head_rows.HeadRows``의 ``matches=``, B1과 같다). 기본값 None은 역할의 모든 경기이고 이전 행과 같다.
+    B0의 상대 NLL R_h = Σ w·NLL_모형 / Σ w·NLL_B0 는 두 모형이 같은 경기의 같은 행에서 채점돼야 하므로, B0도 다른 모형과 같은 ``matches=``를 받을 수 있어야 한다.
+
     행의 정의는 (HR-1)–(HR-4)이고, 이 클래스는 거기에 b0 특징(결측 칸은 FIT 평균; 판정 R2)과 모듈 글의 설계 표대로 만든 설계를 얹는다(판정 R18)."""
 
-    def __init__(self, s1, s2, labels, fit_means, role):
+    def __init__(self, s1, s2, labels, fit_means, role, *, matches=None, kill_law: str = 'poisson', k_condition: str = 'raw'):
         self.means = _checked_means(fit_means)
-        super().__init__(s1, s2, labels, role, lambda store, views: features.b0(store, views, self.means))
+        super().__init__(s1, s2, labels, role, lambda store, views: features.b0(store, views, self.means), matches=matches, kill_law=kill_law, k_condition=k_condition)
 
     def data(self, head: str, kind: str) -> HeadData:
         """The rows of the head ``head`` ('M2Rate', ... 'M4Conv') of ``kind`` ('masked' or 'open'), see ``HeadData``. ValueError for a head
@@ -1286,7 +1371,7 @@ class HeadRows(head_rows.HeadRows):
         (B0-7)의 입력 행렬 X = [숫자 열 | 원핫 열]과 (HR-1)–(HR-5)의 y, e, 경기 번호, 평가 행 번호를 묶어 ``HeadData``로 낸다."""
         if (head, kind) not in LAYOUTS:
             raise ValueError(f'there is no {kind} head {head!r}; the heads are {[k for k in LAYOUTS]}')
-        layout = LAYOUTS[(head, kind)]
+        layout = layout_for(head, kind, self.kill_law)
         p = self.parts(head, kind)
         if kind == 'masked':
             # the masked M4 design keeps [b0, q, m, z] of the input of features.m4_masked_inputs (neither K nor O: decision P6)
@@ -1297,7 +1382,7 @@ class HeadRows(head_rows.HeadRows):
                 if block is not None:
                     numeric = np.hstack([numeric, block.astype(np.float64)])
         X = _design(numeric, layout.blocks, {b.name: p.codes[b.name] for b in layout.blocks}) if layout.blocks else numeric
-        return HeadData(X, p.y, p.e, p.match, p.row, layout, p.n_zero_exposure, p.team)
+        return HeadData(X, p.y, p.e, p.match, p.row, layout, p.n_zero_exposure, p.team, p.first_team)
 
 
 # ==========================================================================================================================
@@ -1322,6 +1407,9 @@ class _MaskedChain:
         self._h = masked
         self._means = fit_means
         self._b0 = None
+        # 킬 수 법칙(결정 D5, 검토 I1): ``kill_rate``의 d 칸이 초과분의 평균 λ_d('shifted')인지 킬 수의 평균 μ('poisson')인지는 M3Kills 머리가 정한다. 합성기가 이 선언을 자기 법칙과
+        # 대조하므로(``Composer``) 다른 법칙으로 맞춘 머리를 말없이 합성하지 못한다. 킬 머리가 없으면(부분 묶음) 옛 법칙이다.
+        self.kill_law = getattr(masked.get('M3Kills'), 'kill_law', 'poisson')
 
     def bind(self, s2, views) -> None:
         """Compute and keep the b0 rows of the frame-clock views ``views`` (view numbers in any order, or a bool mask). ValueError for a
@@ -1464,10 +1552,22 @@ class B0Heads:
     - save(dir) / load(dir): b0_heads.npz 및 b0_heads.json을 통한 원자적 저장 및 무결성 검증 복원.
     """
 
-    def __init__(self, masked: Mapping, open_: Mapping, fit_means, fit_roles=('FIT',)):
+    def __init__(self, masked: Mapping, open_: Mapping, fit_means, fit_roles=('FIT',), kill_law: str = 'poisson', k_condition: str = 'raw', k_reps_sha256=None):
         unknown = (set(masked) - set(HEAD_NAMES)) | (set(open_) - set(OPEN_HEAD_NAMES))
         if unknown:
             raise ValueError(f'unknown head(s): {", ".join(sorted(unknown))}')
+        self.kill_law = killlaw.check_law(kill_law)
+        # the gold of the K block that the open object and conversion heads were fitted on (decision D24, as the B1 set of decision D21 B16); the set says it, the heads carry no declaration of it
+        self.k_condition = head_rows.check_k_condition(k_condition)
+        # the sha256 of the 31 representatives of the binned K block (``value.gold_reps_sha256``): None for the raw gold and for a binned set whose representatives are not recorded.
+        # A lowercase 64-digit hex string or None.
+        if k_reps_sha256 is not None and (self.k_condition != 'binned' or not isinstance(k_reps_sha256, str) or len(k_reps_sha256) != 64
+                                          or any(c not in '0123456789abcdef' for c in k_reps_sha256)):
+            raise ValueError("k_reps_sha256 must be None or a lowercase 64-digit hex sha256, and only for k_condition 'binned'")
+        self.k_reps_sha256 = k_reps_sha256
+        for group in (masked, open_):
+            if 'M3Kills' in group and group['M3Kills'].kill_law != self.kill_law:
+                raise ValueError(f'the kill head is fitted for kill_law {group["M3Kills"].kill_law!r} but the set says {self.kill_law!r}')
         # always in the order of HEAD_NAMES and OPEN_HEAD_NAMES: summary(), nll() and the files do not depend on how the set was made
         self.masked = {name: masked[name] for name in HEAD_NAMES if name in masked}
         self.open = {name: open_[name] for name in OPEN_HEAD_NAMES if name in open_}
@@ -1476,45 +1576,93 @@ class B0Heads:
 
     # -- fit -------------------------------------------------------------------------------------------------------------------------------
     @classmethod
-    def fit(cls, s1, s2, labels, fit_means, roles=None, *, check=None) -> 'B0Heads':
+    def fit(cls, s1, s2, labels, fit_means, roles=None, *, check=None, kill_law: str = 'poisson', k_condition: str = 'raw') -> 'B0Heads':
         """Fit the eight masked and the five open heads on the matches of the role ``roles['fit']`` (default FIT), one head at a time (each
         design is built, fitted and dropped, so that the memory is that of the largest head). ``fit_means``: the b0 FIT means
         (``features.b0_fit_means``). ``check``: a function without arguments (the E6 guard), called before anything is read and before
         each head. ValueError for a holdout role or a role that S3 does not use, before any array is read.
 
-        적합 역할 ``roles['fit']``(기본 FIT)의 경기로 맞춘다. 홀드아웃 역할과 S3가 쓰지 않는 역할은 배열을 읽기 전에 거부한다(계획 전역 제약의 분할)."""
+        적합 역할 ``roles['fit']``(기본 FIT)의 경기로 맞춘다. 홀드아웃 역할과 S3가 쓰지 않는 역할은 배열을 읽기 전에 거부한다(계획 전역 제약의 분할).
+
+        ``kill_law`` (S4b 준비 M1, 결정 D5): 킬 머리 M3Kills의 킬 수 법칙. 기본값 ``'poisson'``은 이전 적합과 같은 행·설계·계수(저장 파일까지 비트 같음)이고, ``'shifted'``는 첫 킬 팀의
+        킬 수를 1 + N_d로 둔 적합이다(행이 첫 킬 팀을 담고, 두 M3Kills 머리가 초과분을 목표로 맞추며, 열린 머리의 설계에 d 블록이 더해진다: ``layout_for``). 다른 머리는 그대로이다.
+        새 법칙으로 맞춘 B0는 옛 `B0_SCALES.json`의 척도(옛 법칙으로 잰 것)를 쓸 수 없고 FIT 전체에서 새로 재야 한다(계획 Q9, S4b 실행의 첫 단계).
+
+        ``k_condition`` (S4b 준비 M3b, 결정 D24): K 블록을 설계에 읽는 두 열린 머리(오브젝트 머리 M3Obj와 전환 머리 M4Conv)가 학습에서 보는 골드. 기본값 ``'raw'``는 이전 적합과 같다(행, 설계, 계수, 저장 파일).
+        ``'binned'``는 라벨의 실제 연속 골드 대신 관측한 골드 구간의 대표값(``head_rows``의 (HR-9); 킬이 없는 팀은 0)을 넣는 적합으로, B1·EPT가 보는 K와 같고 합성기가 넣는 값과 같은 지지에 있다.
+        가린 머리 여덟과 열린 머리의 나머지 셋은 그대로이다. 이름은 ``head_rows.K_CONDITIONS``에 있어야 한다(배열을 읽기 전에 거부). 'binned'이면 묶음이 대표값 31개의 ``k_reps_sha256``(float64
+        little-endian 바이트의 sha256, ``value.gold_reps_sha256``)를 기록하고 ``save``가 JSON에 적는다. B0의 적합 행은 FIT 한 묶음이라 B1의 'FIT와 STOP 행이 같은 조건' 점검은 필요 없고, 맞춘 묶음을 채점할 때의
+        행이 같은 조건·같은 대표값인지는 ``nll``이 점검한다. 같은 조건으로 `B0_SCALES.json`을 다시 재야 한다(계획 Q9; ``scales.b0_scales``가 조건을 파일에 적는다)."""
         role = _fit_role(roles)
+        killlaw.check_law(kill_law)
+        head_rows.check_k_condition(k_condition)
         tick = check if check is not None else (lambda: None)
         tick()
-        rows = HeadRows(s1, s2, labels, fit_means, role)
+        law = {} if kill_law == 'poisson' else {'kill_law': kill_law}
+        condition = {} if k_condition == 'raw' else {'k_condition': k_condition}       # the raw gold is not passed: the calls are those of every earlier run
+        rows = HeadRows(s1, s2, labels, fit_means, role, **law, **condition)
         fitted = {kind: {} for kind in KINDS}
         for kind, names in (('masked', HEAD_NAMES), ('open', OPEN_HEAD_NAMES)):
             for name in names:
                 tick()
                 d = rows.data(name, kind)
-                head = HEAD_CLASSES[name](kind)
+                head = M3Kills(kind, kill_law) if name == 'M3Kills' and kill_law != 'poisson' else HEAD_CLASSES[name](kind)
                 args = (d.X, d.y) if d.e is None else (d.X, d.y, d.e)
                 extra = {} if d.team is None else {'team': d.team}                      # the gold head: the team of every row (ruling R19)
+                if name == 'M3Kills' and kill_law != 'poisson':
+                    extra = {'first_team': d.first_team}                                # the kill head of the shifted law fits the excess of the first team
                 head.fit(*args, **extra, n_numeric=d.layout.n_numeric, blocks=d.layout.blocks, overwrite_X=True)
                 # 행을 고를 때 노출이 0이라 빠진 칸의 수를 머리의 기록에 합친다(판정 R22).
                 if d.e is not None:
                     head.n_zero_exposure_ += d.n_zero_exposure
                 fitted[kind][name] = head
                 del d
-        return cls(fitted['masked'], fitted['open'], fit_means, (role,) if isinstance(role, str) else tuple(role))
+        recorded = {} if k_condition == 'raw' else {'k_reps_sha256': rows.k_reps_sha256()}       # the 31 numbers of the binned K block
+        return cls(fitted['masked'], fitted['open'], fit_means, (role,) if isinstance(role, str) else tuple(role), **law, **condition, **recorded)
 
     # -- scoring ---------------------------------------------------------------------------------------------------------------------------
-    def nll(self, s1, s2, labels, role, kind: str = 'masked', *, check=None) -> dict:
+    def head_rows(self, s1, s2, labels, role, *, matches=None) -> 'HeadRows':
+        """The ``HeadRows`` of ``role`` (and of the chosen ``matches``, default all) with the means, the kill law and the K condition of this set, checked to be the rows the set was fitted for
+        (``_check_rows``: the condition in both directions and, for a set that records them, the 31 representatives). This is the one way the set builds the rows it scores, for ``nll`` and for
+        ``adapters.run_inference`` (S4b 준비 M11, 결정 D16), so that B0 is scored on the same rows as the model it is the denominator of.
+
+        세트가 맞춘 조건·평균·대표값으로 행을 만들고 확인한다. ``nll``과 평가 어댑터가 같은 경로로 B0의 채점 행을 만든다."""
+        rows = HeadRows(s1, s2, labels, self.fit_means, role, matches=matches, **({} if self.kill_law == 'poisson' else {'kill_law': self.kill_law}),
+                        **({} if self.k_condition == 'raw' else {'k_condition': self.k_condition}))          # the K heads are scored on the K they were fitted on
+        self._check_rows(rows)
+        return rows
+
+    def entry_nll(self, head: str, kind: str, d: HeadData) -> np.ndarray:
+        """(n,) the NLL of every design entry of ``d`` (the ``HeadData`` of ``head`` and ``kind`` from ``head_rows(...).data``), none left out: an M2Zone entry without a zone and an M3Gold entry
+        without a bin score 0 (the head says so), an entry without exposure scores 0. ``nll`` is built from these scores; ``adapters.run_inference`` aggregates them over the scored entries of
+        the model it compares (the entries that ``loss.scored_rows`` keeps), which is the same rule as for B1.
+
+        설계 행마다 NLL 하나(식 (NLL-1)–(NLL-3))를 빠짐없이 낸다. 점수가 없는 행(구역 없음, 노출 0)은 0이고, 어느 행을 평균에 넣을지는 호출자가 정한다."""
+        if kind not in KINDS:
+            raise ValueError(f'kind must be one of {KINDS}, not {kind!r}')
+        model = (self.masked if kind == 'masked' else self.open).get(head)
+        if model is None:
+            raise ValueError(f'this B0 set has no {kind} head {head!r}')
+        if head == 'M3Gold':
+            return model.nll(d.X, d.y, d.team)
+        if head == 'M3Kills' and self.kill_law != 'poisson':
+            return model.nll(d.X, d.y, d.e, first_team=d.first_team)           # (KL-3): the shifted score
+        if d.e is None:
+            return model.nll(d.X, d.y)
+        return model.nll(d.X, d.y, d.e)
+
+    def nll(self, s1, s2, labels, role, kind: str = 'masked', *, check=None, matches=None) -> dict:
         """The row-wise NLL of every head of ``kind`` on the matches of ``role`` (DEV, say): {head name: HeadScores}. The rows without a
         zone (M2Zone) and the rows without exposure (cells beyond the game end, units without a conversion window) are not rows of the
-        head's mean; they are counted in ``n_unscored`` (a cell without exposure adds 0 to the NLL).
+        head's mean; they are counted in ``n_unscored`` (a cell without exposure adds 0 to the NLL). ``matches``: score only the rows of
+        these matches of the role (S4b 준비 M11, 결정 D16: the rows of the model B0 is compared with); the default is every match of the role.
 
         머리별 설계 행 NLL (NLL-1)–(NLL-3)을 ``HeadScores``에 담아 평가 행의 점수 (HR-5)와 평균 (NLL-4)로 이어 준다."""
         if kind not in KINDS:
             raise ValueError(f'kind must be one of {KINDS}, not {kind!r}')
         tick = check if check is not None else (lambda: None)
         tick()
-        rows = HeadRows(s1, s2, labels, self.fit_means, role)
+        rows = self.head_rows(s1, s2, labels, role, matches=matches)
         group = self.masked if kind == 'masked' else self.open
         out = {}
         for name, head in group.items():
@@ -1523,13 +1671,22 @@ class B0Heads:
             if name == 'M2Zone':
                 scored = d.y >= 0
                 out[name] = HeadScores(head.nll(d.X[scored], d.y[scored]), d.match[scored], d.row[scored], int((~scored).sum()))
-            elif name == 'M3Gold':
-                out[name] = HeadScores(head.nll(d.X, d.y, d.team), d.match, d.row, 0)
-            elif d.e is None:
-                out[name] = HeadScores(head.nll(d.X, d.y), d.match, d.row, 0)
-            else:
-                out[name] = HeadScores(head.nll(d.X, d.y, d.e), d.match, d.row, d.n_zero_exposure)
+            else:                                                                  # one rule for every other head (``entry_nll``), also the one of ``adapters.run_inference``
+                out[name] = HeadScores(self.entry_nll(name, kind, d), d.match, d.row, 0 if d.e is None or name == 'M3Gold' else d.n_zero_exposure)
         return out
+
+    def _check_rows(self, rows) -> None:
+        """ValueError unless the rows ``rows`` (a ``HeadRows``) hold the K block of the condition of this set: the same ``k_condition`` and, for a binned set that records the sha256 of its
+        representatives, the same 31 representatives. The rows of the other condition are refused in both directions (a raw set on binned rows, a binned set on raw rows).
+
+        K 조건 'binned'의 대표값은 행을 만든 라벨 저장소의 범위 안 FIT 구간 평균이다. 같은 조건이어도 다른 저장소에서 온 31개는 다른 K 변수이므로, 맞출 때 적은 sha256과 다르면 채점하지 않는다
+        (B1의 FIT/STOP 행 점검과 같은 뜻이다: 한 묶음의 K 변수는 하나이다)."""
+        if rows.k_condition != self.k_condition:
+            raise ValueError(f"the rows have the k_condition {rows.k_condition!r} and the B0 set was fitted on {self.k_condition!r}: the open object and conversion heads would be scored "
+                             'on another input')
+        if self.k_reps_sha256 is not None and rows.k_reps_sha256() != self.k_reps_sha256:
+            raise ValueError('the rows hold other representatives of the gold bins than the B0 set was fitted on (k_reps_sha256 differs): the open object and conversion heads would be '
+                             'scored on another K')
 
     # -- the composer ----------------------------------------------------------------------------------------------------------------------
     def composer_heads(self, mode: str = 'masked') -> 'heads.ComposerHeads':
@@ -1582,6 +1739,22 @@ class B0Heads:
         out = Path(directory)
         if (out / NPZ_NAME).exists() or (out / JSON_NAME).exists():
             raise FileExistsError(f'{out} already holds saved B0 heads: they are not written over')
+        blob, text = self._files()
+        out.mkdir(parents=True, exist_ok=True)
+        store_core.write_atomic(out / NPZ_NAME, blob)
+        store_core.write_atomic(out / JSON_NAME, text)
+        return out
+
+    def saved_sha256(self) -> dict:
+        """``{'npz_sha256', 'json_sha256'}``: the sha256 of the two files that ``save`` writes, computed without writing anything. This is the identity of the set as a file artefact (the JSON also holds the
+        array file's sha256), which ``adapters.run_inference`` records in its provenance when it is given a B0 (S4b preparation M11 review, m4).
+
+        세트를 파일로 저장했을 때의 두 파일의 SHA-256. 저장 없이 계산하며, 평가 기록의 B0 정체성으로 쓴다."""
+        blob, text = self._files()
+        return {'npz_sha256': hashlib.sha256(blob).hexdigest(), 'json_sha256': hashlib.sha256(text.encode('utf-8')).hexdigest()}
+
+    def _files(self) -> tuple:
+        """``(npz bytes, JSON text)`` exactly as ``save`` writes them."""
         arrays = {'fit_means': self.fit_means}
         described = {kind: {} for kind in KINDS}
         for kind in KINDS:
@@ -1589,7 +1762,7 @@ class B0Heads:
                 head_arrays, meta = head.state()
                 for field, a in head_arrays.items():
                     arrays[f'{kind}.{name}.{field}'] = a
-                layout = LAYOUTS[(name, kind)]
+                layout = layout_for(name, kind, self.kill_law)
                 numeric_names = list(features.B0_NAMES)
                 if layout.n_numeric > N_B0:
                     numeric_names += ['kills_blue', 'kills_red', 'gold_blue_k', 'gold_red_k']
@@ -1597,17 +1770,20 @@ class B0Heads:
                     numeric_names += list(features.O_NAMES)
                 meta['columns'] = column_names(layout, numeric_names)
                 described[kind][name] = {**meta, **head.summary()}
-        out.mkdir(parents=True, exist_ok=True)
         blob = _write_npz_bytes(arrays)
-        store_core.write_atomic(out / NPZ_NAME, blob)
         import sklearn
         doc = {'schema': SCHEMA, 'npz_sha256': hashlib.sha256(blob).hexdigest(), 'fit_roles': list(self.fit_roles),
                'b0_names': list(features.B0_NAMES),
                'fits': {'poisson': {'alpha': ALPHA, 'max_iter': MAX_ITER_POISSON, 'tol': TOL_POISSON},
                         'logistic': {'C': C_LOGISTIC, 'max_iter': MAX_ITER_LOGISTIC}, 'mix': MIX, 'sklearn': sklearn.__version__},
                'heads': described}
-        store_core.write_atomic(out / JSON_NAME, json.dumps(doc, indent=2, sort_keys=True, allow_nan=False) + '\n')
-        return out
+        if self.kill_law != 'poisson':
+            doc['kill_law'] = self.kill_law                         # absent means the plain law: a plain set is saved as every earlier set was
+        if self.k_condition != 'raw':
+            doc['k_condition'] = self.k_condition                   # absent means the raw gold: a raw set is saved as every earlier set was
+            if self.k_reps_sha256 is not None:
+                doc['k_reps_sha256'] = self.k_reps_sha256           # the 31 representatives of the binned K block (sha256 of the float64 little-endian bytes)
+        return blob, json.dumps(doc, indent=2, sort_keys=True, allow_nan=False) + '\n'
 
     @classmethod
     def load(cls, directory) -> 'B0Heads':
@@ -1626,6 +1802,8 @@ class B0Heads:
         wanted = {'masked': HEAD_NAMES, 'open': OPEN_HEAD_NAMES}
         if any(set(doc['heads'].get(kind, {})) != set(names) for kind, names in wanted.items()):
             raise ValueError('the saved set does not hold the eight masked and the five open heads')
+        kill_law = killlaw.check_law(doc.get('kill_law', 'poisson'))
+        k_condition = head_rows.check_k_condition(doc.get('k_condition', 'raw'))
         groups = {}
         for kind, names in wanted.items():                                              # the order of the head names, not that of the JSON
             groups[kind] = {}
@@ -1637,10 +1815,12 @@ class B0Heads:
                 prefix = f'{kind}.{name}.'
                 part = {k[len(prefix):]: v for k, v in arrays.items() if k.startswith(prefix)}
                 head = cls_.from_state(part, meta)
-                layout = LAYOUTS[(name, kind)]
+                layout = layout_for(name, kind, kill_law)
                 for single in head.parts:
                     same_design = (single.n_numeric_, single.blocks_, single.WINDOWS) == (layout.n_numeric, layout.blocks, layout.windows)
                     if not same_design or single.coef_std_.shape[1] != layout.model_width:
                         raise ValueError(f'{kind} head {name!r}: the saved design is not the design of the layout of this module')
                 groups[kind][name] = head
-        return cls(groups['masked'], groups['open'], arrays['fit_means'], doc['fit_roles'])
+        condition = {} if k_condition == 'raw' else {'k_condition': k_condition}
+        recorded = {'k_reps_sha256': doc['k_reps_sha256']} if 'k_reps_sha256' in doc else {}         # a sha256 of a raw set, or a malformed one, is refused by the constructor
+        return cls(groups['masked'], groups['open'], arrays['fit_means'], doc['fit_roles'], **({} if kill_law == 'poisson' else {'kill_law': kill_law}), **condition, **recorded)

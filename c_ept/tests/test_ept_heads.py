@@ -16,7 +16,9 @@ No run folder, raw file or catalog is read, and nothing is put on a GPU. Most te
                          table of every output axis on a stub whose answers are known, the conditions that the swapped call gets and their
                          check before the swap, the conversion window (one value for each row, linear through the average), two separate
                          model calls of one shape, the convexity claim of the average
-    determinism          forward and backward bit-identical for one seed and thread count, also in a second process
+    one frame            (S4b preparation M7, ``average=False``) one call of the encoder, the views with their coin up in the swapped frame and the rows that
+                         read them swapped with them, no map and no mean in the answers, the conditions checked as under the average, no invariance
+    determinism         forward and backward bit-identical for one seed and thread count, also in a second process
 """
 import gc
 import hashlib
@@ -1116,6 +1118,30 @@ def test_cpu_forward_is_deterministic():
     assert run.stdout.strip().splitlines()[-1] == first
 
 
+def test_training_rate_only_path_is_bit_identical_through_the_encoder_with_dropout():
+    """EPT-T011 A2-F10: in training mode, with dropout on in the encoder (so the random draws count), the rate-only ``m2_rate`` gives the same rate and
+    the same gradient of every parameter (encoder and heads) as the rate of the full ``m2`` that training used before, and leaves the random number
+    generator in the same state: the heads have no random operation, so the mark and zone branches that the rate never reads consume no random numbers."""
+    def run(rate_of):
+        torch.manual_seed(20261025)
+        model = heads.EPT(encoder.EncoderConfig(d=16, layers=2, heads=2, dropout=0.1), toy_static())
+        model.train()
+        fa = heads.FrameAveraged(model)
+        c = conditions(4, seed=3)
+        enc = fa.encode(encoder_batch(views=4, events=11, edges=9, seed=5))
+        rate = rate_of(fa, enc, c['exposure'], torch.tensor([3, 0, 0, 2]))
+        (rate * torch.linspace(-0.7, 0.9, rate.numel()).reshape(rate.shape)).sum().backward()
+        grads = [None if p.grad is None else p.grad.clone() for p in model.parameters()]
+        return rate.detach(), grads, torch.get_rng_state().clone(), torch.rand(4)
+    old = run(lambda fa, enc, e, pos: fa.m2(enc, e, pos).rate)
+    new = run(lambda fa, enc, e, pos: fa.m2_rate(enc, e, pos))
+    assert torch.equal(old[0], new[0])
+    assert len(old[1]) == len(new[1]) and any(g is not None for g in old[1])
+    for a, b in zip(old[1], new[1]):
+        assert (a is None) == (b is None) and (a is None or torch.equal(a, b))
+    assert torch.equal(old[2], new[2]) and torch.equal(old[3], new[3])
+
+
 def test_the_heads_take_only_what_the_plan_gives_them():
     """At the level of the heads: the masked M3 head gets no O (plan P4: O is the outcome given K and the size), the masked M4 head gets (q, m, z, K, O)
     and no size (design 3.3, leakage test (a)), and M2 gets no condition at all."""
@@ -1134,3 +1160,240 @@ def test_the_output_table_names_every_head_of_the_rows():
         assert callable(getattr(heads.EPTHeads, method)), head
         out_type = {'m2': heads.M2Out, 'm3': heads.M3Out}.get(method)
         assert (field is None) == (out_type is None) and (field is None or field in out_type._fields), head
+
+
+# =====================================================================================================================================
+# one frame instead of the average (EPT-T012 S4b preparation M7, decisions D10 P1 and D17)
+# =====================================================================================================================================
+class RecordingModel(StubModel):
+    """A ``StubModel`` that also keeps a copy of the view tensors of every call of ``encode``."""
+
+    def __init__(self, n: int):
+        super().__init__(n)
+        self.seen = []
+
+    def encode(self, batch):
+        self.seen.append({k: v.clone() for k, v in batch.items()})
+        return super().encode(batch)
+
+
+def row_batch(coins=None) -> dict:
+    """``stub_batch(4)`` plus the five rows of a mark block: row j reads the view ``pos[j]``; the coins (if any) are the ``swap_view`` of the batch."""
+    batch = stub_batch(4)
+    batch.update({'M2Mark/masked/pos': torch.tensor([0, 1, 2, 3, 1]), 'M2Mark/masked/match': torch.zeros(5, dtype=torch.long),
+                  'M2Mark/masked/row': torch.arange(5), 'M2Mark/masked/unit': torch.zeros(5, dtype=torch.long),
+                  'M2Mark/masked/q': torch.zeros(5, dtype=torch.long), 'M2Mark/masked/y': torch.tensor([3, 50, 7, 51, 12])})
+    if coins is not None:
+        batch['swap_view'] = torch.as_tensor(coins, dtype=torch.bool)
+    return batch
+
+
+def test_one_frame_encodes_each_view_once_and_puts_the_views_with_their_coin_up_in_the_swapped_frame():
+    """``FrameAveraged(model, average=False).encode`` is one call of the encoder on all the views, the views with their coin up swapped by ``data.swap`` and the others as recorded
+    (side marker = the coin); the rows that read a swapped view come back swapped, the others as they were (``FrameEncoded.rows``), the swapped encoding is absent."""
+    model, coins = RecordingModel(4), [False, True, True, False]
+    batch = row_batch(coins)
+    before = {k: v.clone() for k, v in batch.items()}
+    enc = heads.FrameAveraged(model, average=False).encode(batch)
+    assert len(model.encoded) == 1 and model.encoded[0][0] == 4 and set(model.seen[0]) == set(data.VIEW_KEYS)
+    whole = data.swap({k: batch[k] for k in data.VIEW_KEYS})
+    for k in data.VIEW_KEYS:
+        for i, up in enumerate(coins):
+            assert torch.equal(model.seen[0][k][i], whole[k][i] if up else batch[k][i]), (k, i)
+    assert enc.swapped is None and enc.side.tolist() == coins and torch.equal(enc.original.h_pool[:, 0], torch.tensor([0., 1., 1., 0.]))
+    assert 'swap_view' not in enc.rows and set(enc.rows) == set(batch) - {'swap_view'}
+    pos, y = batch['M2Mark/masked/pos'], batch['M2Mark/masked/y']
+    want = torch.where(torch.tensor(coins)[pos], torch.as_tensor(data.MARK_PERM)[y], y)
+    assert torch.equal(enc.rows['M2Mark/masked/y'], want) and not torch.equal(want, y)                    # the rows follow the view (control: some did move)
+    assert all(torch.equal(batch[k], before[k]) for k in before) and set(batch) == set(before)           # the batch of the caller is not changed
+
+
+def test_one_frame_without_coins_is_the_recorded_frame_and_the_averaging_wrapper_refuses_coins():
+    """Mode 'none' and the evaluation without an average: a batch without ``swap_view`` is encoded as recorded (the views bit for bit, rows untouched); the averaging wrapper encodes both
+    frames of the recorded batch, so a batch that asks for a frame for each view is refused by name there."""
+    model = RecordingModel(4)
+    batch = row_batch()
+    enc = heads.FrameAveraged(model, average=False).encode(batch)
+    assert len(model.encoded) == 1 and all(torch.equal(model.seen[0][k], batch[k]) for k in data.VIEW_KEYS)
+    assert enc.swapped is None and enc.rows is None and not enc.side.any()
+    with pytest.raises(ValueError, match='swap_view'):
+        heads.FrameAveraged(RecordingModel(4)).encode(row_batch([True, False, True, False]))
+    assert heads.FrameAveraged(RecordingModel(4)).encode(batch).swapped is not None                       # the average: both frames, as before
+
+
+def test_the_average_flag_is_a_keyword_only_boolean_with_the_default_true():
+    import inspect
+    parameter = inspect.signature(heads.FrameAveraged).parameters['average']
+    assert parameter.default is True and parameter.kind is inspect.Parameter.KEYWORD_ONLY
+    assert heads.FrameAveraged(StubModel(3)).average is True and heads.FrameAveraged(StubModel(3), average=False).average is False
+    for bad in (None, 0, 1, 'no'):
+        with pytest.raises(TypeError, match='average'):
+            heads.FrameAveraged(StubModel(3), average=bad)
+    with pytest.raises(TypeError):
+        heads.FrameAveraged(StubModel(3), False)
+
+
+def test_the_one_frame_methods_return_the_answer_of_the_heads_for_the_frame_of_each_view_with_no_map_and_no_mean():
+    """On the stub the answer of a view depends on its frame only (its side marker): with the coins [0, 1, 0] row i is the table of frame coin[i], as the heads gave it, and each head is asked
+    exactly once with the conditions of the caller (the rows are already in their frames: nothing is swapped here)."""
+    model, coins = StubModel(3), [False, True, False]
+    fa, stub, c = heads.FrameAveraged(model, average=False), model.heads, conditions(3, seed=4)
+    batch = stub_batch(3)
+    batch['swap_view'] = torch.tensor(coins)
+    enc = fa.encode(batch)
+    frame, pos = torch.tensor([0, 1, 0]), torch.tensor([2, 1])
+    same = lambda a, b: all(torch.equal(x, y) for x, y in zip(a, b)) if isinstance(a, tuple) else torch.equal(a, b)           # noqa: E731
+    assert same(fa.m2(enc, c['exposure']), stub.pick(stub.m2_out, frame, None)) and same(fa.m2(enc, c['exposure'], pos), stub.pick(stub.m2_out, frame, pos))
+    assert torch.equal(fa.m2_rate(enc, c['exposure']), stub.pick(stub.m2_out, frame, None).rate)             # the stub has no rate-only call: the full m2, one call
+    assert same(fa.m3(enc, c['q'], c['m'], c['z']), stub.pick(stub.m3_out, frame, None)) and same(fa.m3(enc, None, None, None, pos), stub.pick(stub.m3_out, frame, pos))
+    assert torch.equal(fa.m3_obj(enc, c['q'], c['m'], c['z'], c['s'], c['K']), stub.pick(stub.obj_out, frame, None))
+    assert torch.equal(fa.m4(enc, None, None, None, c['K'][:2], c['O'][:2], c['window'][:2], pos), stub.pick(stub.conv_out, frame, pos))
+    assert [name for name, _ in stub.calls] == ['m2', 'm2', 'm2', 'm3', 'm3', 'm3_obj', 'm4']              # one head call for each method call
+    seen = stub.calls
+    assert seen[0][1]['exposure'] is c['exposure'] and seen[1][1]['pos'] is pos and seen[3][1]['pos'] is None
+    for field in 'qmz':
+        assert torch.equal(seen[3][1][field], c[field])                                                    # the conditions of the caller, not their swap
+    assert torch.equal(seen[5][1]['K'], c['K']) and torch.equal(seen[6][1]['O'], c['O'][:2]) and torch.equal(seen[6][1]['exposure'], c['window'][:2])
+
+
+def test_the_one_frame_methods_check_the_conditions_like_the_average_does():
+    """The conditions are checked and cast before the heads see them, with the messages of the heads, also for heads that accept anything (the stub)."""
+    model = StubModel(3)
+    fa = heads.FrameAveraged(model, average=False)
+    enc = fa.encode(stub_batch(3))
+    c = conditions(3)
+    with pytest.raises(ValueError, match='together'):
+        fa.m3(enc, c['q'], None, None)
+    with pytest.raises(ValueError, match='m must lie'):
+        fa.m3(enc, c['q'], c['m'] + 60, c['z'])
+    with pytest.raises(ValueError, match='conversion window'):
+        fa.m4(enc, c['q'], c['m'], c['z'], c['K'], c['O'], torch.ones(3, 18))
+    with pytest.raises(ValueError, match='K must be'):
+        fa.m3_obj(enc, c['q'], c['m'], c['z'], c['s'], -c['K'] - 1)
+
+
+def test_eval_average_true_gives_exact_swap_invariance_and_one_frame_does_not():
+    """The average (the evaluation of every swap mode, ``eval_average=True``) is exactly invariant under the team swap, bit for bit; one frame alone is not invariant, so the D17
+    check ('no symmetry': ``eval_average=False``) measures something. Control: the one-frame outputs of a batch and of its swap differ by more than 1e-4 somewhere."""
+    model, batch, c = tiny_model(7), encoder_batch(views=6, events=9, edges=7, seed=3), conditions(6, seed=14)
+    check_swap_invariance(heads.FrameAveraged(model), batch, c)
+    one = heads.FrameAveraged(model, average=False)
+    with torch.no_grad():
+        a, b = one.m2(one.encode(batch), c['exposure']), one.m2(one.encode(data.swap(batch)), c['exposure'])
+        assert (a.mark_logp - b.mark_logp[..., MARK]).abs().max() > 1e-4 and (a.rate - b.rate).abs().max() > 1e-4
+
+
+def test_one_frame_with_every_coin_up_is_the_encoding_of_the_swapped_batch_and_with_none_up_the_recorded_one():
+    model, batch = tiny_model(8), encoder_batch(views=6, events=9, edges=7, seed=5)
+    one = heads.FrameAveraged(model, average=False)
+    views = {k: batch[k] for k in data.VIEW_KEYS}
+    with torch.no_grad():
+        up = one.encode(dict(batch, swap_view=torch.ones(6, dtype=torch.bool))).original
+        down = one.encode(dict(batch, swap_view=torch.zeros(6, dtype=torch.bool))).original
+        swapped, recorded = model.encode(data.swap(views)), model.encode(views)
+        assert torch.equal(up.h_pool, swapped.h_pool) and torch.equal(up.h_tok, swapped.h_tok)
+        assert torch.equal(down.h_pool, recorded.h_pool) and torch.equal(down.h_tok, recorded.h_tok)
+        mixed = one.encode(dict(batch, swap_view=torch.tensor([True, False, True, False, False, True]))).original
+        want = torch.where(torch.tensor([True, False, True, False, False, True])[:, None], swapped.h_pool, recorded.h_pool)
+        torch.testing.assert_close(mixed.h_pool, want, rtol=1e-5, atol=1e-6)                                # one batch of mixed frames: the same rows up to the rounding of the batch
+
+
+# =====================================================================================================================================
+# the zone mark switch (S4b preparation M9, decision D9)
+# =====================================================================================================================================
+def zone_pair(seed: int = 31):
+    """The same starting weights twice: the heads of the default (zone mark on) and the heads without the zone mark (built after the same seed)."""
+    torch.manual_seed(seed)
+    on = heads.EPT(encoder.EncoderConfig(**TINY), toy_static()).eval()
+    torch.manual_seed(seed)
+    off = heads.EPT(encoder.EncoderConfig(**TINY), toy_static(), zone_mark=False).eval()
+    return on, off
+
+
+def other_zones(z: torch.Tensor) -> torch.Tensor:
+    """Zones -1 .. 9 that differ from ``z`` in every row (z + 6 modulo the 11 values)."""
+    return (z + 1 + 6) % 11 - 1
+
+
+def test_zone_mark_is_a_keyword_only_boolean_with_the_default_true():
+    for cls in (heads.EPT, heads.EPTHeads):
+        parameter = inspect.signature(cls.__init__).parameters['zone_mark']
+        assert parameter.default is True and parameter.kind is inspect.Parameter.KEYWORD_ONLY, cls
+    cfg = encoder.EncoderConfig(**TINY)
+    for bad in (None, 0, 1, 'no', 'False'):
+        with pytest.raises(ValueError, match='zone_mark'):
+            heads.EPTHeads(cfg, zone_mark=bad)
+        with pytest.raises(ValueError, match='zone_mark'):
+            heads.EPT(cfg, toy_static(), zone_mark=bad)
+    on, off = zone_pair()
+    assert on.heads.zone_mark is True and off.heads.zone_mark is False and heads.EPTHeads(cfg).zone_mark is True
+
+
+def test_zone_mark_off_zeroes_the_z_conditioning_of_m3_m3_obj_and_m4():
+    """The z conditioning of the heads that read a zone is set to 0 by zeroing the zone embedding Γ_z that goes into their maps A^z (the masked and the open reading alike): the shapes,
+    the parameters and the operation order stay, and the term A^z Γ_z is exactly 0. So the outputs do not depend on z, and they equal the outputs of the default heads whose zone table is zero."""
+    on, off = zone_pair()
+    assert list(on.state_dict()) == list(off.state_dict()) and all(torch.equal(on.state_dict()[k], off.state_dict()[k]) for k in on.state_dict())        # the same parameters
+    batch, c = encoder_batch(views=6, events=9, edges=7, seed=5), conditions(6, seed=12)
+    z2 = other_zones(c['z'])
+    assert (z2 != c['z']).all() and int(z2.min()) >= -1 and int(z2.max()) <= 9
+
+    def three(model, z):
+        H = model.heads
+        with torch.no_grad():
+            enc = model.encode(batch)
+            m3 = H.m3(enc, c['q'], c['m'], z)
+            return (*m3, H.m3_obj(enc, c['q'], c['m'], z, c['s'], c['K']), H.m4(enc, c['q'], c['m'], z, c['K'], c['O'], c['window']))
+
+    for a, b in zip(three(off, c['z']), three(off, z2)):
+        assert torch.equal(a, b)                                                    # no dependence on z at all
+    assert any(not torch.equal(a, b) for a, b in zip(three(on, c['z']), three(on, z2)))       # control: the default heads do read z
+    with torch.no_grad():
+        on.heads.zone_emb.weight.zero_()
+    for a, b in zip(three(on, c['z']), three(off, c['z'])):
+        assert torch.equal(a, b)                                                    # the definition: Γ_z = 0
+    with torch.no_grad():                                                           # the open reading is the same law with the zone term 0
+        enc = off.encode(batch)
+        for a, b in zip((*off.heads.m3(enc, None, None, None), off.heads.m3_obj(enc, None, None, None, c['s'], c['K'])),
+                        (*on.heads.m3(enc, None, None, None), on.heads.m3_obj(enc, None, None, None, c['s'], c['K']))):
+            assert torch.equal(a, b)
+
+
+def test_zone_mark_off_leaves_m2_as_it_is_and_gives_the_zone_tables_no_gradient():
+    """M2 (rate, marks, and the zone law itself) is computed as before; the zone embedding gets no gradient from M3, the objectives and M4, so it is not trained, while the default heads train it."""
+    on, off = zone_pair()
+    batch, c = encoder_batch(views=5, events=9, edges=7, seed=4), conditions(5, seed=10)
+    with torch.no_grad():
+        for a, b in zip(on.heads.m2(on.encode(batch), c['exposure']), off.heads.m2(off.encode(batch), c['exposure'])):
+            assert torch.equal(a, b)
+    grads = {}
+    for name, model in (('on', on), ('off', off)):
+        model.train()
+        H, enc = model.heads, model.encode(batch)
+        outs = [*H.m3(enc, c['q'], c['m'], c['z']), H.m3_obj(enc, c['q'], c['m'], c['z'], c['s'], c['K']), H.m4(enc, c['q'], c['m'], c['z'], c['K'], c['O'], c['window'])]
+        sum(t.sum() for t in outs).backward()
+        grads[name] = H.zone_emb.weight.grad
+    assert grads['off'] is None and grads['on'] is not None and grads['on'].abs().sum() > 0
+
+
+def test_zone_mark_off_keeps_the_frame_average_exactly_swap_invariant():
+    """The zero zone term is the same in both frames, so the exact team-swap invariance of the average (law A1) holds for the heads without the zone mark."""
+    _, off = zone_pair()
+    batch, c = encoder_batch(views=5, events=9, edges=7, seed=9), conditions(5, seed=13)
+    check_swap_invariance(heads.FrameAveraged(off).eval(), batch, c)
+
+
+def test_zone_mark_true_given_explicitly_is_the_default_model_bit_for_bit():
+    torch.manual_seed(32)
+    default = heads.EPT(encoder.EncoderConfig(**TINY), toy_static()).eval()
+    torch.manual_seed(32)
+    explicit = heads.EPT(encoder.EncoderConfig(**TINY), toy_static(), zone_mark=True).eval()
+    assert list(default.state_dict()) == list(explicit.state_dict()) and all(torch.equal(v, explicit.state_dict()[k]) for k, v in default.state_dict().items())
+    batch, c = encoder_batch(views=5, events=9, edges=7, seed=6), conditions(5, seed=14)
+    with torch.no_grad():
+        a, b = default.encode(batch), explicit.encode(batch)
+        for x, y in ((default.heads.m2(a, c['exposure']), explicit.heads.m2(b, c['exposure'])), (default.heads.m3(a, c['q'], c['m'], c['z']), explicit.heads.m3(b, c['q'], c['m'], c['z'])),
+                     (default.heads.m3(a, None, None, None), explicit.heads.m3(b, None, None, None))):
+            assert all(torch.equal(i, j) for i, j in zip(x, y))
+        assert torch.equal(default.heads.m3_obj(a, c['q'], c['m'], c['z'], c['s'], c['K']), explicit.heads.m3_obj(b, c['q'], c['m'], c['z'], c['s'], c['K']))
+        assert torch.equal(default.heads.m4(a, c['q'], c['m'], c['z'], c['K'], c['O'], c['window']), explicit.heads.m4(b, c['q'], c['m'], c['z'], c['K'], c['O'], c['window']))

@@ -557,6 +557,24 @@ def test_run_json_records_the_provenance(s1_small, terr, full):
     assert r['store_bytes'] == sum(p.stat().st_size for p in Path(full).rglob('*') if p.is_file()) - (Path(full) / 'STORE.json').stat().st_size
 
 
+def test_the_s4a_terrain_check_accepts_the_terrain_record_of_a_real_build(full, terr):
+    """EPT-T011 review M5: the consumer side of the terrain hash, on the STORE.json that ``build_s2`` wrote and the terrain it was built from.
+
+    ``run_s4a._require_build_terrain`` is fed the file hashes with the consumer's own ``run_s4a._sha``, as ``inspect_inputs`` does. The producer
+    side (``stages.views.terrain_sha256`` is ``runlog.sha256_json`` of the three file hashes) is pinned by the test above; this test closes
+    the loop on a real build, so that the two formulas cannot drift apart unseen.
+    """
+    from c_ept.workflows import run_s4a
+    from c_ept.workflows.s4a_runtime import RuntimeRefused
+    record = json.loads((Path(full) / 'STORE.json').read_text(encoding='utf-8'))
+    hashes = {name: run_s4a._sha(terr / name) for name in ('TERRAIN.json', 'terrain.npz', 'geodesic.npy')}
+    assert len(set(hashes.values())) == 3                      # three different files: a name paired with another file's hash would show
+    run_s4a._require_build_terrain(record, hashes)           # the terrain the store was built from passes
+    swapped = {**hashes, 'terrain.npz': hashes['geodesic.npy'], 'geodesic.npy': hashes['terrain.npz']}
+    with pytest.raises(RuntimeRefused, match='terrain folder differs'):
+        run_s4a._require_build_terrain(record, swapped)
+
+
 def test_run_json_records_the_peak_private_memory(full):
     r = run_json(Path(full).parent)['s2_result']
     assert r['peak_private_gib'] > 0 and r['memory_samples'] >= 1                                  # psutil is installed in this environment

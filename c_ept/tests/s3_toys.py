@@ -1176,8 +1176,22 @@ class HeadsWorld:
     fit_means: np.ndarray
 
 
-def _world_match(rng, role: str) -> dict:
-    """The arrays of one made-up match with local indices (a unit, row, kill or event number counts inside the match)."""
+def consistent_first_kill_marks(mark, kb, kr) -> np.ndarray:
+    """The marks ``mark`` of units that have ``kb`` blue and ``kr`` red kills, changed where the first-kill team of the mark has no kill (S4b preparation M1: the shifted
+    kill law gives such a unit the probability 0). A champion mark whose team scored stays; one whose team did not takes the mark of the same two slots for the other
+    team when that team scored, and an execution mark (50 or 51 by the parity of the old mark) when neither team scored. No random number is drawn."""
+    out = np.array(mark, dtype=np.int64)
+    for i in range(len(out)):
+        d = out[i] // 25 if out[i] < 50 else -1
+        k = (int(kb[i]), int(kr[i]))
+        if d >= 0 and k[d] == 0:
+            out[i] = (out[i] % 25) + 25 * (1 - d) if k[1 - d] > 0 else 50 + int(out[i] % 2)
+    return out
+
+
+def _world_match(rng, role: str, consistent_first_kill: bool = False) -> dict:
+    """The arrays of one made-up match with local indices (a unit, row, kill or event number counts inside the match). With ``consistent_first_kill`` the marks are
+    changed (``consistent_first_kill_marks``) so that the first-kill team of every unit has a kill; the other arrays and the random stream are those of the default world."""
     from c_ept.data import event_rows as event_rows_mod
     from c_ept.valuation import value
     T = int(rng.integers(5_600, 9_000)) * 100
@@ -1208,6 +1222,8 @@ def _world_match(rng, role: str) -> dict:
     missing[kill0[rng.random(n) < 0.25]] = True        # a quarter of the first kills have no position
     x[missing] = y[missing] = np.nan
     mark = np.minimum(rng.geometric(0.1, n) - 1, 51)
+    if consistent_first_kill:
+        mark = consistent_first_kill_marks(mark, kb, kr)
     on = frame_rows_mod.onsets(rows, types.SimpleNamespace(f=f, mark=mark))
     ev = event_rows_mod.event_rows(rec, types.SimpleNamespace(in_scope=in_scope, f=f, delta=delta), rows)
     kills = np.stack([kb, kr], axis=1)
@@ -1220,15 +1236,16 @@ def _world_match(rng, role: str) -> dict:
                 kill_gold=np.where(valued, kill_gold, np.nan), gold_bin=gold_bin)
 
 
-def build_heads_world(root, seed: int = WORLD_SEED, roles=WORLD_ROLES) -> HeadsWorld:
-    """The S1, S2 and label stores of the heads world under ``root`` (three folders), complete; see the section text above."""
+def build_heads_world(root, seed: int = WORLD_SEED, roles=WORLD_ROLES, consistent_first_kill: bool = False) -> HeadsWorld:
+    """The S1, S2 and label stores of the heads world under ``root`` (three folders), complete; see the section text above. ``consistent_first_kill``: every unit's
+    first-kill team has a kill (the kill law of S4b, ``consistent_first_kill_marks``); the default world has random marks that do not follow the kills."""
     from c_ept.preprocessing import features, tokens
     rng = np.random.default_rng(seed)
     root = Path(root)
     cols = collections.defaultdict(list)
     base = dict(row=0, unit=0, kill=0, event=0)
     for m, role in enumerate(roles):
-        p = _world_match(rng, role)
+        p = _world_match(rng, role, consistent_first_kill)
         rows, on, ev = p['rows'], p['on'], p['ev']
         nr, nu, nk, ne = len(rows.k), p['n'], int(p['n_kills'].sum()), len(ev.kind)
         for name, value_ in (
@@ -1303,6 +1320,17 @@ def heads_world(tmp_path_factory):
     yield world
     del world
     gc.collect()                                   # Windows does not delete a folder with open memory maps
+    shutil.rmtree(folder, ignore_errors=True)
+
+
+@pytest.fixture(scope='module')
+def consistent_heads_world(tmp_path_factory):
+    """The heads world whose units all have a kill by their first-kill team (``build_heads_world(..., consistent_first_kill=True)``): the rows of the shifted kill law."""
+    folder = tmp_path_factory.mktemp('consistent_heads_world')
+    world = build_heads_world(folder, consistent_first_kill=True)
+    yield world
+    del world
+    gc.collect()
     shutil.rmtree(folder, ignore_errors=True)
 
 
@@ -1738,10 +1766,13 @@ def toy_tier_model():
     return towertier.TierModel([0], np.zeros((1, k)), np.zeros(1), np.zeros(k), np.ones(k))
 
 
-def toy_composer(S: int = 1000, seed: int = 20261021, rows=None, heads=None, prices=None, tier_model=None, gold_reps=None, s2=None):
+def toy_composer(S: int = 1000, seed: int = 20261021, rows=None, heads=None, prices=None, tier_model=None, gold_reps=None, s2=None, kill_law: str = 'poisson', zone_mark: bool = True,
+                 exposure: str = 'observed'):
     """A ``compose.Composer`` on the toy rows (``toy_row_table()``), the heads of note 03 (``ToyHeads()``), the toy prices, the toy tier law
-    and the gold representatives 100 b; every part can be replaced."""
+    and the gold representatives 100 b; every part can be replaced. ``kill_law``: the kill law of the composer (S4b preparation M1, decision D5); ``zone_mark``: whether the
+    composer draws the zone (S4b preparation M9, decision D9; not passed by default); ``exposure``: 'observed' (not passed, the default) or 'nominal' (S4b preparation M12, decision D14)."""
     from c_ept.valuation import compose
     return compose.Composer(ToyHeads() if heads is None else heads, TOY_COMPOSE_PRICES if prices is None else prices,
                             toy_tier_model() if tier_model is None else tier_model, TOY_GOLD_REPS if gold_reps is None else gold_reps,
-                            toy_row_table() if rows is None else rows, s2, S=S, seed=seed)
+                            toy_row_table() if rows is None else rows, s2, S=S, seed=seed, **({} if kill_law == 'poisson' else {'kill_law': kill_law}),
+                            **({} if zone_mark else {'zone_mark': False}), **({} if exposure == 'observed' else {'exposure': exposure}))

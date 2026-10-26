@@ -752,7 +752,7 @@ def test_golden_the_sweep_runs_on_a_few_matches_and_shows_no_key(golden_records,
     assert counts['matches'] == 3 and counts['building_kill_events'] > 0 and counts['state_refs'] > 0
     assert counts['matches_with_exception'] == 0
     assert counts['building_kills_unmatched'] == counts['building_kills_on_destroyed_landmark'] == counts['policy_violations'] == 0
-    keys = [rec.key for rec in golden_records] + [key for key, _, _ in common.s1_matches(run)[:3]]    # the golden and the three read
+    keys = [rec.key for rec in golden_records] + [key for key, _, _ in common.s1_matches(run, roles=common.QA_ROLES)[:3]]   # the golden and the three read
     assert not any(key in printed or key in written for key in keys)
     sample = tmp_path / 'sample.json'                                          # --sample N --seed S draws N matches of the store
     assert sweep_state.main([run, '--sample', '4', '--seed', '7', '--workers', '1', '--out', str(sample)]) == 0
@@ -760,3 +760,78 @@ def test_golden_the_sweep_runs_on_a_few_matches_and_shows_no_key(golden_records,
     assert sweep_state.main([run, '--sample', '4', '--seed', '7', '--workers', '1', '--out', str(again)]) == 0
     assert sample.read_text(encoding='utf-8') == again.read_text(encoding='utf-8')
     assert json.loads(sample.read_text(encoding='utf-8'))['counts']['matches'] == 4
+
+
+# ---- the QA sweeps read only FIT, STOP and DEV (S4b preparation M15, decision B21) ----------------------------------------------------------
+def all_role_rows(per_role=3, patch='15.18'):
+    """``per_role`` synthetic matches of every role of ``config.ROLES`` (FIT, UNUSED, STOP, DEV, CAL, AUDIT, TEST, EXTERNAL), keys ``SYN_<role>_<i>``."""
+    return [(f'SYN_{role}_{i}', patch, role) for role in C.ROLES for i in range(per_role)]
+
+
+def test_qa_never_reads_test_cal_audit_or_unused(tmp_path, monkeypatch, fake_processes, capsys):
+    """B21. A QA sweep asks ``reader.read_match`` for the matches of FIT, STOP and DEV and for no other role: not for TEST, CAL, AUDIT,
+    EXTERNAL or UNUSED, whether it runs over the whole list, over a prefix (``--limit``) or over a random draw (``--sample``). The reader
+    is replaced by a recorder that raises (the sweeps count the error and go on), so no file is read."""
+    from c_ept.checks import sweep_s1
+    from c_ept.data import reader
+    rows = all_role_rows()
+    write_store(tmp_path / 'run', rows)
+    (tmp_path / 'run' / 's1' / 'STORE.json').write_text('{}', encoding='utf-8')
+    fake_processes([])
+    seen: list = []
+
+    def recorder(key, patch, *args, **kwargs):
+        seen.append(key)
+        raise RuntimeError('recorded')
+    monkeypatch.setattr(reader, 'read_match', recorder)
+    qa = {key for key, _, role in rows if role in common.QA_ROLES}
+    assert common.QA_ROLES == ('FIT', 'STOP', 'DEV') and len(qa) == 9
+    for script, extra in ((sweep_state, []), (sweep_state, ['--sample', '100', '--seed', '3']), (sweep_s1, [])):
+        seen.clear()
+        assert script.main([str(tmp_path / 'run'), '--workers', '1', *extra]) == 0
+        assert set(seen) == qa and len(seen) == len(qa), script.__name__
+    seen.clear()
+    assert sweep_state.main([str(tmp_path / 'run'), '--workers', '1', '--limit', '4']) == 0
+    assert len(seen) == 4 and set(seen) <= qa                         # the prefix is a prefix of the QA list, not of the whole store
+    capsys.readouterr()
+
+
+def test_the_qa_match_lists_name_only_qa_roles_and_refuse_any_other_role(tmp_path):
+    """``sample_matches`` and ``s1_matches(run, roles=...)`` take the roles to read from ``QA_ROLES`` and raise ``ValueError`` (naming the
+    role, never a key) for TEST, CAL, AUDIT, UNUSED, EXTERNAL, an unknown name, or a bare string; the default is ``QA_ROLES``."""
+    write_store(tmp_path, all_role_rows(per_role=2))
+    got = common.sample_matches(tmp_path, fit=2, other=1)
+    assert {role for _, _, role in got} == set(common.QA_ROLES)
+    assert sorted(key for key, _, _ in got) == ['SYN_DEV_0', 'SYN_FIT_0', 'SYN_FIT_1', 'SYN_STOP_0']
+    assert common.sample_matches(tmp_path, roles=('STOP',), other=5) == [('SYN_STOP_0', '15.18', 'STOP'), ('SYN_STOP_1', '15.18', 'STOP')]
+    assert [r for _, _, r in common.s1_matches(tmp_path, roles=('DEV', 'FIT'))] == ['FIT', 'FIT', 'DEV', 'DEV']      # the order of the store
+    for bad in ('TEST', 'CAL', 'AUDIT', 'UNUSED', 'EXTERNAL', 'NOPE', 'fit'):
+        with pytest.raises(ValueError, match='QA_ROLES') as err:
+            common.sample_matches(tmp_path, roles=('FIT', bad))
+        assert bad in str(err.value) and 'SYN_' not in str(err.value)
+        with pytest.raises(ValueError, match='QA_ROLES'):
+            common.s1_matches(tmp_path, roles=(bad,))
+    for bad in ('FIT', ['FIT', 'TEST'], ()):                          # a bare string would be read letter by letter; an empty choice is no choice
+        with pytest.raises((ValueError, TypeError)):
+            common.sample_matches(tmp_path, roles=bad)
+    # m2 of the M15 review: the default is QA_ROLES; every role needs the named argument roles='all' (for a builder that must see them all)
+    assert [r for _, _, r in common.s1_matches(tmp_path)] == ['FIT', 'FIT', 'STOP', 'STOP', 'DEV', 'DEV']
+    assert common.s1_matches(tmp_path) == common.s1_matches(tmp_path, roles=common.QA_ROLES)
+    assert len(common.s1_matches(tmp_path, roles='all')) == 16 and common.ALL_ROLES == 'all'
+
+
+def test_the_qa_match_lists_do_not_decode_the_keys_of_other_roles(tmp_path):
+    """The keys of the rows of TEST, CAL, AUDIT, EXTERNAL and UNUSED are not even decoded: here they are bytes that are not ASCII, which
+    ``decode('ascii')`` would refuse, and the QA list is still returned."""
+    d = tmp_path / 's1' / 'matches'
+    d.mkdir(parents=True)
+    roles = ['FIT', 'TEST', 'DEV', 'CAL', 'STOP', 'AUDIT', 'UNUSED', 'EXTERNAL']
+    keys = [b'SYN_ok_%d' % i if role in common.QA_ROLES else b'\xff\xfe_%d' % i for i, role in enumerate(roles)]
+    np.save(d / 'key.npy', np.array(keys, dtype='S24'))
+    np.save(d / 'patch.npy', np.zeros(len(roles), dtype=np.int8))
+    np.save(d / 'role.npy', np.array([C.ROLES.index(r) for r in roles], dtype=np.int8))
+    got = common.s1_matches(tmp_path, roles=common.QA_ROLES)
+    assert [(k, r) for k, _, r in got] == [('SYN_ok_0', 'FIT'), ('SYN_ok_2', 'DEV'), ('SYN_ok_4', 'STOP')]
+    assert common.s1_matches(tmp_path) == got                         # the default is the QA list
+    with pytest.raises(UnicodeDecodeError):                           # the all-role list does decode them (the guard is not vacuous)
+        common.s1_matches(tmp_path, roles='all')

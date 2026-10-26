@@ -350,3 +350,24 @@ def test_default_capacity_audit_no_trainable_padding():
     print(f'N2_CAPACITY ept_total={a} n2_total={z} ratio={z / a:.9f} heads={count(n2.heads)} '
           f'ept_encoder={count(ept.encoder)} n2_encoder={count(n2.encoder)} learned_field={count(n2.encoder.field)} '
           f'static_field={n2.encoder.field.static.numel()}')
+
+
+def test_one_frame_wrapper_on_n2_returns_the_heads_answers_and_is_not_swap_invariant_while_the_average_is():
+    """EPT-T012 S4b preparation M7 (decisions D10 P1, D17): N2 is trained and evaluated with the same swap settings as the EPT. ``FrameAveraged(N2, average=False)`` is one call of the
+    encoder and the heads of N2 as they are (recorded frame, or the swapped frame of a view with its coin up); the average of the same model stays exactly invariant (control)."""
+    model, b, c = tiny(), batch(), _conditions()
+    one = heads.FrameAveraged(model, average=False).eval()
+    with torch.no_grad():
+        enc = one.encode(b)
+        plain = model.encode(b)
+        assert enc.swapped is None and torch.equal(enc.original.h_pool, plain.h_pool)
+        assert all(torch.equal(x, y) for x, y in zip(one.m2(enc, c['exposure']), model.heads.m2(plain, c['exposure'])))
+        assert all(torch.equal(x, y) for x, y in zip(one.m3(enc, c['q'], c['m'], c['z']), model.heads.m3(plain, c['q'], c['m'], c['z'])))
+        assert torch.equal(one.m3_obj(enc, None, None, None, c['s'], c['K']), model.heads.m3_obj(plain, None, None, None, c['s'], c['K']))
+        assert torch.equal(one.m4(enc, None, None, None, c['K'], c['O'], c['window']), model.heads.m4(plain, None, None, None, c['K'], c['O'], c['window']))
+        up = one.encode(dict(b, swap_view=torch.ones(2, dtype=torch.bool)))                      # every coin up: the encoding of the swapped batch
+        assert torch.equal(up.original.h_pool, model.encode(data.swap(b)).h_pool) and torch.equal(up.side, (1 - b['side']) > 0.5)         # the side marker flips with the swap
+        first, second = one.m2(enc, c['exposure']), one.m2(up, c['exposure'])
+        assert (first.mark_logp - second.mark_logp.index_select(-1, torch.as_tensor(data.MARK_PERM))).abs().max() > 1e-6        # one frame alone is not invariant
+        fa = heads.FrameAveraged(model).eval()
+        assert torch.equal(fa.m2(fa.encode(b), c['exposure']).mark_logp, fa.m2(fa.encode(data.swap(b)), c['exposure']).mark_logp.index_select(-1, torch.as_tensor(data.MARK_PERM)))

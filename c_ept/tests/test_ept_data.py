@@ -18,11 +18,14 @@ edges as in the real store; a second world with 7 and 5 shows that the shapes ar
     proxy          a seeded, nested selection of matches of FIT and STOP
     batches        one engagement in one batch, every row once per epoch, the rows of ``head_rows`` (K and O of the masked M4 matrix found
                    by name), FIT rows only for training, no default epoch
+    view swap      (S4b preparation M7) the coins of ``swap_mode='random_view'`` (plan Q3: one fair coin for each view from SeedSequence([seed, epoch,
+                   batch index, 0x5157]), no global random state), the plain batches of the other modes, ``swap_views`` (the rows follow the frame of their view)
 """
 import gc
 import json
 import os
 import shutil
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -32,13 +35,14 @@ from c_ept import config as C
 from c_ept.preprocessing import features
 from c_ept.data import head_rows
 from c_ept import runlog
+from c_ept.data.store_core import Store
 from c_ept.domain import symmetry
 from c_ept.preprocessing import terrain, tokens
 from c_ept.domain import units
-from c_ept.ept import data
-from c_ept.tests.ept_toys import (CONSTANT_PLAYER_COLUMN, CONSTANT_SUMMARY, EPT_EDGES, EPT_EVENTS, FIT_CONSTANT_SUMMARY, NO_POSITION_CELL,
-                                  PCOL, SCOL, build_ept_world, ept_world, world_view, write_views)  # noqa: F401  (the fixture: ruling R1)
-from c_ept.tests.s3_toys import KEY_PREFIX, HeadsOracle
+from c_ept.ept import data, encoder
+from c_ept.tests.ept_toys import (CONSTANT_PLAYER_COLUMN, CONSTANT_SUMMARY, DTYPES, EPT_EDGES, EPT_EVENTS, FIT_CONSTANT_SUMMARY, NO_POSITION_CELL,
+                                  PCOL, SCOL, build_ept_world, consistent_ept_world, ept_world, toy_static, world_view, write_views)  # noqa: F401  (the fixtures: ruling R1)
+from c_ept.tests.s3_toys import KEY_PREFIX, HeadsOracle, _put
 
 ALL_HEADS = [(name, 'masked') for name in head_rows.HEAD_NAMES] + [(name, 'open') for name in head_rows.OPEN_HEAD_NAMES]
 
@@ -924,6 +928,363 @@ def test_batches_have_no_default_epoch_to_iterate(ept_world, stats):
     assert len(list(batches.epoch(0))) == len(batches) > 1
 
 
+# =====================================================================================================================================
+# the FIT-constant columns and the population of the statistics (S4b preparation M5, decisions D7 and D12)
+# =====================================================================================================================================
+D7_SUMMARY_FLAGS = ('atakhan_in_patch',) + tuple(n for n in tokens.SUMMARY if n.startswith('rule_uncertain_'))     # the nine flags of the decision
+D7_PLAYER_FLAGS = tuple(n for n in tokens.PLAYER_NUM if n.startswith('flag_'))                                    # five always-zero fields of the toy
+PAIR_B, PAIR_R = 'old_champion_kill_b', 'old_champion_kill_r'                  # two summary columns that the team swap exchanges
+ELITE_B, ELITE_R = 'old_elite_monster_kill_b', 'old_elite_monster_kill_r'
+WARD_B, WARD_R = 'old_ward_placed_b', 'old_ward_placed_r'
+
+
+@pytest.fixture
+def edit_world(ept_world, tmp_path_factory):
+    """``edit_world(change)``: the EPT world with the ``x/*`` arrays that ``change(arrays)`` edited in place (same views, same S1); removed afterwards."""
+    folders, worlds = [], []
+
+    def make(change):
+        folders.append(tmp_path_factory.mktemp('edited_world'))
+        arrays = all_arrays(ept_world)
+        change(arrays)
+        s = Store(folders[-1] / 's2')
+        for name in ('src', 'src_index', 'match', 'ref', 't0', 'frame_k'):
+            a = np.asarray(ept_world.base.s2.array(f'views/{name}'))
+            _put(s, f'views/{name}', a, a.dtype)
+        for name in tokens.VIEW_SPEC:
+            _put(s, f'x/{name}', arrays[name], DTYPES[name])
+        s.finalize()
+        worlds.append(SimpleNamespace(s1=ept_world.s1, s2=s, fit_views=ept_world.fit_views, base=ept_world.base))
+        return worlds[-1]
+    yield make
+    worlds.clear()
+    gc.collect()
+    for folder in folders:
+        shutil.rmtree(folder, ignore_errors=True)
+
+
+def fit_matches_of(world):
+    """The FIT matches of the world (global match numbers, sorted), read from the views of FIT."""
+    return tuple(int(m) for m in np.unique(np.asarray(world.s2.array('views/match'))[world.fit_views]))
+
+
+def views_of(world, matches):
+    """The FIT views of the given matches."""
+    vm = np.asarray(world.s2.array('views/match'))
+    return np.intersect1d(world.fit_views, np.flatnonzero(np.isin(vm, matches)))
+
+
+def d7_edit(arrays):
+    """The flags of the D7 list are 0 in every view; the pair old_elite_monster_kill_b / _r is 0 in both; old_champion_kill_b is 0 while its partner varies."""
+    for name in D7_SUMMARY_FLAGS + (ELITE_B, ELITE_R, PAIR_B):
+        arrays['summary'][:, tokens.SUMMARY.index(name)] = 0.0
+    for name in D7_PLAYER_FLAGS:
+        arrays['players_num'][:, :, tokens.PLAYER_NUM.index(name)] = 0.0
+
+
+def run_stats(world, matches=None, drop='store_and_subset', population='selected_fit'):
+    """``fit_stats`` the way a profile of S4b asks for it: the D7 list of the whole FIT store, then the statistics of the selected FIT."""
+    store = data.store_constant_columns(world.s2, world.fit_views)
+    return data.fit_stats(world.s1, world.s2, matches=matches, column_drop=drop, stats_population=population, store_constant=store)
+
+
+def test_store_constant_columns_found_on_the_whole_store(ept_world, edit_world):
+    w = edit_world(d7_edit)
+    found = data.store_constant_columns(w.s2, w.fit_views)
+    assert isinstance(found, tuple) and all(isinstance(n, str) for n in found)
+    assert set(D7_SUMMARY_FLAGS) | set(D7_PLAYER_FLAGS) | {'t_s', ELITE_B, ELITE_R, CONSTANT_SUMMARY, FIT_CONSTANT_SUMMARY} <= set(found)
+    assert 'game_time_s' not in found and 'totalGold' not in found and 'frame_age_s' not in found
+    assert PAIR_B not in found and PAIR_R not in found                              # one column of the pair varies: judged on the pooled values
+    assert found == features.dropped_columns(w.s2, w.fit_views, pooled=True)        # one rule for the EPT and the baselines
+    # the list is judged on the views that are given: FIT_CONSTANT_SUMMARY is 7 in the FIT views and 5 in the others
+    assert FIT_CONSTANT_SUMMARY not in data.store_constant_columns(w.s2, np.arange(len(w.s2.array('views/src'))))
+
+
+def test_swap_pairs_are_dropped_together(edit_world):
+    w = edit_world(d7_edit)
+    found = data.store_constant_columns(w.s2, w.fit_views)
+    assert (ELITE_B in found) and (ELITE_R in found) and PAIR_B not in found and PAIR_R not in found
+    assert PAIR_B in features.dropped_columns(w.s2, w.fit_views)                    # the baseline list of every earlier run drops the half of the pair
+    stats = run_stats(w, fit_matches_of(w))
+    assert ELITE_B in stats.dropped and ELITE_R in stats.dropped and PAIR_B not in stats.dropped and PAIR_R not in stats.dropped
+    names = data.SUMMARY_COLUMNS
+    kept = [n for n in stats.dropped if n in names]
+    assert all(names[data.SUMMARY_PERM[names.index(n)]] in kept for n in kept)       # closed under the exchange of the swap
+    with pytest.raises(ValueError, match='swap'):                                    # a list that drops one half of a pair is refused
+        data.Stats(arrays=stats.arrays, n_views=stats.n_views, dropped=('t_s', PAIR_B), dropped_store=('t_s', PAIR_B), column_drop='store')
+
+
+def test_dropped_columns_are_zero_and_get_no_gradient(ept_world, edit_world):
+    w = edit_world(d7_edit)
+    stats = run_stats(w, fit_matches_of(w))
+    plain = data.fit_stats(w.s1, w.s2)
+    n = len(w.s2.array('views/src'))                                                  # every view, FIT or not: the other roles must not leak a value in
+    b, c = data.ViewTensors(w.s2, np.arange(n), stats), data.ViewTensors(w.s2, np.arange(n), plain)
+    names = data.SUMMARY_COLUMNS
+    out_s = [names.index(x) for x in stats.dropped if x in names]
+    out_p = [data.PLAYER_COLUMNS.index(x) for x in stats.dropped if x in data.PLAYER_COLUMNS]
+    assert FIT_CONSTANT_SUMMARY in stats.dropped and names.index(FIT_CONSTANT_SUMMARY) in out_s and len(out_p) >= len(D7_PLAYER_FLAGS)
+    assert (c['summary'][:, names.index(FIT_CONSTANT_SUMMARY)] != 0).any()           # without the drop the other roles' 5 would be an input of -2
+    assert (b['summary'][:, out_s] == 0).all() and (b['players'][:, :, out_p] == 0).all()
+    keep_s = [i for i in range(len(names)) if i not in out_s]
+    keep_p = [i for i in range(len(data.PLAYER_COLUMNS)) if i not in out_p]
+    assert torch.equal(b['summary'][:, keep_s], c['summary'][:, keep_s]) and torch.equal(b['players'][:, :, keep_p], c['players'][:, :, keep_p])
+    for key in ('age', 'landmarks', 'ev_num', 'geo_pp', 'geo_pl', 'players_nan', 'summary_nan'):
+        assert torch.equal(b[key], c[key]), key                                       # nothing else changes (these columns have no value to drop)
+    # no gradient: the weights of the first layer that read a dropped column get exactly 0 and the others do not
+    torch.manual_seed(0)
+    enc = encoder.EPTEncoder(encoder.EncoderConfig(d=16, layers=1, heads=2, dropout=0.0, field_channels=2), toy_static())
+    views = np.arange(0, n, 5)
+    out = enc(data.ViewTensors(w.s2, views, stats))
+    out.h_pool.square().sum().backward()
+    grad_p, grad_s = enc.players_in.weight.grad, enc.summary_in.weight.grad
+    assert (grad_p[:, out_p] == 0).all() and (grad_s[:, out_s] == 0).all()
+    assert (grad_p[:, keep_p] != 0).any() and (grad_s[:, keep_s] != 0).any()
+    assert enc.players_in.weight.shape[1] == len(data.PLAYER_COLUMNS) + len(data.PLAYER_NAN_COLUMNS)       # the input width does not change (Q5)
+    assert enc.summary_in.weight.shape[1] == len(data.SUMMARY_COLUMNS) + len(data.SUMMARY_NAN_COLUMNS)
+
+
+def test_a_dropped_column_without_any_fit_value_takes_its_mask_channel_with_it(ept_world, edit_world):
+    p_none, p_some = 'lvl_armor', 'lvl_attackSpeed'
+    s_none, s_some = data.SUMMARY_NAN_COLUMNS[0], data.SUMMARY_NAN_COLUMNS[1]
+    fit = ept_world.fit_views
+
+    def change(arrays):
+        arrays['players_num'][fit, :, tokens.PLAYER_NUM.index(p_none)] = np.nan                    # no value in FIT at all
+        arrays['players_num'][fit, :, tokens.PLAYER_NUM.index(p_some)] = 2.0                        # one value ...
+        arrays['players_num'][fit[0], 0, tokens.PLAYER_NUM.index(p_some)] = np.nan                  # ... and a NaN
+        arrays['summary'][fit, tokens.SUMMARY.index(s_none)] = np.nan
+        arrays['summary'][fit, tokens.SUMMARY.index(s_some)] = 3.0
+        arrays['summary'][fit[0], tokens.SUMMARY.index(s_some)] = np.nan
+    w = edit_world(change)
+    stats = run_stats(w, fit_matches_of(w))
+    assert {p_none, p_some, s_none, s_some} <= set(stats.dropped)
+    n = len(w.s2.array('views/src'))
+    b = data.ViewTensors(w.s2, np.arange(n), stats)
+    raw_players = np.asarray(w.s2.array('x/players_num'))
+    nan_cols = data.PLAYER_NAN_COLUMNS
+    assert (b['players_nan'][:, :, nan_cols.index(p_none)] == 0).all()                           # the channel of a column with no FIT value goes with it
+    assert np.array_equal(b['players_nan'][:, :, nan_cols.index(p_some)].numpy(), np.isnan(raw_players[:, :, tokens.PLAYER_NUM.index(p_some)]).astype(np.float32))
+    assert b['players_nan'][:, :, nan_cols.index(p_some)].sum() > 0                               # a column with a value keeps its channel
+    raw_summary = np.asarray(w.s2.array('x/summary'))
+    s_cols = data.SUMMARY_NAN_COLUMNS
+    assert (b['summary_nan'][:, s_cols.index(s_none)] == 0).all()
+    assert np.array_equal(b['summary_nan'][:, s_cols.index(s_some)].numpy(), np.isnan(raw_summary[:, tokens.SUMMARY.index(s_some)]).astype(np.float32))
+    assert b['summary_nan'][:, s_cols.index(s_some)].sum() > 0
+    for key in ('players', 'summary'):
+        assert torch.isfinite(b[key]).all()
+
+
+def test_frame_age_is_never_dropped(ept_world, edit_world):
+    ordinary = run_stats(ept_world, fit_matches_of(ept_world))
+    assert 'frame_age_s' not in ordinary.dropped and 'frame_age_s' not in data.store_constant_columns(ept_world.s2, ept_world.fit_views)
+    age = tokens.SUMMARY.index('frame_age_s')
+
+    def flat(arrays):
+        arrays['summary'][:, age] = 0.0
+    w = edit_world(flat)
+    with pytest.raises(ValueError, match='frame_age_s'):                              # the store says it is constant: the loader stops for a report
+        data.store_constant_columns(w.s2, w.fit_views)
+    with pytest.raises(ValueError, match='frame_age_s'):                              # asked for by hand
+        data.fit_stats(ept_world.s1, ept_world.s2, column_drop='store', store_constant=('t_s', 'frame_age_s'))
+    with pytest.raises(ValueError, match='frame_age_s'):
+        data.Stats(arrays=ordinary.arrays, n_views=ordinary.n_views, dropped=('t_s', 'frame_age_s'), dropped_store=('t_s', 'frame_age_s'), column_drop='store')
+    matches = fit_matches_of(ept_world)
+    member = views_of(ept_world, matches[:1])
+
+    def flat_member(arrays):
+        arrays['summary'][member, age] = 5.0                                          # constant inside the selected FIT, not over the store
+    w2 = edit_world(flat_member)
+    store = data.store_constant_columns(w2.s2, w2.fit_views)
+    assert 'frame_age_s' not in store
+    with pytest.raises(ValueError, match='constant inside the selected FIT'):         # the run's own subset must not drop it either, and the message says why (review m6)
+        data.fit_stats(w2.s1, w2.s2, matches=matches[:1], column_drop='store_and_subset', stats_population='selected_fit', store_constant=store)
+    kept = data.fit_stats(w2.s1, w2.s2, matches=matches[:1], column_drop='store', stats_population='selected_fit', store_constant=store)
+    assert 'frame_age_s' not in kept.dropped
+
+
+def test_selected_fit_population_uses_only_member_matches(ept_world, edit_world):
+    matches = fit_matches_of(ept_world)
+    member, others = matches[:2], matches[2:]
+    legacy = data.fit_stats(ept_world.s1, ept_world.s2, matches=member)
+    chosen = data.fit_stats(ept_world.s1, ept_world.s2, matches=member, stats_population='selected_fit')
+    assert chosen.population == 'selected_fit' and legacy.population == 'whole_fit'
+    assert chosen.sha256 != legacy.sha256 and chosen.to_json()['version'] == 2 and chosen.to_json()['population'] == 'selected_fit'      # the record is part of the statistics
+    assert chosen.to_json()['column_drop'] == 'none' and chosen.to_json()['dropped'] == [] and chosen.to_json()['dropped_store'] == []
+    assert chosen.n_views == len(views_of(ept_world, member)) < len(ept_world.fit_views)
+    for name, cs in legacy.arrays.items():
+        a = chosen.arrays[name]
+        assert np.array_equal(a.centre, cs.centre) and np.array_equal(a.scale, cs.scale) and np.array_equal(a.count, cs.count), name
+    whole = data.fit_stats(ept_world.s1, ept_world.s2)
+    assert not np.array_equal(whole.arrays['players_num'].centre, chosen.arrays['players_num'].centre)      # the population matters
+    moved = views_of(ept_world, others)
+
+    def change(arrays):                                                                # the FIT matches outside the selection are moved far away
+        arrays['summary'][moved, tokens.SUMMARY.index('game_time_s')] += 1000.0
+        arrays['players_num'][moved, :, tokens.PLAYER_NUM.index('totalGold')] += 1000.0
+    w = edit_world(change)
+    again = data.fit_stats(w.s1, w.s2, matches=member, stats_population='selected_fit')
+    assert again.sha256 == chosen.sha256                                              # only the member matches are read
+    assert data.fit_stats(w.s1, w.s2).sha256 != whole.sha256
+    for call in (lambda: data.fit_stats(NoRead(), NoRead(), matches=member, stats_population='selected_fit', column_drop='store', store_constant=('level',)),     # not the D7 list: no t_s
+                 lambda: data.fit_stats(NoRead(), NoRead(), matches=member, stats_population='selected_fit', column_drop='store_and_subset', store_constant=()),
+                 lambda: data.fit_stats(NoRead(), NoRead(), stats_population='selected_fit'),            # the selection is required, before any read
+                 lambda: data.fit_stats(NoRead(), NoRead(), stats_population='everything'),
+                 lambda: data.fit_stats(NoRead(), NoRead(), column_drop='all'),
+                 lambda: data.fit_stats(NoRead(), NoRead(), matches=member, column_drop='store', store_constant=('t_s',)),     # the legacy population is not for the new drop
+                 lambda: data.fit_stats(NoRead(), NoRead(), store_constant=('t_s',))):                  # a list without a column_drop that uses it
+        with pytest.raises(ValueError):
+            call()
+
+
+def test_subset_constant_column_dropped_for_that_run_only(edit_world):
+    plain = edit_world(lambda arrays: None)
+    matches = fit_matches_of(plain)
+    member = views_of(plain, matches[:2])
+    level, half = tokens.PLAYER_NUM.index('level'), tokens.SUMMARY.index(WARD_B)
+
+    def change(arrays):
+        arrays['players_num'][member, :, level] = 4.0                                  # constant inside the selection ...
+        arrays['summary'][member, half] = 3.0                                          # ... one half of a swap pair, the other half varies there
+        arrays['summary'][member, tokens.SUMMARY.index(ELITE_B)] = 1.0
+        arrays['summary'][member, tokens.SUMMARY.index(ELITE_R)] = 1.0                  # ... and a pair that is constant in both halves
+        for name, value in (('x', 100.0), ('y', C.W / 2.0)):                              # a position that is constant inside the selection: x at 100, y at the rotation centre
+            col = tokens.PLAYER_NUM.index(name)
+            arrays['players_num'][member, :, col] = np.where(np.isnan(arrays['players_num'][member, :, col]), np.nan, value)
+    w = edit_world(change)
+    store = data.store_constant_columns(w.s2, w.fit_views)
+    assert 'level' not in store and ELITE_B not in store and WARD_B not in store          # the whole FIT store varies in them
+    a = data.fit_stats(w.s1, w.s2, matches=matches[:2], column_drop='store_and_subset', stats_population='selected_fit', store_constant=store)
+    assert 'level' in a.dropped and ELITE_B in a.dropped and ELITE_R in a.dropped
+    assert WARD_B not in a.dropped and WARD_R not in a.dropped                             # the pair is judged on its pooled values: ward_placed_r varies
+    assert 'y' in a.dropped and 'x' not in a.dropped                                       # a position is judged with its rotation x -> W - x: only W/2 stays itself
+    assert 'level' not in a.dropped_store and a.dropped_store == store and set(store) <= set(a.dropped)
+    assert a.column_drop == 'store_and_subset' and a.population == 'selected_fit'
+    b = data.fit_stats(w.s1, w.s2, matches=matches[:2], column_drop='store', stats_population='selected_fit', store_constant=store)
+    assert b.dropped == store                                                          # 'store' leaves the subset-constant columns in
+    c = run_stats(w, matches)                                                          # another run (all the FIT matches): nothing is dropped beyond the store
+    assert c.dropped == store == c.dropped_store
+    assert data.store_constant_columns(w.s2, w.fit_views) == store                     # the store list is not changed by a run
+    with pytest.raises(ValueError, match='vary'):                                      # a store list that names a column that varies in the selected FIT
+        data.fit_stats(w.s1, w.s2, matches=matches[:2], column_drop='store', stats_population='selected_fit', store_constant=store + ('totalGold',))
+
+
+def test_none_and_whole_fit_defaults_are_bit_identical(ept_world, stats, tmp_path):
+    explicit = data.fit_stats(ept_world.s1, ept_world.s2, column_drop='none', stats_population='whole_fit', store_constant=())
+    assert explicit.sha256 == stats.sha256 and explicit.to_json() == stats.to_json()
+    body = stats.to_json()
+    assert body['version'] == 1 and not {'dropped', 'dropped_store', 'population', 'column_drop'} & set(body)       # the file of every earlier run
+    assert stats.dropped == stats.dropped_store == () and stats.population == 'whole_fit' and stats.column_drop == 'none'
+    views = np.arange(0, len(ept_world.s2.array('views/src')), 3)
+    first, second = data.ViewTensors(ept_world.s2, views, stats), data.ViewTensors(ept_world.s2, views, explicit)
+    assert first.keys() == second.keys() and all(torch.equal(first[k], second[k]) for k in first)
+    member = fit_matches_of(ept_world)[:2]
+    assert data.fit_stats(ept_world.s1, ept_world.s2, matches=member).sha256 == data.fit_stats(
+        ept_world.s1, ept_world.s2, matches=member, column_drop='none', stats_population='whole_fit').sha256     # the legacy selection by matches
+    # the bytes of save(): the earlier writer, written out by hand
+    path = tmp_path / 'STATS.json'
+    stats.save(path)
+    hand = {'version': 1, 'kind': 'ept_view_stats', 'role': 'FIT', 'n_views': int(stats.n_views), 'centre': data.CENTRE,
+            'columns': {'players_num': list(data.PLAYER_COLUMNS), 'summary': list(data.SUMMARY_COLUMNS)},
+            'arrays': {name: {'centre': cs.centre.tolist(), 'scale': cs.scale.tolist(), 'count': cs.count.tolist()} for name, cs in sorted(stats.arrays.items())}}
+    hand['sha256'] = runlog.sha256_json({k: v for k, v in hand.items()})
+    assert path.read_text(encoding='utf-8') == json.dumps(hand, indent=1, ensure_ascii=False) + '\n'
+
+
+def test_a_version_one_stats_file_still_loads_and_gives_the_same_values(ept_world, stats, tmp_path):
+    body = {'version': 1, 'kind': 'ept_view_stats', 'role': 'FIT', 'n_views': int(stats.n_views), 'centre': data.CENTRE,
+            'columns': {'players_num': list(data.PLAYER_COLUMNS), 'summary': list(data.SUMMARY_COLUMNS)},
+            'arrays': {name: {'centre': cs.centre.tolist(), 'scale': cs.scale.tolist(), 'count': cs.count.tolist()} for name, cs in sorted(stats.arrays.items())}}
+    path = tmp_path / 'V1.json'
+    path.write_text(json.dumps({**body, 'sha256': runlog.sha256_json(body)}, indent=1), encoding='utf-8')
+    old = data.Stats.load(path)
+    assert old.sha256 == stats.sha256 and old.dropped == () and old.dropped_store == () and old.population == 'whole_fit' and old.column_drop == 'none'
+    views = np.arange(0, len(ept_world.s2.array('views/src')), 4)
+    a, b = data.ViewTensors(ept_world.s2, views, stats), data.ViewTensors(ept_world.s2, views, old)
+    assert all(torch.equal(a[k], b[k]) for k in a)
+    with_extra = {**body, 'dropped': ['t_s']}                                           # a version-1 file has no list of dropped columns
+    path.write_text(json.dumps({**with_extra, 'sha256': runlog.sha256_json(with_extra)}), encoding='utf-8')
+    with pytest.raises(ValueError, match='version'):
+        data.Stats.load(path)
+    for version in (0, 3):
+        body_v = {**body, 'version': version}
+        path.write_text(json.dumps({**body_v, 'sha256': runlog.sha256_json(body_v)}), encoding='utf-8')
+        with pytest.raises(ValueError, match='version'):
+            data.Stats.load(path)
+
+
+def test_a_version_two_file_records_the_lists_with_their_hashes_and_a_change_breaks_it(edit_world, tmp_path):
+    w = edit_world(d7_edit)
+    stats = run_stats(w, fit_matches_of(w))
+    assert stats.dropped and stats.dropped_store
+    path = tmp_path / 'STATS.json'
+    sha = stats.save(path)
+    js = json.loads(path.read_text(encoding='utf-8'))
+    assert js['version'] == 2 and js['population'] == 'selected_fit' and js['column_drop'] == 'store_and_subset'
+    assert js['dropped'] == list(stats.dropped) and js['dropped_store'] == list(stats.dropped_store)
+    assert js['dropped_sha256'] == runlog.sha256_json(list(stats.dropped)) and js['dropped_store_sha256'] == runlog.sha256_json(list(stats.dropped_store))
+    again = data.Stats.load(path)
+    assert again.sha256 == sha == stats.sha256 and again.dropped == stats.dropped and again.dropped_store == stats.dropped_store
+    assert again.population == 'selected_fit' and again.column_drop == 'store_and_subset'
+    views = np.arange(0, len(w.s2.array('views/src')), 4)
+    a, b = data.ViewTensors(w.s2, views, stats), data.ViewTensors(w.s2, views, again)
+    assert all(torch.equal(a[k], b[k]) for k in a)
+    text = path.read_text(encoding='utf-8')
+    tampered = tmp_path / 'TAMPERED.json'
+    tampered.write_text(text.replace('"atakhan_in_patch",', '', 1), encoding='utf-8')
+    with pytest.raises(ValueError, match='hash'):
+        data.Stats.load(tampered)
+    # a file whose lists are re-signed but are not those of its claims is refused as well
+    content = {k: v for k, v in js.items() if k != 'sha256'}
+    shorter = [n for n in js['dropped_store'] if n != 'atakhan_in_patch']                # a valid list, but not the one whose hash the file states
+    assert shorter != js['dropped_store'] and 't_s' in shorter
+    for change in ({'column_drop': 'none'}, {'population': 'everywhere'}, {'dropped_store': ['nothing']}, {'dropped': js['dropped'] + ['totalGold_x']},
+                   {'dropped_store': shorter}, {'dropped_store_sha256': runlog.sha256_json(shorter)}, {'dropped_sha256': runlog.sha256_json(shorter)}):
+        bad = {**content, **change}
+        tampered.write_text(json.dumps({**bad, 'sha256': runlog.sha256_json(bad)}), encoding='utf-8')
+        with pytest.raises(ValueError):
+            data.Stats.load(tampered)
+
+
+def test_a_version_two_file_with_both_settings_at_their_defaults_is_refused(stats, tmp_path):
+    """One content, one hash (review m2): the body of such statistics is version 1, so a version-2 file of the defaults would load into a Stats whose hash differs from its own."""
+    body = {k: v for k, v in stats.to_json().items() if k != 'sha256'}
+    body.update(version=2, population='whole_fit', column_drop='none', dropped=[], dropped_store=[], dropped_sha256=runlog.sha256_json([]),
+                dropped_store_sha256=runlog.sha256_json([]))
+    path = tmp_path / 'V2DEFAULT.json'
+    path.write_text(json.dumps({**body, 'sha256': runlog.sha256_json(body)}), encoding='utf-8')
+    with pytest.raises(ValueError, match='defaults'):
+        data.Stats.load(path)
+
+
+def test_the_stats_check_what_they_record(ept_world, stats):
+    kw = dict(arrays=stats.arrays, n_views=stats.n_views)
+    for bad in ({'column_drop': 'some'}, {'population': 'some'}, {'dropped': ('t_s',)},                                  # a list with column_drop 'none'
+                {'column_drop': 'store', 'dropped': ('no_such_column',), 'dropped_store': ('no_such_column',)},
+                {'column_drop': 'store', 'dropped': ('t_s',), 'dropped_store': ('t_s', 'level')},                        # the store list is part of the list
+                {'column_drop': 'store', 'dropped': ('t_s', 'level'), 'dropped_store': ('t_s',)},                        # 'store' drops no more than the store list
+                {'column_drop': 'store_and_subset', 'dropped': ('t_s',), 'dropped_store': ()}):                           # the store list always holds t_s
+        with pytest.raises(ValueError):
+            data.Stats(**kw, **bad)
+    ok = data.Stats(**kw, column_drop='store_and_subset', dropped=('t_s', 'level'), dropped_store=('t_s',), population='selected_fit')
+    assert ok.dropped == ('t_s', 'level') and ok.dropped_store == ('t_s',)
+
+
+def test_eptdrop_list_equals_b1_list_when_pooled(ept_world, edit_world):
+    w = edit_world(d7_edit)
+    matches = fit_matches_of(w)
+    store = data.store_constant_columns(w.s2, w.fit_views)
+    assert store == features.dropped_columns(w.s2, w.fit_views, pooled=True)
+    whole = data.fit_stats(w.s1, w.s2, column_drop='store_and_subset', stats_population='whole_fit', store_constant=store)
+    assert whole.dropped == features.dropped_columns(w.s2, w.fit_views, pooled=True) and whole.dropped_store == store
+    for member in (matches, matches[:2], matches[1:3]):
+        stats = data.fit_stats(w.s1, w.s2, matches=member, column_drop='store_and_subset', stats_population='selected_fit', store_constant=store)
+        assert stats.dropped == features.dropped_columns(w.s2, views_of(w, member), pooled=True), member            # the B1 list of that run
+        assert set(store) <= set(stats.dropped)
+    assert 't_s' in whole.dropped                                                       # on both sides
+    assert not {'frame_age_s'} & set(whole.dropped)
+
+
 def test_batches_without_stats_are_index_batches_that_the_caller_can_complete_with_view_tensors(ept_world, stats):
     """``Batches(rows, batch_size, seed)`` as the brief writes it: the distinct views and the row blocks; ``ViewTensors`` of those views
     completes the batch, bit for bit what ``Batches(..., stats=stats)`` gives."""
@@ -1070,3 +1431,152 @@ def test_deferred_centered_coordinates_preserve_exact_zero_bits(dtype, integer):
     normalized = baseline.clone()
     normalized[..., coordinates] = torch.tensor([0.0, 0.0, 1.25, -2.5], dtype=dtype)
     assert torch.equal(twice.contiguous().view(integer), normalized.contiguous().view(integer))
+
+
+# =====================================================================================================================================
+# the random view swap of the training batches (EPT-T012 S4b preparation M7, decisions D10 P1 and D17, plan Q3)
+# =====================================================================================================================================
+SWAP_STREAM = 0x5157                                         # the last word of the seed sequence of the swap coins (plan Q3)
+
+
+def swap_batches(world, stats, mode, *, seed=5, size=3, rows=None):
+    return data.Batches(engagement_rows(world) if rows is None else rows, size, seed, stats=stats, swap_mode=mode)
+
+
+def reference_coins(seed, epoch, index, views):
+    """Plan Q3 written out: the generator of SeedSequence([seed, epoch, batch index, 0x5157]) gives one fair coin for each distinct view of the batch, in the order of ``view``."""
+    return np.random.default_rng(np.random.SeedSequence([seed, epoch, index, SWAP_STREAM])).integers(0, 2, size=views).astype(bool)
+
+
+def test_the_swap_modes_are_named_and_checked(ept_world, stats):
+    assert data.SWAP_MODES == ('average', 'random_view', 'none')
+    rows = engagement_rows(ept_world)
+    assert data.Batches(rows, 3, 5, stats=stats).swap_mode == 'average'
+    for mode in data.SWAP_MODES:
+        assert data.Batches(rows, 3, 5, stats=stats, swap_mode=mode).swap_mode == mode
+    for bad in ('Random_view', 'random', 'swap', '', None, 1, True):
+        with pytest.raises(ValueError, match='swap_mode'):
+            data.Batches(rows, 3, 5, stats=stats, swap_mode=bad)
+    stop = engagement_rows(ept_world, 'STOP')
+    with pytest.raises(ValueError, match='swap_mode'):                     # the order and the frames of an evaluation batch are fixed: no coin
+        data.Batches(stop, 3, 5, stats=stats, training=False, swap_mode='random_view')
+    assert data.Batches(stop, 3, 5, stats=stats, training=False).swap_mode == 'average'
+
+
+def test_random_view_batches_carry_one_fair_coin_for_each_view_from_the_seeded_generator(ept_world, stats):
+    """``swap_view`` is a bool tensor with one entry for each distinct view of the batch (the entries of ``view``); the entry is the coin of the generator of plan Q3, so a test can
+    recompute it from the seed, the epoch and the index of the batch alone."""
+    batches = swap_batches(ept_world, stats, 'random_view')
+    seen = []
+    for epoch in range(3):
+        for index, batch in enumerate(batches.epoch(epoch)):
+            flag = batch['swap_view']
+            assert flag.dtype == torch.bool and flag.shape == batch['view'].shape
+            assert flag.tolist() == reference_coins(5, epoch, index, len(batch['view'])).tolist(), (epoch, index)
+            seen += flag.tolist()
+    assert len(seen) >= 30 and True in seen and False in seen and 0.25 < sum(seen) / len(seen) < 0.75          # fair coins, not one side (control: the test can see a constant)
+
+
+def test_the_other_modes_give_the_plain_batches_bit_for_bit_and_random_view_only_adds_the_coins(ept_world, stats):
+    """test_average_default_is_bit_identical, data level. 'average' (the default) and 'none' emit no ``swap_view`` and every key of every batch is that of ``Batches`` without the setting;
+    'random_view' emits the recorded batch and the coins, and nothing else differs: the rows stay in the frame they were recorded in until the coins are applied."""
+    rows = engagement_rows(ept_world)
+    plain = [list(data.Batches(rows, 3, 5, stats=stats).epoch(e)) for e in range(2)]
+    for mode in ('average', 'none'):
+        got = [list(swap_batches(ept_world, stats, mode).epoch(e)) for e in range(2)]
+        assert [len(x) for x in got] == [len(x) for x in plain]
+        assert all(equal_batches(a, b) == [] and 'swap_view' not in a and list(a) == list(b) for xs, ys in zip(got, plain) for a, b in zip(xs, ys)), mode
+    coins = [list(swap_batches(ept_world, stats, 'random_view').epoch(e)) for e in range(2)]
+    for xs, ys in zip(coins, plain):
+        for a, b in zip(xs, ys):
+            assert equal_batches(a, b, skip=('swap_view',)) == [] and list(a)[-1] == 'swap_view' and 'swap_view' in a and 'swap_view' not in b
+
+
+def test_the_coins_depend_on_seed_epoch_and_batch_index_only_and_leave_the_global_random_state_alone(ept_world, stats):
+    """Plan Q3: not the global torch or numpy stream (a dropout mask would move, and a prefetch thread would race), but a generator of its own for each batch. The coins are the same whatever
+    the global state is, whatever is drawn between the batches (dropout, numpy), and for a resumed epoch; another seed, epoch or batch gives other coins."""
+    import random
+    batches = swap_batches(ept_world, stats, 'random_view')
+    torch.manual_seed(11)
+    np.random.seed(11)
+    random.seed(11)
+    before = (torch.get_rng_state().clone(), np.random.get_state()[1].copy(), np.random.get_state()[2], random.getstate())
+    first = [b['swap_view'] for b in batches.epoch(0)]
+    assert torch.equal(before[0], torch.get_rng_state()) and np.array_equal(before[1], np.random.get_state()[1]) and before[2] == np.random.get_state()[2] and before[3] == random.getstate()
+    torch.manual_seed(99)
+    np.random.seed(99)
+    between = []
+    for batch in swap_batches(ept_world, stats, 'random_view').epoch(0):
+        torch.nn.functional.dropout(torch.ones(64), 0.5, training=True)                      # what a training step draws between two batches
+        np.random.random(3)
+        between.append(batch['swap_view'])
+    assert len(first) == len(between) and all(torch.equal(a, b) for a, b in zip(first, between))
+    resumed = [b['swap_view'] for b in batches.epoch(0, start=1)]
+    assert len(resumed) == len(first) - 1 and all(torch.equal(a, b) for a, b in zip(resumed, first[1:]))      # a resumed epoch repeats the coins of the batches it skips to
+    other = {'epoch': [b['swap_view'] for b in batches.epoch(1)], 'seed': [b['swap_view'] for b in swap_batches(ept_world, stats, 'random_view', seed=6).epoch(0)]}
+    for name, flags in other.items():
+        assert any(not torch.equal(a, b) for a, b in zip(first, flags)), name
+
+
+def reference_framed(batch, flag):
+    """The batch as each view chose: the views of a coin that came up are the swapped views (``data.swap``, tested against the numpy reference above), the rows of such a view the swapped rows
+    (the design table ``expected_swap`` applied by the plain loops of ``reference_swap``; the first-kill team ``d`` becomes 1 - d, -1 stays)."""
+    plain = {k: v for k, v in batch.items() if k != 'swap_view'}
+    whole = data.swap({k: plain[k] for k in data.VIEW_KEYS})
+    out = {k: torch.where(flag.reshape(-1, *([1] * (plain[k].dim() - 1))), whole[k], plain[k]) for k in data.VIEW_KEYS}
+    for head, kind in ALL_HEADS:
+        pos = plain[key(head, kind, 'pos')]
+        mask = flag[pos]
+        for field in data.ROW_FIELDS[(head, kind)] + tuple(f for f in data.OPTIONAL_ROW_FIELDS.get((head, kind), ()) if key(head, kind, f) in plain):
+            t = plain[key(head, kind, field)]
+            if field in data.OPTIONAL_ROW_FIELDS.get((head, kind), ()):
+                moved = torch.where(t >= 0, 1 - t, t)
+            else:
+                change = expected_swap(head, kind, field)
+                moved = t if change is None else reference_swap(change, t)
+            out[key(head, kind, field)] = torch.where(mask.reshape(-1, *([1] * (t.dim() - 1))), moved, t)
+    return out
+
+
+@pytest.mark.parametrize('law', ['poisson', 'shifted'])
+def test_rows_follow_their_view_frame(consistent_ept_world, law):
+    """Plan M7: the rows that read one view are all in the frame of that view, inputs and targets together. For every batch of three epochs, every field of every block (the open
+    first-kill team ``d`` of the shifted law included) is the swapped field where the coin of the row's view came up and the recorded field where it did not, and the views are swapped in
+    the same places; the reference is written from the design table, not from ``swap_views``. The control counts that the coins really moved a field of every kind."""
+    world = consistent_ept_world
+    stats_ = data.fit_stats(world.s1, world.s2)
+    rows = data.EngagementRows(data.ept_head_rows(world.s1, world.s2, world.labels, 'FIT', kill_law=law))
+    moved = set()
+    for epoch in range(3):
+        for batch in swap_batches(world, stats_, 'random_view', rows=rows).epoch(epoch):
+            flag = batch['swap_view']
+            want = reference_framed(batch, flag)
+            got = data.swap_views(batch)
+            assert 'swap_view' not in got and set(got) == set(want) and equal_batches(got, want) == []
+            for head, kind in ALL_HEADS:
+                mask = flag[batch[key(head, kind, 'pos')]]
+                for field in data.ROW_FIELDS[(head, kind)] + tuple(f for f in data.OPTIONAL_ROW_FIELDS.get((head, kind), ()) if key(head, kind, f) in batch):
+                    if bool(mask.any()) and not torch.equal(got[key(head, kind, field)], batch[key(head, kind, field)]):
+                        moved.add((head, kind, field))
+    assert {('M2Mark', 'masked', 'y'), ('M2Zone', 'masked', 'm'), ('M2Zone', 'masked', 'y'), ('M3Kills', 'open', 'y'), ('M3Obj', 'masked', 'K'), ('M4Conv', 'open', 'O'),
+            ('M3Gold', 'masked', 'team')} <= moved
+    assert (('M3Kills', 'open', 'd') in moved) == (law == 'shifted')
+
+
+def test_swap_views_takes_the_flags_of_the_batch_and_refuses_what_it_cannot_frame(ept_world, stats):
+    batch = next(iter(swap_batches(ept_world, stats, 'random_view').epoch(0)))
+    n = len(batch['view'])
+    plain = {k: v for k, v in batch.items() if k != 'swap_view'}
+    down, up = dict(plain, swap_view=torch.zeros(n, dtype=torch.bool)), dict(plain, swap_view=torch.ones(n, dtype=torch.bool))
+    assert equal_batches(data.swap_views(down), plain) == []                        # no coin up: the recorded batch, bit for bit
+    assert equal_batches(data.swap_views(up), data.swap(plain)) == []               # every coin up: the whole batch seen from the other side
+    before = {k: v.clone() for k, v in down.items()}
+    out = data.swap_views(down)
+    assert equal_batches(down, before) == [] and all(out[k].data_ptr() != plain[k].data_ptr() for k in out if out[k].numel())      # new tensors, the input is not changed
+    for bad in (plain, dict(plain, swap_view=torch.zeros(n, dtype=torch.long)), dict(plain, swap_view=torch.zeros(n + 1, dtype=torch.bool)), dict(plain, swap_view=torch.zeros(n, 1, dtype=torch.bool))):
+        with pytest.raises(ValueError, match='swap_view'):
+            data.swap_views(bad)
+    with pytest.raises(ValueError, match='unknown_key'):                            # as ``swap``: a key without a rule would stay unswapped
+        data.swap_views(dict(down, unknown_key=torch.zeros(n)))
+    with pytest.raises(ValueError, match='pos'):
+        data.swap_views({k: v for k, v in down.items() if k != key('M3Size', 'open', 'pos')})

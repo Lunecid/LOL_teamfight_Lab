@@ -16,9 +16,10 @@ teamfight outcome models (stage S3):
        - Compact 39-dim difference vector: game time (min), phase indicators 1..7, player stat diffs (Blue - Red),
          total alive players, team geodesic distance (min/mean), objective diffs, active buffs, and objective presence.
        - Missing values are imputed with the column mean across the FIT split (`b0_fit_means`).
-  5. B1 LightGBM Feature Table (`b1`):
+  5. B1 LightGBM Feature Table (`b1`, `b1_swapped`):
        - Tree-model feature table containing summary columns, team sums/maxima for player features, and distances.
        - Preserves NaNs as native missing values for gradient boosting trees.
+       - `b1_swapped` makes the same table for the views seen from the other team (S4b preparation M13, decision B22: B1 is averaged over the two frames at test time).
   6. Masked M4 Head Inputs (`m4_masked_inputs`):
        - Constructs the conditioning matrix for post-teamfight conversion evaluation:
          t0 baseline features + onset bin q + first kill mark m + zone z + kill/gold counts K + 18 objective cells O.
@@ -379,17 +380,24 @@ def _rows(array, sel: np.ndarray) -> np.ndarray:
 
 
 # ---- columns to drop ---------------------------------------------------------------------------------------------------------------------
-def dropped_columns(s2, fit_views) -> tuple:
+def dropped_columns(s2, fit_views, pooled: bool = False) -> tuple:
     """The names of the summary and player columns to leave out of the baseline inputs (see the module text): those with one value in
     all the views of ``fit_views`` and ``'t_s'``. ``fit_views`` is required: the view numbers (or a bool mask over the views) of the FIT
     matches, all three sources, that is ``np.flatnonzero(split_views(s1, s2, 'FIT'))``; the store holds the views of every role it was built
     for, so there is no default that could judge them together. Reads ``x/summary`` and ``x/players_num`` in chunks. ValueError for None or
     no view.
 
+    ``pooled`` (S4b preparation M5, decision D7): ``False`` (the default) is the list of every earlier run, each column judged alone.
+    ``True`` judges the columns that the team swap exchanges on their pooled values (equation (FEAT-3p) below) so that a pair goes together or
+    stays together and the list is closed under the swap; the EPT loader and the baselines use this list (``ept.data.store_constant_columns``).
+
     수식
     ----
     (FEAT-3)  min_c = min_{ i ∈ I_fit, p } x_{i,p,c},  max_c = max_{ i ∈ I_fit, p } x_{i,p,c}  (NaN은 건너뜀; 요약 열은 p 없이)
               열 c를 뺀다 ⇔ min_c가 NaN이거나 min_c = max_c, 또는 c = t_s
+    (FEAT-3p) pooled=True:  min′_c = min(min_c, min_π(c)),  max′_c = max(max_c, max_π(c))   (요약 열; π = 팀 교환의 열 순열, symmetry.SUMMARY_SWAP)
+              위치 열 c ∈ {x, y, prev_x, prev_y}:  min′_c = min(min_c, W − max_c),  max′_c = max(max_c, W − min_c)   (180° 회전 x ↦ W − x)
+              열 c를 뺀다 ⇔ min′_c가 NaN이거나 min′_c = max′_c, 또는 c = t_s   (그 밖의 선수 열은 열마다 그대로)
 
       기호    | 뜻                                        | 단위   | 범위                    | 코드 변수
       I_fit   | 호출자가 준 보기 번호의 집합              | —      | 0, …, 보기 수 − 1       | fit_views (idx)
@@ -397,11 +405,18 @@ def dropped_columns(s2, fit_views) -> tuple:
       p       | 선수 행(0부터)                            | —      | 0, …, 9                 | 선수 열의 축
       x       | 그 열의 값(float32)                       | 열마다 | 유한 또는 NaN           | summary, players_num
       min_c, max_c | I_fit에서의 최솟값, 최댓값(NaN 제외) | 열마다 | float32 또는 NaN        | s_lo, s_hi, p_lo, p_hi
+      π(c)    | 팀 교환이 열 c와 맞바꾸는 요약 열 (제자리 열은 c 자신)  | —      | 0, …, 106               | symmetry.SUMMARY_SWAP
+      W       | 지도 폭 (180° 회전의 상수)                | 맵 단위 | 14,875                  | C.W
+      min′_c, max′_c | 짝(또는 회전)과 합친 최솟값, 최댓값  | 열마다 | float64 또는 NaN        | pooled 분기의 lo, hi
 
     해석
     ----
     식 (FEAT-3)은 FIT 보기에서 값이 하나뿐이거나 아예 없는 열과, 늘 게임 시각과 같은 중복 열 t_s를 기준 모형의 입력에서 뺀다. 비교는 NaN을 건너뛴 float32
     최솟값과 최댓값이 같은지이며, 선수 열은 선수 10명의 값을 모두 모아 한 번에 비교한다.
+    식 (FEAT-3p)는 팀 교환이 서로 맞바꾸는 요약 열 한 쌍을 한 열처럼 판정한다. 한 열만 상수여도 팀 교환을 거친 뒤에는 그 자리에 다른 열의 값이 들어오므로, 짝의
+    합친 값이 하나뿐일 때만 두 열을 함께 뺀다(DAT-5와 같은 이유). 위치 열은 회전 x ↦ W − x에서 짝이 자기 자신의 거울상이므로 c와 W − c를 합쳐 판정하고, 그래서 위치가
+    W/2에서 상수일 때만 빠진다. 합친 판정은 짝 두 열 모두에 같은 결과를 주므로 목록은 팀 교환에 닫혀 있다. 전체 FIT 저장소에서 상수이면 그 부분집합에서도 상수이므로
+    부분집합으로 판정한 합친 목록은 전체 저장소 목록을 담는다(D7 목록 ⊆ D12 목록).
 
     근거
     ----
@@ -426,6 +441,18 @@ def dropped_columns(s2, fit_views) -> tuple:
 
     def constant(lo, hi):
         return np.isnan(lo) | (lo == hi)                                 # no value at all, or one value
+    if pooled:
+        # (FEAT-3p): the swap pairs share one judgement; fmin / fmax skip a NaN, so a pair with one empty column is judged on the other one
+        from c_ept.domain import symmetry                                # here, not at module level: like ``tokens``, the S2 modules load when a baseline needs them
+        pair = np.asarray(symmetry.SUMMARY_SWAP, dtype=np.int64)
+        if pair.shape != (len(plan.summary_names),):
+            raise RuntimeError('the summary swap permutation does not match the summary columns')
+        s_lo, s_hi = np.fmin(s_lo, s_lo[pair]), np.fmax(s_hi, s_hi[pair])
+        at = [plan.player_index[name] for name in ('x', 'y', 'prev_x', 'prev_y')]
+        width = np.float64(C.W)
+        lo64, hi64 = p_lo.astype(np.float64), p_hi.astype(np.float64)
+        p_lo, p_hi = lo64.copy(), hi64.copy()
+        p_lo[at], p_hi[at] = np.fmin(lo64[at], width - hi64[at]), np.fmax(hi64[at], width - lo64[at])      # the 180 degree rotation x -> W - x
     drop_s, drop_p = constant(s_lo, s_hi), constant(p_lo, p_hi)
     return (tuple(name for name, drop in zip(plan.summary_names, drop_s) if drop or name == 't_s')
             + tuple(name for name, drop in zip(plan.player_names, drop_p) if drop))
@@ -624,20 +651,84 @@ def b1(s2, views, dropped) -> np.ndarray:
       - 양 팀 간 최소 및 평균 측지선 보행 거리.
       - 결측치(NaN)는 LightGBM이 직접 처리하므로 대치하지 않고 그대로 유지합니다.
     """
+    return _b1_rows(s2, views, dropped, False)
+
+
+def b1_swapped(s2, views, dropped) -> np.ndarray:
+    """
+    B1 Feature Matrix of the Team-Swapped Views / 팀을 맞바꾼 보기의 B1 특징 행렬 (S4b 준비 M13, 결정 B22)
+
+    [English]
+    The ``b1`` rows (same columns, same dtype, same order of the views) of the views as they look from the other side: the summary columns that the team swap exchanges are exchanged
+    (``symmetry.SUMMARY_SWAP``), the player rows change places (blue 0-4 with red 5-9, ``symmetry.PLAYER_ORDER``), the four position columns turn by 180 degrees (x -> W - x) and the
+    geodesic table follows the players. The views are not written anywhere: the answer equals ``b1`` of a store whose views went through ``symmetry.swap_view`` in every bit (a test
+    checks it), and ``b1_swapped`` of such a store is ``b1`` of the original. With ``b1`` it makes the two frames over which B1 is averaged at test time (decision B22).
+
+    [한국어 설명]
+    각 보기를 반대편에서 본 것으로 바꾼 뒤 만드는 ``b1`` 행이다. 요약 열은 팀 교환이 맞바꾸는 짝끼리 바꾸고, 선수 행은 파랑과 빨강이 자리를 바꾸며, 위치 네 열은 180도 돌리고(x -> W - x),
+    측지선 표는 선수 순서를 따른다. 팀별 합과 최댓값은 파랑·빨강 자리가 서로 바뀌어 나오고, 팀 사이 거리(geo_min, geo_mean)는 측지선 표가 대칭이면 그대로이다(표를 다시 만들지 않고 선수 순서만 따른다).
+
+    수식
+    ----
+    b1_swapped(v) = b1(Π v) ;  Π = (요약 열 SUMMARY_SWAP, 선수 행 PLAYER_ORDER, x ↦ W − x, 측지선 행·열 PLAYER_ORDER) ;  Π(Π v) = v
+
+    해석
+    ----
+    B1은 표의 특징으로만 예측하므로 EPT의 프레임 평균(``FrameAveraged``)과 같은 평균을 받으려면 맞바꾼 틀의 특징을 따로 만들어야 한다. 변환은 ``symmetry.swap_view``의 것을 그대로 쓴다(요약 열과
+    선수 행의 순열, 위치의 회전). 열이 상수라서 뺀 짝 열의 값은 맞바꾼 틀에서 남은 짝 열에 들어온다(``dropped_columns(pooled=True)``의 목록은 짝을 함께 빼므로 닫혀 있다).
+    """
+    return _b1_rows(s2, views, dropped, True)
+
+
+def swap_unclosed_columns(dropped) -> tuple:
+    """The pairs ``(dropped column, kept partner)`` of the summary columns that the team swap exchanges (``symmetry.SUMMARY_SWAP``) when one member of the pair is in ``dropped`` and the other is not: ``()`` when
+    the list is closed under the swap. ValueError for a name that is no column of the view. S4b preparation M13 (decision B22), the check of ``run_inference(b1_swap_average=True)``.
+
+    수식
+    ----
+    닫히지 않은 쌍 = {(c, π(c)) : c ∈ dropped, π(c) ∉ dropped},   π = SUMMARY_SWAP (요약 열의 팀 교환 순열)
+
+    해석
+    ----
+    맞바꾼 틀에서는 열 π(c)의 값이 열 c 자리에 들어온다. c가 FIT에서 상수라서 뺐고 짝 π(c)는 남았다면, 남은 열 π(c)가 맞바꾼 틀에서 FIT에서 한 번도 보지 않은 상수 값을 받아 B1의 맞바꾼 틀 예측이
+    외삽이 되고, 평균은 여전히 정확히 불변이지만 B1이 말없이 나빠진다. 짝을 함께 판정한 목록(``dropped_columns(pooled=True)``)은 닫혀 있다. 선수 열은 모든 선수에서 같은 이름으로 빠지고 팀 교환은
+    그 열의 이름을 바꾸지 않으므로(위치 열은 회전할 뿐) 늘 닫혀 있다.
+    """
+    from c_ept.domain import symmetry                                    # here, not at module level: like ``tokens``, the S2 modules load when a baseline needs them
+    plan = _plan()
+    _kept(plan, dropped)                                                 # refuses a name that is no column of the view
+    drop = set(dropped)
+    pair = symmetry.SUMMARY_SWAP
+    return tuple((name, plan.summary_names[int(pair[i])]) for i, name in enumerate(plan.summary_names)
+                 if name in drop and plan.summary_names[int(pair[i])] not in drop)
+
+
+def _b1_rows(s2, views, dropped, swapped: bool) -> np.ndarray:
+    """The b1 rows of ``views``; ``swapped`` reads each view from the other side (see ``b1_swapped``). The default path is the arithmetic of every earlier run."""
     plan = _plan()
     ks, kp = _kept(plan, dropped)
     a = _arrays(s2, 'summary', 'players_num', 'geo_pp')
     idx = view_index(len(a['summary']), views)
     ns, nk = len(ks), len(kp)
     out = np.empty((len(idx), ns + 4 * nk + 2), dtype=np.float32)
+    if swapped:
+        from c_ept.domain import symmetry                                # here, not at module level: like ``tokens``, the S2 modules load when a baseline needs them
+        turned = [plan.player_index[name] for name in ('x', 'y', 'prev_x', 'prev_y')]
     for lo, sel in _chunks(idx):
-        P = _rows(a['players_num'], sel)[:, :, list(kp)].astype(np.float64)
+        summary, players, geo = _rows(a['summary'], sel), _rows(a['players_num'], sel), _rows(a['geo_pp'], sel)
+        if swapped:
+            order = symmetry.PLAYER_ORDER
+            summary = summary[:, symmetry.SUMMARY_SWAP]
+            players = players[:, order]                                  # a copy (fancy indexing): the stored views are not touched
+            players[:, :, turned] = symmetry.W - players[:, :, turned]   # the rotation x -> W - x of ``symmetry.swap_view``
+            geo = geo[:, order][:, :, order]
+        P = players[:, :, list(kp)].astype(np.float64)
         block = np.empty((len(sel), out.shape[1]))
-        block[:, :ns] = _rows(a['summary'], sel)[:, list(ks)]
+        block[:, :ns] = summary[:, list(ks)]
         blue, red = P[:, :5], P[:, 5:]
         for j, part in enumerate((blue.sum(axis=1), red.sum(axis=1), blue.max(axis=1), red.max(axis=1))):         # NaN stays NaN
             block[:, ns + j * nk:ns + (j + 1) * nk] = part
-        block[:, -2], block[:, -1] = _geodesic(_rows(a['geo_pp'], sel))
+        block[:, -2], block[:, -1] = _geodesic(geo)
         out[lo:lo + len(sel)] = narrow('b1', block, np.float32)
     return out
 

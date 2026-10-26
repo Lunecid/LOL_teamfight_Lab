@@ -11,6 +11,22 @@
   (EC-3) P(s), μ_{s,t}, p(b | s,t,ξ): 규모·팀·자기 팀 킬 층 선택.
   (EC-4) K' = (k_B,k_R,g_B/1000,g_R/1000): 목적물 조건의 단위 변환.
   (EC-5) r = M4(q,m,z,K',O,노출 1): 전환의 초당 발생률.
+  (EC-6) C_c = H(Enc(X[v_{cB}..v_{(c+1)B−1}])), cache = concat_c C_c : 보기를 B개씩 묶어 부호화하고 머리가 읽는 텐서 H만 남긴다.
+         H(E) = (h_tok[:, 0..9], h_pool, side) ;  원 틀과 맞바꾼 틀 둘 다(프레임 평균일 때).
+
+      기호  | 뜻                                                         | 단위 | 범위          | 코드 변수
+      B     | 한 묶음의 보기 수(평가 정체성에 기록하는 고정 상수)        | 보기 | 양의 정수 | chunk_views
+      v_i   | 바인딩이 받은 i번째 보기(요청한 순서)                     | —    | S2 보기 번호(views/src = 0) | idx
+      X[·]  | 그 보기들의 표준화한 입력 텐서                             | —    | 실수      | data.ViewTensors
+      Enc   | 부호화기(원 틀과 맞바꾼 틀 각각의 호출)                   | —    | —         | frame.encode
+      H     | 머리가 읽는 상태: 선수 토큰 10개, 풀링 상태, 진영 표시    | —    | 실수      | _head_inputs
+      C_c   | 묶음 c의 캐시 조각                                         | —    | 실수      | parts
+
+해석: 부호화기는 보기마다 독립이어서 B개씩 나눠 부호화해도 같은 보기의 상태는 같은 식의 값이다. 다만 묶음이 달라지면 같은 보기가 놓이는 자리와 한 번에 처리하는 행렬의 모양이 달라져
+부동소수점 반올림이 마지막 자리 수준에서 달라질 수 있다(실제 규모 B = 256에서 상대 1.15e-7, 계획 Q6의 T011 측정; 장난감 모형 B = 1에서 5.7e-7, 이 과제의 시험; 문서화한 한계는 B ≥ 4에서 1e-6, B ≤ 2에서 2e-6).
+그래서 같은 B에서는 비트 단위로 같고 B가 다르면 한계 안에서만 같으며, B는 평가 정체성에 묶는다. 합성기의 뽑기와 모의 값은 균등 난수를 누적 확률과 견주므로 머리 출력의 이 한계보다 크게 달라질 수 있다(뽑기 하나가 뒤집힌다).
+머리가 읽는 것은 선수 토큰 10개의 상태와 풀링 상태뿐이므로(heads._read) 토큰 전체(N_tok개) 대신 이 둘만 남기면 보기당 상태가 N_tok/11배 줄고(요약 토큰의 상태 h_pool은 h_tok의 마지막 토큰이어서 따로 세지 않는다) 마스크도 없어진다(사건 상한 128이면 N_tok = 173, 173/11 = 15.7배, 계획 Q6의 수치와 같다).
+묶음 크기가 보기 수 이상이면 한 번의 부호화와 같다. 기본값 None은 지금의 한 번 부호화 그대로이며 캐시도 전체 부호화를 담는다.
 
 handle_i는 features.m4_masked_inputs의 float32 행렬을 통과하므로 두 정수 모두
 2^24 이하로 제한하고 초과는 거부한다. 첫 열은 기존 누설 변형의 로컬 행
@@ -27,7 +43,8 @@ import numpy as np
 import torch
 
 from c_ept.ept import data
-from c_ept.ept.heads import EPT, FrameAveraged
+from c_ept.ept.encoder import Encoded, token_layout
+from c_ept.ept.heads import EPT, FrameAveraged, FrameEncoded
 
 MAX_HANDLE = 2**24
 
@@ -50,17 +67,56 @@ def _counts(name, values, n, width, *, dtype=np.float32):
     return a.astype(dtype, copy=True)
 
 
+def _chunk_views(value):
+    """``chunk_views`` as a Python int, or None; a ValueError (that does not repeat the value) for anything that is not None or a positive integer (a bool, a float and a string are not)."""
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, (int, np.integer)) or value < 1:
+        raise ValueError('chunk_views must be a positive integer (views per encoding chunk) or None (one encoding pass)')
+    return int(value)
+
+
+def _head_inputs(encoded: Encoded) -> Encoded:
+    """The part of one encoding that the heads read, as new tensors that own their memory (S4b preparation M14, EC-6).
+
+    ``heads._read`` takes the states of the ten player tokens (``token_layout(0).players``) and the pooled state; ``_row_count`` takes the number of views of the pool. Nothing reads the other tokens or the
+    mask, so the mask is an empty (views, 0) tensor. A slice of the encoder output would keep the whole output alive: ``clone`` copies, and the cache of a chunk no longer references the chunk.
+    """
+    pool = encoded.h_pool.clone()
+    return Encoded(encoded.h_tok[:, token_layout(0).players].clone(memory_format=torch.contiguous_format), pool, torch.zeros((pool.shape[0], 0), dtype=torch.bool, device=pool.device))
+
+
+def _chunk_cache(encoded: FrameEncoded) -> FrameEncoded:
+    """``encoded`` reduced to what the heads read in each frame (``_head_inputs``); the swapped frame stays None for one frame (``FrameAveraged(average=False)``), the side marker is kept, ``rows`` is None."""
+    return FrameEncoded(_head_inputs(encoded.original), None if encoded.swapped is None else _head_inputs(encoded.swapped), encoded.side.clone())
+
+
+def _join(parts: list) -> FrameEncoded:
+    """The caches of the chunks put one after the other along the view axis, in the order of the chunks."""
+    def cat(frame):
+        return Encoded(*(torch.cat([getattr(frame(p), field) for p in parts], 0) for field in Encoded._fields))
+    swapped = None if parts[0].swapped is None else cat(lambda p: p.swapped)
+    return FrameEncoded(cat(lambda p: p.original), swapped, torch.cat([p.side for p in parts], 0))
+
+
 class EPTComposerHeads:
     """Frame-only EPT adapter with the public ComposerHeads methods.
 
     해석: 바인딩은 프레임 시계 입력만 고정하고 합성 사슬에서 뽑은 조건만 각 머리에 전달한다.
+
+    ``chunk_views`` (keyword only, default None; S4b preparation M14, decision Q6 = A, T011 A2-F6): None encodes all bound views in one pass and keeps the whole encoding, as before. A positive integer B
+    encodes the views in chunks of B views, in the requested order, and keeps only what the heads read (EC-6), so the cache of a very large evaluation set fits in memory (about 15.7 times smaller). The
+    outputs of the same B are bit-identical across runs; another B (or None) moves them at the last digits of float32 (real scale B = 256: relative 1.15e-7, plan Q6 / T011; toy model B = 1: 5.7e-7, the tests of M14;
+    documented bound 1e-6 for B >= 4 and 2e-6 for B <= 2), so the evaluation identity records B (``chunk_views``, read by the run profile); a B of at least the number of views is the one pass. Composer draws and
+    simulated values compare uniforms with cumulative probabilities and may differ by more than that head-output bound (a draw can flip). ``strata.flow_composer`` therefore requires the same B in both chains. ValueError for another value. The adapter itself has no provenance record: B is recorded by the profile, and only when it is not None.
     """
     feature_kind = 'ept'
     analytic_ok = False
     obj_uses_K = True
     conv_uses_KO = True
 
-    def __init__(self, model, stats):
+    def __init__(self, model, stats, *, chunk_views=None):
+        self._chunk_views = _chunk_views(chunk_views)
         if isinstance(model, FrameAveraged):
             self.frame, self.model = model, model.model
         elif isinstance(model, EPT):
@@ -71,6 +127,16 @@ class EPTComposerHeads:
             raise TypeError('the frame model must be EPT')
         self.stats = stats
         self._generation, self._n, self._enc = 0, None, None
+
+    @property
+    def chunk_views(self) -> int | None:
+        """The number of views encoded together (S4b preparation M14), or None for one pass; the evaluation identity records it when it is not None."""
+        return self._chunk_views
+
+    @property
+    def zone_mark(self) -> bool:
+        """Whether the model was built with the zone mark (S4b preparation M9, decision D9): the setting of its heads (``EPTHeads.zone_mark``). ``Composer`` compares it with its own."""
+        return self.model.heads.zone_mark
 
     @contextmanager
     def _evaluation(self):
@@ -95,6 +161,7 @@ class EPTComposerHeads:
 
         해석: 입력 번호와 보기 종류를 먼저 검사하므로 거부할 사건 보기의 특징은 읽지 않는다.
         부호화가 끝난 뒤에만 새 캐시를 채택하여 실패한 바인딩은 기존 참조를 보존한다.
+        chunk_views가 정수 B이면 (EC-6) 보기를 요청한 순서대로 B개씩 부호화해 머리가 읽는 텐서만 이어 붙이므로, 한 번에 메모리에 있는 완전한 부호화는 묶음 하나이고 중간 묶음이 실패해도 기존 캐시는 그대로다.
         """
         src, chosen = np.asarray(s2.array('views/src')), np.asarray(views)
         if src.ndim != 1:
@@ -115,10 +182,18 @@ class EPTComposerHeads:
         if any(p.dtype != torch.float32 for p in self.model.parameters()):
             raise ValueError('EPT composition requires float32 model parameters')
         enc = None
-        if len(idx):
+        if len(idx) and self._chunk_views is None:
             batch = {k: v.to(self._device) for k, v in data.ViewTensors(s2, idx, self.stats).items()}
             with self._evaluation():
                 enc = self.frame.encode(batch)
+        elif len(idx):
+            parts = []
+            with self._evaluation():
+                for lo in range(0, len(idx), self._chunk_views):                                     # (EC-6): C_c = H(Enc(X[chunk c])), the chunk is released before the next is encoded
+                    batch = {k: v.to(self._device) for k, v in data.ViewTensors(s2, idx[lo:lo + self._chunk_views], self.stats).items()}
+                    parts.append(_chunk_cache(self.frame.encode(batch)))
+                    del batch
+            enc = _join(parts)
         self._enc, self._n, self._generation = enc, len(idx), generation
 
     def _rows(self, rows):
@@ -282,6 +357,7 @@ class EPTComposerHeads:
         해석
         ----
         합성에서 뽑은 규모 전문가의 두 팀 포아송 평균을 선택한다.
+        이동 킬 법칙(결정 D5, K_d = 1 + N_d)에서는 첫 킬 팀 d = m // 25의 칸이 초과분 N_d의 평균 λ_d이고 뜻의 해석은 합성기(``Composer(kill_law=)``)가 맡는다; 이 머리는 출력만 낸다.
         이 머리는 교전당 개수이므로 시간 노출을 다시 곱하지 않는다.
         빈 행은 열2의 빈 배열이다.
 
@@ -346,6 +422,8 @@ class EPTComposerHeads:
         ----
         합성기가 표본으로 만든 킬과 골드만 목적물 조건으로 사용한다.
         원시 골드를 학습 입력과 같은 천 골드 단위로 한 번만 바꾸며 호출자 배열은 보존한다.
+        합성기가 넣는 골드는 뽑은 구간의 대표값(킬이 없는 팀은 0)이다. K 조건 'binned'로 학습한 머리(S4b 준비 M3, 결정 D21 B16)는 학습 행의 골드도 같은 값 집합 {0} ∪ {rep_b}에서
+        왔으므로 학습과 합성의 입력 지지가 같고, 'raw'(기본값)로 학습한 머리는 연속 골드를 보고 학습했다. 어느 쪽인지는 이 머리가 모르며 학습 정체성(``k_condition``)이 말한다.
         빈 행에는 열18의 빈 배열을 준다.
 
         근거

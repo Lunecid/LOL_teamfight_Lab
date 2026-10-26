@@ -947,3 +947,34 @@ def test_cpu_forward_is_deterministic():
     run = subprocess.run([sys.executable, '-c', code], cwd=root, capture_output=True, text=True, timeout=300, check=False)
     assert run.returncode == 0, run.stderr[-2000:]
     assert run.stdout.strip().splitlines()[-1] == first
+
+
+def test_field_channels_zero_keeps_static_channels_and_geodesic_bias():
+    """A6 (decision D8) is the existing ``EncoderConfig(field_channels=0)`` and needs no new code: the learned terrain field has no channel (no parameter number, no gradient, no smoothness penalty), while
+    the static channels of the field (walkable flag, ten zones, wall fraction) still go into the tokens through ``field_proj`` and the geodesic bias still reaches the attention. Both change the
+    encoding, and both are trained."""
+    cfg = encoder.EncoderConfig(**{**TINY, 'field_channels': 0})
+    torch.manual_seed(3)
+    enc = encoder.EPTEncoder(cfg, toy_static()).train()
+    static = toy_static()
+    assert enc.field is not None and enc.field.learned.shape == (GRID, GRID, 0) and enc.field.learned.numel() == 0
+    assert enc.field.n_channels == static.shape[-1] == 12 and enc.field_proj.weight.shape == (cfg.d, 12)
+    assert torch.equal(enc.field.table(), torch.from_numpy(static.copy())) and enc.field.penalty().item() == 0.0       # the table is the static channels only; nothing to smooth
+    assert len(enc.bias.geo) == 3 and all(p.requires_grad for p in enc.bias.geo.parameters())
+    batch = encoder_batch(views=4, events=9, edges=7, seed=2)
+    assert (batch['geo_pp_nan'] < 0.5).any() and (batch['geo_pl_nan'] < 0.5).any()                                      # the toy batch has geodesic cells to read
+    out = enc(batch)
+    (out.h_tok.square().sum() + out.h_pool.sum()).backward()
+    named = dict(enc.named_parameters())
+    assert named['field.learned'].grad is None or named['field.learned'].grad.numel() == 0
+    assert named['field_proj.weight'].grad.abs().sum() > 0 and all(torch.isfinite(p.grad).all() for p in named.values() if p.grad is not None)
+    for name, p in named.items():
+        if name.startswith('bias.geo.'):
+            assert p.grad is not None and p.grad.abs().sum() > 0, name
+    enc.eval()
+    with torch.no_grad():
+        base = enc(batch).h_pool
+        shifted = {**batch, 'geo_pp': batch['geo_pp'] + 0.5, 'geo_pl': batch['geo_pl'] + 0.5}
+        assert not torch.equal(enc(shifted).h_pool, base)                                                               # the geodesic bias is read
+        enc.field.static.zero_()
+        assert not torch.equal(enc(batch).h_pool, base)                                                                 # the static channels are read
